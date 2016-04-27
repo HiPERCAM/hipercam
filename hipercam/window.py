@@ -8,6 +8,8 @@ functions.
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from astropy.extern import six
+
+import numpy as np
 from .core import *
 
 class Window(object):
@@ -320,7 +322,7 @@ class Windata(Window):
         Arguments::
 
           targs : (array of 3 element arrays)
-              array of (x,y,h) values marking the central position
+              array of (xc,yc,h) values marking the central position
               and height of each gaussian to add
 
           sxx : (float)
@@ -332,8 +334,30 @@ class Windata(Window):
           rxy : (float)
               X-Y correlation coefficient
         """
-        pass
+        x = np.linspace(self.llx,self.urx,self.nx)
+        y = np.linspace(self.lly,self.ury,self.ny)
+        X,Y = np.meshgrid(x,y)
+        V = np.matrix([[sxx*sxx,sxx*syy*rxy],[sxx*syy*rxy,syy*syy]])
+        A = np.linalg.inv(V)
+        for xc,yc,h in targs:
+            xd = X-xc
+            yd = Y-yc
+            dsq = A[0,0]*xd**2+(A[1,0]+A[0,1])*xd*yd+A[1,1]*yd**2
+            self.data += h*np.exp(-dsq/2.)
 
+    def add_noise(self, readout, gain):
+        """Adds noise to a :class:`Windata` according to a variance
+        calculated from V = readout**2 + counts/gain.
+        Arguments::
+
+          readout : (float)
+              RMS readout noise in counts
+
+          gain : (float)
+              Gain in electrons per count.
+        """
+        sig = np.sqrt(readout**2+self.data/gain)
+        self.data += np.random.normal(scale=sig)
 
     def __iadd__(self, other):
         """+- in-place addition operator. 'other' can be another Windata,
