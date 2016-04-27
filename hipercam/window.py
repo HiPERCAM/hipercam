@@ -78,7 +78,7 @@ class Window(object):
         """
         Returns (left,right,bottom,top) boundaries of :class:`Window`
         """
-        return (self.lly-0.5,self.urx+0.5,self.lly-0.5,self.ury+0.5)
+        return (self.llx-0.5,self.urx+0.5,self.lly-0.5,self.ury+0.5)
 
     def outside(self, win):
         """
@@ -92,7 +92,8 @@ class Window(object):
         return win.xbin % self.xbin == 0 and win.ybin % self.ybin == 0 and \
             self.llx <= win.llx and self.urx >= win.urx and \
             self.lly <= win.lly and self.ury >= win.ury and \
-            (win.llx-self.llx) % self.xbin == 0 and (win.lly-self.lly) % self.ybin == 0
+            (win.llx-self.llx) % self.xbin == 0 and \
+            (win.lly-self.lly) % self.ybin == 0
 
     def inside(self, win):
         """
@@ -106,7 +107,8 @@ class Window(object):
         return self.xbin % win.xbin == 0 and self.ybin % win.ybin == 0 and \
             win.llx <= self.llx and win.urx >= self.urx and \
             win.lly <= self.lly and win.ury >= self.ury and \
-            (self.llx-win.llx) % win.xbin == 0 and (self.lly-win.lly) % win.ybin == 0
+            (self.llx-win.llx) % win.xbin == 0 and \
+            (self.lly-win.lly) % win.ybin == 0
 
     def wfhead(self, nccd, nwin, fhead, nxccd, nyccd, NX, NY):
         """
@@ -259,16 +261,15 @@ class Window(object):
             self.xbin == win.xbin and self.ybin == win.ybin
 
     def __ne__(self, win):
-        """
-        Defines equality. Two :class:`Window`s are equal if they match exactly
-        (same lower left corner, dimensions and binning factors)
+        """Defines equality. Two :class:`Window`s are equal if they match
+        exactly (same lower left corner, dimensions and binning factors)
+
         """
         return not (self.llx == win)
 
 def overlap(win1, win2):
-    """
-    Returns True if :class:`Window's win1 and win2 overlap, False if they don't. Overlap
-    means that they at least one unbinned pixel in common.
+    """Returns True if :class:`Window's win1 and win2 overlap, False if they
+    don't. Overlap means that they at least one unbinned pixel in common.
     """
     return win1.llx <=  win2.urx and win1.urx >= win2.llx and \
         win1.lly <=  win2.ury and win1.ury >= win2.lly
@@ -285,7 +286,7 @@ class Windata(Window):
         >>> data = np.ones((150,100))
         >>> wind = Windata(win,data)
     """
-    def __init__(self, win, data):
+    def __init__(self, win, data=None):
         """
         Constructs a :class:`Windata`
 
@@ -295,17 +296,44 @@ class Windata(Window):
               the Window
 
           data : (numpy.ndarray)
-              the data (2D). The dimension must match those in win
+              the data (2D). The dimension must match those in win unless
+              data is None in which case a zero array of the correct size will
+              be created.
         """
-        # Run a couple of checks
-        if data.ndim != 2:
-            raise HipercamError('Windata.__init__: data must be 2D. Found {0:d}'.format(data.ndim))
-        ny, nx = data.shape
-        if nx != win.nx or ny != win.ny:
-            raise HipercamError('Windata.__init__: win & data dimensions conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
+        if data is None:
+            self.data = np.zeros((win.ny,win.nx))
+        else:
+            # Run a couple of checks
+            if data.ndim != 2:
+                raise HipercamError('Windata.__init__: data must be 2D. Found {0:d}'.format(data.ndim))
+            ny, nx = data.shape
+            if nx != win.nx or ny != win.ny:
+                raise HipercamError('Windata.__init__: win & data dimensions conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
 
-        super(Windata, self).__init__(win.llx, win.lly, win.nx, win.ny, win.xbin, win.ybin)
-        self.data = data
+            self.data = data
+
+        super(Windata, self).__init__(win.llx, win.lly,
+                                      win.nx, win.ny, win.xbin, win.ybin)
+
+    def add_stars(self, targs, sxx, syy, rxy):
+        """Routine to add gaussians to a :class:`Windata`.
+        Arguments::
+
+          targs : (array of 3 element arrays)
+              array of (x,y,h) values marking the central position
+              and height of each gaussian to add
+
+          sxx : (float)
+              sigma in X direction
+
+          syy : (float)
+              sigma in Y direction
+
+          rxy : (float)
+              X-Y correlation coefficient
+        """
+        pass
+
 
     def __iadd__(self, other):
         """+- in-place addition operator. 'other' can be another Windata,
@@ -318,15 +346,5 @@ class Windata(Window):
         return self
 
     def __repr__(self):
-        return 'Windata(win=' + super(Windata,self).__repr__() + ', data=' + repr(self.data) + ')'
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
-
-    import numpy as npy
-
-    win  = Window(11,21,100,150,2,2)
-    print(win)
-    data = np.empty((150,100))
-    wind = Windata(win,data)
+        return 'Windata(win=' + super(Windata,self).__repr__() + \
+                              ', data=' + repr(self.data) + ')'
