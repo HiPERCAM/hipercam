@@ -112,6 +112,15 @@ class Window(object):
             (self.llx-win.llx) % win.xbin == 0 and \
             (self.lly-win.lly) % win.ybin == 0
 
+    def clash(self, win):
+        """Returns True if two :class: `Window`s are considered to 'clash'.
+        In this case this means if they have any pixels in common.
+        This method allows :class: `Window`s to be collected in
+        :class:`Group`s 
+        """
+        return self.llx <=  win.urx and self.urx >= win.llx and \
+            self.lly <=  win.ury and self.ury >= win.lly
+
     def wfhead(self, nccd, nwin, fhead, nxccd, nyccd, NX, NY):
         """
         Writes window data into a FITS header. Assumes HiPERCAM type
@@ -268,13 +277,6 @@ class Window(object):
 
         """
         return not (self.llx == win)
-
-def overlap(win1, win2):
-    """Returns True if :class:`Window's win1 and win2 overlap, False if they
-    don't. Overlap means that they at least one unbinned pixel in common.
-    """
-    return win1.llx <=  win2.urx and win1.urx >= win2.llx and \
-        win1.lly <=  win2.ury and win1.ury >= win2.lly
 
 
 class Windata(Window):
