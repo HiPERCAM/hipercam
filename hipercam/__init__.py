@@ -15,6 +15,8 @@ from ._astropy_init import *
 if not _ASTROPY_SETUP_:
     from .group import *
     from .window import *
+    from .ccd import *
+    from .aperture import *
     import mpl
 
 
