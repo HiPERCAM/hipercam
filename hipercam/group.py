@@ -29,7 +29,7 @@ class Group(dict):
             # check that all objects are of the same type
             tone = type(self.values()[0])
             for obj in self.values()[1:]:
-                if not instanceof(obj,tone):
+                if not isinstance(obj,tone):
                     raise HipercamError(
                         'Group.__init__: more than one object type')
 
@@ -44,7 +44,7 @@ class Group(dict):
     def __repr__(self):
         return 'Group(dct=' + super(Group,self).__repr__() + ')'
 
-   def __setitem__(self, key, item):
+    def __setitem__(self, key, item):
         """Adds an item `item` keyed by `key` 
         checking that its type matches and that it does
         does clash with any current member of the :class:
@@ -54,7 +54,7 @@ class Group(dict):
             # check that new item has same type as current ones
             tone = type(item)
             for ob in self:
-                if not instanceof(ob,tone):
+                if not isinstance(ob,tone):
                     raise HipercamError(
                         'Group.__setitem__: object type differs from existing Group members')
                 if obj.clash(ob):
