@@ -148,16 +148,6 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
     kwargs['vmax'] = vmax
 
     for key, wind in ccd.iteritems():
-        left,right,bottom,top = wind.extent()
-
-        if 'cmap' in kwargs:
-            axes.imshow(wind.data,extent=(left,right,bottom,top),
-                        aspect=aspect,origin='lower',
-                        interpolation='nearest',**kwargs)
-        else:
-            axes.imshow(wind.data,extent=(left,right,bottom,top),
-                        aspect=aspect,origin='lower',cmap='Greys',
-                        interpolation='nearest',**kwargs)
-        pwin(axes, wind, col, lw)
+        pwind(axes, wind, col, lw, aspect, **kwargs)
 
     return (vmin,vmax)
