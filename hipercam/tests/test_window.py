@@ -21,4 +21,7 @@ wind = Windata(win, data)
 
 assert(wind.data[0,0] == 1.)
 
+win1 = Window(600,271,10,10,1,1)
+
+assert(win.clash(win1))
 
