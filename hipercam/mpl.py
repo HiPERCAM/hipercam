@@ -124,19 +124,11 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
     """
     if iset == 'p':
         # Set intensities from percentiles
-        arrs = []
-        for wind in ccd.values():
-            arrs.append(wind.data.flatten())
-        arr = np.concatenate(arrs)
-        vmin,vmax = np.percentile(arr, (plo,phi))
+        vmin,vmax = ccd.percentile((plo,phi))
 
     elif iset == 'r':
         # Set intensities from min/max range
-        winds = ccd.values()
-        vmin, vmax = winds[0].data.min(), winds[0].data.max()
-        for wind in winds[1:]:
-            vmin = min(vmin, wind.data.min())
-            vmax = max(vmax, wind.data.max())
+        vmin, vmax = ccd.min(), ccd.max()
 
     elif iset == 'd':
         vmin, vmax = dlo, dhi
