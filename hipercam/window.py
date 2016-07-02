@@ -323,6 +323,13 @@ class Windata(Window):
         super(Windata, self).__init__(win.llx, win.lly,
                                       win.nx, win.ny, win.xbin, win.ybin)
 
+    @property
+    def size(self):
+        """
+        Number of pixels
+        """
+        return self.data.size
+
     def add_stars(self, targs, sxx, syy, rxy):
         """Routine to add gaussians to a :class:`Windata`.
         Arguments::
@@ -364,6 +371,35 @@ class Windata(Window):
         """
         sig = np.sqrt(readout**2+self.data/gain)
         self.data += np.random.normal(scale=sig)
+
+    def min(self):
+        """
+        Returns the minimum value of the :class:`Windata`.
+        """
+        return self.data.min()
+
+    def max(self):
+        """
+        Returns the maximum value of the :class:`Windata`.
+        """
+        return self.data.max()
+
+    def mean(self):
+        """
+        Returns the mean value of the :class:`Windata`.
+        """
+        return self.data.mean()
+
+    def percentile(self, q):
+        """
+        Computes percentile(s) of a :class:`Windata`.
+
+        Arguments::
+
+        q : (float or sequence of floats)
+          Percentile(s) to use, in range [0,100]
+        """
+        return np.percentile(self.data, q)
 
     def __iadd__(self, other):
         """+= in-place addition operator. 'other' can be another Windata,

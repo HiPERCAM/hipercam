@@ -43,6 +43,55 @@ class CCD(Group):
         self.nytot = nytot
         self.head = head
 
+    def min(self):
+        """
+        Returns the minimum value of the :class:`CCD`.
+        """
+        winds = self.values()
+        vmin = winds[0].min()
+        for wind in winds[1:]:
+            vmin = min(vmin, wind.min())
+        return vmin
+
+    def max(self):
+        """
+        Returns the maximum value of the :class:`CCD`.
+        """
+        winds = self.values()
+        vmax = winds[0].max()
+        for wind in winds[1:]:
+            vmax = min(vmax, wind.max())
+        return vmax
+
+    def mean(self):
+        """
+        Returns the mean value of the :class:`Windata`.
+        """
+        npix, total = 0, 0.
+        for wind in self.values():
+            npix += wind.size
+            total += wind.sum()
+        return total / float(npix)
+
+    def percentile(self, q):
+        """
+        Computes percentile(s) of the :class:`CCD`.
+
+        Arguments::
+
+        q : (float or sequence of floats)
+          Percentile(s) to use, in range [0,100]
+        """
+
+        # Flatten into a single 1D array
+        arrs = []
+        for wind in ccd.values():
+            arrs.append(wind.data.flatten())
+        arr = np.concatenate(arrs)
+
+        # Then compute percentiles
+        return np.percentile(arr, q)
+
     def __repr__(self):
         return 'CCD(winds=' + super(CCD,self).__repr__() + \
                             ', nxtot=' + repr(self.nxtot) + \
