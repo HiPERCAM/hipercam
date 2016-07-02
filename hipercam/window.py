@@ -282,14 +282,18 @@ class Window(object):
 class Windata(Window):
     """
     Class representing a CCD window with data. Constructed from
-    a :class:`Window` and a :class:`numpy.ndarray`
+    a :class:`Window` and a :class:`numpy.ndarray` which is stored
+    in an attribute called `data`.
 
         >>> import numpy as np
         >>> from hipercam import Window, Windata
         >>> win = Window(12, 6, 100, 150, 2, 3)
         >>> data = np.ones((150,100))
         >>> wind = Windata(win,data)
+        >>> wind += 0.5
+        >>> wind *= 2
     """
+
     def __init__(self, win, data=None):
         """
         Constructs a :class:`Windata`
@@ -301,8 +305,8 @@ class Windata(Window):
 
           data : (numpy.ndarray)
               the data (2D). The dimension must match those in win unless
-              data is None in which case a zero array of the correct size will
-              be created.
+              data is None in which case a zero array of the correct size
+              will be created.
         """
         if data is None:
             self.data = np.zeros((win.ny,win.nx))
@@ -362,13 +366,43 @@ class Windata(Window):
         self.data += np.random.normal(scale=sig)
 
     def __iadd__(self, other):
-        """+- in-place addition operator. 'other' can be another Windata,
+        """+= in-place addition operator. 'other' can be another Windata,
         an numpy.ndarray or a constant. Window parameters unchanged.
         """
         if isinstance(other, Windata):
             self.data += other.data
         else:
             self.data += other
+        return self
+
+    def __isub__(self, other):
+        """-= in-place subtraction operator. 'other' can be another Windata,
+        an numpy.ndarray or a constant. Window parameters unchanged.
+        """
+        if isinstance(other, Windata):
+            self.data -= other.data
+        else:
+            self.data -= other
+        return self
+
+    def __imul__(self, other):
+        """*= in-place multiplication operator. 'other' can be another Windata,
+        an numpy.ndarray or a constant. Window parameters unchanged.
+        """
+        if isinstance(other, Windata):
+            self.data *= other.data
+        else:
+            self.data *= other
+        return self
+
+    def __itruediv__(self, other):
+        """/= in-place division operator. 'other' can be another Windata,
+        an numpy.ndarray or a constant. Window parameters unchanged.
+        """
+        if isinstance(other, Windata):
+            self.data /= other.data
+        else:
+            self.data /= other
         return self
 
     def __repr__(self):
