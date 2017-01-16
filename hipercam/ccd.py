@@ -17,7 +17,7 @@ from .window import *
 class CCD(Group):
     """
     Class representing a CCD as a Group of Windata objects
-    plus a few FITS header items
+    plus a FITS header
     """
     def __init__(self, winds, nxtot, nytot, head=None):
         """
@@ -26,7 +26,7 @@ class CCD(Group):
         Arguments::
 
           winds : (dict)
-              dictionary of Windat objects. The dictionary keys should be integers.
+              dictionary of Windata objects. The dictionary keys should be integers.
 
           nxtot : (int)
               Unbinned X-dimension of CCD
@@ -35,8 +35,8 @@ class CCD(Group):
               Unbinned Y-dimension of CCD
 
           head : (astropy.io.fits.Header)
-              a header which will be written along with each of the sub-images
-              if writing to a file.
+              a header which will be written along with the first of the Windata
+              sub-images if writing to a file.
         """
         super(CCD,self).__init__(winds)
         self.nxtot = nxtot
@@ -47,9 +47,9 @@ class CCD(Group):
         """
         Returns the minimum value of the :class:`CCD`.
         """
-        winds = self.values()
-        vmin = winds[0].min()
-        for wind in winds[1:]:
+        winds = iter(self.values())
+        vmin = next(winds).min()
+        for wind in winds:
             vmin = min(vmin, wind.min())
         return vmin
 
@@ -57,9 +57,9 @@ class CCD(Group):
         """
         Returns the maximum value of the :class:`CCD`.
         """
-        winds = self.values()
-        vmax = winds[0].max()
-        for wind in winds[1:]:
+        winds = iter(self.values())
+        vmax = next(winds).max()
+        for wind in winds:
             vmax = min(vmax, wind.max())
         return vmax
 
@@ -85,15 +85,108 @@ class CCD(Group):
 
         # Flatten into a single 1D array
         arrs = []
-        for wind in ccd.values():
+        for wind in self.values():
             arrs.append(wind.data.flatten())
         arr = np.concatenate(arrs)
 
         # Then compute percentiles
         return np.percentile(arr, q)
 
+    def add_hdulist(self, hdul):
+        """Add the CCD as a series of ImageHDUs to an hdulist.
+        This is to allow a series of CCDs to be written. The CCD
+        header is written into the first HDU added to the list.
+
+        Arguments::
+
+            hdul : (astropy.io.fits.HDUList)
+                 An HDUList to which the CCD will be added as a series
+                 of ImageHDUs, the first of which will contain the header.
+
+        Returns:: the modified HDUList.
+
+        """
+        first = True
+        for key, wind in self.items():
+            if first:
+                fhead = self.head.copy()
+                first = False
+            else:
+                fhead = fits.Header()
+            fhead['NWIN'] = (int(key), 'Window number')
+            hdul.append(wind.whdu(fhead))
+
+        return hdul
+
+    def wfits(self, fname, overwrite=False):
+        """Writes out the CCD to a FITS file.
+
+        Arguments::
+
+            fname : (string)
+                 Name of file to write to.
+
+            overwrite : (bool)
+                 True to overwrite pre-existing files
+        """
+
+        phdu = fits.PrimaryHDU(header=self.head)
+        hdus = [phdu,]
+        for key, wind in self.items():
+            fhead = fits.Header()
+            fhead['NWIN'] = (int(key), 'Window number')
+            hdus.append(wind.whdu(fhead))
+        hdulist = fits.HDUList(hdus)
+        hdulist.writeto(fname,overwrite=overwrite)
+
     def __repr__(self):
         return 'CCD(winds=' + super(CCD,self).__repr__() + \
                             ', nxtot=' + repr(self.nxtot) + \
                             ', nytot=' + repr(self.nytot) + \
+                            ', head=' + repr(self.head) + ')'
+
+
+class MCCD(Group):
+    """
+    Class representing a multi-CCD as a Group of CCD objects
+    plus a FITS header.
+    """
+    def __init__(self, ccds, head=None):
+        """
+        Constructs a :class:`MCCD`
+
+        Arguments::
+
+          ccds : (dict)
+              dictionary of CCD objects. Keys should be integers.
+
+          head : (astropy.io.fits.Header)
+              a header which will be written as the primary header.
+        """
+        super(MCCD,self).__init__(ccds)
+        for key, ccd in self.items():
+            ccd.head['NCCD'] = (int(key), 'CCD number')
+        self.head = head
+
+    def wfits(self, fname, overwrite=False):
+        """Writes out the MCCD to a FITS file.
+
+        Arguments::
+
+            fname : (string)
+                 Name of file to write to.
+
+            overwrite : (bool)
+                 True to overwrite pre-existing files
+        """
+
+        phdu = fits.PrimaryHDU(header=self.head)
+        hdus = [phdu,]
+        for key, ccd in self.items():
+            ccd.add_hdulist(hdus):
+        hdulist = fits.HDUList(hdus)
+        hdulist.writeto(fname,overwrite=overwrite)
+
+    def __repr__(self):
+        return 'MCCD(ccds=' + super(MCCD,self).__repr__() + \
                             ', head=' + repr(self.head) + ')'
