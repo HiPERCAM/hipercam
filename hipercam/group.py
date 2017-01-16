@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Defines classes which contain groups of identical objects. Each
+Defines classes which contain groups of objects of identical type. Each
 object must support a method called "clash" where clash(self, other)
 returns True if self and other conflict is some way. For instance,
 two CCD sub-windows might be said to clash if they contain any pixels
@@ -12,35 +12,36 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from builtins import *
 
-
-import numpy as np
 from .core import *
 
+
 class Group(dict):
-    """Base class for a container of multiple
-    objects of identical type. Subclassed from dictionaries,
-    this class adds checks on consistency of the objects
-    and that they don't clash. Dictionaries are used to allow
-    flexible indexing.
+    """Base class for a container of multiple objects of identical
+    type. Subclassed from dictionaries, this class adds checks on consistency
+    of the objects and that they don't "clash". Dictionaries are used to allow
+    flexible indexing. The meaning of "clash" is defined by the objects which
+    must support a method "clash".
+
     """
 
     def __init__(self, dct):
         super(Group,self).__init__(dct)
-        if len(self) > 1:
-            # check that all objects are of the same type
-            tone = type(self.values()[0])
-            for obj in self.values()[1:]:
-                if not isinstance(obj,tone):
-                    raise HipercamError(
-                        'Group.__init__: more than one object type')
 
-            # check for any conflicts
-            keys = self.keys()
-            for i in xrange(len(keys)-1):
-                for j in xrange(i+1,len(keys)):
-                    if self[keys[i]].clash(self[keys[j]]):
-                        raise HipercamError(
-                            'Group.__init__: object clash encountered')
+        # check that all objects are of the same type
+        vals = iter(self.values())
+        first_type = type(next(vals))
+        for obj in vals:
+            if not isinstance(obj, first_type):
+                raise HipercamError(
+                    'Group.__init__: more than one object type')
+
+        # check for any conflicts
+        vals = list(self.values())
+        for i,val1 in enumerate(vals):
+            for val2 in vals[i+1:]:
+                if val1.clash(val2):
+                    raise HipercamError(
+                        'Group.__init__: object clash encountered')
 
     def __repr__(self):
         return 'Group(dct=' + super(Group,self).__repr__() + ')'
@@ -49,7 +50,7 @@ class Group(dict):
         """Adds an item `item` keyed by `key`
         checking that its type matches and that it does
         does clash with any current member of the :class:
-        `Group`. 
+        `Group`.
         """
         if len(self):
             # check that new item has same type as current ones
