@@ -139,7 +139,7 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
     kwargs['vmin'] = vmin
     kwargs['vmax'] = vmax
 
-    for key, wind in ccd.iteritems():
+    for key, wind in ccd.items():
         pwind(axes, wind, col, lw, aspect, **kwargs)
 
     return (vmin,vmax)
