@@ -7,10 +7,11 @@ two CCD sub-windows might be said to clash if they contain any pixels
 in common.
 """
 
-# Standard pre-amble from astropy
+# Imports for 2 / 3 compatibility
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from astropy.extern import six
+from builtins import *
+
 
 import numpy as np
 from .core import *
@@ -45,7 +46,7 @@ class Group(dict):
         return 'Group(dct=' + super(Group,self).__repr__() + ')'
 
     def __setitem__(self, key, item):
-        """Adds an item `item` keyed by `key` 
+        """Adds an item `item` keyed by `key`
         checking that its type matches and that it does
         does clash with any current member of the :class:
         `Group`. 

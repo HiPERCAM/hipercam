@@ -3,10 +3,10 @@
 Defines a class to represent a target photometric aperture
 """
 
-# Standard pre-amble from astropy
+# Imports for 2 / 3 compatibility
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from astropy.extern import six
+from builtins import *
 
 import numpy as np
 from .core import *
@@ -21,13 +21,19 @@ class Aperture(object):
 
     Reference apertures: these indicate (typically) bright stars that should
     be easy to locate. The idea is that when re-positioning apertures, you
-    might want to initially do the brightest stars, and then see what the overall
-    x,y shift is before attempting fainter ones. One indicates this status with
-    a logical flag.
+    might want to initially do the brightest stars, and then see what the
+    overall x,y shift is before attempting fainter ones. One indicates this
+    status with a logical flag.
 
     Linked apertures: some targets are nearly impossible to register, or may fade
     so much that they cannot be detected. Such targets can be "linked" to others
     in the sense that they are offset from them.
+
+    Sky masks: these are fixed circles offset from the aperture in question indicating
+    pixels to ignore when estimating the sky background.
+
+    Star masks: these are circles offset from aperture indicating pixels to include when
+    summing the object flux.
     """
 
     def __init__(self, x, y, r1, r2, r3, ref, link=None, mask=None, extra=None):
@@ -108,3 +114,4 @@ class Aperture(object):
         objects are incompatible, so this always returns False
         """
         return False
+

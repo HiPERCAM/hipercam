@@ -3,10 +3,10 @@
 Class to represent a CCD and a multi-CCD
 """
 
-# Standard pre-amble from astropy
+# Imports for 2 / 3 compatibility
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from astropy.extern import six
+from builtins import *
 
 import numpy as np
 from astropy.io import fits

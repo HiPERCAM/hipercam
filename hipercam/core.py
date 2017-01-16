@@ -6,8 +6,7 @@ Core classes and functions for the hipercam package
 # Standard pre-amble from astropy
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from astropy.extern import six
-
+from builtins import *
 
 class HipercamError (Exception):
     """

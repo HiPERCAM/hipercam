@@ -4,11 +4,13 @@ Defines classes to represent sub-windows of a CCD and associated
 functions.
 """
 
-# Standard pre-amble from astropy
+# Imports for 2 / 3 compatibility
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from astropy.extern import six
+from builtins import *
 
+
+import json
 import numpy as np
 from .core import *
 
@@ -116,10 +118,18 @@ class Window(object):
         """Returns True if two :class: `Window`s are considered to 'clash'.
         In this case this means if they have any pixels in common.
         This method allows :class: `Window`s to be collected in
-        :class:`Group`s 
+        :class:`Group`s
         """
         return self.llx <=  win.urx and self.urx >= win.llx and \
             self.lly <=  win.ury and self.ury >= win.lly
+
+
+    def wjson(self, file):
+        """
+        Writes a Window to a json file which gives a fairly easily
+        read and editable form of file. "file" is either a file name
+        of a file object.
+        """
 
     def wfhead(self, nccd, nwin, fhead, nxccd, nyccd, NX, NY):
         """
@@ -278,6 +288,19 @@ class Window(object):
         """
         return not (self.llx == win)
 
+class WindowEncoder (json.JSONEncoder):
+    """
+    Provides a default that can be used to write Window
+    objects to json files
+    """
+    def default(self, obj):
+        if instance(obj, Window):
+            obj = {'_comment': 'This is a hipercam.Window JSON file.',
+                   'llx' : self.llx, 'lly' : self.lly,
+                   'nx' : self.nx, 'ny' : self.ny,
+                   'xbin' : self.xbin, 'ybin' : self.ybin}
+        else:
+            super(WindowEncoder, self).default(obj)
 
 class Windata(Window):
     """

@@ -3,10 +3,10 @@
 matplotlib plotting functions.
 """
 
-# Standard pre-amble from astropy
+# Imports for 2 / 3 compatibility
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from astropy.extern import six
+from builtins import *
 
 from .core import *
 from .window import *
