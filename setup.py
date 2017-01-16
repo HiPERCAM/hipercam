@@ -101,6 +101,8 @@ setup(
     entry_points={
         'console_scripts': [
             'hplot=hipercam.command_line:hplot',
+            'wccd=hipercam.command_line:wccd',
+            'wmccd=hipercam.command_line:wmccd',
         ],
     },
 )
