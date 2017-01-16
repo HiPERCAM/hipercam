@@ -92,7 +92,7 @@ class CCD(Group):
         # Then compute percentiles
         return np.percentile(arr, q)
 
-    def add_hdulist(self, hdul):
+    def add_hdulist(self, hdul, start=None):
         """Add the CCD as a series of ImageHDUs to an hdulist.
         This is to allow a series of CCDs to be written. The CCD
         header is written into the first HDU added to the list.
@@ -103,17 +103,24 @@ class CCD(Group):
                  An HDUList to which the CCD will be added as a series
                  of ImageHDUs, the first of which will contain the header.
 
+            start : (astropy.io.fits.Header)
+                 Standard header to add at the start of every the header of
+                 each ImageHDU. e.g. This allows each one to be flagged with
+                 a CCD number.
+
         Returns:: the modified HDUList.
 
         """
         first = True
         for key, wind in self.items():
-            if first:
-                fhead = self.head.copy()
-                first = False
-            else:
+            if start is None:
                 fhead = fits.Header()
+            else:
+                fhead = start.copy()
             fhead['NWIN'] = (int(key), 'Window number')
+            if first:
+                fhead += self.head.copy()
+                first = False
             hdul.append(wind.whdu(fhead))
 
         return hdul
@@ -138,6 +145,11 @@ class CCD(Group):
             hdus.append(wind.whdu(fhead))
         hdulist = fits.HDUList(hdus)
         hdulist.writeto(fname,overwrite=overwrite)
+
+    def clash(self, ccd):
+        """Returns "false" indicating two CCDs never clash
+        """
+        return false
 
     def __repr__(self):
         return 'CCD(winds=' + super(CCD,self).__repr__() + \
@@ -183,7 +195,9 @@ class MCCD(Group):
         phdu = fits.PrimaryHDU(header=self.head)
         hdus = [phdu,]
         for key, ccd in self.items():
-            ccd.add_hdulist(hdus):
+            start = fits.Header()
+            start['NCCD'] = int(key)
+            ccd.add_hdulist(hdus, start)
         hdulist = fits.HDUList(hdus)
         hdulist.writeto(fname,overwrite=overwrite)
 
