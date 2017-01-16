@@ -1,119 +1,106 @@
-#!/usr/bin/env python
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
+"""
+hipercam setup file
+"""
 
-import glob
-import os
-import sys
+from setuptools import setup, find_packages
 
-import ah_bootstrap
-from setuptools import setup
+# To use a consistent encoding
+from codecs import open
+from os import path
 
-#A dirty hack to get around some early import/configurations ambiguities
-if sys.version_info[0] >= 3:
-    import builtins
-else:
-    import __builtin__ as builtins
-builtins._ASTROPY_SETUP_ = True
+here = path.abspath(path.dirname(__file__))
 
-from astropy_helpers.setup_helpers import (register_commands, get_debug_option,
-                                           get_package_info)
-from astropy_helpers.git_helpers import get_git_devstr
-from astropy_helpers.version_helpers import generate_version_py
+# Get the long description from the README file
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+    long_description = f.read()
 
-# Get some values from the setup.cfg
-from distutils import config
-conf = config.ConfigParser()
-conf.read(['setup.cfg'])
-metadata = dict(conf.items('metadata'))
+setup(
+    name='hipercam',
 
-PACKAGENAME = metadata.get('package_name', 'packagename')
-DESCRIPTION = metadata.get('description', 'Astropy affiliated package')
-AUTHOR = metadata.get('author', '')
-AUTHOR_EMAIL = metadata.get('author_email', '')
-LICENSE = metadata.get('license', 'unknown')
-URL = metadata.get('url', 'http://astropy.org')
+    # Versions should comply with PEP440. 
+    version='1',
 
-# Get the long description from the package's docstring
-__import__(PACKAGENAME)
-package = sys.modules[PACKAGENAME]
-LONG_DESCRIPTION = package.__doc__
+    description='hipercam',
+    long_description=long_description,
 
-# Store the package name in a built-in variable so it's easy
-# to get from other parts of the setup infrastructure
-builtins._ASTROPY_PACKAGE_NAME_ = PACKAGENAME
+    # The project's main homepage.
+    url='http://www.astro.warwick.ac.uk',
 
-# VERSION should be PEP386 compatible (http://www.python.org/dev/peps/pep-0386)
-VERSION = '1.0.dev1'
+    # Author details
+    author='Tom Marsh',
+    author_email='t.r.marsh@warwick.ac.uk',
 
-# Indicates if this version is a release version
-RELEASE = 'dev' not in VERSION
+    # Choose your license
+    license='BSD',
 
-if not RELEASE:
-    VERSION += get_git_devstr(False)
+    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    classifiers=[
+        # How mature is this project? Common values are
+        #   3 - Alpha
+        #   4 - Beta
+        #   5 - Production/Stable
+        'Development Status :: 3 - Alpha',
 
-# Populate the dict of setup command overrides; this should be done before
-# invoking any other functionality from distutils since it can potentially
-# modify distutils' behavior.
-cmdclassd = register_commands(PACKAGENAME, VERSION, RELEASE)
+        # Indicate who your project is intended for
+        'Intended Audience :: Astronomer',
+        'Topic :: Astronomy :: Photometric reduction',
 
-# Freeze build information in version.py
-generate_version_py(PACKAGENAME, VERSION, RELEASE,
-                    get_debug_option(PACKAGENAME))
+        # Pick your license as you wish (should match "license" above)
+        'License :: OSI Approved :: BSD License',
 
-# Treat everything in scripts except README.rst as a script to be installed
-scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
-           if os.path.basename(fname) != 'README.rst']
+        # Specify the Python versions you support here. In particular, ensure
+        # that you indicate whether you support Python 2, Python 3 or both.
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+    ],
 
+    # What does your project relate to?
+    keywords='astronomy photometry reduction',
 
-# Get configuration information from all of the various subpackages.
-# See the docstring for setup_helpers.update_package_files for more
-# details.
-package_info = get_package_info()
+    # You can just specify the packages manually here if your project is
+    # simple. Or you can use find_packages().
+    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
 
-# Add the project-global data
-package_info['package_data'].setdefault(PACKAGENAME, [])
-#package_info['package_data'][PACKAGENAME].append('data/*')
+    # Alternatively, if you want to distribute just a my_module.py, uncomment
+    # this:
+    #   py_modules=["my_module"],
 
-# Define entry points for command-line scripts
-entry_points = {'console_scripts': []}
+    # List run-time dependencies here.  These will be installed by pip when
+    # your project is installed. For an analysis of "install_requires" vs pip's
+    # requirements files see:
+    # https://packaging.python.org/en/latest/requirements.html
+    #install_requires=['peppercorn'],
 
-entry_point_list = conf.items('entry_points')
-for entry_point in entry_point_list:
-    entry_points['console_scripts'].append('{0} = {1}'.format(entry_point[0],
-                                                              entry_point[1]))
+    # List additional groups of dependencies here (e.g. development
+    # dependencies). You can install these using the following syntax,
+    # for example:
+    # $ pip install -e .[dev,test]
+    extras_require={
+        'dev': ['check-manifest'],
+        'test': ['coverage'],
+    },
 
-# Include all .c files, recursively, including those generated by
-# Cython, since we can not do this in MANIFEST.in with a "dynamic"
-# directory name.
-c_files = []
-for root, dirs, files in os.walk(PACKAGENAME):
-    for filename in files:
-        if filename.endswith('.c'):
-            c_files.append(
-                os.path.join(
-                    os.path.relpath(root, PACKAGENAME), filename))
-package_info['package_data'][PACKAGENAME].extend(c_files)
+    # If there are data files included in your packages that need to be
+    # installed, specify them here.  If using Python 2.6 or less, then these
+    # have to be included in MANIFEST.in as well.
+    #package_data={
+    #    'sample': ['package_data.dat'],
+    #},
 
-#def requires_2to3():
-#    return False
+    # Although 'package_data' is the preferred approach, in some case you may
+    # need to place data files outside of your packages. See:
+    # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
+    # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
+    #data_files=[('my_data', ['data/data_file'])],
 
-# Note that requires and provides should not be included in the call to
-# ``setup``, since these are now deprecated. See this link for more details:
-# https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM
-
-setup(name=PACKAGENAME,
-      version=VERSION,
-      description=DESCRIPTION,
-      scripts=scripts,
-      install_requires=['astropy'],
-      author=AUTHOR,
-      author_email=AUTHOR_EMAIL,
-      license=LICENSE,
-      url=URL,
-      long_description=LONG_DESCRIPTION,
-      cmdclass=cmdclassd,
-      zip_safe=False,
-      use_2to3=False,
-      entry_points=entry_points,
-      **package_info
+    # To provide executable scripts, use entry points in preference to the
+    # "scripts" keyword. Entry points provide cross-platform support and allow
+    # pip to create the appropriate form of executable for the target platform.
+    entry_points={
+        'console_scripts': [
+            'hplot=hipercam.command_line:hplot',
+        ],
+    },
 )
