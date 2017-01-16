@@ -7,7 +7,7 @@ import sys
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-import hipercam
+import hipercam as hcam
 
 def hplot(args=None):
     """
@@ -27,18 +27,21 @@ def hplot(args=None):
         h = np.random.uniform(10.,1000.)
         targs.append((x,y,h))
 
-    win1  = hipercam.Window(11,20,100,150,1,1)
-    win2  = hipercam.Window(601,20,100,150,1,1)
-    win3  = hipercam.Window(21,201,100,150,1,1)
-    win4  = hipercam.Window(801,20,200,200,1,1)
-    win5  = hipercam.Window(301,400,200,200,2,2)
+    print('Creating 5 Windows')
+    win1  = hcam.Window(11,20,100,150,1,1)
+    win2  = hcam.Window(601,20,100,150,1,1)
+    win3  = hcam.Window(21,201,100,150,1,1)
+    win4  = hcam.Window(801,20,200,200,1,1)
+    win5  = hcam.Window(301,400,200,200,2,2)
 
-    wind1 = hipercam.Windata(win1)
-    wind2 = hipercam.Windata(win2)
-    wind3 = hipercam.Windata(win3)
-    wind4 = hipercam.Windata(win4)
-    wind5 = hipercam.Windata(win5)
+    print('Creating 5 Windatas')
+    wind1 = hcam.Windata(win1)
+    wind2 = hcam.Windata(win2)
+    wind3 = hcam.Windata(win3)
+    wind4 = hcam.Windata(win4)
+    wind5 = hcam.Windata(win5)
 
+    print('Adding stars')
     wind1.add_stars(targs, 2.5, 3., 0.05)
     wind1.add_noise(2.5,1.1)
     wind2.add_stars(targs, 2.5, 3., 0.05)
@@ -50,9 +53,12 @@ def hplot(args=None):
     wind5.add_stars(targs, 2.5, 3., 0.05)
     wind5.add_noise(2.5,1.1)
 
-    ccd = hipercam.CCD({1: wind1, 2: wind2, 3: wind3, 4: wind4, 5: wind5},
+    print('Creating a CCD')
+    ccd = hcam.CCD({1: wind1, 2: wind2, 3: wind3, 4: wind4, 5: wind5},
                        nxtot, nytot)
-    hipercam.mpl.pccd(plt, ccd)
+
+    print('Plotting the CCD')
+    hcam.mpl.pccd(plt, ccd)
     plt.xlim(0.5,nxtot+0.5)
     plt.ylim(0.5,nytot+0.5)
     plt.show()
