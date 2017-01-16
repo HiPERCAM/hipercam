@@ -12,15 +12,19 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from builtins import *
 
+from collections import OrderedDict
+
 from .core import *
 
 
-class Group(dict):
+class Group(OrderedDict):
     """Base class for a container of multiple objects of identical
-    type. Subclassed from dictionaries, this class adds checks on consistency
+    type. Subclassed from OrderedDict, this class adds checks on consistency
     of the objects and that they don't "clash". Dictionaries are used to allow
-    flexible indexing. The meaning of "clash" is defined by the objects which
-    must support a method "clash".
+    flexible indexing; the use of OrderedDict is to preserve the ordering
+    which allows some short cuts when comparing related Group objects. The
+    meaning of "clash" is defined by the objects which must support a method
+    "clash".
 
     """
 
@@ -54,15 +58,14 @@ class Group(dict):
         """
         if len(self):
             # check that new item has same type as current ones
-            tone = type(item)
-            for ob in self:
-                if not isinstance(ob,tone):
+            type_item = type(item)
+            for k,obj in self.items():
+                if not isinstance(obj,type_item):
                     raise HipercamError(
                         'Group.__setitem__: object type differs from existing Group members')
-                if obj.clash(ob):
+                if item.clash(obj):
                     raise HipercamError(
                         'Group.__setitem__: object clash encountered')
 
         # OK now set the new item
         super(Group,self).__setitem__(key, item)
-
