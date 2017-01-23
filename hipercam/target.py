@@ -55,28 +55,68 @@ class Target(object):
         self.xcen = xcen
         self.ycen = ycen
         self.height = height
-        self.fwmin = fwmin
-        self.fwmax = fwmax
-        self.angle = angle
-        self.beta = beta
+        self._fwmin = fwmin
+        self._fwmax = fwmax
+        self._angle = angle
+        self._beta = beta
+        self._comp_abc()
 
-        # compute parameters a / b / c used
-        # to describe the ellipsoid
+    def _comp_abc(self):
+        # compute hidden parameters _a, _b and _c used
+        # to describe the ellipsoidal target shape. This
+        # must be invoked any time beta, fwmax, fwmin, or
+        # angle are changed.
 
-        # alpha is the value the quadratic form in x,y needs
+        # First compute, alpha the value the quadratic form in x,y needs
         # to reach to drop the height by a factor of 2.
-        alpha = 2**(1./beta)-1.
+        alpha = 2**(1./self.beta)-1.
 
-        # cos(theta), sin(theta)
-        ct = math.cos(math.radians(angle))
-        st = math.sin(math.radians(angle))
+        # Then the cosine and sine of the angle
+        ct = math.cos(math.radians(self.angle))
+        st = math.sin(math.radians(self.angle))
 
-        # a, b, c appear in a*x**2 + b*y**2 + c*x*y which
+        # _a, _b, _c appear in a*x**2 + b*y**2 + c*x*y which
         # is used instead of the (r/r0)**2 of the Moffat
         # function description.
-        self._a = 4*alpha*((ct/fwmax)**2+(st/fwmin)**2)
-        self._b = 4*alpha*((st/fwmax)**2+(ct/fwmin)**2)
-        self._c = 8*alpha*ct*st*(1/fwmax**2-1/fwmin**2)
+        self._a = 4*alpha*((ct/self.fwmax)**2+(st/self.fwmin)**2)
+        self._b = 4*alpha*((st/self.fwmax)**2+(ct/self.fwmin)**2)
+        self._c = 8*alpha*ct*st*(1/self.fwmax**2-1/self.fwmin**2)
+
+    @property
+    def fwmax(self):
+        return self._fwmax
+
+    @fwmax.setter
+    def fwmax(self, fwmax):
+        self._fwmax = fwmax
+        self._comp_abc()
+
+    @property
+    def fwmin(self):
+        return self._fwmin
+
+    @fwmin.setter
+    def fwmin(self, fwmin):
+        self._fwmin = fwmin
+        self._comp_abc()
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, angle):
+        self._angle = angle
+        self._comp_abc()
+
+    @property
+    def beta(self):
+        return self._beta
+
+    @beta.setter
+    def beta(self, beta):
+        self._beta = beta
+        self._comp_abc()
 
     def __call__(self, x, y):
         """Computes data representing the :class:`Target` at
