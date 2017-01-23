@@ -124,7 +124,6 @@ class Window(object):
         return self.llx <=  win.urx and self.urx >= win.llx and \
             self.lly <=  win.ury and self.ury >= win.lly
 
-
     def wjson(self, file):
         """
         Writes a Window to a json file which gives a fairly easily
@@ -132,6 +131,22 @@ class Window(object):
         of a file object.
         """
         print('wjson not implemented yet')
+
+    def xy(self):
+        """Returns two 2D arrays containing the x and y values at the centre
+        of each pixel defined by the :class:`Window`. See numpy.meshgrid to
+        see what this means.
+        """
+        # generate 1D x and y arrays along the edges
+        x1 = self.llx+self.xbin/2-0.5
+        x2 = x1 + self.xbin*(self.nx-1)
+        x = np.linspace(x1,x2,self.nx)
+
+        y1 = self.lly+self.ybin/2-0.5
+        y2 = y1 + self.ybin*(self.ny-1)
+        y = np.linspace(y1,y2,self.ny)
+
+        return np.meshgrid(x,y)
 
     def __eq__(self, win):
         """
@@ -237,34 +252,6 @@ class Windat(Window):
         """
         return self.data.size
 
-    def add_stars(self, targs, sxx, syy, rxy):
-        """Routine to add gaussians to a :class:`Windat`.
-        Arguments::
-
-          targs : (array of 3 element arrays)
-              array of (xc,yc,h) values marking the central position
-              and height of each gaussian to add
-
-          sxx : (float)
-              sigma in X direction
-
-          syy : (float)
-              sigma in Y direction
-
-          rxy : (float)
-              X-Y correlation coefficient
-        """
-        x = np.linspace(self.llx,self.urx,self.nx)
-        y = np.linspace(self.lly,self.ury,self.ny)
-        X,Y = np.meshgrid(x,y)
-        V = np.matrix([[sxx*sxx,sxx*syy*rxy],[sxx*syy*rxy,syy*syy]])
-        A = np.linalg.inv(V)
-        for xc,yc,h in targs:
-            xd = X-xc
-            yd = Y-yc
-            dsq = A[0,0]*xd**2+(A[1,0]+A[0,1])*xd*yd+A[1,1]*yd**2
-            self.data += h*np.exp(-dsq/2.)
-
     def add_noise(self, readout, gain):
         """Adds noise to a :class:`Windat` according to a variance
         calculated from V = readout**2 + counts/gain.
@@ -335,6 +322,31 @@ class Windat(Window):
 
         return fits.ImageHDU(self.data, fhead)
 
+    def add_fxy(self, funcs):
+        """Routine to add in the results of evaluating a function
+        or a list of functions of x & y to the :class:`Windat`.
+        Each function must take 2D arrays of x and y values
+        for each pixel of the :class:`Windat` and return an
+        array of values for each point. If you have lots of things
+        to add, this routine saves some overhead by only generating
+        the x,y pixel arrays once at the start.
+
+        Arguments::
+
+          funcs : (a callable or a list of callables)
+              the callables must have signature arr = func(x,y) where x
+              and y are 2D arrays containing the x and y values for every
+              pixel in the :class:`Windat`
+        """
+        # generate X,Y arrays
+        X,Y = self.xy()
+        try:
+            for func in funcs:
+                self.data += func(X,Y)
+        except TypeError:
+            self.data += funcs(X,Y)
+
+
     def __iadd__(self, other):
         """+= in-place addition operator. 'other' can be another :class:`Windat`,
         an numpy.ndarray or a constant. Window parameters unchanged.
@@ -378,3 +390,7 @@ class Windat(Window):
     def __repr__(self):
         return 'Windat(win=' + super(Windat,self).__repr__() + \
                               ', data=' + repr(self.data) + ')'
+
+
+
+
