@@ -97,7 +97,7 @@ class Group(OrderedDict):
             raise HipercamError(
                 'Group.__setitem__: type of item differs from existing Group members')
 
-        # check that item does not clash with any current one
+        # check that the new item does not clash with any current one
         if any(obj.clash(item) for obj in self.values()):
             raise HipercamError(
                 'Group.__setitem__: object clash encountered')
