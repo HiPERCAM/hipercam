@@ -10,6 +10,7 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import *
 
 import math
+import numpy as np
 import json
 from .core import *
 
@@ -147,3 +148,53 @@ class Target(object):
                ', beta=' + repr(self.beta) + ')'
 
 
+def makefield(ntarg, x1, x2, y1, y2, h1, h2, fwmax, fwmin, angle, beta):
+    """Creates a random field of ntarg objects scattered over the range
+    x1, x2, y1, y2, with peak heights from h1 to h2. 
+
+    The field is returned as a :class:`list` of :class:`Target` objects.
+
+    Arguments::
+
+       ntarg : (int)
+          number of targets to add
+
+       x1 : (float)
+          left limit of region to add targets to
+
+       x2 : (float)
+          right limit of region to add targets to
+
+       y1 : (float)
+          lower limit of region to add targets to
+
+       y2 : (float)
+          upper limit of region to add targets to
+
+       h1 : (float)
+          lowest peak height
+
+       h2 : (float)
+          highest peak height
+
+       fwmax : (float)
+          FWHM along major axis of objects
+
+       fwmin : (float)
+          FWHM along minor axis of objects
+
+       angle : (float)
+          angle degrees clockwise from the X axis
+
+       beta : (float)
+          exponent that appears in Moffat functions
+    """
+
+    field = []
+    for nt in range(ntarg):
+        xcen = np.random.uniform(x1, x2)
+        ycen = np.random.uniform(y1, y2)
+        height = 1./(1./math.sqrt(h1)-(1./math.sqrt(h1)-1./math.sqrt(h2))*
+                     np.random.uniform())**2
+        field.append(Target(xcen, ycen, height, fwmax, fwmin, angle, beta))
+    return field
