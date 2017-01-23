@@ -103,6 +103,7 @@ setup(
             'hplot=hipercam.command_line:hplot',
             'wccd=hipercam.command_line:wccd',
             'wmccd=hipercam.command_line:wmccd',
+            'ptarg=hipercam.command_line:ptarg',
         ],
     },
 )

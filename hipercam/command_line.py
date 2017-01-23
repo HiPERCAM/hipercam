@@ -186,3 +186,24 @@ def wmccd(args=None):
 
     print('Writing an MCCD')
     mccd.wfits('mfake.fits')
+
+def ptarg(args=None):
+    """
+    Creates and writes a fake CCD image with
+    multiple windows to disk
+    """
+
+    # Create a Window
+    win = hcam.Window(11,20,100,150,1,1)
+
+    # Create a Windat
+    wind = hcam.Windat(win)
+
+    # Create a target
+    targ = hcam.Target(50., 65., 100., 5., 3., 35., 4.)
+
+    # Add target to the Windat
+    wind.add_fxy([targ])
+
+    hcam.mpl.pwind(plt, wind)
+    plt.show()
