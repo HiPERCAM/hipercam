@@ -9,16 +9,23 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from builtins import *
 
+import math
 import json
-import numpy as np
 from .core import *
 
 class Target(object):
     """
-    Class to represent an astronomical object. 
+    Callable object to represent an astronomical target in terms of its appearance
+    in a CCD image. The representation chosen is 2D "Moffat" function, which
+    takes the form h/(1+(r/r0)**2)**beta, where 'h' is the central height,
+    'r' is the distance from the centre, 'r0' is a scale, and 'beta' is an
+    exponent which for large values makes the profile Gaussian.
+
+    To allow for trailing, poor focus and to roughly simulate galaxies,
+    :class:`Target` objects can be elliptical in shape.
     """
 
-    def __init__(self, xcen, ycen, fwmin, fwmax, angle):
+    def __init__(self, xcen, ycen, height, fwmax, fwmin, angle, beta):
         """
         Constructor. Arguments::
 
@@ -28,331 +35,75 @@ class Target(object):
         ycen : (float)
             X position of target (unbinned pixels)
 
-        ??? more
+        height : (float)
+            height of central peak in counts
+
+        fwmax : (float)
+            FWHM, unbinned pixel, along minor axis of ellipse
+
+        fwmin : (float)
+            FWHM, unbinned pixel, along minor axis of ellipse
+
+        angle : (float)
+            angle, degrees, clockwise from X-axis.
+
+        beta : (float)
+            exponent that controls how quickly the wings fall. beta=1
+            is a Lorentzian, beta=infinity is a Gausssin.
         """
 
         self.xcen = xcen
         self.ycen = ycen
-        self.fwmax = fwmax
+        self.height = height
         self.fwmin = fwmin
+        self.fwmax = fwmax
         self.angle = angle
+        self.beta = beta
+
+        # compute parameters a / b / c used
+        # to describe the ellipsoid
+
+        # alpha is the value the quadratic form in x,y needs
+        # to reach to drop the height by a factor of 2.
+        alpha = 2**(1./beta)-1.
+
+        # cos(theta), sin(theta)
+        ct = math.cos(math.radians(angle))
+        st = math.sin(math.radians(angle))
+
+        # a, b, c appear in a*x**2 + b*y**2 + c*x*y which
+        # is used instead of the (r/r0)**2 of the Moffat
+        # function description.
+        self._a = 4*alpha*((ct/fwmax)**2+(st/fwmin)**2)
+        self._b = 4*alpha*((st/fwmax)**2+(ct/fwmin)**2)
+        self._c = 8*alpha*ct*st*(1/fwmax**2-1/fwmin**2)
+
+    def __call__(self, x, y):
+        """Computes data representing the :class:`Target` at
+        position x, y (which can be arrays of positions)
+
+        Example code::
+
+          >> x = np.linspace(1,100,100)
+          >> y = np.linspace(1,100,100)
+          >> X,Y = np.meshgrid(x,y)
+          >> targ = Target(100., 150., 100., 5., 3.5, 30., 4.)
+          >> img = targ(x,y)
+
+        This creates a target, generates 2D arrays of X and Y positions
+        then calculates the value of the target at every pixel of these
+        arrays.
+
+        """
+        xd = x-self.xcen
+        yd = y-self.ycen
+        rsq = self._a*xd**2 + self._b*yd**2 + self._c*xd*yd
+        return self.height/(1+rsq)**self.beta
 
     def __repr__(self):
-        return 'Window(llx=' + repr(self.llx) + ', lly=' + repr(self.lly) + \
-            ', nx=' + repr(self.nx) + ', ny=' + repr(self.ny) + \
-            ', xbin=' + repr(self.xbin) + ', ybin=' + repr(self.ybin) + ')'
+        return 'Target(xcen=' + repr(self.xcen) + ', ycen=' + repr(self.ycen) + \
+               ', height=' + repr(self.height) + ', fwmin=' + repr(self.fwmin) + \
+               ', fwmax=' + repr(self.fwmax) + ', angle=' + repr(self.angle) + \
+               ', beta=' + repr(self.beta) + ')'
 
 
-    @property
-    def urx(self):
-        """
-        Returns (unbinned) X pixel at upper-right of :class:`Window`
-        """
-        return self.llx-1+self.nx*self.xbin
-
-    @property
-    def ury(self):
-        """
-        Returns (unbinned) Y pixel at upper-right of :class:`Window`
-        """
-        return self.lly-1+self.ny*self.ybin
-
-    def extent(self):
-        """
-        Returns (left,right,bottom,top) boundaries of :class:`Window`
-        """
-        return (self.llx-0.5,self.urx+0.5,self.lly-0.5,self.ury+0.5)
-
-    def outside(self, win):
-        """
-        Returns True if `self` contains `win` in such a way
-        that it could be cut down to it. This implies that
-        even if binned, its pixels are "in step", or that its
-        bin factors are divisors of those of `win`.
-
-        See also :func:`inside`.
-        """
-        return win.xbin % self.xbin == 0 and win.ybin % self.ybin == 0 and \
-            self.llx <= win.llx and self.urx >= win.urx and \
-            self.lly <= win.lly and self.ury >= win.ury and \
-            (win.llx-self.llx) % self.xbin == 0 and \
-            (win.lly-self.lly) % self.ybin == 0
-
-    def inside(self, win):
-        """
-        Returns True if `win` contains `self` in such a way
-        that it could be cut down to it. This implies that
-        even if binned, its pixels are "in step", or that its
-        bin factors are divisors of those of `self`.
-
-        See also :func:`outside`.
-        """
-        return self.xbin % win.xbin == 0 and self.ybin % win.ybin == 0 and \
-            win.llx <= self.llx and win.urx >= self.urx and \
-            win.lly <= self.lly and win.ury >= self.ury and \
-            (self.llx-win.llx) % win.xbin == 0 and \
-            (self.lly-win.lly) % win.ybin == 0
-
-    def clash(self, win):
-        """Returns True if two :class: `Window`s are considered to 'clash'.
-        In this case this means if they have any pixels in common.
-        This method allows :class: `Window`s to be collected in
-        :class:`Group`s
-        """
-        return self.llx <=  win.urx and self.urx >= win.llx and \
-            self.lly <=  win.ury and self.ury >= win.lly
-
-
-    def wjson(self, file):
-        """
-        Writes a Window to a json file which gives a fairly easily
-        read and editable form of file. "file" is either a file name
-        of a file object.
-        """
-        print('wjson not implemented yet')
-
-    def __eq__(self, win):
-        """
-        Defines equality. Two :class:`Window`s are equal if they match exactly
-        (same lower left corner, dimensions and binning factors)
-        """
-        return self.llx == win.llx and  self.lly == win.lly and \
-            self.nx == win.nx and self.ny == win.ny and \
-            self.xbin == win.xbin and self.ybin == win.ybin
-
-    def __ne__(self, win):
-        """Defines equality. Two :class:`Window`s are equal if they match
-        exactly (same lower left corner, dimensions and binning factors)
-
-        """
-        return not (self.llx == win)
-
-class WindowEncoder (json.JSONEncoder):
-    """
-    Provides a default that can be used to write Window
-    objects to json files
-    """
-    def default(self, obj):
-        if instance(obj, Window):
-            obj = {'_comment': 'This is a hipercam.Window JSON file.',
-                   'llx' : self.llx, 'lly' : self.lly,
-                   'nx' : self.nx, 'ny' : self.ny,
-                   'xbin' : self.xbin, 'ybin' : self.ybin}
-        else:
-            super(WindowEncoder, self).default(obj)
-
-class Windat(Window):
-    """
-    Class representing a CCD window with data. Constructed from
-    a :class:`Window` and a :class:`numpy.ndarray` which is stored
-    in an attribute called `data`.
-
-        >>> import numpy as np
-        >>> from hipercam import Window, Windat
-        >>> win = Window(12, 6, 100, 150, 2, 3)
-        >>> data = np.ones((150,100))
-        >>> wind = Windat(win,data)
-        >>> wind += 0.5
-        >>> wind *= 2
-
-    Note that it is the user's reponsibility to make sure that the data
-    and Window remain compatible.
-    """
-
-    def __init__(self, win, data=None):
-        """
-        Constructs a :class:`Windat`
-
-        Arguments::
-
-          win : (Window)
-              the Window
-
-          data : (numpy.ndarray)
-              the data (2D). The dimension must match those in win unless
-              data is None in which case a zero array of the correct size
-              will be created.
-        """
-        if data is None:
-            self.data = np.zeros((win.ny,win.nx))
-        else:
-            # Run a couple of checks
-            if data.ndim != 2:
-                raise HipercamError(
-                    'Windat.__init__: data must be 2D. Found {0:d}'.format(data.ndim))
-            ny, nx = data.shape
-            if nx != win.nx or ny != win.ny:
-                raise HipercamError(
-                    'Windat.__init__: win & data dimensions conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
-
-            self.data = data
-
-        super(Windat, self).__init__(win.llx, win.lly,
-                                      win.nx, win.ny, win.xbin, win.ybin)
-
-    @classmethod
-    def from_hdu(cls, hdu):
-        """Constructs a :class:`Windat` from an ImageHdu. Requires
-        header parameters 'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.
-        """
-        head = hdu.header
-        data = hdu.data
-
-        # construct Window
-        llx = head['LLX']
-        lly = head['LLY']
-        xbin = head['XBIN']
-        ybin = head['YBIN']
-        ny, nx = data.shape
-        win = Window(llx, lly, xbin, ybin, nx, ny)
-
-        return cls(win, data)
-
-    @property
-    def size(self):
-        """
-        Number of pixels
-        """
-        return self.data.size
-
-    def add_stars(self, targs, sxx, syy, rxy):
-        """Routine to add gaussians to a :class:`Windat`.
-        Arguments::
-
-          targs : (array of 3 element arrays)
-              array of (xc,yc,h) values marking the central position
-              and height of each gaussian to add
-
-          sxx : (float)
-              sigma in X direction
-
-          syy : (float)
-              sigma in Y direction
-
-          rxy : (float)
-              X-Y correlation coefficient
-        """
-        x = np.linspace(self.llx,self.urx,self.nx)
-        y = np.linspace(self.lly,self.ury,self.ny)
-        X,Y = np.meshgrid(x,y)
-        V = np.matrix([[sxx*sxx,sxx*syy*rxy],[sxx*syy*rxy,syy*syy]])
-        A = np.linalg.inv(V)
-        for xc,yc,h in targs:
-            xd = X-xc
-            yd = Y-yc
-            dsq = A[0,0]*xd**2+(A[1,0]+A[0,1])*xd*yd+A[1,1]*yd**2
-            self.data += h*np.exp(-dsq/2.)
-
-    def add_noise(self, readout, gain):
-        """Adds noise to a :class:`Windat` according to a variance
-        calculated from V = readout**2 + counts/gain.
-        Arguments::
-
-          readout : (float)
-              RMS readout noise in counts
-
-          gain : (float)
-              Gain in electrons per count.
-        """
-        sig = np.sqrt(readout**2+self.data/gain)
-        self.data += np.random.normal(scale=sig)
-
-    def min(self):
-        """
-        Returns the minimum value of the :class:`Windat`.
-        """
-        return self.data.min()
-
-    def max(self):
-        """
-        Returns the maximum value of the :class:`Windat`.
-        """
-        return self.data.max()
-
-    def mean(self):
-        """
-        Returns the mean value of the :class:`Windat`.
-        """
-        return self.data.mean()
-
-    def percentile(self, q):
-        """
-        Computes percentile(s) of a :class:`Windat`.
-
-        Arguments::
-
-        q : (float or sequence of floats)
-          Percentile(s) to use, in range [0,100]
-        """
-        return np.percentile(self.data, q)
-
-    def whdu(self, fhead=None):
-        """
-        Writes the :class:`Windat` to an :class:`astropy.io.fits.ImageHDU`
-
-        Arguments::
-
-          fhead : (astropy.io.fits.Header)
-             An initial FITS header object. The location of the lower-left pixel
-             and the binning factors will be added to it, so it will be modified
-             on exit. 
-
-        Returns::
-
-          hdu : (astropy.io.fits.ImageHDU)
-             The HDU
-        """
-
-        if fhead is None:
-            fhead = fits.Header()
-
-        fhead['LLX'] = (self.llx,  'X-coordinate of lower-left pixel')
-        fhead['LLY'] = (self.lly,  'Y-coordinate of lower-left pixel')
-        fhead['XBIN'] = (self.xbin, 'Binning factor in X')
-        fhead['YBIN'] = (self.ybin, 'Binning factor in Y')
-
-        return fits.ImageHDU(self.data, fhead)
-
-    def __iadd__(self, other):
-        """+= in-place addition operator. 'other' can be another :class:`Windat`,
-        an numpy.ndarray or a constant. Window parameters unchanged.
-        """
-        if isinstance(other, Windat):
-            self.data += other.data
-        else:
-            self.data += other
-        return self
-
-    def __isub__(self, other):
-        """-= in-place subtraction operator. 'other' can be another Windat,
-        an numpy.ndarray or a constant. Window parameters unchanged.
-        """
-        if isinstance(other, Windat):
-            self.data -= other.data
-        else:
-            self.data -= other
-        return self
-
-    def __imul__(self, other):
-        """*= in-place multiplication operator. 'other' can be another Windat,
-        an numpy.ndarray or a constant. Window parameters unchanged.
-        """
-        if isinstance(other, Windat):
-            self.data *= other.data
-        else:
-            self.data *= other
-        return self
-
-    def __itruediv__(self, other):
-        """/= in-place division operator. 'other' can be another Windat,
-        an numpy.ndarray or a constant. Window parameters unchanged.
-        """
-        if isinstance(other, Windat):
-            self.data /= other.data
-        else:
-            self.data /= other
-        return self
-
-    def __repr__(self):
-        return 'Windat(win=' + super(Windat,self).__repr__() + \
-                              ', data=' + repr(self.data) + ')'
