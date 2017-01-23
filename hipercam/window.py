@@ -163,17 +163,17 @@ class WindowEncoder (json.JSONEncoder):
         else:
             super(WindowEncoder, self).default(obj)
 
-class Windata(Window):
+class Windat(Window):
     """
     Class representing a CCD window with data. Constructed from
     a :class:`Window` and a :class:`numpy.ndarray` which is stored
     in an attribute called `data`.
 
         >>> import numpy as np
-        >>> from hipercam import Window, Windata
+        >>> from hipercam import Window, Windat
         >>> win = Window(12, 6, 100, 150, 2, 3)
         >>> data = np.ones((150,100))
-        >>> wind = Windata(win,data)
+        >>> wind = Windat(win,data)
         >>> wind += 0.5
         >>> wind *= 2
 
@@ -183,7 +183,7 @@ class Windata(Window):
 
     def __init__(self, win, data=None):
         """
-        Constructs a :class:`Windata`
+        Constructs a :class:`Windat`
 
         Arguments::
 
@@ -201,16 +201,34 @@ class Windata(Window):
             # Run a couple of checks
             if data.ndim != 2:
                 raise HipercamError(
-                    'Windata.__init__: data must be 2D. Found {0:d}'.format(data.ndim))
+                    'Windat.__init__: data must be 2D. Found {0:d}'.format(data.ndim))
             ny, nx = data.shape
             if nx != win.nx or ny != win.ny:
                 raise HipercamError(
-                    'Windata.__init__: win & data dimensions conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
+                    'Windat.__init__: win & data dimensions conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
 
             self.data = data
 
-        super(Windata, self).__init__(win.llx, win.lly,
+        super(Windat, self).__init__(win.llx, win.lly,
                                       win.nx, win.ny, win.xbin, win.ybin)
+
+    @classmethod
+    def from_hdu(cls, hdu):
+        """Constructs a :class:`Windat` from an ImageHdu. Requires
+        header parameters 'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.
+        """
+        head = hdu.header
+        data = hdu.data
+
+        # construct Window
+        llx = head['LLX']
+        lly = head['LLY']
+        xbin = head['XBIN']
+        ybin = head['YBIN']
+        ny, nx = data.shape
+        win = Window(llx, lly, xbin, ybin, nx, ny)
+
+        return cls(win, data)
 
     @property
     def size(self):
@@ -220,7 +238,7 @@ class Windata(Window):
         return self.data.size
 
     def add_stars(self, targs, sxx, syy, rxy):
-        """Routine to add gaussians to a :class:`Windata`.
+        """Routine to add gaussians to a :class:`Windat`.
         Arguments::
 
           targs : (array of 3 element arrays)
@@ -248,7 +266,7 @@ class Windata(Window):
             self.data += h*np.exp(-dsq/2.)
 
     def add_noise(self, readout, gain):
-        """Adds noise to a :class:`Windata` according to a variance
+        """Adds noise to a :class:`Windat` according to a variance
         calculated from V = readout**2 + counts/gain.
         Arguments::
 
@@ -263,25 +281,25 @@ class Windata(Window):
 
     def min(self):
         """
-        Returns the minimum value of the :class:`Windata`.
+        Returns the minimum value of the :class:`Windat`.
         """
         return self.data.min()
 
     def max(self):
         """
-        Returns the maximum value of the :class:`Windata`.
+        Returns the maximum value of the :class:`Windat`.
         """
         return self.data.max()
 
     def mean(self):
         """
-        Returns the mean value of the :class:`Windata`.
+        Returns the mean value of the :class:`Windat`.
         """
         return self.data.mean()
 
     def percentile(self, q):
         """
-        Computes percentile(s) of a :class:`Windata`.
+        Computes percentile(s) of a :class:`Windat`.
 
         Arguments::
 
@@ -292,7 +310,7 @@ class Windata(Window):
 
     def whdu(self, fhead=None):
         """
-        Writes the Windata to an astropy.io.fits.ImageHDU
+        Writes the :class:`Windat` to an :class:`astropy.io.fits.ImageHDU`
 
         Arguments::
 
@@ -318,45 +336,45 @@ class Windata(Window):
         return fits.ImageHDU(self.data, fhead)
 
     def __iadd__(self, other):
-        """+= in-place addition operator. 'other' can be another Windata,
+        """+= in-place addition operator. 'other' can be another :class:`Windat`,
         an numpy.ndarray or a constant. Window parameters unchanged.
         """
-        if isinstance(other, Windata):
+        if isinstance(other, Windat):
             self.data += other.data
         else:
             self.data += other
         return self
 
     def __isub__(self, other):
-        """-= in-place subtraction operator. 'other' can be another Windata,
+        """-= in-place subtraction operator. 'other' can be another Windat,
         an numpy.ndarray or a constant. Window parameters unchanged.
         """
-        if isinstance(other, Windata):
+        if isinstance(other, Windat):
             self.data -= other.data
         else:
             self.data -= other
         return self
 
     def __imul__(self, other):
-        """*= in-place multiplication operator. 'other' can be another Windata,
+        """*= in-place multiplication operator. 'other' can be another Windat,
         an numpy.ndarray or a constant. Window parameters unchanged.
         """
-        if isinstance(other, Windata):
+        if isinstance(other, Windat):
             self.data *= other.data
         else:
             self.data *= other
         return self
 
     def __itruediv__(self, other):
-        """/= in-place division operator. 'other' can be another Windata,
+        """/= in-place division operator. 'other' can be another Windat,
         an numpy.ndarray or a constant. Window parameters unchanged.
         """
-        if isinstance(other, Windata):
+        if isinstance(other, Windat):
             self.data /= other.data
         else:
             self.data /= other
         return self
 
     def __repr__(self):
-        return 'Windata(win=' + super(Windata,self).__repr__() + \
+        return 'Windat(win=' + super(Windat,self).__repr__() + \
                               ', data=' + repr(self.data) + ')'
