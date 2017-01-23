@@ -9,6 +9,8 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import *
 
 import numpy as np
+from collections import OrderedDict
+
 from astropy.io import fits
 from .core import *
 from .group import *
@@ -16,17 +18,17 @@ from .window import *
 
 class CCD(Group):
     """
-    Class representing a CCD as a Group of Windata objects
-    plus a FITS header
+    Class representing a CCD as a :class:`Group` of :class:`Windat`
+    objects plus a FITS header.
     """
     def __init__(self, winds, nxtot, nytot, head=None):
         """
-        Constructs a :class:`CCD`
+        Constructs a :class:`CCD`.
 
         Arguments::
 
-          winds : (dict)
-              dictionary of Windata objects. The dictionary keys should be integers.
+          winds : (OrderedDict)
+              :class:`Windat` objects keyed by integers and/or strings.
 
           nxtot : (int)
               Unbinned X-dimension of CCD
@@ -35,37 +37,96 @@ class CCD(Group):
               Unbinned Y-dimension of CCD
 
           head : (astropy.io.fits.Header)
-              a header which will be written along with the first of the Windata
+              a header which will be written along with the first of the Windat
               sub-images if writing to a file.
+
+        The latter three are stored as identically-named attributes of the CCD.
         """
         super(CCD,self).__init__(winds)
         self.nxtot = nxtot
         self.nytot = nytot
         self.head = head
 
+    @classmethod
+    def from_fits(cls, fname):
+        """Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
+        containing no data, followed by a series of HDUs each containing data
+        for a series of non-overlapping windows. A header is extracted from
+        the first HDU with data.
+        """
+        hdul = fits.open(fname)
+        ccd = cls.from_hdul(hdul)
+        hdul.close()
+        return ccd
+
+    @classmethod
+    def from_hdul(cls, hdul):
+        """Builds a :class:`CCD` from an :class:`HDUList`. This will usually be passed
+        the :class:`HDUList` from a file. The header from the first HDU will
+        be used to create the header for the :class:`CCD`. The data from all
+        HDUs will be read into the :class:`Windat`s that make up the CCD. Each
+        HDU will be searched for a header parameter WINDOW to label the
+        :class:`Windat`s, but will attempt to generate a sequential label if
+        WINDOW is not found. If the auto-generated label conflicts with one
+        already found, then a HipercamError will be raised.
+
+        Arguments::
+
+          hdul : :class:`HDUList`
+               each ImageHDU will be read as sub-window of the :class:`CCD`
+
+        """
+        winds = Group()
+        nwin = 0
+        first = True
+        for hdu in hdul:
+            nwin += 1
+            head = hdu.header
+            if 'WINDOW' in head:
+                label = head['WINDOW']
+            elif nwin in odict:
+                raise HipercamError('CCD.from_hdul: window label conflict')
+            else:
+                label = nwin
+
+            winds[label] = Windat.from_hdu(hdu)
+
+            if first:
+                # Extract header from first HDU with data
+                # First remove standard items
+                nxtot = head['NXTOT']
+                nytot = head['NYTOT']
+
+                del head['NXTOT']
+                del head['NYTOT']
+                del head['LLX']
+                del head['LLY']
+                del head['XBIN']
+                del head['YBIN']
+                if 'WINDOW' in head: del head['WINDOW']
+                if 'CCD' in head: del head['CCD']
+                first_head = head
+                first = False
+
+        return cls(winds, nxtot, nytot, first_head)
+
     def min(self):
         """
-        Returns the minimum value of the :class:`CCD`.
+        Returns the minimum value of the :class:`CCD`, i.e. the
+        minimum of all the minimum values of all :class:`Windat`s
         """
-        winds = iter(self.values())
-        vmin = next(winds).min()
-        for wind in winds:
-            vmin = min(vmin, wind.min())
-        return vmin
+        return min(v.min() for v in self.values())
 
     def max(self):
+
         """
         Returns the maximum value of the :class:`CCD`.
         """
-        winds = iter(self.values())
-        vmax = next(winds).max()
-        for wind in winds:
-            vmax = min(vmax, wind.max())
-        return vmax
+        return max(v.max() for v in self.values())
 
     def mean(self):
         """
-        Returns the mean value of the :class:`Windata`.
+        Returns the mean value of the :class:`Windat`.
         """
         npix, total = 0, 0.
         for wind in self.values():
@@ -84,48 +145,48 @@ class CCD(Group):
         """
 
         # Flatten into a single 1D array
-        arrs = []
-        for wind in self.values():
-            arrs.append(wind.data.flatten())
+        arrs = [wind.data.flatten() for wind in self.values()]
         arr = np.concatenate(arrs)
 
         # Then compute percentiles
         return np.percentile(arr, q)
 
-    def add_hdulist(self, hdul, start=None):
-        """Add the CCD as a series of ImageHDUs to an hdulist.
-        This is to allow a series of CCDs to be written. The CCD
-        header is written into the first HDU added to the list.
+    def add_hdulist(self, hdul, label=None):
+        """Add the CCD as a series of ImageHDUs to an hdulist.  The CCD header is
+        written into the first HDU added to the list.
 
         Arguments::
 
             hdul : (astropy.io.fits.HDUList)
-                 An HDUList to which the CCD will be added as a series
-                 of ImageHDUs, the first of which will contain the header.
+                 An HDUList to which the CCD will be added as a series of ImageHDUs,
+                 the first of which will contain the header.
 
-            start : (astropy.io.fits.Header)
-                 Standard header to add at the start of every the header of
-                 each ImageHDU. e.g. This allows each one to be flagged with
-                 a CCD number.
+            label : (int / string / None)
+                 A label to attach to every HDU associated with the CCD. It appears
+                 as a header item 'CCD'
 
         Returns:: the modified HDUList.
 
         """
         first = True
         for key, wind in self.items():
-            if start is None:
-                fhead = fits.Header()
-            else:
-                fhead = start.copy()
-            fhead['NWIN'] = (int(key), 'Window number')
             if first:
-                fhead += self.head.copy()
+                fhead = self.head.copy()
+                fhead['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
+                fhead['NYTOT'] = (self.nxtot, 'Total unbinned Y dimension')
                 first = False
+            else:
+                fhead = fits.Header()
+
+            if label is not None:
+                fhead['CCD'] = (label, 'CCD label')
+            fhead['WINDOW'] = (key, 'Window label')
+
             hdul.append(wind.whdu(fhead))
 
         return hdul
 
-    def wfits(self, fname, overwrite=False):
+    def wfits(self, fname, label=None, overwrite=False):
         """Writes out the CCD to a FITS file.
 
         Arguments::
@@ -133,18 +194,25 @@ class CCD(Group):
             fname : (string)
                  Name of file to write to.
 
+            label : (int / string / None)
+                 Label for the CCD to write into the headers
+
             overwrite : (bool)
                  True to overwrite pre-existing files
         """
 
-        phdu = fits.PrimaryHDU(header=self.head)
-        hdus = [phdu,]
-        for key, wind in self.items():
-            fhead = fits.Header()
-            fhead['NWIN'] = (int(key), 'Window number')
-            hdus.append(wind.whdu(fhead))
-        hdulist = fits.HDUList(hdus)
-        hdulist.writeto(fname,overwrite=overwrite)
+        hdul = fits.HDUList()
+        hdul = self.add_hdulist(hdul, label)
+        phead = hdul[0].header
+        phead.add_blank('-----------------------------')
+        phead.add_comment('Data representing a single CCD frame written by hipercam.CCD.wfits.')
+        phead.add_comment('Multiple sub-windows are written in a series of HDUs. LLX and LLY give')
+        phead.add_comment('the pixel location in unbinned pixels of their lower-left corners. XBIN')
+        phead.add_comment('and YBIN are the binning factors. NXTOT and NYTOT are the total unbinned')
+        phead.add_comment('dimensions of the CCD. The first HDU contains any extra header items')
+        phead.add_comment('associated with the CCD.')
+
+        hdul.writeto(fname,overwrite=overwrite)
 
     def clash(self, ccd):
         """Returns "false" indicating two CCDs never clash
@@ -156,7 +224,6 @@ class CCD(Group):
                             ', nxtot=' + repr(self.nxtot) + \
                             ', nytot=' + repr(self.nytot) + \
                             ', head=' + repr(self.head) + ')'
-
 
 class MCCD(Group):
     """
@@ -170,14 +237,12 @@ class MCCD(Group):
         Arguments::
 
           ccds : (dict)
-              dictionary of CCD objects. Keys should be integers.
+              dictionary of CCD objects. Keys should be integers or strings
 
           head : (astropy.io.fits.Header)
               a header which will be written as the primary header.
         """
         super(MCCD,self).__init__(ccds)
-        for key, ccd in self.items():
-            ccd.head['NCCD'] = (int(key), 'CCD number')
         self.head = head
 
     def wfits(self, fname, overwrite=False):
@@ -192,13 +257,11 @@ class MCCD(Group):
                  True to overwrite pre-existing files
         """
 
-        phdu = fits.PrimaryHDU(header=self.head)
-        hdus = [phdu,]
+        phdu = fits.PrimaryHDU()
+        hdul = [phdu,]
         for key, ccd in self.items():
-            start = fits.Header()
-            start['NCCD'] = int(key)
-            ccd.add_hdulist(hdus, start)
-        hdulist = fits.HDUList(hdus)
+            hdul = ccd.add_hdulist(hdul, key)
+        hdulist = fits.HDUList(hdul)
         hdulist.writeto(fname,overwrite=overwrite)
 
     def __repr__(self):
