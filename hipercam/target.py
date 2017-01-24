@@ -147,54 +147,105 @@ class Target(object):
                ', fwmax=' + repr(self.fwmax) + ', angle=' + repr(self.angle) + \
                ', beta=' + repr(self.beta) + ')'
 
-
-def makefield(ntarg, x1, x2, y1, y2, h1, h2, fwmax, fwmin, angle, beta):
-    """Creates a random field of ntarg objects scattered over the range
-    x1, x2, y1, y2, with peak heights from h1 to h2. 
-
-    The field is returned as a :class:`list` of :class:`Target` objects.
-
-    Arguments::
-
-       ntarg : (int)
-          number of targets to add
-
-       x1 : (float)
-          left limit of region to add targets to
-
-       x2 : (float)
-          right limit of region to add targets to
-
-       y1 : (float)
-          lower limit of region to add targets to
-
-       y2 : (float)
-          upper limit of region to add targets to
-
-       h1 : (float)
-          lowest peak height
-
-       h2 : (float)
-          highest peak height
-
-       fwmax : (float)
-          FWHM along major axis of objects
-
-       fwmin : (float)
-          FWHM along minor axis of objects
-
-       angle : (float)
-          angle degrees clockwise from the X axis
-
-       beta : (float)
-          exponent that appears in Moffat functions
+class Field(list):
+    """Object to represent a star field as a list of :class:`Target`s. This is to help
+    with simulation of star fields.
     """
 
-    field = []
-    for nt in range(ntarg):
-        xcen = np.random.uniform(x1, x2)
-        ycen = np.random.uniform(y1, y2)
-        height = 1./(1./math.sqrt(h1)-(1./math.sqrt(h1)-1./math.sqrt(h2))*
-                     np.random.uniform())**2
-        field.append(Target(xcen, ycen, height, fwmax, fwmin, angle, beta))
-    return field
+    def __init__(self):
+        super(Field,self).__init__()
+
+    def add_random(self, ntarg, x1, x2, y1, y2, h1, h2, fwmax, fwmin, angle, beta):
+        """Adds a random field of ntarg :class:`Target` objects scattered over the
+        range x1, x2, y1, y2, with peak heights from h1 to h2 and fixed width
+        parameters. The peak heights are chosen between the limits to have a
+        distribution appropriate to a 3D Euclidean distribution of constant
+        luminosity objects.
+
+        Arguments::
+
+           ntarg : (int)
+              number of targets to add
+
+           x1 : (float)
+              left limit of region to add targets to
+
+           x2 : (float)
+              right limit of region to add targets to
+
+           y1 : (float)
+              lower limit of region to add targets to
+
+           y2 : (float)
+              upper limit of region to add targets to
+
+           h1 : (float)
+              lowest peak height
+
+           h2 : (float)
+              highest peak height
+
+           fwmax : (float)
+              FWHM along major axis of objects
+
+           fwmin : (float)
+              FWHM along minor axis of objects
+
+           angle : (float)
+              angle degrees clockwise from the X axis
+
+           beta : (float)
+              exponent that appears in Moffat functions
+
+        """
+
+        for nt in range(ntarg):
+            xcen = np.random.uniform(x1, x2)
+            ycen = np.random.uniform(y1, y2)
+            height = 1./(1./math.sqrt(h1)-(1./math.sqrt(h1)-1./math.sqrt(h2))*
+                         np.random.uniform())**2
+            self.append(Target(xcen, ycen, height, fwmax, fwmin, angle, beta))
+
+    def wjson(self, fname):
+        """
+        Writes a :class:`Field` to a file in json format. This is provided as
+        a straightforward way to store all the info of a :class:`Field`, not
+        as a particularly well-worked out storage format.
+
+        Arguments::
+
+           fname : (string)
+              file to write to
+        """
+        with open(fname, 'w') as fp:
+            json.dump(self, fp, cls=TargetEncoder)
+
+    @classmethod
+    def rjson(cls, fname):
+        with open(fname) as fp:
+            data = json.load(fp)
+        field = cls()
+        for dat in data:
+            field.append(
+                Target(dat['xcen'], dat['ycen'], dat['height'],
+                       dat['fwmax'], dat['fwmin'], dat['angle'], dat['beta'])
+            )
+        return field
+
+class TargetEncoder(json.JSONEncoder):
+    """Provides a translation to json for :class:`Target` as required
+    for writing :class:`Field`s to json
+    """
+
+    def default(self, obj):
+
+        if isinstance(obj, Target):
+            # Catch Targets
+            return {
+                '_comment': 'hipercam.Target',
+                'xcen' : obj.xcen, 'ycen' : obj.ycen, 'height' : obj.height,
+                'fwmax' : obj.fwmax, 'fwmin' : obj.fwmin, 'angle' : obj.angle,
+                'beta' : obj.beta}
+
+        # Default
+        return json.JSONEncoder.default(self, obj)
