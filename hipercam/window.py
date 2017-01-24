@@ -124,14 +124,6 @@ class Window(object):
         return self.llx <=  win.urx and self.urx >= win.llx and \
             self.lly <=  win.ury and self.ury >= win.lly
 
-    def wjson(self, file):
-        """
-        Writes a Window to a json file which gives a fairly easily
-        read and editable form of file. "file" is either a file name
-        of a file object.
-        """
-        print('wjson not implemented yet')
-
     def xy(self):
         """Returns two 2D arrays containing the x and y values at the centre
         of each pixel defined by the :class:`Window`. See numpy.meshgrid to
