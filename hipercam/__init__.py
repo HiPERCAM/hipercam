@@ -5,11 +5,10 @@ hipercam is a package for the reduction of data from the 5-band multi-window
 high-speed CCD camera HiPERCAM.
 """
 
+import .input
 from .group import *
 from .window import *
 from .ccd import *
 from .aperture import *
 from .target import *
 from . import mpl
-
-
