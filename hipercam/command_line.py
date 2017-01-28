@@ -10,6 +10,36 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 from astropy.io import fits
 import hipercam as hcam
+import hipercam.input as inp
+
+def makefield(args=None):
+    """Generate an artificial star field which is saved to disk file, a first step
+    in generating fake data. A previously generated star field can be loaded
+    and added to.
+
+    """
+
+    # create Input object
+    input = inp.Input('HIPERCAM_ENV', '.hipercam', args)
+
+    # register parameters
+    input.register('ntarg', inp.LOCAL, inp.PROMPT)
+    input.register('x1', inp.LOCAL, inp.PROMPT)
+    input.register('x2', inp.LOCAL, inp.PROMPT)
+    input.register('y1', inp.LOCAL, inp.PROMPT)
+    input.register('y2', inp.LOCAL, inp.PROMPT)
+    input.register('h1', inp.LOCAL, inp.PROMPT)
+    input.register('h2', inp.LOCAL, inp.PROMPT)
+    input.register('fwmax', inp.LOCAL, inp.PROMPT)
+    input.register('fwmin', inp.LOCAL, inp.PROMPT)
+    input.register('angle', inp.LOCAL, inp.PROMPT)
+    input.register('beta', inp.LOCAL, inp.PROMPT)
+    input.register('fname', inp.LOCAL, inp.PROMPT)
+
+    # Create a target field
+    targs = hcam.Field()
+    targs.add_random(ntarg, x1, x2, y1, y2, h1, h2, 
+                     fwmax, fwmin, angle, beta)
 
 def hplot(args=None):
     """
