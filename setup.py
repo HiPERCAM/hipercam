@@ -104,6 +104,7 @@ setup(
             'wccd=hipercam.command_line:wccd',
             'wmccd=hipercam.command_line:wmccd',
             'ptarg=hipercam.command_line:ptarg',
+            'makefield=hipercam.command_line:makefield',
         ],
     },
 )

@@ -11,35 +11,58 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 import hipercam as hcam
 import hipercam.input as inp
+from hipercam.input import Input
 
-def makefield(args=None):
+def makefield(args=[]):
     """Generate an artificial star field which is saved to disk file, a first step
     in generating fake data. A previously generated star field can be loaded
     and added to.
 
     """
+    print('args=',args)
 
     # create Input object
-    input = inp.Input('HIPERCAM_ENV', '.hipercam', args)
+    input = Input('HIPERCAM_ENV', '.hipercam', 'makefield', args)
 
     # register parameters
-    input.register('ntarg', inp.LOCAL, inp.PROMPT)
-    input.register('x1', inp.LOCAL, inp.PROMPT)
-    input.register('x2', inp.LOCAL, inp.PROMPT)
-    input.register('y1', inp.LOCAL, inp.PROMPT)
-    input.register('y2', inp.LOCAL, inp.PROMPT)
-    input.register('h1', inp.LOCAL, inp.PROMPT)
-    input.register('h2', inp.LOCAL, inp.PROMPT)
-    input.register('fwmax', inp.LOCAL, inp.PROMPT)
-    input.register('fwmin', inp.LOCAL, inp.PROMPT)
-    input.register('angle', inp.LOCAL, inp.PROMPT)
-    input.register('beta', inp.LOCAL, inp.PROMPT)
-    input.register('fname', inp.LOCAL, inp.PROMPT)
+    input.register('ntarg', Input.LOCAL, Input.PROMPT)
+    input.register('x1', Input.LOCAL, Input.PROMPT)
+    input.register('x2', Input.LOCAL, Input.PROMPT)
+    input.register('y1', Input.LOCAL, Input.PROMPT)
+    input.register('y2', Input.LOCAL, Input.PROMPT)
+    input.register('h1', Input.LOCAL, Input.PROMPT)
+    input.register('h2', Input.LOCAL, Input.PROMPT)
+    input.register('fwmax', Input.LOCAL, Input.PROMPT)
+    input.register('fwmin', Input.LOCAL, Input.PROMPT)
+    input.register('angle', Input.LOCAL, Input.PROMPT)
+    input.register('beta', Input.LOCAL, Input.PROMPT)
+    input.register('fname', Input.LOCAL, Input.PROMPT)
+
+    try:
+        # get inputs
+        ntarg = input.get_value('ntarg', 'number of targets', 100, 1)
+        x1 = input.get_value('x1', 'left-hand limit of field', -10.)
+        x2 = input.get_value('x2', 'right-hand limit of field', 2000., x1)
+        y1 = input.get_value('y1', 'lower limit of field', -10.)
+        y2 = input.get_value('y2', 'upper limit of field', 1000., y1)
+        h1 = input.get_value('h1', 'lower peak height limit', 0.1, 1.e-6)
+        h2 = input.get_value('h2', 'upper peak height limit', 1000., h1)
+        fwmax = input.get_value('fwmax', 'FWHM along major axis', 4., 1.e-6)
+        fwmin = input.get_value('fwmin', 'FWHM along minor axis', 4., 1.e-6)
+        angle = input.get_value('angle', 'angle of major axis', 0., -360., 360.)
+        beta = input.get_value('beta', 'Moffat exponent', 0., -360., 360.)
+        fname = input.get_value('fname', 'file to save field to',
+                                0., -360., 360.)
+
+    except inp.InputError as err:
+        print('Error on parameter input:')
+        print(err)
+        exit(1)
 
     # Create a target field
-    targs = hcam.Field()
-    targs.add_random(ntarg, x1, x2, y1, y2, h1, h2, 
-                     fwmax, fwmin, angle, beta)
+#    targs = hcam.Field()
+#    targs.add_random(ntarg, x1, x2, y1, y2, h1, h2, 
+#                     fwmax, fwmin, angle, beta)
 
 def hplot(args=None):
     """

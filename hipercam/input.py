@@ -22,7 +22,7 @@ Examples of parameter input
 
 Here are some examples of usage to illustrate this:
 
-A command with inputs 'device' (hidden), 'npoint' and 'output' could be 
+A command with inputs 'device' (hidden), 'npoint' and 'output' could be
 invoked variously as
 
 command
@@ -79,6 +79,8 @@ import pickle
 import readline
 readline.parse_and_bind("tab: complete")
 
+from .core import HipercamError
+
 #def complete(text,state):
 #    results = ["example",None]
 #    return results[state]
@@ -107,7 +109,7 @@ class Input(object):
 
     Here is some example code::
 
-      >> import trm.subs.input as inp
+      >> import hipercam.input as inp
       >>
       >> # Initialize Input. COMM_ENV is an environment
       >> # variable specifying a directory where the files
@@ -115,7 +117,7 @@ class Input(object):
       >> # under the home directory that will be used by
       >> # default.
       >>
-      >> input = inp.Input('COMM_ENV', '.comm', sys.argv)
+      >> input = inp.Input('COMM_ENV', '.comm', 'command', sys.argv)
       >>
       >> # register parameters
       >> input.register('device', inp.Input.GLOBAL, inp.Input.HIDE)
@@ -164,7 +166,7 @@ class Input(object):
     PROMPT   = 3
     HIDE     = 4
 
-    def __init__(self, direnv, defdir, argv):
+    def __init__(self, direnv, defdir, cname, argv):
         """
         Initialize an Input class object
 
@@ -178,12 +180,26 @@ class Input(object):
               default directory (sub-directory of HOME) if the enviroment
               variable 'direnv' is not defined
 
+           cname : (string)
+              the command name, which is used to generate the local defaults
+              file name
+
            argv : (list of strings)
               command-line arguments. The first one must be the command name.
 
         """
 
-        # Extract special keywords PROMPT, LIST and NODEFS from argument list
+        # Extract special keywords NODEFS, PROMPT and LIST from argument list
+
+        if 'NODEFS' in argv:
+            self._nodefs = True
+            argv.remove('NODEFS')
+        else:
+            self._nodefs = False
+
+        if 'NODEFS' in argv:
+            raise InputError(
+                'hipercam.input.Input: keyword NODEFS specified more than once in argument list.')
 
         if 'PROMPT' in argv:
             self._prompt = True
@@ -205,18 +221,8 @@ class Input(object):
             raise InputError(
                 'hipercam.input.Input: keyword LIST specified more than once in argument list.')
 
-        if 'NODEFS' in argv:
-            self._nodefs = True
-            argv.remove('NODEFS')
-        else:
-            self._nodefs = False
-
-        if 'NODEFS' in argv:
-            raise InputError(
-                'hipercam.input.Input: keyword NODEFS specified more than once in argument list.')
-
-        # Take command name from first argument
-        self._cname =  os.path.split(argv.pop(0))[1]
+        # Store the command name
+        self._cname = cname
         if self._list:
             print ('\n' + self._cname)
 
@@ -235,24 +241,22 @@ class Input(object):
             # read local and global default files
             self._lname = os.path.join(self._ddir, self._cname)
             try:
-                flocal = open(self._lname)
-                self._lpars  = pickle.load(flocal)
-                flocal.close()
+                with open(self._lname,'rb') as flocal:
+                    self._lpars  = pickle.load(flocal)
             except IOError:
                 self._lpars = {}
-            except (EOFError, UnpicklingError):
+            except (EOFError, pickle.UnpicklingError):
                 sys.stderr.write(
                     'hipercam.input.Input: failed to read local defaults file ' + self._lname + '; possible corrupted file.\n')
                 self._lpars = {}
 
             self._gname = os.path.join(self._ddir, 'GLOBAL')
             try:
-                fglobal = open(self._gname)
-                self._gpars  = pickle.load(fglobal)
-                fglobal.close()
+                with open(self._gname,'rb') as fglobal:
+                    self._gpars  = pickle.load(fglobal)
             except IOError:
                 self._gpars = {}
-            except (EOFError, UnpicklingError):
+            except (EOFError, pickle.UnpicklingError):
                 sys.stderr.write(
                     'hipercam.input.Input: failed to read global defaults file ' + self._gname + '; possible corrupted file.\n')
                 self._gpars = {}
@@ -305,18 +309,17 @@ class Input(object):
 
             # save local defaults
             try:
-                flocal = open(self._lname, 'w')
-                pickle.dump(self._lpars, flocal)
-                flocal.close()
+                print(self._lpars)
+                with open(self._lname, 'wb') as flocal:
+                    pickle.dump(self._lpars, flocal)
             except  IOError:
                 sys.stderr.write(
                     'hipercam.input.Input.__del__: failed to save local parameter/value pairs to ' + self._lname + '\n')
 
             # save global defaults
             try:
-                fglobal = open(self._gname, 'w')
-                pickle.dump(self._gpars, fglobal)
-                fglobal.close()
+                with open(self._gname, 'wb') as fglobal:
+                    pickle.dump(self._gpars, fglobal)
             except  IOError:
                 sys.stderr.write(
                     'hipercam.input.Input.__del__: failed to save global parameter/value pairs to ' + self._gname + '\n')
@@ -479,7 +482,8 @@ class Input(object):
             if not self._usedef and (self._prompt or self._rpars[param]['p_or_h'] == Input.PROMPT):
                 reply = '?'
                 while reply == '?':
-                    reply = raw_input(param + ' -- ' + prompt + ' [' + str(value) + ']: ')
+                    reply = input(
+                        param + ' -- ' + prompt + ' [' + str(value) + ']: ')
                     if reply == '\\':
                         self._usedef = True
                     elif reply == '?':
@@ -509,22 +513,22 @@ class Input(object):
         # at this stage we have the value, now try to convert to the right
         # type according to the type of 'defval'
         try:
-            if isinstance(defval, subs.Fname):
-                value = subs.Fname(value, defval.ext, defval.ftype, defval.check, False)
-            elif isinstance(defval, basestring):
+            if isinstance(defval, Fname):
+                value = Fname(
+                    value, defval.ext, defval.ftype, defval.check, False)
+            elif isinstance(defval, str):
                 value = str(value)
             elif isinstance(defval, bool):
-                if isinstance(value, basestring):
+                if isinstance(value, str):
                     if value.lower() == 'true' or value.lower() == 'yes' or value.lower() == '1' or value.lower() == 'y':
                         value = True
                     elif value.lower() == 'false' or value.lower() == 'no' or value.lower() == '0' or value.lower() == 'n':
                         value = False
                     else:
-                        raise InputError('could not translate "' + value + '" to a boolean True or False.')
+                        raise InputError(
+                            'could not translate "' + value + '" to a boolean True or False.')
             elif isinstance(defval, int):
                 value = int(value)
-            elif isinstance(defval, long):
-                value = long(value)
             elif isinstance(defval, float):
                 value = float(value)
             elif isinstance(defval, list):
@@ -539,8 +543,7 @@ class Input(object):
                     value = tuple(value)
             else:
                 raise InputError('did not recognize the data type of the default supplied for parameter = ' + param + ' = ' + type(defval))
-        except subs.SubsError as err:
-            raise InputError(str(err))
+
         except ValueError as err:
             raise InputError(str(err))
 
