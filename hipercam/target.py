@@ -4,14 +4,12 @@ Defines classes to represent astronomical object fields for
 simulating data.
 """
 
-# Imports for 2 / 3 compatibility
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-from builtins import *
-
 import math
-import numpy as np
+import copy
 import json
+
+import numpy as np
+
 from .core import *
 
 class Target(object):
@@ -119,6 +117,25 @@ class Target(object):
         self._beta = beta
         self._comp_abc()
 
+    def offset(self, dx, dy):
+        """This generates a new :class:`Target` by offsetting the position of the :class:`Target`
+
+        Arguments::
+
+           dx : (float)
+             X offset to add to the positions of all targets [unbinned pixels]
+
+           dy : (float)
+             Y offset to add to the positions of all targets [unbinned pixels]
+
+        Returns:: a shifted version of the :class:`Target`
+
+        """
+        targ = copy.deepcopy(self)
+        targ.xcen += dx
+        targ.ycen += dy
+        return targ
+
     def __call__(self, x, y):
         """Computes data representing the :class:`Target` at
         position x, y (which can be arrays of positions)
@@ -205,6 +222,30 @@ class Field(list):
             height = 1./(1./math.sqrt(h1)-(1./math.sqrt(h1)-1./math.sqrt(h2))*
                          np.random.uniform())**2
             self.append(Target(xcen, ycen, height, fwmax, fwmin, angle, beta))
+
+    def offset(self, dx, dy, sigx, sigy):
+        """This generates a new :class:`Field` by offsetting the positions of all the targets in the :class:`Field`
+        by a fixed amount dx, dy and by a random jitter for every target with dispersion of sigx and sigy.
+
+        Arguments::
+
+           dx : (float)
+             X offset to add to the positions of all targets [unbinned pixels]
+
+           dy : (float)
+             Y offset to add to the positions of all targets [unbinned pixels]
+
+           sigx : (float)
+             RMS of random gaussian X offset to add to the position of each targets [unbinned pixels]
+
+           sigy : (float)
+             RMS of random gaussian Y offset to add to the position of each targets [unbinned pixels]
+        """
+        field = Field()
+        for target in self:
+            sx,sy = np.random.normal([dx,dy],[sigx,sigy])
+            field.append(target.offset(sx,sy))
+        return field
 
     def wjson(self, fname):
         """Writes a :class:`Field` to a file in json format. This is provided as a
