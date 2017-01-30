@@ -1,30 +1,73 @@
-# Imports for 2 / 3 compatibility
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-from builtins import *
-
 import sys
-import argparse
-import numpy as np
+import os
 from collections import OrderedDict
-import matplotlib.pyplot as plt
+
+import numpy as np
+#import matplotlib.pyplot as plt
 from astropy.io import fits
 import hipercam as hcam
 import hipercam.input as inp
 from hipercam.input import Input
 
-def makefield(args=[]):
-    """Generate an artificial star field which is saved to disk file, a first step
-    in generating fake data. A previously generated star field can be loaded
-    and added to.
+def makefield(args=None):
+    """Entry point script to generate an artificial star field which is saved to
+    disk file, a first step in generating fake data. A previously generated
+    star field can be loaded and added to. The targets are distributed at
+    random, with random peak heights based on constant luminosity objects
+    distributed throughout 3D space. All targets have the same shape thus
+    multiple calls are needed to generate a field of objects of multiple
+    shapes. Ellisoidal "Moffat" functions [1/(1+r^2)^beta] are used. Arguments
+    can be sent through as a list of strings. When used as an entry point,
+    they will be taken from the command line.  Any arguments not supplied will
+    be prompted for.
+
+    Arguments::
+
+       fname : (string)
+          file to add to. Will be created if it does not exist.
+
+       ntarg : (int)
+          The number of targets to add to the field.
+
+       x1 : (float)
+          The left-hand limit of the field [unbinned pixels]
+
+       x2 : (float)
+          The right-hand limit of the field [unbinned pixels]
+
+       y1 : (float)
+          The lowest limit of the field [unbinned pixels]
+
+       y2 : (float)
+          The highest limit of the field [unbinned pixels]
+
+       h1 : (float)
+          Minimum peak height [counts per unbinned pixel]
+
+       h2 : (float)
+          Maximum peak height [counts per unbinned pixel]
+
+       fwmax : (float)
+          Major-axis FWHM [unbinned pixels]
+
+       fwmin : (float)
+          Minor-axis FWHM [unbinned pixels]
+
+       angle : (float)
+          Angle, anti-clockwise from X-axis [degrees]
+
+       beta : (float)
+          Moffat function exponent
 
     """
-    print('args=',args)
+    if args is None:
+        args = sys.argv[1:]
 
     # create Input object
     input = Input('HIPERCAM_ENV', '.hipercam', 'makefield', args)
 
     # register parameters
+    input.register('fname', Input.LOCAL, Input.PROMPT)
     input.register('ntarg', Input.LOCAL, Input.PROMPT)
     input.register('x1', Input.LOCAL, Input.PROMPT)
     input.register('x2', Input.LOCAL, Input.PROMPT)
@@ -36,10 +79,20 @@ def makefield(args=[]):
     input.register('fwmin', Input.LOCAL, Input.PROMPT)
     input.register('angle', Input.LOCAL, Input.PROMPT)
     input.register('beta', Input.LOCAL, Input.PROMPT)
-    input.register('fname', Input.LOCAL, Input.PROMPT)
 
     try:
         # get inputs
+        fname = input.get_value('fname', 'file to save field to', 
+                                inp.Fname('field', '.fld', exist=False))
+        if os.path.exists(fname):
+            # Initialise the field from a file
+            field = hcam.Field.rjson(fname)
+            print('>> Loaded a field of',len(field),'objects from',fname)
+        else:
+            # Create an empty field
+            field = hcam.Field()
+            print('>> Created an empty field.')
+
         ntarg = input.get_value('ntarg', 'number of targets', 100, 1)
         x1 = input.get_value('x1', 'left-hand limit of field', -10.)
         x2 = input.get_value('x2', 'right-hand limit of field', 2000., x1)
@@ -50,19 +103,20 @@ def makefield(args=[]):
         fwmax = input.get_value('fwmax', 'FWHM along major axis', 4., 1.e-6)
         fwmin = input.get_value('fwmin', 'FWHM along minor axis', 4., 1.e-6)
         angle = input.get_value('angle', 'angle of major axis', 0., -360., 360.)
-        beta = input.get_value('beta', 'Moffat exponent', 0., -360., 360.)
-        fname = input.get_value('fname', 'file to save field to',
-                                0., -360., 360.)
+        beta = input.get_value('beta', 'Moffat exponent', 4., 1.0)
 
     except inp.InputError as err:
         print('Error on parameter input:')
         print(err)
         exit(1)
 
-    # Create a target field
-#    targs = hcam.Field()
-#    targs.add_random(ntarg, x1, x2, y1, y2, h1, h2, 
-#                     fwmax, fwmin, angle, beta)
+    # add targets
+    field.add_random(ntarg, x1, x2, y1, y2, h1, h2, fwmax, fwmin, angle, beta)
+
+    # save result
+    field.wjson(fname)
+
+    print('>> Saved a field of',len(field),'objects to',fname)
 
 def hplot(args=None):
     """
