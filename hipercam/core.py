@@ -8,6 +8,12 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from builtins import *
 
+# Constants for general use
+
+# Standard file extensions
+FIELD = '.fld'
+HCAM = '.hcm'
+
 class HipercamError (Exception):
     """
     Error class for the hipercam package
