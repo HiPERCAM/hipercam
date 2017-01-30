@@ -117,7 +117,7 @@ class Input(object):
       >> # under the home directory that will be used by
       >> # default.
       >>
-      >> input = inp.Input('COMM_ENV', '.comm', 'command', sys.argv)
+      >> input = inp.Input('COMM_ENV', '.comm', 'command', args)
       >>
       >> # register parameters
       >> input.register('device', inp.Input.GLOBAL, inp.Input.HIDE)
@@ -166,7 +166,7 @@ class Input(object):
     PROMPT   = 3
     HIDE     = 4
 
-    def __init__(self, direnv, defdir, cname, argv):
+    def __init__(self, direnv, defdir, cname, args):
         """
         Initialize an Input class object
 
@@ -184,42 +184,30 @@ class Input(object):
               the command name, which is used to generate the local defaults
               file name
 
-           argv : (list of strings)
+           args : (list of strings)
               command-line arguments. The first one must be the command name.
 
         """
 
         # Extract special keywords NODEFS, PROMPT and LIST from argument list
 
-        if 'NODEFS' in argv:
+        if 'NODEFS' in args:
             self._nodefs = True
-            argv.remove('NODEFS')
+            args = filter(lambda a: a != 'NODEFS', args)
         else:
             self._nodefs = False
 
-        if 'NODEFS' in argv:
-            raise InputError(
-                'hipercam.input.Input: keyword NODEFS specified more than once in argument list.')
-
-        if 'PROMPT' in argv:
+        if 'PROMPT' in args:
             self._prompt = True
-            argv.remove('PROMPT')
+            args = filter(lambda a: a != 'PROMPT', args)
         else:
             self._prompt = False
 
-        if 'PROMPT' in argv:
-            raise InputError(
-                'hipercam.input.Input: keyword PROMPT specified more than once in argument list.')
-
-        if 'LIST' in argv:
+        if 'LIST' in args:
             self._list = True
-            argv.remove('LIST')
+            args = filter(lambda a: a != 'LIST', args)
         else:
             self._list = False
-
-        if 'LIST' in argv:
-            raise InputError(
-                'hipercam.input.Input: keyword LIST specified more than once in argument list.')
 
         # Store the command name
         self._cname = cname
@@ -239,7 +227,7 @@ class Input(object):
                 self._ddir = os.path.join(home, defdir)
 
             # read local and global default files
-            self._lname = os.path.join(self._ddir, self._cname)
+            self._lname = os.path.join(self._ddir, self._cname + '.def')
             try:
                 with open(self._lname,'rb') as flocal:
                     self._lpars  = pickle.load(flocal)
@@ -250,7 +238,7 @@ class Input(object):
                     'hipercam.input.Input: failed to read local defaults file ' + self._lname + '; possible corrupted file.\n')
                 self._lpars = {}
 
-            self._gname = os.path.join(self._ddir, 'GLOBAL')
+            self._gname = os.path.join(self._ddir, 'GLOBAL.def')
             try:
                 with open(self._gname,'rb') as fglobal:
                     self._gpars  = pickle.load(fglobal)
@@ -260,7 +248,6 @@ class Input(object):
                 sys.stderr.write(
                     'hipercam.input.Input: failed to read global defaults file ' + self._gname + '; possible corrupted file.\n')
                 self._gpars = {}
-
         else:
             self._ddir = None
             self._lpars = {}
@@ -272,9 +259,9 @@ class Input(object):
         self._pbynam = {}
         self._pbypos = []
         checker = re.compile('[a-zA-Z0-9]+=')
-        for arg in argv:
+        for arg in args:
             if checker.match(arg):
-                (p,v) = arg.split('=',1)
+                p,v = arg.split('=',1)
                 if p in self._pbynam:
                     raise InputError(
                         'hipercam.input.Input: parameter = ' + p + ' defined more than once in argument list.')
@@ -300,29 +287,37 @@ class Input(object):
         if not self._nodefs:
 
             # make the default directory if need be
-            if not os.path.lexists(self._ddir):
-                try:
+            try:
+                if not os.path.lexists(self._ddir):
                     os.mkdir(self._ddir, 0o755)
-                except OSError:
-                    sys.stderr.write(
-                        'hipercam.input.Input.__del__: failed to create defaults directory ' + self._ddir + '\n')
+            except OSError:
+                sys.stderr.write(
+                    'hipercam.input.Input.__del__: failed to create defaults directory ' + self._ddir + '\n')
+            except AttributeError:
+                sys.stderr.write(
+                    'hipercam.input.Input.__del__: defaults directory attribute undefined; possible programming error\n')
 
             # save local defaults
             try:
-                print(self._lpars)
                 with open(self._lname, 'wb') as flocal:
                     pickle.dump(self._lpars, flocal)
-            except  IOError:
+            except (IOError, TypeError):
                 sys.stderr.write(
                     'hipercam.input.Input.__del__: failed to save local parameter/value pairs to ' + self._lname + '\n')
+            except AttributeError:
+                sys.stderr.write(
+                    'hipercam.input.Input.__del__: local parameter file attribute undefined; possible programming error\n')
 
             # save global defaults
             try:
                 with open(self._gname, 'wb') as fglobal:
                     pickle.dump(self._gpars, fglobal)
-            except  IOError:
+            except (IOError, TypeError):
                 sys.stderr.write(
                     'hipercam.input.Input.__del__: failed to save global parameter/value pairs to ' + self._gname + '\n')
+            except AttributeError:
+                sys.stderr.write(
+                    'hipercam.input.Input.__del__: global parameter file attribute undefined; possible programming error\n')
 
     def prompt_state(self):
         """Says whether prompting is being forced or not. Note the propting state does
@@ -514,8 +509,7 @@ class Input(object):
         # type according to the type of 'defval'
         try:
             if isinstance(defval, Fname):
-                value = Fname(
-                    value, defval.ext, defval.ftype, defval.check, False)
+                value = Fname(value, defval.ext, defval.ftype, defval.exist)
             elif isinstance(defval, str):
                 value = str(value)
             elif isinstance(defval, bool):
@@ -583,19 +577,17 @@ class Input(object):
             return None
 
 class Fname(str):
-    """Class for handling file names with standard extensions. Basically a tiny
-    modification of strings which checks for things like the existence of the
-    file. It is not safe as it imposes no lock on the files.
+    """Defines an input type for the :class:`Input` to cope with file names. It is
+    based upon strings with some extra features such as checking for existence
+    of a file.
 
     """
 
     OLD       = 0
     NEW       = 1
     NOCLOBBER = 2
-    EXIST     = 11
-    NOTEXIST  = 12
 
-    def __new__(self, root, ext, ftype=OLD, check=EXIST, template=True):
+    def __new__(cls, root, ext, ftype=OLD, exist=True):
         """Needed because str is immutable. In the following text items in capitals
         such as 'OLD' are static variables so that one should use
         hipercam.input.Fname.OLD or equivalent to refer to them.
@@ -606,47 +598,38 @@ class Fname(str):
              root name of file (if it ends with 'ext', an extra 'ext' will
              not be added)
 
-        ext : (string)
+          ext : (string)
              extension, e.g. '.dat'
 
-        ftype : (int)
-             OLD = old file, NEW = new file which will overwrite anything
-             existing, NOCLOBBER = new file but there must not be an existing
-             one of the specified name
+          ftype : (int)
+             OLD = existing or possibly existing file; NEW = new file which will overwrite
+             anything existing; NOCLOBBER is same as NEW but there must not be an existing
+             one of the specified name.
 
-        check : (int)
-             EXIST implies it will check for the existence of a file. NOTEXIST
-             won't.
-
-        template : (bool)
-             if True then no checks will be carried out; the object is to act
-             as a template for others where ftype and check will be applied.
-             True is the default since usually this object is used to define
-             a template
-
+          exist : (bool)
+             If exist=True and ftype=OLD, the file :must: exist. If exist=False, the file may or may
+             not exist already.
         """
         if ftype != Fname.OLD and ftype != Fname.NEW and ftype != Fname.NOCLOBBER:
             raise InputError(
                 'hipercam.input.Fname.__new__: ftype must be either OLD, NEW or NOCLOBBER')
-        if check != Fname.EXIST and check != Fname.NOTEXIST:
-            raise InputError(
-                'hipercam.input.Fname.__new__: check must be either EXIST or NOTEXIST')
 
         if root.endswith(ext):
-            fname = str.__new__(self, root)
+            fname = str.__new__(cls, root)
         else:
-            fname = str.__new__(self, root + ext)
+            fname = str.__new__(cls, root + ext)
 
-        if not template:
-            if check == Fname.EXIST and ftype == Fname.OLD and not os.path.exists(fname):
-                raise InputError(
-                    'hipercam.input.Fname.__new__: could not find file = ' + fname)
-            if ftype == Fname.NOCLOBBER and os.path.exists(fname):
-                raise InputError(
-                    'hipercam.input.Fname.__new__: file = ' + fname + ' already exists')
+        if exist and ftype == Fname.OLD and not os.path.exists(fname):
+            raise InputError(
+                'hipercam.input.Fname.__new__: could not find file = ' + fname)
+
+        if ftype == Fname.NOCLOBBER and os.path.exists(fname):
+            raise InputError(
+                'hipercam.input.Fname.__new__: file = ' + fname + ' already exists')
+
         return fname
 
-    def __init__(self, root, ext, ftype=OLD, check=EXIST, template=False):
+    def __init__(self, root, ext, ftype=OLD, exist=True):
         """Constructor. In the following text items in capitals
         such as 'OLD' are static variables so that one should use
         hipercam.input.Fname.OLD or equivalent to refer to them.
@@ -657,29 +640,27 @@ class Fname(str):
              root name of file (if it ends with 'ext', an extra 'ext' will
              not be added)
 
-        ext : (string)
+          ext : (string)
              extension, e.g. '.dat'
 
-        ftype : (int)
-             OLD = old file, NEW = new file which will overwrite anything
-             existing, NOCLOBBER = new file but there must not be an existing
-             one of the specified name
+          ftype : (int)
+             If exist=True and ftype=OLD, the file :must: exist. If exist=False, the file may or may
+             not exist already.
 
-        check : (int)
-             EXIST implies it will check for the existence of a file. NOTEXIST
-             won't.
+          exist : (bool)
+             If True, the file must exist.
 
-        template : (bool)
-             if True then no checks will be carried out; the object is to act
-             as a template for others where ftype and check will be applied.
-             True is the default since usually this object is used to define
-             a template
-
-        ext, ftype and check are stored as attributes
+        All arguments are as identically-named attributes
         """
-        self.ext   = ext
+        self.root = root
+        self.ext = ext
         self.ftype = ftype
-        self.check = check
+        self.exist = exist
+
+    def __getnewargs__(self):
+        """To allow pickling of :class:`Fname` objects. This returns a tuple of arguments that
+        are passed off to __new__"""
+        return (self.root,self.ext,self.ftype,self.exist)
 
     def exists(self):
         """Checks that the file exists"""
