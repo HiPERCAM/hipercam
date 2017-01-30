@@ -207,21 +207,27 @@ class Field(list):
             self.append(Target(xcen, ycen, height, fwmax, fwmin, angle, beta))
 
     def wjson(self, fname):
-        """
-        Writes a :class:`Field` to a file in json format. This is provided as
-        a straightforward way to store all the info of a :class:`Field`, not
-        as a particularly well-worked out storage format.
+        """Writes a :class:`Field` to a file in json format. This is provided as a
+        straightforward way to store all the info of a :class:`Field`.
 
         Arguments::
 
            fname : (string)
               file to write to
+
         """
         with open(fname, 'w') as fp:
             json.dump(self, fp, cls=TargetEncoder)
 
     @classmethod
     def rjson(cls, fname):
+        """Creates a :class:`Field` from a json format file as saved by `wjson`.
+
+        Arguments::
+
+           fname : (string)
+              the file to read to create the :class:`Field`
+        """
         with open(fname) as fp:
             data = json.load(fp)
         field = cls()
