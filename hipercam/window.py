@@ -374,6 +374,42 @@ class Windat(Window):
             self.data /= other
         return self
 
+   def __add__(self, other):
+       """Defines addition of a :class:`Windat` to another :class:`Windat` or to any
+       object that can be added to an ndarray
+
+       """
+
+       win = Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
+       if isinstance(other, Windat):
+           return Windat(win, self.data + other.data)
+        else:
+           return Windat(win, self.data + other)
+
+   def __radd__(self, other):
+       """Defines addition of an ndarray to a :class:`Windat`"""
+
+       win = Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
+       return Windat(win, self.data + other)
+
+   def __sub__(self, other):
+       """Defines subtraction of a :class:`Windat` and another :class:`Windat` or any
+       object that can be subtracted to an ndarray
+
+       """
+
+       win = Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
+       if isinstance(other, Windat):
+           return Windat(win, self.data - other.data)
+        else:
+           return Windat(win, self.data - other)
+
+   def __rsub__(self, other):
+       """Defines subtraction of an :class:`Windat` form another object"""
+
+       win = Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
+       return Windat(win, other - self.data)
+
     def __repr__(self):
         return 'Windat(' + super(Windat,self).__repr__() + \
             ', data=' + repr(self.data) + ')'
