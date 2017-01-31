@@ -4,18 +4,12 @@ Defines classes to represent sub-windows of a CCD and associated
 functions.
 """
 
-# Imports for 2 / 3 compatibility
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-from builtins import *
-
-
 import json
 import numpy as np
 from astropy.io import fits
 from .core import *
 
-class Window(object):
+class Window:
     """
     Class representing a window of a CCD. This represents an arbitrary
     rectangular region of binned pixels. The lower-left pixel of the CCD
@@ -25,7 +19,7 @@ class Window(object):
         >>> from hipercam import Window
         >>> win = Window(12, 6, 100, 150, 2, 3)
         >>> print(win)
-        Window(llx=12, lly=6, nx=100, ny=150, xbin=2, ybin=3)
+        Window(12, 6, 100, 150, 2, 3)
 
     """
 
@@ -60,9 +54,9 @@ class Window(object):
         self.ybin  = ybin
 
     def __repr__(self):
-        return 'Window(llx=' + repr(self.llx) + ', lly=' + repr(self.lly) + \
-            ', nx=' + repr(self.nx) + ', ny=' + repr(self.ny) + \
-            ', xbin=' + repr(self.xbin) + ', ybin=' + repr(self.ybin) + ')'
+        return 'Window(' + repr(self.llx) + ', ' + repr(self.lly) + \
+            ', ' + repr(self.nx) + ', ' + repr(self.ny) + \
+            ', ' + repr(self.xbin) + ', ' + repr(self.ybin) + ')'
 
 
     @property
@@ -116,13 +110,15 @@ class Window(object):
             (self.lly-win.lly) % win.ybin == 0
 
     def clash(self, win):
-        """Returns True if two :class: `Window`s are considered to 'clash'.
-        In this case this means if they have any pixels in common.
-        This method allows :class: `Window`s to be collected in
+        """Raises a HipercamError exception if two :class: `Window`s are considered to
+        'clash'.  In this case this means if they have any pixels in common.
+        This method is required for :class: `Window`s to be collected into
         :class:`Group`s
+
         """
-        return self.llx <=  win.urx and self.urx >= win.llx and \
-            self.lly <=  win.ury and self.ury >= win.lly
+        if self.llx <=  win.urx and self.urx >= win.llx and \
+           self.lly <=  win.ury and self.ury >= win.lly:
+            raise HipercamError('Window.clash: self = ' + str(self) + ' clashes with win = ' + str(win))
 
     def xy(self):
         """Returns two 2D arrays containing the x and y values at the centre
@@ -212,7 +208,7 @@ class Windat(Window):
             ny, nx = data.shape
             if nx != win.nx or ny != win.ny:
                 raise HipercamError(
-                    'Windat.__init__: win & data dimensions conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
+                    'Windat.__init__: win vs data dimension conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
 
             self.data = data
 
@@ -220,7 +216,7 @@ class Windat(Window):
                                       win.nx, win.ny, win.xbin, win.ybin)
 
     @classmethod
-    def from_hdu(cls, hdu):
+    def rhdu(cls, hdu):
         """Constructs a :class:`Windat` from an ImageHdu. Requires
         header parameters 'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.
         """
@@ -233,7 +229,7 @@ class Windat(Window):
         xbin = head['XBIN']
         ybin = head['YBIN']
         ny, nx = data.shape
-        win = Window(llx, lly, xbin, ybin, nx, ny)
+        win = Window(llx, lly, nx, ny, xbin, ybin)
 
         return cls(win, data)
 
@@ -338,7 +334,6 @@ class Windat(Window):
         except TypeError:
             self.data += funcs(X,Y)
 
-
     def __iadd__(self, other):
         """+= in-place addition operator. 'other' can be another :class:`Windat`,
         an numpy.ndarray or a constant. Window parameters unchanged.
@@ -380,8 +375,8 @@ class Windat(Window):
         return self
 
     def __repr__(self):
-        return 'Windat(win=' + super(Windat,self).__repr__() + \
-                              ', data=' + repr(self.data) + ')'
+        return 'Windat(' + super(Windat,self).__repr__() + \
+            ', data=' + repr(self.data) + ')'
 
 
 
