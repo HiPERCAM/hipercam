@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-"""handles parameter input for hipercam
+"""handles command line parameters and prompting for hipercam
 
 This component handles parameter input from the user, and storage and retrieval
 of parameters from disk files. This gives scripts a memory and can save a lot
@@ -9,13 +9,13 @@ of typing, especially with frequently invoked scripts.
 Classes
 =======
 
-Input      -- the main class for parameter input
-InputError -- Exception class, inherited from HipercamError
+Cline      -- the main class for parameter input
+ClineError -- Exception class, inherited from HipercamError
 
 Functions
 =========
 
-clist      -- split up a command string appropriately for Input
+clist      -- split up a command string appropriately for Cline
 
 Examples of parameter input
 ===========================
@@ -66,10 +66,6 @@ gives the parameter range if any has been supplied.
 
 """
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-from builtins import *
-
 import os
 import re
 import sys
@@ -90,7 +86,7 @@ from .core import HipercamError
 def clist(command):
     """
     Splits up a command string returning a list suitable for
-    constructing Input objects. The reason for using this rather than
+    constructing Cline objects. The reason for using this rather than
     a simple string split is that it allows you to use double quotes
     to get strings with spaces through. Returns a list of strings.
     """
@@ -99,7 +95,8 @@ def clist(command):
     return [c.lstrip('"').rstrip('"') for c in cl]
 
 
-class Input(object):
+class Cline:
+
     """Class to handle command line inputs. In particular this allows storage and
     retrieval of input parameter values from files which allows different
     scripts to communicate parameters to each other through 'global' defaults,
@@ -109,33 +106,33 @@ class Input(object):
 
     Here is some example code::
 
-      >> import hipercam.input as inp
+      >> import hipercam.cline as inp
       >>
-      >> # Initialize Input. COMM_ENV is an environment
+      >> # Initialize Cline. COMM_ENV is an environment
       >> # variable specifying a directory where the files
       >> # are stored. '.comm' is the name of a directory
       >> # under the home directory that will be used by
       >> # default.
       >>
-      >> input = inp.Input('COMM_ENV', '.comm', 'command', args)
+      >> cline = inp.Cline('COMM_ENV', '.comm', 'command', args)
       >>
       >> # register parameters
-      >> input.register('device', inp.Input.GLOBAL, inp.Input.HIDE)
-      >> input.register('npoint', inp.Input.LOCAL,  inp.Input.PROMPT)
-      >> input.register('output', inp.Input.LOCAL,  inp.Input.PROMPT)
+      >> cline.register('device', inp.Cline.GLOBAL, inp.Cline.HIDE)
+      >> cline.register('npoint', inp.Cline.LOCAL,  inp.Cline.PROMPT)
+      >> cline.register('output', inp.Cline.LOCAL,  inp.Cline.PROMPT)
       >>
       >> try:
-      >>    device = input.get_value('device', 'plot device', '/xs')
-      >>    npoint = input.get_value('npoint', 'number of points', 10, 1, 100)
-      >>    output = input.get_value('output', 'output file', 'save.dat')
-      >> except inp.InputError, err:
+      >>    device = cline.get_value('device', 'plot device', '/xs')
+      >>    npoint = cline.get_value('npoint', 'number of points', 10, 1, 100)
+      >>    output = cline.get_value('output', 'output file', 'save.dat')
+      >> except inp.ClineError, err:
       >>    print('Error on parameter input:')
       >>    print(err)
       >>    exit(1)
       >>
       >> # rest of program here ...
 
-    :class:`Input` objects define the four static variables GLOBAL, LOCAL,
+    :class:`Cline` objects define the four static variables GLOBAL, LOCAL,
     PROMPT, HIDE which should be used when registering parameters to define
     their properties
 
@@ -168,7 +165,7 @@ class Input(object):
 
     def __init__(self, direnv, defdir, cname, args):
         """
-        Initialize an Input class object
+        Initialize an Cline class object
 
         Arguments::
 
@@ -217,8 +214,8 @@ class Input(object):
         if not self._nodefs:
 
             if direnv is None and defdir is None:
-                raise InputError(
-                    'hipercam.input.Input: no default file environment variable or directory name supplied')
+                raise ClineError(
+                    'hipercam.cline.Cline: no default file environment variable or directory name supplied')
 
             if direnv is not None and direnv in os.environ:
                 self._ddir = os.environ[direnv]
@@ -235,7 +232,7 @@ class Input(object):
                 self._lpars = {}
             except (EOFError, pickle.UnpicklingError):
                 sys.stderr.write(
-                    'hipercam.input.Input: failed to read local defaults file ' + self._lname + '; possible corrupted file.\n')
+                    'hipercam.cline.Cline: failed to read local defaults file ' + self._lname + '; possible corrupted file.\n')
                 self._lpars = {}
 
             self._gname = os.path.join(self._ddir, 'GLOBAL.def')
@@ -246,7 +243,7 @@ class Input(object):
                 self._gpars = {}
             except (EOFError, pickle.UnpicklingError):
                 sys.stderr.write(
-                    'hipercam.input.Input: failed to read global defaults file ' + self._gname + '; possible corrupted file.\n')
+                    'hipercam.cline.Cline: failed to read global defaults file ' + self._gname + '; possible corrupted file.\n')
                 self._gpars = {}
         else:
             self._ddir = None
@@ -263,8 +260,8 @@ class Input(object):
             if checker.match(arg):
                 p,v = arg.split('=',1)
                 if p in self._pbynam:
-                    raise InputError(
-                        'hipercam.input.Input: parameter = ' + p + ' defined more than once in argument list.')
+                    raise ClineError(
+                        'hipercam.cline.Cline: parameter = ' + p + ' defined more than once in argument list.')
                 self._pbynam[p] = v
             else:
                 self._pbypos.append(arg)
@@ -278,7 +275,7 @@ class Input(object):
         specified).
 
         If you want to save parameters early (e.g. before the user hits
-        ctrl-C) then deleting the Input with 'del' should do it. If errors
+        ctrl-C) then deleting the Cline with 'del' should do it. If errors
         are encountered, the routine will print to stderr, but not raise
         exceptions.
 
@@ -292,10 +289,10 @@ class Input(object):
                     os.mkdir(self._ddir, 0o755)
             except OSError:
                 sys.stderr.write(
-                    'hipercam.input.Input.__del__: failed to create defaults directory ' + self._ddir + '\n')
+                    'hipercam.cline.Cline.__del__: failed to create defaults directory ' + self._ddir + '\n')
             except AttributeError:
                 sys.stderr.write(
-                    'hipercam.input.Input.__del__: defaults directory attribute undefined; possible programming error\n')
+                    'hipercam.cline.Cline.__del__: defaults directory attribute undefined; possible programming error\n')
 
             # save local defaults
             try:
@@ -303,10 +300,10 @@ class Input(object):
                     pickle.dump(self._lpars, flocal)
             except (IOError, TypeError):
                 sys.stderr.write(
-                    'hipercam.input.Input.__del__: failed to save local parameter/value pairs to ' + self._lname + '\n')
+                    'hipercam.cline.Cline.__del__: failed to save local parameter/value pairs to ' + self._lname + '\n')
             except AttributeError:
                 sys.stderr.write(
-                    'hipercam.input.Input.__del__: local parameter file attribute undefined; possible programming error\n')
+                    'hipercam.cline.Cline.__del__: local parameter file attribute undefined; possible programming error\n')
 
             # save global defaults
             try:
@@ -314,14 +311,14 @@ class Input(object):
                     pickle.dump(self._gpars, fglobal)
             except (IOError, TypeError):
                 sys.stderr.write(
-                    'hipercam.input.Input.__del__: failed to save global parameter/value pairs to ' + self._gname + '\n')
+                    'hipercam.cline.Cline.__del__: failed to save global parameter/value pairs to ' + self._gname + '\n')
             except AttributeError:
                 sys.stderr.write(
-                    'hipercam.input.Input.__del__: global parameter file attribute undefined; possible programming error\n')
+                    'hipercam.cline.Cline.__del__: global parameter file attribute undefined; possible programming error\n')
 
     def prompt_state(self):
         """Says whether prompting is being forced or not. Note the propting state does
-        not change once an Input is initialized, being fixed by the presence
+        not change once an Cline is initialized, being fixed by the presence
         of 'PROMPT' on the command line or not.
 
         Returns True if prompting is being forced.
@@ -343,7 +340,7 @@ class Input(object):
               defines whether the parameter should be global, i.e. stored
               in a file called GLOBAL to allow access from other commands,
               or just local to this command. Use the static variables GLOBAL
-              and LOCAL to set this, e.g. hipercam.input.Input.GLOBAL
+              and LOCAL to set this, e.g. hipercam.cline.Cline.GLOBAL
 
           p_or_h : (int)
               defines whether the parameter is prompted for by default or
@@ -359,16 +356,16 @@ class Input(object):
         """
 
         if param.find(' ') != -1 or param.find('\t') != -1 or param.find('=') != -1 or param.find('"') != -1 or param.find("'") != -1:
-            raise InputError('Parameter = ' + param + ' is illegal.')
+            raise ClineError('Parameter = ' + param + ' is illegal.')
 
-        if g_or_l != Input.GLOBAL and g_or_l != Input.LOCAL:
-            raise InputError('g_or_l must either be Input.GLOBAL or Input.LOCAL')
+        if g_or_l != Cline.GLOBAL and g_or_l != Cline.LOCAL:
+            raise ClineError('g_or_l must either be Cline.GLOBAL or Cline.LOCAL')
 
-        if p_or_h != Input.PROMPT and p_or_h != Input.HIDE:
-            raise InputError('p_or_h must either be Input.PROMPT or Input.HIDE')
+        if p_or_h != Cline.PROMPT and p_or_h != Cline.HIDE:
+            raise ClineError('p_or_h must either be Cline.PROMPT or Cline.HIDE')
 
         if param in self._rpars:
-            raise InputError('parameter = ' + param + ' has already been registered.')
+            raise ClineError('parameter = ' + param + ' has already been registered.')
 
         self._rpars[param] = {'g_or_l' : g_or_l, 'p_or_h' : p_or_h}
 
@@ -378,9 +375,9 @@ class Input(object):
         parameters on the fly.
         """
         if param not in self._rpars:
-            raise InputError('set_default: parameter = "' + param + '" has not been registered.')
+            raise ClineError('set_default: parameter = "' + param + '" has not been registered.')
 
-        if self._rpars[param]['g_or_l'] == Input.GLOBAL:
+        if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
             self._gpars[param] = defval
         else:
             self._lpars[param] = defval
@@ -389,7 +386,7 @@ class Input(object):
                   lvals=None, fixlen=True, multipleof=None):
         """Gets the value of a parameter, either from the command arguments, or by
         retrieving default values or by prompting the user as required. This
-        is the main function of Input. The value obtained is used to update
+        is the main function of Cline. The value obtained is used to update
         the defaults which, if 'NODEFS' has not been defined, are written to
         disk at the end of the command.
 
@@ -427,19 +424,19 @@ class Input(object):
         this routine. These are the standard numerical types, 'int', 'long',
         'float', the logical type 'bool' which can be set with any of (case
         insensitively) 'true', 'yes', 'y', '1' (all True), or 'false', 'no',
-        'n', '0' (all False), strings, and hipercam.input.Fname objects to
+        'n', '0' (all False), strings, and hipercam.cline.Fname objects to
         represent filenames with specific extensions, and lists. In the case
         of tuples, it is the default value 'defval' which sets the type.
 
         """
 
         if param not in self._rpars:
-            raise InputError(
-                'hipercam.input.Input.get_value: parameter = "' + param + '" has not been registered.')
+            raise ClineError(
+                'hipercam.cline.Cline.get_value: parameter = "' + param + '" has not been registered.')
 
         if lvals != None and defval not in lvals:
-            raise InputError(
-                'hipercam.input.Input.get_value: default = ' + str(defval) + ' not in allowed list = ' + str(lvals))
+            raise ClineError(
+                'hipercam.cline.Cline.get_value: default = ' + str(defval) + ' not in allowed list = ' + str(lvals))
 
         # Now get the parameter value by one of three methods
         if param in self._pbynam:
@@ -447,15 +444,15 @@ class Input(object):
             # of the form param=value
             value = self._pbynam[param]
 
-        elif self.narg < len(self._pbypos) and self._rpars[param]['p_or_h'] == Input.PROMPT:
+        elif self.narg < len(self._pbypos) and self._rpars[param]['p_or_h'] == Cline.PROMPT:
             # get value from bare values in the command line such as '23' '\\'
             # indicates use the default value and also to use defaults for any
             # other unspecified parameters that come later (_usedef set to
             # True)
             if self._pbypos[self.narg] == '\\':
-                if self._rpars[param]['g_or_l'] == Input.GLOBAL and param in self._gpars:
+                if self._rpars[param]['g_or_l'] == Cline.GLOBAL and param in self._gpars:
                     value = self._gpars[param]
-                elif self._rpars[param]['g_or_l'] == Input.LOCAL and param in self._lpars:
+                elif self._rpars[param]['g_or_l'] == Cline.LOCAL and param in self._lpars:
                     value = self._lpars[param]
                 else:
                     value = defval
@@ -466,15 +463,15 @@ class Input(object):
 
         else:
             # load default from values read from file or the initial value
-            if self._rpars[param]['g_or_l'] == Input.GLOBAL and param in self._gpars:
+            if self._rpars[param]['g_or_l'] == Cline.GLOBAL and param in self._gpars:
                 value = self._gpars[param]
-            elif self._rpars[param]['g_or_l'] == Input.LOCAL and param in self._lpars:
+            elif self._rpars[param]['g_or_l'] == Cline.LOCAL and param in self._lpars:
                 value = self._lpars[param]
             else:
                 value = defval
 
             # prompt user for input
-            if not self._usedef and (self._prompt or self._rpars[param]['p_or_h'] == Input.PROMPT):
+            if not self._usedef and (self._prompt or self._rpars[param]['p_or_h'] == Cline.PROMPT):
                 reply = '?'
                 while reply == '?':
                     reply = input(
@@ -519,7 +516,7 @@ class Input(object):
                     elif value.lower() == 'false' or value.lower() == 'no' or value.lower() == '0' or value.lower() == 'n':
                         value = False
                     else:
-                        raise InputError(
+                        raise ClineError(
                             'could not translate "' + value + '" to a boolean True or False.')
             elif isinstance(defval, int):
                 value = int(value)
@@ -536,27 +533,27 @@ class Input(object):
                 else:
                     value = tuple(value)
             else:
-                raise InputError('did not recognize the data type of the default supplied for parameter = ' + param + ' = ' + type(defval))
+                raise ClineError('did not recognize the data type of the default supplied for parameter = ' + param + ' = ' + type(defval))
 
         except ValueError as err:
-            raise InputError(str(err))
+            raise ClineError(str(err))
 
         # ensure value is within range
         if minval != None and value < minval:
-            raise InputError(
+            raise ClineError(
                 param + ' = ' + str(value) + ' < ' + str(minval))
         elif maxval != None and value > maxval:
-            raise InputError(param + ' = ' + str(value) + ' > ' + str(maxval))
+            raise ClineError(param + ' = ' + str(value) + ' > ' + str(maxval))
 
         # and that it is an OK value
         if lvals != None and value not in lvals:
-            raise InputError(str(value) + ' is not one of the allowed values = ' + str(lvals))
+            raise ClineError(str(value) + ' is not one of the allowed values = ' + str(lvals))
 
         if multipleof != None and value % multipleof != 0:
-            raise InputError(str(value) + ' is not a multiple of ' + str(multipleof))
+            raise ClineError(str(value) + ' is not a multiple of ' + str(multipleof))
 
         # update appropriate set of defaults
-        if self._rpars[param]['g_or_l'] == Input.GLOBAL:
+        if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
             self._gpars[param] = value
         else:
             self._lpars[param] = value
@@ -577,9 +574,9 @@ class Input(object):
             return None
 
 class Fname(str):
-    """Defines an input type for the :class:`Input` to cope with file names. It is
+    """Defines a parameter type for the :class:`Cline` to cope with files. It is
     based upon strings with some extra features such as checking for existence
-    of a file.
+    of a file. 
 
     """
 
@@ -587,10 +584,11 @@ class Fname(str):
     NEW       = 1
     NOCLOBBER = 2
 
-    def __new__(cls, root, ext, ftype=OLD, exist=True):
-        """Needed because str is immutable. In the following text items in capitals
-        such as 'OLD' are static variables so that one should use
-        hipercam.input.Fname.OLD or equivalent to refer to them.
+    def __new__(cls, root, ext, ftype=OLD, exist=True, check=False):
+        """Constructor distinct from __init__ because str is immutable. In the
+        following text items in capitals such as 'OLD' are static variables so
+        that one should use hipercam.cline.Fname.OLD or equivalent to refer to
+        them.
 
         Arguments::
 
@@ -609,30 +607,40 @@ class Fname(str):
           exist : (bool)
              If exist=True and ftype=OLD, the file :must: exist. If exist=False, the file may or may
              not exist already.
+
+          check : (bool)
+             If True, then whatever checks `ftype` and `exist` imply will be applied. If False, 
+             the values of `ftype` and `exist` are stored for later retrieval and use, but they
+             are not applied in making the :class:`Fname` object now. If effect check=False sets
+             up the :class:`Fname` to act as template later, which happens inside the `cline` 
+             `get_input` methods.
         """
+
         if ftype != Fname.OLD and ftype != Fname.NEW and ftype != Fname.NOCLOBBER:
-            raise InputError(
-                'hipercam.input.Fname.__new__: ftype must be either OLD, NEW or NOCLOBBER')
+            raise ClineError(
+                'hipercam.cline.Fname.__new__: ftype must be either OLD, NEW or NOCLOBBER')
 
         if root.endswith(ext):
-            fname = str.__new__(cls, root)
+            fname = super().__new__(cls, root)
         else:
-            fname = str.__new__(cls, root + ext)
+            fname = super().__new__(cls, root + ext)
 
-        if exist and ftype == Fname.OLD and not os.path.exists(fname):
-            raise InputError(
-                'hipercam.input.Fname.__new__: could not find file = ' + fname)
+        if check:
+            # Apply checks now
+            if exist and ftype == Fname.OLD and not os.path.exists(fname):
+                raise ClineError(
+                    'hipercam.cline.Fname.__new__: could not find file = ' + fname)
 
-        if ftype == Fname.NOCLOBBER and os.path.exists(fname):
-            raise InputError(
-                'hipercam.input.Fname.__new__: file = ' + fname + ' already exists')
+            if ftype == Fname.NOCLOBBER and os.path.exists(fname):
+                raise ClineError(
+                    'hipercam.cline.Fname.__new__: file = ' + fname + ' already exists')
 
         return fname
 
-    def __init__(self, root, ext, ftype=OLD, exist=True):
-        """Constructor. In the following text items in capitals
-        such as 'OLD' are static variables so that one should use
-        hipercam.input.Fname.OLD or equivalent to refer to them.
+    def __init__(self, root, ext, ftype=OLD, exist=True, check=False):
+        """Initialiser. In the following text items in capitals such as 'OLD' are
+        static variables so that one should use hipercam.cline.Fname.OLD or
+        equivalent to refer to them.
 
         Arguments::
 
@@ -650,21 +658,18 @@ class Fname(str):
           exist : (bool)
              If True, the file must exist.
 
-        All arguments are as identically-named attributes
+        root, ext, ftype and exist are stored as identically-named attributes
         """
+
         self.root = root
         self.ext = ext
         self.ftype = ftype
         self.exist = exist
 
     def __getnewargs__(self):
-        """To allow pickling of :class:`Fname` objects. This returns a tuple of arguments that
+        """Enables pickling of :class:`Fname` objects. This returns a tuple of arguments that
         are passed off to __new__"""
-        return (self.root,self.ext,self.ftype,self.exist)
+        return (self.root,self.ext,self.ftype,self.exist,False)
 
-    def exists(self):
-        """Checks that the file exists"""
-        return os.path.exists(self)
-
-class InputError(HipercamError):
-    """For throwing exceptions from the hipercam.input"""
+class ClineError(HipercamError):
+    """For throwing exceptions from the hipercam.cline"""

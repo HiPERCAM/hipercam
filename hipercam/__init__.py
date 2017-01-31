@@ -6,7 +6,7 @@ high-speed CCD camera HiPERCAM.
 """
 
 from .core import *
-from . import input
+from . import cline
 from .group import *
 from .window import *
 from .ccd import *
