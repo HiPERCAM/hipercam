@@ -3,11 +3,6 @@
 matplotlib plotting functions.
 """
 
-# Imports for 2 / 3 compatibility
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-from builtins import *
-
 from .core import *
 from .window import *
 from .ccd import *
@@ -56,6 +51,9 @@ def pwind(axes, wind, col='k', lw=1, aspect='equal', **kwargs):
 
       lw : (float)
            linewidth of the border in points (0 to skip)
+
+      aspect : (string)
+           aspect ratio
 
       kwargs : (keyword arguments)
            other arguments to feed to :func:`matplotlib.pyplot.imshow`.
