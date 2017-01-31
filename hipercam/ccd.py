@@ -3,11 +3,6 @@
 Class to represent a CCD and a multi-CCD
 """
 
-# Imports for 2 / 3 compatibility
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-from builtins import *
-
 import numpy as np
 from collections import OrderedDict
 
@@ -42,7 +37,7 @@ class CCD(Group):
 
         The latter three are stored as identically-named attributes of the CCD.
         """
-        super(CCD,self).__init__(winds)
+        super().__init__(winds)
         self.nxtot = nxtot
         self.nytot = nytot
         self.head = head
@@ -152,71 +147,78 @@ class CCD(Group):
         hdul.writeto(fname,overwrite=overwrite)
 
     @classmethod
-    def from_fits(cls, fname):
+    def rfits(cls, fname):
         """Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
         containing no data, followed by a series of HDUs each containing data
         for a series of non-overlapping windows. A header is extracted from
         the first HDU with data.
         """
         hdul = fits.open(fname)
-        ccd = cls.from_hdul(hdul)
+        ccd = cls.rhdul(hdul)
         hdul.close()
         return ccd
 
     @classmethod
-    def from_hdul(cls, hdul, multi=False):
+    def rhdul(cls, hdul, multi=False):
         """Builds a :class:`CCD` or several :class:`CCD`s from an :class:`HDUList`.
-        This will usually be passed the :class:`HDUList` from a file. The
-        header from the first HDU will be used to create the header for the
-        :class:`CCD`. The data from all HDUs will be read into the
-        :class:`Windat`s that make up the CCD. Each HDU will be searched for a
-        header parameter WINDOW to label the :class:`Windat`s, but will
-        attempt to generate a sequential label if WINDOW is not found. If the
-        auto-generated label conflicts with one already found, then a
-        HipercamError will be raised.
+        Given an :class:`HDUList`, the header from the first HDU will be used
+        to create the header for the :class:`CCD`. The data from all HDUs will
+        be read into the :class:`Windat`s that make up the CCD. Each HDU will
+        be searched for a header parameter WINDOW to label the
+        :class:`Windat`s, but the routine will attempt to generate a
+        sequential label if WINDOW is not found. If the auto-generated label
+        conflicts with one already found, then a HipercamError will be raised.
+
+        The method can also run in a mode where the :class:`HDUList` is
+        assumed to contain several :class:`CCD`s. In this case each
+        :class:`CCD` comes in a series of continguous HDUs. Each HDU of a
+        :class:`CCD` must be labelled with the keyword 'CCD'.
 
         Arguments::
 
           hdul : :class:`HDUList`
                each ImageHDU will be read as sub-window of the :class:`CCD`
 
-          multi: (bool)
-               if True, the routine will work as a generator, returning a :class:`CCD`
-               each time a set of HDUs with identical header parameters 'CCD' have been
-               found.
+          multi: (bool) 
+               if True, the routine will work as a generator, returning a
+               :class:`CCD` each time a set of HDUs with identical header
+               parameter 'CCD' has been found and processed.
 
         Returns::
 
-          A :class:`CCD` if multi=False, or a series of (label, :class:`CCD`) 2-element 
-          tuples if multi=True
+          A :class:`CCD` if multi=False, or a series of (label, :class:`CCD`)
+          2-element tuples if multi=True. In the latter case use as follows::
+
+            for label, ccd in MCCD.rhdul(hdul, True):
+               ... do something
 
         """
-        winds = Group()
+        winds = OrderedDict()
         nwin = 0
         first = True
 
         for hdu in hdul:
+            head = hdu.header
             if multi and not first:
                 # Check that CCD header item matches, if not
                 # then we return the stuff bagged to date and reset
                 # to be ready for a new CCD
                 if ccd_label != head['CCD']:
                     ccd = cls(winds, nxtot, nytot, first_head)
-                    winds = Group()
+                    winds = OrderedDict()
                     first = True
                     nwin = 0
                     yield (ccd_label,ccd)
 
             nwin += 1
-            head = hdu.header
             if 'WINDOW' in head:
                 label = head['WINDOW']
             elif nwin in odict:
-                raise HipercamError('CCD.from_hdul: window label conflict')
+                raise HipercamError('CCD.rhdul: window label conflict')
             else:
                 label = nwin
 
-            winds[label] = Windat.from_hdu(hdu)
+            winds[label] = Windat.rhdu(hdu)
 
             if first:
                 # Extract header from first HDU with data
@@ -238,18 +240,19 @@ class CCD(Group):
                 first = False
 
         if multi:
-            return (ccd_label, cls(winds, nxtot, nytot, first_head))
+            yield (ccd_label, cls(winds, nxtot, nytot, first_head))
         else:
             return cls(winds, nxtot, nytot, first_head)
 
     def clash(self, ccd):
-        """Simply returns "False" indicating two :class:`CCD`s never clash. Needed
-        by the container class :class:`Group`.
+        """Dummy routine to allow :class:`CCD`s to be added into :class:`Group`
+        objects.
+
         """
-        return False
+        pass
 
     def __repr__(self):
-        return 'CCD(winds=' + super(CCD,self).__repr__() + \
+        return 'CCD(winds=' + super().__repr__() + \
                             ', nxtot=' + repr(self.nxtot) + \
                             ', nytot=' + repr(self.nytot) + \
                             ', head=' + repr(self.head) + ')'
@@ -271,7 +274,7 @@ class MCCD(Group):
           head : (astropy.io.fits.Header)
               a header which will be written as the primary header.
         """
-        super(MCCD,self).__init__(ccds)
+        super().__init__(ccds)
         self.head = head
 
     def wfits(self, fname, overwrite=False):
@@ -305,29 +308,30 @@ class MCCD(Group):
         hdulist.writeto(fname,overwrite=overwrite)
 
     @classmethod
-    def from_fits(cls, fname):
+    def rfits(cls, fname):
         """Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
         containing no data, followed by a series of HDUs each containing data
         for a series of non-overlapping windows. A header is extracted from
         the first HDU with data.
         """
         hdul = fits.open(fname)
-        ccd = cls.from_hdul(hdul)
+        ccd = cls.rhdul(hdul)
         hdul.close()
         return ccd
 
     @classmethod
-    def from_hdul(cls, hdul):
-        """Builds an :class:`MCCD` from an :class:`HDUList`. This will usually be passed
-        the :class:`HDUList` from a file. The header from the first (primary) HDU will
-        be used to create the header for the :class:`MCCD`. It is then assumed that the
-        data for each :class:`CCD` is contained in the succeeding HDUs, i.e. that there is
-        no data in the primary HDU. The data from all
-        HDUs will be read into the :class:`Windat`s that make up the CCD. Each
-        HDU will be searched for a header parameter WINDOW to label the
-        :class:`Windat`s, but will attempt to generate a sequential label if
-        WINDOW is not found. If the auto-generated label conflicts with one
-        already found, then a HipercamError will be raised.
+    def rhdul(cls, hdul):
+        """Builds an :class:`MCCD` from an :class:`HDUList`. This will usually be
+        passed the :class:`HDUList` from a file. The header from the first
+        (primary) HDU will be used to create the header for the
+        :class:`MCCD`. It is then assumed that the data for each :class:`CCD`
+        is contained in the succeeding HDUs, i.e. that there is no data in the
+        primary HDU. The data from all HDUs will be read into the
+        :class:`Windat`s that make up the CCD. Each HDU will be searched for a
+        header parameter WINDOW to label the :class:`Windat`s, but will
+        attempt to generate a sequential label if WINDOW is not found. If the
+        auto-generated label conflicts with one already found, then a
+        HipercamError will be raised.
 
         Arguments::
 
@@ -339,12 +343,12 @@ class MCCD(Group):
         head = hdul[0].header
 
         # Attempt to read rest of HDUs into a series of CCDs
-        ccds = Group()
-        for label, ccd in CCD.from_hdu(hdul[1:]):
-            ccd[label] = ccd
+        ccds = OrderedDict()
+        for label, ccd in CCD.rhdul(hdul[1:],True):
+            ccds[label] = ccd
 
         return cls(ccds, head)
 
     def __repr__(self):
-        return 'MCCD(ccds=' + super(MCCD,self).__repr__() + \
+        return 'MCCD(ccds=' + super().__repr__() + \
                             ', head=' + repr(self.head) + ')'
