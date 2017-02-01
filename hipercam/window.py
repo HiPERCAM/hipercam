@@ -256,6 +256,10 @@ class Windat(Window):
         """A copy of the :class:`Window` underlying the :class:`Windat`"""
         return Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
 
+    def set_const(self, val):
+        """Sets the data array to a constant"""
+        self.data[:] = val
+
     def add_noise(self, readout, gain):
         """Adds noise to a :class:`Windat` according to a variance
         calculated from V = readout**2 + counts/gain.
@@ -288,6 +292,12 @@ class Windat(Window):
         """
         return self.data.mean()
 
+    def std(self):
+        """
+        Returns the standard deviation of the :class:`Windat`.
+        """
+        return self.data.std()
+
     def percentile(self, q):
         """
         Computes percentile(s) of a :class:`Windat`.
@@ -308,7 +318,7 @@ class Windat(Window):
           fhead : (astropy.io.fits.Header)
              An initial FITS header object. The location of the lower-left pixel
              and the binning factors will be added to it, so it will be modified
-             on exit. 
+             on exit. If None it will be created.
 
         Returns::
 
@@ -480,7 +490,7 @@ class Windat(Window):
         """
         return Windat(self.win, other * self.data)
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         """Divides a :class:`Windat` by `other` as `wind / other`.  Here `other`
         can be a compatible :class:`Windat` (identical window) or any object
         that can divide into a :class:`numpy.ndarray`, e.g. a float, another
@@ -495,7 +505,7 @@ class Windat(Window):
         else:
             return Windat(self.win, self.data / other)
 
-    def __rdiv__(self, other):
+    def __rtruediv__(self, other):
         """Divides `other` by a :class:`Windat` as `other / wind`.  Here `other` is
         any object that can be divided by a :class:`numpy.ndarray`, e.g. a
         float, another matching array, etc.
