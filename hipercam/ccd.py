@@ -11,7 +11,7 @@ from .core import *
 from .group import *
 from .window import *
 
-class CCD(Group):
+class CCD(Agroup):
     """
     Class representing a CCD as a :class:`Group` of :class:`Windat`
     objects plus a FITS header.
@@ -257,83 +257,7 @@ class CCD(Group):
                             ', nytot=' + repr(self.nytot) + \
                             ', head=' + repr(self.head) + ')'
 
-    def __iadd__(self, other):
-        """Adds `other` to a :class:`CCD` as 'ccd += other'. `other` can be another
-        :class:`CCD` or any object that can be added to multiple possibly
-        different :class:`numpy.ndarray` objects. In practice this is likely
-        only floats or integers. The operation proceeds :class:`Windat` by
-        :class:`Windat`; if there is no matching :class:`Windat` in `other`
-        for one in `self`, then nothing happens and no exception is raised.
-        This is to allow partial processing.
-
-        """
-
-        if isinstance(other, CCD):
-            for nwin, wind in self.items():
-                if nwin in other:
-                    wind += other[nwin]
-        else:
-            for wind in self.values():
-                wind += other
-
-    def __isub__(self, other):
-        """Subtracts `other` from a :class:`CCD` as 'ccd -= other'. `other` can be
-        another :class:`CCD` or any object that can be subtracted from
-        multiple possibly different :class:`numpy.ndarray` objects. In
-        practice this is likely only floats or integers. The operation
-        proceeds :class:`Windat` by :class:`Windat`; if there is no matching
-        :class:`Windat` in `other` for one in `self`, then nothing happens and
-        no exception is raised.  This is to allow partial processing.
-
-        """
-
-        if isinstance(other, CCD):
-            for nwin, wind in self.items():
-                if nwin in other:
-                    wind -= other[nwin]
-        else:
-            for wind in self.values():
-                wind -= other
-
-    def __imul__(self, other):
-        """Multiplies a :class:`CCD` by `other` as 'ccd *= other'. `other` can be
-        another :class:`CCD` or any object that can multiply multiple possibly
-        different :class:`numpy.ndarray` objects. In practice this is likely
-        only floats or integers. The operation proceeds :class:`Windat` by
-        :class:`Windat`; if there is no matching :class:`Windat` in `other`
-        for one in `self`, then nothing happens and no exception is raised.
-        This is to allow partial processing.
-
-        """
-
-        if isinstance(other, CCD):
-            for nwin, wind in self.items():
-                if nwin in other:
-                    wind *= other[nwin]
-        else:
-            for wind in self.values():
-                wind *= other
-
-    def __idiv__(self, other):
-        """Divides a :class:`CCD` by `other` as 'ccd /= other'. `other` can be another
-        :class:`CCD` or any object that can divide into multiple possibly
-        different :class:`numpy.ndarray` objects. In practice this is likely
-        only floats or integers. The operation proceeds :class:`Windat` by
-        :class:`Windat`; if there is no matching :class:`Windat` in `other`
-        for one in `self`, then nothing happens and no exception is raised.
-        This is to allow partial processing.
-
-        """
-
-        if isinstance(other, CCD):
-            for nwin, wind in self.items():
-                if nwin in other:
-                    wind /= other[nwin]
-        else:
-            for wind in self.values():
-                wind /= other
-
-class MCCD(Group):
+class MCCD(Agroup):
     """
     Class representing a multi-CCD as a Group of CCD objects
     plus a FITS header.
