@@ -93,3 +93,94 @@ class Group(OrderedDict):
     def __repr__(self):
         """Returns string representation of object"""
         return 'Group(' + super().__repr__() + ')'
+
+class Agroup(Group):
+    """A :class:`Group` which defines arithmetic methods +=, +, etc which must be
+    supported by whatever objects the :class:`Group` contains. This allows the
+    same approach to be taken when operating on :class:`CCD` and :class:`MCCD`
+    objects which are based on this class.
+
+    """
+
+    def __iadd__(self, other):
+        """Adds `other` to a :class:`Agroup` as 'self += other'. If `other` is another
+        :class:`Agroup` with the same object type (`otype`) as self, then the
+        operation will be applied to each pair of objects with matching
+        keys. Otherwise `other` will be regarded as a constant object to
+        add to each object in the :class:`Agroup`.
+
+        In the first case, if self has keys that are not in `other`, then they
+        will be left untouched. Any keys in `other` not in self are ignored.
+
+        """
+
+        if isinstance(other, Agroup) and other.otype == self.otype:
+            for key, obj in self.items():
+                if key in other:
+                    obj += other[key]
+        else:
+            for obj in self.values():
+                obj += other
+
+    def __isub__(self, other):
+        """Subtracts `other` from a :class:`Agroup` as 'self -= other'. If `other` is another
+        :class:`Agroup` with the same object type (`otype`) as self, then the
+        operation will be applied to each pair of objects with matching
+        keys. Otherwise `other` will be regarded as a constant object to
+        subtract from each object in the :class:`Agroup`.
+
+        In the first case, if self has keys that are not in `other`, then they
+        will be left untouched. Any keys in `other` not in self are ignored.
+
+        """
+
+        if isinstance(other, Agroup) and other.otype == self.otype:
+            for key, obj in self.items():
+                if key in other:
+                    obj -= other[key]
+        else:
+            for obj in self.values():
+                obj -= other
+
+    def __imul__(self, other):
+        """Multiplies a :class:`Agroup` by `other` as 'self *= other'. If `other` is
+        another :class:`Agroup` with the same object type (`otype`) as self,
+        then the operation will be applied to each pair of objects with
+        matching keys. Otherwise `other` will be regarded as a constant object
+        to multiply each object in the :class:`Agroup`.
+
+        In the first case, if self has keys that are not in `other`, then they
+        will be left untouched. Any keys in `other` not in self are ignored.
+
+        """
+
+        if isinstance(other, Agroup) and other.otype == self.otype:
+            for key, obj in self.items():
+                if key in other:
+                    obj *= other[nwin]
+        else:
+            for obj in self.values():
+                obj *= other
+
+    def __itruediv__(self, other):
+        """Divides a :class:`Agroup` by `other` as 'self /= other'. If `other` is
+        another :class:`Agroup` with the same object type (`otype`) as self,
+        then the operation will be applied to each pair of objects with
+        matching keys. Otherwise `other` will be regarded as a constant object
+        to divide into each object in the :class:`Agroup`.
+
+        In the first case, if self has keys that are not in `other`, then they
+        will be left untouched. Any keys in `other` not in self are ignored.
+
+        """
+
+        if isinstance(other, Agroup) and other.otype == self.otype:
+            for key, obj in self.items():
+                if key in other:
+                    obj /= other[nwin]
+        else:
+            for obj in self.values():
+                obj /= other
+
+
+
