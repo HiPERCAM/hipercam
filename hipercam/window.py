@@ -161,7 +161,7 @@ class Window:
         exactly (same lower left corner, dimensions and binning factors)
 
         """
-        return not (self.llx == win)
+        return not (self == win)
 
 class WindowEncoder (json.JSONEncoder):
     """
