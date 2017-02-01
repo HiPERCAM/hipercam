@@ -89,11 +89,6 @@ class Group(OrderedDict):
         # checks passed, set the new item
         super(Group,self).__setitem__(key, item)
 
-
-    def __repr__(self):
-        """Returns string representation of object"""
-        return 'Group(' + super().__repr__() + ')'
-
 class Agroup(Group):
     """A :class:`Group` which defines arithmetic methods +=, +, etc which must be
     supported by whatever objects the :class:`Group` contains. This allows the
@@ -122,6 +117,8 @@ class Agroup(Group):
             for obj in self.values():
                 obj += other
 
+        return self
+
     def __isub__(self, other):
         """Subtracts `other` from a :class:`Agroup` as 'self -= other'. If `other` is another
         :class:`Agroup` with the same object type (`otype`) as self, then the
@@ -141,6 +138,8 @@ class Agroup(Group):
         else:
             for obj in self.values():
                 obj -= other
+
+        return self
 
     def __imul__(self, other):
         """Multiplies a :class:`Agroup` by `other` as 'self *= other'. If `other` is
@@ -162,6 +161,8 @@ class Agroup(Group):
             for obj in self.values():
                 obj *= other
 
+        return self
+
     def __itruediv__(self, other):
         """Divides a :class:`Agroup` by `other` as 'self /= other'. If `other` is
         another :class:`Agroup` with the same object type (`otype`) as self,
@@ -182,5 +183,6 @@ class Agroup(Group):
             for obj in self.values():
                 obj /= other
 
+        return self
 
 
