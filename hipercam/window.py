@@ -350,41 +350,62 @@ class Windat(Window):
         except TypeError:
             self.data += funcs(X,Y)
 
+    def __repr__(self):
+        return 'Windat(' + super(Windat,self).__repr__() + \
+            ', data=' + repr(self.data) + ')'
+
+    # lots of arithematic routines
+
     def __iadd__(self, other):
-        """+= in-place addition operator. 'other' can be another :class:`Windat`,
-        an numpy.ndarray or a constant. Window parameters unchanged.
+        """Adds `other` to the :class:`Windat` as 'wind += other'. `other` can be
+        another :class:`Windat`, or any object that can be added to a :class:`numpy.ndarray`.
+
         """
         if isinstance(other, Windat):
+            # test compatibility between the windows (raises an exception)
+            self.matches(other)
             self.data += other.data
         else:
             self.data += other
         return self
 
     def __isub__(self, other):
-        """-= in-place subtraction operator. 'other' can be another Windat,
-        an numpy.ndarray or a constant. Window parameters unchanged.
+        """Subtracts `other` from the :class:`Windat` as 'wind -= other`. `other` can
+        be another Windat, or any object that can be subtracted from a
+        :class:`numpy.ndarray`.
+
         """
         if isinstance(other, Windat):
+            # test compatibility between the windows (raises an exception)
+            self.matches(other)
             self.data -= other.data
         else:
             self.data -= other
         return self
 
     def __imul__(self, other):
-        """*= in-place multiplication operator. 'other' can be another Windat,
-        an numpy.ndarray or a constant. Window parameters unchanged.
+        """Multiplies the :class:`Windat` by `other` as 'wind *= other'. `other` can be
+        another :class:`Windat`, or any object that can multiply a :class:`numpy.ndarray`.
+
         """
         if isinstance(other, Windat):
+            # test compatibility between the windows (raises an exception)
+            self.matches(other)
             self.data *= other.data
         else:
             self.data *= other
         return self
 
     def __itruediv__(self, other):
-        """/= in-place division operator. 'other' can be another Windat,
-        an numpy.ndarray or a constant. Window parameters unchanged.
+        """Divides `other` into the :class:`Windat` as 'wind /= other`. `other` can be
+        another Windat, or any object that can be divided into a
+        :class:`numpy.ndarray`.
+
         """
+
         if isinstance(other, Windat):
+            # test compatibility between the windows (raises an exception)
+            self.matches(other)
             self.data /= other.data
         else:
             self.data /= other
@@ -482,9 +503,7 @@ class Windat(Window):
         """
         return Windat(self.win, other / self.data)
 
-    def __repr__(self):
-        return 'Windat(' + super(Windat,self).__repr__() + \
-            ', data=' + repr(self.data) + ')'
+
 
 
 
