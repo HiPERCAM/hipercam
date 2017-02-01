@@ -106,5 +106,6 @@ setup(
     },
 
     # tests
-    test_suite = "tests",
+    test_suite = 'nose.collector',
+    tests_require = ['nose'],
 )
