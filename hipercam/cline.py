@@ -11,6 +11,7 @@ Classes
 
 Cline      -- the main class for parameter input
 ClineError -- Exception class, inherited from HipercamError
+Fname      -- class for enabling checks on file names
 
 Functions
 =========
@@ -506,7 +507,7 @@ class Cline:
         # type according to the type of 'defval'
         try:
             if isinstance(defval, Fname):
-                value = Fname(value, defval.ext, defval.ftype, defval.exist)
+                value = defval(value)
             elif isinstance(defval, str):
                 value = str(value)
             elif isinstance(defval, bool):
@@ -517,7 +518,7 @@ class Cline:
                         value = False
                     else:
                         raise ClineError(
-                            'could not translate "' + value + '" to a boolean True or False.')
+                            'hipercam.cline.Cline.get_value: could not translate "' + value + '" to a boolean True or False.')
             elif isinstance(defval, int):
                 value = int(value)
             elif isinstance(defval, float):
@@ -533,24 +534,31 @@ class Cline:
                 else:
                     value = tuple(value)
             else:
-                raise ClineError('did not recognize the data type of the default supplied for parameter = ' + param + ' = ' + type(defval))
+                raise ClineError('hipercam.cline.Cline.get_value: did not recognize the data type of the default supplied for parameter = ' + param + ' = ' + type(defval))
 
         except ValueError as err:
-            raise ClineError(str(err))
+            raise ClineError('hipercam.cline.Cline.get_value: ' + str(err))
 
         # ensure value is within range
         if minval != None and value < minval:
             raise ClineError(
+                'hipercam.cline.Cline.get_value: ' +
                 param + ' = ' + str(value) + ' < ' + str(minval))
         elif maxval != None and value > maxval:
-            raise ClineError(param + ' = ' + str(value) + ' > ' + str(maxval))
+            raise ClineError(
+                'hipercam.cline.Cline.get_value: ' +
+                param + ' = ' + str(value) + ' > ' + str(maxval))
 
         # and that it is an OK value
         if lvals != None and value not in lvals:
-            raise ClineError(str(value) + ' is not one of the allowed values = ' + str(lvals))
+            raise ClineError(
+                'hipercam.cline.Cline.get_value: ' +
+                str(value) + ' is not one of the allowed values = ' + str(lvals))
 
         if multipleof != None and value % multipleof != 0:
-            raise ClineError(str(value) + ' is not a multiple of ' + str(multipleof))
+            raise ClineError(
+                'hipercam.cline.Cline.get_value: ' +
+                str(value) + ' is not a multiple of ' + str(multipleof))
 
         # update appropriate set of defaults
         if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
@@ -574,9 +582,10 @@ class Cline:
             return None
 
 class Fname(str):
-    """Defines a parameter type for the :class:`Cline` to cope with files. It is
-    based upon strings with some extra features such as checking for existence
-    of a file. 
+    """Defines a callable parameter type for the :class:`Cline` to allow for some
+    early checks on file names. This is mainly to prevent a whole series of
+    parameters being input, only to find that the file name input in the first
+    one is incorrect.
 
     """
 
@@ -584,7 +593,7 @@ class Fname(str):
     NEW       = 1
     NOCLOBBER = 2
 
-    def __new__(cls, root, ext, ftype=OLD, exist=True, check=False):
+    def __new__(cls, root, ext, ftype=OLD, exist=True):
         """Constructor distinct from __init__ because str is immutable. In the
         following text items in capitals such as 'OLD' are static variables so
         that one should use hipercam.cline.Fname.OLD or equivalent to refer to
@@ -600,44 +609,29 @@ class Fname(str):
              extension, e.g. '.dat'
 
           ftype : (int)
-             OLD = existing or possibly existing file; NEW = new file which will overwrite
-             anything existing; NOCLOBBER is same as NEW but there must not be an existing
-             one of the specified name.
+             OLD = existing or possibly existing file; NEW = new file which
+             will overwrite anything existing; NOCLOBBER is same as NEW but
+             there must not be an existing one of the specified name.
 
           exist : (bool)
-             If exist=True and ftype=OLD, the file :must: exist. If exist=False, the file may or may
-             not exist already.
+             If exist=True and ftype=OLD, the file :must: exist. If
+             exist=False, the file may or may not exist already.
 
-          check : (bool)
-             If True, then whatever checks `ftype` and `exist` imply will be applied. If False, 
-             the values of `ftype` and `exist` are stored for later retrieval and use, but they
-             are not applied in making the :class:`Fname` object now. If effect check=False sets
-             up the :class:`Fname` to act as template later, which happens inside the `cline` 
-             `get_input` methods.
         """
 
         if ftype != Fname.OLD and ftype != Fname.NEW and ftype != Fname.NOCLOBBER:
             raise ClineError(
                 'hipercam.cline.Fname.__new__: ftype must be either OLD, NEW or NOCLOBBER')
 
+        # store root with no extension
         if root.endswith(ext):
-            fname = super().__new__(cls, root)
+            fname = super().__new__(cls, root[:-len(ext)])
         else:
-            fname = super().__new__(cls, root + ext)
-
-        if check:
-            # Apply checks now
-            if exist and ftype == Fname.OLD and not os.path.exists(fname):
-                raise ClineError(
-                    'hipercam.cline.Fname.__new__: could not find file = ' + fname)
-
-            if ftype == Fname.NOCLOBBER and os.path.exists(fname):
-                raise ClineError(
-                    'hipercam.cline.Fname.__new__: file = ' + fname + ' already exists')
+            fname = super().__new__(cls, root)
 
         return fname
 
-    def __init__(self, root, ext, ftype=OLD, exist=True, check=False):
+    def __init__(self, root, ext, ftype=OLD, exist=True):
         """Initialiser. In the following text items in capitals such as 'OLD' are
         static variables so that one should use hipercam.cline.Fname.OLD or
         equivalent to refer to them.
@@ -658,18 +652,54 @@ class Fname(str):
           exist : (bool)
              If True, the file must exist.
 
-        root, ext, ftype and exist are stored as identically-named attributes
+        ext, ftype and exist are stored as identically-named attributes. 'root'
+        is stored as the base string.
+
         """
 
-        self.root = root
         self.ext = ext
         self.ftype = ftype
         self.exist = exist
 
+    def __call__(self, fname):
+        """Given a potential file name, this first ensures that it has the correct
+        extension, and then tests for its existence if need be, depending upon
+        the values of `ftype` and `exist` defined at instantiation.
+
+        Arguments::
+
+           fname : (string)
+
+              file name. The extension associated with the :class:`Fname` will
+              be added if necessary.
+
+        Returns the file name to use. Raises a ClineError exception if there
+        are problems.
+
+        """
+
+        # Add extension if not already present.
+        if not fname.endswith(self.ext):
+            fname += self.ext
+
+        if self.exist and self.ftype == Fname.OLD and not os.path.exists(fname):
+            raise ClineError(
+                'hipercam.cline.Fname.__call__: could not find file = ' + fname)
+
+        if self.ftype == Fname.NOCLOBBER and os.path.exists(fname):
+            raise ClineError(
+                'hipercam.cline.Fname.__call__: file = ' + fname + ' already exists')
+
+        return fname
+
     def __getnewargs__(self):
-        """Enables pickling of :class:`Fname` objects. This returns a tuple of arguments that
-        are passed off to __new__"""
-        return (self.root,self.ext,self.ftype,self.exist,False)
+
+        """Enables pickling of :class:`Fname` objects. This returns a tuple of
+        arguments that are passed off to __new__
+
+        """
+        print('inside getnewargs',self)
+        return (self,self.ext,self.ftype,self.exist)
 
 class ClineError(HipercamError):
     """For throwing exceptions from the hipercam.cline"""
