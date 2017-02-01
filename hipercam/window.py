@@ -54,9 +54,9 @@ class Window:
         self.ybin  = ybin
 
     def __repr__(self):
-        return 'Window(' + repr(self.llx) + ', ' + repr(self.lly) + \
-            ', ' + repr(self.nx) + ', ' + repr(self.ny) + \
-            ', ' + repr(self.xbin) + ', ' + repr(self.ybin) + ')'
+        return 'Window(llx=' + repr(self.llx) + ', lly=' + repr(self.lly) + \
+            ', nx=' + repr(self.nx) + ', ny=' + repr(self.ny) + \
+            ', xbin=' + repr(self.xbin) + ', ybin=' + repr(self.ybin) + ')'
 
 
     @property
@@ -135,6 +135,17 @@ class Window:
         y = np.linspace(y1,y2,self.ny)
 
         return np.meshgrid(x,y)
+
+    def matches(self, win):
+        """Tests that the :class:`Window` matches another. If all OK, returns None,
+        otherwise raises a HipercamError reporting the two
+        :class:`Window`s. See also `__eq__`
+
+        """
+        if self != win:
+            raise HipercamError(
+                'hipercam.Window.matches: self = ' + str(self) +
+                ' clashes with win = ' + str(win))
 
     def __eq__(self, win):
         """
@@ -239,6 +250,11 @@ class Windat(Window):
         Number of pixels
         """
         return self.data.size
+
+    @property
+    def win(self):
+        """A copy of the :class:`Window` underlying the :class:`Windat`"""
+        return Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
 
     def add_noise(self, readout, gain):
         """Adds noise to a :class:`Windat` according to a variance
@@ -375,40 +391,96 @@ class Windat(Window):
         return self
 
     def __add__(self, other):
-        """Defines addition of a :class:`Windat` to another :class:`Windat` or to any
-        object that can be added to an ndarray
+        """Adds `other` to a :class:`Windat` as `wind + other`.  Here `other` can be a
+        compatible :class:`Windat` (identical window) or any object that can
+        be added to a :class:`numpy.ndarray`, e.g. a float, another matching
+        array, etc.
 
         """
 
-        win = Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
         if isinstance(other, Windat):
-            return Windat(win, self.data + other.data)
+            # test compatibility between the windows (raises an exception)
+            self.matches(other)
+            return Windat(self.win, self.data + other.data)
         else:
-           return Windat(win, self.data + other)
+           return Windat(self.win, self.data + other)
 
     def __radd__(self, other):
-        """Defines addition of an ndarray to a :class:`Windat`"""
+        """Adds `other` to a :class:`Windat` as `other + wind`.  Here `other` isany
+        object that can be added to a :class:`numpy.ndarray`, e.g. a float,
+        another matching array, etc.
 
-        win = Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
-        return Windat(win, self.data + other)
+        """
+        return Windat(self.win, self.data + other)
 
     def __sub__(self, other):
-        """Defines subtraction of a :class:`Windat` and another :class:`Windat` or any
-        object that can be subtracted to an ndarray
+        """Subtracts `other` from a :class:`Windat` as `wind - other`.  Here `other`
+        can be a compatible :class:`Windat` (identical window) or any object
+        that can be subtracted from a :class:`numpy.ndarray`, e.g. a float, another matching
+        array, etc.
 
         """
 
-        win = Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
         if isinstance(other, Windat):
-            return Windat(win, self.data - other.data)
+            # test compatibility between the windows (raises an exception)
+            self.matches(other)
+            return Windat(self.win, self.data - other.data)
         else:
-            return Windat(win, self.data - other)
+            return Windat(self.win, self.data - other)
 
     def __rsub__(self, other):
-        """Defines subtraction of an :class:`Windat` form another object"""
+        """Subtracts a :class:`Windat` from `other` as `other - wind`.  Here `other`
+        is any object that can have a :class:`numpy.ndarray` subtracted from it, e.g. a
+        float, another matching array, etc.
 
-        win = Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
-        return Windat(win, other - self.data)
+        """
+        return Windat(self.win, other - self.data)
+
+    def __mul__(self, other):
+        """Multiplies a :class:`Windat` by `other` as `wind * other`.  Here `other`
+        can be a compatible :class:`Windat` (identical window) or any object
+        that can multiply a :class:`numpy.ndarray`, e.g. a float, another
+        matching array, etc.
+
+        """
+
+        if isinstance(other, Windat):
+            # test compatibility between the windows (raises an exception)
+            self.matches(other)
+            return Windat(self.win, self.data * other.data)
+        else:
+            return Windat(self.win, self.data * other)
+
+    def __rmul__(self, other):
+        """Multiplies a :class:`Windat` by `other` as `other * wind`.  Here `other` is
+        any object that can multiply a :class:`numpy.ndarray`, e.g. a float,
+        another matching array, etc.
+
+        """
+        return Windat(self.win, other * self.data)
+
+    def __div__(self, other):
+        """Divides a :class:`Windat` by `other` as `wind / other`.  Here `other`
+        can be a compatible :class:`Windat` (identical window) or any object
+        that can divide into a :class:`numpy.ndarray`, e.g. a float, another
+        matching array, etc.
+
+        """
+
+        if isinstance(other, Windat):
+            # test compatibility between the windows (raises an exception)
+            self.matches(other)
+            return Windat(self.win, self.data / other.data)
+        else:
+            return Windat(self.win, self.data / other)
+
+    def __rdiv__(self, other):
+        """Divides `other` by a :class:`Windat` as `other / wind`.  Here `other` is
+        any object that can be divided by a :class:`numpy.ndarray`, e.g. a
+        float, another matching array, etc.
+
+        """
+        return Windat(self.win, other / self.data)
 
     def __repr__(self):
         return 'Windat(' + super(Windat,self).__repr__() + \
