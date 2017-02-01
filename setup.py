@@ -69,7 +69,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['numpy'],
+    install_requires=['numpy','astropy'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -97,7 +97,7 @@ setup(
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
-        'console_scripts': [
+        'console_scripts' : [
             'makefield=hipercam.command_line:makefield',
             'makehcam=hipercam.command_line:makehcam',
             'hplot=hipercam.command_line:hplot',
@@ -107,5 +107,5 @@ setup(
 
     # tests
     test_suite = 'nose.collector',
-    tests_require = ['nose'],
+    tests_require = ['nose','numpy','astropy'],
 )
