@@ -33,7 +33,6 @@ def hplot(args=None):
                              cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.rfits(frame)
         max_ccd = len(mccd)
-        print('max ccd =',max_ccd)
         if max_ccd > 1:
             nccd = cl.get_value('nccd', 'CCD number to plot', 0, 0)
             if nccd == 0:
@@ -60,7 +59,6 @@ def hplot(args=None):
                 asave = ax
             else:
                 ax = fig.add_subplot(ny,nx,i,sharex=asave,sharey=asave)
-            print(i,label)
             i += 1
             hcam.mpl.pccd(ax, ccd)
             plt.xlim(0.5,ccd.nxtot+0.5)
