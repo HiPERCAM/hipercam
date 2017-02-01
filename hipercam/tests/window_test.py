@@ -25,42 +25,42 @@ class TestWindow(unittest.TestCase):
         self.x = np.array([[11.5,13.5],[11.5,13.5],[11.5,13.5]])
         self.y = np.array([[22.,22.],[25.,25.],[28.,28.]])
 
-    def test_window_llx_value(self):
+    def test_window_llx(self):
         self.assertEqual(self.win1.llx, 3,
                          'incorrect lower-left X pixel')
 
-    def test_window_lly_value(self):
+    def test_window_lly(self):
         self.assertEqual(self.win1.lly, 4,
                          'incorrect lower-left Y pixel')
 
-    def test_window_nx_value(self):
+    def test_window_nx(self):
         self.assertEqual(self.win1.nx, 100,
                          'incorrect number of pixels in X')
 
-    def test_window_ny_value(self):
+    def test_window_ny(self):
         self.assertEqual(self.win1.ny, 200,
                          'incorrect number of pixels in Y')
 
-    def test_window_xbin_value(self):
+    def test_window_xbin(self):
         self.assertEqual(self.win1.xbin, 1,
                          'incorrect X binning factor')
 
-    def test_window_ybin_value(self):
+    def test_window_ybin(self):
         self.assertEqual(self.win1.ybin, 2,
                          'incorrect Y binning factor')
 
     def test_window_clash(self):
         self.assertRaises(HipercamError, self.win1.clash, self.win2)
 
-    def test_window_urx_value(self):
+    def test_window_urx(self):
         self.assertEqual(self.win1.urx, 102,
                          'incorrect upper-right X pixel')
 
-    def test_window_ury_value(self):
+    def test_window_ury(self):
         self.assertEqual(self.win1.ury, 403,
                          'incorrect upper-right Y pixel')
 
-    def test_window_extent_value(self):
+    def test_window_extent(self):
         self.assertEqual(self.win1.extent(), (2.5, 102.5, 3.5, 403.5),
                          'incorrect window extent')
 
