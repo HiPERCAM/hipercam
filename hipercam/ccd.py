@@ -3,8 +3,8 @@
 Class to represent a CCD and a multi-CCD
 """
 
+import copy
 import numpy as np
-from collections import OrderedDict
 
 from astropy.io import fits
 from .core import *
@@ -22,8 +22,8 @@ class CCD(Agroup):
 
         Arguments::
 
-          winds : (OrderedDict)
-              :class:`Windat` objects keyed by integers and/or strings.
+          winds : (Group)
+              :class:`Windat` objects keyed by integers
 
           nxtot : (int)
               Unbinned X-dimension of CCD
@@ -179,7 +179,7 @@ class CCD(Agroup):
           hdul : :class:`HDUList`
                each ImageHDU will be read as sub-window of the :class:`CCD`
 
-          multi: (bool) 
+          multi: (bool)
                if True, the routine will work as a generator, returning a
                :class:`CCD` each time a set of HDUs with identical header
                parameter 'CCD' has been found and processed.
@@ -193,7 +193,7 @@ class CCD(Agroup):
                ... do something
 
         """
-        winds = OrderedDict()
+        winds = Group()
         nwin = 0
         first = True
 
@@ -251,11 +251,27 @@ class CCD(Agroup):
         """
         pass
 
+    def copy(self, memo=None):
+        """Make a copy of the :class:`CCD`
+
+        copy.copy and copy.deepcopy of a `CCD` use this method
+        """
+        ccd = CCD({}, self.nxtot, self.nytot, self.head.copy())
+        for key, wind in self.items():
+            ccd[key] = copy.deepcopy(wind,memo)
+        return ccd
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        return self.copy(memo)
+
     def __repr__(self):
         return 'CCD(winds=' + super().__repr__() + \
                             ', nxtot=' + repr(self.nxtot) + \
-                            ', nytot=' + repr(self.nytot) + \
-                            ', head=' + repr(self.head) + ')'
+                                       ', nytot=' + repr(self.nytot) + \
+                                                  ', head=' + repr(self.head) + ')'
 
 class MCCD(Agroup):
     """
@@ -343,7 +359,7 @@ class MCCD(Agroup):
         head = hdul[0].header
 
         # Attempt to read rest of HDUs into a series of CCDs
-        ccds = OrderedDict()
+        ccds = Group()
         for label, ccd in CCD.rhdul(hdul[1:],True):
             ccds[label] = ccd
 
