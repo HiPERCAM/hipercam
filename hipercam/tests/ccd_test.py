@@ -53,13 +53,25 @@ class TestCCD(unittest.TestCase):
         self.ccd += 5.
         self.assertTrue(self.ccd[1].data[0,0] == self.level1 + 5.
                         and self.ccd[3].data[0,0] == self.level3 + 5.,
-                        'in place addition of constant to CCD failed')
+                        'in place addition of a constant to a CCD failed')
 
     def test_ccd_isub(self):
         self.ccd -= 5.
         self.assertTrue(self.ccd[1].data[0,0] == self.level1 - 5.
                         and self.ccd[3].data[0,0] == self.level3 - 5.,
-                        'in place subtraction of constant from CCD failed')
+                        'in place subtraction of a constant from a CCD failed')
+
+    def test_ccd_imul(self):
+        self.ccd *= 2.
+        self.assertTrue(self.ccd[1].data[0,0] == 2.*self.level1
+                        and self.ccd[3].data[0,0] == 2.*self.level3,
+                        'in place multiplication of a CCD by a constant failed')
+
+    def test_ccd_idiv(self):
+        self.ccd /= 2.
+        self.assertTrue(self.ccd[1].data[0,0] == self.level1/2.
+                        and self.ccd[3].data[0,0] == self.level3/2.,
+                        'in place division of a CCD by a constant failed')
 
 if __name__ == '__main__':
     unittest.main()
