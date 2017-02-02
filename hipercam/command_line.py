@@ -10,6 +10,62 @@ import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
 
+def carith(args=None):
+    """
+    Carries out operations of the form output = input [op] constant
+    where [op] is '+', '-', '*' or '/'. This is meant to be used as
+    an entry point script. If called within a program, then the first
+    argument should be 'cadd', 'csub', 'cmul' or 'cdiv' to define the
+    default parameter file name.
+
+    """
+
+    if args is None:
+        args = sys.argv
+    command = os.path.split(args.pop(0))[1]
+
+    # create a Cline object
+    cl = Cline('HIPERCAM_ENV', '.hipercam', command, args)
+
+    # register parameters
+    cl.register('input', Cline.LOCAL, Cline.PROMPT)
+    cl.register('const', Cline.LOCAL, Cline.PROMPT)
+    cl.register('output', Cline.LOCAL, Cline.PROMPT)
+
+    try:
+        prompts = {'cadd' : 'add', 'csub' : 'subtract',
+                   'cmul' : 'multiply by', 'cdiv' : 'divide by'}
+
+        # get inputs
+        infile = cl.get_value('input', 'input file',
+                              cline.Fname('hcam', hcam.HCAM))
+        mccd = hcam.MCCD.rfits(infile)
+
+        constant = cl.get_value('const', 'constant to ' + prompts[command], 0.)
+
+        outfile = cl.get_value('output', 'output file',
+                               cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW))
+
+    except cline.ClineError as err:
+        print('Error on parameter input:')
+        print(err)
+        exit(1)
+
+    import matplotlib.pyplot as plt
+
+    # carry out operation
+    if command == 'cadd':
+        mccd += constant
+    elif command == 'csub':
+        mccd -= constant
+    elif command == 'cmul':
+        mccd *= constant
+    elif command == 'cdiv':
+        mccd /= constant
+
+    # save result
+    mccd.wfits(outfile, True)
+
 def hplot(args=None):
     """
     Plots a multi-CCD image.
@@ -70,10 +126,10 @@ def hplot(args=None):
     else:
         ccd = mccd[nccd]
 
-        hcam.mpl.pccd(ax, ccd)
+        hcam.mpl.pccd(plt, ccd)
         plt.xlim(0.5,ccd.nxtot+0.5)
         plt.ylim(0.5,ccd.nytot+0.5)
-        plt.title('CCD ' + str(label))
+        plt.title('CCD ' + str(nccd))
         plt.xlabel('X pixels')
         plt.ylabel('Y pixels')
 
