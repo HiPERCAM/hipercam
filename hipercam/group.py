@@ -33,8 +33,11 @@ class Group(dict):
         # Preserve the key order
         self._keys = []
         for arg in args:
-            for k,v in arg:
-                self._keys.append(k)
+            try:
+                for k,v in arg:
+                    self._keys.append(k)
+            except TypeError:
+                self._keys += list(arg.keys())
         self._keys += list(kwargs.keys())
 
         # rather un-"pythonic" level of checking here, but better IMO
