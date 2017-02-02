@@ -23,7 +23,7 @@ class CCD(Agroup):
         Arguments::
 
           winds : (Group)
-              :class:`Windat` objects keyed by integers
+              Group of :class:`Windat` objects
 
           nxtot : (int)
               Unbinned X-dimension of CCD
@@ -284,8 +284,8 @@ class MCCD(Agroup):
 
         Arguments::
 
-          ccds : (dict)
-              dictionary of CCD objects. Keys should be integers or strings
+          ccds : (Group)
+              Group of CCD objects.
 
           head : (astropy.io.fits.Header)
               a header which will be written as the primary header.
@@ -364,6 +364,22 @@ class MCCD(Agroup):
             ccds[label] = ccd
 
         return cls(ccds, head)
+
+    def copy(self, memo=None):
+        """Make a copy of the :class:`MCCD`
+
+        copy.copy and copy.deepcopy of an `MCCD` use this method
+        """
+        mccd = MCCD({}, self.head.copy())
+        for key, ccd in self.items():
+            mccd[key] = ccd.copy(memo)
+        return mccd
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        return self.copy(memo)
 
     def __repr__(self):
         return 'MCCD(ccds=' + super().__repr__() + \
