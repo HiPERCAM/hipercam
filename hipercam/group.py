@@ -6,38 +6,36 @@ sub-windows might be said to clash if they contain any pixels in common.
 
 """
 
-from collections import OrderedDict
-
 from .core import *
 
-class Group(OrderedDict):
-    """Base class for a container of objects of identical type. Subclassed from
-    :class:`OrderedDict`, this class checks that the objects are of the same
-    type, that they don't `clash`, and that the keys are
-    integers. Dictionaries are used to allow flexible indexing; the use of
-    :class:`OrderedDict` is to preserve the ordering which allows some short
-    cuts when comparing related Group objects. The meaning of `clash` is
-    defined by the objects which must support a method `clash` with signature
-    `clash(self, other)` that raises an exception if the object clashes with
-    `other`.
-
-    The restriction to integer keys is to allow easy writing to FITS files
-    and referencing within scripts.
+class Group(dict):
+    """A specialized dictionary for storing objects of identical type indexed by
+    integers only.  This class also assumes that the objects have a method
+    `clash` with signature `clash(self, other)` which raises an exception if
+    `self` and `other` conflict in some way. The entry order is preserved
+    (like :class:`OrderedDict` objects, but I found problems with them, so
+    have rolled my own).
 
     """
 
     def __init__(self, *args, **kwargs):
-        """Group constructor from an :class:`OrderedDict`; see that for
-        possible arguments. The keys are checked to ensure that they
-        are integers, and the object types are checked to see that they
-        are identical.
+        """Group constructor; see `dict` for possible arguments. The keys are checked
+        to ensure that they are integers, and the object types are checked to
+        see that they are identical. The order of the keys is tracked to help
+        with file output.
 
         Sets attribute `otype`, the type of the stored objects (used for
         simple input checks)
 
         """
-        self.otype = None
         super().__init__(*args, **kwargs)
+
+        # Preserve the key order
+        self._keys = []
+        for arg in args:
+            for k,v in arg:
+                self._keys.append(k)
+        self._keys += list(kwargs.keys())
 
         # rather un-"pythonic" level of checking here, but better IMO
         # in this case to fail during construction than at some later
@@ -64,6 +62,9 @@ class Group(OrderedDict):
             for i, ob in enumerate(objs):
                 for obj in objs[i+1:]:
                     ob.clash(obj)
+        else:
+            self.otype = None
+
 
     def __setitem__(self, key, item):
         """Adds an item `item` keyed by `key`
@@ -86,8 +87,52 @@ class Group(OrderedDict):
         for obj in self.values():
             item.clash(obj)
 
-        # checks passed, set the new item
-        super(Group,self).__setitem__(key, item)
+        # checks passed, set the new item and add the key
+        super().__setitem__(key, item)
+        if key not in self._keys:
+            self._keys.append(key)
+
+    def __delitem__(self, key):
+        super().__delitem__(self, key)
+        self._keys.remove(key)
+
+    def clear(self):
+        super().clear()
+        self._keys = []
+
+    def values(self):
+        return map(self.get, self._keys)
+
+    def keys(self):
+        return self._keys
+
+    def items(self):
+        return zip(self.keys(), self.values())
+
+    def popitem(self):
+        try:
+            key = self._keys[-1]
+        except IndexError:
+            raise HipercamError('Group.popitem: Group is empty')
+
+        val = self[key]
+        del self[key]
+
+        return (key, val)
+
+    def setdefault(self, key, default = None):
+        if key not in self._keys:
+            self._keys.append(key)
+        return super().setdefault(key, default)
+
+    def update(self, dct):
+        for k,v in dct.items():
+            self.__setitem__(k,v)
+
+    def copy(self):
+        newInstance = Group()
+        newInstance.update(self)
+        return newInstance
 
 class Agroup(Group):
     """A :class:`Group` which defines arithmetic methods +=, +, etc which must be
