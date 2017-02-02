@@ -15,14 +15,16 @@ class TestCCD(unittest.TestCase):
     def setUp(self):
 
         # build a CCD
+        self.level1 = 10.
         win1 = Window(31,41,5,5,1,2)
         data1 = np.empty((win1.ny,win1.nx))
-        data1[:] = 10.
+        data1[:] = self.level1
         wind1 = Windat(win1,data1)
 
+        self.level3 = 20.
         win2 = Window(250,561,5,5,1,2)
         data2 = np.empty((win1.ny,win1.nx))
-        data2[:] = 20.
+        data2[:] = self.level3
         wind2 = Windat(win2,data2)
 
         winds = ((1,wind1),(3,wind2))
@@ -33,30 +35,30 @@ class TestCCD(unittest.TestCase):
 
     def test_ccd_copy(self):
         ccd = self.ccd.copy()
-        ccd[1].data += 1.
-        self.assertNotEqual(ccd[1].data[0,0],self.ccd[1].data[0,0],
-                            'copy of CCD failed')
+        ccd[1].data[0,0] = 0.
+        self.assertEqual(ccd[1].data[0,0]+self.level1,self.ccd[1].data[0,0],
+                         'copy of CCD failed')
 
         ccd = copy.copy(self.ccd)
-        ccd[1].data += 1.
-        self.assertNotEqual(ccd[1].data[0,0],self.ccd[1].data[0,0],
-                            'copy.copy of CCD failed')
+        ccd[1].data[0,0] = 0.
+        self.assertEqual(ccd[1].data[0,0]+self.level1,self.ccd[1].data[0,0],
+                         'copy.copy of CCD failed')
 
         ccd = copy.deepcopy(self.ccd)
-        ccd[1].data += 1.
-        self.assertNotEqual(ccd[1].data[0,0],self.ccd[1].data[0,0],
-                            'copy.deepcopy of CCD failed')
+        ccd[1].data[0,0] = 0.
+        self.assertEqual(ccd[1].data[0,0]+self.level1,self.ccd[1].data[0,0],
+                         'copy.deepcopy of CCD failed')
 
     def test_ccd_iadd(self):
-        ccd = self.ccd.copy()
-        ccd += 5.
-        self.assertTrue(ccd[1].data[0,0] == 15. and ccd[3].data[0,0] == 25.,
+        self.ccd += 5.
+        self.assertTrue(self.ccd[1].data[0,0] == self.level1 + 5.
+                        and self.ccd[3].data[0,0] == self.level3 + 5.,
                         'in place addition of constant to CCD failed')
 
     def test_ccd_isub(self):
-        ccd = self.ccd.copy()
-        ccd -= 5.
-        self.assertTrue(ccd[1].data[0,0] == 5. and ccd[3].data[0,0] == 15.,
+        self.ccd -= 5.
+        self.assertTrue(self.ccd[1].data[0,0] == self.level1 - 5.
+                        and self.ccd[3].data[0,0] == self.level3 - 5.,
                         'in place subtraction of constant from CCD failed')
 
 if __name__ == '__main__':

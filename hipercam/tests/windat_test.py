@@ -19,17 +19,11 @@ class TestWindat(unittest.TestCase):
         self.wind1 = Windat(self.win1, self.data1)
 
         # should be compatible with win1
-        self.win2 = copy.copy(self.win1)
-        self.data2 = np.ones((self.win2.ny,self.win2.nx))
-        self.wind2 = Windat(self.win2, self.data2)
+        self.wind2 = copy.deepcopy(self.wind1)
 
-        # designed to be incompatible with win1, and to 
-        # have variable content 
-        self.win3 = copy.copy(self.win1)
-        self.win3.llx += 1
-        self.data3 = np.zeros((self.win2.ny,self.win2.nx))
-        self.wind3 = Windat(self.win2, self.data2)
-
+        # designed to be incompatible with win1
+        self.wind3 = copy.deepcopy(self.wind1)
+        self.wind3.llx += 1
 
     def test_windat_size(self):
         self.assertEqual(self.wind1.size, self.win1.nx*self.win1.ny,
