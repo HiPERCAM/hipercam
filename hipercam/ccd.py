@@ -205,7 +205,7 @@ class CCD(Agroup):
                 # to be ready for a new CCD
                 if ccd_label != head['CCD']:
                     ccd = cls(winds, nxtot, nytot, first_head)
-                    winds = OrderedDict()
+                    winds = Group()
                     first = True
                     nwin = 0
                     yield (ccd_label,ccd)
