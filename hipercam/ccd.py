@@ -136,13 +136,16 @@ class CCD(Agroup):
         hdul = fits.HDUList()
         hdul = self.add_hdulist(hdul, label)
         phead = hdul[0].header
-        phead.add_blank('-----------------------------')
-        phead.add_comment('Data representing a single CCD frame written by hipercam.CCD.wfits.')
-        phead.add_comment('Multiple sub-windows are written in a series of HDUs. LLX and LLY give')
-        phead.add_comment('the pixel location in unbinned pixels of their lower-left corners. XBIN')
-        phead.add_comment('and YBIN are the binning factors. NXTOT and NYTOT are the total unbinned')
-        phead.add_comment('dimensions of the CCD. The first HDU contains any extra header items')
-        phead.add_comment('associated with the CCD.')
+
+        # Add comments if not already present.
+        comm1 = 'Data representing a single CCD frame written by hipercam.CCD.wfits.'
+        if 'COMMENT' not in phead or phead['COMMENT'].find(comm1) == -1:
+            phead.add_comment(comm1)
+            phead.add_comment('Multiple sub-windows are written in a series of HDUs. LLX and LLY give')
+            phead.add_comment('the pixel location in unbinned pixels of their lower-left corners. XBIN')
+            phead.add_comment('and YBIN are the binning factors. NXTOT and NYTOT are the total unbinned')
+            phead.add_comment('dimensions of the CCD. The first HDU contains any extra header items')
+            phead.add_comment('associated with the CCD.')
 
         hdul.writeto(fname,overwrite=overwrite)
 
@@ -306,15 +309,18 @@ class MCCD(Agroup):
         """
 
         phead = self.head.copy()
-        phead.add_blank('-----------------------------')
-        phead.add_comment('Data representing multiple CCDs written by hipercam.MCCD.wfits.')
-        phead.add_comment('Each sub-windows of each CCD is written in an HDU following the primary')
-        phead.add_comment('HDU which contains a header only. The pixel location in unbinned pixels')
-        phead.add_comment('of their lower-left corners is stored as LLX, LLY. XBIN and YBIN are the')
-        phead.add_comment('binning factors. NXTOT and NYTOT are the total unbinned dimensions of')
-        phead.add_comment('the CCD. The first HDU of each CCD contains any extra header items')
-        phead.add_comment('associated with it. Each HDU associated with a CCD is labelled with a')
-        phead.add_comment('header parameter CCD.')
+
+        # Add comments if not already present.
+        comm1 = 'Data representing multiple CCDs written by hipercam.MCCD.wfits.'
+        if 'COMMENT' not in phead or str(phead['COMMENT']).find(comm1) == -1:
+            phead.add_comment(comm1)
+            phead.add_comment('Each window of each CCD is written in an HDU following the primary HDU')
+            phead.add_comment('which contains a header only. The pixel location in unbinned pixels of')
+            phead.add_comment('their lower-left corners is stored as LLX, LLY. XBIN and YBIN are the')
+            phead.add_comment('binning factors. NXTOT and NYTOT are the total unbinned dimensions of')
+            phead.add_comment('the CCD. The first HDU of each CCD contains any extra header items')
+            phead.add_comment('associated with it. Each HDU associated with a CCD is labelled with a')
+            phead.add_comment('header parameter CCD.')
 
         phdu = fits.PrimaryHDU(header=phead)
         hdul = [phdu,]
