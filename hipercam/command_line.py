@@ -69,6 +69,7 @@ def hplot(args=None):
             plt.tight_layout(pad=1.01)
     else:
         ccd = mccd[nccd]
+
         hcam.mpl.pccd(ax, ccd)
         plt.xlim(0.5,ccd.nxtot+0.5)
         plt.ylim(0.5,ccd.nytot+0.5)
