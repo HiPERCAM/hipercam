@@ -560,11 +560,17 @@ class Cline:
                 'hipercam.cline.Cline.get_value: ' +
                 str(value) + ' is not a multiple of ' + str(multipleof))
 
-        # update appropriate set of defaults
+        # update appropriate set of defaults. In the case of Fnames, strip the extension
         if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
-            self._gpars[param] = value
+            if isinstance(defval, Fname):
+                self._gpars[param] = defval.noext(value)
+            else:
+                self._gpars[param] = value
         else:
-            self._lpars[param] = value
+            if isinstance(defval, Fname):
+                self._lpars[param] = defval.noext(value)
+            else:
+                self._lpars[param] = value
 
         if self._list:
             print (param,'=',value)
@@ -624,7 +630,7 @@ class Fname(str):
                 'hipercam.cline.Fname.__new__: ftype must be either OLD, NEW or NOCLOBBER')
 
         # store root with no extension
-        if root.endswith(ext):
+        if len(ext) and root.endswith(ext):
             fname = super().__new__(cls, root[:-len(ext)])
         else:
             fname = super().__new__(cls, root)
@@ -679,7 +685,7 @@ class Fname(str):
         """
 
         # Add extension if not already present.
-        if not fname.endswith(self.ext):
+        if len(self.ext) and not fname.endswith(self.ext):
             fname += self.ext
 
         if self.exist and self.ftype == Fname.OLD and not os.path.exists(fname):
@@ -691,6 +697,13 @@ class Fname(str):
                 'hipercam.cline.Fname.__call__: file = ' + fname + ' already exists')
 
         return fname
+
+    def noext(self, fname):
+        """Returns the suggested file name, `fname`, with the extension removed"""
+        if len(self.ext) and fname.endswith(self.ext):
+            return fname[:-len(self.ext)]
+        else:
+            return fname
 
     def __getnewargs__(self):
 
