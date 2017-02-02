@@ -43,6 +43,7 @@ class TestMCCD(unittest.TestCase):
         self.mccd = MCCD(ccds,head)
 
     def test_mccd_copy(self):
+
         mccd = self.mccd.copy()
         mccd[3][1].data[0,0] = 0.
         self.assertEqual(mccd[3][1].data[0,0]+self.level1,self.mccd[3][1].data[0,0],
