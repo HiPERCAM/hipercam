@@ -38,6 +38,11 @@ class TestWindat(unittest.TestCase):
         self.assertEqual(self.wind3.data[0,0],10.,
                          'incorrect value returned')
 
+    def test_windat_copy(self):
+        wind = self.wind1.copy()
+        self.assertEqual(wind.data[0,0],self.wind1.data[0,0],
+                         'data not correctly copied')
+
     def test_windat_add_noise(self):
         """Rather crude test this, but it should pick up disasters"""
         win = Window(1,1,100,100,1,1)
