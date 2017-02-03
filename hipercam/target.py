@@ -5,12 +5,13 @@ simulating data.
 """
 
 import math
-import copy
 import json
 
 import numpy as np
 
 from .core import *
+
+__all__ = ('Target')
 
 class Target(object):
     """
@@ -59,6 +60,17 @@ class Target(object):
         self._angle = angle
         self._beta = beta
         self._comp_abc()
+
+    def copy(self, memo=None):
+        """Returns a copy of the :class:`Target`"""
+        return Target(self.xcen,self.ycen,self.height, self.fwmax,
+                      self.fwmin, self.angle, self.beta)
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        return self.copy(memo)
 
     def _comp_abc(self):
         # compute hidden parameters _a, _b and _c used
@@ -131,7 +143,7 @@ class Target(object):
         Returns:: a shifted version of the :class:`Target`
 
         """
-        targ = copy.deepcopy(self)
+        targ = self.copy()
         targ.xcen += dx
         targ.ycen += dy
         return targ
