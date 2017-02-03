@@ -15,7 +15,7 @@ class TestWindow(unittest.TestCase):
         # win1 is inside win3
         # win1c is a copy of win1
         self.win1 = Window(3,4,100,200,1,2)
-        self.win1c = copy.copy(self.win1)
+        self.win1c = self.win1.copy()
         self.win2 = Window(50,50,100,200,1,2)
         self.win3 = Window(1,2,200,300,1,2)
 
@@ -87,7 +87,7 @@ class TestWindow(unittest.TestCase):
     def test_window_matches(self):
         self.assertRaises(HipercamError, self.win1.matches, self.win2)
 
-    def test_window_eq(self):
+    def test_window_copy_eq(self):
         self.assertTrue(self.win1 == self.win1c)
 
     def test_window_ne(self):
