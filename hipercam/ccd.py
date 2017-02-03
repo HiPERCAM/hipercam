@@ -11,6 +11,8 @@ from .core import *
 from .group import *
 from .window import *
 
+__all__ = ('CCD', 'MCCD')
+
 class CCD(Agroup):
     """
     Class representing a CCD as a :class:`Group` of :class:`Windat`
@@ -261,7 +263,7 @@ class CCD(Agroup):
         """
         ccd = CCD({}, self.nxtot, self.nytot, self.head.copy())
         for key, wind in self.items():
-            ccd[key] = copy.deepcopy(wind,memo)
+            ccd[key] = wind.copy(memo)
         return ccd
 
     def __copy__(self):
