@@ -71,12 +71,13 @@ import os
 import re
 import sys
 import pickle
+import warnings
 
 # next two lines allow tab completion of file names
 import readline
 readline.parse_and_bind("tab: complete")
 
-from .core import HipercamError
+from .core import HipercamError, HipercamWarning
 
 #def complete(text,state):
 #    results = ["example",None]
@@ -232,8 +233,9 @@ class Cline:
             except IOError:
                 self._lpars = {}
             except (EOFError, pickle.UnpicklingError):
-                sys.stderr.write(
-                    'hipercam.cline.Cline: failed to read local defaults file ' + self._lname + '; possible corrupted file.\n')
+                warnings.warn(
+                    'hipercam.cline.Cline: failed to read local defaults file ' + self._lname + '; possible corrupted file.\n',
+                    HipercamWarning
                 self._lpars = {}
 
             self._gname = os.path.join(self._ddir, 'GLOBAL.def')
@@ -243,8 +245,9 @@ class Cline:
             except IOError:
                 self._gpars = {}
             except (EOFError, pickle.UnpicklingError):
-                sys.stderr.write(
-                    'hipercam.cline.Cline: failed to read global defaults file ' + self._gname + '; possible corrupted file.\n')
+                warnings.warn(
+                    'hipercam.cline.Cline: failed to read global defaults file ' + self._gname + '; possible corrupted file.\n',
+                    HipercamWarning)
                 self._gpars = {}
         else:
             self._ddir = None
@@ -289,33 +292,39 @@ class Cline:
                 if not os.path.lexists(self._ddir):
                     os.mkdir(self._ddir, 0o755)
             except OSError:
-                sys.stderr.write(
-                    'hipercam.cline.Cline.__del__: failed to create defaults directory ' + self._ddir + '\n')
+                warnings.warn(
+                    'hipercam.cline.Cline.__del__: failed to create defaults directory ' + self._ddir + '\n',
+                    HipercamError)
             except AttributeError:
-                sys.stderr.write(
-                    'hipercam.cline.Cline.__del__: defaults directory attribute undefined; possible programming error\n')
+                warnings.warn(
+                    'hipercam.cline.Cline.__del__: defaults directory attribute undefined; possible programming error\n',
+                    HipercamError)
 
             # save local defaults
             try:
                 with open(self._lname, 'wb') as flocal:
                     pickle.dump(self._lpars, flocal)
             except (IOError, TypeError):
-                sys.stderr.write(
-                    'hipercam.cline.Cline.__del__: failed to save local parameter/value pairs to ' + self._lname + '\n')
+                warnings.warn(
+                    'hipercam.cline.Cline.__del__: failed to save local parameter/value pairs to ' + self._lname + '\n',
+                    HipercamWarning)
             except AttributeError:
-                sys.stderr.write(
-                    'hipercam.cline.Cline.__del__: local parameter file attribute undefined; possible programming error\n')
+                warnings.warn(
+                    'hipercam.cline.Cline.__del__: local parameter file attribute undefined; possible programming error\n',
+                    HipercamWarning)
 
             # save global defaults
             try:
                 with open(self._gname, 'wb') as fglobal:
                     pickle.dump(self._gpars, fglobal)
             except (IOError, TypeError):
-                sys.stderr.write(
-                    'hipercam.cline.Cline.__del__: failed to save global parameter/value pairs to ' + self._gname + '\n')
+                    warnings.warn(
+                        'hipercam.cline.Cline.__del__: failed to save global parameter/value pairs to ' + self._gname + '\n',
+                        HipercamWarning)
             except AttributeError:
-                sys.stderr.write(
-                    'hipercam.cline.Cline.__del__: global parameter file attribute undefined; possible programming error\n')
+                    warnings.warn(
+                        'hipercam.cline.Cline.__del__: global parameter file attribute undefined; possible programming error\n',
+                        HipercamWarning)
 
     def prompt_state(self):
         """Says whether prompting is being forced or not. Note the propting state does
