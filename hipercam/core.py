@@ -3,6 +3,10 @@
 Core classes and functions for the hipercam package
 """
 
+from astropy.utils.exceptions AstropyUserWarning
+
+__all__ = ('FIELD', 'HCAM', 'HipercamError', 'HipercamWarning')
+
 # Constants for general use
 
 # Standard file extensions
@@ -11,7 +15,12 @@ HCAM = '.hcm'
 
 class HipercamError (Exception):
     """
-    Error class for the hipercam package
+    Class for the hipercam package errors
+    """
+
+class HipercamWarning (AstropyUserWarning):
+    """
+    Class for hipercam package warnings. Use with warnings.warn
     """
 
 #if __name__ == '__main__':
