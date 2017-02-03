@@ -3,7 +3,7 @@
 Core classes and functions for the hipercam package
 """
 
-from astropy.utils.exceptions AstropyUserWarning
+from astropy.utils.exceptions import AstropyUserWarning
 
 __all__ = ('FIELD', 'HCAM', 'HipercamError', 'HipercamWarning')
 
