@@ -9,6 +9,8 @@ import numpy as np
 from astropy.io import fits
 from .core import *
 
+__all__ = ('Window', 'Windat')
+
 class Window:
     """
     Class representing a window of a CCD. This represents an arbitrary
@@ -147,6 +149,19 @@ class Window:
                 'hipercam.Window.matches: self = ' + str(self) +
                 ' clashes with win = ' + str(win))
 
+    def copy(self, memo=None):
+        """Returns a copy (deepcopy) of the :class:`Window`
+
+        copy.copy and copy.deepcopy of a `Window` use this method
+        """
+        return Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        return self.copy(memo)
+
     def __eq__(self, win):
         """
         Defines equality. Two :class:`Window`s are equal if they match exactly
@@ -254,7 +269,7 @@ class Windat(Window):
     @property
     def win(self):
         """A copy of the :class:`Window` underlying the :class:`Windat`"""
-        return Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
+        return super().copy()
 
     def set_const(self, val):
         """Sets the data array to a constant"""
@@ -336,29 +351,73 @@ class Windat(Window):
 
         return fits.ImageHDU(self.data, fhead)
 
-    def add_fxy(self, funcs):
-        """Routine to add in the results of evaluating a function
-        or a list of functions of x & y to the :class:`Windat`.
-        Each function must take 2D arrays of x and y values
-        for each pixel of the :class:`Windat` and return an
-        array of values for each point. If you have lots of things
-        to add, this routine saves some overhead by only generating
-        the x,y pixel arrays once at the start.
+    def add_fxy(self, funcs, ndiv=0):
+        """Routine to add in the results of evaluating a function or a list of
+        functions of x & y to the :class:`Windat`.  Each function must take 2D
+        arrays of x and y values for each pixel of the :class:`Windat` and
+        return an array of values for each point. If you have lots of things
+        to add, this routine saves some overhead by only generating the x,y
+        pixel arrays once at the start. Pixels can be subdivided ndiv per
+        unbinned pixel (ndiv == 0 simply computes the result at pixel centre)
 
         Arguments::
 
           funcs : (a callable or a list of callables)
-              the callables must have signature arr = func(x,y) where x
-              and y are 2D arrays containing the x and y values for every
-              pixel in the :class:`Windat`
+              the callable(s) must have signature::
+
+                 arr = func(x,y)
+
+              where x and y are 2D arrays containing the x and y values at the
+              centre of each pixel in the :class:`Windat`. Each func must have
+              a method 'offset(self, dx, dy)' which returns a copy of the
+              function displaced in centre by dx, dy unbinned pixels.
+
+          ndiv : (int)
+
+              a sub-division factor used to improve the photometric accuracy
+              when pixellation matters. The funcs are computed over a grid of
+              ndiv*ndiv points per unbinned pixel.
+
         """
         # generate X,Y arrays
-        X,Y = self.xy()
+        x,y = self.xy()
+        if ndiv:
+            scale = 1/ndiv**2/self.xbin/self.ybin
         try:
             for func in funcs:
-                self.data += func(X,Y)
+                if ndiv:
+                    for iy in range(self.ybin*ndiv):
+                        dy = (iy - (ndiv - 1) / 2) / ndiv
+                        for ix in range(self.xbin*ndiv):
+                            dx = (ix - (ndiv - 1) / 2) / ndiv
+                            ofunc = func.offset(dx,dy)
+                            self.data += scale*ofunc(x,y)
+                else:
+                    self.data += func(x,y)
+
         except TypeError:
-            self.data += funcs(X,Y)
+            if ndiv:
+                for iy in range(self.ybin*ndiv):
+                    dy = (iy - (ndiv - 1) / 2) / ndiv
+                    for ix in range(self.xbin*ndiv):
+                        dx = (ix - (ndiv - 1) / 2) / ndiv
+                        ofunc = funcs.offset(dx,dy)
+                        self.data += scale*ofunc(x,y)
+            else:
+                self.data += funcs(x,y)
+
+    def copy(self, memo=None):
+        """Returns a copy (deepcopy) of the :class:`Windat`
+
+        copy.copy and copy.deepcopy of a `Windat` use this method
+        """
+        return Windat(self.win, self.data.copy())
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        return self.copy(memo)
 
     def __repr__(self):
         return 'Windat(' + super(Windat,self).__repr__() + \
