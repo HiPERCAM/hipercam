@@ -235,7 +235,7 @@ class Cline:
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
                     'hipercam.cline.Cline: failed to read local defaults file ' + self._lname + '; possible corrupted file.\n',
-                    HipercamWarning
+                    ClineWarning)
                 self._lpars = {}
 
             self._gname = os.path.join(self._ddir, 'GLOBAL.def')
@@ -247,7 +247,7 @@ class Cline:
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
                     'hipercam.cline.Cline: failed to read global defaults file ' + self._gname + '; possible corrupted file.\n',
-                    HipercamWarning)
+                    ClineWarning)
                 self._gpars = {}
         else:
             self._ddir = None
@@ -294,11 +294,11 @@ class Cline:
             except OSError:
                 warnings.warn(
                     'hipercam.cline.Cline.__del__: failed to create defaults directory ' + self._ddir + '\n',
-                    HipercamError)
+                    ClineWarning)
             except AttributeError:
                 warnings.warn(
                     'hipercam.cline.Cline.__del__: defaults directory attribute undefined; possible programming error\n',
-                    HipercamError)
+                    ClineWarning)
 
             # save local defaults
             try:
@@ -307,11 +307,11 @@ class Cline:
             except (IOError, TypeError):
                 warnings.warn(
                     'hipercam.cline.Cline.__del__: failed to save local parameter/value pairs to ' + self._lname + '\n',
-                    HipercamWarning)
+                    ClineWarning)
             except AttributeError:
                 warnings.warn(
                     'hipercam.cline.Cline.__del__: local parameter file attribute undefined; possible programming error\n',
-                    HipercamWarning)
+                    ClineWarning)
 
             # save global defaults
             try:
@@ -320,11 +320,11 @@ class Cline:
             except (IOError, TypeError):
                     warnings.warn(
                         'hipercam.cline.Cline.__del__: failed to save global parameter/value pairs to ' + self._gname + '\n',
-                        HipercamWarning)
+                        ClineWarning)
             except AttributeError:
                     warnings.warn(
                         'hipercam.cline.Cline.__del__: global parameter file attribute undefined; possible programming error\n',
-                        HipercamWarning)
+                        ClineWarning)
 
     def prompt_state(self):
         """Says whether prompting is being forced or not. Note the propting state does
@@ -724,4 +724,7 @@ class Fname(str):
         return (self,self.ext,self.ftype,self.exist)
 
 class ClineError(HipercamError):
-    """For throwing exceptions from the hipercam.cline"""
+    """For throwing exceptions from hipercam.cline"""
+
+class ClineWarning(HipercamWarning):
+    """For producing warnings from hipercam.cline"""
