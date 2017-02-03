@@ -8,6 +8,8 @@ sub-windows might be said to clash if they contain any pixels in common.
 
 from .core import *
 
+__all__ = ('Group', 'Agroup')
+
 class Group(dict):
     """A specialized dictionary for storing objects of identical type indexed by
     integers only.  This class also assumes that the objects have a method
