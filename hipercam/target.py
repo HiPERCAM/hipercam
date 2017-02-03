@@ -11,7 +11,7 @@ import numpy as np
 
 from .core import *
 
-__all__ = ('Target')
+__all__ = ('Target',)
 
 class Target(object):
     """
@@ -25,7 +25,7 @@ class Target(object):
     :class:`Target` objects can be elliptical in shape.
     """
 
-    def __init__(self, xcen, ycen, height, fwmax, fwmin, angle, beta):
+    def __init__(self, xcen, ycen, height, fwhm1, fwhm2, angle, beta):
         """
         Constructor. Arguments::
 
@@ -36,16 +36,16 @@ class Target(object):
             X position of target (unbinned pixels)
 
         height : (float)
-            height of central peak in counts
+            height of central peak (counts)
 
-        fwmax : (float)
-            FWHM, unbinned pixel, along minor axis of ellipse
+        fwhm1 : (float)
+            FWHM along one axis of the ellipse (unbinned pixels)
 
-        fwmin : (float)
-            FWHM, unbinned pixel, along minor axis of ellipse
+        fwhm2 : (float)
+            FWHM along other axis of the ellipse (unbinned pixels)
 
         angle : (float)
-            angle, degrees, clockwise from X-axis.
+            angle of axis 1 of ellipse, clockwise from X-axis (degrees)
 
         beta : (float)
             exponent that controls how quickly the wings fall. beta=1
@@ -55,16 +55,16 @@ class Target(object):
         self.xcen = xcen
         self.ycen = ycen
         self.height = height
-        self._fwmin = fwmin
-        self._fwmax = fwmax
+        self._fwhm1 = fwhm1
+        self._fwhm2 = fwhm2
         self._angle = angle
         self._beta = beta
         self._comp_abc()
 
     def copy(self, memo=None):
         """Returns a copy of the :class:`Target`"""
-        return Target(self.xcen,self.ycen,self.height, self.fwmax,
-                      self.fwmin, self.angle, self.beta)
+        return Target(self.xcen,self.ycen,self.height, self.fwhm1,
+                      self.fwhm2, self.angle, self.beta)
 
     def __copy__(self):
         return self.copy()
@@ -75,7 +75,7 @@ class Target(object):
     def _comp_abc(self):
         # compute hidden parameters _a, _b and _c used
         # to describe the ellipsoidal target shape. This
-        # must be invoked any time beta, fwmax, fwmin, or
+        # must be invoked any time beta, fwhm1, fwhm2, or
         # angle are changed.
 
         # First compute, alpha the value the quadratic form in x,y needs
@@ -89,26 +89,26 @@ class Target(object):
         # _a, _b, _c appear in a*x**2 + b*y**2 + c*x*y which
         # is used instead of the (r/r0)**2 of the Moffat
         # function description.
-        self._a = 4*alpha*((ct/self.fwmax)**2+(st/self.fwmin)**2)
-        self._b = 4*alpha*((st/self.fwmax)**2+(ct/self.fwmin)**2)
-        self._c = 8*alpha*ct*st*(1/self.fwmax**2-1/self.fwmin**2)
+        self._a = 4*alpha*((ct/self.fwhm1)**2+(st/self.fwhm2)**2)
+        self._b = 4*alpha*((st/self.fwhm1)**2+(ct/self.fwhm2)**2)
+        self._c = 8*alpha*ct*st*(1/self.fwhm1**2-1/self.fwhm2**2)
 
     @property
-    def fwmax(self):
-        return self._fwmax
+    def fwhm1(self):
+        return self._fwhm1
 
-    @fwmax.setter
-    def fwmax(self, fwmax):
-        self._fwmax = fwmax
+    @fwhm1.setter
+    def fwhm1(self, fwhm1):
+        self._fwhm1 = fwhm1
         self._comp_abc()
 
     @property
-    def fwmin(self):
-        return self._fwmin
+    def fwhm2(self):
+        return self._fwhm2
 
-    @fwmin.setter
-    def fwmin(self, fwmin):
-        self._fwmin = fwmin
+    @fwhm2.setter
+    def fwhm2(self, fwhm2):
+        self._fwhm2 = fwhm2
         self._comp_abc()
 
     @property
@@ -172,8 +172,8 @@ class Target(object):
 
     def __repr__(self):
         return 'Target(xcen=' + repr(self.xcen) + ', ycen=' + repr(self.ycen) + \
-               ', height=' + repr(self.height) + ', fwmin=' + repr(self.fwmin) + \
-               ', fwmax=' + repr(self.fwmax) + ', angle=' + repr(self.angle) + \
+               ', height=' + repr(self.height) + ', fwhm2=' + repr(self.fwhm2) + \
+               ', fwhm1=' + repr(self.fwhm1) + ', angle=' + repr(self.angle) + \
                ', beta=' + repr(self.beta) + ')'
 
 class Field(list):
@@ -184,7 +184,7 @@ class Field(list):
     def __init__(self):
         super(Field,self).__init__()
 
-    def add_random(self, ntarg, x1, x2, y1, y2, h1, h2, fwmax, fwmin, angle, beta):
+    def add_random(self, ntarg, x1, x2, y1, y2, h1, h2, fwhm1, fwhm2, angle, beta):
         """Adds a random field of ntarg :class:`Target` objects scattered over the
         range x1, x2, y1, y2, with peak heights from h1 to h2 and fixed width
         parameters. The peak heights are chosen between the limits to have a
@@ -214,10 +214,10 @@ class Field(list):
            h2 : (float)
               highest peak height
 
-           fwmax : (float)
+           fwhm1 : (float)
               FWHM along major axis of objects
 
-           fwmin : (float)
+           fwhm2 : (float)
               FWHM along minor axis of objects
 
            angle : (float)
@@ -233,7 +233,7 @@ class Field(list):
             ycen = np.random.uniform(y1, y2)
             height = 1./(1./math.sqrt(h1)-(1./math.sqrt(h1)-1./math.sqrt(h2))*
                          np.random.uniform())**2
-            self.append(Target(xcen, ycen, height, fwmax, fwmin, angle, beta))
+            self.append(Target(xcen, ycen, height, fwhm1, fwhm2, angle, beta))
 
     def offset(self, dx, dy, sigx, sigy):
         """This generates a new :class:`Field` by offsetting the positions of all the targets in the :class:`Field`
@@ -287,7 +287,7 @@ class Field(list):
         for dat in data:
             field.append(
                 Target(dat['xcen'], dat['ycen'], dat['height'],
-                       dat['fwmax'], dat['fwmin'], dat['angle'], dat['beta'])
+                       dat['fwhm1'], dat['fwhm2'], dat['angle'], dat['beta'])
             )
         return field
 
@@ -303,7 +303,7 @@ class TargetEncoder(json.JSONEncoder):
             return {
                 '_comment': 'hipercam.Target',
                 'xcen' : obj.xcen, 'ycen' : obj.ycen, 'height' : obj.height,
-                'fwmax' : obj.fwmax, 'fwmin' : obj.fwmin, 'angle' : obj.angle,
+                'fwhm1' : obj.fwhm1, 'fwhm2' : obj.fwhm2, 'angle' : obj.angle,
                 'beta' : obj.beta}
 
         # Default
