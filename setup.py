@@ -98,14 +98,14 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts' : [
-            'makefield=hipercam.command_line:makefield',
-            'makehcam=hipercam.command_line:makehcam',
-            'hplot=hipercam.command_line:hplot',
             'cadd=hipercam.command_line:carith',
             'csub=hipercam.command_line:carith',
             'cmul=hipercam.command_line:carith',
             'cdiv=hipercam.command_line:carith',
-            'ptarg=hipercam.command_line:ptarg',
+            'hplot=hipercam.command_line:hplot',
+            'makedata=hipercam.command_line:makedata',
+            'makefield=hipercam.command_line:makefield',
+            'makehcam=hipercam.command_line:makehcam',
         ],
     },
 
