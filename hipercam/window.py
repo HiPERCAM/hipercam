@@ -112,15 +112,14 @@ class Window:
             (self.lly-win.lly) % win.ybin == 0
 
     def clash(self, win):
-        """Raises a HipercamError exception if two :class: `Window`s are considered to
-        'clash'.  In this case this means if they have any pixels in common.
-        This method is required for :class: `Window`s to be collected into
-        :class:`Group`s
+        """Raises a ValueError if two :class: `Window`s are considered to 'clash'.  In
+        this case this means if they have any pixels in common.  This method
+        is required for :class: `Window`s to be collected into :class:`Group`s
 
         """
         if self.llx <=  win.urx and self.urx >= win.llx and \
            self.lly <=  win.ury and self.ury >= win.lly:
-            raise HipercamError('Window.clash: self = ' + str(self) + ' clashes with win = ' + str(win))
+            raise ValueError('Window.clash: self = {0:s} clashes with win = {1:s}'.format(str(self),str(win)))
 
     def xy(self):
         """Returns two 2D arrays containing the x and y values at the centre
@@ -140,14 +139,13 @@ class Window:
 
     def matches(self, win):
         """Tests that the :class:`Window` matches another. If all OK, returns None,
-        otherwise raises a HipercamError reporting the two
-        :class:`Window`s. See also `__eq__`
+        otherwise raises a ValueError reporting the two :class:`Window`s. See
+        also `__eq__` and `clash`
 
         """
         if self != win:
-            raise HipercamError(
-                'hipercam.Window.matches: self = ' + str(self) +
-                ' clashes with win = ' + str(win))
+            raise ValueError(
+                'hipercam.Window.matches: self = {0:s} clashes with win = {1:s}'.format(str(self),str(win)))
 
     def copy(self, memo=None):
         """Returns a copy (deepcopy) of the :class:`Window`
@@ -222,18 +220,18 @@ class Windat(Window):
           data : (numpy.ndarray)
               the data (2D). The dimension must match those in win unless
               data is None in which case a zero array of the correct size
-              will be created.
+              will be created. A ValueError will be raised if not.
         """
         if data is None:
             self.data = np.zeros((win.ny,win.nx))
         else:
             # Run a couple of checks
             if data.ndim != 2:
-                raise HipercamError(
+                raise ValueError(
                     'Windat.__init__: data must be 2D. Found {0:d}'.format(data.ndim))
             ny, nx = data.shape
             if nx != win.nx or ny != win.ny:
-                raise HipercamError(
+                raise ValueError(
                     'Windat.__init__: win vs data dimension conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
 
             self.data = data
