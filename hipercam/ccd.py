@@ -172,7 +172,7 @@ class CCD(Agroup):
         be searched for a header parameter WINDOW to label the
         :class:`Windat`s, but the routine will attempt to generate a
         sequential label if WINDOW is not found. If the auto-generated label
-        conflicts with one already found, then a HipercamError will be raised.
+        conflicts with one already found, then a KeyError will be raised.
 
         The method can also run in a mode where the :class:`HDUList` is
         assumed to contain several :class:`CCD`s. In this case each
@@ -219,7 +219,7 @@ class CCD(Agroup):
             if 'WINDOW' in head:
                 label = head['WINDOW']
             elif nwin in odict:
-                raise HipercamError('CCD.rhdul: window label conflict')
+                raise KeyError('CCD.rhdul: window label conflict')
             else:
                 label = nwin
 
@@ -255,6 +255,33 @@ class CCD(Agroup):
 
         """
         pass
+
+    def matches(self, ccd):
+        """Check that the :class:`CCD` matches another, which in this means checking
+        that each window of the same label matches the equivalent in the other `CCD`.
+
+        There will be no match if there any windows present in one `CCD` but
+        not the other and the windows must have identical location, size and
+        binning.
+
+        Raises KeyError or ValueError exception depending on the problem.
+        """
+        for key in self:
+            if key not in ccd:
+                raise KeyError(
+                    'hipercam.CCD.matches: window {0:d} not found in ccd'.format(key))
+
+        for key in ccd:
+            if key not in self:
+                raise KeyError(
+                    'hipercam.CCD.matches: window {0:d} not found in self'.format(key))
+
+        if self.nxtot != ccd.nxtot or self.nytot != ccd.nytot:
+            raise ValueError('hipercam.CCD.matches: self / ccd have conflicting total (nxtot,nytot): ({0:d},{1:d}) vs ({2:d},{3:d})'.format(self.nxtot,self.nytot,ccd.nxtot,ccd.nytot))
+
+        for key, wind in self.items():
+            wind.matches(ccd[key])
+
 
     def copy(self, memo=None):
         """Make a copy of the :class:`CCD`
@@ -353,9 +380,7 @@ class MCCD(Agroup):
         primary HDU. The data from all HDUs will be read into the
         :class:`Windat`s that make up the CCD. Each HDU will be searched for a
         header parameter WINDOW to label the :class:`Windat`s, but will
-        attempt to generate a sequential label if WINDOW is not found. If the
-        auto-generated label conflicts with one already found, then a
-        HipercamError will be raised.
+        attempt to generate a sequential label if WINDOW is not found.
 
         Arguments::
 
@@ -382,6 +407,28 @@ class MCCD(Agroup):
         for key, ccd in self.items():
             mccd[key] = ccd.copy(memo)
         return mccd
+
+    def matches(self, mccd):
+        """Check that the :class:`MCCD` matches another, which in this means checking
+        that each CCD of the same label matches the equivalent in the other `MCCD`.
+
+        There will be no match if there any CCDs present in one `MCCD` which are
+        not in the other.
+
+        Raises KeyError or ValueError exception depending on the problem.
+        """
+        for key in self:
+            if key not in mccd:
+                raise KeyError(
+                    'hipercam.MCCD.matches: CCD {0:d} not found in mccd'.format(key))
+
+        for key in mccd:
+            if key not in self:
+                raise KeyError(
+                    'hipercam.MCCD.matches: CCD {0:d} not found in self'.format(key))
+
+        for key, ccd in self.items():
+            ccd.matches(mccd[key])
 
     def __copy__(self):
         return self.copy()
