@@ -184,12 +184,13 @@ class Field(list):
     def __init__(self):
         super(Field,self).__init__()
 
-    def add_random(self, ntarg, x1, x2, y1, y2, h1, h2, fwhm1, fwhm2, angle, beta):
+    def add_random(self, ntarg, x1, x2, y1, y2, h1, h2, angle1, angle2, fwhm1, fwhm2, beta):
         """Adds a random field of ntarg :class:`Target` objects scattered over the
-        range x1, x2, y1, y2, with peak heights from h1 to h2 and fixed width
-        parameters. The peak heights are chosen between the limits to have a
-        distribution appropriate to a 3D Euclidean distribution of constant
-        luminosity objects.
+        range x1, x2, y1, y2, with peak heights from h1 to h2, random angles
+        from angle1 to angle2, but with fixed width parameters. The peak
+        heights are chosen between the limits to have a distribution
+        appropriate to a 3D Euclidean distribution of constant luminosity
+        objects. The distributions over x, y and angle are uniform.
 
         Arguments::
 
@@ -214,14 +215,17 @@ class Field(list):
            h2 : (float)
               highest peak height
 
+           angle1 : (float)
+              lowest angle degrees clockwise from the X axis
+
+           angle2 : (float)
+              highest angle degrees clockwise from the X axis
+
            fwhm1 : (float)
               FWHM along major axis of objects
 
            fwhm2 : (float)
               FWHM along minor axis of objects
-
-           angle : (float)
-              angle degrees clockwise from the X axis
 
            beta : (float)
               exponent that appears in Moffat functions
@@ -233,11 +237,13 @@ class Field(list):
             ycen = np.random.uniform(y1, y2)
             height = 1./(1./math.sqrt(h1)-(1./math.sqrt(h1)-1./math.sqrt(h2))*
                          np.random.uniform())**2
+            angle = np.random.uniform(angle1, angle2)
             self.append(Target(xcen, ycen, height, fwhm1, fwhm2, angle, beta))
 
     def offset(self, dx, dy, sigx, sigy):
-        """This generates a new :class:`Field` by offsetting the positions of all the targets in the :class:`Field`
-        by a fixed amount dx, dy and by a random jitter for every target with dispersion of sigx and sigy.
+        """This generates a new :class:`Field` by offsetting the positions of all the
+        targets in the :class:`Field` by a fixed amount dx, dy and by a random
+        jitter for every target with dispersion of sigx and sigy.
 
         Arguments::
 
@@ -252,6 +258,7 @@ class Field(list):
 
            sigy : (float)
              RMS of random gaussian Y offset to add to the position of each targets [unbinned pixels]
+
         """
         field = Field()
         for target in self:
