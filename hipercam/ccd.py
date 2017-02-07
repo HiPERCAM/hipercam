@@ -18,9 +18,8 @@ class CCD(Agroup):
     Class representing a CCD as a :class:`Group` of :class:`Windat`
     objects plus a FITS header.
     """
-    def __init__(self, winds, nxtot, nytot, head=None):
-        """
-        Constructs a :class:`CCD`.
+    def __init__(self, winds, nxtot, nytot, head=None, copy=False):
+        """Constructs a :class:`CCD`.
 
         Arguments::
 
@@ -34,15 +33,29 @@ class CCD(Agroup):
               Unbinned Y-dimension of CCD
 
           head : (astropy.io.fits.Header)
-              a header which will be written along with the first of the Windat
-              sub-images if writing to a file.
+              a header which will be written along with the first of the
+              Windat sub-images if writing to a file. If head=None on input,
+              an empty header will be created.
 
-        The latter three are stored as identically-named attributes of the CCD.
+          copy : (bool)
+              if True, copy all the data over, otherwise only references are
+              held. Holding references is fine if the calling program keeps
+              re-generating the data but could cause problems in some
+              circumstances.
+
+        nxtot, nytot and head are stored as identically-named attributes of the CCD.
+
         """
         super().__init__(winds)
         self.nxtot = nxtot
         self.nytot = nytot
-        self.head = head
+        if head is None:
+            self.head = fits.Header()
+        else:
+            self.head = head
+
+        if copy:
+            self = self.copy()
 
     def min(self):
         """
@@ -78,7 +91,7 @@ class CCD(Agroup):
           Percentile(s) to use, in range [0,100]
         """
 
-        # Flatten into a single 1D array
+       # Flatten into a single 1D array
         arrs = [wind.data.flatten() for wind in self.values()]
         arr = np.concatenate(arrs)
 
@@ -310,7 +323,7 @@ class MCCD(Agroup):
     Class representing a multi-CCD as a Group of CCD objects
     plus a FITS header.
     """
-    def __init__(self, ccds, head=None):
+    def __init__(self, ccds, head=None, copy=False):
         """
         Constructs a :class:`MCCD`
 
@@ -320,10 +333,22 @@ class MCCD(Agroup):
               Group of CCD objects.
 
           head : (astropy.io.fits.Header)
-              a header which will be written as the primary header.
+              a header which will be written as the primary header. If head=None
+              on input, and empty header will be created.
+
+          copy : (bool)
+              if True, copy all the data over, otherwise only references are
+              held. Holding references is fine if the calling program keeps
+              re-generating the data but could cause problems in some
+              circumstances.
         """
         super().__init__(ccds)
-        self.head = head
+        if head is None:
+            self.head = fits.Header()
+        else:
+            self.head = head
+        if copy:
+            self = self.copy()
 
     def wfits(self, fname, overwrite=False):
         """Writes out the MCCD to a FITS file.
