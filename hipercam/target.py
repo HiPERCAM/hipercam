@@ -11,7 +11,7 @@ import numpy as np
 
 from .core import *
 
-__all__ = ('Target',)
+__all__ = ('Target','Field')
 
 class Target(object):
     """
