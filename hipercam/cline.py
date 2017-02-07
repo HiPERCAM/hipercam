@@ -77,7 +77,7 @@ import warnings
 import readline
 readline.parse_and_bind("tab: complete")
 
-from .core import HipercamError, HipercamWarning
+from .core import HipercamError, HipercamWarning, add_extension
 
 #def complete(text,state):
 #    results = ["example",None]
@@ -694,8 +694,7 @@ class Fname(str):
         """
 
         # Add extension if not already present.
-        if len(self.ext) and not fname.endswith(self.ext):
-            fname += self.ext
+        fname = add_extension(fname, self.ext)
 
         if self.exist and self.ftype == Fname.OLD and not os.path.exists(fname):
             raise ClineError(
