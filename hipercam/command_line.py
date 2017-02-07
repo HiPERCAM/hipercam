@@ -175,6 +175,9 @@ def makedata(args=None):
     xbin = 2
     ybin = 1
 
+    This tells the routine to generate 5 CCDs, each with 2 windows as
+    defined. For a complete example of such a file see
+
     """
     import configparser
 
@@ -199,10 +202,58 @@ def makedata(args=None):
     conf = configparser.ConfigParser()
     conf.read(config)
 
-    # Define CCD format
-    nccd = conf['ccd']['nccd]
-    print('Number of CCDs =',nccd)
-    print(conf)
+    # Top-level header
+    thead = fits.Header()
+    thead.add_history('Created by makedata')
+
+    # Store the CCDs and their dimensions
+    ccd_dims = {}
+    for key in conf:
+        if key.startswith('ccd'):
+            ccd_dims[int(key[3:])] = {
+                'nxtot' : conf[key]['nxtot'],
+                'nytot' : conf[key]['nytot']
+            }
+
+    # Generate the CCDs
+    ccds = []
+    for ccd_key, dims in ccd_dims.items():
+        # Generate the Windats
+        winds = []
+        for key in conf:
+            if key.startswith('window'):
+                nccd, nwin = key[6:].split()
+                if int(nccd) == ccd_key:
+                    llx = int(conf[key]['llx'])
+                    lly = int(conf[key]['lly'])
+                    nx = int(conf[key]['nx'])
+                    ny = int(conf[key]['ny'])
+                    xbin = int(conf[key]['xbin'])
+                    ybin = int(conf[key]['ybin'])
+                    wind = hcam.Windat(hcam.Window(llx,lly,nx,ny,xbin,ybin))
+                    if 'value' in conf[key]:
+                        value = float(conf[key]['value'])
+                        wind.set_const(value)
+
+                    # Accumulate Windats in the CCD
+                    winds.append((int(nwin), wind))
+
+        # Accumulate CCDs
+        ccds.append((ccd_key, hcam.CCD(winds,dims['nxtot'],dims['nytot'])))
+
+    # make the MCCD
+    mccd = hcam.MCCD(ccds, thead)
+
+    # output stage
+    overwrite = conf.getboolean('files', 'overwrite')
+
+    if int(conf['files']['nfiles']) == 0:
+        fname = conf['files']['root'] + hcam.HCAM
+        mccd.wfits(fname, overwrite)
+        print('Written data to',fname)
+    else:
+        raise NotImplementedError('multiple file option not implemented yet')
+
 
 def makefield(args=None):
     """Script to generate an artificial star field which is saved to disk file, a
