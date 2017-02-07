@@ -646,7 +646,7 @@ class Fname(str):
 
         return fname
 
-    def __init__(self, root, ext, ftype=OLD, exist=True):
+    def __init__(self, root, ext='', ftype=OLD, exist=True):
         """Initialiser. In the following text items in capitals such as 'OLD' are
         static variables so that one should use hipercam.cline.Fname.OLD or
         equivalent to refer to them.
