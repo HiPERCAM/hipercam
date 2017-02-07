@@ -142,41 +142,40 @@ def hplot(args=None):
     plt.show()
 
 def makedata(args=None):
-    """Script to generate multi-CCD test data given a set of parameters defined
-    in a config file (parsed using configparser).
+    """Script to generate multi-CCD test data given a set of parameters defined in
+    a config file (parsed using configparser). This allows things such as a
+    bias frame, flat field variations offsets, scale factor and rotations
+    between CCDs, and temporal variations.
 
     Arguments::
 
        config: (string)
           file defining the parameters.
 
+    Depending upon the setting in the config file, this could generate a large
+    number of different files and so the first time you run it, you may want
+    to do so in a clean directory.
+
     Config file format: see the documentation of configparser for the general
     format of the config files expected by this routine. Essentially there are
     a series of sections, e.g.:
 
-    [ccd]
-    nccd = 5
+    [ccd 1]
     nxtot = 2048
     nytot = 1048
 
-    [window 1]
+    [window 1 1]
     llx = 11
     lly = 21
     nx = 100
     ny = 200
     xbin = 2
     ybin = 1
+    read = 2.8
+    gain = 1.1
 
-    [window 3]
-    llx = 101
-    lly = 321
-    nx = 100
-    ny = 100
-    xbin = 2
-    ybin = 1
-
-    This tells the routine to generate 5 CCDs, each with 2 windows as
-    defined. For a complete example of such a file see
+    defining all the parameters needed (in this case) to make one window of
+    one CCD. There are others to simulate a bias offset, a flat field.
 
     """
     import configparser
@@ -184,10 +183,10 @@ def makedata(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    # create Cline object
+    # Create Cline object
     cl = Cline('HIPERCAM_ENV', '.hipercam', 'makedata', args)
 
-    # register parameters
+    # Register parameters
     cl.register('config', Cline.LOCAL, Cline.PROMPT)
 
     try:
@@ -202,6 +201,12 @@ def makedata(args=None):
     conf = configparser.ConfigParser()
     conf.read(config)
 
+    # Determine whether files get overwritten or not
+    if 'general':
+        overwrite = conf.getboolean('general', 'overwrite')
+    else:
+        overwrite = False
+
     # Top-level header
     thead = fits.Header()
     thead.add_history('Created by makedata')
@@ -211,19 +216,22 @@ def makedata(args=None):
     for key in conf:
         if key.startswith('ccd'):
             ccd_dims[int(key[3:])] = {
-                'nxtot' : conf[key]['nxtot'],
-                'nytot' : conf[key]['nytot']
+                'nxtot' : int(conf[key]['nxtot']),
+                'nytot' : int(conf[key]['nytot'])
             }
 
-    # Generate the CCDs
+    # Generate the CCDs, store the read / gain values
     ccds = []
-    for ccd_key, dims in ccd_dims.items():
+    rgs = {}
+    for nccd, dims in ccd_dims.items():
         # Generate the Windats
         winds = []
+        rgs[nccd] = {}
         for key in conf:
             if key.startswith('window'):
-                nccd, nwin = key[6:].split()
-                if int(nccd) == ccd_key:
+                iccd, nwin = key[6:].split()
+                if int(iccd) == nccd:
+                    nwin = int(nwin)
                     llx = int(conf[key]['llx'])
                     lly = int(conf[key]['lly'])
                     nx = int(conf[key]['nx'])
@@ -231,28 +239,86 @@ def makedata(args=None):
                     xbin = int(conf[key]['xbin'])
                     ybin = int(conf[key]['ybin'])
                     wind = hcam.Windat(hcam.Window(llx,lly,nx,ny,xbin,ybin))
-                    if 'value' in conf[key]:
-                        value = float(conf[key]['value'])
-                        wind.set_const(value)
 
                     # Accumulate Windats in the CCD
-                    winds.append((int(nwin), wind))
+                    winds.append((nwin, wind))
+
+                    # Store read / gain value
+                    rgs[nccd][nwin] = (
+                        float(conf[key]['read']), float(conf[key]['gain'])
+                    )
 
         # Accumulate CCDs
-        ccds.append((ccd_key, hcam.CCD(winds,dims['nxtot'],dims['nytot'])))
+        ccds.append((nccd, hcam.CCD(winds,dims['nxtot'],dims['nytot'])))
 
-    # make the MCCD
+    # Make the MCCD
     mccd = hcam.MCCD(ccds, thead)
 
-    # output stage
-    overwrite = conf.getboolean('files', 'overwrite')
+    # Make a flat field
+    flat = mccd.copy()
+    if 'flat' in conf:
+        rms = float(conf['flat']['rms'])
+        for ccd in flat.values():
+            # Generate dust
+            nspeck = int(conf['flat']['nspeck'])
+            if nspeck:
+                radius = float(conf['flat']['radius'])
+                depth = float(conf['flat']['depth'])
+                specks = []
+                for n in range(nspeck):
+                    x = np.random.uniform(0.5,ccd.nxtot+0.5)
+                    y = np.random.uniform(0.5,ccd.nytot+0.5)
+                    specks.append(Dust(x,y,radius,depth))
 
-    if int(conf['files']['nfiles']) == 0:
-        fname = conf['files']['root'] + hcam.HCAM
-        mccd.wfits(fname, overwrite)
+            # Set the flat field values
+            for wind in ccd.values():
+                wind.data = np.random.normal(1.,rms,(wind.ny,wind.nx))
+                if nspeck:
+                    wind.add_fxy(specks)
+
+        flat.head['DATATYPE'] = ('Flat field','Artificially generated')
+        fname = hcam.add_extension(conf['flat']['flat'],hcam.HCAM)
+        flat.wfits(fname, overwrite)
+        print('Saved flat field to ',fname)
+    else:
+        # Set the flat to unity
+        flat.set_const(1.0)
+        print('No flat field generated')
+
+    # Make a bias frame
+    bias = mccd.copy()
+    if 'bias' in conf:
+        mean = float(conf['bias']['mean'])
+        rms = float(conf['bias']['rms'])
+        for ccd in bias.values():
+            for wind in ccd.values():
+                wind.data = np.random.normal(mean,rms,(wind.ny,wind.nx))
+
+        bias.head['DATATYPE'] = ('Bias frame','Artificially generated')
+        fname = hcam.add_extension(conf['bias']['bias'],hcam.HCAM)
+        bias.wfits(fname, overwrite)
+        print('Saved bias frame to ',fname)
+    else:
+        # Set the bias to zero
+        bias.set_const(0.)
+        print('No bias frame generated')
+
+    # Everything is set to go, so now generate data files
+    nfiles = int(conf['files']['nfiles'])
+    if nfiles == 0:
+        out = mccd*flat + bias
+        fname = hcam.add_extension(conf['files']['root'],hcam.HCAM)
+        out.wfits(fname, overwrite)
         print('Written data to',fname)
     else:
-        raise NotImplementedError('multiple file option not implemented yet')
+        root = conf['files']['root']
+        ndigit = int(conf['files']['ndigit'])
+        form = '{0:s}{1:0' + str(ndigit) + 'd}{2:s}'
+        for nfile in range(nfiles):
+            fname = form.format(root,nfile+1,hcam.HCAM)
+            out = mccd*flat + bias
+            out.wfits(fname, overwrite)
+            print('Written file {0:d} to {1:s}'.format(nfile+1,fname))
 
 
 def makefield(args=None):
@@ -368,132 +434,16 @@ def makefield(args=None):
 
     print('>> Saved a field of',len(field),'objects to',fname)
 
+class Dust:
+    """This to generate guassian dust specks on a flat field using
+    the add_fxy method of Windats"""
 
-def makehcam(args=None):
-    """Script to generate a fake hipercam frame. Use this to create artificial
-    bias and flat field frames.  This will split each CCD up into 2x2 windows,
-    so the total dimensions must be multiples of 2.
+    def __init__(self, xcen, ycen, rms, depth):
+        self.xcen = xcen
+        self.ycen = ycen
+        self.rms = rms
+        self.depth = depth
 
-    Arguments::
-
-       frame : (string)
-          name of frame [output]
-
-       nccd : (int)
-          number of CCDs
-
-       nxtot : (int)
-          total X dimension, a multiple of 2 [unbinned pixels]
-
-       nytot : (int)
-          total Y dimension, a multiple of 2 [unbinned pixels]
-
-       mean : (float)
-          mean level of frame [counts]
-
-       sigma : (float)
-          RMS gaussian noise level [counts]
-
-       gradx : (float)
-          change in level in X-direction from left-to-right [counts]
-
-       grady : (float)
-          change in level in Y-direction from bottom-to-top [counts]
-
-    """
-    if args is None:
-        args = sys.argv[1:]
-
-    # create Cline object
-    cl = Cline('HIPERCAM_ENV', '.hipercam', 'makehcam', args)
-
-    # register parameters
-    cl.register('frame', Cline.LOCAL, Cline.PROMPT)
-    cl.register('nccd', Cline.LOCAL, Cline.PROMPT)
-    cl.register('nxtot', Cline.LOCAL, Cline.PROMPT)
-    cl.register('nytot', Cline.LOCAL, Cline.PROMPT)
-    cl.register('xbin', Cline.LOCAL, Cline.PROMPT)
-    cl.register('ybin', Cline.LOCAL, Cline.PROMPT)
-    cl.register('mean', Cline.LOCAL, Cline.PROMPT)
-    cl.register('sigma', Cline.LOCAL, Cline.PROMPT)
-    cl.register('gradx', Cline.LOCAL, Cline.PROMPT)
-    cl.register('grady', Cline.LOCAL, Cline.PROMPT)
-
-    try:
-        # get cls
-        frame = cl.get_value('frame', 'name of output frame',
-                                cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW))
-        nccd = cl.get_value('nccd', 'number of CCDs/frame', 5, 1)
-        nxtot = cl.get_value('nxtot', 'number of CCDs/frame', 2048, 2, multipleof=2)
-        nytot = cl.get_value('nytot', 'number of CCDs/frame', 1024, 2, multipleof=2)
-        xbin = cl.get_value('xbin', 'X-binning factor', 1, 1)
-        ybin = cl.get_value('ybin', 'Y-binning factor', 1, 1)
-        mean = cl.get_value('mean', 'mean counts/pixel', 0.)
-        sigma = cl.get_value('sigma', 'RMS counts', 0., 0.)
-        gradx = cl.get_value('gradx', 'left-to-right change, counts', 0.)
-        grady = cl.get_value('grady', 'bottom-to-top change, counts', 0.)
-
-    except cline.ClineError as err:
-        print('Error on parameter input:')
-        print(err)
-        exit(1)
-
-    nx = nxtot // 2 // xbin
-    ny = nytot // 2 // ybin
-
-    print('Creating 4 Windows at corners of CCD(s)')
-    win1  = hcam.Window(1,1,nx,ny,xbin,ybin)
-    win2  = hcam.Window(nxtot-xbin*nx+1,1,nx,ny,xbin,ybin)
-    win3  = hcam.Window(1,nytot-ybin*ny+1,nx,ny,xbin,ybin)
-    win4  = hcam.Window(nxtot-xbin*nx+1,nytot-ybin*ny+1,nx,ny,xbin,ybin)
-
-    print('Creating equivalent Windats')
-    winds = (hcam.Windat(win1), hcam.Windat(win2), hcam.Windat(win3), hcam.Windat(win4))
-
-    def func(x,y):
-        xcen = (1+nxtot)/2.
-        ycen = (1+nytot)/2.
-        return gradx*(x-xcen)/(nxtot-1) + grady*(y-ycen)/(nytot-1)
-
-    print('Adding mean, slope and noise')
-    for wind in winds:
-        wind.add_fxy(func)
-        wind.data += np.random.normal(mean,sigma,(ny,nx))
-
-    # Top-level header
-    head = fits.Header()
-    head['OBJECT'] = ('Fake star field', 'Target name')
-    head['INSTRUME'] = ('HiPERCAM', 'Instrument name')
-    head['RUN'] = (3,'Run number')
-    head['MEAN'] = (mean, 'mean level used by makehcam')
-    head['SIGMA'] = (sigma, 'RMS used by makehcam')
-    head['GRADX'] = (gradx, 'Change in X used by makehcam')
-    head['GRADY'] = (grady, 'Change in Y used by makehcam')
-    head.add_history('Created by makehcam')
-
-    # Prepare Windats to be made into CCDs
-    winds = OrderedDict(zip(range(1,nccd+1),winds))
-
-    ihead = fits.Header()
-
-    print('Creating CCDs')
-    ccds = OrderedDict()
-
-    ihead['FILTER'] = ('u','Filter name')
-    ccds[1] = hcam.CCD(winds,nxtot,nytot,ihead)
-    ihead['FILTER'] = ('g','Filter name')
-    ccds[2] = hcam.CCD(winds,nxtot,nytot,ihead)
-    ihead['FILTER'] = ('r','Filter name')
-    ccds[3] = hcam.CCD(winds,nxtot,nytot,ihead)
-    ihead['FILTER'] = ('i','Filter name')
-    ccds[4] = hcam.CCD(winds,nxtot,nytot,ihead)
-    ihead['FILTER'] = ('z','Filter name')
-    ccds[5] = hcam.CCD(winds,nxtot,nytot,ihead)
-
-    print('Creating the MCCD')
-    mccd = hcam.MCCD(ccds, head)
-
-    print('Writing the MCCD')
-    mccd.wfits(frame,True)
-
-
+    def __call__(self, x, y):
+        rsq = (x-self.xcen)**2+ (y-self.ycen)**2
+        return -self.depth*np.exp(-rsq/(2.*self.rms**2))
