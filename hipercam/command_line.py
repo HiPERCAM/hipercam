@@ -142,55 +142,67 @@ def hplot(args=None):
     plt.show()
 
 def makedata(args=None):
-    """Script to create multi-CCD data given an artificial star field (generated
-    e.g. with `makefield`), a bias and a matching flat field frame. This
-    allows a sequence of images to be generated allowing for drifting with
-    time, jitter and variable transparency.
+    """Script to generate multi-CCD test data given a set of parameters defined
+    in a config file (parsed using configparser).
 
     Arguments::
 
-       field : (string)
-          star field
+       config: (string)
+          file defining the parameters.
 
-       bias : (string)
-          bias frame
+    Config file format: see the documentation of configparser for the general
+    format of the config files expected by this routine. Essentially there are
+    a series of sections, e.g.:
 
-       flat : (string)
-          flat field frame
+    [ccd]
+    nccd = 5
+    nxtot = 2048
+    nytot = 1048
+
+    [window 1]
+    llx = 11
+    lly = 21
+    nx = 100
+    ny = 200
+    xbin = 2
+    ybin = 1
+
+    [window 3]
+    llx = 101
+    lly = 321
+    nx = 100
+    ny = 100
+    xbin = 2
+    ybin = 1
 
     """
+    import configparser
+
     if args is None:
         args = sys.argv[1:]
 
     # create Cline object
-    cl = Cline('HIPERCAM_ENV', '.hipercam', 'makefield', args)
+    cl = Cline('HIPERCAM_ENV', '.hipercam', 'makedata', args)
 
     # register parameters
-    cl.register('field', Cline.LOCAL, Cline.PROMPT)
-    cl.register('bias', Cline.LOCAL, Cline.PROMPT)
-    cl.register('flat', Cline.LOCAL, Cline.PROMPT)
-    cl.register('output', Cline.LOCAL, Cline.PROMPT)
+    cl.register('config', Cline.LOCAL, Cline.PROMPT)
 
     try:
-        field = cl.get_value('field', 'star field file', cline.Fname('field', hcam.FIELD))
-        bias = cl.get_value('bias', 'bias frame', cline.Fname('bias', hcam.HCAM))
-        flat = cl.get_value('flat', 'flat field', cline.Fname('flat', hcam.FIELD))
-        outfile = cl.get_value('output', 'output frame',
-                                cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW))
-
-???????????
+        config = cl.get_value('config', 'configuration file',
+                              cline.Fname('config'))
     except cline.ClineError as err:
         print('Error on parameter input:')
         print(err)
         exit(1)
 
-    # add targets
-    field.add_random(ntarg, x1, x2, y1, y2, h1, h2, fwmax, fwmin, angle, beta)
+    # Read the config file
+    conf = configparser.ConfigParser()
+    conf.read(config)
 
-    # save result
-    field.wjson(fname)
-
-    print('>> Saved a field of',len(field),'objects to',fname)
+    # Define CCD format
+    nccd = conf['ccd']['nccd]
+    print('Number of CCDs =',nccd)
+    print(conf)
 
 def makefield(args=None):
     """Script to generate an artificial star field which is saved to disk file, a
