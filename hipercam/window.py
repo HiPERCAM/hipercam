@@ -305,6 +305,12 @@ class Windat(Window):
         """
         return self.data.mean()
 
+    def sum(self):
+        """
+        Returns the sum of the :class:`Windat`.
+        """
+        return self.data.sum()
+
     def std(self):
         """
         Returns the standard deviation of the :class:`Windat`.
