@@ -608,7 +608,7 @@ class Fname(str):
     NEW       = 1
     NOCLOBBER = 2
 
-    def __new__(cls, root, ext, ftype=OLD, exist=True):
+    def __new__(cls, root, ext='', ftype=OLD, exist=True):
         """Constructor distinct from __init__ because str is immutable. In the
         following text items in capitals such as 'OLD' are static variables so
         that one should use hipercam.cline.Fname.OLD or equivalent to refer to
