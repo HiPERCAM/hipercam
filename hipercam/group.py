@@ -12,11 +12,12 @@ __all__ = ('Group', 'Agroup')
 
 class Group(dict):
     """A specialized dictionary for storing objects of identical type indexed by
-    integers only.  This class also assumes that the objects have a method
-    `clash` with signature `clash(self, other)` which raises an exception if
-    `self` and `other` conflict in some way. The entry order is preserved
-    (like :class:`OrderedDict` objects, but I found problems with them, so
-    have rolled my own).
+    integers only.  This class assumes that the objects have a method `clash`
+    with signature `clash(self, other)` which raises an exception if `self`
+    and `other` conflict in some way. The entry order is preserved (like
+    :class:`OrderedDict` objects, but I found problems with them, so have
+    rolled my own). The objects should also support a `copy` method to return
+    a deepcopy. This is used in the :class:`Group`s copy operation.
 
     """
 
@@ -78,7 +79,7 @@ class Group(dict):
         `Group`.
         """
         if type(key) != type(0):
-            raise HipercamError(
+            raise KeyError(
                 'Group.__setitem__: key must be an integer')
 
         # check that the new item has same type as current ones
@@ -134,26 +135,49 @@ class Group(dict):
         for k,v in dct.items():
             self.__setitem__(k,v)
 
-    def copy(self):
-        newInstance = Group()
-        newInstance.update(self)
-        return newInstance
+    def copy(self, memo=None):
+        """Copy operation. The stored objects must have a `copy(self, memo)` method.
+
+        """
+        group = Group()
+        for key, val in self.items():
+            group[key] = val.copy(memo)
+        return group
+
+    def __copy__(self):
+        """Copy operation for copy.copy 
+
+        """
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        """Copy operation for copy.deepcopy 
+
+        """
+        return self.copy(memo)
 
 class Agroup(Group):
     """A :class:`Group` which defines arithmetic methods +=, +, etc which must be
     supported by whatever objects the :class:`Group` contains. This allows the
     same approach to be taken when operating on :class:`CCD` and :class:`MCCD`
     objects which are based on this class. The objects stored in the
-    :class:`Agroup` must define a method `copy` which returns a deep copy.
+    :class:`Agroup` must define a method `copy` which returns a deep copy;
+    this is required by several operators.
 
     """
 
+    def copy(self, memo=None):
+        """Copy operation. 
+
+        """
+        return Agroup(super().copy(memo))
+
     def __iadd__(self, other):
-        """Adds `other` to a :class:`Agroup` as 'self += other'. If `other` is another
-        :class:`Agroup` with the same object type (`otype`) as self, then the
-        operation will be applied to each pair of objects with matching
-        keys. Otherwise `other` will be regarded as a constant object to
-        add to each object in the :class:`Agroup`.
+        """Adds `other` to the :class:`Agroup` as 'self += other'. If `other` is
+        another :class:`Agroup` with the same object type (`otype`) as self,
+        then the operation will be applied to each pair of objects with
+        matching keys. Otherwise `other` will be regarded as a constant object
+        to add to each object in the :class:`Agroup`.
 
         In the first case, if self has keys that are not in `other`, then they
         will be left untouched. Any keys in `other` not in self are ignored.
@@ -171,11 +195,11 @@ class Agroup(Group):
         return self
 
     def __isub__(self, other):
-        """Subtracts `other` from a :class:`Agroup` as 'self -= other'. If `other` is another
-        :class:`Agroup` with the same object type (`otype`) as self, then the
-        operation will be applied to each pair of objects with matching
-        keys. Otherwise `other` will be regarded as a constant object to
-        subtract from each object in the :class:`Agroup`.
+        """Subtracts `other` from the :class:`Agroup` as 'self -= other'. If `other`
+        is another :class:`Agroup` with the same object type (`otype`) as
+        self, then the operation will be applied to each pair of objects with
+        matching keys. Otherwise `other` will be regarded as a constant object
+        to subtract from each object in the :class:`Agroup`.
 
         In the first case, if self has keys that are not in `other`, then they
         will be left untouched. Any keys in `other` not in self are ignored.
@@ -193,7 +217,7 @@ class Agroup(Group):
         return self
 
     def __imul__(self, other):
-        """Multiplies a :class:`Agroup` by `other` as 'self *= other'. If `other` is
+        """Multiplies the :class:`Agroup` by `other` as 'self *= other'. If `other` is
         another :class:`Agroup` with the same object type (`otype`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
@@ -215,7 +239,7 @@ class Agroup(Group):
         return self
 
     def __itruediv__(self, other):
-        """Divides a :class:`Agroup` by `other` as 'self /= other'. If `other` is
+        """Divides the :class:`Agroup` by `other` as 'self /= other'. If `other` is
         another :class:`Agroup` with the same object type (`otype`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
@@ -237,7 +261,7 @@ class Agroup(Group):
         return self
 
     def __add__(self, other):
-        """Adds `other` to a :class:`Agroup` as '= self + other'. If `other` is
+        """Adds `other` to the :class:`Agroup` as '= self + other'. If `other` is
         another :class:`Agroup` with the same object type (`otype`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
@@ -252,7 +276,7 @@ class Agroup(Group):
         return cself
 
     def __sub__(self, other):
-        """Subtracts `other` from a :class:`Agroup` as '= self - other'. If `other` is
+        """Subtracts `other` from the :class:`Agroup` as '= self - other'. If `other` is
         another :class:`Agroup` with the same object type (`otype`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
@@ -267,9 +291,9 @@ class Agroup(Group):
         return cself
 
     def __mul__(self, other):
-        """Multiplies a :class:`Agroup` by `other` as '= self * other'. If `other` is
-        another :class:`Agroup` with the same object type (`otype`) as self,
-        then the operation will be applied to each pair of objects with
+        """Multiplies the :class:`Agroup` by `other` as '= self * other'. If `other`
+        is another :class:`Agroup` with the same object type (`otype`) as
+        self, then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
         to multiply each object in the :class:`Agroup`.
 
@@ -282,7 +306,7 @@ class Agroup(Group):
         return cself
 
     def __truediv__(self, other):
-        """Divides a :class:`Agroup` by `other` as '= self / other'. If `other` is
+        """Divides the :class:`Agroup` by `other` as '= self / other'. If `other` is
         another :class:`Agroup` with the same object type (`otype`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
@@ -291,6 +315,31 @@ class Agroup(Group):
         In the first case, if self has keys that are not in `other`, then they
         will be left untouched. Any keys in `other` not in self are ignored.
 
+        """
+        cself = self.copy()
+        cself /= other
+        return cself
+
+    def __radd__(self, other):
+        """Adds the :class:`Agroup` to other as '= other + self'.
+        """
+        return self.__add__(other)
+
+    def __rsub__(self, other):
+        """Subtracts the :class:`Agroup` from `other` as '= other - self'.
+        """
+        cself = self.copy()
+        cself *= -1. # in-place faster
+        cself += other
+        return cself
+
+    def __rmul__(self, other):
+        """Multiplies the :class:`Agroup` by `other` as '= other * self'.
+        """
+        return self.__mul__(other)
+
+    def __truediv__(self, other):
+        """Divides a :class:`Agroup` by `other` as '= other / self'.
         """
         cself = self.copy()
         cself /= other

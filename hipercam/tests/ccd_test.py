@@ -73,5 +73,11 @@ class TestCCD(unittest.TestCase):
                         and self.ccd[3].data[0,0] == self.level3/2.,
                         'in place division of a CCD by a constant failed')
 
+    def test_ccd_add(self):
+        ccd = self.ccd + 5.
+        self.assertTrue(ccd[1].data[0,0] == self.level1 + 5.
+                        and ccd[3].data[0,0] == self.level3 + 5.,
+                        'addition of a constant to a CCD failed')
+
 if __name__ == '__main__':
     unittest.main()

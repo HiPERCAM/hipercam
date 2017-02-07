@@ -13,32 +13,47 @@ class TestGroup(unittest.TestCase):
     def setUp(self):
         self.agroup = Agroup()
         win = Window(1,1,10,10,1,1)
-        wind = Windat(win, np.ones((win.ny,win.nx)))
+        self.val1 = 1.
+        wind = Windat(win, self.val1*np.ones((win.ny,win.nx)))
         self.agroup[1] = wind
         win = Window(100,200,10,10,1,1)
-        wind = Windat(win, 10.*np.ones((win.ny,win.nx)))
+        self.val2 = 10.
+        wind = Windat(win, self.val2*np.ones((win.ny,win.nx)))
         self.agroup[2] = wind
+
+    def test_group_copy(self):
+        agroup = self.agroup.copy()
+        agroup[1].data[0,0] += 5
+        self.assertEqual(agroup[1].data[0,0], self.agroup[1].data[0,0]+5.,
+                         'Agroup copy failed')
 
     def test_group_setitem(self):
         group = Group()
         window = Window(1,1,100,100,1,1)
-        self.assertRaises(HipercamError, group.__setitem__, 'a', window)
+        self.assertRaises(KeyError, group.__setitem__, 'a', window)
         group[1] = window
-        self.assertRaises(HipercamError, group.__setitem__, 2, window)
+        self.assertRaises(ValueError, group.__setitem__, 2, window)
 
     def test_agroup_iadd(self):
-        agroup = copy.deepcopy(self.agroup)
-        agroup += 9.
+        self.agroup += 9.
         self.assertTrue(
-            agroup[1].data[0,0] == 10. and agroup[2].data[0,0] == 19.,
-            'addition to an Agroup has failed')
+            self.agroup[1].data[0,0] == self.val1 + 9. and
+            self.agroup[2].data[0,0] == self.val2 + 9.,
+            'in place addition to an Agroup has failed')
 
     def test_agroup_isub(self):
-        agroup = copy.deepcopy(self.agroup)
-        agroup -= 9.
+        self.agroup -= 9.
         self.assertTrue(
-            agroup[1].data[0,0] == -8. and agroup[2].data[0,0] == 1.,
-            'subtraction from an Agroup has failed')
+            self.agroup[1].data[0,0] == self.val1 - 9. and
+            self.agroup[2].data[0,0] == self.val2 - 9.,
+            'in place subtraction from an Agroup has failed')
+
+    def test_agroup_add(self):
+        agroup = self.agroup + 9.
+        self.assertTrue(
+            agroup[1].data[0,0] == self.val1 + 9. and
+            agroup[2].data[0,0] == self.val2 + 9.,
+            'addition to an Agroup has failed')
 
 if __name__ == '__main__':
     unittest.main()

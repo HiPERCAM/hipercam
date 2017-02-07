@@ -295,22 +295,13 @@ class CCD(Agroup):
         for key, wind in self.items():
             wind.matches(ccd[key])
 
-
     def copy(self, memo=None):
         """Make a copy of the :class:`CCD`
 
         copy.copy and copy.deepcopy of a `CCD` use this method
         """
-        ccd = CCD({}, self.nxtot, self.nytot, self.head.copy())
-        for key, wind in self.items():
-            ccd[key] = wind.copy(memo)
-        return ccd
-
-    def __copy__(self):
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        return self.copy(memo)
+        return CCD(
+            super().copy(memo), self.nxtot, self.nytot, self.head.copy())
 
     def __repr__(self):
         return 'CCD(winds=' + super().__repr__() + \
@@ -428,10 +419,7 @@ class MCCD(Agroup):
 
         copy.copy and copy.deepcopy of an `MCCD` use this method
         """
-        mccd = MCCD({}, self.head.copy())
-        for key, ccd in self.items():
-            mccd[key] = ccd.copy(memo)
-        return mccd
+        return MCCD(super().copy(memo), self.head.copy())
 
     def matches(self, mccd):
         """Check that the :class:`MCCD` matches another, which in this means checking
