@@ -211,13 +211,20 @@ def makedata(args=None):
     thead = fits.Header()
     thead.add_history('Created by makedata')
 
-    # Store the CCDs and their dimensions
+    # Store the CCDs and their dimensions. Determine
+    # maximum dimensions for later use when adding targets
     ccd_dims = {}
+    maxnx = 0
+    maxny = 0
     for key in conf:
         if key.startswith('ccd'):
+            nxtot = int(conf[key]['nxtot'])
+            nytot = int(conf[key]['nytot'])
+            maxnx = max(maxnx, nxtot)
+            maxny = max(maxny, nytot)
+
             ccd_dims[int(key[3:])] = {
-                'nxtot' : int(conf[key]['nxtot']),
-                'nytot' : int(conf[key]['nytot'])
+                'nxtot' : nxtot, 'nytot' : nytot
             }
 
     # Generate the CCDs, store the read / gain values
@@ -303,6 +310,28 @@ def makedata(args=None):
         bias.set_const(0.)
         print('No bias frame generated')
 
+    # Now build up Fields
+    fields = []
+    for key in conf:
+        if key.startswith('field'):
+            field = hcam.Field()
+            r = conf[key]
+            ntarg = int(r['ntarg'])
+            height1 = float(r['height1'])
+            height2 = float(r['height2'])
+            angle1 = float(r['angle1'])
+            angle2 = float(r['angle2'])
+            fwhm1 = float(r['fwhm1'])
+            fwhm2 = float(r['fwhm2'])
+            beta = float(r['beta'])
+            ndiv = int(r['ndiv'])
+
+            field.add_random(ntarg,-5.,maxnx+5.,-5.,maxny+5.,
+                             height1, height2, angle1, angle2,
+                             fwhm1, fwhm2, beta)
+
+            fields.append((ndiv, field))
+
     # Everything is set to go, so now generate data files
     nfiles = int(conf['files']['nfiles'])
     if nfiles == 0:
@@ -314,12 +343,36 @@ def makedata(args=None):
         root = conf['files']['root']
         ndigit = int(conf['files']['ndigit'])
         form = '{0:s}{1:0' + str(ndigit) + 'd}{2:s}'
-        for nfile in range(nfiles):
-            fname = form.format(root,nfile+1,hcam.HCAM)
-            out = mccd*flat + bias
-            out.wfits(fname, overwrite)
-            print('Written file {0:d} to {1:s}'.format(nfile+1,fname))
 
+        print('Now generating data')
+
+        for nfile in range(nfiles):
+
+            # copy over template
+            frame = mccd.copy()
+
+            # add targets
+            for ccd in frame.values():
+                for wind in ccd.values():
+                    for ndiv, field in fields:
+                        wind.add_fxy(field, ndiv)
+
+            # Apply flat
+            frame *= flat
+
+            # Add noise
+            for nccd, ccd in frame.items():
+                for nwin, wind in ccd.items():
+                    readout, gain = rgs[nccd][nwin]
+                    wind.add_noise(readout, gain)
+
+            # Apply bias
+            frame += bias
+
+            # Save
+            fname = form.format(root,nfile+1,hcam.HCAM)
+            frame.wfits(fname, overwrite)
+            print('Written file {0:d} to {1:s}'.format(nfile+1,fname))
 
 def makefield(args=None):
     """Script to generate an artificial star field which is saved to disk file, a
