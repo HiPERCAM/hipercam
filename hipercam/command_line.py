@@ -163,19 +163,13 @@ def makedata(args=None):
     [ccd 1]
     nxtot = 2048
     nytot = 1048
+    .
+    .
+    .
 
-    [window 1 1]
-    llx = 11
-    lly = 21
-    nx = 100
-    ny = 200
-    xbin = 2
-    ybin = 1
-    read = 2.8
-    gain = 1.1
-
-    defining all the parameters needed (in this case) to make one window of
-    one CCD. There are others to simulate a bias offset, a flat field.
+    which define all the parameters needed. There are many others to simulate
+    a bias offset, a flat field; see the example file ??? for a fully-documented
+    version.
 
     """
     import configparser
@@ -211,26 +205,51 @@ def makedata(args=None):
     thead = fits.Header()
     thead.add_history('Created by makedata')
 
-    # Store the CCDs and their dimensions. Determine
+    # Store the CCD labels and parameters and their dimensions. Determine
     # maximum dimensions for later use when adding targets
-    ccd_dims = {}
+    ccd_pars = {}
     maxnx = 0
     maxny = 0
     for key in conf:
         if key.startswith('ccd'):
+
+            # translate parameters
             nxtot = int(conf[key]['nxtot'])
             nytot = int(conf[key]['nytot'])
+            xcen = float(conf[key]['xcen'])
+            ycen = float(conf[key]['ycen'])
+            angle = float(conf[key]['angle'])
+            scale = float(conf[key]['scale'])
+            xoff = float(conf[key]['xoff'])
+            yoff = float(conf[key]['yoff'])
+            fscale = float(conf[key]['fscale'])
+            toff = float(conf[key]['toff'])
+
+            # determine maximum total dimension
             maxnx = max(maxnx, nxtot)
             maxny = max(maxny, nytot)
 
-            ccd_dims[int(key[3:])] = {
-                'nxtot' : nxtot, 'nytot' : nytot
+            # store parameters
+            ccd_pars[int(key[3:])] = {
+                'nxtot' : nxtot,
+                'nytot' : nytot,
+                'xcen' : xcen,
+                'ycen' : ycen,
+                'angle' : angle,
+                'scale' : scale,
+                'xoff' : xoff,
+                'yoff' : yoff,
+                'fscale' : fscale,
+                'toff'  : toff,
             }
+
+    if not len(ccd_pars):
+        raise ValueError('hipercam.makedata: no CCDs found in ' + config)
 
     # Generate the CCDs, store the read / gain values
     ccds = []
     rgs = {}
-    for nccd, dims in ccd_dims.items():
+    for nccd, pars in ccd_pars.items():
         # Generate the Windats
         winds = []
         rgs[nccd] = {}
@@ -256,9 +275,9 @@ def makedata(args=None):
                     )
 
         # Accumulate CCDs
-        ccds.append((nccd, hcam.CCD(winds,dims['nxtot'],dims['nytot'])))
+        ccds.append((nccd, hcam.CCD(winds,pars['nxtot'],pars['nytot'])))
 
-    # Make the MCCD
+    # Make the template MCCD
     mccd = hcam.MCCD(ccds, thead)
 
     # Make a flat field
@@ -324,11 +343,12 @@ def makedata(args=None):
             fwhm1 = float(r['fwhm1'])
             fwhm2 = float(r['fwhm2'])
             beta = float(r['beta'])
+            fmin = float(r['fmin'])
             ndiv = int(r['ndiv'])
 
             field.add_random(ntarg,-5.,maxnx+5.,-5.,maxny+5.,
                              height1, height2, angle1, angle2,
-                             fwhm1, fwhm2, beta)
+                             fwhm1, fwhm2, beta, fmin)
 
             fields.append((ndiv, field))
 
@@ -352,10 +372,21 @@ def makedata(args=None):
             frame = mccd.copy()
 
             # add targets
-            for ccd in frame.values():
-                for wind in ccd.values():
+            for nccd, ccd in frame.items():
+                # get field modification settings
+                p = ccd_pars[nccd]
+                transform = Transform(
+                    p['nxtot'], p['nytot'], p['xcen'], p['ycen'],
+                    p['angle'], p['scale'], p['xoff'], p['yoff'])
+                fscale = p['fscale']
+
+                # wind through each window
+                for nwin, wind in ccd.items():
+
+                    # add targets from each field
                     for ndiv, field in fields:
-                        wind.add_fxy(field, ndiv)
+                        mfield = field.modify(transform, fscale)
+                        wind.add_fxy(mfield, ndiv)
 
             # Apply flat
             frame *= flat
@@ -487,8 +518,11 @@ def makefield(args=None):
 
     print('>> Saved a field of',len(field),'objects to',fname)
 
+# From this point on come helper methods and classes that are
+# not externally visible
+
 class Dust:
-    """This to generate guassian dust specks on a flat field using
+    """This to generate gaussian dust specks on a flat field using
     the add_fxy method of Windats"""
 
     def __init__(self, xcen, ycen, rms, depth):
@@ -497,6 +531,47 @@ class Dust:
         self.rms = rms
         self.depth = depth
 
+    def __call__(self, x, y, f):
+        ok = (x > self.xcen-5.*self.rms) & (x < self.xcen+5.*self.rms) & \
+             (y > self.ycen-5.*self.rms) & (y < self.ycen+5.*self.rms)
+
+        if ok.any():
+            rsq = (x[ok]-self.xcen)**2 + (y[ok]-self.ycen)**2
+            f[ok] -= self.depth*np.exp(-rsq/(2.*self.rms**2))
+
+class Transform:
+    """Field transformation class. This is a callable that can be sent to the
+    :class:`Field` method `modify`.
+    """
+
+    def __init__(self, nxtot, nytot, xcen, ycen, angle, scale, xoff, yoff):
+        self.nxtot = nxtot
+        self.nytot = nytot
+        self.xcen = xcen
+        self.ycen = ycen
+        self.angle = angle
+        self.scale = scale
+        self.xoff = xoff
+        self.yoff = yoff
+
     def __call__(self, x, y):
-        rsq = (x-self.xcen)**2+ (y-self.ycen)**2
-        return -self.depth*np.exp(-rsq/(2.*self.rms**2))
+        # Rotator centre
+        xc = (self.nxtot+1)/2. + self.xcen
+        yc = (self.nytot+1)/2. + self.ycen
+
+        # Rotate around CCD centre
+        cosa = np.cos(np.radians(self.angle))
+        sina = np.sin(np.radians(self.angle))
+        xcen =  cosa*(x-xc) + sina*(y-yc)
+        ycen = -sina*(x-xc) + cosa*(y-yc)
+
+        # Change image scale
+        xcen *= self.scale
+        ycen *= self.scale
+
+        # Apply offset
+        xcen += xc + self.xoff
+        ycen += yc + self.yoff
+
+        # Retunr change in position
+        return (xcen-x,ycen-y)
