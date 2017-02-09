@@ -60,6 +60,15 @@ class Window:
             ', nx=' + repr(self.nx) + ', ny=' + repr(self.ny) + \
             ', xbin=' + repr(self.xbin) + ', ybin=' + repr(self.ybin) + ')'
 
+    def format(self):
+        """Used to ensure that only the Windoe format gets printed which is
+        useful in some instances. Relaying on __repr__ carries the risk of
+        being overloaded."""
+
+        return 'Window(llx=' + repr(self.llx) + ', lly=' + repr(self.lly) + \
+            ', nx=' + repr(self.nx) + ', ny=' + repr(self.ny) + \
+            ', xbin=' + repr(self.xbin) + ', ybin=' + repr(self.ybin) + ')'
+
 
     @property
     def urx(self):
@@ -119,7 +128,7 @@ class Window:
         """
         if self.llx <=  win.urx and self.urx >= win.llx and \
            self.lly <=  win.ury and self.ury >= win.lly:
-            raise ValueError('Window.clash: self = {0:s} clashes with win = {1:s}'.format(str(self),str(win)))
+            raise ValueError('Window.clash: self = {0:s} clashes with win = {1:s}'.format(self.format(), win.format()))
 
     def xy(self):
         """Returns two 2D arrays containing the x and y values at the centre
@@ -383,6 +392,7 @@ class Windat(Window):
               ndiv*ndiv points per unbinned pixel.
 
         """
+
         # generate X,Y arrays
         x,y = self.xy()
         if ndiv:
@@ -395,20 +405,21 @@ class Windat(Window):
                         for ix in range(self.xbin*ndiv):
                             dx = (ix - (ndiv - 1) / 2) / ndiv
                             ofunc = func.offset(dx,dy)
-                            self.data += scale*ofunc(x,y)
+                            ofunc(x,y,self.data,scale)
                 else:
-                    self.data += func(x,y)
+                    func(x,y,self.data)
 
         except TypeError:
+            # If funcs is not iterable, assume it is just one callable
             if ndiv:
                 for iy in range(self.ybin*ndiv):
                     dy = (iy - (ndiv - 1) / 2) / ndiv
                     for ix in range(self.xbin*ndiv):
                         dx = (ix - (ndiv - 1) / 2) / ndiv
                         ofunc = funcs.offset(dx,dy)
-                        self.data += scale*ofunc(x,y)
+                        ofunc(x,y,self.data,scale)
             else:
-                self.data += funcs(x,y)
+                funcs(x,y,self.data)
 
     def copy(self, memo=None):
         """Returns a copy (deepcopy) of the :class:`Windat`
