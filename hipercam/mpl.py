@@ -29,7 +29,7 @@ def pwin(axes, win, col='k', lw=1, **kwargs):
     """
     left,right,bottom,top = win.extent()
     axes.plot([left,right,right,left,left],[bottom,bottom,top,top,bottom],
-              c=col,lw=lw,**kwargs)
+              color=col, lw=lw, **kwargs)
 
 def pwind(axes, wind, col='k', lw=1, aspect='equal', **kwargs):
     """Plots :class:`Windata` as an image with a line border. (matplotlib).
@@ -139,5 +139,10 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
 
     for key, wind in ccd.items():
         pwind(axes, wind, col, lw, aspect, **kwargs)
+
+    # plot outermost border of CCD
+    axes.plot([0.5,ccd.nxtot+0.5,ccd.nxtot+0.5,0.5,0.5],
+              [0.5,0.5,ccd.nytot+0.5,ccd.nytot+0.5,0.5],
+              color=col, lw=lw)
 
     return (vmin,vmax)
