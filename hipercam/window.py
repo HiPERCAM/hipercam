@@ -84,7 +84,68 @@ class Window:
         """
         return self.lly-1+self.ny*self.ybin
 
+    def x(self, xpix):
+        """Given an X-pixel position, returns the physical X in the CCD.
+
+        Arguments::
+
+          xpix : (float)
+            X-pixel position in terms of binned pixels. Centre of left-most
+            pixel is 0.
+
+        Returns the physical location measured in unbinned pixels, with the
+        centre of left-most pixels of the CCD = 1.0
+        """
+        return self.llx + self.xbin*(xpix+0.5) - 0.5
+
+    def y(self, ypix):
+        """Given a Y-pixel position, returns the physical Y in the CCD.
+
+        Arguments::
+
+          ypix : (float)
+            Y-pixel position in terms of binned pixels. Centre of lowest
+            pixel is 0.
+
+        Returns the physical location measured in unbinned pixels, with the
+        centre of lowest pixels of the CCD = 1.0
+        """
+        return self.lly + self.ybin*(ypix+0.5) - 0.5
+
+    def x_pixel(self, x):
+        """The inverse of `x`: returns the X-pixel position given a physical
+        X location.
+
+        Arguments::
+
+          x : (float)
+            the physical location measured in unbinned pixels, with the centre
+            of left-most pixels of the CCD = 1.0
+
+        Returns the X-pixel position in terms of binned pixels. Centre of the
+        left-most pixel is 0.
+
+        """
+        return (x+0.5-self.llx)/self.xbin-0.5
+
+    def y_pixel(self, y):
+        """The inverse of `x`: returns the X-pixel position given a physical
+        X location.
+
+        Arguments::
+
+          x : (float)
+            the physical location measured in unbinned pixels, with the centre
+            of left-most pixels of the CCD = 1.0
+
+        Returns the X-pixel position in terms of binned pixels. Centre of the
+        left-most pixel is 0.
+
+        """
+        return (y+0.5-self.lly)/self.ybin-0.5
+
     def extent(self):
+
         """
         Returns (left,right,bottom,top) boundaries of :class:`Window`
         """
@@ -136,13 +197,8 @@ class Window:
         see what this means.
         """
         # generate 1D x and y arrays along the edges
-        x1 = self.llx+self.xbin/2-0.5
-        x2 = x1 + self.xbin*(self.nx-1)
-        x = np.linspace(x1,x2,self.nx)
-
-        y1 = self.lly+self.ybin/2-0.5
-        y2 = y1 + self.ybin*(self.ny-1)
-        y = np.linspace(y1,y2,self.ny)
+        x = np.linspace(self.x(0),self.x(self.nx-1),self.nx)
+        y = np.linspace(self.y(0),self.y(self.ny-1),self.ny)
 
         return np.meshgrid(x,y)
 

@@ -386,7 +386,7 @@ def makedata(args=None):
                     # add targets from each field
                     for ndiv, field in fields:
                         mfield = field.modify(transform, fscale)
-                        wind.add_fxy(mfield, ndiv)
+                        mfield.add(wind, ndiv)
 
             # Apply flat
             frame *= flat

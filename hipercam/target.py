@@ -172,65 +172,32 @@ class Target(object):
         targ.ycen += dy
         return targ
 
-    def __call__(self, x, y, f=None, scale=1.):
-        """Computes data representing the :class:`Target` at
-        position x, y (which can be arrays of positions). If f=None,
-        the result is simply returned. Otherwise if f is an array
-        matching x and y, it will be modified on exit as well as
-        being returned. This can save some overheads.
-
-        Example code::
-
-          >> x = np.linspace(1,100,100)
-          >> y = np.linspace(1,100,100)
-          >> X,Y = np.meshgrid(x,y)
-          >> I = np.zeros_like(X)
-          >> targ = Target(100., 150., 100., 5., 3.5, 30., 4.)
-          >> targ(X,Y,I)
-
-        This creates a target, generates 2D arrays of X and Y positions
-        then calculates the value of the target at every pixel of these
-        arrays, adding it to I.
+    def __call__(self, wind, scale=1.):
+        """Adds the :class:`Target` to a :class:`Windat` with
+        an optional scaling factor.
 
         Arguments::
 
-          x : (array / float)
-            x position or positions to calculate the profile for
-
-          y : (array / float)
-            y position or positions to calculate the profile for
-
-          f : (array / None)
-            if x and y are arrays, and f a matching array, then the target will
-            be added to it. If f=None, the result is returned. f is ignored
-            if x and y are floats.
+          wind : (Windat)
+            a Windat, i.e. an array that knows where it is located.
 
           scale : (float)
             factor to scale how much is added in.
         """
 
-        if isinstance(x,np.ndarray) and isinstance(y,np.ndarray):
+        # Determine the region in terms of binned pixels
+        nx1 = min(max(0, int(np.floor(wind.x_pixel(self._x1)))),wind.nx)
+        nx2 = min(max(0, int(np.ceil(wind.x_pixel(self._x2)))+1),wind.nx)
+        ny1 = min(max(0, int(np.floor(wind.y_pixel(self._y1)))),wind.ny)
+        ny2 = min(max(0, int(np.ceil(wind.y_pixel(self._y2)))+1),wind.ny)
 
-            if f is None:
-                f = np.zeros_like(x)
+        if nx1 < nx2 and ny1 < ny2:
+            xd = np.linspace(wind.x(nx1),wind.x(nx2-1),nx2-nx1)-self.xcen
+            yd = np.linspace(wind.y(ny2),wind.y(ny2-1),ny2-ny1)-self.ycen
+            xd,yd = np.meshgrid(xd,yd)
 
-            ok = (x > self._x1) & (x < self._x2) & \
-                 (y > self._y1) & (y < self._y2)
-
-            if ok.any():
-                xd = x[ok]-self.xcen
-                yd = y[ok]-self.ycen
-                rsq = self._a*xd**2 + self._b*yd**2 + (2*self._c)*xd*yd
-                f[ok] += scale*self.height/(1+rsq)**self.beta
-
-            return f
-
-        elif ok:
-            # x, y both floats.
             rsq = self._a*xd**2 + self._b*yd**2 + (2*self._c)*xd*yd
-            return scale*self.height/(1+rsq)**self.beta
-        else:
-            return 0.
+            wind.data[ny1:ny2,nx1:nx2] += scale*self.height/(1+rsq)**self.beta
 
     def __repr__(self):
         return 'Target(xcen=' + repr(self.xcen) + ', ycen=' + repr(self.ycen) + \
@@ -336,6 +303,23 @@ class Field(list):
             targ.height *= fscale
             field.append(targ)
         return field
+
+    def add(self, wind, ndiv=0):
+        """Adds all the targets of a Field to a Windat
+        """
+
+        if ndiv:
+            scale = 1/ndiv**2/wind.xbin/wind.ybin
+            for iy in range(wind.ybin*ndiv):
+                dy = (iy - (ndiv - 1) / 2) / ndiv
+                for ix in range(wind.xbin*ndiv):
+                    dx = (ix - (ndiv - 1) / 2) / ndiv
+                    for target in self:
+                        targ = target.offset(dx,dy)
+                        targ(wind,scale)
+        else:
+            for target in self:
+                target(wind)
 
     def wjson(self, fname):
         """Writes a :class:`Field` to a file in json format. This is provided as a
