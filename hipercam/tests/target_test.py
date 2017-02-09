@@ -17,9 +17,10 @@ class TestTarget(unittest.TestCase):
         self.fwhm2 = 5.5
         self.angle = 40.
         self.beta = 4.
+        self.fmin = 0.001
 
         self.targ = Target(self.xcen,self.ycen,self.height,self.fwhm1,
-                           self.fwhm2,self.angle,self.beta)
+                           self.fwhm2,self.angle,self.beta,self.fmin)
 
     def test_target_xcen(self):
         self.assertEqual(self.targ.xcen, self.xcen,
@@ -45,23 +46,14 @@ class TestTarget(unittest.TestCase):
         self.assertEqual(self.targ.beta, self.beta,
                          'beta incorrectly stored')
 
+    def test_target_fmin(self):
+        self.assertEqual(self.targ.fmin, self.fmin,
+                         'fmin incorrectly stored')
+
     def test_target_copy(self):
         targ = self.targ.copy()
         self.assertEqual(self.targ.height, targ.height,
                          'target height did not transfer')
-
-    def test_target_call(self):
-        # calculates project at half FWHM1 along axis 1.
-        # should therefore return height/2.
-        x = self.xcen+(self.fwhm1/2)*np.cos(np.radians(self.angle))
-        y = self.ycen+(self.fwhm1/2)*np.sin(np.radians(self.angle))
-        val = self.targ(x,y)
-
-        self.assertTrue(abs(val-self.targ.height/2.) < 1.e-12*self.targ.height,
-                         'profile did not a factor of 2 as expected')
-
-
-
 
 if __name__ == '__main__':
     unittest.main()
