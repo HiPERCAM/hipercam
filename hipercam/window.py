@@ -129,17 +129,17 @@ class Window:
         return (x+0.5-self.llx)/self.xbin-0.5
 
     def y_pixel(self, y):
-        """The inverse of `x`: returns the X-pixel position given a physical
-        X location.
+        """The inverse of `y`: returns the Y-pixel position given a physical
+        Y location.
 
         Arguments::
 
-          x : (float)
+          Y : (float)
             the physical location measured in unbinned pixels, with the centre
-            of left-most pixels of the CCD = 1.0
+            of lowest pixels of the CCD = 1.0
 
-        Returns the X-pixel position in terms of binned pixels. Centre of the
-        left-most pixel is 0.
+        Returns the Y-pixel position in terms of binned pixels. Centre of the
+        lowest pixel is 0.
 
         """
         return (y+0.5-self.lly)/self.ybin-0.5

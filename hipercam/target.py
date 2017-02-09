@@ -14,15 +14,15 @@ from .core import *
 __all__ = ('Target','Field')
 
 class Target(object):
-    """
-    Callable object to represent an astronomical target in terms of its appearance
-    in a CCD image. The representation chosen is 2D "Moffat" function, which
-    takes the form h/(1+(r/r0)**2)**beta, where 'h' is the central height,
-    'r' is the distance from the centre, 'r0' is a scale, and 'beta' is an
-    exponent which for large values makes the profile Gaussian.
+    """Object to represent an astronomical target in terms of its appearance in a
+    CCD image. The representation chosen is 2D "Moffat" function, which takes
+    the form h/(1+(r/r0)**2)**beta, where 'h' is the central height, 'r' is
+    the distance from the centre, 'r0' is a scale, and 'beta' is an exponent
+    which for large values makes the profile Gaussian.
 
     To allow for trailing, poor focus and to roughly simulate galaxies,
     :class:`Target` objects can be elliptical in shape.
+
     """
 
     def __init__(self, xcen, ycen, height, fwhm1, fwhm2, angle, beta, fmin):
@@ -104,7 +104,7 @@ class Target(object):
         self._b = 4*alpha*((st/self.fwhm1)**2+(ct/self.fwhm2)**2)
         self._c = 4*alpha*ct*st*(1/self.fwhm1**2-1/self.fwhm2**2)
 
-        # Maximum value of the rsq parameter (see __call__) to
+        # Maximum value of the rsq parameter (see "add") to
         # calculate to. This defines the region to which the profile
         # needs to be calculated which will be stored for fast lookup
         rsqmax = (self.height/self.fmin)**(1./self.beta)-1
@@ -115,6 +115,7 @@ class Target(object):
         self._x2 = self.xcen + xmax
         self._y1 = self.ycen - ymax
         self._y2 = self.ycen + ymax
+        self._rsqmax = rsqmax
 
     @property
     def fwhm1(self):
@@ -172,9 +173,10 @@ class Target(object):
         targ.ycen += dy
         return targ
 
-    def __call__(self, wind, scale=1.):
+    def add(self, wind, scale=1.):
         """Adds the :class:`Target` to a :class:`Windat` with
-        an optional scaling factor.
+        an optional scaling factor. Returns 1 if anything added, 0
+        if there was no overlap.
 
         Arguments::
 
@@ -193,11 +195,18 @@ class Target(object):
 
         if nx1 < nx2 and ny1 < ny2:
             xd = np.linspace(wind.x(nx1),wind.x(nx2-1),nx2-nx1)-self.xcen
-            yd = np.linspace(wind.y(ny2),wind.y(ny2-1),ny2-ny1)-self.ycen
+            yd = np.linspace(wind.y(ny1),wind.y(ny2-1),ny2-ny1)-self.ycen
             xd,yd = np.meshgrid(xd,yd)
 
             rsq = self._a*xd**2 + self._b*yd**2 + (2*self._c)*xd*yd
-            wind.data[ny1:ny2,nx1:nx2] += scale*self.height/(1+rsq)**self.beta
+
+            # Next bit is to give elliptical outer shape rather than
+            # rectangular
+            ok = rsq < self._rsqmax
+            wind.data[ny1:ny2,nx1:nx2][ok] += scale*self.height/(1+rsq[ok])**self.beta
+            return 1
+        else:
+            return 0
 
     def __repr__(self):
         return 'Target(xcen=' + repr(self.xcen) + ', ycen=' + repr(self.ycen) + \
@@ -306,6 +315,15 @@ class Field(list):
 
     def add(self, wind, ndiv=0):
         """Adds all the targets of a Field to a Windat
+
+        Arguments::
+
+          wind : (Windat)
+             targets will be added to it; modified on exit
+
+          ndiv : (int)
+             sub-division factor to account for pixellation
+
         """
 
         if ndiv:
@@ -316,10 +334,10 @@ class Field(list):
                     dx = (ix - (ndiv - 1) / 2) / ndiv
                     for target in self:
                         targ = target.offset(dx,dy)
-                        targ(wind,scale)
+                        targ.add(wind,scale)
         else:
             for target in self:
-                target(wind)
+                target.add(wind)
 
     def wjson(self, fname):
         """Writes a :class:`Field` to a file in json format. This is provided as a
