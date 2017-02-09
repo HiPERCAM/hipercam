@@ -3,7 +3,7 @@
 Class to represent a CCD and a multi-CCD
 """
 
-import copy
+import warnings
 import numpy as np
 
 from astropy.io import fits
@@ -11,7 +11,7 @@ from .core import *
 from .group import *
 from .window import *
 
-__all__ = ('CCD', 'MCCD')
+__all__ = ('CCD', 'MCCD', 'Hcam')
 
 class CCD(Agroup):
     """
@@ -443,12 +443,58 @@ class MCCD(Agroup):
         for key, ccd in self.items():
             ccd.matches(mccd[key])
 
-    def __copy__(self):
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        return self.copy(memo)
-
     def __repr__(self):
-        return 'MCCD(ccds=' + super().__repr__() + \
-                            ', head=' + repr(self.head) + ')'
+        return self.__class__.__name__ + \
+            '(ccds=' + super().__repr__() + \
+                     ', head=' + repr(self.head) + ')'
+
+
+class Hcam(MCCD):
+    """Specialisation of an MCCD to account for particular features of
+    HiPERCAM data"""
+
+    # Expected dimensions of all CCDs
+    NXTOT = 1024
+    NYTOT = 2048
+
+    # Number of CCDs
+    NCCD = 5
+
+    def __init__(self, ccds, head=None, copy=False):
+        """
+        Constructs a :class:`Hcam`
+
+        Arguments::
+
+          ccds : (Group)
+              Group of CCD objects.
+
+          head : (astropy.io.fits.Header)
+              a header which will be written as the primary header. If head=None
+              on input, and empty header will be created.
+
+          copy : (bool)
+              if True, copy all the data over, otherwise only references are
+              held. Holding references is fine if the calling program keeps
+              re-generating the data but could cause problems in some
+              circumstances.
+        """
+        super().__init__(ccds, head, copy)
+
+        for nccd, ccd in self.items():
+            if nccd < 1 or nccd > Hcam.NCCD:
+                warnings.warn(
+                    'hipercam.Hcam: nccd = {0:d} outside expected range (1-{1:d})'.format(nccd,Hcam.NCCD))
+
+            if ccd.nxtot != Hcam.NXTOT or ccd.nytot != Hcam.NYTOT:
+                warnings.warn(
+                    'hipercam.Hcam: nxtot,nytot = {0:d},{1:d} do not match expect values ({2:d},{3:d})'.format(ccd.nxtot,ccd.nytot,Hcam.NXTOT,Hcam.NYTOT))
+
+
+            for nwin, wind in ccd.items():
+                if wind.llx < Hcam.NXTOT/2 and wind.urx > Hcam.NXTOT/2:
+                    warnings.warn(
+                        'hipercam.Hcam: window = {0:s} straddles output boundary in X'.format(wind.format()))
+                if wind.lly < Hcam.NYTOT/2 and wind.ury > Hcam.NYTOT/2:
+                    warnings.warn(
+                        'hipercam.Hcam: window = {0:s} straddles output boundary in Y'.format(wind.format()))
