@@ -6,18 +6,20 @@ sub-windows might be said to clash if they contain any pixels in common.
 
 """
 
+import copy
+from collections import OrderedDict
+
 from .core import *
 
 __all__ = ('Group', 'Agroup')
 
-class Group(dict):
-    """A specialized dictionary for storing objects of identical type indexed by
+class Group(OrderedDict):
+    """A specialized OrderedDict for storing objects of identical type indexed by
     integers only.  This class assumes that the objects have a method `clash`
     with signature `clash(self, other)` which raises an exception if `self`
-    and `other` conflict in some way. The entry order is preserved (like
-    :class:`OrderedDict` objects, but I found problems with them, so have
-    rolled my own). The objects should also support a `copy` method to return
-    a deepcopy. This is used in the :class:`Group`s copy operation.
+    and `other` conflict in some way. The objects should also support a `copy`
+    method to return a deepcopy. This is used in the :class:`Group`s copy
+    operation.
 
     """
 
@@ -32,16 +34,6 @@ class Group(dict):
 
         """
         super().__init__(*args, **kwargs)
-
-        # Preserve the key order
-        self._keys = []
-        for arg in args:
-            try:
-                for k,v in arg:
-                    self._keys.append(k)
-            except TypeError:
-                self._keys += list(arg.keys())
-        self._keys += list(kwargs.keys())
 
         # rather un-"pythonic" level of checking here, but better IMO
         # in this case to fail during construction than at some later
@@ -68,9 +60,6 @@ class Group(dict):
             for i, ob in enumerate(objs):
                 for obj in objs[i+1:]:
                     ob.clash(obj)
-        else:
-            self.otype = None
-
 
     def __setitem__(self, key, item):
         """Adds an item `item` keyed by `key`
@@ -82,11 +71,18 @@ class Group(dict):
             raise KeyError(
                 'Group.__setitem__: key must be an integer')
 
-        # check that the new item has same type as current ones
-        if self.otype is not None and type(item) != self.otype:
-            raise HipercamError(
-                'Group.__setitem__: key = ' + str(key) + ', item type (=' + str(type(item)) +
-                ') differs from existing Group data type (=' + str(self.otype) + ')')
+        # store or check that the new item type
+        if not hasattr(self, 'otype'):
+            if len(self):
+                raise ValueError(
+                    'Group.__setitem__: non-zero elements but otype not defined')
+            else:
+                self.otype = type(item)
+        else:
+            if type(item) != self.otype:
+                raise HipercamError(
+                    'Group.__setitem__: key = ' + str(key) + ', item type (=' + str(type(item)) +
+                    ') differs from existing Group data type (=' + str(self.otype) + ')')
 
         # check that the new item does not clash with any current one
         # clash should raise an exception if there is a problem
@@ -95,51 +91,13 @@ class Group(dict):
 
         # checks passed, set the new item and add the key
         super().__setitem__(key, item)
-        if key not in self._keys:
-            self._keys.append(key)
-
-    def __delitem__(self, key):
-        super().__delitem__(self, key)
-        self._keys.remove(key)
-
-    def clear(self):
-        super().clear()
-        self._keys = []
-
-    def values(self):
-        return map(self.get, self._keys)
-
-    def keys(self):
-        return self._keys
-
-    def items(self):
-        return zip(self.keys(), self.values())
-
-    def popitem(self):
-        try:
-            key = self._keys[-1]
-        except IndexError:
-            raise HipercamError('Group.popitem: Group is empty')
-
-        val = self[key]
-        del self[key]
-
-        return (key, val)
-
-    def setdefault(self, key, default = None):
-        if key not in self._keys:
-            self._keys.append(key)
-        return super().setdefault(key, default)
-
-    def update(self, dct):
-        for k,v in dct.items():
-            self.__setitem__(k,v)
 
     def copy(self, memo=None):
         """Copy operation. The stored objects must have a `copy(self, memo)` method.
 
         """
         group = Group()
+        group.otype = self.otype
         for key, val in self.items():
             group[key] = val.copy(memo)
         return group
@@ -156,6 +114,14 @@ class Group(dict):
         """
         return self.copy(memo)
 
+    def __repr__(self):
+        """OrderedDict is problematic with subclassing and repr thus this
+        does it all from scratch"""
+        strng = 'Group([' + ', '.join(
+            '(' + repr(key) + ', ' + repr(val) + ')'
+            for key, val in self.items()) + '])'
+        return strng
+
 class Agroup(Group):
     """A :class:`Group` which defines arithmetic methods +=, +, etc which must be
     supported by whatever objects the :class:`Group` contains. This allows the
@@ -167,7 +133,7 @@ class Agroup(Group):
     """
 
     def copy(self, memo=None):
-        """Copy operation. 
+        """Copy operation.
 
         """
         return Agroup(super().copy(memo))
