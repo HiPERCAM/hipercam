@@ -262,13 +262,6 @@ class CCD(Agroup):
         else:
             return cls(winds, nxtot, nytot, first_head)
 
-    def clash(self, ccd):
-        """Dummy routine to allow :class:`CCD`s to be added into :class:`Group`
-        objects.
-
-        """
-        pass
-
     def matches(self, ccd):
         """Check that the :class:`CCD` matches another, which in this means checking
         that each window of the same label matches the equivalent in the other `CCD`.
@@ -305,10 +298,7 @@ class CCD(Agroup):
         )
 
     def __repr__(self):
-        return 'CCD(winds=' + super().__repr__() + \
-                            ', nxtot=' + repr(self.nxtot) + \
-                                       ', nytot=' + repr(self.nytot) + \
-                                                  ', head=' + repr(self.head) + ')'
+        return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(self.__class__.__name__,super().__repr__(),self.nxtot,self.nytot,self.head)
 
 class MCCD(Agroup):
     """
@@ -445,9 +435,8 @@ class MCCD(Agroup):
             ccd.matches(mccd[key])
 
     def __repr__(self):
-        return self.__class__.__name__ + \
-            '(ccds=' + super().__repr__() + \
-                     ', head=' + repr(self.head) + ')'
+        return '{:s}(ccds={:s}, head={!r})'.format(
+            self.__class__.__name__, super().__repr__(), self.head)
 
 
 class Hcam(MCCD):
