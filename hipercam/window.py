@@ -50,10 +50,26 @@ class Window:
 
         self.llx   = llx
         self.lly   = lly
-        self.nx    = nx
-        self.ny    = ny
         self.xbin  = xbin
         self.ybin  = ybin
+        # Have to take care with the next two since in
+        # Windat they are connected to the array size
+        self._nx    = nx
+        self._ny    = ny
+
+    @property
+    def nx(self):
+        """
+        Returns binned X-dimension of the :class:`Window`. 
+        """
+        return self._nx
+
+    @property
+    def ny(self):
+        """
+        Returns binned Y-dimension of the :class:`Window`. 
+        """
+        return self._ny
 
     def __repr__(self):
         return 'Window(llx=' + repr(self.llx) + ', lly=' + repr(self.lly) + \
@@ -269,8 +285,8 @@ class Windat(Window):
         >>> wind += 0.5
         >>> wind *= 2
 
-    Note that it is the user's reponsibility to make sure that the data
-    and Window remain compatible.
+    You cannot directly change the nx, ny values of a Windat; you have
+    to change its data array attribute and nx and ny will be taken from it.
     """
 
     def __init__(self, win, data=None):
@@ -303,6 +319,20 @@ class Windat(Window):
 
         super(Windat, self).__init__(win.llx, win.lly,
                                       win.nx, win.ny, win.xbin, win.ybin)
+
+    @property
+    def nx(self):
+        """
+        Returns binned X-dimension of the :class:`Windat`. 
+        """
+        return self.data.shape[1]
+
+    @property
+    def ny(self):
+        """
+        Returns binned Y-dimension of the :class:`Windat`. 
+        """
+        return self.data.shape[0]
 
     @classmethod
     def rhdu(cls, hdu):

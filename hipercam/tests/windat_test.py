@@ -40,8 +40,16 @@ class TestWindat(unittest.TestCase):
 
     def test_windat_copy(self):
         wind = self.wind1.copy()
-        self.assertEqual(wind.data[0,0],self.wind1.data[0,0],
+        wind.data[0,0] += 10
+        self.assertEqual(wind.data[0,0],self.wind1.data[0,0]+10,
                          'data not correctly copied')
+
+    def test_windat_nx_ny(self):
+        self.wind1.data = np.ones((self.win1.ny+1,self.win1.nx+1))
+        self.assertEqual(self.wind1.nx,self.win1.nx + 1,
+                         'nx not working')
+        self.assertEqual(self.wind1.ny,self.win1.ny + 1,
+                         'ny not working')
 
     def test_windat_add_noise(self):
         """Rather crude test this, but it should pick up disasters"""
