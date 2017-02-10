@@ -64,12 +64,26 @@ class Window:
         """
         return self._nx
 
+    @nx.setter
+    def nx(self, nx):
+        if nx < 1:
+            raise ValueError(
+                'hipercam.Window.nx: nx = {:d} is invalid'.format(nx))
+        self._nx = nx
+
     @property
     def ny(self):
         """
         Returns binned Y-dimension of the :class:`Window`. 
         """
         return self._ny
+
+    @ny.setter
+    def ny(self, ny):
+        if ny < 1:
+            raise ValueError(
+                'hipercam.Window.ny: ny = {:d} is invalid'.format(ny))
+        self._ny = ny
 
     def __repr__(self):
         return 'Window(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r})'.format(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
@@ -322,12 +336,20 @@ class Windat(Window):
         """
         return self.data.shape[1]
 
+    @nx.setter
+    def nx(self, nx):
+        raise NotImplementedError('hipercam.Windat.nx: cannot set nx directly; change data array instead')
+
     @property
     def ny(self):
         """
         Returns binned Y-dimension of the :class:`Windat`. 
         """
         return self.data.shape[0]
+
+    @ny.setter
+    def ny(self, ny):
+        raise NotImplementedError('hipercam.Windat.ny: cannot set ny directly; change data array instead')
 
     @classmethod
     def rhdu(cls, hdu):

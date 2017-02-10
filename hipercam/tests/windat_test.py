@@ -50,7 +50,7 @@ class TestWindat(unittest.TestCase):
                          'nx not working')
         self.assertEqual(self.wind1.ny,self.win1.ny + 1,
                          'ny not working')
-
+ 
     def test_windat_add_noise(self):
         """Rather crude test this, but it should pick up disasters"""
         win = Window(1,1,100,100,1,1)
