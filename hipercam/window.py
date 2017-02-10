@@ -72,19 +72,14 @@ class Window:
         return self._ny
 
     def __repr__(self):
-        return 'Window(llx=' + repr(self.llx) + ', lly=' + repr(self.lly) + \
-            ', nx=' + repr(self.nx) + ', ny=' + repr(self.ny) + \
-            ', xbin=' + repr(self.xbin) + ', ybin=' + repr(self.ybin) + ')'
+        return 'Window(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r})'.format(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
 
     def format(self):
-        """Used to ensure that only the Windoe format gets printed which is
-        useful in some instances. Relaying on __repr__ carries the risk of
+        """Used to ensure that only the Window format gets printed which is
+        useful in some instances. Relying on __repr__ carries the risk of
         being overloaded."""
 
-        return 'Window(llx=' + repr(self.llx) + ', lly=' + repr(self.lly) + \
-            ', nx=' + repr(self.nx) + ', ny=' + repr(self.ny) + \
-            ', xbin=' + repr(self.xbin) + ', ybin=' + repr(self.ybin) + ')'
-
+        return 'Window(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r})'.format(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
 
     @property
     def urx(self):
@@ -200,7 +195,7 @@ class Window:
     def clash(self, win):
         """Raises a ValueError if two :class: `Window`s are considered to 'clash'.  In
         this case this means if they have any pixels in common.  This method
-        is required for :class: `Window`s to be collected into :class:`Group`s
+        is used when :class: `Window`s are collected into :class:`Group`s
 
         """
         if self.llx <=  win.urx and self.urx >= win.llx and \
@@ -521,8 +516,9 @@ class Windat(Window):
         return self.copy(memo)
 
     def __repr__(self):
-        return 'Windat(' + super(Windat,self).__repr__() + \
-            ', data=' + repr(self.data) + ')'
+        return 'Windat(win={:s}, data={!r})'.format(
+            super().__repr__(), self.data
+        )
 
     # lots of arithematic routines
 
