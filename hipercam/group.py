@@ -1,8 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""Defines classes which contain groups of objects of identical type. Each
-object must support a method called "clash" where clash(self, other) raises an
-exception if `self` and `other` conflict in some way. For instance, two CCD
-sub-windows might be said to clash if they contain any pixels in common.
+"""Defines classes which contain groups of objects of identical type. Can
+check for conflicts between the objects if they support a method called
+`clash` with signature `clash(self, other)` which raises an exception if
+`self` and `other` conflict in some way. For instance, two CCD sub-windows
+might be said to clash if they contain any pixels in common.
 
 """
 
@@ -15,11 +16,11 @@ __all__ = ('Group', 'Agroup')
 
 class Group(OrderedDict):
     """A specialized OrderedDict for storing objects of identical type indexed by
-    integers only.  This class assumes that the objects have a method `clash`
-    with signature `clash(self, other)` which raises an exception if `self`
-    and `other` conflict in some way. The objects should also support a `copy`
-    method to return a deepcopy. This is used in the :class:`Group`s copy
-    operation.
+    integers only. It will check for conflicts between the stored objects if
+    the objects have a method `clash` with signature `clash(self, other)`
+    which raises an exception if `self` and `other` conflict in some way. The
+    objects should support a `copy` method to return a deepcopy. This is
+    used in the :class:`Group`s copy operation.
 
     """
 
@@ -54,12 +55,16 @@ class Group(OrderedDict):
             if any(type(obj) != self.otype for obj in oiter):
                 raise HipercamError('Group.__init__: more than one object type')
 
-            # check for clashes, an N*(N-1)/2 problem. 'clash'
-            # should raise an exception if there is a problem.
-            objs = list(self.values())
-            for i, ob in enumerate(objs):
-                for obj in objs[i+1:]:
-                    ob.clash(obj)
+            try:
+                # check for clashes, an N*(N-1)/2 problem. 'clash'
+                # should raise an exception if there is a problem.
+                objs = list(self.values())
+                for i, ob in enumerate(objs):
+                    for obj in objs[i+1:]:
+                        ob.clash(obj)
+            except AttributeError:
+                # we are OK if no 'clash' is defined
+                pass
 
     def __setitem__(self, key, item):
         """Adds an item `item` keyed by `key`
@@ -84,10 +89,15 @@ class Group(OrderedDict):
                     'Group.__setitem__: key = ' + str(key) + ', item type (=' + str(type(item)) +
                     ') differs from existing Group data type (=' + str(self.otype) + ')')
 
-        # check that the new item does not clash with any current one
-        # clash should raise an exception if there is a problem
-        for obj in self.values():
-            item.clash(obj)
+        try:
+            # check that the new item does not clash with any current one
+            # clash should raise an exception if there is a problem
+            for obj in self.values():
+                item.clash(obj)
+
+        except AttributeError:
+            # ok if no 'clash' defined
+            pass
 
         # checks passed, set the new item and add the key
         super().__setitem__(key, item)
@@ -103,24 +113,22 @@ class Group(OrderedDict):
         return group
 
     def __copy__(self):
-        """Copy operation for copy.copy 
+        """Copy operation for copy.copy
 
         """
         return self.copy()
 
     def __deepcopy__(self, memo):
-        """Copy operation for copy.deepcopy 
+        """Copy operation for copy.deepcopy
 
         """
         return self.copy(memo)
 
     def __repr__(self):
-        """OrderedDict is problematic with subclassing and repr thus this
-        does it all from scratch"""
-        strng = 'Group([' + ', '.join(
-            '(' + repr(key) + ', ' + repr(val) + ')'
-            for key, val in self.items()) + '])'
-        return strng
+        return 'Group([{}])'.format(
+            ', '.join('({!r}, {!r})'.format(key,val)
+                      for key, val in self.items())
+        )
 
 class Agroup(Group):
     """A :class:`Group` which defines arithmetic methods +=, +, etc which must be
@@ -310,3 +318,9 @@ class Agroup(Group):
         cself = self.copy()
         cself /= other
         return cself
+
+    def __repr__(self):
+        return 'Agroup([{}])'.format(
+            ', '.join('({!r}, {!r})'.format(key,val)
+                      for key, val in self.items())
+        )
