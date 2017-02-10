@@ -301,7 +301,8 @@ class CCD(Agroup):
         copy.copy and copy.deepcopy of a `CCD` use this method
         """
         return CCD(
-            super().copy(memo), self.nxtot, self.nytot, self.head.copy())
+            super().copy(memo), self.nxtot, self.nytot, self.head.copy()
+        )
 
     def __repr__(self):
         return 'CCD(winds=' + super().__repr__() + \
