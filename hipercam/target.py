@@ -209,10 +209,9 @@ class Target(object):
             return 0
 
     def __repr__(self):
-        return 'Target(xcen=' + repr(self.xcen) + ', ycen=' + repr(self.ycen) + \
-               ', height=' + repr(self.height) + ', fwhm2=' + repr(self.fwhm2) + \
-               ', fwhm1=' + repr(self.fwhm1) + ', angle=' + repr(self.angle) + \
-               ', beta=' + repr(self.beta) + ')'
+        return 'Target(xcen={!r}, ycen={!r}, height={!r}, fwhm1={!r}, fwhm2={!r}, angle={!r}, beta={!r})'.format(
+            self.xcen, self.ycen, self.height, self.fwhm1, self.fwhm2,
+            self.angle, self.beta)
 
 class Field(list):
     """Object to represent a star field as a list of :class:`Target`s. This is to help
