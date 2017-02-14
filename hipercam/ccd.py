@@ -98,99 +98,70 @@ class CCD(Agroup):
         # Then compute percentiles
         return np.percentile(arr, q)
 
-    def add_hdulist(self, hdul, label=None):
-        """Add the CCD as a series of ImageHDUs to an hdulist.  The CCD header is
-        written into the first HDU added to the list.
+    def whdul(self, hdul, label=None):
+        """Write the :class:`CCD` as a series of HDUs to an hdulist. The header is
+        written in the first HDU, with no accompanying data and with keywords
+        for the total dimensions (NXTOT, NYTOT) and the numbers of windows
+        (NUMWIN) added in. If it is the first HDU added, it will be made a
+        PrimaryHDU, otherwise it will be an ImageHDU of extension type
+        CCDH. The :class:`Windat`s then follow as ImageHDUs of type
+        'WIND'. This makes the HDUs associated with a give CCD stand out in
+        e.g. 'fv'.
 
         Arguments::
 
             hdul : (astropy.io.fits.HDUList)
-                 An HDUList to which the CCD will be added as a series of ImageHDUs,
-                 the first of which will contain the header.
+                 An HDUList to which the CCD will be added as a series of
+                 ImageHDUs, the first of which will contain the header. If
+                 empty at the start, the first HDU will be a PrimaryHDU.
 
             label : (int / string / None)
-                 A label to attach to every HDU associated with the CCD. It appears
-                 as a header item 'CCD'
+                 A label to attach to every HDU associated with the CCD. It
+                 appears as a header item 'CCD'
 
         Returns:: the modified HDUList.
 
         """
-        first = True
+        # First write the header
+        head = self.head.copy()
+        if label is not None:
+            head['CCD'] = (label, 'CCD label')
+        head['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
+        head['NYTOT'] = (self.nytot, 'Total unbinned Y dimension')
+        head['NUMWIN'] = (len(self), 'Total number of windows')
+        if len(hdul):
+            hdul.append(fits.ImageHDU(header=head,name='CCDH'))
+        else:
+            hdul.append(fits.PrimaryHDU(header=head))
+
+        # Now the Windatas
         for key, wind in self.items():
-            if first:
-                fhead = self.head.copy()
-                fhead['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
-                fhead['NYTOT'] = (self.nytot, 'Total unbinned Y dimension')
-                first = False
-            else:
-                fhead = fits.Header()
-
+            whead = fits.Header()
             if label is not None:
-                fhead['CCD'] = (label, 'CCD label')
-            fhead['WINDOW'] = (key, 'Window label')
-
-            hdul.append(wind.whdu(fhead))
+                whead['CCD'] = (label, 'CCD label')
+            whead['WINDOW'] = (key, 'Window label')
+            hdul.append(wind.whdu(whead))
 
         return hdul
-
-    def wfits(self, fname, label=None, overwrite=False):
-        """Writes out the CCD to a FITS file.
-
-        Arguments::
-
-            fname : (string)
-                 Name of file to write to.
-
-            label : (int / string / None)
-                 Label for the CCD to write into the headers
-
-            overwrite : (bool)
-                 True to overwrite pre-existing files
-        """
-
-        hdul = fits.HDUList()
-        hdul = self.add_hdulist(hdul, label)
-        phead = hdul[0].header
-
-        # Add comments if not already present.
-        comm1 = 'Data representing a single CCD frame written by hipercam.CCD.wfits.'
-        if 'COMMENT' not in phead or phead['COMMENT'].find(comm1) == -1:
-            phead.add_comment(comm1)
-            phead.add_comment('Multiple sub-windows are written in a series of HDUs. LLX and LLY give')
-            phead.add_comment('the pixel location in unbinned pixels of their lower-left corners. XBIN')
-            phead.add_comment('and YBIN are the binning factors. NXTOT and NYTOT are the total unbinned')
-            phead.add_comment('dimensions of the CCD. The first HDU contains any extra header items')
-            phead.add_comment('associated with the CCD.')
-
-        hdul.writeto(fname,overwrite=overwrite)
-
-    @classmethod
-    def rfits(cls, fname):
-        """Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
-        containing no data, followed by a series of HDUs each containing data
-        for a series of non-overlapping windows. A header is extracted from
-        the first HDU with data.
-        """
-        hdul = fits.open(fname)
-        ccd = cls.rhdul(hdul)
-        hdul.close()
-        return ccd
 
     @classmethod
     def rhdul(cls, hdul, multi=False):
         """Builds a :class:`CCD` or several :class:`CCD`s from an :class:`HDUList`.
-        Given an :class:`HDUList`, the header from the first HDU will be used
-        to create the header for the :class:`CCD`. The data from all HDUs will
-        be read into the :class:`Windat`s that make up the CCD. Each HDU will
-        be searched for a header parameter WINDOW to label the
-        :class:`Windat`s, but the routine will attempt to generate a
-        sequential label if WINDOW is not found. If the auto-generated label
-        conflicts with one already found, then a KeyError will be raised.
+        Given an :class:`HDUList` representing a single CCD the header from
+        the first HDU will be used to create the header for the
+        :class:`CCD`. The data from the remaining HDUs will be read into the
+        :class:`Windat`s that make up the CCD. Each data HDU will be searched
+        for a header parameter WINDOW to label the :class:`Windat`s, but the
+        routine will attempt to generate a sequential label if WINDOW is not
+        found. If the auto-generated label conflicts with one already found,
+        then a KeyError will be raised.
 
         The method can also run in a mode where the :class:`HDUList` is
         assumed to contain several :class:`CCD`s. In this case each
-        :class:`CCD` comes in a series of continguous HDUs. Each HDU of a
-        :class:`CCD` must be labelled with the keyword 'CCD'.
+        :class:`CCD` comes in a series of continguous HDUs, starting with a
+        header-only one followed by the data windows, and all HDUs of
+        a given :class:`CCD` must be labelled with the keyword 'CCD' to
+        allow the CCD to be defined.
 
         Arguments::
 
@@ -216,51 +187,101 @@ class CCD(Agroup):
         first = True
 
         for hdu in hdul:
+            # The header of the HDU
             head = hdu.header
+
             if multi and not first:
-                # Check that CCD header item matches, if not
-                # then we return the stuff bagged to date and reset
-                # to be ready for a new CCD
+                # If we expect multiple CCDs, then each one is defined by
+                # matching values of the header keyword CCD. As soon as a
+                # mismatch is found, we assume that we have started on a new
+                # CCD and return the old one.
                 if ccd_label != head['CCD']:
-                    ccd = cls(winds, nxtot, nytot, first_head)
+                    ccd = cls(winds, nxtot, nytot, main_head)
                     winds = Group()
                     first = True
                     nwin = 0
                     yield (ccd_label,ccd)
 
-            nwin += 1
-            if 'WINDOW' in head:
-                label = head['WINDOW']
-            elif nwin in odict:
-                raise KeyError('CCD.rhdul: window label conflict')
-            else:
-                label = nwin
-
-            winds[label] = Windat.rhdu(hdu)
-
             if first:
-                # Extract header from first HDU with data
-                # First remove standard items
+                # Extract header from first HDU (any data it might contain are
+                # ignored)
                 nxtot = head['NXTOT']
                 nytot = head['NYTOT']
-                if multi:
-                    ccd_label = head['CCD']
+                if multi: ccd_label = head['CCD']
 
                 del head['NXTOT']
                 del head['NYTOT']
-                del head['LLX']
-                del head['LLY']
-                del head['XBIN']
-                del head['YBIN']
-                if 'WINDOW' in head: del head['WINDOW']
-                if 'CCD' in head: del head['CCD']
-                first_head = head
+                if 'NUMWIN' in head: del head['NUMWIN']
+                main_head = head
                 first = False
 
+            else:
+
+                # Except for the first HDU of a CCD, all should contain data,
+                # and for a single CCD, we assume all are art of the CCD.
+                if 'WINDOW' in head:
+                    label = head['WINDOW']
+                elif nwin in winds:
+                    raise KeyError('CCD.rhdul: window label conflict')
+                else:
+                    label = nwin
+
+                winds[label] = Windat.rhdu(hdu)
+
+            # step the window counter
+            nwin += 1
+
+        # Finishing up having gone through all CCDs.
         if multi:
-            yield (ccd_label, cls(winds, nxtot, nytot, first_head))
+            yield (ccd_label, cls(winds, nxtot, nytot, main_head))
         else:
             return cls(winds, nxtot, nytot, first_head)
+
+
+    def wfits(self, fname, label=None, overwrite=False):
+        """Writes out the CCD to a FITS file.
+
+        Arguments::
+
+            fname : (string)
+                 Name of file to write to.
+
+            label : (int | None)
+                 Label for the CCD to write into the headers
+
+            overwrite : (bool)
+                 True to overwrite pre-existing files
+        """
+
+        # compile the HDUList
+        hdul = fits.HDUList()
+        hdul = self.whdul(hdul, label)
+
+        # Get the main header (header of first HDU)
+        phead = hdul[0].header
+
+        # Add comments if not already present.
+        comm1 = 'Data representing a single CCD frame written by hipercam.CCD.wfits.'
+        if 'COMMENT' not in phead or phead['COMMENT'].find(comm1) == -1:
+            phead.add_comment(comm1)
+            phead.add_comment('Multiple sub-windows are written as a series of HDUs. LLX and LLY give')
+            phead.add_comment('the pixel location in unbinned pixels of their lower-left corners. XBIN')
+            phead.add_comment('and YBIN are the binning factors. The first HDU contains the main header')
+            phead.add_comment('along with NXTOT and NYTOT, the total unbinned and NUMWIN the number of')
+            phead.add_comment('windows which should match the number of HDUs following the first.')
+
+        hdul.writeto(fname,overwrite=overwrite)
+
+    @classmethod
+    def rfits(cls, fname):
+        """Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
+        containing no data, followed by a series of HDUs each containing data
+        for a series of non-overlapping windows.
+        """
+        hdul = fits.open(fname)
+        ccd = cls.rhdul(hdul)
+        hdul.close()
+        return ccd
 
     def matches(self, ccd):
         """Check that the :class:`CCD` matches another, which in this means checking
@@ -345,32 +366,36 @@ class MCCD(Agroup):
         """
 
         phead = self.head.copy()
+        phead['NUMCCD'] = (len(self), 'Number of CCDs')
 
         # Add comments if not already present.
         comm1 = 'Data representing multiple CCDs written by hipercam.MCCD.wfits.'
         if 'COMMENT' not in phead or str(phead['COMMENT']).find(comm1) == -1:
             phead.add_comment(comm1)
-            phead.add_comment('Each window of each CCD is written in an HDU following the primary HDU')
-            phead.add_comment('which contains a header only. The pixel location in unbinned pixels of')
-            phead.add_comment('their lower-left corners is stored as LLX, LLY. XBIN and YBIN are the')
-            phead.add_comment('binning factors. NXTOT and NYTOT are the total unbinned dimensions of')
-            phead.add_comment('the CCD. The first HDU of each CCD contains any extra header items')
-            phead.add_comment('associated with it. Each HDU associated with a CCD is labelled with a')
-            phead.add_comment('header parameter CCD.')
+            phead.add_comment('Each window of each CCD is written in a series of HDUs following an') 
+            phead.add_comment('HDU containing only the header. These follow an overall header for the')
+            phead.add_comment('MCCD containing top-level information. The headers of the data window')
+            phead.add_comment('HDUs have keywords LLX, LLY giving the pixel location in unbinned')
+            phead.add_comment('pixels and XBIN and YBIN for their binning factors. The total unbinned')
+            phead.add_comment('dimensions of each CCD are stored under keywords NXTOT and NYTOT for')
+            phead.add_comment('each CCD. Each HDU associated with a given CCD is labelled with a')
+            phead.add_comment('header keyword CCD.')
 
+        # make the first HDU
         phdu = fits.PrimaryHDU(header=phead)
         hdul = [phdu,]
+
+        # add in the HDUs of all the CCDs
         for key, ccd in self.items():
-            hdul = ccd.add_hdulist(hdul, key)
+            hdul = ccd.whdul(hdul, key)
         hdulist = fits.HDUList(hdul)
         hdulist.writeto(fname,overwrite=overwrite)
 
     @classmethod
     def rfits(cls, fname):
-        """Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
-        containing no data, followed by a series of HDUs each containing data
-        for a series of non-overlapping windows. A header is extracted from
-        the first HDU with data.
+        """Builds an :class:`MCCD` from a FITS file. Expects a primary HDU,
+        containing no data, followed by a series of HDU blocks consisting
+        of the header for each CCD followed by data HDUs.
         """
         hdul = fits.open(fname)
         ccd = cls.rhdul(hdul)
@@ -395,10 +420,11 @@ class MCCD(Agroup):
                each ImageHDU will be read as sub-window of the :class:`CCD`
 
         """
-        # Get the header from the first hdu, but otherwise ignore it
+        # Get the main header from the first hdu, but otherwise ignore it
         head = hdul[0].header
+        if 'NUMCCD' in head: del head['NUMCCD']
 
-        # Attempt to read rest of HDUs into a series of CCDs
+        # Attempt to read the rest of HDUs into a series of CCDs
         ccds = Group()
         for label, ccd in CCD.rhdul(hdul[1:],True):
             ccds[label] = ccd

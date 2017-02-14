@@ -441,20 +441,22 @@ class Windat(Window):
         return np.percentile(self.data, q)
 
     def whdu(self, fhead=None):
-        """
-        Writes the :class:`Windat` to an :class:`astropy.io.fits.ImageHDU`
+        """Writes the :class:`Windat` to an :class:`astropy.io.fits.ImageHDU` with
+        extension name 'WIND'
 
         Arguments::
 
           fhead : (astropy.io.fits.Header)
-             An initial FITS header object. The location of the lower-left pixel
-             and the binning factors will be added to it, so it will be modified
-             on exit. If None it will be created.
+             A FITS header object for passing in meta data. The location of
+             the lower-left pixel and the binning factors will be added to it,
+             so it will be modified on exit. If None on entry, it will be
+             created.
 
         Returns::
 
           hdu : (astropy.io.fits.ImageHDU)
-             The HDU
+             The HDU containg the data and the header. It will have extension WIND.
+
         """
 
         if fhead is None:
@@ -465,7 +467,7 @@ class Windat(Window):
         fhead['XBIN'] = (self.xbin, 'Binning factor in X')
         fhead['YBIN'] = (self.ybin, 'Binning factor in Y')
 
-        return fits.ImageHDU(self.data, fhead)
+        return fits.ImageHDU(self.data, fhead, name='WIND')
 
     def add_fxy(self, funcs, ndiv=0):
         """Routine to add in the results of evaluating a function or a list of
