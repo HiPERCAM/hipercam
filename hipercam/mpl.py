@@ -113,6 +113,9 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
       lw : (float)
            linewidth of the borders in points (0 to skip)
 
+      aspect : (string)
+           aspect ratio
+
       kwargs : (keyword arguments)
            other arguments to feed to :func:`matplotlib.pyplot.imshow`.
            'cmap' is useful. 'vmin' and 'vmax' are overridden by the
@@ -132,8 +135,8 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
         vmin, vmax = dlo, dhi
 
     else:
-        raise HipercamError('mpl.pccd: did not recognise iset = "' +
-                            iset + '"')
+        raise ValueError('mpl.pccd: did not recognise iset = "' +
+                         iset + '"')
     kwargs['vmin'] = vmin
     kwargs['vmax'] = vmax
 
