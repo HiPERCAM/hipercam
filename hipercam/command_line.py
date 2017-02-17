@@ -70,8 +70,16 @@ def carith(args=None):
 
 def hplot(args=None):
     """
-    Plots a multi-CCD image.
+    Plots a multi-CCD image. Arguments::
 
+      input : (string)
+         name of MCCD file
+
+      nccd : (int)
+         CCD number to plot, 0 for all.
+
+      nx : (int)
+         number of panels across to display.
     """
 
     if args is None:
@@ -129,7 +137,9 @@ def hplot(args=None):
         try:
             ccd = mccd[nccd]
         except KeyError:
-            sys.stderr.write('No CCD number {0:d} found in file = {1:s}\n'.format(nccd,frame))
+            sys.stderr.write(
+                'No CCD number {0:d} found in file = {1:s}\n'.format(nccd,frame)
+            )
             sys.exit(1)
 
         hcam.mpl.pccd(plt, ccd)
