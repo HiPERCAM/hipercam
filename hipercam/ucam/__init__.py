@@ -13,7 +13,3 @@ The :class:`hipercam.ucam.Rdata` class is a good starting point.
 #from .uhead import *
 from .raw import *
 #from .UErrors import *
-
-# list of classes and members to make visible at top level
-
-__all__ = ['Rhead',]
