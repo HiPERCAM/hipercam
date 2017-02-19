@@ -3,7 +3,9 @@ ATC server access code extra. See Raw.py for more.
 """
 
 import os
-import urllib
+import urllib.request
+
+__all__ = ['get_nframe_from_server', 'URL',]
 
 # The ATC FileServer recognises various GET requests (look for 'action=' in
 # the code) which are accessed using urllib. The following code is to allow
