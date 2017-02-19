@@ -7,70 +7,35 @@ import warnings
 import xml.dom.minidom
 import numpy as np
 
+from astropy.io import fits
+
+from hipercam import (Window, Windat, CCD, MCCD)
+
 from .constants import *
+from .uerrors import *
 from .server import get_nframe_from_server, URL
-from .time import Time
-from .uhead import Uhead
 
-class Rwin:
-    """Trivial container class for basic window info to help readability of
-    code. Sets attributes llx, lly, nx, ly representing the lower-left pixel
-    of a window and its binned dimensions.  Used in the 'wins' attribute of
-    Rhead
+__all__ = ['Rhead', 'Rdata']
 
-    """
-    def __init__(self, llx, lly, nx, ny):
-        self.llx = llx
-        self.lly = lly
-        self.nx  = nx
-        self.ny  = ny
-
-    def __str__(self):
-        return str(self.llx) + ',' + str(self.lly) + ',' + str(self.nx) + ',' + str(self.ny)
-
-class Rhead:
+class Rhead(fits.Header):
     """Represents essential header info of Ultracam/Ultraspec data read from a
-    run###.xml file.
-
-    Attributes set::
-
-       run : (string)
-          The ULTRACAM run e.g. 'run005'
-
-       server : (bool)
-          True/False to indicate server access
-
-       application : (string)
-          Data acquisition application template name.
+    run###.xml file. Most of the items are stored in the underlying FITS
+    header object, but a number of these and some extras are put into
+    attributes for simple reference in methods of the class. Some items are
+    specific to either ULTRACAM or ULTRASPEC, as indicated by [] below. These
+    are the attributes set (alphabetical order)::
 
        framesize : (int)
-          Total number of bytes per frame.
+          total number of bytes per frame.
 
        headerwords : (int)
-          Number of words (2-bytes/word) in timing info at start of a frame.
+          number of words (2-bytes/word) in timing info at start of a frame.
 
        instrument : (string)
-          Instrument name.
+          'ULTRACAM' or 'ULTRASPEC'
 
        nccd : (int)
-          Number of CCDs
-
-       mode : (string)
-          A standardised summary of the readout mode derived from the application name.
-
-       user : (dict)
-          Dictionary of user information. Set to None if there was none found.
-
-       win : (list)
-          A list of Rwin objects, one per window. ULTRACAM data is multi-CCD
-          but the windows of each CCD are identical so the information is only stored
-          once for all CCDs.
-
-       xbin : (int)
-          binning factor in X direction
-
-       ybin : (int)
-          binning factor in Y direction
+          number of CCDs
 
        nxmax : (int)
           maximum X dimension, unbinned pixels
@@ -78,41 +43,25 @@ class Rhead:
        nymax : (int)
           maximum Y dimension, unbinned pixels.
 
-       exposeTime : (float)
-          exposure delay, secs
+       run : (string)
+          The run number e.g. 'run005'
 
-       numexp : (int)
-          integer exposure number; can be -1 meaning unlimited
+       server : (bool)
+          True/False to indicate server access
 
-       gainSpeed :
-          readout speed (ULTRACAM)
+       timeUnits : (float)
+          units of time steps in seconds
 
-       v_ft_clk :
-          vertical frame transfer parameter
-
-       nblue : (int)
-          how often to read the blue CCD (ULTRACAM)
-
-       speed :
-          readout speed (ULTRASPEC)
-
-       en_clr :
-          enable clear flag (ULTRASPEC)
-
-       hv_gain :
-          HV gain (ULTRASPEC)
-
-       output :
-          which output (ULTRASPEC)
-
-       version :
+       version : (int)
           version number
 
-       target :
-          target name (None if not found)
+       whichRun : (string)
+          to do with timing [ULTRACAM]
 
-       filters :
-          filter names (None if not found)
+       win : (list)
+          A list of Window objects, one per window. ULTRACAM data is multi-CCD
+          but the windows of each CCD are identical so the information is only
+          stored once for all CCDs.
 
     """
 
@@ -132,11 +81,14 @@ class Rhead:
 
         """
 
+        # start with a blank FITS header
+        super().__init__()
         self.run = run
         self.server = server
+
         if server:
             # get from server
-            full_url = URL + run + '?action=get_xml'
+            full_url = '{:s}{:s}?action=get_xml'.format(URL, run)
             sxml = urllib.request.urlopen(full_url).read()
             udom = xml.dom.minidom.parseString(sxml)
         else:
@@ -151,13 +103,13 @@ class Rhead:
 
         # Frame format and other detail.
         node = udom.getElementsByTagName('instrument_status')[0]
-        self.instrument = node.getElementsByTagName('name')[0].childNodes[0].data
-        if self.instrument == 'Ultracam':
-            self.instrument = 'ULTRACAM'
+        instrument = node.getElementsByTagName('name')[0].childNodes[0].data.upper()
+        self.instrument = instrument
+
+        if instrument == 'ULTRACAM':
             self.nccd = 3
             self.nxmax, self.nymax = 1080, 1032
-        elif self.instrument == 'Ultraspec':
-            self.instrument = 'ULTRASPEC'
+        elif instrument == 'ULTRASPEC':
             self.nccd = 1
             self.nxmax, self.nymax = 1056, 1072
         else:
@@ -165,8 +117,9 @@ class Rhead:
                 'Rhead.__init__: run = {:s}, failed to identify instrument.'.format(self.run)
             )
 
-        self.application = [nd for nd in node.getElementsByTagName('application_status') \
-                            if nd.getAttribute('id') == 'SDSU Exec'][0].getAttribute('name')
+        application = [nd for nd in node.getElementsByTagName('application_status') \
+                       if nd.getAttribute('id') == 'SDSU Exec'][0].getAttribute('name')
+
 
         # gather together majority of values
         param = {}
@@ -182,96 +135,145 @@ class Rhead:
                 for nd in node.childNodes:
                     if nd.nodeType == xml.dom.Node.ELEMENT_NODE and nd.hasChildNodes():
                         user[nd.tagName] = nd.childNodes[0].data
+
+                # conditional loading of headers
+                if 'target' in user:
+                    self['TARGET'] = (user['target'], 'Target name')
+                if 'filters' in user:
+                    self['FILTERS'] = (user['filters'], 'Filter(s) used')
+                if 'PI' in user:
+                    self['PI'] = (user['PI'], 'Principal investigator')
+                if 'ID' in user:
+                    self['ID'] = (user['ID'],'Proposal ID')
+                if 'Observers' in user:
+                    self['OBSERVRS'] = (user['Observers'], 'Observer(s)')
+                if 'flags' in user:
+                    self['DTYPE'] = (user['flags'], 'Run data type')
+                if 'SlidePos' in user:
+                    self['SLIDEPOS'] = (
+                        user['SlidePos'].split()[0],'Focal plane slide, pixels')
+                if 'RA' in user:
+                    self['RA']  = (user['RA'], 'Telescope Right Ascension')
+                if 'Dec' in user:
+                    self['DEC'] = (user['Dec'], 'Telescope Declination')
+                if 'Tracking' in user:
+                    self['TRACKING'] = (user['Tracking'], 'usdriver telescope tracking flag')
+                if 'TTflag' in user:
+                    self['TTFLAG'] = (user['TTflag'],'TNT telescope tracking flag')
+                if 'Focus' in user:
+                    self['FOCUS'] = (user['Focus'],'Telescope focus')
+                if 'PA' in user:
+                    self['PA'] = (user['PA'],'Rotator position angle (deg)')
+                if 'Eng_PA' in user:
+                    self['ENGPA'] = (user['Eng_PA'],'Engineering PA (deg)')
+                if 'ccd_temp' in user:
+                    self['CCDTEMP'] = (user['ccd_temp'], 'CCD temperature(s) [K]')
+                if 'finger_temp' in user:
+                    self['FINGTEMP'] = (user['finger_temp'],'Cold finger temperature [K]')
+                if 'finger_pcent' in user:
+                    self['FINGPCNT'] = (user['finger_pcent'],'Percentage power of finger')
             else:
                 user = None
         except Exception as err:
             user = None
 
         # Translate applications into meaningful mode names
-        app = self.application
-        if app == 'ap8_250_driftscan' or app == 'ap8_driftscan' or app == 'ap_drift_bin2' or \
-           app == 'appl8_driftscan_cfg':
-            self.mode    = 'DRIFT'
-        elif app == 'ap5_250_window1pair' or app == 'ap5_window1pair' or app == 'ap_win2_bin8' or \
-             app == 'ap_win2_bin2' or app == 'appl5_window1pair_cfg':
-            self.mode    = '1-PAIR'
+        app = application
+        if app == 'ap8_250_driftscan' or app == 'ap8_driftscan' or app == 'ap_drift_bin2' \
+           or app == 'appl8_driftscan_cfg':
+            mode = 'DRIFT'
+        elif app == 'ap5_250_window1pair' or app == 'ap5_window1pair' or \
+             app == 'ap_win2_bin8' or app == 'ap_win2_bin2' or app == 'appl5_window1pair_cfg':
+            mode    = '1-PAIR'
         elif app == 'ap5b_250_window1pair' or app == 'appl5b_window1pair_cfg':
-            self.mode    = '1-PCLR'
+            mode    = '1-PCLR'
         elif app == 'ap6_250_window2pair' or app == 'ap6_window2pair' or \
              app == 'ap_win4_bin1' or app == 'ap_win4_bin8' or app == 'appl6_window2pair_cfg':
-            self.mode    = '2-PAIR'
+            mode    = '2-PAIR'
         elif app == 'ap7_250_window3pair' or app == 'ap7_window3pair' or \
              app == 'appl7_window3pair_cfg':
-            self.mode    = '3-PAIR'
+            mode    = '3-PAIR'
         elif app == 'ap3_250_fullframe' or app == 'ap3_fullframe' or \
              app == 'appl3_fullframe_cfg':
-            self.mode    = 'FFCLR'
+            mode    = 'FFCLR'
         elif app == 'appl4_frameover_cfg' or app == 'ap4_frameover':
-            self.mode    = 'FFOVER'
+            mode    = 'FFOVER'
         elif app == 'appl10_frameover_mindead_cfg':
-            self.mode    = 'FFOVNC'
+            mode    = 'FFOVNC'
         elif app == 'ap9_250_fullframe_mindead' or app == 'ap9_fullframe_mindead' or \
              app == 'appl9_fullframe_mindead_cfg':
-            self.mode    = 'FFNCLR'
+            mode    = 'FFNCLR'
         elif app == 'ccd201_winbin_con' or app == 'ccd201_winbin_cfg':
             if int(param['X2_SIZE']) == 0:
-                self.mode    = 'USPEC-1'
+                mode = 'USPEC-1'
             elif int(param['X3_SIZE']) == 0:
-                self.mode    = 'USPEC-2'
+                mode = 'USPEC-2'
             elif int(param['X4_SIZE']) == 0:
-                self.mode    = 'USPEC-3'
+                mode = 'USPEC-3'
             else:
-                self.mode    = 'USPEC-4'
+                mode = 'USPEC-4'
         elif app == 'ccd201_driftscan_cfg':
-            self.mode    = 'UDRIFT'
+            mode = 'UDRIFT'
         elif app == 'ap1_poweron' or app == 'ap1_250_poweron' or \
              app == 'ap2_250_poweroff' or app == 'appl1_pon_cfg' or \
              app == 'appl2_pof_cfg' or app == 'ccd201_pon_cfg':
-            self.mode = 'PONOFF'
-            return
+            mode = 'PONOFF'
         else:
             raise ValueError(
                 'Rhead.__init__: file = {:s} failed to identify application = {:s}'.format(
                     self.run,app)
             )
 
-        # binning factors
-        self.xbin = int(param['X_BIN_FAC']) if 'X_BIN_FAC' in param \
-                    else int(param['X_BIN'])
-        self.ybin = int(param['Y_BIN_FAC']) if 'Y_BIN_FAC' in param \
-                    else int(param['Y_BIN'])
+        self.mode = mode
 
-        # Windows. For each one store: x & y coords of lower-left pixel,
-        # binned dimensions
+        # Set some FITS keywords before leaving
+        self['INSTRUME'] = (instrument, 'Instrument')
+        self['APPLICAT'] = (application, 'ULTRA*** acquisition template')
+        self['MODE'] = (mode, 'Readout mode')
+
+        if mode == 'PONOFF': return
+
+        # binning factors
+        xbin = int(param['X_BIN_FAC']) if 'X_BIN_FAC' in param \
+               else int(param['X_BIN'])
+        ybin = int(param['Y_BIN_FAC']) if 'Y_BIN_FAC' in param \
+               else int(param['Y_BIN'])
+
+        # Build up list of Windows
         self.win = []
         fsize = 2*self.headerwords
         if self.instrument == 'ULTRACAM':
-            try:
-                self.exposeTime = float(param['EXPOSE_TIME'])
-            except ValueError as err:
-                raise ValueError(
-                    'Rhead.__init__: file = {:s} failed to interpret EXPOSE_TIME'.format(self.run)
-                )
-
-            self.numexp = int(param['NO_EXPOSURES'])
-            self.gainSpeed = hex(int(param['GAIN_SPEED']))[2:] \
-                              if 'GAIN_SPEED' in param else None
+            exposeTime = float(param['EXPOSE_TIME'])
+            numexp = int(param['NO_EXPOSURES'])
+            gainSpeed = hex(int(param['GAIN_SPEED']))[2:] \
+                        if 'GAIN_SPEED' in param else None
 
             if 'V_FT_CLK' in param:
-                self.v_ft_clk = six.indexbytes(struct.pack('I',int(param['V_FT_CLK'])),2)
+                v_ft_clk = struct.pack('I',int(param['V_FT_CLK']))[2]
             elif app == 'appl7_window3pair_cfg':
-                self.v_ft_clk = 140;
+                v_ft_clk = 140;
             else:
-                self.v_ft_clk = 0
+                v_ft_clk = 0
 
-            self.nblue = int(param['NBLUE']) if 'NBLUE' in param else 1
+            nblue = int(param['NBLUE']) if 'NBLUE' in param else 1
 
-            if self.mode == 'FFCLR' or self.mode == 'FFNCLR':
-                self.win.append(Rwin(  1, 1, 512//self.xbin, 1024//self.ybin))
-                self.win.append(Rwin(513, 1, 512//self.xbin, 1024//self.ybin))
+            # store paremeters of interest in FITS header
+            self['EXPDELAY'] = (exposeTime, 'Exposure delay (seconds)')
+            self['NUMEXP'] = (numexp, 'Number of exposures [-1 = infinity]')
+            self['GAINSPED'] = (gainSpeed,'Gain speed [ULTRACAM]')
+            self['VFTCLK'] = (v_ft_clk, 'Vertical frame transfer [ULTRACAM]')
+            self['NBLUE'] = (nblue, 'Blue CCD cycle number [ULTRACAM]')
+
+            if mode == 'FFCLR' or mode == 'FFNCLR':
+                self.win.append(
+                    Window(1, 1, 512//xbin, 1024//ybin, xbin, ybin)
+                )
+                self.win.append(
+                    Window(513, 1, 512//xbin, 1024//ybin, xbin, ybin)
+                )
                 fsize += 12*self.win[-1].nx*self.win[-1].ny
 
-            elif self.mode == 'FFOVER' or self.mode == 'FFOVNC':
+            elif mode == 'FFOVER' or mode == 'FFOVNC':
                 # In overscan mode the extra pixels are clocked out after the
                 # data has been read which effectively means they should
                 # appear in the centre of the chip.  However, this would ruin
@@ -280,107 +282,111 @@ class Rhead:
                 # extra sections are placed off to the right-hand and top
                 # sides where they do not affect the pixel registration. This
                 # code requires some corresponding jiggery-pokery in Rdata
-                # because the actual data comes in in just two windows. The 6
+                # because the actual data comes in just two windows. The 6
                 # windows come in 3 pairs of equal sizes, hence the single
                 # fsize increment line per pair.
 
                 # first set the physical data windows
-                self.win.append(Rwin(  1, 1, 512//self.xbin, 1024//self.ybin))
-                self.win.append(Rwin(513, 1, 512//self.xbin, 1024//self.ybin))
-                fsize += 12*self.win[-1].nx*self.win[-1].ny
+                nx, ny = 512, 1024
+                self.win.append(Window(1, 1, nx // xbin, ny // ybin, xbin, ybin))
+                self.win.append(Window(513, 1, nx // xbin, ny // ybin, xbin, ybin))
+                fsize += 12*nx*ny
 
-                # left overscan (place on right)
-                self.win.append(Rwin(1025, 1, 28//self.xbin, 1032//self.ybin))
+                # left & right overscans (both placed on the right)
+                nx,ny = 28, 1032
+                self.win.append(Window(1025, 1, nx // xbin, ny // ybin, xbin, ybin))
+                self.win.append(Window(1053, 1, nx // xbin, ny // ybin, xbin, ybin))
+                fsize += 12*nx*ny
 
-                # right overscan
-                self.win.append(Rwin(1053, 1, 28//self.xbin, 1032//self.ybin))
-                fsize += 12*self.win[-1].nx*self.win[-1].ny
-
-                # top left overscan
-                self.win.append(Rwin(1, 1025, 512//self.xbin, 8//self.ybin))
-
-                # top right overscan
-                self.win.append(Rwin(513, 1025, 512//self.xbin, 8//self.ybin))
-                fsize += 12*self.win[-1].nx*self.win[-1].ny
+                # top overscans
+                nx,ny = 512, 8
+                self.win.append(Window(1, 1025, nx // xbin, ny // ybin, xbin, ybin))
+                self.win.append(Window(513, 1025, nx // xbin, ny // ybin, xbin, ybin))
+                fsize += 12*nx*ny
 
             else:
 
                 ystart = int(param['Y1_START'])
                 xleft = int(param['X1L_START'])
                 xright = int(param['X1R_START'])
-                nx = int(param['X1_SIZE']) // self.xbin
-                ny = int(param['Y1_SIZE']) // self.ybin
-                self.win.append(Rwin(xleft, ystart, nx, ny))
-                self.win.append(Rwin(xright, ystart, nx, ny))
+                nx = int(param['X1_SIZE']) // xbin
+                ny = int(param['Y1_SIZE']) // ybin
+                self.win.append(Window(xleft, ystart, nx, ny, xbin, ybin))
+                self.win.append(Window(xright, ystart, nx, ny, xbin, ybin))
+                fsize += 12*nx*ny
 
-                fsize += 12*self.win[-1].nx*self.win[-1].ny
-
-            if self.mode == '2-PAIR' or self.mode == '3-PAIR':
+            if mode == '2-PAIR' or mode == '3-PAIR':
                 ystart = int(param['Y2_START'])
                 xleft = int(param['X2L_START'])
                 xright = int(param['X2R_START'])
-                nx = int(param['X2_SIZE']) // self.xbin
-                ny = int(param['Y2_SIZE']) // self.ybin
-                self.win.append(Rwin(xleft, ystart, nx, ny))
-                self.win.append(Rwin(xright, ystart, nx, ny))
-                fsize += 12*self.win[-1].nx*self.win[-1].ny
+                nx = int(param['X2_SIZE']) // xbin
+                ny = int(param['Y2_SIZE']) // ybin
+                self.win.append(Window(xleft, ystart, nx, ny, xbin, ybin))
+                self.win.append(Window(xright, ystart, nx, ny, xbin, ybin))
+                fsize += 12*nx*ny
 
-            if self.mode == '3-PAIR':
+            if mode == '3-PAIR':
                 ystart = int(param['Y3_START'])
                 xleft = int(param['X3L_START'])
                 xright = int(param['X3R_START'])
-                nx = int(param['X3_SIZE']) // self.xbin
-                ny = int(param['Y3_SIZE']) // self.ybin
-                self.win.append(Rwin(xleft,ystart,nx,ny))
-                self.win.append(Rwin(xright,ystart,nx,ny))
-                fsize += 12*self.win[-1].nx*self.win[-1].ny
+                nx = int(param['X3_SIZE']) // xbin
+                ny = int(param['Y3_SIZE']) // ybin
+                self.win.append(Window(xleft, ystart, nx, ny, xbin, ybin))
+                self.win.append(Window(xright, ystart, nx, ny, xbin, ybin))
+                fsize += 12*nx*ny
 
         elif self.instrument == 'ULTRASPEC':
 
-            self.exposeTime = float(param['DWELL'])
-            self.numexp = int(param['NUM_EXPS'])
-            self.speed = ('S' if param['SPEED'] == '0' else \
-                          ('M' if param['SPEED'] == '1' else 'F')) \
+            exposeTime = float(param['DWELL'])
+            numexp = int(param['NUM_EXPS'])
+            speed = ('S' if param['SPEED'] == '0' else \
+                     ('M' if param['SPEED'] == '1' else 'F')) \
                 if 'SPEED' in param else None
-            self.en_clr = (True if param['EN_CLR'] == '1' else False) \
-                          if 'EN_CLR' in param else None
-            self.hv_gain = int(param['HV_GAIN']) if 'HV_GAIN' \
-                           in param else None
-            self.output = ('N' if param['OUTPUT'] == '0' else 'A') \
-                          if 'OUTPUT' in param else None
+            en_clr = (True if param['EN_CLR'] == '1' else False) \
+                     if 'EN_CLR' in param else None
+            hv_gain = int(param['HV_GAIN']) if 'HV_GAIN' \
+                      in param else None
+            output = ('N' if param['OUTPUT'] == '0' else 'A') \
+                     if 'OUTPUT' in param else None
+
+            self['NUMEXP'] = (numexp, 'Number of exposures [-1 = infinity]')
+            self['SPEED'] = (speed, 'Readout speed [ULTRASPEC]')
+            self['ENBLCLR'] = (en_clr, 'Clear enabled [ULTRASPEC]')
+            self['HVGAIN'] = (hv_gain, 'High-voltage gain [ULTRASPEC]')
+            self['OUTPUT'] = (output, 'Readout output [ULTRASPEC]')
 
             xstart = int(param['X1_START'])
             ystart = int(param['Y1_START'])
             nx = int(param['X1_SIZE'])
             ny = int(param['Y1_SIZE'])
-            self.win.append(Rwin(xstart,ystart,nx,ny))
-            fsize += 2*self.win[-1].nx*self.win[-1].ny
+            self.win.append(Window(xstart, ystart, nx, ny, xbin, ybin))
+            fsize += 2*nx*ny
 
-            if self.mode == 'USPEC-2' or self.mode == 'USPEC-3' or \
-               self.mode == 'USPEC-4' or self.mode == 'UDRIFT':
+            if mode == 'USPEC-2' or mode == 'USPEC-3' or \
+               mode == 'USPEC-4' or mode == 'UDRIFT':
                 xstart = int(param['X2_START'])
-                ystart = ystart if self.mode == 'UDRIFT' else \
+                ystart = ystart if mode == 'UDRIFT' else \
                          int(param['Y2_START'])
                 nx = int(param['X2_SIZE'])
-                ny = ny if self.mode == 'UDRIFT' else int(param['Y2_SIZE'])
-                self.win.append(Rwin(xstart,ystart,nx,ny))
-                fsize += 2*self.win[-1].nx*self.win[-1].ny
+                ny = ny if mode == 'UDRIFT' else int(param['Y2_SIZE'])
+                self.win.append(Window(xstart, ystart, nx, ny, xbin, ybin))
+                fsize += 2*nx*ny
 
-            if self.mode == 'USPEC-3' or self.mode == 'USPEC-4':
+            if mode == 'USPEC-3' or mode == 'USPEC-4':
                 xstart = int(param['X3_START'])
                 ystart = int(param['Y3_START'])
                 nx = int(param['X3_SIZE'])
                 ny = int(param['Y3_SIZE'])
-                self.win.append(Rwin(xstart,ystart,nx,ny))
-                fsize += 2*self.win[-1].nx*self.win[-1].ny
+                self.win.append(Window(xstart, ystart, nx, ny, xbin, ybin))
+                fsize += 2*nx*ny
 
-            if self.mode == 'USPEC-4':
+            if mode == 'USPEC-4':
                 xstart = int(param['X4_START'])
                 ystart = int(param['Y4_START'])
                 nx = int(param['X4_SIZE'])
                 ny = int(param['Y4_SIZE'])
-                self.win.append(Rwin(xstart,ystart,nx,ny))
-                fsize += 2*self.win[-1].nx*self.win[-1].ny
+                self.win.append(Window(xstart, ystart, nx, ny, xbin, ybin))
+                fsize += 2*nx*ny
 
         if fsize != self.framesize:
             raise ValueError(
@@ -388,64 +394,50 @@ class Rhead:
             )
 
         # nasty stuff coming up ...
-        self.version   = int(user['revision']) if user is not None and \
-                         'revision' in user else \
-                         (int(param['REVISION']) if 'REVISION' in param \
-                          else int(param['VERSION']) if 'VERSION' in param \
-                          else -1)
+        version = int(user['revision']) if user is not None and \
+                  'revision' in user else \
+                  (int(param['REVISION']) if 'REVISION' in param \
+                   else int(param['VERSION']) if 'VERSION' in param \
+                   else -1)
+        self['VERSION'] = (version, 'Software version code')
 
         if 'REVISION' in param or 'VERSION' in param:
             vcheck = int(param['REVISION']) if 'REVISION' in param else \
                      int(param['VERSION'])
-            if vcheck != self.version:
+            if vcheck != version:
                 raise ValueError(
                     'Rhead.__init__: clashing version numbers: {:s} vs {:s}'.format(
-                        self.version,vcheck)
+                        version,vcheck)
                 )
 
         if self.headerwords == 16:
             VERSIONS = [100222, 111205, 120716, 120813, 130307, 130317, 140331]
-            if self.version not in VERSIONS:
+            if version not in VERSIONS:
                 raise ValueError(
-                    'Rhead.__init__: could not recognise version = {:s}'.format(self.version)
+                    'Rhead.__init__: could not recognise version = {:s}'.format(version)
                 )
 
         self.whichRun = ''
-        if self.instrument == 'ULTRACAM':
+        if instrument == 'ULTRACAM':
             if user is None:
                 self.timeUnits = 0.001
             else:
                 self.timeUnits = 0.0001
-            if 'REVISION' not in param and 'VERSION' not in param and 'V_FT_CLK' not in param:
+            if 'REVISION' not in param and 'VERSION' not in param and \
+               'V_FT_CLK' not in param:
                 self.whichRun = 'MAY2002'
         else:
-            if user is not None and self.headerwords == 16 and  self.version >= 120813:
+            if user is not None and self.headerwords == 16 and \
+               self.version >= 120813:
                 self.timeUnits = 0.0001
             else:
                 self.timeUnits = 0.001
 
         # convert to seconds
-        self.exposeTime *= self.timeUnits
+        exposeTime *= self.timeUnits
+        self['EXPDELAY'] = (exposeTime, 'Exposure delay (seconds)')
 
-        # conditional loading of headers
-        if user and 'target' in user: self.target = user['target']
-        if user and 'filters' in user: self.filters = user['filters']
-        if user and 'PI' in user: self.pi = user['PI']
-        if user and 'ID' in user: self.id = user['ID']
-        if user and 'Observers' in user: self.observers = user['Observers']
-        if user and 'flags' in user: self.dtype = user['flags']
-        if user and 'ccd_temp' in user: self.ccdtemp = user['ccd_temp']
-        if user and 'SlidePos' in user: self.slidepos = user['SlidePos'].split()[0]
-        if user and 'RA' in user: self.RA  = user['RA']
-        if user and 'Dec' in user: self.Dec = user['Dec']
-        if user and 'Tracking' in user: self.track = user['Tracking']
-        if user and 'TTflag' in user: self.ttflag = user['TTflag']
-        if user and 'Focus' in user: self.focus = user['Focus']
-        if user and 'PA' in user: self.PA = user['PA']
-        if user and 'Eng_PA' in user: self.engpa = user['Eng_PA']
-        if user and 'ccd_temp' in user: self.ccdtemp = user['ccd_temp']
-        if user and 'finger_temp' in user: self.fingertemp = user['finger_temp']
-        if user and 'finger_pcent' in user: self.fingerpcent = user['finger_pcent']
+        # Finally have reached end of constructor / initialiser
 
     def npix(self):
         """
@@ -462,30 +454,45 @@ class Rhead:
         """
         return self.mode == 'PONOFF'
 
-class Ahead(Uhead):
+class Time:
     """
-    Sub-class of Uhead to allow checked addition by attribute
-    from an Rhead into a Uhead.
-    """
-    def __init__(self, rhead):
-        Uhead.__init__(self)
-        self.rhead = rhead
+    Represents a time for a CCD. Four attributes::
 
-    def add_attr(self, key, attr, itype, comment):
-        """
-        attr only added in if it exists in self.rhead
-        """
-        if hasattr(self.rhead, attr):
-            value = getattr(self.rhead, attr)
-            Uhead.add_entry(self, key, value, itype, comment)
+       mjd : (float)
+          modified Julian day number
+
+       expose : (float)
+          exposure time, seconds.
+
+       good : (bool)
+          is the time thought to be reliable?
+
+       reason : (string)
+          if good == False, this is the reason.
+    """
+    def __init__(self, mjd, expose, good, reason):
+        self.mjd    = mjd
+        self.expose = expose
+        self.good   = good
+        self.reason = reason
+
+    def __repr__(self):
+        return 'Time(mjd={:r}, expose={:r}, good={:r}, reason={:r})'.format(
+            self.mjd, self.expose, self.good, self.reason)
+
+    def __str__(self):
+        ret = 'MJD = ' + str(self.mjd) + ', exposure = ' + str(self.expose) + \
+            ', status = ' + str(self.good)
+        if not self.good:
+            ret += ', reason: ' + self.reason
+        return ret
 
 class Rdata (Rhead):
-    """
-    Callable, iterable object to represent ULTRACAM/SPEC raw data files.
+    """Callable, iterable object to represent ULTRACAM/SPEC raw data files.
 
-    The idea is to open the file, and then the object generated can be
-    used to deliver frames by specifying a frame number. Frames can be
-    read individually e.g.::
+    The idea is to open the file, and then the object generated can be used to
+    deliver frames by specifying a frame number. Frames can be read
+    individually e.g.::
 
       rdat = Rdata('run045')
       fr10 = rdat(10)
@@ -494,47 +501,51 @@ class Rdata (Rhead):
     reads frame numbers 10 and then 11 in from 'run045', or sequentially::
 
       for frm in Rdata('run045'):
-         print 'nccd = ',frm.nccd()
+         print 'nccd = ',len(frm)
 
-    Rdata maintains an internal file object that is always at the start of a
-    frame. This enables sequential reads to be swift. If an attempt is made
-    to access a frame that does not exist, it defaults to the start of the
-    file.
+    Rdata maintains an internal file object pointer that is always at the
+    start of a frame. This enables sequential reads to be swift. If an attempt
+    is made to access a frame that does not exist, it defaults to the start of
+    the file. The above code returns :class:`hipercam.MCCD` objects for
+    ULTRACAM data.
 
-    The above code returns :class:`trm.ultracam.MCCD` objects for ULTRACAM data. By default
-    the frames are always read as :class:`trm.ultracam.MCCD` objects, however there is
-    always a flag
-
-    :class:`trm.ultracam.Rdata` can talk to the ATC FileServer if it is running, e.g.::
+    :class:`ucam.Rdata` can talk to the ATC FileServer if it is running,
+    e.g.::
 
       rdat = Rdata('run045',server=True)
 
     """
 
     def __init__(self, run, nframe=1, flt=True, server=False, ccd=False):
-        """
-        Connects to a raw data file for reading. The file is kept open.
+        """Connects to a raw data file for reading. The file is kept open.
         The file pointer is set to the start of frame nframe. The Rdata
         object can then generate MCCD or CCD objects through being called
         as a function or iterator.
 
-        Args:
-          run (string) : run name, e.g. 'run036'.
+        Arguments::
 
-          nframe (int) : frame number for first read, starting at 1 as the first.
+           run : (string)
+              run name, e.g. 'run036'.
 
-          flt (bool ) : True for reading data in as floats. This is the default for
-               safety, however the data are stored on disk as unsigned 2-byte
-               ints. If you are not doing much to the data, and wish to keep them
-               in this form for speed and efficiency, then set flt=False.  This
-               parameter is used when iterating through an Rdata. The __call__
-               method can override it.
+           nframe : (int)
+              frame number for first read, starting at 1 as the first.
 
-          server (bool) : True/False for server vs local disk access
+           flt : (bool)
+              True for reading data in as floats. This is the default for
+              safety, however the data are stored on disk as unsigned 2-byte
+              ints. If you are not doing much to the data, and wish to keep
+              them in this form for speed and efficiency, then set flt=False.
+              This parameter is used when iterating through an Rdata. The
+              __call__ method can override it.
 
-          ccd (bool) : flag to read data as a :class:`trm.ultracam.CCD` rather
-                       than a :class:`trm.ultracam.MCCD` object if only one CCD
-                       per frame. Default is always to read as an MCCD.
+          server : (bool)
+              True/False for server vs local disk access
+
+          ccd : (bool)
+              flag to read data as a :class:`trm.ultracam.CCD` rather than a
+              :class:`trm.ultracam.MCCD` object if only one CCD per
+              frame. Default is always to read as an MCCD.
+
         """
 
         Rhead.__init__(self, run, server)
@@ -551,17 +562,8 @@ class Rdata (Rhead):
         if server:
             self._fobj   = None
         else:
-            if six.PY3:
-                """
-                This exists because in Python 3, `open()` returns an
-                `io.BufferedReader` by default.  This is bad, because
-                `io.BufferedReader` doesn't support random access, which we may need in
-                some cases.  In the Python 3 case (implemented in the py3compat module)
-                we must call open with buffering=0 to get a raw random-access file
-                """
-                self._fobj   = open(run + '.dat', 'rb', buffering=0)
-            else:
-                self._fobj   = open(run + '.dat', 'rb')
+            # want a random access file
+            self._fobj   = open(run + '.dat', 'rb', buffering=0)
 
         self._nf     = nframe
         self._run    = run
@@ -579,14 +581,12 @@ class Rdata (Rhead):
         try:
             while 1:
                 yield self.__call__(flt=self._flt)
-        except UendError:
-            pass
-        except urllib.error.HTTPError:
+        except (UendError, urllib.error.HTTPError):
             pass
 
     def set(self, nframe=1):
         """
-        Sets the internal file pointer to point at frame nframe.
+        Sets the internal file pointer to point at frame number nframe.
 
         Args:
           nframe (int) : frame number to get, starting at 1. 0 for the
@@ -600,7 +600,7 @@ class Rdata (Rhead):
         # position read pointer
         if nframe is not None:
             if nframe < 0:
-                raise UltracamError('Rdata.set: nframe < 0')
+                raise UltracamError('ucam.Rdata.set: nframe < 0')
             elif nframe == 0:
                 if self.server:
                     self._nf = get_nframe_from_server(self.run)
@@ -619,24 +619,28 @@ class Rdata (Rhead):
                 self._nf = nframe
 
     def __call__(self, nframe=None, flt=None):
-        """
-        Reads the data of frame nframe (starts from 1) and returns a
-        corresponding CCD or UCAM object, depending upon the type of data. If
-        nframe is None, just reads whatever frame we are on. Raises an
-        exception if it fails to read data.  Resets to start of the file in
-        this case. The data are stored internally as either 4-byte floats or
-        2-byte unsigned ints.
+        """Reads the data of frame nframe (starts from 1) and returns a corresponding
+        CCD or UCAM object, depending upon the type of data. If nframe is
+        None, just reads whatever frame we are on. Raises an exception if it
+        fails to read data.  Resets to start of the file in this case. The
+        data are stored internally as either 4-byte floats or 2-byte unsigned
+        ints.
 
-        nframe -- frame number to get, starting at 1. 0 for the last
-                  (complete) frame. None just returns the next frame.
+        Arguments::
 
-        flt    -- Set True to reading data in as floats. The data are stored on
-                  disk as unsigned 2-byte ints. If you are not doing much to
-                  the data, and wish to keep them in this form for speed and
-                  efficiency, then set flt=False. If None then the value used when
-                  constructing the MCCD will be used.
+           nframe : (int)
+              frame number to get, starting at 1. 0 for the last (complete)
+              frame. None just returns the next frame.
 
-        Returns a UCAM object for ULTRACAM, CCD for ULTRASPEC.
+           flt : (bool)
+              Set True to read data in as floats. The data are stored on disk
+              as unsigned 2-byte ints. If you are not doing much to the data,
+              and wish to keep them in this form for speed and efficiency,
+              then set flt=False. If None then the value used when
+              constructing the MCCD will be used.
+
+        Returns an MCCD for ULTRACAM, a CCD for ULTRASPEC.
+
         """
 
         if flt is None: flt = self._flt
@@ -646,18 +650,20 @@ class Rdata (Rhead):
 
         if self.server:
             # read timing and data in one go from the server
-            full_url = URL + self.run + '?action=get_frame&frame=' + str(self._nf-1)
+            full_url = '{:s}{:s}?action=get_frame&frame={:s}'.format(
+                URL, self.run, self._nf-1)
             buff     = urllib.request.urlopen(full_url).read()
             if len(buff) != self.framesize:
                 self._nf = 1
-                raise UltracamError('Rdata.__call__: failed to read frame ' + str(self._nf) +
-                                    ' from FileServer. Buffer length vs expected = '
-                                    + str(len(buff)) + ' vs ' + str(self.framesize) + ' bytes.')
+                raise UltracamError(
+                    'Rdata.__call__: failed to read frame {:s} from FileServer. Buffer length vs expected = {:s} vs {:s} bytes.'.format(self._nf,len(buff),self.framesize)
+                )
 
             # have data. Re-format into the timing bytes and unsigned 2 byte
             # int data buffer
             tbytes = buff[:2*self.headerwords]
-            buff   = np.fromstring(buff[2*self.headerwords:],dtype='uint16')
+            buff = np.fromstring(buff[2*self.headerwords:],dtype='uint16')
+
         else:
             # read timing bytes
             tbytes = self._fobj.read(2*self.headerwords)
@@ -666,16 +672,18 @@ class Rdata (Rhead):
                 self._nf = 1
                 raise UendError('Rdata.__call__: failed to read timing bytes')
 
-            # read data
-            buff = np.fromfile(self._fobj,'<u2',int(self.framesize/2-self.headerwords))
-            if len(buff) != self.framesize/2-self.headerwords:
+            # read data as unsigned 2-byte integers
+            buff = np.fromfile(
+                self._fobj, '<u2', int(self.framesize//2-self.headerwords)
+            )
+
+            if len(buff) != self.framesize//2-self.headerwords:
                 self._fobj.seek(0)
                 self._nf = 1
-                raise UltracamError('Rdata.__call__: failed to read frame ' + str(self._nf) +
-                                    '. Buffer length vs attempted = '
-                                    + str(len(buff)) + ' vs ' + str(self.framesize/2-self.headerwords))
+                raise UltracamError(
+                    'Rdata.__call__: failed to read frame {:d}. Buffer length vs attempted = {:d} vs {:d}'.format(self._nf, len(buff), self.framesize/2-self.headerwords))
 
-        # OK from this point, both server and local disk methods are the same
+        # From this point, both server and local disk methods are the same
         if self.instrument == 'ULTRACAM':
             time,info,blueTime,badBlue = utimer(tbytes, self, self._nf)
         elif self.instrument == 'ULTRASPEC':
@@ -684,148 +692,102 @@ class Rdata (Rhead):
         # move frame counter on by one
         self._nf += 1
 
-        # build header
-        head = Ahead(self)
-
-        head.add_entry('User','Data entered by user at telescope')
-        head.add_attr('User.target', 'target', ITYPE_STRING, 'Object name')
-        head.add_attr('User.pi','pi',ITYPE_STRING,'Principal investigator')
-        head.add_attr('User.id','id',ITYPE_STRING,'Programme ID')
-        head.add_attr('User.observers','observers',ITYPE_STRING,'Observers')
-        head.add_attr('User.dtype','dtype',ITYPE_STRING,'Data type')
-
-        head.add_entry('Instrument','Instrument setup information')
-        head.add_attr('Instrument.instrument','instrument',ITYPE_STRING,
-                      'Instrument identifier')
-        head.add_attr('Instrument.headerwords','headerwords',ITYPE_INT,
-                      'Number of 2-byte words in timing')
-        head.add_attr('Instrument.framesize','framesize',ITYPE_INT,
-                       'Total number of bytes per frame')
-
-        head.add_entry('Run', 'Run specific information')
-        head.add_attr('Run.run','_run',ITYPE_STRING,'run the frame came from')
-        head.add_attr('Run.mode','mode',ITYPE_STRING,'readout mode used')
-        head.add_entry('Run.ntmin',info['ntmin'],ITYPE_INT,
-                       'number of sequential timestamps needed')
-        head.add_attr('Run.filters','filters',ITYPE_STRING,
-                      'Filter name or names')
-        head.add_attr('Run.expose','exposeTime',ITYPE_FLOAT,'exposure time')
-        if self.instrument == 'ULTRASPEC':
-            head.add_attr('Run.output','output',ITYPE_STRING,'CCD output used')
-            head.add_attr('Run.speed','speed',ITYPE_STRING,'Readout speed')
-        elif self.instrument == 'ULTRACAM':
-            head.add_attr('Run.speed','gainSpeed',ITYPE_STRING,'Readout speed')
-
-        head.add_attr('Run.focus','focus',ITYPE_FLOAT,
-                      'Telescope focus')
-        head.add_attr('Run.ccdtemp','ccdtemp',ITYPE_FLOAT,
-                      'CCD temperature (K)')
-        head.add_attr('Run.fingtemp','fingertemp',ITYPE_FLOAT,
-                      'Cold finger temperature (K)')
-        head.add_attr('Run.fingpcen','fingerpcent',ITYPE_FLOAT,
-                      'Cold finger percentage')
-        head.add_attr('Run.slidepos','slidepos',ITYPE_STRING,
-                      'Slide position (pixels)')
-        head.add_attr('Run.RA','RA',ITYPE_STRING,'Right Ascension (J2000)')
-        head.add_attr('Run.Dec','Dec',ITYPE_STRING,'Declination (J2000)')
-        head.add_attr('Run.PA','PA',ITYPE_FLOAT,'Position angle (degrees)')
-        head.add_attr('Run.EngPA','engpa',ITYPE_FLOAT,
-                      'Engineering position angle (degrees)')
-        head.add_attr('Run.track','track',ITYPE_STRING,
-                      'Telescope judged to be tracking by usdriver')
-        head.add_attr('Run.ttflag','ttflag',ITYPE_STRING,
-                      'Telescope judged to be tracking by TCS')
-
-        head.add_entry('Frame', 'Frame specific information')
-        head.add_attr('Frame.frame','_nf',ITYPE_INT,'frame number within run')
-        head.add_entry('Frame.midnight',info['midnightCorr'],ITYPE_BOOL,
-                       'midnight bug correction applied')
-        head.add_entry('Frame.ferror',info['frameError'],ITYPE_BOOL,
-                       'problem with frame numbers found')
+        # add some specifics for the frame to the header
+        self['RUN'] = (self.run, 'run number')
+        self['NFRAME'] = (self._nf, 'frame number within run')
+        self['MIDNIGHT'] = (info['midnightCorr'],'midnight bug correction applied')
+        self['FRAMEERR'] = (info['frameError'],'problem with frame numbers found')
 
         # interpret data
-        xbin, ybin = self.xbin, self.ybin
         if self.instrument == 'ULTRACAM':
+
             # 3 CCDs. Windows come in pairs. Data from equivalent windows come out
             # on a pitch of 6. Some further jiggery-pokery is involved to get the
             # orientation of the frames correct.
             wins1, wins2, wins3 = [],[],[]
 
             if self.mode != 'FFOVER' and self.mode != 'FFOVNC':
-                # Non-overscan modes:
-                # flag indicating that outer pixels will be removed. This is because of a readout bug
-                # that affected all data taken prior to the VLT run of May 2007 spotted via the
-                # lack of a version number in the xml file
+                # Non-overscan modes: flag indicating that outer pixels will
+                # be removed. This is because of a readout bug that affected
+                # all data taken prior to the VLT run of May 2007 spotted via
+                # the lack of a version number in the xml file
                 strip_outer = self.version == -1
                 noff = 0
                 for wl, wr in zip(self.win[::2],self.win[1::2]):
+                    # wl and wr have the same dimensions
                     npix = 6*wl.nx*wl.ny
+                    shape = (wl.ny,wl.nx)
                     if flt:
+                        # convert to 4-byte floats
                         if strip_outer:
-                            wins1.append(
-                                Window(np.reshape(buff[noff:noff+npix:6].astype(np.float32),
-                                                  (wl.ny,wl.nx))[:,1:],wl.llx,wl.lly,xbin,ybin))
-                            wins1.append(
-                                Window(np.reshape(buff[noff+1:noff+npix:6].astype(np.float32),
-                                                  (wr.ny,wr.nx))[:,-2::-1],wr.llx+xbin,wr.lly,xbin,ybin))
-                            wins2.append(
-                                Window(np.reshape(buff[noff+2:noff+npix:6].astype(np.float32),
-                                                  (wl.ny,wl.nx))[:,1:],wl.llx,wl.lly,xbin,ybin))
-                            wins2.append(
-                                Window(np.reshape(buff[noff+3:noff+npix:6].astype(np.float32),
-                                                  (wr.ny,wr.nx))[:,-2::-1],wr.llx+xbin,wr.lly,xbin,ybin))
-                            wins3.append(
-                                Window(np.reshape(buff[noff+4:noff+npix:6].astype(np.float32),
-                                                  (wl.ny,wl.nx))[:,1:],wl.llx,wl.lly,xbin,ybin))
-                            wins3.append(
-                                Window(np.reshape(buff[noff+5:noff+npix:6].astype(np.float32),
-                                                  (wr.ny,wr.nx))[:,-2::-1],wr.llx+xbin,wr.lly,xbin,ybin))
+                            # CCD 1
+                            wins1.append(Windat(wl, np.reshape(
+                                buff[noff:noff+npix:6].astype(np.float32),shape)[:,1:]))
+                            wins1.append(Windat(wr, np.reshape(
+                                buff[noff+1:noff+npix:6].astype(np.float32),shape)[:,-2::-1]))
+
+                            # CCD 2
+                            wins2.append(Windat(wl, np.reshape(
+                                buff[noff+2:noff+npix:6].astype(np.float32),shape)[:,1:]))
+                            wins2.append(Windat(wr, np.reshape(
+                                buff[noff+3:noff+npix:6].astype(np.float32),shape)[:,-2::-1]))
+
+                            # CCD 3
+                            wins3.append(Windat(wl, np.reshape(
+                                buff[noff+4:noff+npix:6].astype(np.float32),shape)[:,1:]))
+                            wins3.append(Windat(wr, np.reshape(
+                                buff[noff+5:noff+npix:6].astype(np.float32),shape)[:,-2::-1]))
+
                         else:
-                            wins1.append(
-                                Window(np.reshape(buff[noff:noff+npix:6].astype(np.float32),
-                                                  (wl.ny,wl.nx)),wl.llx,wl.lly,xbin,ybin))
-                            wins1.append(
-                                Window(np.reshape(buff[noff+1:noff+npix:6].astype(np.float32),
-                                                  (wr.ny,wr.nx))[:,::-1],wr.llx,wr.lly,xbin,ybin))
-                            wins2.append(
-                                Window(np.reshape(buff[noff+2:noff+npix:6].astype(np.float32),
-                                                  (wl.ny,wl.nx)),wl.llx,wl.lly,xbin,ybin))
-                            wins2.append(
-                                Window(np.reshape(buff[noff+3:noff+npix:6].astype(np.float32),
-                                                  (wr.ny,wr.nx))[:,::-1],wr.llx,wr.lly,xbin,ybin))
-                            wins3.append(
-                                Window(np.reshape(buff[noff+4:noff+npix:6].astype(np.float32),
-                                                  (wl.ny,wl.nx)),wl.llx,wl.lly,xbin,ybin))
-                            wins3.append(
-                                Window(np.reshape(buff[noff+5:noff+npix:6].astype(np.float32),
-                                                  (wr.ny,wr.nx))[:,::-1],wr.llx,wr.lly,xbin,ybin))
+                            wins1.append(Windat(wl, np.reshape(
+                                buff[noff:noff+npix:6].astype(np.float32),shape)))
+                            wins1.append(Windat(wr, np.reshape(
+                                buff[noff+1:noff+npix:6].astype(np.float32),shape)[:,::-1]))
+
+                            wins2.append(Windat(wl, np.reshape(
+                                buff[noff+2:noff+npix:6].astype(np.float32),shape)))
+                            wins2.append(Windat(wr, np.reshape(
+                                buff[noff+3:noff+npix:6].astype(np.float32),shape)[:,::-1]))
+
+                            wins3.append(Windat(wl, np.reshape(
+                                buff[noff+4:noff+npix:6].astype(np.float32),shape)))
+                            wins3.append(Windat(wr, np.reshape(
+                                buff[noff+5:noff+npix:6].astype(np.float32),shape)[:,::-1]))
+
                     else:
+                        # keep as 2-byte ints
                         if strip_outer:
-                            wins1.append(Window(np.reshape(buff[noff:noff+npix:6],(wl.ny,wl.nx))[:,1:],
-                                                wl.llx,wl.lly,xbin,ybin))
-                            wins1.append(Window(np.reshape(buff[noff+1:noff+npix:6],(wr.ny,wr.nx))[:,-2::-1],
-                                                wr.llx+xbin,wr.lly,xbin,ybin))
-                            wins2.append(Window(np.reshape(buff[noff+2:noff+npix:6],(wl.ny,wl.nx))[:,1:],
-                                                wl.llx,wl.lly,xbin,ybin))
-                            wins2.append(Window(np.reshape(buff[noff+3:noff+npix:6],(wr.ny,wr.nx))[:,-2::-1],
-                                                wr.llx+xbin,wr.lly,xbin,ybin))
-                            wins3.append(Window(np.reshape(buff[noff+4:noff+npix:6],(wl.ny,wl.nx))[:,1:],
-                                                wl.llx,wl.lly,xbin,ybin))
-                            wins3.append(Window(np.reshape(buff[noff+5:noff+npix:6],(wr.ny,wr.nx))[:,-2::-1],
-                                                wr.llx+xbin,wr.lly,xbin,ybin))
+                            wins1.append(Windat(wl, np.reshape(
+                                buff[noff:noff+npix:6],shape)[:,1:]))
+                            wins1.append(Windat(wr, np.reshape(
+                                buff[noff+1:noff+npix:6],shape)[:,-2::-1]))
+
+                            wins2.append(Windat(wl, np.reshape(
+                                buff[noff+2:noff+npix:6],shape)[:,1:]))
+                            wins2.append(Windat(wr, np.reshape(
+                                buff[noff+3:noff+npix:6],shape)[:,-2::-1]))
+
+                            wins3.append(Windat(wl, np.reshape(
+                                buff[noff+4:noff+npix:6],shape)[:,1:]))
+                            wins3.append(Windat(wr, np.reshape(
+                                buff[noff+5:noff+npix:6],shape)[:,-2::-1]))
+
                         else:
-                            wins1.append(Window(np.reshape(buff[noff:noff+npix:6],(wl.ny,wl.nx)),
-                                                wl.llx,wl.lly,xbin,ybin))
-                            wins1.append(Window(np.reshape(buff[noff+1:noff+npix:6],(wr.ny,wr.nx))[:,::-1],
-                                                wr.llx,wr.lly,xbin,ybin))
-                            wins2.append(Window(np.reshape(buff[noff+2:noff+npix:6],(wl.ny,wl.nx)),
-                                                wl.llx,wl.lly,xbin,ybin))
-                            wins2.append(Window(np.reshape(buff[noff+3:noff+npix:6],(wr.ny,wr.nx))[:,::-1],
-                                                wr.llx,wr.lly,xbin,ybin))
-                            wins3.append(Window(np.reshape(buff[noff+4:noff+npix:6],(wl.ny,wl.nx)),
-                                                wl.llx,wl.lly,xbin,ybin))
-                            wins3.append(Window(np.reshape(buff[noff+5:noff+npix:6],(wr.ny,wr.nx))[:,::-1],
-                                                wr.llx,wr.lly,xbin,ybin))
+                            wins1.append(Windat(wl, np.reshape(
+                                buff[noff:noff+npix:6],shape)))
+                            wins1.append(Windat(wr, np.reshape(
+                                buff[noff+1:noff+npix:6],shape)[:,::-1]))
+
+                            wins2.append(Windat(wl, np.reshape(
+                                buff[noff+2:noff+npix:6],shape)))
+                            wins2.append(Windat(wr, np.reshape(
+                                buff[noff+3:noff+npix:6],shape)[:,::-1]))
+
+                            wins3.append(Windat(wl, np.reshape(
+                                buff[noff+4:noff+npix:6],shape)))
+                            wins3.append(Windat(wr, np.reshape(
+                                buff[noff+5:noff+npix:6],shape)[:,::-1]))
+
                     noff += npix
             else:
                 # Overscan modes need special re-formatting. See the description under Rhead
@@ -835,23 +797,24 @@ class Rdata (Rhead):
                 nxb  = 540 // xbin
                 nyb  = 1032 // ybin
                 npix = 6*nxb*nyb
+                shape = (nyb,nxb)
                 if flt:
-                    winl1 = np.reshape(buff[:npix:6].astype(np.float32),(nyb,nxb))
-                    winr1 = np.reshape(buff[1:npix:6].astype(np.float32),(nyb,nxb))[:,::-1]
-                    winl2 = np.reshape(buff[2:npix:6].astype(np.float32),(nyb,nxb))
-                    winr2 = np.reshape(buff[3:npix:6].astype(np.float32),(nyb,nxb))[:,::-1]
-                    winl3 = np.reshape(buff[4:npix:6].astype(np.float32),(nyb,nxb))
-                    winr3 = np.reshape(buff[5:npix:6].astype(np.float32),(nyb,nxb))[:,::-1]
+                    winl1 = np.reshape(buff[:npix:6].astype(np.float32),shape)
+                    winr1 = np.reshape(buff[1:npix:6].astype(np.float32),shape)[:,::-1]
+                    winl2 = np.reshape(buff[2:npix:6].astype(np.float32),shape)
+                    winr2 = np.reshape(buff[3:npix:6].astype(np.float32),shape)[:,::-1]
+                    winl3 = np.reshape(buff[4:npix:6].astype(np.float32),shape)
+                    winr3 = np.reshape(buff[5:npix:6].astype(np.float32),shape)[:,::-1]
                 else:
-                    winl1 = np.reshape(buff[:npix:6],(nyb,nxb))
-                    winr1 = np.reshape(buff[1:npix:6],(nyb,nxb))[:,::-1]
-                    winl2 = np.reshape(buff[2:npix:6],(nyb,nxb))
-                    winr2 = np.reshape(buff[3:npix:6],(nyb,nxb))[:,::-1]
-                    winl3 = np.reshape(buff[4:npix:6],(nyb,nxb))
-                    winr3 = np.reshape(buff[5:npix:6],(nyb,nxb))[:,::-1]
+                    winl1 = np.reshape(buff[:npix:6],shape)
+                    winr1 = np.reshape(buff[1:npix:6],shape)[:,::-1]
+                    winl2 = np.reshape(buff[2:npix:6],shape)
+                    winr2 = np.reshape(buff[3:npix:6],shape)[:,::-1]
+                    winl3 = np.reshape(buff[4:npix:6],shape)
+                    winr3 = np.reshape(buff[5:npix:6],shape)[:,::-1]
 
                 # For the reasons outlined in Rhead, we actually want to chop up
-                # these 2 "data windows" into 6 per CCD. This is what we do next:
+                # these 2 data windows into 6 per CCD. This is what we do next:
 
                 # overscan is arranged as
                 # 24 columns on LH of LH window
@@ -863,62 +826,84 @@ class Rdata (Rhead):
                 # Window 1 of the six comes from lower-left of left-hand data window
                 w = self.win[0]
                 xoff = 24 // xbin
-                wins1.append(Window(winl1[:w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
-                wins2.append(Window(winl2[:w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
-                wins3.append(Window(winl3[:w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
+                wins1.append(Windat(w, winl1[:w.ny,xoff:xoff+w.nx]))
+                wins2.append(Windat(w, winl2[:w.ny,xoff:xoff+w.nx]))
+                wins3.append(Windat(w, winl3[:w.ny,xoff:xoff+w.nx]))
 
                 # Window 2 comes from lower-right of right-hand data window
                 w = self.win[1]
                 xoff = 4 // xbin
-                wins1.append(Window(winr1[:w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
-                wins2.append(Window(winr2[:w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
-                wins3.append(Window(winr3[:w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
+                wins1.append(Windat(w, winr1[:w.ny,xoff:xoff+w.nx]))
+                wins2.append(Windat(w, winr2[:w.ny,xoff:xoff+w.nx]))
+                wins3.append(Windat(w, winr3[:w.ny,xoff:xoff+w.nx]))
 
-                # Window 3 is bias associated with left-hand data window (leftmost 24 and rightmost 4)
+                # Window 3 is bias associated with left-hand data window
+                # (leftmost 24 and rightmost 4)
                 w = self.win[2]
                 lh = 24 // xbin
                 rh = 4 // xbin
-                wins1.append(Window(np.concatenate( (winl1[:w.ny,:lh],
-                                                     winl1[:w.ny,-rh:]),axis=1),w.llx,w.lly,xbin,ybin))
-                wins2.append(Window(np.concatenate( (winl2[:w.ny,:lh],
-                                                     winl2[:w.ny,-rh:]),axis=1),w.llx,w.lly,xbin,ybin))
-                wins3.append(Window(np.concatenate( (winl3[:w.ny,:lh],
-                                                     winl3[:w.ny,-rh:]),axis=1),w.llx,w.lly,xbin,ybin))
+                wins1.append(Windat(w, np.concatenate(
+                    (winl1[:w.ny,:lh], winl1[:w.ny,-rh:]),axis=1)))
+                wins2.append(Windat(w, np.concatenate(
+                    (winl2[:w.ny,:lh], winl2[:w.ny,-rh:]),axis=1)))
+                wins3.append(Windat(w, np.concatenate(
+                    (winl3[:w.ny,:lh], winl3[:w.ny,-rh:]),axis=1)))
 
-                # Window 4 is bias associated with right-hand data window (leftmost 4 and rightmost 24)
+                # Window 4 is bias associated with right-hand data window
+                # (leftmost 4 and rightmost 24)
                 w = self.win[3]
                 lh = 4 // xbin
                 rh = 24 // xbin
-                wins1.append(Window(np.concatenate( (winr1[:w.ny,:lh],
-                                                     winr1[:w.ny,-rh:]),axis=1),w.llx,w.lly,xbin,ybin))
-                wins2.append(Window(np.concatenate( (winr2[:w.ny,:lh],
-                                                     winr2[:w.ny,-rh:]),axis=1),w.llx,w.lly,xbin,ybin))
-                wins3.append(Window(np.concatenate( (winr3[:w.ny,:lh],
-                                                     winr3[:w.ny,-rh:]),axis=1),w.llx,w.lly,xbin,ybin))
+                wins1.append(Windat(w, np.concatenate(
+                    (winr1[:w.ny,:lh], winr1[:w.ny,-rh:]),axis=1)))
+                wins2.append(Windat(w, np.concatenate(
+                    (winr2[:w.ny,:lh], winr2[:w.ny,-rh:]),axis=1)))
+                wins3.append(Windat(w, np.concatenate(
+                    (winr3[:w.ny,:lh], winr3[:w.ny,-rh:]),axis=1)))
 
                 # Window 5 comes from top strip of left-hand data window
                 w = self.win[4]
                 xoff = 24 // xbin
                 yoff = 1024 // ybin
-                wins1.append(Window(winl1[yoff:yoff+w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
-                wins2.append(Window(winl2[yoff:yoff+w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
-                wins3.append(Window(winl3[yoff:yoff+w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
+                wins1.append(Windat(w, winl1[yoff:yoff+w.ny,xoff:xoff+w.nx]))
+                wins2.append(Windat(w, winl2[yoff:yoff+w.ny,xoff:xoff+w.nx]))
+                wins3.append(Windat(w, winl3[yoff:yoff+w.ny,xoff:xoff+w.nx]))
 
                 # Window 6 comes from top of right-hand data window
                 w = self.win[5]
                 xoff = 4 // xbin
                 yoff = 1024 // ybin
-                wins1.append(Window(winr1[yoff:yoff+w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
-                wins2.append(Window(winr2[yoff:yoff+w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
-                wins3.append(Window(winr3[yoff:yoff+w.ny,xoff:xoff+w.nx],w.llx,w.lly,xbin,ybin))
+                wins1.append(Windat(w, winr1[yoff:yoff+w.ny,xoff:xoff+w.nx]))
+                wins2.append(Windat(w, winr2[yoff:yoff+w.ny,xoff:xoff+w.nx]))
+                wins3.append(Windat(w, winr3[yoff:yoff+w.ny,xoff:xoff+w.nx]))
 
             # Build the CCDs
-            ccd1 = CCD(wins1, time, self.nxmax, self.nymax, True, None)
-            ccd2 = CCD(wins2, time, self.nxmax, self.nymax, True, None)
-            ccd3 = CCD(wins3, blueTime, self.nxmax, self.nymax, not badBlue, None)
+            rhead = fits.Header()
+            rhead['CCD'] = (1, 'CCD integer label')
+            rhead['CCDNAME'] = 'Red CCD'
+            rhead['MJDUTC'] = (time.mjd, 'MJD(UTC) at centre of exposure')
+            rhead['EXPOSURE'] = (time.expose, 'Exposure time (sec)')
+            rhead['MJDOK'] = (time.good,'flag indicating reliability of time')
+            rhead['REASON'] = (time.reason,'reason for MJDOK bad status')
+            ccd1 = CCD(wins1, self.nxmax, self.nymax, bhead)
 
-            # Return a UCAM object
-            return UCAM([ccd1,ccd2,ccd3], head)
+            ghead = rhead.copy()
+            ghead['CCD'] = (2, 'CCD integer label')
+            ghead['CCDNAME'] = 'Green CCD'
+            ccd2 = CCD(wins2, self.nxmax, self.nymax, ghead)
+
+            bhead = rhead.copy()
+            bhead['CCD'] = (3, 'CCD integer label')
+            bhead['CCDNAME'] = 'Blue CCD'
+            bhead['MJDUTC'] = (blueTime.mjd, 'MJD(UTC) at centre of exposure')
+            bhead['EXPOSURE'] = (blueTime.expose, 'Exposure time (sec)')
+            bhead['MJDOK'] = (blueTime.good,'flag indicating reliability of time')
+            bhead['REASON'] = (blueTime.reason,'reason for MJDOK bad status')
+            bhead['DSTATUS'] = (not badBlue,'blue data status flag')
+            ccd3 = CCD(wins3, self.nxmax, self.nymax, bhead)
+
+            # Finally, return an MCCD
+            return MCCD([ccd1,ccd2,ccd3], self)
 
         elif self.instrument == 'ULTRASPEC':
 
@@ -1043,13 +1028,14 @@ class Rdata (Rhead):
             # somewhat inefficiently in the server case, we have to read the whole
             # frame because there are no options for timing data alone, although
             # at least no data re-formatting is required.
-            full_url = URL + self.run + '?action=get_frame&frame=' + str(self._nf-1)
-            buff     = urllib.request.urlopen(full_url).read()
+            full_url = '{:s}{:s}?action=get_frame&frame={:d}'.format(
+                URL,self.run,self._nf-1)
+            buff = urllib.request.urlopen(full_url).read()
             if len(buff) != self.framesize:
                 self._nf = 1
-                raise UltracamError('Rdata.time: failed to read frame ' + str(self._nf) +
-                                    ' from FileServer. Buffer length vs expected = '
-                                    + str(len(buff)) + ' vs ' + str(self.framesize) + ' bytes.')
+                raise UltracamError(
+                    'Rdata.time: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} bytes'.format(self._nf, len(buff), self.framesize)
+                )
             tbytes = buff[:2*self.headerwords]
         else:
             # read timing bytes alone
@@ -1075,20 +1061,22 @@ class Rtime (Rhead):
     Iterator class to enable swift reading of Ultracam times.
     """
     def __init__(self, run, nframe=1, server=False):
+        """Connects to a raw data file for reading. The file is kept open.  The file
+        pointer is set to the start of frame nframe.
+
+        Arguments::
+
+           run : (string)
+              run number, e.g. 'run036'. 
+
+           nframe : (int)
+              frame number to position for next read, starting at 1 as the first.
+
+           server : (bool)
+              True/False for server vs local disk access
+
         """
-        Connects to a raw data file for reading. The file is kept open.
-        The file pointer is set to the start of frame nframe.
-
-        Arguments:
-
-        run     -- as in 'run036'. Will try to access equivalent .xml and .dat
-                   files
-
-        nframe  -- frame to position for next read, starting at 1 as the first.
-
-        server  -- True/False for server vs local disk access
-        """
-        Rhead.__init__(self, run, server)
+        super().__init__(self, run, server)
         if self.isPonoff():
             raise PowerOnOffError('Rtime.__init__: attempted to read a power on/off')
 
@@ -1113,19 +1101,19 @@ class Rtime (Rhead):
         try:
             while 1:
                 yield self.__call__()
-        except UendError:
-            pass
-        except urllib.error.HTTPError:
+        except (UendError, urllib.error.HTTPError):
             pass
 
     def set(self, nframe=1):
-        """
-        Sets the internal file pointer to point at frame nframe.
+        """Sets the internal file pointer to point at frame nframe.
 
-        nframe  -- frame number to get, starting at 1. 0 for the last (complete) frame. 'None'
-                   will be ignored. A value < 0 will cause an exception. A value greater than
-                   the number of frames in the file will work, but will cause an exception to
-                   be raised on the next attempted read.
+           nframe : (int)
+               frame number to get, starting at 1. 0 for the last (complete)
+               frame. 'None' will be ignored. A value < 0 will cause an
+               exception. A value greater than the number of frames in the
+               file will work, but will cause an exception to be raised on the
+               next attempted read.
+
         """
 
         # position read pointer
@@ -1166,9 +1154,9 @@ class Rtime (Rhead):
             buff     = urllib.request.urlopen(full_url).read()
             if len(buff) != self.framesize:
                 self._nf = 1
-                raise UltracamError('Rtime.__call__: failed to read frame ' + str(self._nf) +
-                                    ' from FileServer. Buffer length vs expected = '
-                                    + str(len(buff)) + ' vs ' + str(self.framesize) + ' bytes.')
+                raise UltracamError(
+                    'Rtime.__call__: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} byes'.format(self._nf, len(buff), self.framesize)
+                )
 
             # have data. Re-format into the timing bytes and unsigned 2 byte int data buffer
             tbytes = buff[:2*self.headerwords]
@@ -1419,7 +1407,8 @@ def utimer(tbytes, rhead, fnum):
 
     # 'midnight bug' correction
     if (int(mjd-3) % 7) == ((nsec // DSEC) % 7):
-        warnings.warn('ultracam.utimer: run ' + rhead._run + ' midnight bug detected and corrected')
+        warnings.warn(
+            'ultracam.utimer: run {:d}  midnight bug detected and corrected'.format(rhead._run))
         mjd += 1
         midnightCorr = True
     else:
@@ -1444,7 +1433,8 @@ def utimer(tbytes, rhead, fnum):
         elif rhead.gainSpeed == 'fdd':
             cds_time = CDS_TIME_FDD
         else:
-            raise UltracamError('ultracam.utimer: did not recognize gain speed setting = ' + rhead.gainSpeed)
+            raise UltracamError(
+                'ultracam.utimer: did not recognize gain speed setting = {:s}'.format(rhead.gainSpeed))
         VIDEO = SWITCH_TIME + cds_time
 
     elif rhead.instrument == 'ULTRASPEC':
@@ -1452,9 +1442,8 @@ def utimer(tbytes, rhead, fnum):
         # one extra parameter in addition to those from Vik's
         USPEC_FT_TIME  = 0.0067196 if mjd < USPEC_CHANGE else 0.0149818
 
-
     if rhead.instrument == 'ULTRACAM' and \
-            (rhead.mode == 'FFCLR' or rhead.mode == 'FFOVER' or rhead.mode == '1-PCLR'):
+       (rhead.mode == 'FFCLR' or rhead.mode == 'FFOVER' or rhead.mode == '1-PCLR'):
 
         # never need more than two times
         if len(utimer.tstamp) > 2: utimer.tstamp.pop()
@@ -1473,10 +1462,10 @@ def utimer(tbytes, rhead, fnum):
             # Time taken to read CCD (assuming cdd mode)
             if rhead.mode == 'FFCLR':
                 readoutTime = (1024/rhead.ybin)*(VCLOCK_STORAGE*rhead.ybin +
-                                                  536*HCLOCK + (512/rhead.xbin+2)*VIDEO)/1.e6
+                                                 536*HCLOCK + (512/rhead.xbin+2)*VIDEO)/1.e6
             elif rhead.mode == 'FFOVER':
                 readoutTime = (1032/rhead.ybin)*(VCLOCK_STORAGE*rhead.ybin +
-                                                  540*HCLOCK + (540/rhead.xbin+2)*VIDEO)/1.e6
+                                                 540*HCLOCK + (540/rhead.xbin+2)*VIDEO)/1.e6
             else:
                 nxb          = rhead.win[1].nx
                 nxu          = rhead.xbin*nxb
@@ -1487,7 +1476,7 @@ def utimer(tbytes, rhead, fnum):
                 num_hclocks  =  nxu + diff_shift + (1024 - xright) + 8 \
                     if (xleft - 1 > 1024 - xright) else nxu + diff_shift + (xleft - 1) + 8
                 readoutTime = nyb*(VCLOCK_STORAGE*rhead.ybin +
-                                    num_hclocks*HCLOCK + (nxb+2)*VIDEO)/1.e6
+                                   num_hclocks*HCLOCK + (nxb+2)*VIDEO)/1.e6
 
             # Frame transfer time
             frameTransfer = 1033.*vclock_frame
@@ -1525,10 +1514,10 @@ def utimer(tbytes, rhead, fnum):
 
         if rhead.mode == 'FFNCLR':
             readoutTime = (1024/rhead.ybin)*(VCLOCK_STORAGE*rhead.ybin +
-                                              536*HCLOCK + (512/rhead.xbin+2)*VIDEO)/1.e6
+                                             536*HCLOCK + (512/rhead.xbin+2)*VIDEO)/1.e6
         elif rhead.mode == 'FFOVNC':
                 readoutTime = (1032/rhead.ybin)*(VCLOCK_STORAGE*rhead.ybin +
-                                                  540*HCLOCK + (540/rhead.xbin+2)*VIDEO)/1.e6
+                                                 540*HCLOCK + (540/rhead.xbin+2)*VIDEO)/1.e6
         else:
 
             readoutTime = 0.
@@ -1571,9 +1560,11 @@ def utimer(tbytes, rhead, fnum):
                 # parameters to determine the number of hclocks needed, and
                 # vice versa.
                 num_hclocks = nxu + diff_shift + (1024 - xright) + 8 \
-                    if (xleft - 1 > 1024 - xright) else nxu + diff_shift + (xleft - 1) + 8
+                              if (xleft - 1 > 1024 - xright) else \
+                                 nxu + diff_shift + (xleft - 1) + 8
 
-                # Time taken to read one line. The extra 2 is required to fill the video pipeline buffer
+                # Time taken to read one line. The extra 2 is required to fill
+                # the video pipeline buffer
                 line_read = VCLOCK_STORAGE*ybin + num_hclocks*HCLOCK + (nxu/xbin+2)*VIDEO
 
                 readoutTime += y_shift + (nyu/ybin)*line_read
@@ -1657,23 +1648,27 @@ def utimer(tbytes, rhead, fnum):
         nwins = int((1033./nyu+1.)/2.)
         pipe_shift = int(1033.-(((2.*nwins)-1.)*nyu))
 
-        # Time taken for (reduced) frame transfer, the main advantage of drift mode
+        # Time taken for (reduced) frame transfer, the main advantage of drift
+        # mode
         frameTransfer = (nyu + ystart - 1)*vclock_frame
 
-        # Number of columns to shift whichever window is further from the edge of the readout
-        # to get ready for simultaneous readout.
+        # Number of columns to shift whichever window is further from the edge
+        # of the readout to get ready for simultaneous readout.
         diff_shift = abs(xleft - 1 - (1024 - xright) )
 
-        # Time taken to dump any pixels in a row that come after the ones we want.
-        # The '8' is the number of HCLOCKs needed to open the serial register dump gates
-        # If the left window is further from the left edge than the right window is from the
-        # right edge, then the diffshift will move it to be the same as the right window, and
-        # so we use the right window parameters to determine the number of hclocks needed, and
-        # vice versa.
+        # Time taken to dump any pixels in a row that come after the ones we
+        # want.  The '8' is the number of HCLOCKs needed to open the serial
+        # register dump gates If the left window is further from the left edge
+        # than the right window is from the right edge, then the diffshift
+        # will move it to be the same as the right window, and so we use the
+        # right window parameters to determine the number of hclocks needed,
+        # and vice versa.
         num_hclocks  = nxu + diff_shift + (1024 - xright) + 8 \
-            if (xleft - 1 > 1024 - xright) else nxu + diff_shift + (xleft - 1) + 8
+                       if (xleft - 1 > 1024 - xright) else \
+                          nxu + diff_shift + (xleft - 1) + 8
 
-        # Time taken to read one line. The extra 2 is required to fill the video pipeline buffer
+        # Time taken to read one line. The extra 2 is required to fill the
+        # video pipeline buffer
         line_read = VCLOCK_STORAGE*ybin + num_hclocks*HCLOCK + (nxu/xbin+2)*VIDEO
 
         readoutTime = ((nyu/ybin)*line_read + pipe_shift*VCLOCK_STORAGE)/1.e6
@@ -1859,8 +1854,9 @@ def utimer(tbytes, rhead, fnum):
 
         if rhead.nblue > 1:
 
-            # The mid-exposure time for the OK blue frames in this case is computed by averaging the
-            # mid-exposure times of all the contributing frames, if they are available.
+            # The mid-exposure time for the OK blue frames in this case is
+            # computed by averaging the mid-exposure times of all the
+            # contributing frames, if they are available.
             utimer.blueTimes.insert(0,time)
 
             if badBlue:
@@ -1870,15 +1866,16 @@ def utimer(tbytes, rhead, fnum):
 
             else:
 
-                # if any of the contributing times is flagged as unreliable, then
-                # so is the final time. This is also unreliable if any
+                # if any of the contributing times is flagged as unreliable,
+                # then so is the final time. This is also unreliable if any
                 # contributing frame times are missing. Time is calculated as
                 # half-way point between start of first and end of last
-                # contributing exposure.  Corrections are made if there are too
-                # few contributing exposures (even though the final value will
-                # still be flagged as unreliable
+                # contributing exposure.  Corrections are made if there are
+                # too few contributing exposures (even though the final value
+                # will still be flagged as unreliable
                 ncont  = min(rhead.nblue, len(utimer.blueTimes))
-                start  = utimer.blueTimes[ncont-1].mjd - utimer.blueTimes[ncont-1].expose/2./DSEC
+                start  = utimer.blueTimes[ncont-1].mjd - \
+                         utimer.blueTimes[ncont-1].expose/2./DSEC
                 end    = utimer.blueTimes[0].mjd       + utimer.blueTimes[0].expose/2./DSEC
                 expose = DSEC*(end - start)
 
@@ -1914,4 +1911,6 @@ def utimer(tbytes, rhead, fnum):
         return (time,info)
 
     else:
-        raise UltracamError('ultracam.utimer: did not recognize instrument = ' + rhead.instrument)
+        raise UltracamError(
+            'ultracam.utimer: did not recognize instrument = {:s}'.format(rhead.instrument)
+        )
