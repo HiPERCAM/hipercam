@@ -6,10 +6,11 @@ import struct
 import warnings
 import xml.dom.minidom
 import numpy as np
+import urllib.request
 
 from astropy.io import fits
 
-from hipercam import (Window, Windat, CCD, MCCD)
+from hipercam import (CCD, Group, MCCD, Windat, Window) 
 
 from .constants import *
 from .uerrors import *
@@ -238,6 +239,8 @@ class Rhead(fits.Header):
                else int(param['X_BIN'])
         ybin = int(param['Y_BIN_FAC']) if 'Y_BIN_FAC' in param \
                else int(param['Y_BIN'])
+        self.xbin = xbin
+        self.ybin = ybin
 
         # Build up list of Windows
         self.win = []
@@ -247,6 +250,7 @@ class Rhead(fits.Header):
             numexp = int(param['NO_EXPOSURES'])
             gainSpeed = hex(int(param['GAIN_SPEED']))[2:] \
                         if 'GAIN_SPEED' in param else None
+            self.gainSpeed = gainSpeed
 
             if 'V_FT_CLK' in param:
                 v_ft_clk = struct.pack('I',int(param['V_FT_CLK']))[2]
@@ -254,8 +258,10 @@ class Rhead(fits.Header):
                 v_ft_clk = 140;
             else:
                 v_ft_clk = 0
+            self.v_ft_clk = v_ft_clk
 
             nblue = int(param['NBLUE']) if 'NBLUE' in param else 1
+            self.nblue = nblue
 
             # store paremeters of interest in FITS header
             self['EXPDELAY'] = (exposeTime, 'Exposure delay (seconds)')
@@ -400,6 +406,7 @@ class Rhead(fits.Header):
                    else int(param['VERSION']) if 'VERSION' in param \
                    else -1)
         self['VERSION'] = (version, 'Software version code')
+        self.version = version
 
         if 'REVISION' in param or 'VERSION' in param:
             vcheck = int(param['REVISION']) if 'REVISION' in param else \
@@ -436,6 +443,7 @@ class Rhead(fits.Header):
         # convert to seconds
         exposeTime *= self.timeUnits
         self['EXPDELAY'] = (exposeTime, 'Exposure delay (seconds)')
+        self.exposeTime = exposeTime
 
         # Finally have reached end of constructor / initialiser
 
@@ -704,7 +712,7 @@ class Rdata (Rhead):
             # 3 CCDs. Windows come in pairs. Data from equivalent windows come out
             # on a pitch of 6. Some further jiggery-pokery is involved to get the
             # orientation of the frames correct.
-            wins1, wins2, wins3 = [],[],[]
+            wins1, wins2, wins3 = Group(), Group(), Group()
 
             if self.mode != 'FFOVER' and self.mode != 'FFOVNC':
                 # Non-overscan modes: flag indicating that outer pixels will
@@ -713,6 +721,7 @@ class Rdata (Rhead):
                 # the lack of a version number in the xml file
                 strip_outer = self.version == -1
                 noff = 0
+                nwin = 0
                 for wl, wr in zip(self.win[::2],self.win[1::2]):
                     # wl and wr have the same dimensions
                     npix = 6*wl.nx*wl.ny
@@ -721,81 +730,84 @@ class Rdata (Rhead):
                         # convert to 4-byte floats
                         if strip_outer:
                             # CCD 1
-                            wins1.append(Windat(wl, np.reshape(
-                                buff[noff:noff+npix:6].astype(np.float32),shape)[:,1:]))
-                            wins1.append(Windat(wr, np.reshape(
-                                buff[noff+1:noff+npix:6].astype(np.float32),shape)[:,-2::-1]))
+                            wins1[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff:noff+npix:6].astype(np.float32),shape)[:,1:])
+                            wins1[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+1:noff+npix:6].astype(np.float32),shape)[:,-2::-1])
 
                             # CCD 2
-                            wins2.append(Windat(wl, np.reshape(
-                                buff[noff+2:noff+npix:6].astype(np.float32),shape)[:,1:]))
-                            wins2.append(Windat(wr, np.reshape(
-                                buff[noff+3:noff+npix:6].astype(np.float32),shape)[:,-2::-1]))
+                            wins2[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff+2:noff+npix:6].astype(np.float32),shape)[:,1:])
+                            wins2[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+3:noff+npix:6].astype(np.float32),shape)[:,-2::-1])
 
                             # CCD 3
-                            wins3.append(Windat(wl, np.reshape(
-                                buff[noff+4:noff+npix:6].astype(np.float32),shape)[:,1:]))
-                            wins3.append(Windat(wr, np.reshape(
-                                buff[noff+5:noff+npix:6].astype(np.float32),shape)[:,-2::-1]))
+                            wins3[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff+4:noff+npix:6].astype(np.float32),shape)[:,1:])
+                            wins3[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+5:noff+npix:6].astype(np.float32),shape)[:,-2::-1])
 
                         else:
-                            wins1.append(Windat(wl, np.reshape(
-                                buff[noff:noff+npix:6].astype(np.float32),shape)))
-                            wins1.append(Windat(wr, np.reshape(
-                                buff[noff+1:noff+npix:6].astype(np.float32),shape)[:,::-1]))
+                            wins1[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff:noff+npix:6].astype(np.float32),shape))
+                            wins1[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+1:noff+npix:6].astype(np.float32),shape)[:,::-1])
 
-                            wins2.append(Windat(wl, np.reshape(
-                                buff[noff+2:noff+npix:6].astype(np.float32),shape)))
-                            wins2.append(Windat(wr, np.reshape(
-                                buff[noff+3:noff+npix:6].astype(np.float32),shape)[:,::-1]))
+                            wins2[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff+2:noff+npix:6].astype(np.float32),shape))
+                            wins2[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+3:noff+npix:6].astype(np.float32),shape)[:,::-1])
 
-                            wins3.append(Windat(wl, np.reshape(
-                                buff[noff+4:noff+npix:6].astype(np.float32),shape)))
-                            wins3.append(Windat(wr, np.reshape(
-                                buff[noff+5:noff+npix:6].astype(np.float32),shape)[:,::-1]))
+                            wins3[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff+4:noff+npix:6].astype(np.float32),shape))
+                            wins3[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+5:noff+npix:6].astype(np.float32),shape)[:,::-1])
 
                     else:
                         # keep as 2-byte ints
                         if strip_outer:
-                            wins1.append(Windat(wl, np.reshape(
-                                buff[noff:noff+npix:6],shape)[:,1:]))
-                            wins1.append(Windat(wr, np.reshape(
-                                buff[noff+1:noff+npix:6],shape)[:,-2::-1]))
+                            wins1[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff:noff+npix:6],shape)[:,1:])
+                            wins1[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+1:noff+npix:6],shape)[:,-2::-1])
 
-                            wins2.append(Windat(wl, np.reshape(
-                                buff[noff+2:noff+npix:6],shape)[:,1:]))
-                            wins2.append(Windat(wr, np.reshape(
-                                buff[noff+3:noff+npix:6],shape)[:,-2::-1]))
+                            wins2[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff+2:noff+npix:6],shape)[:,1:])
+                            wins2[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+3:noff+npix:6],shape)[:,-2::-1])
 
-                            wins3.append(Windat(wl, np.reshape(
-                                buff[noff+4:noff+npix:6],shape)[:,1:]))
-                            wins3.append(Windat(wr, np.reshape(
-                                buff[noff+5:noff+npix:6],shape)[:,-2::-1]))
+                            wins3[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff+4:noff+npix:6],shape)[:,1:])
+                            wins3[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+5:noff+npix:6],shape)[:,-2::-1])
 
                         else:
-                            wins1.append(Windat(wl, np.reshape(
-                                buff[noff:noff+npix:6],shape)))
-                            wins1.append(Windat(wr, np.reshape(
-                                buff[noff+1:noff+npix:6],shape)[:,::-1]))
+                            wins1[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff:noff+npix:6],shape))
+                            wins1[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+1:noff+npix:6],shape)[:,::-1])
 
-                            wins2.append(Windat(wl, np.reshape(
-                                buff[noff+2:noff+npix:6],shape)))
-                            wins2.append(Windat(wr, np.reshape(
-                                buff[noff+3:noff+npix:6],shape)[:,::-1]))
+                            wins2[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff+2:noff+npix:6],shape))
+                            wins2[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+3:noff+npix:6],shape)[:,::-1])
 
-                            wins3.append(Windat(wl, np.reshape(
-                                buff[noff+4:noff+npix:6],shape)))
-                            wins3.append(Windat(wr, np.reshape(
-                                buff[noff+5:noff+npix:6],shape)[:,::-1]))
+                            wins3[nwin+1] = Windat(wl, np.reshape(
+                                buff[noff+4:noff+npix:6],shape))
+                            wins3[nwin+2] = Windat(wr, np.reshape(
+                                buff[noff+5:noff+npix:6],shape)[:,::-1])
 
                     noff += npix
+                nwin += 2
+
             else:
-                # Overscan modes need special re-formatting. See the description under Rhead
-                # for more on this. The data come in the form of two windows 540 by 1032
-                # (divided by binning factors). The first thing we do is read these windows
-                # into 6 numpy arrays.
-                nxb  = 540 // xbin
-                nyb  = 1032 // ybin
+                # Overscan modes need special re-formatting. See the
+                # description under Rhead for more on this. The data come in
+                # the form of two windows 540 by 1032 (divided by binning
+                # factors). The first thing we do is read these windows into 6
+                # numpy arrays.
+                nxb = 540 // xbin
+                nyb = 1032 // ybin
                 npix = 6*nxb*nyb
                 shape = (nyb,nxb)
                 if flt:
@@ -823,87 +835,92 @@ class Rdata (Rhead):
                 # 24 columns on RH of RH window
                 #  8 rows along top of LH and RH windows
 
-                # Window 1 of the six comes from lower-left of left-hand data window
+                # Window 1 of the six comes from lower-left of left-hand data
+                # window
                 w = self.win[0]
                 xoff = 24 // xbin
-                wins1.append(Windat(w, winl1[:w.ny,xoff:xoff+w.nx]))
-                wins2.append(Windat(w, winl2[:w.ny,xoff:xoff+w.nx]))
-                wins3.append(Windat(w, winl3[:w.ny,xoff:xoff+w.nx]))
+                nwin = 1
+                wins1[nwin] = Windat(w, winl1[:w.ny,xoff:xoff+w.nx])
+                wins2[nwin] = Windat(w, winl2[:w.ny,xoff:xoff+w.nx])
+                wins3[nwin] = Windat(w, winl3[:w.ny,xoff:xoff+w.nx])
 
                 # Window 2 comes from lower-right of right-hand data window
+                nwin += 1
                 w = self.win[1]
                 xoff = 4 // xbin
-                wins1.append(Windat(w, winr1[:w.ny,xoff:xoff+w.nx]))
-                wins2.append(Windat(w, winr2[:w.ny,xoff:xoff+w.nx]))
-                wins3.append(Windat(w, winr3[:w.ny,xoff:xoff+w.nx]))
+                wins1[nwin] = Windat(w, winr1[:w.ny,xoff:xoff+w.nx])
+                wins2[nwin] = Windat(w, winr2[:w.ny,xoff:xoff+w.nx])
+                wins3[nwin] = Windat(w, winr3[:w.ny,xoff:xoff+w.nx])
 
                 # Window 3 is bias associated with left-hand data window
                 # (leftmost 24 and rightmost 4)
+                nwin += 1
                 w = self.win[2]
                 lh = 24 // xbin
                 rh = 4 // xbin
-                wins1.append(Windat(w, np.concatenate(
-                    (winl1[:w.ny,:lh], winl1[:w.ny,-rh:]),axis=1)))
-                wins2.append(Windat(w, np.concatenate(
-                    (winl2[:w.ny,:lh], winl2[:w.ny,-rh:]),axis=1)))
-                wins3.append(Windat(w, np.concatenate(
-                    (winl3[:w.ny,:lh], winl3[:w.ny,-rh:]),axis=1)))
+                wins1[nwin] = Windat(w, np.concatenate(
+                    (winl1[:w.ny,:lh], winl1[:w.ny,-rh:]),axis=1))
+                wins2[nwin] = Windat(w, np.concatenate(
+                    (winl2[:w.ny,:lh], winl2[:w.ny,-rh:]),axis=1))
+                wins3[nwin] = Windat(w, np.concatenate(
+                    (winl3[:w.ny,:lh], winl3[:w.ny,-rh:]),axis=1))
 
                 # Window 4 is bias associated with right-hand data window
                 # (leftmost 4 and rightmost 24)
+                nwin += 1
                 w = self.win[3]
                 lh = 4 // xbin
                 rh = 24 // xbin
-                wins1.append(Windat(w, np.concatenate(
-                    (winr1[:w.ny,:lh], winr1[:w.ny,-rh:]),axis=1)))
-                wins2.append(Windat(w, np.concatenate(
-                    (winr2[:w.ny,:lh], winr2[:w.ny,-rh:]),axis=1)))
-                wins3.append(Windat(w, np.concatenate(
-                    (winr3[:w.ny,:lh], winr3[:w.ny,-rh:]),axis=1)))
+                wins1[nwin] = Windat(w, np.concatenate(
+                    (winr1[:w.ny,:lh], winr1[:w.ny,-rh:]),axis=1))
+                wins2[nwin] = Windat(w, np.concatenate(
+                    (winr2[:w.ny,:lh], winr2[:w.ny,-rh:]),axis=1))
+                wins3[nwin] = Windat(w, np.concatenate(
+                    (winr3[:w.ny,:lh], winr3[:w.ny,-rh:]),axis=1))
 
                 # Window 5 comes from top strip of left-hand data window
+                nwin += 1
                 w = self.win[4]
                 xoff = 24 // xbin
                 yoff = 1024 // ybin
-                wins1.append(Windat(w, winl1[yoff:yoff+w.ny,xoff:xoff+w.nx]))
-                wins2.append(Windat(w, winl2[yoff:yoff+w.ny,xoff:xoff+w.nx]))
-                wins3.append(Windat(w, winl3[yoff:yoff+w.ny,xoff:xoff+w.nx]))
+                wins1[nwin] = Windat(w, winl1[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins2[nwin] = Windat(w, winl2[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins3[nwin] = Windat(w, winl3[yoff:yoff+w.ny,xoff:xoff+w.nx])
 
                 # Window 6 comes from top of right-hand data window
+                nwin += 1
                 w = self.win[5]
                 xoff = 4 // xbin
                 yoff = 1024 // ybin
-                wins1.append(Windat(w, winr1[yoff:yoff+w.ny,xoff:xoff+w.nx]))
-                wins2.append(Windat(w, winr2[yoff:yoff+w.ny,xoff:xoff+w.nx]))
-                wins3.append(Windat(w, winr3[yoff:yoff+w.ny,xoff:xoff+w.nx]))
+                wins1[nwin] = Windat(w, winr1[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins2[nwin] = Windat(w, winr2[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins3[nwin] = Windat(w, winr3[yoff:yoff+w.ny,xoff:xoff+w.nx])
 
             # Build the CCDs
             rhead = fits.Header()
-            rhead['CCD'] = (1, 'CCD integer label')
             rhead['CCDNAME'] = 'Red CCD'
             rhead['MJDUTC'] = (time.mjd, 'MJD(UTC) at centre of exposure')
             rhead['EXPOSURE'] = (time.expose, 'Exposure time (sec)')
             rhead['MJDOK'] = (time.good,'flag indicating reliability of time')
-            rhead['REASON'] = (time.reason,'reason for MJDOK bad status')
-            ccd1 = CCD(wins1, self.nxmax, self.nymax, bhead)
+            rhead['MJDOKWHY'] = time.reason
+
+            ccd1 = CCD(wins1, self.nxmax, self.nymax, rhead)
 
             ghead = rhead.copy()
-            ghead['CCD'] = (2, 'CCD integer label')
             ghead['CCDNAME'] = 'Green CCD'
             ccd2 = CCD(wins2, self.nxmax, self.nymax, ghead)
 
             bhead = rhead.copy()
-            bhead['CCD'] = (3, 'CCD integer label')
             bhead['CCDNAME'] = 'Blue CCD'
             bhead['MJDUTC'] = (blueTime.mjd, 'MJD(UTC) at centre of exposure')
             bhead['EXPOSURE'] = (blueTime.expose, 'Exposure time (sec)')
-            bhead['MJDOK'] = (blueTime.good,'flag indicating reliability of time')
-            bhead['REASON'] = (blueTime.reason,'reason for MJDOK bad status')
+            bhead['MJDOK'] = (blueTime.good,'time reliability flag')
+            bhead['MJDOKWHY'] = blueTime.reason
             bhead['DSTATUS'] = (not badBlue,'blue data status flag')
             ccd3 = CCD(wins3, self.nxmax, self.nymax, bhead)
 
             # Finally, return an MCCD
-            return MCCD([ccd1,ccd2,ccd3], self)
+            return MCCD([(1,ccd1),(2,ccd2),(3,ccd3)], self)
 
         elif self.instrument == 'ULTRASPEC':
 
@@ -1328,10 +1345,12 @@ def utimer(tbytes, rhead, fnum):
 
     if rhead.instrument == 'ULTRACAM':
         # One of the bits in the first byte is set if the blue frame is junk.
-        # Unfortunately which bit was set changed hence the check of the format
-        fbyte = six.indexbytes(tbytes,0)
+        # Unfortunately which bit was set changed hence the check of the
+        # format
+        fbyte = tbytes[0]
         badBlue = rhead.nblue > 1 and \
-            ((format == 1 and bool(fbyte & 1<<3)) or (format == 2 and bool(fbyte & 1<<4)))
+                  ((format == 1 and bool(fbyte & 1<<3)) or \
+                   (format == 2 and bool(fbyte & 1<<4)))
 
     if format == 1 and nsat == -1:
         goodTime = False
