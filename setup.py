@@ -102,10 +102,11 @@ setup(
             'csub=hipercam.command_line:carith',
             'cmul=hipercam.command_line:carith',
             'cdiv=hipercam.command_line:carith',
+            'grab=hipercam.command_line:grab',
             'hplot=hipercam.command_line:hplot',
             'makedata=hipercam.command_line:makedata',
             'makefield=hipercam.command_line:makefield',
-            'makehcam=hipercam.command_line:makehcam',
+            'rtplot=hipercam.command_line:rtplot',
         ],
     },
 
