@@ -11,7 +11,7 @@ from .core import *
 from .group import *
 from .window import *
 
-__all__ = ('CCD', 'MCCD', 'Hcam')
+__all__ = ('CCD', 'MCCD', 'rfits')
 
 class CCD(Agroup):
     """
@@ -259,6 +259,7 @@ class CCD(Agroup):
 
         # Get the main header (header of first HDU)
         phead = hdul[0].header
+        phead['HIPERCAM'] = ('CCD', 'Type of HiPERCAM data (CCD | MCCD)')
 
         # Add comments if not already present.
         comm1 = 'Data representing a single CCD frame written by hipercam.CCD.wfits.'
@@ -367,6 +368,7 @@ class MCCD(Agroup):
 
         phead = self.head.copy()
         phead['NUMCCD'] = (len(self), 'Number of CCDs')
+        phead['HIPERCAM'] = ('MCCD', 'Type of HiPERCAM data (CCD | MCCD)')
 
         # Add comments if not already present.
         comm1 = 'Data representing multiple CCDs written by hipercam.MCCD.wfits.'
@@ -465,52 +467,19 @@ class MCCD(Agroup):
             self.__class__.__name__, super().__repr__(), self.head)
 
 
-class Hcam(MCCD):
-    """Specialisation of an MCCD to account for particular features of
-    HiPERCAM data"""
+def rfits(fname):
+    """Reads a FITS file representing either CCD or MCCD data and returns one or the other"""
 
-    # Expected dimensions of all CCDs
-    NXTOT = 1024
-    NYTOT = 2048
-
-    # Number of CCDs
-    NCCD = 5
-
-    def __init__(self, ccds, head=None, copy=False):
-        """
-        Constructs a :class:`Hcam`
-
-        Arguments::
-
-          ccds : (Group)
-              Group of CCD objects.
-
-          head : (astropy.io.fits.Header)
-              a header which will be written as the primary header. If head=None
-              on input, and empty header will be created.
-
-          copy : (bool)
-              if True, copy all the data over, otherwise only references are
-              held. Holding references is fine if the calling program keeps
-              re-generating the data but could cause problems in some
-              circumstances.
-        """
-        super().__init__(ccds, head, copy)
-
-        for nccd, ccd in self.items():
-            if nccd < 1 or nccd > Hcam.NCCD:
-                warnings.warn(
-                    'hipercam.Hcam: nccd = {0:d} outside expected range (1-{1:d})'.format(nccd,Hcam.NCCD))
-
-            if ccd.nxtot != Hcam.NXTOT or ccd.nytot != Hcam.NYTOT:
-                warnings.warn(
-                    'hipercam.Hcam: nxtot,nytot = {0:d},{1:d} do not match expect values ({2:d},{3:d})'.format(ccd.nxtot,ccd.nytot,Hcam.NXTOT,Hcam.NYTOT))
+    # Read HDU list
+    hdul = fits.open(fname)
+    htype = hdul[0].header['HIPERCAM']
+    if htype == 'CCD':
+        return CCD.rhdul(hdul)
+    elif htype == 'MCCD':
+        return MCCD.rhdul(hdul)
+    else:
+        hdul.close()
+        raise ValueError('Could not find keyword "HIPERCAM" in primary header of file = {:s}'.format(
+            fname))
 
 
-            for nwin, wind in ccd.items():
-                if wind.llx < Hcam.NXTOT/2 and wind.urx > Hcam.NXTOT/2:
-                    warnings.warn(
-                        'hipercam.Hcam: window = {0:s} straddles output boundary in X'.format(wind.format()))
-                if wind.lly < Hcam.NYTOT/2 and wind.ury > Hcam.NYTOT/2:
-                    warnings.warn(
-                        'hipercam.Hcam: window = {0:s} straddles output boundary in Y'.format(wind.format()))
