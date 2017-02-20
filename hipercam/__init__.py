@@ -14,4 +14,4 @@ from .aperture import *
 from .target import *
 from . import mpl
 from . import ucam
-from .feeder import *
+from .spooler import *
