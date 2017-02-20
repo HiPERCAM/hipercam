@@ -214,7 +214,7 @@ class Window:
         """
         if self.llx <=  win.urx and self.urx >= win.llx and \
            self.lly <=  win.ury and self.ury >= win.lly:
-            raise ValueError('Window.clash: self = {0:s} clashes with win = {1:s}'.format(self.format(), win.format()))
+            raise ValueError('Window.clash: self = {:s} clashes with win = {:s}'.format(self.format(), win.format()))
 
     def xy(self):
         """Returns two 2D arrays containing the x and y values at the centre
@@ -235,7 +235,8 @@ class Window:
         """
         if self != win:
             raise ValueError(
-                'hipercam.Window.matches: self = {0:s} clashes with win = {1:s}'.format(str(self),str(win)))
+                'hipercam.Window.matches: self = {!s} clashes with win = {!s}'.format(self,win)
+            )
 
     def copy(self, memo=None):
         """Returns a copy (deepcopy) of the :class:`Window`
