@@ -442,11 +442,13 @@ class Cline:
 
         if param not in self._rpars:
             raise ClineError(
-                'hipercam.cline.Cline.get_value: parameter = "' + param + '" has not been registered.')
+                'hipercam.cline.Cline.get_value: parameter = "{:s}" has not been registered.'.format(param.upper())
+                )
 
         if lvals != None and defval not in lvals:
             raise ClineError(
-                'hipercam.cline.Cline.get_value: default = ' + str(defval) + ' not in allowed list = ' + str(lvals))
+                'hipercam.cline.Cline.get_value: default = {!s} not in allowed list = {!s}'.format(defval,lvals)
+            )
 
         # Now get the parameter value by one of three methods
         if param in self._pbynam:
@@ -481,33 +483,36 @@ class Cline:
                 value = defval
 
             # prompt user for input
-            if not self._usedef and (self._prompt or self._rpars[param]['p_or_h'] == Cline.PROMPT):
+            if not self._usedef and \
+               (self._prompt or self._rpars[param]['p_or_h'] == Cline.PROMPT):
                 reply = '?'
                 while reply == '?':
                     reply = input(
-                        param + ' -- ' + prompt + ' [' + str(value) + ']: ')
+                        '{:s} - {:s} [{!s}]: '.format(param,prompt,value)
+                    )
                     if reply == '\\':
                         self._usedef = True
                     elif reply == '?':
-                        print ()
+                        print()
                         if minval != None and maxval != None:
-                            print ('Parameter = "' + param + '" must lie from ' + str(minval) + ' to ' + str(maxval))
+                            print('Parameter = "{:s}" must lie from {!s} to {!s}'.format(param,minval,maxval))
                         elif minval != None:
-                            print ('Parameter = "' + param + '" must be greater than ' + str(minval))
+                            print('Parameter = "{:s}" must be greater than {!s}'.format(param,minval))
                         elif maxval != None:
-                            print ('Parameter = "' + param + '" must be less than ' + str(minval))
+                            print('Parameter = "{:s}" must be less than {!s}'.format(param,maxval))
                         else:
-                            print ('Parameter = "' + param + '" has no restrictions on its value.')
-                        print ('"' + param + '" has data type =', type(defval))
+                            print('Parameter = "{:s}" has no restriction on its value'.format(param))
+
+                        print('"{:s}" has data type = {!s}'.format(param,type(defval)))
                         if lvals != None:
-                            print ('Only the following values are allowed:')
-                            print (lvals)
+                            print('Only the following values are allowed:')
+                            print(lvals)
                         if isinstance(defval, (list, tuple)) and fixlen:
-                            print ('You must enter exactly',len(defval),'values.')
+                            print('You must enter exactly {:d} values'.format(len(defval)))
                         print()
                     elif reply != '':
                         if  isinstance(defval, (list, tuple)) and fixlen and len(reply.split()) != len(defval):
-                            print ('You must enter exactly',len(defval),'values. [You entered only',len(reply.split()),']')
+                            print ('You must enter exactly {:d} values. [You only entered {:d}]'.format(len(defval),len(reply.split())))
                             reply = '?'
                         else:
                             value = reply
@@ -521,9 +526,11 @@ class Cline:
                 value = str(value)
             elif isinstance(defval, bool):
                 if isinstance(value, str):
-                    if value.lower() == 'true' or value.lower() == 'yes' or value.lower() == '1' or value.lower() == 'y':
+                    if value.lower() == 'true' or value.lower() == 'yes' or \
+                       value.lower() == '1' or value.lower() == 'y':
                         value = True
-                    elif value.lower() == 'false' or value.lower() == 'no' or value.lower() == '0' or value.lower() == 'n':
+                    elif value.lower() == 'false' or value.lower() == 'no' or \
+                         value.lower() == '0' or value.lower() == 'n':
                         value = False
                     else:
                         raise ClineError(
@@ -543,10 +550,10 @@ class Cline:
                 else:
                     value = tuple(value)
             else:
-                raise ClineError('hipercam.cline.Cline.get_value: did not recognize the data type of the default supplied for parameter = ' + param + ' = ' + type(defval))
+                raise ClineError('hipercam.cline.Cline.get_value: did not recognize the data type of the default supplied for parameter {:s} = {!s}'.format(param, type(defval)))
 
         except ValueError as err:
-            raise ClineError('hipercam.cline.Cline.get_value: ' + str(err))
+            raise ClineError('hipercam.cline.Cline.get_value: {!s}'.format(err))
 
         # ensure value is within range
         if minval != None and value < minval:
