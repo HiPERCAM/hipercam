@@ -22,8 +22,8 @@ class Spooler:
     ULTRA = 1
     HIPER = 2
 
-    def __init__(self, run=None, server=False, inst=Spooler.HIPER, flt=True,
-                 flist=None):
+    def __init__(self, run=None, server=False, inst=HIPER,
+                 first=1, flt=True, flist=None):
         """Sets up info for establishing a source of data frames. Possibilities are
         (1) via a list of CCD or MCCD files, (2) via a server and (3) from a
         single raw data file on a local disk. It copes with data from
@@ -43,6 +43,9 @@ class Spooler:
               If run is not None, this must be set to either Spooler.ULTRA or
               Spooler.HIPER for ULTRACAM/SPEC vs HiPERCAM as the data source.
 
+           first : (int)
+              If run is not None, the first frame to access.
+
            flt : (bool)
               If run is not None, flt=True/False determines whether the raw
               data are converted to 4-bytes floats on input or not.
@@ -55,17 +58,17 @@ class Spooler:
         self.run = run
         self.server = server
         self.inst = inst
+        self.first = first
         self.flt = flt
         self.flist = flist
 
-        if self.run is not None:
+        if self.run is None:
+            self._iter = open(flist)
+        else:
             if self.inst == Spooler.ULTRA:
-                self._iter = ucam.Rdata(self.run, flt=self.flt,
-                                        server=self.server)
+                self._iter = ucam.Rdata(run, first, flt, server)
             else:
                 raise ValueError('Spooler.__init__: unrecognised argument combination')
-        else:
-            raise ValueError('Spooler.__init__: unrecognised argument combination')
 
     # next two define the actions associated with the context manager
     def __enter__(self):
@@ -79,4 +82,13 @@ class Spooler:
         return self
 
     def __next__(self):
-        return self._iter.__next__()
+        if self.run is None:
+            # running off a file list
+            for fname in self._iter:
+                if not fname.startswith('#'):
+                    break
+            else:
+                raise StopIteration
+            return rfits(fname.strip())
+        else:
+            return self._iter.__next__()
