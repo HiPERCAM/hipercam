@@ -498,24 +498,24 @@ class Time:
 class Rdata (Rhead):
     """Callable, iterable object to represent ULTRACAM/SPEC raw data files.
 
-    The idea is to open the file, and then the object generated can be used to
-    deliver frames by specifying a frame number. Frames can be read
-    individually e.g.::
+    The idea is to instantiate an Rdata by opening run .xml and .dat files,
+    and then the object generated can be used to deliver frames by specifying
+    a frame number e.g.::
 
       rdat = Rdata('run045')
       fr10 = rdat(10)
       fr11 = rdat()
 
-    reads frame numbers 10 and then 11 in from 'run045', or sequentially::
+    reads frame number 10 and then 11 in from 'run045', or sequentially::
 
       for frm in Rdata('run045'):
          print 'nccd = ',len(frm)
 
     Rdata maintains an internal file object pointer that is always at the
-    start of a frame. This enables sequential reads to be swift. If an attempt
-    is made to access a frame that does not exist, it defaults to the start of
-    the file. The above code returns :class:`hipercam.MCCD` objects for
-    ULTRACAM data.
+    start of a frame. This enables sequential reads to be swift. Once one
+    frame is read, it is ready for the next. If an attempt is made to access a
+    frame that does not exist, it defaults to the start of the file. The above
+    code returns :class:`hipercam.MCCD` objects for ULTRACAM data.
 
     :class:`ucam.Rdata` can talk to the ATC FileServer if it is running,
     e.g.::
@@ -581,28 +581,18 @@ class Rdata (Rhead):
         if not server and nframe != 1:
             self._fobj.seek(self.framesize*(nframe-1))
 
-    def __iter__(self):
-        """
-        Generator to allow Rdata to function as an iterator.
-        This produces the same type of object as __call__ does.
-        """
-        try:
-            while 1:
-                yield self.__call__(flt=self._flt)
-        except (UendError, urllib.error.HTTPError):
-            pass
-
     def set(self, nframe=1):
-        """
-        Sets the internal file pointer to point at frame number nframe.
+        """Sets the internal file pointer to point at frame number nframe.
 
-        Args:
-          nframe (int) : frame number to get, starting at 1. 0 for the
-                         last (complete) frame. A value of 'None' will be
-                         ignored. A value < 0 will cause an exception. A
-                         value greater than the number of frames in the
-                         file will work, but will cause an exception to be
-                         raised on the next attempted read.
+        Args::
+
+          nframe : (int | None)
+             frame number to get, starting at 1. 0 for the last (complete)
+             frame. A value of 'None' will be ignored. A value < 0 will cause
+             an exception. A value greater than the number of frames in the
+             file will work, but will cause an exception to be raised on the
+             next attempted read.
+
         """
 
         # position read pointer
@@ -626,19 +616,92 @@ class Rdata (Rhead):
                     self._fobj.seek(self.framesize*(nframe-1))
                 self._nf = nframe
 
+    def ntotal(self):
+        """
+        Returns the total number of frames in data file
+        """
+        if self.server:
+            ntot = get_nframe_from_server(self.run)
+        else:
+            self._fobj.seek(0,2)
+            ntot = self._fobj.tell() // self.framesize
+            self._fobj.seek(self.framesize*(self._nf-1))
+
+        return ntot
+
+    def nframe(self):
+        """Returns the next frame number to be read if reading sequentially (starts at 1)
+
+        """
+        return self._nf
+
+    def time(self, nframe=None):
+        """Returns timing information of frame nframe (starts from 1). This saves
+        effort reading the data in some cases. Once done, it moves to the next
+        frame.
+
+        Arguments::
+
+           nframe : (int | None)
+              frame number to get, starting at 1. 0 for the last (complete)
+              frame. If nframe == None, the current frame will be used.
+
+        See utimer for what gets returned by this. See also Rtime for a class
+        dedicated to reading times only.
+        """
+
+        # position read pointer
+        self.set(nframe)
+
+        if self.server:
+            # somewhat inefficiently in the server case, we have to read the whole
+            # frame because there are no options for timing data alone, although
+            # at least no data re-formatting is required.
+            full_url = '{:s}{:s}?action=get_frame&frame={:d}'.format(
+                URL,self.run,self._nf-1)
+            buff = urllib.request.urlopen(full_url).read()
+            if len(buff) != self.framesize:
+                self._nf = 1
+                raise UltracamError(
+                    'Rdata.time: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} bytes'.format(self._nf, len(buff), self.framesize)
+                )
+            tbytes = buff[:2*self.headerwords]
+        else:
+            # If on disk, we can simply read the timing bytes alone
+            tbytes = self._fobj.read(2*self.headerwords)
+            if len(tbytes) != 2*self.headerwords:
+                self._fobj.seek(0)
+                self._nf = 1
+                raise UendError('Rdata.time: failed to read timing bytes')
+
+        tinfo = utimer(tbytes, self, self._nf)
+
+        # step to start of next frame
+        if not self.server:
+            self._fobj.seek(self.framesize-2*self.headerwords,1)
+
+        # move frame counter on by one
+        self._nf += 1
+
+        return tinfo
+
     def __call__(self, nframe=None, flt=None):
-        """Reads the data of frame nframe (starts from 1) and returns a corresponding
-        CCD or UCAM object, depending upon the type of data. If nframe is
-        None, just reads whatever frame we are on. Raises an exception if it
-        fails to read data.  Resets to start of the file in this case. The
-        data are stored internally as either 4-byte floats or 2-byte unsigned
-        ints.
+        """Reads one exposure from the run the :class:`Rdata` is attached to. It works
+        on the assumption that the internal file pointer in the :class:`Rdata`
+        is positioned at the start of a frame. If `nframe` is None, then it
+        will read the frame it is positioned at. If nframe is an integer > 0,
+        it will try to read that particular frame; if nframe == 0, it reads
+        the last complete frame.  nframe == 1 gives the first frame. This
+        returns either a CCD or MCCD object for ULTRASPEC and ULTRACAM
+        respectively. It raises an exception if it fails to read data and resets
+        to the start of the file in this case. The data are stored internally as
+        either 4-byte floats or 2-byte unsigned ints.
 
         Arguments::
 
            nframe : (int)
               frame number to get, starting at 1. 0 for the last (complete)
-              frame. None just returns the next frame.
+              frame. 'None' indicates that the next frame is wanted.
 
            flt : (bool)
               Set True to read data in as floats. The data are stored on disk
@@ -648,6 +711,10 @@ class Rdata (Rhead):
               constructing the MCCD will be used.
 
         Returns an MCCD for ULTRACAM, a CCD for ULTRASPEC.
+
+        Apart from reading the raw bytes, the main job of this routine is to
+        divide up and re-package the bytes read into Windats suitable for
+        constructing CCD objects.
 
         """
 
@@ -1005,73 +1072,15 @@ class Rdata (Rhead):
         else:
             raise UltracamError('Rdata.__init__: have not implemented anything for ' + self.instrument)
 
-    def ntotal(self):
-        """
-        Returns total number of frames in data file
-        """
-        if self.server:
-            ntot = get_nframe_from_server(self.run)
-        else:
-            self._fobj.seek(0,2)
-            ntot = self._fobj.tell() // self.framesize
-            self._fobj.seek(self.framesize*(self._nf-1))
+    # The next two routines turn this class into an iterator.
+    def __iter__(self):
+        return self
 
-        return ntot
-
-    def nframe(self):
-        """
-        Returns next frame number to be read if reading
-        sequentially (starts at 1)
-        """
-        return self._nf
-
-    def time(self, nframe=None):
-        """
-        Returns timing information of frame nframe (starts from 1). This saves
-        effort reading the data in some cases. See for example the ustats script.
-        Once done, it moves to the next frame.
-
-        nframe -- frame number to get, starting at 1. 0 for the last
-                  (complete) frame.
-
-        See utimer for what gets returned by this. See also Rtime for a class
-        dedicated to reading times only.
-        """
-
-        # position read pointer
-        self.set(nframe)
-
-        if self.server:
-            # somewhat inefficiently in the server case, we have to read the whole
-            # frame because there are no options for timing data alone, although
-            # at least no data re-formatting is required.
-            full_url = '{:s}{:s}?action=get_frame&frame={:d}'.format(
-                URL,self.run,self._nf-1)
-            buff = urllib.request.urlopen(full_url).read()
-            if len(buff) != self.framesize:
-                self._nf = 1
-                raise UltracamError(
-                    'Rdata.time: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} bytes'.format(self._nf, len(buff), self.framesize)
-                )
-            tbytes = buff[:2*self.headerwords]
-        else:
-            # read timing bytes alone
-            tbytes = self._fobj.read(2*self.headerwords)
-            if len(tbytes) != 2*self.headerwords:
-                self._fobj.seek(0)
-                self._nf = 1
-                raise UendError('Rdata.time: failed to read timing bytes')
-
-        tinfo = utimer(tbytes, self, self._nf)
-
-        # step to start of next frame
-        if not self.server:
-            self._fobj.seek(self.framesize-2*self.headerwords,1)
-
-        # move frame counter on by one
-        self._nf += 1
-
-        return tinfo
+    def __next__(self):
+        try:
+            return self.__call__(flt=self._flt)
+        except (UendError, urllib.error.HTTPError):
+            raise StopIteration
 
 class Rtime (Rhead):
     """
@@ -1111,22 +1120,13 @@ class Rtime (Rhead):
         if not server and nframe != 1:
             self._fobj.seek(self.framesize*(nframe-1))
 
-    def __iter__(self):
-        """
-        Generator to allow Rtime to function as an iterator
-        """
-        try:
-            while 1:
-                yield self.__call__()
-        except (UendError, urllib.error.HTTPError):
-            pass
-
     def set(self, nframe=1):
         """Sets the internal file pointer to point at frame nframe.
 
            nframe : (int)
                frame number to get, starting at 1. 0 for the last (complete)
-               frame. 'None' will be ignored. A value < 0 will cause an
+               frame. 'None' will be ignored, i.e. it will leave the pointer
+               wherever it currently is. A value < 0 will cause an
                exception. A value greater than the number of frames in the
                file will work, but will cause an exception to be raised on the
                next attempted read.
@@ -1151,11 +1151,30 @@ class Rtime (Rhead):
                     self._fobj.seek(self.framesize*(nframe-1))
                 self._nf = nframe
 
+    def close_file(self):
+        """
+        Closes the file connected to the Rtime object to allow
+        other reads to go ahead
+        """
+        self._fobj.close()
+
+    # The next two routines turn this class into an iterator.
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            return self.__call__(flt=self._flt)
+        except (UendError, urllib.error.HTTPError):
+            raise StopIteration
+
     def __call__(self, nframe=None):
         """
         Returns timing information of frame nframe (starts from 1).
 
-        nframe -- frame number to get, starting at 1. 0 for the last
+        Arguments::
+
+          nframe -- frame number to get, starting at 1. 0 for the last
                   (complete) frame.
 
         See utimer for gets returned by this.
@@ -1194,13 +1213,6 @@ class Rtime (Rhead):
         self._nf += 1
 
         return tinfo
-
-    def close_file(self):
-        """
-        Closes the file connected to the Rtime object to allow
-        other reads to go ahead
-        """
-        self._fobj.close()
 
 def utimer(tbytes, rhead, fnum):
     """
