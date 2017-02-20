@@ -10,7 +10,7 @@ import urllib.request
 
 from astropy.io import fits
 
-from hipercam import (CCD, Group, MCCD, Windat, Window) 
+from hipercam import (CCD, Group, MCCD, Windat, Window)
 
 from .constants import *
 from .uerrors import *
@@ -19,7 +19,7 @@ from .server import get_nframe_from_server, URL
 __all__ = ['Rhead', 'Rdata']
 
 class Rhead(fits.Header):
-    """Represents essential header info of Ultracam/Ultraspec data read from a
+    """Stores the essential header info of an ULTRACAM/SPEC run as read from a
     run###.xml file. Most of the items are stored in the underlying FITS
     header object, but a number of these and some extras are put into
     attributes for simple reference in methods of the class. Some items are
@@ -546,40 +546,49 @@ class Rdata (Rhead):
               This parameter is used when iterating through an Rdata. The
               __call__ method can override it.
 
-          server : (bool)
+           server : (bool)
               True/False for server vs local disk access
 
-          ccd : (bool)
+           ccd : (bool)
               flag to read data as a :class:`trm.ultracam.CCD` rather than a
               :class:`trm.ultracam.MCCD` object if only one CCD per
               frame. Default is always to read as an MCCD.
 
         """
-
         Rhead.__init__(self, run, server)
         if self.isPonoff():
-            raise PowerOnOffError('Rdata.__init__: attempted to read a power on/off')
+            raise PowerOnOffError(
+                'Rdata.__init__: attempted to read a power on/off')
 
-        # Attributes set are:
-        #
-        # _fobj   -- file object opened on data file (set to None if using server)
-        # _nf     -- next frame to be read
-        # _run    -- name of run
-        # _flt    -- whether to read as float (else uint16)
-        # _tstamp -- list of immediately preceding times
-        if server:
-            self._fobj   = None
-        else:
-            # want a random access file
-            self._fobj   = open(run + '.dat', 'rb', buffering=0)
-
-        self._nf     = nframe
-        self._run    = run
-        self._flt    = flt
+        self.nframe = nframe
+        self._flt = flt
+        self._ccd = ccd
         self._tstamp = []
-        self._ccd    = ccd
-        if not server and nframe != 1:
-            self._fobj.seek(self.framesize*(nframe-1))
+
+        if not self.server:
+            # If it's not via a server, then we must access a local disk
+            # file. We need random access hence buffering=0. Move the pointer
+            # if we not on frame 1.
+            self.fp = open(self.run + '.dat', 'rb', buffering=0)
+            if self.nframe: self.fp.seek(self.framesize*(self.nframe-1))
+
+    # Want to run this as a context manager
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        if not self.server:
+            self.fp.close()
+
+    # and as an iterator.
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            return self.__call__(flt=self._flt)
+        except (UendError, urllib.error.HTTPError):
+            raise StopIteration
 
     def set(self, nframe=1):
         """Sets the internal file pointer to point at frame number nframe.
@@ -601,20 +610,20 @@ class Rdata (Rhead):
                 raise UltracamError('ucam.Rdata.set: nframe < 0')
             elif nframe == 0:
                 if self.server:
-                    self._nf = get_nframe_from_server(self.run)
+                    self.nframe = get_nframe_from_server(self.run)
                 else:
                     # wind to end of file, work out where we are
                     # to deduce number of frames
-                    self._fobj.seek(0,2)
-                    fp = self._fobj.tell()
+                    self.fp.seek(0,2)
+                    fp = self.fp.tell()
                     nf = fp // self.framesize
-                    self._fobj.seek(self.framesize*(nf-1)-fp,2)
-                    self._nf = nf
+                    self.fp.seek(self.framesize*(nf-1)-fp,2)
+                    self.nframe = nf
 
-            elif self._nf != nframe:
+            elif self.nframe != nframe:
                 if not self.server:
-                    self._fobj.seek(self.framesize*(nframe-1))
-                self._nf = nframe
+                    self.fp.seek(self.framesize*(nframe-1))
+                self.nframe = nframe
 
     def ntotal(self):
         """
@@ -623,17 +632,11 @@ class Rdata (Rhead):
         if self.server:
             ntot = get_nframe_from_server(self.run)
         else:
-            self._fobj.seek(0,2)
-            ntot = self._fobj.tell() // self.framesize
-            self._fobj.seek(self.framesize*(self._nf-1))
+            self.fp.seek(0,2)
+            ntot = self.fp.tell() // self.framesize
+            self.fp.seek(self.framesize*(self.nframe-1))
 
         return ntot
-
-    def nframe(self):
-        """Returns the next frame number to be read if reading sequentially (starts at 1)
-
-        """
-        return self._nf
 
     def time(self, nframe=None):
         """Returns timing information of frame nframe (starts from 1). This saves
@@ -658,30 +661,30 @@ class Rdata (Rhead):
             # frame because there are no options for timing data alone, although
             # at least no data re-formatting is required.
             full_url = '{:s}{:s}?action=get_frame&frame={:d}'.format(
-                URL,self.run,self._nf-1)
+                URL,self.run,self.nframe-1)
             buff = urllib.request.urlopen(full_url).read()
             if len(buff) != self.framesize:
-                self._nf = 1
+                self.nframe = 1
                 raise UltracamError(
-                    'Rdata.time: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} bytes'.format(self._nf, len(buff), self.framesize)
+                    'Rdata.time: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} bytes'.format(self.nframe, len(buff), self.framesize)
                 )
             tbytes = buff[:2*self.headerwords]
         else:
             # If on disk, we can simply read the timing bytes alone
-            tbytes = self._fobj.read(2*self.headerwords)
+            tbytes = self.fp.read(2*self.headerwords)
             if len(tbytes) != 2*self.headerwords:
-                self._fobj.seek(0)
-                self._nf = 1
+                self.fp.seek(0)
+                self.nframe = 1
                 raise UendError('Rdata.time: failed to read timing bytes')
 
-        tinfo = utimer(tbytes, self, self._nf)
+        tinfo = utimer(tbytes, self, self.nframe)
 
         # step to start of next frame
         if not self.server:
-            self._fobj.seek(self.framesize-2*self.headerwords,1)
+            self.fp.seek(self.framesize-2*self.headerwords,1)
 
         # move frame counter on by one
-        self._nf += 1
+        self.nframe += 1
 
         return tinfo
 
@@ -726,12 +729,12 @@ class Rdata (Rhead):
         if self.server:
             # read timing and data in one go from the server
             full_url = '{:s}{:s}?action=get_frame&frame={:s}'.format(
-                URL, self.run, self._nf-1)
+                URL, self.run, self.nframe-1)
             buff     = urllib.request.urlopen(full_url).read()
             if len(buff) != self.framesize:
-                self._nf = 1
+                self.nframe = 1
                 raise UltracamError(
-                    'Rdata.__call__: failed to read frame {:s} from FileServer. Buffer length vs expected = {:s} vs {:s} bytes.'.format(self._nf,len(buff),self.framesize)
+                    'Rdata.__call__: failed to read frame {:s} from FileServer. Buffer length vs expected = {:s} vs {:s} bytes.'.format(self.nframe,len(buff),self.framesize)
                 )
 
             # have data. Re-format into the timing bytes and unsigned 2 byte
@@ -741,35 +744,35 @@ class Rdata (Rhead):
 
         else:
             # read timing bytes
-            tbytes = self._fobj.read(2*self.headerwords)
+            tbytes = self.fp.read(2*self.headerwords)
             if len(tbytes) != 2*self.headerwords:
-                self._fobj.seek(0)
-                self._nf = 1
+                self.fp.seek(0)
+                self.nframe = 1
                 raise UendError('Rdata.__call__: failed to read timing bytes')
 
             # read data as unsigned 2-byte integers
             buff = np.fromfile(
-                self._fobj, '<u2', int(self.framesize//2-self.headerwords)
+                self.fp, '<u2', int(self.framesize//2-self.headerwords)
             )
 
             if len(buff) != self.framesize//2-self.headerwords:
-                self._fobj.seek(0)
-                self._nf = 1
+                self.fp.seek(0)
+                self.nframe = 1
                 raise UltracamError(
-                    'Rdata.__call__: failed to read frame {:d}. Buffer length vs attempted = {:d} vs {:d}'.format(self._nf, len(buff), self.framesize/2-self.headerwords))
+                    'Rdata.__call__: failed to read frame {:d}. Buffer length vs attempted = {:d} vs {:d}'.format(self.nframe, len(buff), self.framesize/2-self.headerwords))
 
         # From this point, both server and local disk methods are the same
         if self.instrument == 'ULTRACAM':
-            time,info,blueTime,badBlue = utimer(tbytes, self, self._nf)
+            time,info,blueTime,badBlue = utimer(tbytes, self, self.nframe)
         elif self.instrument == 'ULTRASPEC':
-            time,info = utimer(tbytes, self, self._nf)
+            time,info = utimer(tbytes, self, self.nframe)
 
         # move frame counter on by one
-        self._nf += 1
+        self.nframe += 1
 
         # add some specifics for the frame to the header
         self['RUN'] = (self.run, 'run number')
-        self['NFRAME'] = (self._nf, 'frame number within run')
+        self['NFRAME'] = (self.nframe, 'frame number within run')
         self['MIDNIGHT'] = (info['midnightCorr'],'midnight bug correction applied')
         self['FRAMEERR'] = (info['frameError'],'problem with frame numbers found')
 
@@ -1072,15 +1075,6 @@ class Rdata (Rhead):
         else:
             raise UltracamError('Rdata.__init__: have not implemented anything for ' + self.instrument)
 
-    # The next two routines turn this class into an iterator.
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        try:
-            return self.__call__(flt=self._flt)
-        except (UendError, urllib.error.HTTPError):
-            raise StopIteration
 
 class Rtime (Rhead):
     """
@@ -1112,13 +1106,12 @@ class Rtime (Rhead):
         # _nf     -- next frame to be read
         # _run    -- name of run
         if server:
-            self._fobj   = None
+            self.fp   = None
         else:
-            self._fobj   = open(run + '.dat', 'rb')
-        self._nf     = nframe
-        self._run    = run
+            self.fp   = open(run + '.dat', 'rb')
+        self.nframe     = nframe
         if not server and nframe != 1:
-            self._fobj.seek(self.framesize*(nframe-1))
+            self.fp.seek(self.framesize*(nframe-1))
 
     def set(self, nframe=1):
         """Sets the internal file pointer to point at frame nframe.
@@ -1139,24 +1132,24 @@ class Rtime (Rhead):
                 raise UltracamError('Rtime.set: nframe < 0')
             elif nframe == 0:
                 if self.server:
-                    self._nf = get_nframe_from_server(self.run)
+                    self.nframe = get_nframe_from_server(self.run)
                 else:
-                    self._fobj.seek(0,2)
-                    fp = self._fobj.tell()
+                    self.fp.seek(0,2)
+                    fp = self.fp.tell()
                     nf = fp // self.framesize
-                    self._fobj.seek(self.framesize*(nf-1)-fp,2)
-                    self._nf = nf
-            elif self._nf != nframe:
+                    self.fp.seek(self.framesize*(nf-1)-fp,2)
+                    self.nframe = nf
+            elif self.nframe != nframe:
                 if not self.server:
-                    self._fobj.seek(self.framesize*(nframe-1))
-                self._nf = nframe
+                    self.fp.seek(self.framesize*(nframe-1))
+                self.nframe = nframe
 
     def close_file(self):
         """
         Closes the file connected to the Rtime object to allow
         other reads to go ahead
         """
-        self._fobj.close()
+        self.fp.close()
 
     # The next two routines turn this class into an iterator.
     def __iter__(self):
@@ -1186,31 +1179,31 @@ class Rtime (Rhead):
         if self.server:
             # have to read both timing and data in one go from the server
             # and just ignore the data
-            full_url = URL + self.run + '?action=get_frame&frame=' + str(self._nf-1)
+            full_url = URL + self.run + '?action=get_frame&frame=' + str(self.nframe-1)
             buff     = urllib.request.urlopen(full_url).read()
             if len(buff) != self.framesize:
-                self._nf = 1
+                self.nframe = 1
                 raise UltracamError(
-                    'Rtime.__call__: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} byes'.format(self._nf, len(buff), self.framesize)
+                    'Rtime.__call__: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} byes'.format(self.nframe, len(buff), self.framesize)
                 )
 
             # have data. Re-format into the timing bytes and unsigned 2 byte int data buffer
             tbytes = buff[:2*self.headerwords]
         else:
             # read timing bytes
-            tbytes = self._fobj.read(2*self.headerwords)
+            tbytes = self.fp.read(2*self.headerwords)
             if len(tbytes) != 2*self.headerwords:
-                self._fobj.seek(0)
-                self._nf = 1
+                self.fp.seek(0)
+                self.nframe = 1
                 raise UendError('Data.get: failed to read timing bytes')
 
             # step to start of next frame
-            self._fobj.seek(self.framesize-2*self.headerwords,1)
+            self.fp.seek(self.framesize-2*self.headerwords,1)
 
-        tinfo = utimer(tbytes, self, self._nf)
+        tinfo = utimer(tbytes, self, self.nframe)
 
         # move frame counter on by one
-        self._nf += 1
+        self.nframe += 1
 
         return tinfo
 
@@ -1279,9 +1272,9 @@ def utimer(tbytes, rhead, fnum):
 
     frameNumber = struct.unpack('<I', tbytes[4:8])[0]
     if frameNumber != fnum:
-        warnings.warn('ultracam.utimer: run ' + rhead._run +
-                      ' expected frame number = ' +
-                      str(fnum) + ' but found ' + str(frameNumber))
+        warnings.warn(
+            'ultracam.utimer: run {:s} expected frame number = {:d} but found {:d}'.format(
+                rhead.run,fnum,frameNumber))
         frameError = True
     else:
         frameError = False
@@ -1294,13 +1287,13 @@ def utimer(tbytes, rhead, fnum):
     #  blueTimes            -- list of modified times of preceding frames, [0] most recent
 
     if hasattr(utimer,'previousFrameNumber'):
-        if frameNumber != utimer.previousFrameNumber + 1 or utimer.run != rhead._run:
+        if frameNumber != utimer.previousFrameNumber + 1 or utimer.run != rhead.run:
             utimer.tstamp    = []
             utimer.blueTimes = []
     else:
         utimer.tstamp    = []
         utimer.blueTimes = []
-    utimer.run = rhead._run
+    utimer.run = rhead.run
 
     utimer.previousFrameNumber = frameNumber
 
@@ -1439,7 +1432,7 @@ def utimer(tbytes, rhead, fnum):
     # 'midnight bug' correction
     if (int(mjd-3) % 7) == ((nsec // DSEC) % 7):
         warnings.warn(
-            'ultracam.utimer: run {:d}  midnight bug detected and corrected'.format(rhead._run))
+            'ultracam.utimer: run {:d}  midnight bug detected and corrected'.format(rhead.run))
         mjd += 1
         midnightCorr = True
     else:
