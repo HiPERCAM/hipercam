@@ -528,6 +528,70 @@ def makefield(args=None):
 
     print('>> Saved a field of',len(field),'objects to',fname)
 
+def rtplot(args=None):
+    """
+    Plots a sequence of images as a movie. Arguments::
+
+      source : (string)
+         's' = server, 'l' = local, 'f' = file list (ucm for ULTRACAM / ULTRASPEC,
+         FITS files for HiPERCAM)
+
+      inst : (string)
+         If 's' = server, 'l' = local, name of instrument. Two choices, 'u' for ULTRCAM or
+         ULTRASPEC, 'h' for HiPERCAM. This is needed because of the different formats.
+
+      run : (string)
+         If source == 's' or 'l', run number to access
+
+      flist : (string)
+         If source == 'f', name of file list
+
+      nccd : (int)
+         CCD number to plot, 0 for all.
+
+      nx : (int)
+         number of panels across to display.
+    """
+
+    if args is None:
+        args = sys.argv[1:]
+
+    # create a Cline object
+    cl = Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args)
+
+    # register parameters
+    cl.register('source', Cline.GLOBAL, Cline.NOPROMPT)
+    cl.register('inst', Cline.GLOBAL, Cline.NOPROMPT)
+    cl.register('run', Cline.GLOBAL, Cline.PROMPT)
+    cl.register('flist', Cline.LOCAL, Cline.PROMPT)
+    cl.register('nccd', Cline.LOCAL, Cline.PROMPT)
+    cl.register('nx', Cline.LOCAL, Cline.PROMPT)
+
+    try:
+        # get inputs
+        source = cl.get_value('source', 'data source [s(erver), l(ocal), f(ile list)]',
+                              'l', lvals=('s','l','f'))
+        if source == 's' or source == 'l':
+            inst = cl.get_value('inst', 'instrument used [h(ipercam), u(ltracam/spec)]',
+                                'h', lvals=('h','u','f'))
+            run = cl.get_value('run', 'run number', 'run005')
+
+        else:
+            flist = cl.get_value('flist', 'file list', cline.Fname('files.lis'))
+
+        nccd = cl.get_value('nccd', 'CCD number to plot', 0, 0, 5)
+        if nccd == 0:
+            nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+        else:
+            nx = 1
+
+    except cline.ClineError as err:
+        print('Error on parameter input:')
+        print(err)
+        sys.exit(1)
+
+    # do something
+
 # From this point on come helper methods and classes that are
 # not externally visible
 
