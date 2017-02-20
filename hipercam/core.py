@@ -12,7 +12,7 @@ __all__ = ('FIELD', 'HCAM', 'add_extension',
 
 # Standard file extensions
 FIELD = '.fld'
-HCAM = '.hcm'
+HCAM = '.fits'
 
 def add_extension(fname, ext):
     """Add extension ext to a file name if it is not already there, and returns
