@@ -47,7 +47,7 @@ def carith(args=None):
                                cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW))
 
     except cline.ClineError as err:
-        sys.stderr.write('Error on parameter input:\n{0:s}\n'.format(str(err)))
+        sys.stderr.write('Error on parameter input:\n{!s}\n'.format(err))
         sys.exit(1)
 
     import matplotlib.pyplot as plt
@@ -63,10 +63,83 @@ def carith(args=None):
         mccd /= constant
 
     # Add a history line
-    mccd.head.add_history('{0:s} {1:s} {2:f} {3:s}'.format(command,infile,constant,outfile))
+    mccd.head.add_history('{:s} {:s} {:f} {:s}'.format(command,infile,constant,outfile))
 
     # save result
     mccd.wfits(outfile, True)
+
+def grab(args=None):
+    """This downloads a sequence of images from a raw data file and writes
+    them out to a series CCD / MCCD files. Arguments::
+
+      source : (string)
+         's' = server, 'l' = local
+
+      inst : (string)
+         Instrument involved. Two choices, 'u' for ULTRCAM or ULTRASPEC, 'h'
+         for HiPERCAM. This is needed because of the different formats.
+
+      run : (string)
+         run number to access
+
+      first : (int)
+         First frame to access
+
+      last : (int)
+         Last frame to access, 0 for the lot
+
+      ndigit : (int)
+         Files created will be written as 'run005_0013.fits' etc. `ndigit` is
+         the number of digits used for the frame number (4 in this case)
+    """
+
+    if args is None:
+        args = sys.argv[1:]
+
+    # create a Cline object
+    cl = Cline('HIPERCAM_ENV', '.hipercam', 'grab', args)
+
+    # register parameters
+    cl.register('source', Cline.GLOBAL, Cline.HIDE)
+    cl.register('inst', Cline.GLOBAL, Cline.HIDE)
+    cl.register('run', Cline.GLOBAL, Cline.PROMPT)
+    cl.register('first', Cline.LOCAL, Cline.PROMPT)
+    cl.register('last', Cline.LOCAL, Cline.PROMPT)
+    cl.register('toflt', Cline.LOCAL, Cline.PROMPT)
+    cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
+
+    try:
+        # get inputs
+        source = cl.get_value('source', 'data source [s(erver), l(ocal)]',
+                              'l', lvals=('s','l'))
+        inst = cl.get_value('inst', 'instrument used [h(ipercam), u(ltracam/spec)]',
+                            'h', lvals=('h','u','f'))
+        run = cl.get_value('run', 'run number', 'run005')
+        first = cl.get_value('first', 'first frame to grab', 1, 1)
+        last = cl.get_value('last', 'last frame to grab', 0)
+        if last < first and last != 0:
+            sys.stderr.write('last must be >= first or 0')
+            sys.exit(1)
+        flt = cl.get_value('toflt', 'convert to 4-byte floats', False)
+        ndigit = cl.get_value('ndigit', 'number of digits in frame identifier',
+                              3, 0)
+
+    except cline.ClineError as err:
+        sys.stderr.write('Error on parameter input:\n{!s}\n'.format(err))
+        sys.exit(1)
+
+    # Now the actual work
+    ichoice = hcam.Spooler.ULTRA if inst == 'u' else hcam.Spooler.HIPER
+
+    with hcam.Spooler(run, False, ichoice, first, flt) as spool:
+        nframe = first
+        root = os.path.basename(run)
+        for frame in spool:
+            fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
+            frame.wfits(fname,True)
+            print('Written frame {:d} to {:s}'.format(nframe,fname))
+            nframe += 1
+            if last and nframe > last: break
 
 def hplot(args=None):
     """
@@ -138,7 +211,7 @@ def hplot(args=None):
             ccd = mccd[nccd]
         except KeyError:
             sys.stderr.write(
-                'No CCD number {0:d} found in file = {1:s}\n'.format(nccd,frame)
+                'No CCD number {:d} found in file = {:s}\n'.format(nccd,frame)
             )
             sys.exit(1)
 
@@ -372,7 +445,6 @@ def makedata(args=None):
     else:
         root = conf['files']['root']
         ndigit = int(conf['files']['ndigit'])
-        form = '{0:s}{1:0' + str(ndigit) + 'd}{2:s}'
 
         print('Now generating data')
 
@@ -411,7 +483,7 @@ def makedata(args=None):
             frame += bias
 
             # Save
-            fname = form.format(root,nfile+1,hcam.HCAM)
+            fname = '{0:s}{1:0{2:d}d}{3:s}'.format(root,nfile+1,ndigit,hcam.HCAM)
             frame.wfits(fname, overwrite)
             print('Written file {0:d} to {1:s}'.format(nfile+1,fname))
 
@@ -560,9 +632,10 @@ def rtplot(args=None):
     cl = Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args)
 
     # register parameters
-    cl.register('source', Cline.GLOBAL, Cline.NOPROMPT)
-    cl.register('inst', Cline.GLOBAL, Cline.NOPROMPT)
+    cl.register('source', Cline.GLOBAL, Cline.HIDE)
+    cl.register('inst', Cline.GLOBAL, Cline.HIDE)
     cl.register('run', Cline.GLOBAL, Cline.PROMPT)
+    cl.register('first', Cline.LOCAL, Cline.PROMPT)
     cl.register('flist', Cline.LOCAL, Cline.PROMPT)
     cl.register('nccd', Cline.LOCAL, Cline.PROMPT)
     cl.register('nx', Cline.LOCAL, Cline.PROMPT)
@@ -575,8 +648,12 @@ def rtplot(args=None):
             inst = cl.get_value('inst', 'instrument used [h(ipercam), u(ltracam/spec)]',
                                 'h', lvals=('h','u','f'))
             run = cl.get_value('run', 'run number', 'run005')
+            first = cl.get_value('first', 'first frame to plot', 1, 1)
 
         else:
+            inst = None
+            run = None
+            first = 1
             flist = cl.get_value('flist', 'file list', cline.Fname('files.lis'))
 
         nccd = cl.get_value('nccd', 'CCD number to plot', 0, 0, 5)
@@ -590,7 +667,12 @@ def rtplot(args=None):
         print(err)
         sys.exit(1)
 
-    # do something
+    # Now the actual work
+    ichoice = hcam.Spooler.ULTRA if inst == 'u' else hcam.Spooler.HIPER
+
+    with hcam.Spooler(run, False, ichoice, first, True, flist) as spool:
+        for frame in spool:
+            print(frame)
 
 # From this point on come helper methods and classes that are
 # not externally visible
