@@ -5,7 +5,7 @@ Core classes and functions for the hipercam package
 
 from astropy.utils.exceptions import AstropyUserWarning
 
-__all__ = ('FIELD', 'HCAM', 'LIST', 'add_extension',
+__all__ = ('FIELD', 'HCAM', 'LIST', 'APER', 'add_extension',
            'HipercamError', 'HipercamWarning')
 
 # Constants for general use
