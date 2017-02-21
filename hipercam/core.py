@@ -5,14 +5,16 @@ Core classes and functions for the hipercam package
 
 from astropy.utils.exceptions import AstropyUserWarning
 
-__all__ = ('FIELD', 'HCAM', 'add_extension',
+__all__ = ('FIELD', 'HCAM', 'LIST', 'add_extension',
            'HipercamError', 'HipercamWarning')
 
 # Constants for general use
 
 # Standard file extensions
 FIELD = '.fld'
-HCAM = '.fits'
+HCAM = '.hcm'
+LIST = '.lis'
+APER = '.ape'
 
 def add_extension(fname, ext):
     """Add extension ext to a file name if it is not already there, and returns
