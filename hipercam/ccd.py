@@ -64,9 +64,9 @@ class CCD(Agroup):
         if len(self):
             # swift sanity check, 'cos it's easy to get confused
             first = next(iter(self.values()))
-            if not instance(first, Windata):
+            if not isinstance(first, Windat):
                 raise ValueError(
-                    'CCD.__init__: values of "winds" must all be Windata objects')
+                    'CCD.__init__: values of "winds" must all be Windat objects')
 
         self.nxtot = nxtot
         self.nytot = nytot
@@ -155,7 +155,7 @@ class CCD(Agroup):
         else:
             hdul.append(fits.PrimaryHDU(header=head))
 
-        # Now the Windatas
+        # Now the Windats
         for key, wind in self.items():
             whead = fits.Header()
             if label is not None:
@@ -368,7 +368,7 @@ class MCCD(Agroup):
          NXTOT = 1024 [max X dimension]
          NYTOT = 2048 [max Y dimension]
 
-      HDU 3, extension WIND for Windata
+      HDU 3, extension WIND for Windat
          CCD = 2 [the CCD it belongs to]
          WINDOW = 3 [any integer is OK]
          LLX = 11 [X of left-hand unbinned coords]
@@ -377,7 +377,7 @@ class MCCD(Agroup):
          YBIN = 3 [Y binning factor]
          + 2D data array contain the data.
 
-      HDU 4, extension WIND for Windata
+      HDU 4, extension WIND for Windat
          CCD = 2 [the CCD it belongs to]
          WINDOW = 4 [any integer is OK]
          LLX = 51 [X of left-hand unbinned coords]
@@ -422,7 +422,7 @@ class MCCD(Agroup):
         if len(self):
             # swift sanity check, 'cos it's easy to get confused
             first = next(iter(self.values()))
-            if not instance(first, CCD):
+            if not isinstance(first, CCD):
                 raise ValueError(
                     'MCCD.__init__: values of "ccds" must all be CCD objects')
 
