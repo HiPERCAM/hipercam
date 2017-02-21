@@ -168,10 +168,10 @@ class Spooler:
                 'Spooler.__init__: source == HIPER_SERV not yet supported')
 
         elif source == Spooler.ULTRA_DISK:
-            self._iter = ucam.Rdata(run, first, flt, False)
+            self._iter = ucam.Rdata(ident, first, flt, False)
 
         elif source == Spooler.ULTRA_SERV:
-            self._iter = ucam.Rdata(run, first, flt, True)
+            self._iter = ucam.Rdata(ident, first, flt, True)
 
         elif source == Spooler.HIPER_LIST:
             self._iter = open(ident)
