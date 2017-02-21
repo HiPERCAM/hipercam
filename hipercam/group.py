@@ -15,12 +15,12 @@ from .core import *
 __all__ = ('Group', 'Agroup')
 
 class Group(OrderedDict):
-    """A specialized OrderedDict for storing objects of identical type indexed by
-    integers only. It will check for conflicts between the stored objects if
-    the objects have a method `clash` with signature `clash(self, other)`
-    which raises an exception if `self` and `other` conflict in some way. The
-    objects should support a `copy` method to return a deepcopy. This is
-    used in the :class:`Group`s copy operation.
+    """A specialized OrderedDict for storing objects which all match in terms of
+    "instance" and are indexed by integers only. It will check for conflicts
+    between the stored objects if the objects have a method `clash` with
+    signature `clash(self, other)` which raises an exception if `self` and
+    `other` conflict in some way. The objects should support a `copy` method
+    to return a deepcopy. This is used in the :class:`Group`s copy operation.
 
     """
 
@@ -52,7 +52,7 @@ class Group(OrderedDict):
             self.otype = type(next(oiter))
 
             # check the rest have the same type
-            if any(type(obj) != self.otype for obj in oiter):
+            if any(not isinstance(obj, self.otype) for obj in oiter):
                 raise HipercamError('Group.__init__: more than one object type')
 
             try:
@@ -76,7 +76,7 @@ class Group(OrderedDict):
             raise KeyError(
                 'Group.__setitem__: key must be an integer')
 
-        # store or check that the new item type
+        # store or check that the new item matches in type
         if not hasattr(self, 'otype'):
             if len(self):
                 raise ValueError(
@@ -84,7 +84,7 @@ class Group(OrderedDict):
             else:
                 self.otype = type(item)
         else:
-            if type(item) != self.otype:
+            if not isinstance(item, self.otype):
                 raise HipercamError(
                     'Group.__setitem__: key = ' + str(key) + ', item type (=' + str(type(item)) +
                     ') differs from existing Group data type (=' + str(self.otype) + ')')
