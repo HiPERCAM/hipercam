@@ -11,7 +11,7 @@ from .core import *
 from .group import *
 from .window import *
 
-__all__ = ('CCD', 'MCCD', 'rfits')
+__all__ = ('CCD', 'MCCD')
 
 class CCD(Agroup):
     """
@@ -279,10 +279,8 @@ class CCD(Agroup):
         containing no data, followed by a series of HDUs each containing data
         for a series of non-overlapping windows.
         """
-        hdul = fits.open(fname)
-        ccd = cls.rhdul(hdul)
-        hdul.close()
-        return ccd
+        with fits.open(fname) as hdul:
+            return cls.rhdul(hdul)
 
     def matches(self, ccd):
         """Check that the :class:`CCD` matches another, which in this means checking
@@ -399,10 +397,8 @@ class MCCD(Agroup):
         containing no data, followed by a series of HDU blocks consisting
         of the header for each CCD followed by data HDUs.
         """
-        hdul = fits.open(fname)
-        ccd = cls.rhdul(hdul)
-        hdul.close()
-        return ccd
+        with fits.open(fname) as hdul:
+            return cls.rhdul(hdul)
 
     @classmethod
     def rhdul(cls, hdul):
@@ -467,19 +463,5 @@ class MCCD(Agroup):
             self.__class__.__name__, super().__repr__(), self.head)
 
 
-def rfits(fname):
-    """Reads a FITS file representing either CCD or MCCD data and returns one or the other"""
-
-    # Read HDU list
-    hdul = fits.open(fname)
-    htype = hdul[0].header['HIPERCAM']
-    if htype == 'CCD':
-        return CCD.rhdul(hdul)
-    elif htype == 'MCCD':
-        return MCCD.rhdul(hdul)
-    else:
-        hdul.close()
-        raise ValueError('Could not find keyword "HIPERCAM" in primary header of file = {:s}'.format(
-            fname))
 
 
