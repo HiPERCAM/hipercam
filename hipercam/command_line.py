@@ -601,19 +601,19 @@ def makefield(args=None):
     print('>> Saved a field of',len(field),'objects to',fname)
 
 def rtplot(args=None):
-    """
-    Plots a sequence of images as a movie. Arguments::
+    """Plots a sequence of images as a movie. Arguments::
 
       source : (string)
          's' = server, 'l' = local, 'f' = file list (ucm for ULTRACAM / ULTRASPEC,
          FITS files for HiPERCAM)
 
       inst : (string)
-         If 's' = server, 'l' = local, name of instrument. Two choices, 'u' for ULTRCAM or
-         ULTRASPEC, 'h' for HiPERCAM. This is needed because of the different formats.
+         If 's' = server, 'l' = local, name of instrument. Choices: 'u' for
+         ULTRACAM / ULTRASPEC, 'h' for HiPERCAM. This is needed because of the
+         different formats.
 
       run : (string)
-         If source == 's' or 'l', run number to access
+         If source == 's' or 'l', run number to access, e.g. 'run034'
 
       flist : (string)
          If source == 'f', name of file list
@@ -623,6 +623,7 @@ def rtplot(args=None):
 
       nx : (int)
          number of panels across to display.
+
     """
 
     if args is None:
@@ -644,17 +645,19 @@ def rtplot(args=None):
         # get inputs
         source = cl.get_value('source', 'data source [s(erver), l(ocal), f(ile list)]',
                               'l', lvals=('s','l','f'))
+
         if source == 's' or source == 'l':
-            inst = cl.get_value('inst', 'instrument used [h(ipercam), u(ltracam/spec)]',
-                                'h', lvals=('h','u','f'))
-            run = cl.get_value('run', 'run number', 'run005')
+            inst = cl.get_value('inst', 'instrument [h(ipercam), u(ltracam/spec)]',
+                                'h', lvals=('h','u'))
+            ident = cl.get_value('run', 'run number', 'run005')
             first = cl.get_value('first', 'first frame to plot', 1, 1)
 
         else:
-            inst = None
-            run = None
+            # set inst = 'h' as only lists of HiPERCAM files are supported
+            inst = 'h'
+            ident = cl.get_value('flist', 'file list',
+                                 cline.Fname('files.lis',hcam.LIST))
             first = 1
-            flist = cl.get_value('flist', 'file list', cline.Fname('files.lis'))
 
         nccd = cl.get_value('nccd', 'CCD number to plot', 0, 0, 5)
         if nccd == 0:
@@ -663,14 +666,27 @@ def rtplot(args=None):
             nx = 1
 
     except cline.ClineError as err:
-        print('Error on parameter input:')
-        print(err)
+        sys.stderr.write('Error on parameter input:\n')
+        sys.stderr.write(err,'\n')
         sys.exit(1)
 
-    # Now the actual work
-    ichoice = hcam.Spooler.ULTRA if inst == 'u' else hcam.Spooler.HIPER
+    # Now the actual work. First set up the arguments for data_source
+    server = None if source == 'f' else source == 's'
+    flist = source == 'f'
+    if inst == 'u':
+        instrument = 'ULTRA'
+    elif inst == 'h':
+        instrument = 'HIPER'
+    else:
+        sys.stderr('rtplot: unexpected error inst = {:s} not recognised'.format(
+            inst))
+        sys.exit(1)
 
-    with hcam.Spooler(run, False, ichoice, first, True, flist) as spool:
+    # Then call it
+    source = hcam.data_source(instrument, server, flist)
+
+    # Finally, we can go
+    with hcam.Spooler(ident, source, first, True) as spool:
         for frame in spool:
             print(frame)
 
