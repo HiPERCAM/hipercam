@@ -14,9 +14,22 @@ from .window import *
 __all__ = ('CCD', 'MCCD')
 
 class CCD(Agroup):
-    """
-    Class representing a CCD as a :class:`Group` of :class:`Windat`
-    objects plus a FITS header.
+    """Class representing a single CCD as a :class:`Group` of :class:`Windat`
+    objects plus a FITS header. It supports a few operations such as returning
+    the mean value, arithematic operations, and file I/O to/from FITS files.
+
+    FITS file structure: CCD objects are saved to FITS as a series of
+    HDUs. The first HDU contains header information, but no data, while the
+    Windats are stored in the suceeding HDUs. The first HDU's header should
+    contain keywords NXTOT and NYTOT defining the total unbinned dimensions of
+    the CCD and HIPERCAM, which should be set to 'CCD' to distinguish the file
+    from the similar :class:`MCCD` objects. The headers of the following HDUs
+    should each contain keywords WINDOW, LLX, LLY, XBIN and YBIN. WINDOW
+    should be a unique integer label to attach to the Windat. LLX and LLY are
+    the coordinates of the lower-left unbinned pixel in the Windat (starting
+    at (1,1) for the bottom left of the entire chip). XBIN and YBIN are
+    integer binning factors.
+
     """
     def __init__(self, winds, nxtot, nytot, head=None, copy=False):
         """Constructs a :class:`CCD`.
@@ -47,6 +60,14 @@ class CCD(Agroup):
 
         """
         super().__init__(winds)
+
+        if len(self):
+            # swift sanity check, 'cos it's easy to get confused
+            first = next(iter(self.values()))
+            if not instance(first, Windata):
+                raise ValueError(
+                    'CCD.__init__: values of "winds" must all be Windata objects')
+
         self.nxtot = nxtot
         self.nytot = nytot
         if head is None:
@@ -321,10 +342,61 @@ class CCD(Agroup):
         return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(self.__class__.__name__,super().__repr__(),self.nxtot,self.nytot,self.head)
 
 class MCCD(Agroup):
+    """Class representing a multi-CCD as a Group of CCD objects plus a FITS
+    header. It supports arithematic operations and file I/O to/from FITS
+    files.
+
+    FITS file structure: :class:`MCCD`s are saved to FITS as a series of
+    HDUs. The first HDU contains header information, but no data. The
+    succeeding HDUs comes in block representing each CCD. See the docs on
+    :class:`CCD` to understand their layout and important
+    keywords. :class:`MCCD` sets the keyword HIPERCAM in the primary HDU's
+    header to 'MCCD' to indicate the nature of the file. It also adds CCD to
+    the header of the first HDU (containing no data) of every CCD it
+    contains. CCD should be set to a unique integer label for each CCD.
+
+    Here is a schematic summary of the structure of a 3 CCD MCCD file (which
+    typically will contain other header data in addition):
+
+      Primary HDU [HDU 1] -- no data
+         HIPERCAM = 'MCCD'
+         NUMCCD = 3 [for convenience, number of CCDs]
+
+      HDU 2, extension CCDH (for CCD header) [no data]
+         CCD = 2 [any integer is OK]
+         NUMWIN = 2 [for convenience, number of windows]
+         NXTOT = 1024 [max X dimension]
+         NYTOT = 2048 [max Y dimension]
+
+      HDU 3, extension WIND for Windata
+         CCD = 2 [the CCD it belongs to]
+         WINDOW = 3 [any integer is OK]
+         LLX = 11 [X of left-hand unbinned coords]
+         LLY = 21 [Y of lowest unbinned coords]
+         XBIN = 2 [X binning factor]
+         YBIN = 3 [Y binning factor]
+         + 2D data array contain the data.
+
+      HDU 4, extension WIND for Windata
+         CCD = 2 [the CCD it belongs to]
+         WINDOW = 4 [any integer is OK]
+         LLX = 51 [X of left-hand unbinned coords]
+         LLY = 301 [Y of lowest unbinned coords]
+         XBIN = 2 [X binning factor]
+         YBIN = 1 [Y binning factor]
+         + 2D data array contain the data.
+
+      HDU 4, extension CCDH (for CCD header) [no data]
+         CCD = 5 [any integer is OK]
+         NUMWIN = 2 [for convenience, number of windows]
+         NXTOT = 824 [max X dimension]
+         NYTOT = 2048 [max Y dimension]
+
+      then two WIND HDUs etc. Note that the MCCD format is flexible
+      when it comes to different binning factors etc, although a given
+      instrument may well have its own restrictions on this.
     """
-    Class representing a multi-CCD as a Group of CCD objects
-    plus a FITS header.
-    """
+
     def __init__(self, ccds, head=None, copy=False):
         """
         Constructs a :class:`MCCD`
@@ -332,7 +404,8 @@ class MCCD(Agroup):
         Arguments::
 
           ccds : (Group)
-              Group of CCD objects.
+              Group of CCD objects, or something that can be loaded into
+              a Group.
 
           head : (astropy.io.fits.Header)
               a header which will be written as the primary header. If head=None
@@ -345,6 +418,14 @@ class MCCD(Agroup):
               circumstances.
         """
         super().__init__(ccds)
+
+        if len(self):
+            # swift sanity check, 'cos it's easy to get confused
+            first = next(iter(self.values()))
+            if not instance(first, CCD):
+                raise ValueError(
+                    'MCCD.__init__: values of "ccds" must all be CCD objects')
+
         if head is None:
             self.head = fits.Header()
         else:
