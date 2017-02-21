@@ -100,7 +100,7 @@ def grab(args=None):
     cl = Cline('HIPERCAM_ENV', '.hipercam', 'grab', args)
 
     # register parameters
-    cl.register('source', Cline.GLOBAL, Cline.HIDE)
+    cl.register('source', Cline.LOCAL, Cline.HIDE)
     cl.register('inst', Cline.GLOBAL, Cline.HIDE)
     cl.register('run', Cline.GLOBAL, Cline.PROMPT)
     cl.register('first', Cline.LOCAL, Cline.PROMPT)
@@ -113,7 +113,7 @@ def grab(args=None):
         source = cl.get_value('source', 'data source [s(erver), l(ocal)]',
                               'l', lvals=('s','l'))
         inst = cl.get_value('inst', 'instrument used [h(ipercam), u(ltracam/spec)]',
-                            'h', lvals=('h','u','f'))
+                            'h', lvals=('h','u'))
         run = cl.get_value('run', 'run number', 'run005')
         first = cl.get_value('first', 'first frame to grab', 1, 1)
         last = cl.get_value('last', 'last frame to grab', 0)
@@ -129,9 +129,23 @@ def grab(args=None):
         sys.exit(1)
 
     # Now the actual work
-    ichoice = hcam.Spooler.ULTRA if inst == 'u' else hcam.Spooler.HIPER
+    # Now the actual work. First set up the arguments for data_source
+    server = source == 's'
+    flist = None
+    if inst == 'u':
+        instrument = 'ULTRA'
+    elif inst == 'h':
+        instrument = 'HIPER'
+    else:
+        sys.stderr('grab: unexpected error inst = {:s} not recognised'.format(
+            inst))
+        sys.exit(1)
 
-    with hcam.Spooler(run, False, ichoice, first, flt) as spool:
+    # Then call it
+    source = hcam.data_source(instrument, server, flist)
+
+    # Finally, we can go
+    with hcam.Spooler(run, source, first, False) as spool:
         nframe = first
         root = os.path.basename(run)
         for frame in spool:
@@ -186,43 +200,33 @@ def hplot(args=None):
         print(err)
         sys.exit(1)
 
-    import matplotlib.pyplot as plt
+    from PyQt4 import QtGui
+    import pyqtgraph as pg
 
     if nccd == 0:
-        ny = int(math.ceil(max_ccd / nx))
-        fig = plt.figure()
-        i = 1
-        for label, ccd in mccd.items():
-            if i == 1:
-                ax = fig.add_subplot(ny,nx,i)
-                asave = ax
-            else:
-                ax = fig.add_subplot(ny,nx,i,sharex=asave,sharey=asave)
-            i += 1
-            hcam.mpl.pccd(ax, ccd)
-            plt.xlim(0.5,ccd.nxtot+0.5)
-            plt.ylim(0.5,ccd.nytot+0.5)
-            plt.title('CCD ' + str(label))
-            plt.xlabel('X pixels')
-            plt.ylabel('Y pixels')
-            plt.tight_layout(pad=1.01)
+        pass
     else:
-        try:
-            ccd = mccd[nccd]
-        except KeyError:
-            sys.stderr.write(
-                'No CCD number {:d} found in file = {:s}\n'.format(nccd,frame)
-            )
-            sys.exit(1)
+        app = QtGui.QApplication([])
+        w = QtGui.QWidget()
 
-        hcam.mpl.pccd(plt, ccd)
-        plt.xlim(0.5,ccd.nxtot+0.5)
-        plt.ylim(0.5,ccd.nytot+0.5)
-        plt.title('CCD ' + str(nccd))
-        plt.xlabel('X pixels')
-        plt.ylabel('Y pixels')
+        # some stufff
+        btn = QtGui.QPushButton('press me')
+        text = QtGui.QLineEdit('enter text')
+        listw = QtGui.QListWidget()
+        plot = pg.PlotWidget()
 
-    plt.show()
+        layout = QtGui.QGridLayout()
+        w.setLayout(layout)
+
+        layout.addWidget(btn,0,0)
+        layout.addWidget(text,1,0)
+        layout.addWidget(listw,2,0)
+        layout.addWidget(plot,0,1,3,1)
+
+        w.show()
+        app.exec()
+
+        ccd = mccd[nccd]
 
 def makedata(args=None):
     """Script to generate multi-CCD test data given a set of parameters defined in
@@ -670,6 +674,9 @@ def rtplot(args=None):
         sys.stderr.write(err,'\n')
         sys.exit(1)
 
+    # plotting package
+    import pyqtgraph as pg
+
     # Now the actual work. First set up the arguments for data_source
     server = None if source == 'f' else source == 's'
     flist = source == 'f'
@@ -688,7 +695,9 @@ def rtplot(args=None):
     # Finally, we can go
     with hcam.Spooler(ident, source, first, True) as spool:
         for frame in spool:
-            print(frame)
+            for nccd, ccd in frame.items():
+                for nwin, wind in ccd.items():
+                    pg.show(wind.data)
 
 # From this point on come helper methods and classes that are
 # not externally visible
