@@ -40,62 +40,6 @@ def rhcam(fname):
             fname)
             )
 
-def data_source(inst, server=None, flist=True):
-    """Helper routine to return the data source needed by the :class:`Spooler`
-    class given an instrument name and whether access is via a server (else
-    disk) or a file list.
-
-    Arguments::
-
-       inst : (string)
-          Instrument name. Current choices: 'ULTRA' for ULTRACAM/SPEC, 'HIPER'
-          for 'HiPERCAM'.
-
-       server : (bool | None)
-          If server == True, access via a server is expected. If False, a local
-          disk file is assumed. If None, then flist should be set to True.
-
-       flist : (bool | None)
-          If server is None, then flist should be set to True, otherwise it
-          should be set to None or False. 
-
-    Returns::
-
-       An integer corresponding to one of the :class:`Spooler` class attributes
-       representing the supported data sources.
-
-    Exceptions::
-
-       A ValueError will be raised if the inputs are not recognised or
-       conflict.
-    """
-
-    if inst == 'ULTRA':
-        if server is None:
-            raise ValueError(
-                'spooler.data_source: for inst = "ULTRA", server must be True or False')
-        elif server:
-            return Spooler.ULTRA_SERV
-        else:
-            return Spooler.ULTRA_DISK
-
-    elif inst == 'HIPER':
-        if server is None:
-            if flist is None or not flist:
-                raise ValueError(
-                    'spooler.data_source: for inst = "HIPER" and server is None, flist must be True')
-            else:
-                return Spooler.HIPER_LIST
-
-        elif server:
-            return Spooler.HIPER_SERV
-        else:
-            return Spooler.HIPER_DISK
-    else:
-        raise ValueError(
-            'spooler.data_source: inst = {!s} not recognised'.format(inst)
-        )
-
 class SpoolerBase(ABC):
 
     """A common requirement is the need to loop through a stack of images. With a
@@ -210,3 +154,78 @@ class HcamListSpool(SpoolerBase):
                 break
         else:
             raise StopIteration
+
+
+def data_source(inst, resource, server=None, flist=none, first=1, flt=True):
+    """Returns a context manager needed to run through a set of exposures.
+    This is basically a wrapper around the various context managers that
+    hook off the SpoolerBase class.
+
+    Arguments::
+
+       inst : (string)
+          Instrument name. Current choices: 'ULTRA' for ULTRACAM/SPEC, 'HIPER'
+          for 'HiPERCAM'.
+
+       resource : (string)
+          File name. Either a run number for ULTRA or HIPER and server==True,
+          of a file with a list of files for HIPER and server==False.
+
+       server : (bool | None)
+          If server == True, access via a server is expected. If False, a local
+          disk file is assumed. If None, then flist should be set to True.
+
+       flist : (bool | None)
+          If server is None, then flist should be set to True, otherwise it
+          should be set to None or False.
+
+       first : (int)
+          If a raw disk file is being read, either locally or via a server,
+          this parameter sets where to start in the file.
+
+       flt : (bool)
+          If True, convert to 32-bit floats on input.
+
+    Returns::
+
+       A :class:`SpoolerBase` object that can appear inside a "with" 
+       statement, e.g.
+
+         with data_source('ULTRA', 'run003') as dsource:
+            for frame in dsource:
+
+    Exceptions::
+
+       A ValueError will be raised if the inputs are not recognised or
+       conflict.
+    """
+
+    if inst == 'ULTRA':
+        if server is None:
+            raise ValueError(
+                'spooler.data_source: for inst = "ULTRA", server must be True or False')
+        elif server:
+            return UcamServSpool(resource,first,flt)
+        else:
+            return UcamDiskSpool(resource,first,flt)
+
+    elif inst == 'HIPER':
+        if server is None:
+            if flist is None or not flist:
+                raise ValueError(
+                    'spooler.data_source: for inst = "HIPER" and server is None, flist must be True')
+            else:
+                return HcamListSpool(resource)
+        elif server:
+                raise ValueError(
+                    'spooler.data_source: HiPERCAM server not implemented yet'
+                )
+        else:
+                raise ValueError(
+                    'spooler.data_source: HiPERCAM raw data nor defined yet'
+                )
+    else:
+        raise ValueError(
+            'spooler.data_source: inst = {!s} not recognised'.format(inst)
+        )
+
