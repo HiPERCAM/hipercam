@@ -4,6 +4,7 @@ for iterating through multiple images from a variety of sources.
 
 """
 
+from abc import ABC, abstractmethod
 from astropy.io import fits
 from .ccd import CCD, MCCD
 from . import ucam
@@ -95,113 +96,117 @@ def data_source(inst, server=None, flist=True):
             'spooler.data_source: inst = {!s} not recognised'.format(inst)
         )
 
-class Spooler:
+class SpoolerBase(ABC):
 
     """A common requirement is the need to loop through a stack of images. With a
     variety of possible data sources, one requires handling of multiple
     possible ways of accessing the data. The aim of this class is to provide
-    uniform access via an iterable context manager.
+    uniform access via an iterable context manager. It is written as an abstract
+    class 
 
     """
 
-    # supported types of data access
-    HIPER_DISK = 1 # HiPERCAM raw data from a local disk file
-    HIPER_SERV = 2 # HiPERCAM raw data from a server
-    HIPER_LIST = 3 # HiPERCAM from list of hcm files
-    ULTRA_DISK = 4 # ULTRACAM/SPEC raw data from a local disk file
-    ULTRA_SERV = 5 # ULTRACAM/SPEC raw data from a server
+    def __enter__(self):
+        return self
 
-    def __init__(self, ident, source=HIPER_SERV, first=1, flt=False):
-        """Sets up info for establishing a source of data frames.
+    @abstractmethod
+    def __exit__(self, *args):
+        pass
+
+    def __iter__(self):
+        return self
+
+    @abstractmethod
+    def __next__(self):
+        pass
+
+class UcamDiskSpool(SpoolerBase):
+
+    """Provides an iterable context manager to loop through frames within
+    a raw ULTRACAM or ULTRASPEC disk file.
+    """
+
+    def __init__(self, run, first=1, flt=False):
+        """Attaches the UcamDiskSpool to a run.
 
         Arguments::
 
-           ident : (string)
+           run : (string)
 
-              An identifier of the data source whose nature depends on the
-              value of `source`. For instance if source == HIPER_DISK, this
-              should be a run number e.g. 'run003' or 'data/run004'. If source
-              == HIPER_LIST then it should be the name of a file list.
-
-           source : (int)
-              Data source. The possibilities are defined by a set of class
-              attributes such as `HIPER_DISK` and `ULTRA_SERV`. See below
-              for a full listing of their meanings. You will need to specify
-              the class as in `Spooler.ULTRA_DISK`.
+              The run number, e.g. 'run003' or 'data/run004'. 
 
            first : (int)
-              The first frame to access (ignored for the file list sources on
-              the basis that lists can be tuned to suit usage)
+              The first frame to access.
 
            flt : (bool)
               If True, a conversion to 4-byte floats on input will be attempted
               if the data are of integer form.
 
-        Current source options and their implications for the meaning of
-        `ident`::
-
-           HIPER_DISK : HiPERCAM raw data from a local disk file. `ident`
-                        should specify the run in this case.
-
-           HIPER_SERV : HiPERCAM raw data from a server. `ident` should
-                        specify the run; the server name will be grabbed from
-                        an environment variable `HIPERCAM_DEFAULT_URL`
-
-           HIPER_LIST : HiPERCAM from list of hcm files. `ident` should
-                        specify the name of a list of .hcm files.
-
-           ULTRA_DISK : ULTRACAM/SPEC raw data from a local disk file. `ident`
-                        should specify the run.
-
-           ULTRA_SERV : ULTRACAM/SPEC raw data from a server. `ident` should
-                        specify the run; the server name will be grabbed from
-                        an environment variable `ULTRACAM_DEFAULT_URL`
-
         """
-
-        if source == Spooler.HIPER_DISK:
-            raise ValueError(
-                'Spooler.__init__: source == HIPER_DISK not yet supported')
-
-        elif source == Spooler.HIPER_SERV:
-            raise ValueError(
-                'Spooler.__init__: source == HIPER_SERV not yet supported')
-
-        elif source == Spooler.ULTRA_DISK:
-            self._iter = ucam.Rdata(ident, first, flt, False)
-
-        elif source == Spooler.ULTRA_SERV:
-            self._iter = ucam.Rdata(ident, first, flt, True)
-
-        elif source == Spooler.HIPER_LIST:
-            self._iter = open(ident)
-
-        else:
-            raise ValueError(
-                'Spooler.__init__: source == {:d} not recognised'.format(source)
-            )
-
-        self.source = source
-
-    # next two define the actions associated with the context manager
-    def __enter__(self):
-        return self
+        self._iter = ucam.Rdata(run, first, flt, False)
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
 
-    # next two are to make this an iterator
-    def __iter__(self):
-        return self
+    def __next__(self):
+        return self._iter.__next__()
+
+class UcamServSpool(SpoolerBase):
+
+    """Provides an iterable context manager to loop through frames within
+    a raw ULTRACAM or ULTRASPEC raw file served from the ATC FileServer
+    """
+
+    def __init__(self, run, first=1, flt=False):
+        """Attaches the UcamDiskSpool to a run.
+
+        Arguments::
+
+           run : (string)
+
+              The run number, e.g. 'run003' or 'data/run004'. 
+
+           first : (int)
+              The first frame to access.
+
+           flt : (bool)
+              If True, a conversion to 4-byte floats on input will be attempted
+              if the data are of integer form.
+
+        """
+        self._iter = ucam.Rdata(run, first, flt, True)
+
+    def __exit__(self, *args):
+        self._iter.__exit__(args)
 
     def __next__(self):
-        if self.source == Spooler.HIPER_LIST:
-            for fname in self._iter:
-                if not fname.startswith('#'):
-                    break
-            else:
-                raise StopIteration
+        return self._iter.__next__()
 
-            return rhcam(fname.strip())
+
+class HcamListSpool(SpoolerBase):
+
+    """Provides an iterable context manager to loop through frames within
+    a list of HiPERCAM .hcm files.
+    """
+
+    def __init__(self, lname):
+        """Attaches the :class:`HcamListSpool` to a list of files
+
+        Arguments::
+
+           lname : (string)
+              Name of a list of HiPERCAM files. # at the start of a line is recognized
+              as a comment flag.
+
+        """
+        self._iter = open(lname)
+
+    def __exit__(self, *args):
+        self._iter.close()
+
+    def __next__(self):
+        for fname in self._iter:
+            if not fname.startswith('#'):
+                break
         else:
-            return self._iter.__next__()
+            raise StopIteration
