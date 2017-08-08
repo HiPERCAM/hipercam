@@ -274,14 +274,9 @@ class Cline:
         self.narg = 0
         self._usedef = False
 
-    def __del__(self):
-        """Destructor: saves parameter values to disk (if NODEFS has not been
-        specified).
-
-        If you want to save parameters early (e.g. before the user hits
-        ctrl-C) then deleting the Cline with 'del' should do it. If errors
-        are encountered, the routine will print to stderr, but not raise
-        exceptions.
+    def save(self):
+        """Saves parameter values to disk (if NODEFS has not been
+        specified). Call when the final parameter has been specified.
 
         """
 
