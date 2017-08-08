@@ -9,7 +9,8 @@ from astropy.io import fits
 from .ccd import CCD, MCCD
 from . import ucam
 
-__all__ = ('Spooler', 'data_source', 'rhcam')
+__all__ = ('SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
+           'UcamDiskSpool', 'HcamListSpool')
 
 def rhcam(fname):
     """Reads a HiPERCAM file containing either CCD or MCCD data and returns one or
@@ -46,7 +47,7 @@ class SpoolerBase(ABC):
     variety of possible data sources, one requires handling of multiple
     possible ways of accessing the data. The aim of this class is to provide
     uniform access via an iterable context manager. It is written as an abstract
-    class 
+    class
 
     """
 
@@ -156,7 +157,7 @@ class HcamListSpool(SpoolerBase):
             raise StopIteration
 
 
-def data_source(inst, resource, server=None, flist=none, first=1, flt=True):
+def data_source(inst, resource, server=None, flist=None, first=1, flt=True):
     """Returns a context manager needed to run through a set of exposures.
     This is basically a wrapper around the various context managers that
     hook off the SpoolerBase class.
