@@ -13,5 +13,6 @@ from .ccd import *
 from .aperture import *
 from .target import *
 from . import mpl
+from . import pgp
 from . import ucam
 from .spooler import *
