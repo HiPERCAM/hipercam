@@ -5,8 +5,11 @@ Core classes and functions for the hipercam package
 
 from astropy.utils.exceptions import AstropyUserWarning
 
-__all__ = ('FIELD', 'HCAM', 'LIST', 'APER', 'add_extension',
-           'HipercamError', 'HipercamWarning')
+__all__ = (
+    'FIELD', 'HCAM', 'LIST', 'APER', 'add_extension',
+    'HipercamError', 'HipercamWarning', 'HCM_NXTOT',
+    'HCM_NYTOT'
+)
 
 # Constants for general use
 
@@ -15,6 +18,9 @@ FIELD = '.fld'
 HCAM = '.hcm'
 LIST = '.lis'
 APER = '.ape'
+
+# Maximum dimensions of HiPERCAM CCDs
+HCM_NXTOT, HCM_NYTOT = 2028, 1040
 
 def add_extension(fname, ext):
     """Add extension ext to a file name if it is not already there, and returns
