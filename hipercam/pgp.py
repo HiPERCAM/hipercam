@@ -1,12 +1,22 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
 PGPLOT plotting functions.
+
+PGPLOT is a venerable plotting package that is still good when it comes to
+speed hence it has a place in the hipercam package although I anticipate
+replacing it in the long term.
 """
 
 from trm.pgplot import *
 from .core import *
 from .window import *
 from .ccd import *
+
+__all__ = (
+    'Params', 'Device',
+    'pwin', 'pwind', 'pccd'
+    )
+
 
 # some look-and-feel globals.
 Params = {
@@ -46,17 +56,16 @@ Params = {
 }
 
 class Device(PGdevice):
-    """Sub-class of PGdevice that re-defines some colours"""
+    """Sub-class of PGdevice that after opening the plot device, re-defines colour indices
+    according to the values set in pgp.Params
+
+    """
 
     def __init__(self, device):
         super(Device, self).__init__(device)
 
         for i, (r,g,b) in enumerate(Params['cis']):
             pgscr(i,r,g,b)
-
-#    def __del__(self):
-#        super(PGdevice, self).__init__(device)
-
 
 def pwin(win, label=None, xoff=-5):
     """
