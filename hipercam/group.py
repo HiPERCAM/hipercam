@@ -72,7 +72,7 @@ class Group(OrderedDict):
         does clash with any current member of the :class:
         `Group`.
         """
-        if not instance(key,str):
+        if not isinstance(key,str):
             raise KeyError(
                 'Group.__setitem__: key must be an string')
 
