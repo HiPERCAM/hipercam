@@ -16,7 +16,7 @@ __all__ = ('Group', 'Agroup')
 
 class Group(OrderedDict):
     """A specialized OrderedDict for storing objects which all match in terms of
-    "instance" and are indexed by integers only. It will check for conflicts
+    "instance" and are indexed by strings only. It will check for conflicts
     between the stored objects if the objects have a method `clash` with
     signature `clash(self, other)` which raises an exception if `self` and
     `other` conflict in some way. The objects should support a `copy` method
@@ -40,9 +40,9 @@ class Group(OrderedDict):
         # in this case to fail during construction than at some later
         # random time which could be horribly obscure.
 
-        # keys must be integers
-        if any(type(key) != type(0) for key in self.keys()):
-            raise HipercamError('Group.__init__: keys must be integers')
+        # keys must be strings
+        if any(not isinstance(key,str) for key in self.keys()):
+            raise HipercamError('Group.__init__: keys must be strings')
 
         if len(self):
             # iterator over stored objects
@@ -72,9 +72,9 @@ class Group(OrderedDict):
         does clash with any current member of the :class:
         `Group`.
         """
-        if type(key) != type(0):
+        if not instance(key,str):
             raise KeyError(
-                'Group.__setitem__: key must be an integer')
+                'Group.__setitem__: key must be an string')
 
         # store or check that the new item matches in type
         if not hasattr(self, 'otype'):
