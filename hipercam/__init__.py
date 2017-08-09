@@ -15,4 +15,5 @@ from .target import *
 from . import mpl
 from . import pgp
 from . import ucam
+from . import hcam
 from .spooler import *
