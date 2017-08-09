@@ -4,6 +4,7 @@ import math
 from collections import OrderedDict
 
 import numpy as np
+import matplotlib.pyplot as plt
 from astropy.io import fits
 
 import hipercam as hcam
@@ -172,61 +173,42 @@ def hplot(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    # create a Cline object
-    cl = Cline('HIPERCAM_ENV', '.hipercam', 'hplot', args)
-
-    # register parameters
-    cl.register('input', Cline.LOCAL, Cline.PROMPT)
-    cl.register('nccd', Cline.LOCAL, Cline.PROMPT)
-    cl.register('nx', Cline.LOCAL, Cline.PROMPT)
-
     try:
+
+        # create a Cline object
+        cl = Cline('HIPERCAM_ENV', '.hipercam', 'hplot', args)
+
+        # register parameters
+        cl.register('input', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
+
         # get inputs
         frame = cl.get_value('input', 'frame to plot',
                              cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.rfits(frame)
         max_ccd = len(mccd)
         if max_ccd > 1:
-            nccd = cl.get_value('nccd', 'CCD number to plot', 0, 0)
-            if nccd == 0:
+            ccd = cl.get_value('ccd', 'CCD to plot [0 for all]', '0')
+            if ccd == '0':
                 nx = cl.get_value('nx', 'number of panels in X', 3, 1)
             else:
                 nx = 1
         else:
-            nccd = 1
+            ccd = list(mccd.keys())[0]
+
+        cl.save()
 
     except cline.ClineError as err:
         print('Error on parameter input:')
         print(err)
         sys.exit(1)
 
-    from PyQt4 import QtGui
-    import pyqtgraph as pg
-
-    if nccd == 0:
-        pass
-    else:
-        app = QtGui.QApplication([])
-        w = QtGui.QWidget()
-
-        # some stufff
-        btn = QtGui.QPushButton('press me')
-        text = QtGui.QLineEdit('enter text')
-        listw = QtGui.QListWidget()
-        plot = pg.PlotWidget()
-
-        layout = QtGui.QGridLayout()
-        w.setLayout(layout)
-
-        layout.addWidget(btn,0,0)
-        layout.addWidget(text,1,0)
-        layout.addWidget(listw,2,0)
-        layout.addWidget(plot,0,1,3,1)
-
-        w.show()
-        app.exec()
-
-        ccd = mccd[nccd]
+        if ccd == '0':
+            pass
+        else:
+            mpl.pccd(mccd[ccd])
+            plt.show()
 
 def makedata(args=None):
     """Script to generate multi-CCD test data given a set of parameters defined in
@@ -605,28 +587,36 @@ def makefield(args=None):
     print('>> Saved a field of',len(field),'objects to',fname)
 
 def rtplot(args=None):
-    """Plots a sequence of images as a movie. Arguments::
+    """Plots a sequence of images as a movie in near 'real time', hence
+    'rt'. Designed to be used to look at images coming in while at the
+    telescope.
 
-      source : (string)
-         's' = server, 'l' = local, 'f' = file list (ucm for ULTRACAM / ULTRASPEC,
-         FITS files for HiPERCAM)
+    Arguments::
 
-      inst : (string)
-         If 's' = server, 'l' = local, name of instrument. Choices: 'u' for
-         ULTRACAM / ULTRASPEC, 'h' for HiPERCAM. This is needed because of the
-         different formats.
+        device : (string)
+          Plot device. PGPLOT is used so this should be a PGPLOT-style name,
+          e.g. '/xs', '1/xs' etc.
 
-      run : (string)
-         If source == 's' or 'l', run number to access, e.g. 'run034'
+        source : (string)
+           's' = server, 'l' = local, 'f' = file list (ucm for ULTRACAM / ULTRASPEC,
+           FITS files for HiPERCAM)
 
-      flist : (string)
-         If source == 'f', name of file list
+        inst : (string)
+           If 's' = server, 'l' = local, name of instrument. Choices: 'u' for
+           ULTRACAM / ULTRASPEC, 'h' for HiPERCAM. This is needed because of the
+           different formats.
 
-      nccd : (int)
-         CCD number to plot, 0 for all.
+        run : (string)
+           If source == 's' or 'l', run number to access, e.g. 'run034'
 
-      nx : (int)
-         number of panels across to display.
+        flist : (string)
+           If source == 'f', name of file list
+
+        nccd : (int)
+           CCD number to plot, 0 for all.
+
+        nx : (int)
+           number of panels across to display.
 
     """
 
@@ -637,6 +627,7 @@ def rtplot(args=None):
     cl = Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args)
 
     # register parameters
+    cl.register('idevice', Cline.GLOBAL, Cline.HIDE)
     cl.register('source', Cline.GLOBAL, Cline.HIDE)
     cl.register('inst', Cline.GLOBAL, Cline.HIDE)
     cl.register('run', Cline.GLOBAL, Cline.PROMPT)
@@ -647,6 +638,8 @@ def rtplot(args=None):
 
     try:
         # get inputs
+        idevice = cl.get_value('idevice', 'image plot device', '1/xs')
+
         source = cl.get_value('source', 'data source [s(erver), l(ocal), f(ile list)]',
                               'l', lvals=('s','l','f'))
 
@@ -668,16 +661,17 @@ def rtplot(args=None):
             nx = cl.get_value('nx', 'number of panels in X', 3, 1)
         else:
             nx = 1
+        cl.save()
 
     except cline.ClineError as err:
         sys.stderr.write('Error on parameter input:\n')
         sys.stderr.write(err,'\n')
         sys.exit(1)
 
-    # plotting package
-    import pyqtgraph as pg
+    # import the plotting package
+    from trm.pgplot import PGdevice
 
-    # Now the actual work. First set up the arguments for data_source
+    # Now the actual work. First set up the arguments for "data_source"
     server = None if source == 'f' else source == 's'
     flist = source == 'f'
     if inst == 'u':
@@ -692,15 +686,23 @@ def rtplot(args=None):
     # Then call it
     source = hcam.data_source(instrument, server, flist)
 
+    # Open device
+    imdev = PGdevice(idevice)
+
     # Finally, we can go
     with hcam.Spooler(ident, source, first, True) as spool:
         for frame in spool:
             for nccd, ccd in frame.items():
                 for nwin, wind in ccd.items():
-                    pg.show(wind.data)
+                    pass
 
-# From this point on come helper methods and classes that are
-# not externally visible
+    # close plot device
+    imdev.close()
+
+############################################################################
+#
+# From this point on come helper methods and classes that are not externally
+# visible
 
 class Dust:
     """This to generate gaussian dust specks on a flat field using
