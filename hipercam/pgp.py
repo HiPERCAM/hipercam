@@ -3,11 +3,62 @@
 PGPLOT plotting functions.
 """
 
+from trm.pgplot import *
 from .core import *
 from .window import *
 from .ccd import *
 
-def pwin(win):
+# some look-and-feel globals.
+Params = {
+
+    # colour indices rgb values
+    'cis' : (
+        (1,1,1),      # 0
+        (0,0,0),      # 1
+        (0.5,0,0),    # 2
+        (0,0.5,0),    # 3
+        (0,0,0.5),    # 4
+        (0.5,0.5,0),  # 5
+        (0.5,0,0.5),  # 6
+        (0,0.5,0.5),  # 7
+    ),
+
+    # axis label character height
+    'axis.label.ch' : 1.5,
+
+    # axis number character height
+    'axis.number.ch' : 1.5,
+
+    # axis colour index
+    'axis.ci' : 4,
+
+    # window box colour index
+    'ccd.box.ci'   : 8,
+
+    # window label character height
+    'win.label.ch' : 1.2,
+
+    # window label colour index
+    'win.label.ci' : 6,
+
+    # window box colour index
+    'win.box.ci'   : 7,
+}
+
+class Device(PGdevice):
+    """Sub-class of PGdevice that re-defines some colours"""
+
+    def __init__(self, device):
+        super(Device, self).__init__(device)
+
+        for i, (r,g,b) in enumerate(Params['cis']):
+            pgscr(i,r,g,b)
+
+#    def __del__(self):
+#        super(PGdevice, self).__init__(device)
+
+
+def pwin(win, label=None, xoff=-5):
     """
     Plots boundary of a :class:`Window` as a line. (PGPLOT)
     Plots to the current device with current line width, colour
@@ -17,13 +68,25 @@ def pwin(win):
 
       win : (Window)
            the :class:`Window` to plot
+
+      label : (string / None)
+           label to plot at lower-left corner of Window
+
+      xoff : (float)
+           X offset relative to lower-left corner
     """
     left,right,bottom,top = win.extent()
+
     pgsfs(2)
-    pgsci(6)
+    pgsci(Params['win.box.ci'])
     pgrect(left,right,bottom,top)
 
-def pwind(wind, vmin, vmax):
+    if label is not None:
+        pgsci(Params['win.label.ci'])
+        pgsch(Params['win.label.ch'])
+        pgptxt(left+xoff,bottom,0,1,label)
+
+def pwind(wind, vmin, vmax, label=None):
     """Plots :class:`Windata` as an image with a line border. (PGPLOT).
 
     Arguments::
@@ -36,11 +99,14 @@ def pwind(wind, vmin, vmax):
 
       vmax : (float)
            value at maximum of scale
+
+      label : (string / None)
+           label to plot at lower-left corner of Window
     """
     tr = [wind.llx+(wind.xbin-1)/2,wind.xbin,0,
           wind.lly+(wind.ybin-1)/2,0,wind.ybin]
     pggray(wind.data, vmax, vmin, tr)
-    pwin(wind)
+    pwin(wind, label)
 
 def pccd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.):
     """Plots :class:`CCD` as a set of :class:`Windata` objects correctly
@@ -87,10 +153,10 @@ def pccd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.):
         )
 
     for key, wind in ccd.items():
-        pwind(wind, vmin, vmax)
+        pwind(wind, vmin, vmax, '{!s}'.format(key))
 
     # plot outermost border of CCD
-    pgsci(5)
-    pgrect(0.5,ccd.nxtot+0.5,0.5,ccd.nytot+0.5])
+    pgsci(Params['ccd.box.ci'])
+    pgrect(0.5,ccd.nxtot+0.5,0.5,ccd.nytot+0.5)
 
     return (vmin,vmax)
