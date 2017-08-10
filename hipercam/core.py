@@ -6,7 +6,7 @@ Core classes and functions for the hipercam package
 from astropy.utils.exceptions import AstropyUserWarning
 
 __all__ = (
-    'FIELD', 'HCAM', 'LIST', 'APER', 'add_extension',
+    'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'add_extension',
     'HipercamError', 'HipercamWarning', 'HCM_NXTOT',
     'HCM_NYTOT'
 )
@@ -18,6 +18,7 @@ FIELD = '.fld'
 HCAM = '.hcm'
 LIST = '.lis'
 APER = '.ape'
+HRAW = '.fits'
 
 # Maximum dimensions of HiPERCAM CCDs
 HCM_NXTOT, HCM_NYTOT = 2028, 1040
