@@ -1,3 +1,9 @@
+"""
+command_line contains command line scripts that bundle the various routines together
+to carry out various operations such as displaying an image. They are a useful resource
+for developing further code.
+"""
+ 
 import sys
 import os
 import math
@@ -10,6 +16,12 @@ from astropy.io import fits
 import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
+
+###########################################################
+#
+# carith -- arithematic with multi-CCD images
+#
+###########################################################
 
 def carith(args=None):
     """
@@ -47,11 +59,11 @@ def carith(args=None):
         outfile = cl.get_value('output', 'output file',
                                cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW))
 
+        cl.save()
+
     except cline.ClineError as err:
         sys.stderr.write('Error on parameter input:\n{!s}\n'.format(err))
         sys.exit(1)
-
-    import matplotlib.pyplot as plt
 
     # carry out operation
     if command == 'cadd':
@@ -69,6 +81,12 @@ def carith(args=None):
     # save result
     mccd.wfits(outfile, True)
 
+###########################################################
+#
+# grab -- downloads a series of images from a raw data file
+#
+###########################################################
+
 def grab(args=None):
     """This downloads a sequence of images from a raw data file and writes
     them out to a series CCD / MCCD files. Arguments::
@@ -76,12 +94,12 @@ def grab(args=None):
       source : (string)
          's' = server, 'l' = local
 
-      inst : (string)
+      inst : (string) [hidden]
          Instrument involved. Two choices, 'u' for ULTRCAM or ULTRASPEC, 'h'
          for HiPERCAM. This is needed because of the different formats.
 
       run : (string)
-         run number to access
+         run name to access
 
       first : (int)
          First frame to access
@@ -115,7 +133,8 @@ def grab(args=None):
                               'l', lvals=('s','l'))
         inst = cl.get_value('inst', 'instrument used [h(ipercam), u(ltracam/spec)]',
                             'h', lvals=('h','u'))
-        run = cl.get_value('run', 'run number', 'run005')
+        run = cl.get_value('run', 'run name', 'run005')
+
         first = cl.get_value('first', 'first frame to grab', 1, 1)
         last = cl.get_value('last', 'last frame to grab', 0)
         if last < first and last != 0:
@@ -124,12 +143,12 @@ def grab(args=None):
         flt = cl.get_value('toflt', 'convert to 4-byte floats', False)
         ndigit = cl.get_value('ndigit', 'number of digits in frame identifier',
                               3, 0)
+        cl.save()
 
     except cline.ClineError as err:
         sys.stderr.write('Error on parameter input:\n{!s}\n'.format(err))
         sys.exit(1)
 
-    # Now the actual work
     # Now the actual work. First set up the arguments for data_source
     server = source == 's'
     flist = None
@@ -137,16 +156,18 @@ def grab(args=None):
         instrument = 'ULTRA'
     elif inst == 'h':
         instrument = 'HIPER'
+
+        # strip off extensions
+        if run.endswith(hcam.HRAW):
+            run = run[:run.find(hcam.HRAW)]
+
     else:
         sys.stderr('grab: unexpected error inst = {:s} not recognised'.format(
             inst))
         sys.exit(1)
 
-    # Then call it
-    source = hcam.data_source(instrument, server, flist)
-
     # Finally, we can go
-    with hcam.Spooler(run, source, first, False) as spool:
+    with hcam.data_source(instrument, run, server, flist) as spool:
         nframe = first
         root = os.path.basename(run)
         for frame in spool:
@@ -156,18 +177,53 @@ def grab(args=None):
             nframe += 1
             if last and nframe > last: break
 
+###########################################################
+#
+# hplot -- plots a multi-CCD image.
+#
+###########################################################
+
 def hplot(args=None):
     """
     Plots a multi-CCD image. Arguments::
 
-      input : (string)
+      input  : (string)
          name of MCCD file
 
-      nccd : (int)
-         CCD number to plot, 0 for all.
+      device : (string) [hidden]
+         by default sets to "term" meaning display on terminal, else the name of
+         the output file, with the type determined by the extension, i.e. 'image.pdf'
 
-      nx : (int)
-         number of panels across to display.
+      ccd    : (string)
+         CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
+         are possible inputs (without the quotes). '3 4' will plot CCD '3' and
+         CCD '4'. If you want to plot more than one CCD, then you will be prompted
+         for the number of panels in the X direction. This parameter will not be
+         prompted if there is only one CCD in the file.
+
+      nx     : (int)
+         number of panels across to display, prompted if more than one CCD is to
+         be plotted.
+
+      xlo    : (float) [hidden]
+         left X-limit. Note that since this routine uses matplotlib, the resulting
+         image on an interactive device is zoomable hence you may often not require
+
+      xhi    : (float) [hidden]
+         right X-limit
+
+      ylo    : (float) [hidden]
+         bottom Y-limit
+
+      yhi    : (float) [hidden]
+         top Y-limit
+
+      width  : (float) [hidden]
+         plot width (inches), defaults to 0 which means it just uses whatever the program decides.
+
+      height : (float) [hidden]
+         plot height (inches), defaults to 0 which means it just uses whatever the program decides.
+         BOTH width and height must be non-zero to take effect.
     """
 
     if args is None:
@@ -180,23 +236,59 @@ def hplot(args=None):
 
         # register parameters
         cl.register('input', Cline.LOCAL, Cline.PROMPT)
+        cl.register('device', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
+        cl.register('xlo', Cline.LOCAL, Cline.HIDE)
+        cl.register('xhi', Cline.LOCAL, Cline.HIDE)
+        cl.register('ylo', Cline.LOCAL, Cline.HIDE)
+        cl.register('yhi', Cline.LOCAL, Cline.HIDE)
+        cl.register('width', Cline.LOCAL, Cline.HIDE)
+        cl.register('height', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         frame = cl.get_value('input', 'frame to plot',
                              cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.rfits(frame)
+
+        cl.set_default('device','term')
+        device = cl.get_value('device', 'plot device name', 'term')
+
+        try:
+            nxdef = cl.get_default('nx')
+        except:
+            nxdef = 3
+
         max_ccd = len(mccd)
         if max_ccd > 1:
-            ccd = cl.get_value('ccd', 'CCD to plot [0 for all]', '0')
+            ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
             if ccd == '0':
+                ccds = list(mccd.keys())
+            else:
+                ccds = ccd.split()
+            if len(ccds) > 1:
+                nxdef = min(len(ccds), nxdef)
+                cl.set_default('nx', nxdef)
                 nx = cl.get_value('nx', 'number of panels in X', 3, 1)
             else:
                 nx = 1
         else:
-            ccd = list(mccd.keys())[0]
+            ccds = list(mccd.keys())
+            nx = 1
 
+        nxmax, nymax = 0, 0
+        for cnam in ccds:
+            nxmax = max(nxmax, mccd[cnam].nxtot)
+            nymax = max(nymax, mccd[cnam].nytot)
+
+        xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., nxmax+1)
+        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., nxmax+1)
+        ylo = cl.get_value('ylo', 'lower Y value', 0., 0., nymax+1)
+        yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., nymax+1)
+        cl.set_default('width',0.)
+        width = cl.get_value('width', 'plot width (inches)', 0.)
+        cl.set_default('height',0.)
+        height = cl.get_value('height', 'plot height (inches)', 0.)
         cl.save()
 
     except cline.ClineError as err:
@@ -204,11 +296,40 @@ def hplot(args=None):
         print(err)
         sys.exit(1)
 
-        if ccd == '0':
-            pass
+    # finally do something
+    if width > 0 and height > 0:
+        fig = plt.figure(figsize=(width,height))
+    else:
+        fig = plt.figure()
+
+    nccd = len(ccds)
+    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+
+    ax = None
+    for n, cnam in enumerate(ccds):
+        if ax is None:
+            ax = fig.add_subplot(ny, nx, n+1)
         else:
-            mpl.pccd(mccd[ccd])
-            plt.show()
+            fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
+        hcam.mpl.pccd(plt,mccd[cnam])
+        plt.title('CCD {:s}'.format(cnam))
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.xlim(xlo,xhi)
+        plt.ylim(ylo,yhi)
+
+    if device == 'term':
+        plt.tight_layout()
+        plt.show()
+    else:
+        plt.tight_layout()
+        plt.savefig(device)
+
+#############################################################
+#
+# makedata -- generates fake multi-CCD data
+#
+#############################################################
 
 def makedata(args=None):
     """Script to generate multi-CCD test data given a set of parameters defined in
@@ -255,6 +376,7 @@ def makedata(args=None):
     try:
         config = cl.get_value('config', 'configuration file',
                               cline.Fname('config'))
+        cl.save()
     except cline.ClineError as err:
         print('Error on parameter input:')
         print(err)
@@ -473,6 +595,12 @@ def makedata(args=None):
             frame.wfits(fname, overwrite)
             print('Written file {0:d} to {1:s}'.format(nfile+1,fname))
 
+#####################################################################
+#
+# makefield -- makes an artificial star field
+#
+#####################################################################
+
 def makefield(args=None):
     """Script to generate an artificial star field which is saved to disk file, a
     first step in generating fake data. If the name supplied corresponds to an
@@ -572,6 +700,7 @@ def makefield(args=None):
         fwhm1 = cl.get_value('fwhm1', 'FWHM along axis 1', 4., 1.e-6)
         fwhm2 = cl.get_value('fwhm2', 'FWHM along axis 2', 4., 1.e-6)
         beta = cl.get_value('beta', 'Moffat exponent', 4., 1.0)
+        cl.save()
 
     except cline.ClineError as err:
         print('Error on parameter input:')
@@ -585,6 +714,12 @@ def makefield(args=None):
     field.wjson(fname)
 
     print('>> Saved a field of',len(field),'objects to',fname)
+
+###############################################################
+#
+# rtplot -- plots images as they come in "real time" hence 'rt'
+#
+###############################################################
 
 def rtplot(args=None):
     """Plots a sequence of images as a movie in near 'real time', hence
@@ -703,6 +838,8 @@ def rtplot(args=None):
 #
 # From this point on come helper methods and classes that are not externally
 # visible
+#
+############################################################################
 
 class Dust:
     """This to generate gaussian dust specks on a flat field using
