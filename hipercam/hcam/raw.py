@@ -14,7 +14,7 @@ import fitsio
 from astropy.io import fits
 
 from hipercam import (CCD, Group, MCCD, Windat, Window, HCM_NXTOT, HCM_NYTOT)
-
+from hipercam import (HRAW, add_extension) 
 from .herrors import *
 
 __all__ = ['Rhead', 'Rdata']
@@ -47,6 +47,9 @@ class Rhead:
          in EFGH order for window 1 and then the same for window 2 if there
          is one, so either 4 or 8 Windows.
 
+      mode    : (string)
+         the readout mode used.
+
     """
 
     def __init__(self, fname, server=False, full=True):
@@ -73,7 +76,7 @@ class Rhead:
         self.fname = fname
 
         # open the file with fitsio
-        self.ffile = fitsio.FITS(fname)
+        self.ffile = fitsio.FITS(add_extension(fname,HRAW))
 
         # read the header
         self.header = self.ffile[0].read_header()
@@ -83,10 +86,10 @@ class Rhead:
 
         # set the mode, one or two windows per quadrant, drift etc.
         # This is essential.
-        mode = self.header['ESO DET READ CURNAME']
-        self.thead['MODE'] = (mode,'HiPERCAM readout mode')
+        self.mode = self.header['ESO DET READ CURNAME']
+        self.thead['MODE'] = (self.mode,'HiPERCAM readout mode')
 
-        # fixed data for each quadrant in tuples
+        # tuples of fixed data for each quadrant
         LLX = (1, 1025, 1025, 1)
         LLY = (1, 1, 521, 521)
         READOUT_Y = (1, 1, 1040, 1040)
@@ -98,14 +101,15 @@ class Rhead:
         xbin = self.header['ESO DET BINX1']
         ybin = self.header['ESO DET BINY1']
 
-        # extract the data needed to build the Windows, according to the mode
-        if mode.startswith('FullFrame'):
+        # extract the data to build the first 4 windows
+        if self.mode.startswith('FullFrame'):
             nx = 1024 // xbin
             ny = 520 // ybin
             llxs = LLX
             llys = LLY
 
-        elif mode.startswith('OneWindow'):
+        elif self.mode.startswith('OneWindow') or \
+             self.mode.startswith('TwoWindows'):
             nx = self.header['ESO DET WIN1 NX'] // xbin
             ny = self.header['ESO DET WIN1 NY'] // ybin
             llxs = [llx + self.header['ESO DET WIN1 XS{}'.format(quad)]
@@ -116,7 +120,7 @@ class Rhead:
                 for readout_y, offset, add_ysize in zip(READOUT_Y, OFFSET, ADD_YSIZE)
                 ]
 
-        elif mode.startswith('Drift'):
+        elif self.mode.startswith('Drift'):
             nx = self.header['ESO DET DRWIN NX'] // xbin
             ny = self.header['ESO DET DRWIN NY'] // ybin
             llxs = [llx + self.header['ESO DET DRWIN XS{}'.format(quad)]
@@ -128,13 +132,28 @@ class Rhead:
                 ]
 
         else:
-            msg = 'mode {} not currently supported'.format(mode)
+            msg = 'mode {} not currently supported'.format(self.mode)
             raise ValueError(msg)
 
-        # build the Windows
+        # add in the first four Windows
         self.windows = []
         for llx, lly in zip(llxs, llys):
             self.windows.append(Window(llx, lly, nx, ny, xbin, ybin))
+
+        if self.mode.startswith('TwoWindows'):
+            # add extra four for this mode
+            nx = self.header['ESO DET WIN2 NX'] // xbin
+            ny = self.header['ESO DET WIN2 NY'] // ybin
+            llxs = [llx + self.header['ESO DET WIN2 XS{}'.format(quad)]
+                    for llx, quad in zip(LLX, QUAD)]
+            llys = [
+                readout_y + offset*self.header['ESO DET WIN2 YS'] -
+                add_ysize*self.header['ESO DET WIN2 NY']
+                for readout_y, offset, add_ysize in zip(READOUT_Y, OFFSET, ADD_YSIZE)
+                ]
+
+            for llx, lly in zip(llxs, llys):
+                self.windows.append(Window(llx, lly, nx, ny, xbin, ybin))
 
         # Build (more) header info
         if 'DATE' in self.header:
@@ -152,7 +171,7 @@ class Rhead:
             if hnam in self.header:
                 chead['NSKIP'] = (self.header.get(hnam), self.header.get_comment(hnam))
 
-            # Nice if you can get them
+            # Nice-if-you-can-get-them items
             if full:
                 # whether this CCD has gone through a reflection
                 hnam = 'ESO DET REFLECT{:d}'.format(n)
@@ -243,8 +262,7 @@ class Rdata (Rhead):
         return self
 
     def __exit__(self, *args):
-        if not self.server:
-            self.fp.close()
+        self.__del__()
 
     # and as an iterator.
     def __iter__(self):
@@ -335,29 +353,85 @@ class Rdata (Rhead):
                 self.nframe = 1
                 raise HendError('Rdata.__call__: tried to access a frame exceeding the maximum')
 
-            # read in frame, which should be thought of simply as an array of bytes
+            # read in frame
             frame = self.ffile[0][self.nframe-1,:,:]
-            window_size = self.header['NAXIS1'] // 20
-            data = as_strided(frame, strides=(8, 2, 40), shape=(5, 4, window_size))
 
             # Now build up Windats-->CCDs-->MCCD
-            ccds = Group()
             cnams = ('1', '2', '3', '4', '5')
-            wnams = ('E1', 'F1', 'G1', 'H1')
+            wnams1 = ('E1', 'F1', 'G1', 'H1')
+            wnams2 = ('E2', 'F2', 'G2', 'H2')
 
-            for nccd, (cnam, chead) in enumerate(zip(cnams,self.cheads)):
-                # now the Windats
-                windats = Group()
-                for nwin, wnam in enumerate(wnams):
-                    win = self.windows[nwin]
-                    windats[wnam] = Windat(win, data[nccd, nwin].reshape(win.ny, win.nx))
+            # Below, the intermediate arrays data1 and data2 are 4D arrays
+            # indexed by (ccd,window,ny,nx) containing the image data. The crucial
+            # step is contained in the as_strided routine
 
-                # compile the CCD
-                ccds[cnam] = CCD(windats, HCM_NXTOT, HCM_NYTOT, chead)
+            ccds = Group()
 
-            # and finally the MCCD
+            if self.mode.startswith('TwoWindows'):
+                # get an example of the first set of Windows
+                win1 = self.windows[0]
+
+                # get view covering first 4 windows of data
+                data_size1 = 20*win1.nx*win1.ny
+                frame1 = frame[:,:,:data_size1]
+
+                # re-view the data as a 4D array indexed by (ccd,window,y,x)
+                data1 = as_strided(
+                    frame1, strides=(8, 2, 40*win1.nx, 40),
+                    shape=(5, 4, win1.ny, win1.nx)
+                )
+
+                # get an example of the second set of Windows
+                win2 = self.windows[4]
+
+                # get view covering second 4 windows of data
+                # skip 32 timing bytes / 16 words at the end]
+                frame2 = frame[:,:,data_size1:-16]
+
+                # re-view as 4D array indexed by (ccd,window,y,x)
+                data2 = as_strided(
+                    frame2, strides=(8, 2, 40*win2.nx, 40),
+                    shape=(5, 4, win2.ny, win2.nx)
+                )
+
+                # load into CCDs
+                for nccd, (cnam, chead) in enumerate(zip(cnams,self.cheads)):
+                    # now the Windats
+                    windats = Group()
+                    for nwin, (wnam1, wnam2) in enumerate(zip(wnams1, wnams2)):
+                        windats[wnam1] = Windat(self.windows[nwin], data1[nccd, nwin])
+                        windats[wnam2] = Windat(self.windows[nwin+4], data2[nccd, nwin])
+
+                    # compile the CCD
+                    ccds[cnam] = CCD(windats, HCM_NXTOT, HCM_NYTOT, chead)
+            else:
+                # get an example of the first set of Windows
+                win1 = self.windows[0]
+
+                # get view covering first 4 windows of data
+                data_size1 = 20*win1.nx*win1.ny
+                frame1 = frame[:,:,:data_size1]
+
+                # re-view as 4D array indexed by (ccd,window,y,x)
+                data1 = as_strided(
+                    frame1, strides=(8, 2, 40*win1.nx, 40),
+                    shape=(5, 4, win1.ny, win1.nx)
+                )
+
+                # load into CCDs
+                for nccd, (cnam, chead) in enumerate(zip(cnams,self.cheads)):
+                    # now the Windats
+                    windats = Group()
+                    for nwin, wnam1 in enumerate(wnams1):
+                        windats[wnam1] = Windat(self.windows[nwin], data1[nccd, nwin])
+
+                    # compile the CCD
+                    ccds[cnam] = CCD(windats, HCM_NXTOT, HCM_NYTOT, chead)
+
+            # finally create the MCCD
             mccd = MCCD(ccds, self.thead)
 
+        # update the frame counter
         self.nframe += 1
 
         return mccd
