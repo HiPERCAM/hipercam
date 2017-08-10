@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from astropy.io import fits
 from .ccd import CCD, MCCD
 from . import ucam
+from . import hcam
 
 __all__ = ('SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
            'UcamDiskSpool', 'HcamListSpool')
@@ -127,7 +128,6 @@ class UcamServSpool(SpoolerBase):
     def __next__(self):
         return self._iter.__next__()
 
-
 class HcamListSpool(SpoolerBase):
 
     """Provides an iterable context manager to loop through frames within
@@ -156,6 +156,36 @@ class HcamListSpool(SpoolerBase):
         else:
             raise StopIteration
 
+class HcamDiskSpool(SpoolerBase):
+
+    """Provides an iterable context manager to loop through frames within
+    a raw HiPERCAM file.
+    """
+
+    def __init__(self, run, first=1, flt=False):
+        """Attaches the HcamDiskSpool to a run.
+
+        Arguments::
+
+           run : (string)
+
+              The run number, e.g. 'run003' or 'data/run004'. 
+
+           first : (int)
+              The first frame to access.
+
+           flt : (bool)
+              If True, a conversion to 4-byte floats on input will be attempted
+              if the data are of integer form.
+
+        """
+        self._iter = hcam.Rdata(run, first, flt, False)
+
+    def __exit__(self, *args):
+        self._iter.__exit__(args)
+
+    def __next__(self):
+        return self._iter.__next__()
 
 def data_source(inst, resource, server=None, flist=None, first=1, flt=True):
     """Returns a context manager needed to run through a set of exposures.
@@ -222,9 +252,8 @@ def data_source(inst, resource, server=None, flist=None, first=1, flt=True):
                     'spooler.data_source: HiPERCAM server not implemented yet'
                 )
         else:
-                raise ValueError(
-                    'spooler.data_source: HiPERCAM raw data nor defined yet'
-                )
+            return HcamDiskSpool(resource,first,flt)
+
     else:
         raise ValueError(
             'spooler.data_source: inst = {!s} not recognised'.format(inst)
