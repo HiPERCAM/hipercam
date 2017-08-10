@@ -387,6 +387,20 @@ class Cline:
         else:
             self._lpars[param] = defval
 
+    def get_default(self, param):
+        """
+        Gets the current default value of a parameter. Could well raise an Exception
+        if the default cannot be found.
+        """
+        if param not in self._rpars:
+            raise ClineError('set_default: parameter = "' + param + '" has not been registered.')
+
+        if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
+            defval = self._gpars[param]
+        else:
+            defval = self._lpars[param]
+        return defval
+
     def get_value(self, param, prompt, defval, minval=None, maxval=None,
                   lvals=None, fixlen=True, multipleof=None):
         """Gets the value of a parameter, either from the command arguments, or by
