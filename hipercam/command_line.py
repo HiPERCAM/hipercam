@@ -38,19 +38,17 @@ def carith(args=None):
         args = sys.argv
     command = os.path.split(args.pop(0))[1]
 
-    # create a Cline object
-    cl = Cline('HIPERCAM_ENV', '.hipercam', command, args)
+    # get inputs
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
-    # register parameters
-    cl.register('input', Cline.LOCAL, Cline.PROMPT)
-    cl.register('const', Cline.LOCAL, Cline.PROMPT)
-    cl.register('output', Cline.LOCAL, Cline.PROMPT)
+        # register parameters
+        cl.register('input', Cline.LOCAL, Cline.PROMPT)
+        cl.register('const', Cline.LOCAL, Cline.PROMPT)
+        cl.register('output', Cline.LOCAL, Cline.PROMPT)
 
-    try:
         prompts = {'cadd' : 'add', 'csub' : 'subtract',
                    'cmul' : 'multiply by', 'cdiv' : 'divide by'}
 
-        # get inputs
         infile = cl.get_value('input', 'input file',
                               cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.rfits(infile)
@@ -59,12 +57,6 @@ def carith(args=None):
 
         outfile = cl.get_value('output', 'output file',
                                cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW))
-
-        cl.save()
-
-    except cline.ClineError as err:
-        sys.stderr.write('Error on parameter input:\n{!s}\n'.format(err))
-        sys.exit(1)
 
     # carry out operation
     if command == 'cadd':
@@ -116,19 +108,18 @@ def grab(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    # create a Cline object
-    cl = Cline('HIPERCAM_ENV', '.hipercam', 'grab', args)
+    # get inputs
+    with Cline('HIPERCAM_ENV', '.hipercam', 'grab', args) as cl:
 
-    # register parameters
-    cl.register('source', Cline.LOCAL, Cline.HIDE)
-    cl.register('inst', Cline.GLOBAL, Cline.HIDE)
-    cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-    cl.register('first', Cline.LOCAL, Cline.PROMPT)
-    cl.register('last', Cline.LOCAL, Cline.PROMPT)
-    cl.register('toflt', Cline.LOCAL, Cline.PROMPT)
-    cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
+        # register parameters
+        cl.register('source', Cline.LOCAL, Cline.HIDE)
+        cl.register('inst', Cline.GLOBAL, Cline.HIDE)
+        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('first', Cline.LOCAL, Cline.PROMPT)
+        cl.register('last', Cline.LOCAL, Cline.PROMPT)
+        cl.register('toflt', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
 
-    try:
         # get inputs
         source = cl.get_value('source', 'data source [s(erver), l(ocal)]',
                               'l', lvals=('s','l'))
@@ -144,11 +135,6 @@ def grab(args=None):
         flt = cl.get_value('toflt', 'convert to 4-byte floats', False)
         ndigit = cl.get_value('ndigit', 'number of digits in frame identifier',
                               3, 0)
-        cl.save()
-
-    except cline.ClineError as err:
-        sys.stderr.write('Error on parameter input:\n{!s}\n'.format(err))
-        sys.exit(1)
 
     # Now the actual work. First set up the arguments for data_source
     server = source == 's'
@@ -158,14 +144,9 @@ def grab(args=None):
     elif inst == 'h':
         instrument = 'HIPER'
 
-        # strip off extensions
-        if run.endswith(hcam.HRAW):
-            run = run[:run.find(hcam.HRAW)]
-
-    else:
-        sys.stderr('grab: unexpected error inst = {:s} not recognised'.format(
-            inst))
-        sys.exit(1)
+    # strip off extensions
+    if run.endswith(hcam.HRAW):
+        run = run[:run.find(hcam.HRAW)]
 
     # Finally, we can go
     with hcam.data_source(instrument, run, server, flist) as spool:
@@ -219,6 +200,25 @@ def hplot(args=None):
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
 
+      iset   : (string) [single character]
+         determines how the intensities are determined. There are three
+         options: 'a' for automatic simply scales from the minimum to the
+         maximum value found on a per CCD basis. 'd' for direct just takes two
+         numbers from the user. 'p' for percentile dtermines levels based upon
+         percentiles determined from the entire CCD on a per CCD bais.
+
+      ilo    : (float) [if iset=='d']
+         lower intensity level
+
+      ihi    : (float) [if iset=='d']
+         upper intensity level
+
+      plo    : (float) [if iset=='p']
+         lower percentile level
+
+      phi    : (float) [if iset=='p']
+         upper percentile level
+
       xlo    : (float)
          left X-limit, for PGPLOT and matplotlib harcopy plots only as the
          matplotlib interactive plot is zoomable
@@ -243,25 +243,23 @@ def hplot(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    try:
-
-        # create a Cline object
-        cl = Cline('HIPERCAM_ENV', '.hipercam', 'hplot', args)
+    # get input section
+    with Cline('HIPERCAM_ENV', '.hipercam', 'hplot', args) as cl:
 
         # register parameters
         cl.register('input', Cline.LOCAL, Cline.PROMPT)
         cl.register('device', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('iset', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ilow', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ihigh', Cline.LOCAL, Cline.PROMPT)
-        cl.register('plow', Cline.LOCAL, Cline.PROMPT)
-        cl.register('phigh', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
-        cl.register('xlo', Cline.LOCAL, Cline.PROMPT)
-        cl.register('xhi', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ylo', Cline.LOCAL, Cline.PROMPT)
-        cl.register('yhi', Cline.LOCAL, Cline.PROMPT)
+        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('phi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
         cl.register('width', Cline.LOCAL, Cline.HIDE)
         cl.register('height', Cline.LOCAL, Cline.HIDE)
 
@@ -287,21 +285,6 @@ def hplot(args=None):
                 'Could not indentify plot type from device = {:s}'.format(device)
                 )
 
-        # define the display intensities
-        iset = cl.get_value(
-            'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
-            'a', lvals=['a','A','d','D','p','P'])
-        iset = iset.lower()
-
-        plow, phigh = 5, 95
-        ilow, ihigh = 0, 1000
-        if iset == 'd':
-            ilow = cl.get_value('ilow', 'lower intensity limit', 0.)
-            ihigh = cl.get_value('ihigh', 'upper intensity limit', 1000.)
-        elif iset == 'p':
-            plow = cl.get_value('plow', 'lower intensity limit percentile', 5., 0., 100.)
-            phigh = cl.get_value('phigh', 'upper intensity limit percentile', 95., 0., 100.)
-
         # define the panel grid
         try:
             nxdef = cl.get_default('nx')
@@ -325,6 +308,21 @@ def hplot(args=None):
             ccds = list(mccd.keys())
             nx = 1
 
+        # define the display intensities
+        iset = cl.get_value(
+            'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
+            'a', lvals=['a','A','d','D','p','P'])
+        iset = iset.lower()
+
+        plo, phi = 5, 95
+        ilo, ihi = 0, 1000
+        if iset == 'd':
+            ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
+            ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
+        elif iset == 'p':
+            plo = cl.get_value('plo', 'lower intensity limit percentile', 5., 0., 100.)
+            phi = cl.get_value('phi', 'upper intensity limit percentile', 95., 0., 100.)
+
         nxmax, nymax = 0, 0
         for cnam in ccds:
             nxmax = max(nxmax, mccd[cnam].nxtot)
@@ -341,14 +339,7 @@ def hplot(args=None):
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
 
-        cl.save()
-
-    except cline.ClineError as err:
-        print('Error on parameter input:', file=sys.stderr)
-        print(err, file=sys.stderr)
-        sys.exit(1)
-
-    # finally do something
+    # all inputs obtained, plot
     if ptype == 'MPL':
         if width > 0 and height > 0:
             fig = plt.figure(figsize=(width,height))
@@ -366,7 +357,7 @@ def hplot(args=None):
             else:
                 axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
                 axes.set_aspect('equal', adjustable='datalim')
-            hcam.mpl.pccd(plt,mccd[cnam],iset,plow,phigh,ilow,ihigh)
+            hcam.mpl.pccd(plt,mccd[cnam],iset,plo,phi,ilo,ihi)
 
             plt.title('CCD {:s}'.format(cnam))
             plt.xlabel('X')
@@ -395,7 +386,7 @@ def hplot(args=None):
             pgsch(hcam.pgp.Params['axis.number.ch'])
             pgenv(xlo, xhi, ylo, yhi, 1, 0)
             pglab('X','Y','CCD {:s}'.format(cnam))
-            hcam.pgp.pccd(mccd[cnam],iset,plow,phigh,ilow,ihigh)
+            hcam.pgp.pccd(mccd[cnam],iset,plo,phi,ilo,ihi)
 
 
 #############################################################
@@ -440,20 +431,14 @@ def makedata(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    # Create Cline object
-    cl = Cline('HIPERCAM_ENV', '.hipercam', 'makedata', args)
+    # get inputs
+    with Cline('HIPERCAM_ENV', '.hipercam', 'makedata', args) as cl:
 
-    # Register parameters
-    cl.register('config', Cline.LOCAL, Cline.PROMPT)
+        # Register parameters
+        cl.register('config', Cline.LOCAL, Cline.PROMPT)
 
-    try:
         config = cl.get_value('config', 'configuration file',
                               cline.Fname('config'))
-        cl.save()
-    except cline.ClineError as err:
-        print('Error on parameter input:',file=sys.stderr)
-        print(err, file=sys.stderr)
-        exit(1)
 
     # Read the config file
     conf = configparser.ConfigParser()
@@ -731,27 +716,26 @@ def makefield(args=None):
         args = sys.argv[1:]
 
     # create Cline object
-    cl = Cline('HIPERCAM_ENV', '.hipercam', 'makefield', args)
+    with Cline('HIPERCAM_ENV', '.hipercam', 'makefield', args) as cl:
 
-    # register parameters
-    cl.register('fname', Cline.LOCAL, Cline.PROMPT)
-    cl.register('ntarg', Cline.LOCAL, Cline.PROMPT)
-    cl.register('x1', Cline.LOCAL, Cline.PROMPT)
-    cl.register('x2', Cline.LOCAL, Cline.PROMPT)
-    cl.register('y1', Cline.LOCAL, Cline.PROMPT)
-    cl.register('y2', Cline.LOCAL, Cline.PROMPT)
-    cl.register('h1', Cline.LOCAL, Cline.PROMPT)
-    cl.register('h2', Cline.LOCAL, Cline.PROMPT)
-    cl.register('angle1', Cline.LOCAL, Cline.PROMPT)
-    cl.register('angle2', Cline.LOCAL, Cline.PROMPT)
-    cl.register('fwhm1', Cline.LOCAL, Cline.PROMPT)
-    cl.register('fwhm2', Cline.LOCAL, Cline.PROMPT)
-    cl.register('beta', Cline.LOCAL, Cline.PROMPT)
+        # register parameters
+        cl.register('fname', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ntarg', Cline.LOCAL, Cline.PROMPT)
+        cl.register('x1', Cline.LOCAL, Cline.PROMPT)
+        cl.register('x2', Cline.LOCAL, Cline.PROMPT)
+        cl.register('y1', Cline.LOCAL, Cline.PROMPT)
+        cl.register('y2', Cline.LOCAL, Cline.PROMPT)
+        cl.register('h1', Cline.LOCAL, Cline.PROMPT)
+        cl.register('h2', Cline.LOCAL, Cline.PROMPT)
+        cl.register('angle1', Cline.LOCAL, Cline.PROMPT)
+        cl.register('angle2', Cline.LOCAL, Cline.PROMPT)
+        cl.register('fwhm1', Cline.LOCAL, Cline.PROMPT)
+        cl.register('fwhm2', Cline.LOCAL, Cline.PROMPT)
+        cl.register('beta', Cline.LOCAL, Cline.PROMPT)
 
-    try:
         # get inputs
         fname = cl.get_value('fname', 'file to save field to',
-                                cline.Fname('field', hcam.FIELD, hcam.Fname.NEW))
+                             cline.Fname('field', hcam.FIELD, hcam.Fname.NEW))
         if os.path.exists(fname):
             # Initialise the field from a file
             field = hcam.Field.rjson(fname)
@@ -773,12 +757,6 @@ def makefield(args=None):
         fwhm1 = cl.get_value('fwhm1', 'FWHM along axis 1', 4., 1.e-6)
         fwhm2 = cl.get_value('fwhm2', 'FWHM along axis 2', 4., 1.e-6)
         beta = cl.get_value('beta', 'Moffat exponent', 4., 1.0)
-        cl.save()
-
-    except cline.ClineError as err:
-        print('Error on parameter input:', file=sys.stderr)
-        print(err, file=sys.stderr)
-        exit(1)
 
     # add targets
     field.add_random(ntarg, x1, x2, y1, y2, h1, h2, angle1, angle2, fwmax, fwmin, beta)
@@ -803,7 +781,7 @@ def rtplot(args=None):
 
         device : (string)
           Plot device. PGPLOT is used so this should be a PGPLOT-style name,
-          e.g. '/xs', '1/xs' etc.
+          e.g. '/xs', '1/xs' etc. At the moment only ones ending /xs are supported.
 
         source : (string)
            's' = server, 'l' = local, 'f' = file list (ucm for ULTRACAM / ULTRASPEC,
@@ -826,27 +804,62 @@ def rtplot(args=None):
         nx : (int)
            number of panels across to display.
 
+      iset   : (string) [single character]
+         determines how the intensities are determined. There are three
+         options: 'a' for automatic simply scales from the minimum to the
+         maximum value found on a per CCD basis. 'd' for direct just takes two
+         numbers from the user. 'p' for percentile dtermines levels based upon
+         percentiles determined from the entire CCD on a per CCD bais.
+
+      ilo    : (float) [if iset='d']
+         lower intensity level
+
+      ihi    : (float) [if iset='d']
+         upper intensity level
+
+      plo    : (float) [if iset='p']
+         lower percentile level
+
+      phi    : (float) [if iset='p']
+         upper percentile level
+
+      width  : (float) [hidden]
+         plot width (inches). Set = 0 to let the program choose.
+
+      height : (float) [hidden]
+         plot height (inches). Set = 0 to let the program choose. BOTH width
+         AND height must be non-zero to have any effect
     """
 
     if args is None:
         args = sys.argv[1:]
 
-    # create a Cline object
-    cl = Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args)
+    # get the inputs
+    with Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args) as cl:
 
-    # register parameters
-    cl.register('idevice', Cline.GLOBAL, Cline.HIDE)
-    cl.register('source', Cline.GLOBAL, Cline.HIDE)
-    cl.register('inst', Cline.GLOBAL, Cline.HIDE)
-    cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-    cl.register('first', Cline.LOCAL, Cline.PROMPT)
-    cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-    cl.register('nccd', Cline.LOCAL, Cline.PROMPT)
-    cl.register('nx', Cline.LOCAL, Cline.PROMPT)
+        # register parameters
+        cl.register('device', Cline.LOCAL, Cline.HIDE)
+        cl.register('source', Cline.GLOBAL, Cline.HIDE)
+        cl.register('inst', Cline.GLOBAL, Cline.HIDE)
+        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('first', Cline.LOCAL, Cline.PROMPT)
+        cl.register('flist', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
+        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('phi', Cline.LOCAL, Cline.PROMPT)
+        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('width', Cline.LOCAL, Cline.HIDE)
+        cl.register('height', Cline.LOCAL, Cline.HIDE)
 
-    try:
         # get inputs
-        idevice = cl.get_value('idevice', 'image plot device', '1/xs')
+        device = cl.get_value('device', 'plot device', '1/xs')
 
         source = cl.get_value('source', 'data source [s(erver), l(ocal), f(ile list)]',
                               'l', lvals=('s','l','f'))
@@ -864,38 +877,74 @@ def rtplot(args=None):
                                  cline.Fname('files.lis',hcam.LIST))
             first = 1
 
-        nccd = cl.get_value('nccd', 'CCD number to plot', 0, 0, 5)
-        if nccd == 0:
-            nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+        flist = source == 'f'
+        server = None if flist else source == 's'
+        if inst == 'u':
+            instrument = 'ULTRA'
+        elif inst == 'h':
+            instrument = 'HIPER'
+
+        # define the panel grid. in order to do so we need to open a file to determine
+        # the number of CCDs.
+        # ????? something to do this here ??????
+
+        try:
+            nxdef = cl.get_default('nx')
+        except:
+            nxdef = 3
+
+        if 1:
+            ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
+            if ccd == '0':
+                ccds = list(mccd.keys())
+            else:
+                ccds = ccd.split()
+            if len(ccds) > 1:
+                nxdef = min(len(ccds), nxdef)
+                cl.set_default('nx', nxdef)
+                nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+            else:
+                nx = 1
         else:
+            ccds = list(mccd.keys())
             nx = 1
-        cl.save()
 
-    except cline.ClineError as err:
-        sys.stderr.write('Error on parameter input:\n')
-        sys.stderr.write(err,'\n')
-        sys.exit(1)
+        # define the display intensities
+        iset = cl.get_value(
+            'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
+            'a', lvals=['a','A','d','D','p','P'])
+        iset = iset.lower()
 
-    # import the plotting package
-    from trm.pgplot import PGdevice
+        plo, phi = 5, 95
+        ilo, ihi = 0, 1000
+        if iset == 'd':
+            ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
+            ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
+        elif iset == 'p':
+            plo = cl.get_value('plo', 'lower intensity limit percentile', 5., 0., 100.)
+            phi = cl.get_value('phi', 'upper intensity limit percentile', 95., 0., 100.)
 
-    # Now the actual work. First set up the arguments for "data_source"
-    server = None if source == 'f' else source == 's'
-    flist = source == 'f'
-    if inst == 'u':
-        instrument = 'ULTRA'
-    elif inst == 'h':
-        instrument = 'HIPER'
-    else:
-        sys.stderr('rtplot: unexpected error inst = {:s} not recognised'.format(
-            inst))
-        sys.exit(1)
+        nxmax, nymax = 0, 0
+        for cnam in ccds:
+            nxmax = max(nxmax, mccd[cnam].nxtot)
+            nymax = max(nymax, mccd[cnam].nytot)
 
-    # Then call it
+        if ptype == 'PGP' or hard != '':
+            xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., nxmax+1)
+            xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., nxmax+1)
+            ylo = cl.get_value('ylo', 'lower Y value', 0., 0., nymax+1)
+            yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., nymax+1)
+        else:
+            xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
+
+        width = cl.get_value('width', 'plot width (inches)', 0.)
+        height = cl.get_value('height', 'plot height (inches)', 0.)
+
+    # work out the source of data
     source = hcam.data_source(instrument, server, flist)
 
     # Open device
-    imdev = PGdevice(idevice)
+    imdev = hcam.pgp.Device(device)
 
     # Finally, we can go
     with hcam.Spooler(ident, source, first, True) as spool:
@@ -904,8 +953,6 @@ def rtplot(args=None):
                 for nwin, wind in ccd.items():
                     pass
 
-    # close plot device
-    imdev.close()
 
 ############################################################################
 #
