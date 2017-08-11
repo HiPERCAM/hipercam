@@ -800,71 +800,71 @@ class Rdata (Rhead):
                         # convert to 4-byte floats
                         if strip_outer:
                             # CCD 1
-                            wins1[nwin+1] = Windat(wl, np.reshape(
+                            wins1[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff:noff+npix:6].astype(np.float32),shape)[:,1:])
-                            wins1[nwin+2] = Windat(wr, np.reshape(
+                            wins1[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+1:noff+npix:6].astype(np.float32),shape)[:,-2::-1])
 
                             # CCD 2
-                            wins2[nwin+1] = Windat(wl, np.reshape(
+                            wins2[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff+2:noff+npix:6].astype(np.float32),shape)[:,1:])
-                            wins2[nwin+2] = Windat(wr, np.reshape(
+                            wins2[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+3:noff+npix:6].astype(np.float32),shape)[:,-2::-1])
 
                             # CCD 3
-                            wins3[nwin+1] = Windat(wl, np.reshape(
+                            wins3[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff+4:noff+npix:6].astype(np.float32),shape)[:,1:])
-                            wins3[nwin+2] = Windat(wr, np.reshape(
+                            wins3[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+5:noff+npix:6].astype(np.float32),shape)[:,-2::-1])
 
                         else:
-                            wins1[nwin+1] = Windat(wl, np.reshape(
+                            wins1[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff:noff+npix:6].astype(np.float32),shape))
-                            wins1[nwin+2] = Windat(wr, np.reshape(
+                            wins1[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+1:noff+npix:6].astype(np.float32),shape)[:,::-1])
 
-                            wins2[nwin+1] = Windat(wl, np.reshape(
+                            wins2[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff+2:noff+npix:6].astype(np.float32),shape))
-                            wins2[nwin+2] = Windat(wr, np.reshape(
+                            wins2[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+3:noff+npix:6].astype(np.float32),shape)[:,::-1])
 
-                            wins3[nwin+1] = Windat(wl, np.reshape(
+                            wins3[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff+4:noff+npix:6].astype(np.float32),shape))
-                            wins3[nwin+2] = Windat(wr, np.reshape(
+                            wins3[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+5:noff+npix:6].astype(np.float32),shape)[:,::-1])
 
                     else:
                         # keep as 2-byte ints
                         if strip_outer:
-                            wins1[nwin+1] = Windat(wl, np.reshape(
+                            wins1[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff:noff+npix:6],shape)[:,1:])
-                            wins1[nwin+2] = Windat(wr, np.reshape(
+                            wins1[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,-2::-1])
 
-                            wins2[nwin+1] = Windat(wl, np.reshape(
+                            wins2[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff+2:noff+npix:6],shape)[:,1:])
-                            wins2[nwin+2] = Windat(wr, np.reshape(
+                            wins2[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,-2::-1])
 
-                            wins3[nwin+1] = Windat(wl, np.reshape(
+                            wins3[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff+4:noff+npix:6],shape)[:,1:])
-                            wins3[nwin+2] = Windat(wr, np.reshape(
+                            wins3[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,-2::-1])
 
                         else:
-                            wins1[nwin+1] = Windat(wl, np.reshape(
+                            wins1[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff:noff+npix:6],shape))
-                            wins1[nwin+2] = Windat(wr, np.reshape(
+                            wins1[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,::-1])
 
-                            wins2[nwin+1] = Windat(wl, np.reshape(
+                            wins2[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff+2:noff+npix:6],shape))
-                            wins2[nwin+2] = Windat(wr, np.reshape(
+                            wins2[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,::-1])
 
-                            wins3[nwin+1] = Windat(wl, np.reshape(
+                            wins3[str(nwin+1)] = Windat(wl, np.reshape(
                                 buff[noff+4:noff+npix:6],shape))
-                            wins3[nwin+2] = Windat(wr, np.reshape(
+                            wins3[str(nwin+2)] = Windat(wr, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,::-1])
 
                     noff += npix
@@ -909,13 +909,13 @@ class Rdata (Rhead):
                 # window
                 w = self.win[0]
                 xoff = 24 // xbin
-                nwin = 1
+                nwin = '1'
                 wins1[nwin] = Windat(w, winl1[:w.ny,xoff:xoff+w.nx])
                 wins2[nwin] = Windat(w, winl2[:w.ny,xoff:xoff+w.nx])
                 wins3[nwin] = Windat(w, winl3[:w.ny,xoff:xoff+w.nx])
 
                 # Window 2 comes from lower-right of right-hand data window
-                nwin += 1
+                nwin = '2'
                 w = self.win[1]
                 xoff = 4 // xbin
                 wins1[nwin] = Windat(w, winr1[:w.ny,xoff:xoff+w.nx])
@@ -924,7 +924,7 @@ class Rdata (Rhead):
 
                 # Window 3 is bias associated with left-hand data window
                 # (leftmost 24 and rightmost 4)
-                nwin += 1
+                nwin = '3'
                 w = self.win[2]
                 lh = 24 // xbin
                 rh = 4 // xbin
@@ -937,7 +937,7 @@ class Rdata (Rhead):
 
                 # Window 4 is bias associated with right-hand data window
                 # (leftmost 4 and rightmost 24)
-                nwin += 1
+                nwin = '4'
                 w = self.win[3]
                 lh = 4 // xbin
                 rh = 24 // xbin
@@ -949,7 +949,7 @@ class Rdata (Rhead):
                     (winr3[:w.ny,:lh], winr3[:w.ny,-rh:]),axis=1))
 
                 # Window 5 comes from top strip of left-hand data window
-                nwin += 1
+                nwin = '5'
                 w = self.win[4]
                 xoff = 24 // xbin
                 yoff = 1024 // ybin
@@ -958,7 +958,7 @@ class Rdata (Rhead):
                 wins3[nwin] = Windat(w, winl3[yoff:yoff+w.ny,xoff:xoff+w.nx])
 
                 # Window 6 comes from top of right-hand data window
-                nwin += 1
+                nwin = '6'
                 w = self.win[5]
                 xoff = 4 // xbin
                 yoff = 1024 // ybin
@@ -990,11 +990,12 @@ class Rdata (Rhead):
             ccd3 = CCD(wins3, self.nxmax, self.nymax, bhead)
 
             # Finally, return an MCCD
-            return MCCD([(1,ccd1),(2,ccd2),(3,ccd3)], self)
+            return MCCD([('r',ccd1),('g',ccd2),('b',ccd3)], self)
 
         elif self.instrument == 'ULTRASPEC':
 
-            wins = []
+            wins = Group()
+            nwin = 1
             noff = 0
             if self.mode.startswith('USPEC'):
                 for w in self.win:
@@ -1011,25 +1012,25 @@ class Rdata (Rhead):
                     if self.output == 'N':
                         # normal output, multi windows.
                         if flt:
-                            wins.append(
+                            wins[str(nwin)] = \
                                 Window(np.reshape(buff[noff:noff+npix].astype(np.float32),
-                                                  (w.ny,w.nx))[:,nchop:],llx,w.lly,xbin,ybin))
+                                                  (w.ny,w.nx))[:,nchop:],llx,w.lly,xbin,ybin)
                         else:
-                            wins.append(
+                            wins[str(nwin)] = \
                                 Window(np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop:],
-                                       llx,w.lly,xbin,ybin))
+                                       llx,w.lly,xbin,ybin)
 
                     elif self.output == 'A':
                         # avalanche output, multi windows.
                         if flt:
-                            wins.append(
+                            wins[str(nwin)] = \
                                 Window(np.reshape(buff[noff:noff+npix].astype(np.float32),
-                                                  (w.ny,w.nx))[:,nchop::-1],llx,w.lly,xbin,ybin))
+                                                  (w.ny,w.nx))[:,nchop::-1],llx,w.lly,xbin,ybin)
                         else:
-                            wins.append(
+                            wins[str(nwin)] = \
                                 Window(np.reshape(buff[noff:noff+npix],
-                                                  (w.ny,w.nx))[:,nchop::-1],llx,w.lly,xbin,ybin))
-
+                                                  (w.ny,w.nx))[:,nchop::-1],llx,w.lly,xbin,ybin)
+                    nwin += 1
                     noff += npix
 
             elif self.mode == 'UDRIFT':
@@ -1064,13 +1065,15 @@ class Rdata (Rhead):
                     else:
                         comb = np.reshape(buff[:npix],(wl.ny,wl.nx+wr.nx)[:,::-1])
 
-                wins.append(Window(comb[:,nchopl:wl.nx],llxl,wl.lly,xbin,ybin))
-                wins.append(Window(comb[:,wl.nx+nchopr:],llxr,wl.lly,xbin,ybin))
+                wins[str(nwin)] = Window(comb[:,nchopl:wl.nx],llxl,wl.lly,xbin,ybin)
+                nwin += 1
+                wins[str(nwin)] = Window(comb[:,wl.nx+nchopr:],llxr,wl.lly,xbin,ybin)
+                nwin += 1
 
             if self._ccd:
                 return CCD(wins, time, self.nxmax, self.nymax, True, head)
             else:
-                return MCCD([CCD(wins, time, self.nxmax, self.nymax, True, head),], head)
+                return MCCD({'1' : CCD(wins, time, self.nxmax, self.nymax, True, head),}, head)
 
         else:
             raise UltracamError('Rdata.__init__: have not implemented anything for ' + self.instrument)
