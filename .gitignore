@@ -53,3 +53,7 @@ distribute-*.tar.gz
 
 # Python virtualenv
 env
+
+data
+dev
+
