@@ -5,13 +5,16 @@ for iterating through multiple images from a variety of sources.
 """
 
 from abc import ABC, abstractmethod
+from collections import OrderedDict
+
 from astropy.io import fits
-from .ccd import CCD, MCCD
+from . import ccd
 from . import ucam
 from . import hcam
+from .core import HCM_NXTOT, HCM_NYTOT
 
 __all__ = ('SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
-           'UcamDiskSpool', 'HcamListSpool')
+           'UcamDiskSpool', 'HcamListSpool', 'get_ccd_pars')
 
 def rhcam(fname):
     """Reads a HiPERCAM file containing either CCD or MCCD data and returns one or
@@ -33,9 +36,9 @@ def rhcam(fname):
     with fits.open(fname) as hdul:
         htype = hdul[0].header['HIPERCAM']
         if htype == 'CCD':
-            return CCD.rhdul(hdul)
+            return ccd.CCD.rhdul(hdul)
         elif htype == 'MCCD':
-            return MCCD.rhdul(hdul)
+            return ccd.MCCD.rhdul(hdul)
         else:
             raise ValueError(
                 'Could not find keyword "HIPERCAM" in primary header of file = {:s}'.format(
@@ -187,34 +190,35 @@ class HcamDiskSpool(SpoolerBase):
     def __next__(self):
         return self._iter.__next__()
 
-def data_source(inst, resource, server=None, flist=None, first=1, flt=True):
+def data_source(inst, resource, flist, server, first, flt):
     """Returns a context manager needed to run through a set of exposures.
     This is basically a wrapper around the various context managers that
     hook off the SpoolerBase class.
 
     Arguments::
 
-       inst : (string)
+       inst     : (string)
           Instrument name. Current choices: 'ULTRA' for ULTRACAM/SPEC, 'HIPER'
-          for 'HiPERCAM'.
+          for 'HiPERCAM'. 'HIPER' is the one to use if you are looking at a list
+          of HiPERCAM-format 'hcm' files.
 
        resource : (string)
-          File name. Either a run number for ULTRA or HIPER and server==True,
-          of a file with a list of files for HIPER and server==False.
+          File name. Either a run number for ULTRA or HIPER or a file list
+          if flist == True.
 
-       server : (bool | None)
-          If server == True, access via a server is expected. If False, a local
-          disk file is assumed. If None, then flist should be set to True.
+       flist    : (bool)
+          True if 'resource' is a list of files.
 
-       flist : (bool | None)
-          If server is None, then flist should be set to True, otherwise it
-          should be set to None or False.
+       server   : (bool)
+          If flist == False, then 'server' controls whether access will be attempted via
+          a server. If not, a local disk file is assumed. Note that this parameter is
+          ignored if flist == True.
 
-       first : (int)
+       first    : (int)
           If a raw disk file is being read, either locally or via a server,
           this parameter sets where to start in the file.
 
-       flt : (bool)
+       flt      : (bool)
           If True, convert to 32-bit floats on input.
 
     Returns::
@@ -224,32 +228,25 @@ def data_source(inst, resource, server=None, flist=None, first=1, flt=True):
 
          with data_source('ULTRA', 'run003') as dsource:
             for frame in dsource:
-
-    Exceptions::
-
-       A ValueError will be raised if the inputs are not recognised or
-       conflict.
     """
 
     if inst == 'ULTRA':
-        if server is None:
-            raise ValueError(
-                'spooler.data_source: for inst = "ULTRA", server must be True or False')
-        elif server:
+        if flist:
+            raise NotImplementedError(
+                'spooler.data_source: file lists have not been implemented for inst = "ULTRA"'
+                )
+
+        if server:
             return UcamServSpool(resource,first,flt)
         else:
             return UcamDiskSpool(resource,first,flt)
 
     elif inst == 'HIPER':
-        if server is None:
-            if flist is None or not flist:
-                raise ValueError(
-                    'spooler.data_source: for inst = "HIPER" and server is None, flist must be True')
-            else:
-                return HcamListSpool(resource)
+        if flist:
+            return HcamListSpool(resource)
         elif server:
-                raise ValueError(
-                    'spooler.data_source: HiPERCAM server not implemented yet'
+            raise NotImplementedError(
+                'spooler.data_source: HiPERCAM server not implemented yet'
                 )
         else:
             return HcamDiskSpool(resource,first,flt)
@@ -259,3 +256,69 @@ def data_source(inst, resource, server=None, flist=None, first=1, flt=True):
             'spooler.data_source: inst = {!s} not recognised'.format(inst)
         )
 
+def get_ccd_pars(inst, resource, flist):
+    """Returns a list of tuples of CCD labels, and maximum dimensions, i.e. (label, nxmax, nymax)
+    for each CCD pointed at by the input parameters.
+
+    Arguments::
+
+       inst     : (string)
+          Instrument name. Current choices: 'ULTRA' for ULTRACAM/SPEC, 'HIPER'
+          for 'HiPERCAM'. 'HIPER' is the one to use if you are looking at a list
+          of HiPERCAM-format 'hcm' files.
+
+       resource : (string)
+          File name. Either a run number for ULTRA or HIPER or a file list
+          if flist == True.
+
+       flist    : (bool)
+          True if 'resource' is a list of files.
+
+    Returns with a list of tuples with the information outlined above. In the
+    case of file lists these are extracted from the first file of the list only.
+    """
+
+    if inst == 'ULTRA':
+        if flist:
+            raise NotImplementedError(
+                'spooler.get_ccd_pars: file lists have not been implemented for inst = "ULTRA"'
+                )
+        rhead = ucam.Rhead(resource)
+        if rhead.instrument == 'ULTRACAM':
+            # ULTRACAM raw data file: fixed data
+            return OrderedDict((('r',(1080,1032)), ('g',(1080,1032)), ('b',(1080,1032))))
+
+        elif rhead.instrument == 'ULTRASPEC':
+            # ULTRASPEC raw data file: fixed data
+            return OrderedDict(('1',(1056,1072)))
+
+        else:
+            raise ValueError(
+                'spooler.get_ccd_pars: instrument {:s} not supported'.format(rhead.instrument)
+                )
+
+    elif inst == 'HIPER':
+        if flist:
+            # file list: we access the first file of the list to read the key and dimension
+            # info on the assumption that it is the same, for all files.
+            with open(resource) as flp:
+                for fname in flp:
+                    if not fname.startswith('#'):
+                        break
+                else:
+                    raise ValueError(
+                        'spooler.get_ccd_keys: failed to find any file names in {:s}'.format(resource)
+                        )
+            return ccd.get_ccd_info(fname)
+
+        else:
+            # HiPERCAM raw data file: fixed data
+            return OrderedDict(
+                (
+                    ('1',(HCM_NXTOT, HCM_NYTOT)),
+                    ('2',(HCM_NXTOT, HCM_NYTOT)),
+                    ('3',(HCM_NXTOT, HCM_NYTOT)),
+                    ('4',(HCM_NXTOT, HCM_NYTOT)),
+                    ('5',(HCM_NXTOT, HCM_NYTOT))
+                    )
+                )
