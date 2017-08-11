@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
+from trm.pgplot import *
 import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
@@ -185,45 +186,58 @@ def grab(args=None):
 
 def hplot(args=None):
     """
-    Plots a multi-CCD image. Arguments::
+    Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
+    version is slightly clunky in its choice of the viewing area but has some
+    features that could be useful, in particular, the interactive plot
+    (device='/mpl') allows one to pan and zoom and to compare the same part of
+    multiple CCDs easily.
+
+    Arguments::
 
       input  : (string)
          name of MCCD file
 
       device : (string) [hidden]
-         by default sets to "term" meaning display on terminal, else the name of
-         the output file, with the type determined by the extension, i.e. 'image.pdf'
+         Plot device name. Uses characters after a final trailing '/' to
+         identify the type in PGPLOT style. Thus::
+
+                   /xs : PGPLOT xserver interactive plot
+                  1/xs : PGPLOT xserver interactive plot called '1'
+           plot.ps/cps : PGPLOT colour postscript called 'plot.ps'
+           plot.ps/vps : PGPLOT B&W portrait oriented plot
+                  /mpl : matplotlib interactive plot
+          plot.pdf/mpl : matplotlib PDF plot
 
       ccd    : (string)
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
          are possible inputs (without the quotes). '3 4' will plot CCD '3' and
-         CCD '4'. If you want to plot more than one CCD, then you will be prompted
-         for the number of panels in the X direction. This parameter will not be
-         prompted if there is only one CCD in the file.
+         CCD '4'. If you want to plot more than one CCD, then you will be
+         prompted for the number of panels in the X direction. This parameter
+         will not be prompted if there is only one CCD in the file.
 
       nx     : (int)
-         number of panels across to display, prompted if more than one CCD is to
-         be plotted.
+         number of panels across to display, prompted if more than one CCD is
+         to be plotted.
 
-      xlo    : (float) [hidden]
-         left X-limit. Note that since this routine uses matplotlib, the resulting
-         image on an interactive device is zoomable hence you may often not require
+      xlo    : (float)
+         left X-limit, for PGPLOT and matplotlib harcopy plots only as the
+         matplotlib interactive plot is zoomable
 
-      xhi    : (float) [hidden]
+      xhi    : (float)
          right X-limit
 
-      ylo    : (float) [hidden]
+      ylo    : (float)
          bottom Y-limit
 
-      yhi    : (float) [hidden]
+      yhi    : (float)
          top Y-limit
 
       width  : (float) [hidden]
-         plot width (inches), defaults to 0 which means it just uses whatever the program decides.
+         plot width (inches). Set = 0 to let the program choose.
 
       height : (float) [hidden]
-         plot height (inches), defaults to 0 which means it just uses whatever the program decides.
-         BOTH width and height must be non-zero to take effect.
+         plot height (inches). Set = 0 to let the program choose. BOTH width
+         AND height must be non-zero to have any effect
     """
 
     if args is None:
@@ -238,11 +252,16 @@ def hplot(args=None):
         cl.register('input', Cline.LOCAL, Cline.PROMPT)
         cl.register('device', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('iset', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ilow', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ihigh', Cline.LOCAL, Cline.PROMPT)
+        cl.register('plow', Cline.LOCAL, Cline.PROMPT)
+        cl.register('phigh', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
-        cl.register('xlo', Cline.LOCAL, Cline.HIDE)
-        cl.register('xhi', Cline.LOCAL, Cline.HIDE)
-        cl.register('ylo', Cline.LOCAL, Cline.HIDE)
-        cl.register('yhi', Cline.LOCAL, Cline.HIDE)
+        cl.register('xlo', Cline.LOCAL, Cline.PROMPT)
+        cl.register('xhi', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ylo', Cline.LOCAL, Cline.PROMPT)
+        cl.register('yhi', Cline.LOCAL, Cline.PROMPT)
         cl.register('width', Cline.LOCAL, Cline.HIDE)
         cl.register('height', Cline.LOCAL, Cline.HIDE)
 
@@ -251,9 +270,39 @@ def hplot(args=None):
                              cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.rfits(frame)
 
-        cl.set_default('device','term')
         device = cl.get_value('device', 'plot device name', 'term')
 
+        # set type of plot (PGPLOT or matplotlib) and the name of the file
+        # if any in the case of matplotlib
+        fslash = device.rfind('/')
+        if fslash > -1:
+            if device[fslash+1:] == 'mpl':
+                ptype = 'MPL'
+                hard = device[:fslash].strip()
+            else:
+                ptype = 'PGP'
+
+        else:
+            raise ValueError(
+                'Could not indentify plot type from device = {:s}'.format(device)
+                )
+
+        # define the display intensities
+        iset = cl.get_value(
+            'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
+            'a', lvals=['a','A','d','D','p','P'])
+        iset = iset.lower()
+
+        plow, phigh = 5, 95
+        ilow, ihigh = 0, 1000
+        if iset == 'd':
+            ilow = cl.get_value('ilow', 'lower intensity limit', 0.)
+            ihigh = cl.get_value('ihigh', 'upper intensity limit', 1000.)
+        elif iset == 'p':
+            plow = cl.get_value('plow', 'lower intensity limit percentile', 5., 0., 100.)
+            phigh = cl.get_value('phigh', 'upper intensity limit percentile', 95., 0., 100.)
+
+        # define the panel grid
         try:
             nxdef = cl.get_default('nx')
         except:
@@ -281,49 +330,73 @@ def hplot(args=None):
             nxmax = max(nxmax, mccd[cnam].nxtot)
             nymax = max(nymax, mccd[cnam].nytot)
 
-        xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., nxmax+1)
-        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., nxmax+1)
-        ylo = cl.get_value('ylo', 'lower Y value', 0., 0., nymax+1)
-        yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., nymax+1)
-        cl.set_default('width',0.)
+        if ptype == 'PGP' or hard != '':
+            xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., nxmax+1)
+            xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., nxmax+1)
+            ylo = cl.get_value('ylo', 'lower Y value', 0., 0., nymax+1)
+            yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., nymax+1)
+        else:
+            xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
+
         width = cl.get_value('width', 'plot width (inches)', 0.)
-        cl.set_default('height',0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
+
         cl.save()
 
     except cline.ClineError as err:
-        print('Error on parameter input:')
-        print(err)
+        print('Error on parameter input:', file=sys.stderr)
+        print(err, file=sys.stderr)
         sys.exit(1)
 
     # finally do something
-    if width > 0 and height > 0:
-        fig = plt.figure(figsize=(width,height))
-    else:
-        fig = plt.figure()
-
-    nccd = len(ccds)
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
-    ax = None
-    for n, cnam in enumerate(ccds):
-        if ax is None:
-            ax = fig.add_subplot(ny, nx, n+1)
+    if ptype == 'MPL':
+        if width > 0 and height > 0:
+            fig = plt.figure(figsize=(width,height))
         else:
-            fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-        hcam.mpl.pccd(plt,mccd[cnam])
-        plt.title('CCD {:s}'.format(cnam))
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.xlim(xlo,xhi)
-        plt.ylim(ylo,yhi)
+            fig = plt.figure()
 
-    if device == 'term':
+        nccd = len(ccds)
+        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+
+        ax = None
+        for n, cnam in enumerate(ccds):
+            if ax is None:
+                axes = ax = fig.add_subplot(ny, nx, n+1)
+                axes.set_aspect('equal', adjustable='box')
+            else:
+                axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
+                axes.set_aspect('equal', adjustable='datalim')
+            hcam.mpl.pccd(plt,mccd[cnam],iset,plow,phigh,ilow,ihigh)
+
+            plt.title('CCD {:s}'.format(cnam))
+            plt.xlabel('X')
+            plt.ylabel('Y')
+
         plt.tight_layout()
-        plt.show()
-    else:
-        plt.tight_layout()
-        plt.savefig(device)
+        if hard == '':
+            plt.show()
+        else:
+            plt.savefig(hard)
+
+    elif ptype == 'PGP':
+        # open the plot
+        dev = hcam.pgp.Device(device)
+        if width > 0 and height > 0:
+            pgpap(width,height/width)
+
+        nccd = len(ccds)
+        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+
+        # set up panels and axes
+        pgsubp(nx,ny)
+
+        for n, cnam in enumerate(ccds):
+            pgsci(hcam.pgp.Params['axis.ci'])
+            pgsch(hcam.pgp.Params['axis.number.ch'])
+            pgenv(xlo, xhi, ylo, yhi, 1, 0)
+            pglab('X','Y','CCD {:s}'.format(cnam))
+            hcam.pgp.pccd(mccd[cnam],iset,plow,phigh,ilow,ihigh)
+
 
 #############################################################
 #
@@ -378,8 +451,8 @@ def makedata(args=None):
                               cline.Fname('config'))
         cl.save()
     except cline.ClineError as err:
-        print('Error on parameter input:')
-        print(err)
+        print('Error on parameter input:',file=sys.stderr)
+        print(err, file=sys.stderr)
         exit(1)
 
     # Read the config file
@@ -703,8 +776,8 @@ def makefield(args=None):
         cl.save()
 
     except cline.ClineError as err:
-        print('Error on parameter input:')
-        print(err)
+        print('Error on parameter input:', file=sys.stderr)
+        print(err, file=sys.stderr)
         exit(1)
 
     # add targets
