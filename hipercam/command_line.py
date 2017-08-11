@@ -149,7 +149,7 @@ def grab(args=None):
         run = run[:run.find(hcam.HRAW)]
 
     # Finally, we can go
-    with hcam.data_source(instrument, run, server, flist) as spool:
+    with hcam.data_source(instrument, run, flist, server, first) as spool:
         nframe = first
         root = os.path.basename(run)
         for frame in spool:
@@ -381,7 +381,7 @@ def hplot(args=None):
         # set up panels and axes
         pgsubp(nx,ny)
 
-        for n, cnam in enumerate(ccds):
+        for cnam in ccds:
             pgsci(hcam.pgp.Params['axis.ci'])
             pgsch(hcam.pgp.Params['axis.number.ch'])
             pgenv(xlo, xhi, ylo, yhi, 1, 0)
@@ -867,47 +867,46 @@ def rtplot(args=None):
         if source == 's' or source == 'l':
             inst = cl.get_value('inst', 'instrument [h(ipercam), u(ltracam/spec)]',
                                 'h', lvals=('h','u'))
-            ident = cl.get_value('run', 'run number', 'run005')
+            run = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to plot', 1, 1)
 
         else:
             # set inst = 'h' as only lists of HiPERCAM files are supported
             inst = 'h'
-            ident = cl.get_value('flist', 'file list',
-                                 cline.Fname('files.lis',hcam.LIST))
+            run = cl.get_value('flist', 'file list', cline.Fname('files.lis',hcam.LIST))
             first = 1
 
         flist = source == 'f'
-        server = None if flist else source == 's'
+        server = source == 's'
         if inst == 'u':
             instrument = 'ULTRA'
         elif inst == 'h':
             instrument = 'HIPER'
 
-        # define the panel grid. in order to do so we need to open a file to determine
-        # the number of CCDs.
-        # ????? something to do this here ??????
+        # define the panel grid. first get the labels and maximum dimensions
+        ccdinf = hcam.get_ccd_pars(instrument, run, flist)
 
         try:
             nxdef = cl.get_default('nx')
         except:
             nxdef = 3
 
-        if 1:
+        if len(ccdinf) > 1:
             ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
             if ccd == '0':
-                ccds = list(mccd.keys())
+                ccds = list(ccdinf.keys())
             else:
                 ccds = ccd.split()
+
             if len(ccds) > 1:
                 nxdef = min(len(ccds), nxdef)
                 cl.set_default('nx', nxdef)
                 nx = cl.get_value('nx', 'number of panels in X', 3, 1)
             else:
                 nx = 1
-        else:
-            ccds = list(mccd.keys())
+        elif len(ccdinf) == 1:
             nx = 1
+            ccds = list(ccdinf.keys())
 
         # define the display intensities
         iset = cl.get_value(
@@ -926,33 +925,46 @@ def rtplot(args=None):
 
         nxmax, nymax = 0, 0
         for cnam in ccds:
-            nxmax = max(nxmax, mccd[cnam].nxtot)
-            nymax = max(nymax, mccd[cnam].nytot)
+            nxtot, nytot = ccdinf[cnam]
+            nxmax = max(nxmax, nxtot)
+            nymax = max(nymax, nytot)
 
-        if ptype == 'PGP' or hard != '':
-            xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., nxmax+1)
-            xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., nxmax+1)
-            ylo = cl.get_value('ylo', 'lower Y value', 0., 0., nymax+1)
-            yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., nymax+1)
-        else:
-            xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
+        xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., nxmax+1)
+        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., nxmax+1)
+        ylo = cl.get_value('ylo', 'lower Y value', 0., 0., nymax+1)
+        yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., nymax+1)
 
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
 
-    # work out the source of data
-    source = hcam.data_source(instrument, server, flist)
-
     # Open device
     imdev = hcam.pgp.Device(device)
+    if width > 0 and height > 0:
+        pgpap(width,height/width)
 
-    # Finally, we can go
-    with hcam.Spooler(ident, source, first, True) as spool:
-        for frame in spool:
-            for nccd, ccd in frame.items():
-                for nwin, wind in ccd.items():
-                    pass
+    # set up panels and axes
+    nccd = len(ccds)
+    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
+    pgsubp(nx,ny)
+
+    for cnam in ccds:
+        pgsci(hcam.pgp.Params['axis.ci'])
+        pgsch(hcam.pgp.Params['axis.number.ch'])
+        pgenv(xlo, xhi, ylo, yhi, 1, 0)
+        pglab('X','Y','CCD {:s}'.format(cnam))
+    pgpanl(1,1)
+
+    # Finally plot stuff
+    with hcam.data_source(instrument, run, flist, server, first, True) as spool:
+        n = 1
+        for mccd in spool:
+            print('Exposure {:d}'.format(n+1))
+            n += 1
+            for cnam in ccds:
+                hcam.pgp.pccd(mccd[cnam],iset,plo,phi,ilo,ihi)
+                pgpage()
+            pgpanl(1,1)
 
 ############################################################################
 #
