@@ -104,7 +104,10 @@ class Cline:
     scripts to communicate parameters to each other through 'global' defaults,
     and commands to have a 'memory' between different invocations. To use the
     class you first create an instance, then register each parameter name, and
-    finally get the input, either from the user, default values or disk.
+    finally get the input, either from the user, default values or disk. Cline
+    can be (and is best) invoked as a context manager with "with" as shown below.
+    This defines a clean 'get inputs' section and saves the values when it goes
+    out of context.
 
     Here is some example code::
 
@@ -116,21 +119,16 @@ class Cline:
       >> # under the home directory that will be used by
       >> # default.
       >>
-      >> cline = inp.Cline('COMM_ENV', '.comm', 'command', args)
+      >> with inp.Cline('COMM_ENV', '.comm', 'command', args) as cline:
       >>
-      >> # register parameters
-      >> cline.register('device', inp.Cline.GLOBAL, inp.Cline.HIDE)
-      >> cline.register('npoint', inp.Cline.LOCAL,  inp.Cline.PROMPT)
-      >> cline.register('output', inp.Cline.LOCAL,  inp.Cline.PROMPT)
+      >>   # register parameters
+      >>   cline.register('device', inp.Cline.GLOBAL, inp.Cline.HIDE)
+      >>   cline.register('npoint', inp.Cline.LOCAL,  inp.Cline.PROMPT)
+      >>   cline.register('output', inp.Cline.LOCAL,  inp.Cline.PROMPT)
       >>
-      >> try:
-      >>    device = cline.get_value('device', 'plot device', '/xs')
-      >>    npoint = cline.get_value('npoint', 'number of points', 10, 1, 100)
-      >>    output = cline.get_value('output', 'output file', 'save.dat')
-      >> except inp.ClineError, err:
-      >>    print('Error on parameter input:')
-      >>    print(err)
-      >>    exit(1)
+      >>   device = cline.get_value('device', 'plot device', '/xs')
+      >>   npoint = cline.get_value('npoint', 'number of points', 10, 1, 100)
+      >>   output = cline.get_value('output', 'output file', 'save.dat')
       >>
       >> # rest of program here ...
 
@@ -655,6 +653,12 @@ class Cline:
             return self._pbypos[self.narg:]
         else:
             return None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.save()
 
 class Fname(str):
     """Defines a callable parameter type for the :class:`Cline` to allow for some
