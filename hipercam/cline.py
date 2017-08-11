@@ -503,17 +503,17 @@ class Cline:
                         self._usedef = True
                     elif reply == '?':
                         print()
-                        if minval != None and maxval != None:
+                        if minval is not None and maxval is not None:
                             print('Parameter = "{:s}" must lie from {!s} to {!s}'.format(param,minval,maxval))
-                        elif minval != None:
+                        elif minval is not None:
                             print('Parameter = "{:s}" must be greater than {!s}'.format(param,minval))
-                        elif maxval != None:
+                        elif maxval is not None:
                             print('Parameter = "{:s}" must be less than {!s}'.format(param,maxval))
                         else:
                             print('Parameter = "{:s}" has no restriction on its value'.format(param))
 
                         print('"{:s}" has data type = {!s}'.format(param,type(defval)))
-                        if lvals != None:
+                        if lvals is not None:
                             print('Only the following values are allowed:')
                             print(lvals)
                         if isinstance(defval, (list, tuple)) and fixlen:
@@ -531,8 +531,10 @@ class Cline:
         try:
             if isinstance(defval, Fname):
                 value = defval(value)
+
             elif isinstance(defval, str):
                 value = str(value)
+
             elif isinstance(defval, bool):
                 if isinstance(value, str):
                     if value.lower() == 'true' or value.lower() == 'yes' or \
@@ -543,11 +545,53 @@ class Cline:
                         value = False
                     else:
                         raise ClineError(
-                            'hipercam.cline.Cline.get_value: could not translate "' + value + '" to a boolean True or False.')
+                            'hipercam.cline.Cline.get_value: could not translate "' + value +
+                            '" to a boolean True or False.'
+                            )
             elif isinstance(defval, int):
+                # 'max' and 'min' will set to the maximum and minimum
+                # values if they have been set handle these here before
+                # attempting to convert to a float
+                if isinstance(value,str):
+                    if value == 'min':
+                        if minval is not None:
+                            value = minval
+                        else:
+                            raise ClineError(
+                                'hipercam.cline.Cline.get_value: {:s} has no minimum value'.format(param)
+                                )
+                    elif value == 'max':
+                        if maxval is not None:
+                            value = maxval
+                        else:
+                            raise ClineError(
+                                'hipercam.cline.Cline.get_value: {:s} has no maximum value'.format(param)
+                                )
+
                 value = int(value)
+
             elif isinstance(defval, float):
+                # 'max' and 'min' will set to the maximum and minimum
+                # values if they have been set handle these here before
+                # attempting to convert to a float
+                if isinstance(value,str):
+                    if value == 'min':
+                        if minval is not None:
+                            value = minval
+                        else:
+                            raise ClineError(
+                                'hipercam.cline.Cline.get_value: {:s} has no minimum value'.format(param)
+                                )
+                    elif value == 'max':
+                        if maxval is not None:
+                            value = maxval
+                        else:
+                            raise ClineError(
+                                'hipercam.cline.Cline.get_value: {:s} has no maximum value'.format(param)
+                                )
+
                 value = float(value)
+
             elif isinstance(defval, list):
                 if isinstance(value, str):
                     value = map(type(defval[0]), value.split())
