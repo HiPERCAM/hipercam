@@ -5,13 +5,14 @@ Class to represent a CCD and a multi-CCD
 
 import warnings
 import numpy as np
+from collections import OrderedDict
 
 from astropy.io import fits
 from .core import *
 from .group import *
 from .window import *
 
-__all__ = ('CCD', 'MCCD')
+__all__ = ('CCD', 'MCCD', 'get_ccd_info')
 
 class CCD(Agroup):
     """Class representing a single CCD as a :class:`Group` of :class:`Windat`
@@ -167,22 +168,23 @@ class CCD(Agroup):
 
     @classmethod
     def rhdul(cls, hdul, multi=False):
-        """Builds a :class:`CCD` or several :class:`CCD`s from an :class:`HDUList`.
-        Given an :class:`HDUList` representing a single CCD the header from
-        the first HDU will be used to create the header for the
-        :class:`CCD`. The data from the remaining HDUs will be read into the
-        :class:`Windat`s that make up the CCD. Each data HDU will be searched
-        for a header parameter WINDOW to label the :class:`Windat`s, but the
-        routine will attempt to generate a sequential label if WINDOW is not
-        found. If the auto-generated label conflicts with one already found,
-        then a KeyError will be raised.
+        """
+        Builds a :class:`CCD` or several :class:`CCD`s from an
+        :class:`HDUList`.  Given an :class:`HDUList` representing a single CCD
+        the header from the first HDU will be used to create the header for
+        the :class:`CCD`. The data from the remaining HDUs will be read into
+        the :class:`Windat`s that make up the CCD. Each data HDU will be
+        searched for a header parameter WINDOW to label the :class:`Windat`s,
+        but the routine will attempt to generate a sequential label if WINDOW
+        is not found. If the auto-generated label conflicts with one already
+        found, then a KeyError will be raised.
 
         The method can also run in a mode where the :class:`HDUList` is
         assumed to contain several :class:`CCD`s. In this case each
         :class:`CCD` comes in a series of continguous HDUs, starting with a
-        header-only one followed by the data windows, and all HDUs of
-        a given :class:`CCD` must be labelled with the keyword 'CCD' to
-        allow the CCD to be defined.
+        header-only one followed by the data windows, and all HDUs of a given
+        :class:`CCD` must be labelled with the keyword 'CCD' to allow the CCD
+        to be defined.
 
         Arguments::
 
@@ -204,7 +206,7 @@ class CCD(Agroup):
 
         """
         winds = Group()
-        nwin = 0
+        nwin = 1
         first = True
 
         for hdu in hdul:
@@ -220,7 +222,7 @@ class CCD(Agroup):
                     ccd = cls(winds, nxtot, nytot, main_head)
                     winds = Group()
                     first = True
-                    nwin = 0
+                    nwin = 1
                     yield (ccd_label,ccd)
 
             if first:
@@ -239,13 +241,13 @@ class CCD(Agroup):
             else:
 
                 # Except for the first HDU of a CCD, all should contain data,
-                # and for a single CCD, we assume all are art of the CCD.
+                # and for a single CCD, we assume all are part of the CCD.
                 if 'WINDOW' in head:
                     label = head['WINDOW']
-                elif nwin in winds:
+                elif str(nwin) in winds:
                     raise KeyError('CCD.rhdul: window label conflict')
                 else:
-                    label = nwin
+                    label = str(nwin)
 
                 winds[label] = Windat.rhdu(hdu)
 
@@ -544,5 +546,36 @@ class MCCD(Agroup):
             self.__class__.__name__, super().__repr__(), self.head)
 
 
+def get_ccd_info(fname):
+    """Routine to return some useful basic information from an MCCD file
+    without reading the whole thing in. It returns an OrderedDict keyed on the
+    CCD label which returns the maximum X and Y dimensions of the CCD as a
+    2-element tuple. If no CCD label [header parameter 'CCD'] is found, the
+    rourins assigns a label of '1' on the assumption that the file cotains a
+    single CCD.
+    """
+    info = OrderedDict()
 
+    with fits.open(fname) as hdul:
+        first = True
+        for hdu in hdul:
+            # The header of the HDU
+            head = hdu.header
+
+            if not first and 'CCD' in head and ccd_label != head['CCD']:
+                # Reset because we think we are on the first HDU of a CCD
+                first = True
+
+            if first:
+                # Extract header from first HDU of a CCD
+                if 'CCD' in head:
+                    ccd_label = head['CCD']
+                else:
+                    ccd_label = '1'
+                nxtot = head['NXTOT']
+                nytot = head['NYTOT']
+                info[ccd_label] = (nxtot,nytot)
+                first = False
+
+    return info
 
