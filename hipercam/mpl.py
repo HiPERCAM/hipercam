@@ -88,8 +88,8 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
            the :class:`CCD` to plot
 
       iset : (string)
-           how to set the intensity scale to be used. 'p' for percentiles
-           (set using plo and phi); 'r' for min/max range; 'd' for direct
+           how to set the intensity scale to be used. 'p' for percentiles (set
+           using plo and phi); 'a' for automatic min/max range; 'd' for direct
            value set using dlo and dhi.
 
       plo : (float)
@@ -127,7 +127,7 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
         # Set intensities from percentiles
         vmin,vmax = ccd.percentile((plo,phi))
 
-    elif iset == 'r':
+    elif iset == 'a':
         # Set intensities from min/max range
         vmin, vmax = ccd.min(), ccd.max()
 
