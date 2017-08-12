@@ -2,9 +2,9 @@
 
 """handles command line parameters and prompting for hipercam
 
-This component handles parameter input from the user, and storage and retrieval
-of parameters from disk files. This gives scripts a memory and can save a lot
-of typing, especially with frequently invoked scripts.
+This component handles parameter input from the user, and storage and
+retrieval of parameters from disk files. This gives scripts a memory and can
+save a lot of typing, especially with frequently invoked scripts.
 
 Classes
 =======
@@ -50,7 +50,7 @@ command 20
 (npoint will be set = 20, output will be prompted for). Note that such unnamed
 parameters can only set the values of parameters which are by default prompted
 for. Hidden parameters must always be explicitly named to specify them on the
-command line. 
+command line.
 
 There are a number of special 'KEYWORD' arguments. These are::
 
@@ -400,7 +400,7 @@ class Cline:
         return defval
 
     def get_value(self, param, prompt, defval, minval=None, maxval=None,
-                  lvals=None, fixlen=True, multipleof=None):
+                  lvals=None, fixlen=True, multipleof=None, ignore=None):
         """Gets the value of a parameter, either from the command arguments, or by
         retrieving default values or by prompting the user as required. This
         is the main function of Cline. The value obtained is used to update
@@ -409,33 +409,37 @@ class Cline:
 
         Arguments::
 
-          param : (string)
+          param   : (string)
              parameter name.
 
-          prompt : (string)
+          prompt  : (string)
              the prompt string associated with the parameter
 
-          defval : (various)
+          defval  : (various)
              default value if no other source can be found (e.g. at start).
              This also defines the data type of the parameter (see below for
              possibilities)
 
-        minval : (same as defval's type)
+          minval  : (same as defval's type)
              the minimum value of the parameter to allow.
 
-        maxval : (same ad defval's type)
+          maxval  : (same ad defval's type)
              the maximum value of the parameter to allow.
 
-        lvals : (list)
+          lvals   : (list)
              list of possible values (exact matching used)
 
-        fixlen : (bool)
+          fixlen  : (bool)
              for lists or tuples, this insists that the user input has the
              same length
 
-        multipleof : (int)
+          multipleof : (int)
              specifies a number that the final value must be a multiple of
              (integers only)
+
+          ignore : (string)
+             for Fname inputs, this is a value that will cause the checks on
+             existence of files to be skipped.
 
         Data types: at the moment, only certain data types are recognised by
         this routine. These are the standard numerical types, 'int', 'long',
@@ -528,7 +532,10 @@ class Cline:
         # type according to the type of 'defval'
         try:
             if isinstance(defval, Fname):
-                value = defval(value)
+                if value != ignore:
+                    # run Fname checks if the input value does not match
+                    # 'ignore'
+                    value = defval(value)
 
             elif isinstance(defval, str):
                 value = str(value)
@@ -601,7 +608,9 @@ class Cline:
                 else:
                     value = tuple(value)
             else:
-                raise ClineError('hipercam.cline.Cline.get_value: did not recognize the data type of the default supplied for parameter {:s} = {!s}'.format(param, type(defval)))
+                raise ClineError(
+                    'hipercam.cline.Cline.get_value: did not recognize the data type of the default supplied for parameter {:s} = {!s}'.format(param, type(defval))
+                )
 
         except ValueError as err:
             raise ClineError('hipercam.cline.Cline.get_value: {!s}'.format(err))
@@ -614,20 +623,24 @@ class Cline:
         elif maxval != None and value > maxval:
             raise ClineError(
                 'hipercam.cline.Cline.get_value: ' +
-                param + ' = ' + str(value) + ' > ' + str(maxval))
+                param + ' = ' + str(value) + ' > ' + str(maxval)
+            )
 
         # and that it is an OK value
         if lvals != None and value not in lvals:
             raise ClineError(
                 'hipercam.cline.Cline.get_value: ' +
-                str(value) + ' is not one of the allowed values = ' + str(lvals))
+                str(value) + ' is not one of the allowed values = ' + str(lvals)
+            )
 
         if multipleof != None and value % multipleof != 0:
             raise ClineError(
                 'hipercam.cline.Cline.get_value: ' +
-                str(value) + ' is not a multiple of ' + str(multipleof))
+                str(value) + ' is not a multiple of ' + str(multipleof)
+            )
 
-        # update appropriate set of defaults. In the case of Fnames, strip the extension
+        # update appropriate set of defaults. In the case of Fnames, strip the
+        # extension
         if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
             if isinstance(defval, Fname):
                 self._gpars[param] = defval.noext(value)
@@ -641,6 +654,11 @@ class Cline:
 
         if self._list:
             print (param,'=',value)
+
+        if isinstance(defval, Fname) and value == ignore:
+            # return None in this case since this is a
+            # value to be ignored.
+            value = None
 
         return value
 
