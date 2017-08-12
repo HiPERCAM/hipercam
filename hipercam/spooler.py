@@ -11,7 +11,7 @@ from astropy.io import fits
 from . import ccd
 from . import ucam
 from . import hcam
-from .core import HCM_NXTOT, HCM_NYTOT
+from . import core
 
 __all__ = ('SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
            'UcamDiskSpool', 'HcamListSpool', 'get_ccd_pars')
@@ -50,8 +50,8 @@ class SpoolerBase(ABC):
     """A common requirement is the need to loop through a stack of images. With a
     variety of possible data sources, one requires handling of multiple
     possible ways of accessing the data. The aim of this class is to provide
-    uniform access via an iterable context manager. It is written as an abstract
-    class
+    uniform access via an iterable context manager. It is written as an
+    abstract class.
 
     """
 
@@ -158,6 +158,7 @@ class HcamListSpool(SpoolerBase):
                 break
         else:
             raise StopIteration
+        return ccd.MCCD.rfits(core.add_extension(fname.strip(), core.HCAM))
 
 class HcamDiskSpool(SpoolerBase):
 
@@ -315,10 +316,10 @@ def get_ccd_pars(inst, resource, flist):
             # HiPERCAM raw data file: fixed data
             return OrderedDict(
                 (
-                    ('1',(HCM_NXTOT, HCM_NYTOT)),
-                    ('2',(HCM_NXTOT, HCM_NYTOT)),
-                    ('3',(HCM_NXTOT, HCM_NYTOT)),
-                    ('4',(HCM_NXTOT, HCM_NYTOT)),
-                    ('5',(HCM_NXTOT, HCM_NYTOT))
+                    ('1',(core.HCM_NXTOT, core.HCM_NYTOT)),
+                    ('2',(core.HCM_NXTOT, core.HCM_NYTOT)),
+                    ('3',(core.HCM_NXTOT, core.HCM_NYTOT)),
+                    ('4',(core.HCM_NXTOT, core.HCM_NYTOT)),
+                    ('5',(core.HCM_NXTOT, core.HCM_NYTOT))
                     )
                 )
