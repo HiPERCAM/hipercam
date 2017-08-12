@@ -69,10 +69,76 @@ def carith(args=None):
         mccd /= constant
 
     # Add a history line
-    mccd.head.add_history('{:s} {:s} {:f} {:s}'.format(command,infile,constant,outfile))
+    mccd.head.add_history(
+        '{:s} {:s} {:f} {:s}'.format(command,infile,constant,outfile)
+    )
 
     # save result
     mccd.wfits(outfile, True)
+
+###############################################################
+#
+# combine -- combines images
+#
+###############################################################
+
+def combine(args=None):
+    """Combines a series of images defined by a list using median
+    combination.
+
+    Arguments::
+
+        list   : (string)
+           list of hcm files with images to combine. The formats of the
+           images should all match
+
+        output : (string)
+           output file
+    """
+
+    if args is None:
+        args = sys.argv[1:]
+
+    # get the inputs
+    with Cline('HIPERCAM_ENV', '.hipercam', 'combine', args) as cl:
+
+        # register parameters
+        cl.register('list', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('output', Cline.LOCAL, Cline.PROMPT)
+
+        # get inputs
+        flist = cl.get_value(
+            'list', 'list of files to combine',
+            cline.Fname('files', hcam.LIST)
+        )
+
+        outfile = cl.get_value(
+            'output', 'output file',
+            cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW)
+        )
+
+    # Read files into memory
+    print('Loading files from {:s}'.format(flist))
+    mccds = []
+    with hcam.HcamListSpool(flist) as spool:
+        for mccd in spool:
+            mccds.append(mccd)
+    print('Loaded {:d} files'.format(len(mccds)))
+
+    # Combine
+    ofile = mccds[0].copy()
+    for cnam, occd in ofile.items():
+        print('Combining CCD {:s} frames'.format(cnam))
+        for wnam, owin in occd.items():
+            arrs = []
+            for mccd in mccds:
+                arrs.append(mccd[cnam][wnam].data)
+            arr3d = np.stack(arrs)
+            owin.data = np.median(arr3d,axis=0)
+
+    # write out
+    ofile.wfits(outfile)
+    print('Written result to {:s}'.format(outfile))
 
 ###########################################################
 #
@@ -81,28 +147,35 @@ def carith(args=None):
 ###########################################################
 
 def grab(args=None):
-    """This downloads a sequence of images from a raw data file and writes
-    them out to a series CCD / MCCD files. Arguments::
+    """This downloads a sequence of images from a raw data file and writes them
+    out to a series CCD / MCCD files. Arguments::
 
       source : (string)
          's' = server, 'l' = local
 
-      inst : (string) [hidden]
+      inst   : (string) [hidden]
          Instrument involved. Two choices, 'u' for ULTRCAM or ULTRASPEC, 'h'
          for HiPERCAM. This is needed because of the different formats.
 
-      run : (string)
+      run    : (string)
          run name to access
-
-      first : (int)
-         First frame to access
-
-      last : (int)
-         Last frame to access, 0 for the lot
 
       ndigit : (int)
          Files created will be written as 'run005_0013.fits' etc. `ndigit` is
          the number of digits used for the frame number (4 in this case)
+
+      first  : (int)
+         First frame to access
+
+      last   : (int)
+         Last frame to access, 0 for the lot
+
+      bias   : (string)
+         Name of bias frame to subtract, 'none' to ignore.
+
+      toflt  : (bool)
+         Convert to 4-bytes floats [if no bias frame specified]
+
     """
 
     if args is None:
@@ -112,29 +185,46 @@ def grab(args=None):
     with Cline('HIPERCAM_ENV', '.hipercam', 'grab', args) as cl:
 
         # register parameters
-        cl.register('source', Cline.LOCAL, Cline.HIDE)
+        cl.register('source', Cline.GLOBAL, Cline.HIDE)
         cl.register('inst', Cline.GLOBAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
+        cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('toflt', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
-        source = cl.get_value('source', 'data source [s(erver), l(ocal)]',
-                              'l', lvals=('s','l'))
-        inst = cl.get_value('inst', 'instrument used [h(ipercam), u(ltracam/spec)]',
-                            'h', lvals=('h','u'))
+        source = cl.get_value(
+            'source', 'data source [s(erver), l(ocal)]',
+            'l', lvals=('s','l')
+        )
+
+        inst = cl.get_value(
+            'inst', 'instrument used [h(ipercam), u(ltracam/spec)]',
+            'h', lvals=('h','u')
+        )
+
         run = cl.get_value('run', 'run name', 'run005')
+
+        ndigit = cl.get_value(
+            'ndigit', 'number of digits in frame identifier', 3, 0)
 
         first = cl.get_value('first', 'first frame to grab', 1, 1)
         last = cl.get_value('last', 'last frame to grab', 0)
         if last < first and last != 0:
             sys.stderr.write('last must be >= first or 0')
             sys.exit(1)
+
+        bias = cl.get_value(
+            'bias', "bias frame ['none' to ignore]",
+            cline.Fname('bias', hcam.HCAM), ignore='none'
+        )
+        if bias is not None:
+            # read the bias frame
+            bframe = hcam.MCCD.rfits(bias)
+
         flt = cl.get_value('toflt', 'convert to 4-byte floats', False)
-        ndigit = cl.get_value('ndigit', 'number of digits in frame identifier',
-                              3, 0)
 
     # Now the actual work. First set up the arguments for data_source
     server = source == 's'
@@ -153,8 +243,15 @@ def grab(args=None):
         nframe = first
         root = os.path.basename(run)
         for frame in spool:
+
+            # subtract bias
+            if bias is not None:
+                frame -= bframe
+
+            # write to disk
             fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
             frame.wfits(fname,True)
+
             print('Written frame {:d} to {:s}'.format(nframe,fname))
             nframe += 1
             if last and nframe > last: break

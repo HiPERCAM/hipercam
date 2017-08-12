@@ -99,9 +99,10 @@ setup(
     entry_points={
         'console_scripts' : [
             'cadd=hipercam.command_line:carith',
-            'csub=hipercam.command_line:carith',
-            'cmul=hipercam.command_line:carith',
             'cdiv=hipercam.command_line:carith',
+            'cmul=hipercam.command_line:carith',
+            'csub=hipercam.command_line:carith',
+            'combine=hipercam.command_line:combine',
             'grab=hipercam.command_line:grab',
             'hplot=hipercam.command_line:hplot',
             'makedata=hipercam.command_line:makedata',
