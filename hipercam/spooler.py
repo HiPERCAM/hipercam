@@ -47,12 +47,11 @@ def rhcam(fname):
 
 class SpoolerBase(ABC):
 
-    """A common requirement is the need to loop through a stack of images. With a
-    variety of possible data sources, one requires handling of multiple
-    possible ways of accessing the data. The aim of this class is to provide
-    uniform access via an iterable context manager. It is written as an
-    abstract class.
-
+    """A common requirement is the need to loop through a stack of
+    images. With a variety of possible data sources, one requires handling of
+    multiple possible ways of accessing the data. The aim of this class is to
+    provide uniform access via an iterable context manager. It is written as
+    an abstract class.
     """
 
     def __enter__(self):
@@ -297,9 +296,9 @@ def get_ccd_pars(inst, resource, flist):
                         break
                 else:
                     raise ValueError(
-                        'spooler.get_ccd_keys: failed to find any file names in {:s}'.format(resource)
+                        'spooler.get_ccd_pars: failed to find any file names in {:s}'.format(resource)
                         )
-            return ccd.get_ccd_info(fname)
+            return ccd.get_ccd_info(core.add_extension(fname.strip(), core.HCAM))
 
         else:
             # HiPERCAM raw data file: fixed data
