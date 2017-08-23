@@ -4,6 +4,7 @@ Defines classes to represent sub-windows of a CCD and associated
 functions.
 """
 
+import warnings
 import json
 import numpy as np
 from astropy.io import fits
@@ -533,6 +534,32 @@ class Windat(Window):
         copy.copy and copy.deepcopy of a `Windat` use this method
         """
         return Windat(self.win, self.data.copy())
+
+    def float32(self):
+        """
+        Converts the data type of the array to float32 if and only
+        if it is currently float64. Leaves all other types untouched.
+        This is to save space on output. Note that because of numpy's
+        promotion to higher precision, there is little point trying to
+        use this to save internal memory.
+        """
+        if self.data.dtype == np.float64:
+            self.data = self.data.astype(np.float32)
+
+    def uint16(self):
+        """
+        Converts the data type of the array to uint16. A warning will be issued
+        if there will be loss of precision. A ValueError is thrown if any data
+        are outside the range 0 to 65535 This is to save space on output.
+        """
+        if self.data.dtype != np.uint16:
+            if np.any((self.data < 0) | (self.data > 65535)):
+                raise ValueError('data outside range 0 to 65535')
+
+            if not np.equal(np.mod(self.data, 1), 0):
+                warnings.warn('conversion to uint16 will result in loss of precision')
+
+            self.data = self.data.astype(np.uint16)
 
     def __copy__(self):
         return self.copy()

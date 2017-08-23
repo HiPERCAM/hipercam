@@ -340,6 +340,16 @@ class CCD(Agroup):
             super().copy(memo), self.nxtot, self.nytot, self.head.copy()
         )
 
+    def float32(self):
+        """Applies :class:Windat.float32 to all Windats of a CCD"""
+        for wind in self.values():
+            wind.float32()
+
+    def uint16(self):
+        """Applies :class:Windat.uint16 to all Windats of a CCD"""
+        for wind in self.values():
+            wind.uint16()
+
     def __repr__(self):
         return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(self.__class__.__name__,super().__repr__(),self.nxtot,self.nytot,self.head)
 
@@ -545,6 +555,15 @@ class MCCD(Agroup):
         return '{:s}(ccds={:s}, head={!r})'.format(
             self.__class__.__name__, super().__repr__(), self.head)
 
+    def float32(self):
+        """Applies :class:Windat.float32 to all Windats of an MCCD"""
+        for ccd in self.values():
+            ccd.float32()
+
+    def uint16(self):
+        """Applies :class:Windat.uint16 to all Windats of an MCCD"""
+        for ccd in self.values():
+            ccd.uint16()
 
 def get_ccd_info(fname):
     """Routine to return some useful basic information from an MCCD file
