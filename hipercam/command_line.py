@@ -7,11 +7,12 @@ for developing further code.
 import sys
 import os
 import math
-from collections import OrderedDict
+from collections import OrderedDict as Odict
 
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
+from astropy.time import Time, TimeDelta
 
 from trm.pgplot import *
 import hipercam as hcam
@@ -282,8 +283,7 @@ def grab(args=None):
 ###########################################################
 
 def hplot(args=None):
-    """
-    Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
+    """Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
     version is slightly clunky in its choice of the viewing area but has some
     features that could be useful, in particular, the interactive plot
     (device='/mpl') allows one to pan and zoom and to compare the same part of
@@ -354,6 +354,7 @@ def hplot(args=None):
       height : (float) [hidden]
          plot height (inches). Set = 0 to let the program choose. BOTH width
          AND height must be non-zero to have any effect
+
     """
 
     if args is None:
@@ -561,10 +562,10 @@ def makedata(args=None):
     conf.read(config)
 
     # Determine whether files get overwritten or not
-    if 'general':
-        overwrite = conf.getboolean('general', 'overwrite')
-    else:
-        overwrite = False
+    overwrite = conf.getboolean('general', 'overwrite') \
+                if 'overwrite' in conf['general'] else False
+    dtype = conf['general']['dtype'] \
+            if 'dtype' in conf['general'] else None
 
     # Top-level header
     thead = fits.Header()
@@ -572,7 +573,7 @@ def makedata(args=None):
 
     # Store the CCD labels and parameters and their dimensions. Determine
     # maximum dimensions for later use when adding targets
-    ccd_pars = {}
+    ccd_pars = Odict()
     maxnx = 0
     maxny = 0
     for key in conf:
@@ -590,6 +591,11 @@ def makedata(args=None):
             fscale = float(conf[key]['fscale'])
             toff = float(conf[key]['toff'])
 
+            field = hcam.Field.rjson(conf[key]['field']) \
+                if 'field' in conf[key] else None
+            ndiv = int(conf[key]['ndiv']) \
+                if field is not None else None
+
             # determine maximum total dimension
             maxnx = max(maxnx, nxtot)
             maxny = max(maxny, nytot)
@@ -606,10 +612,17 @@ def makedata(args=None):
                 'yoff' : yoff,
                 'fscale' : fscale,
                 'toff'  : toff,
+                'field'  : field,
+                'ndiv'  : ndiv
             }
 
     if not len(ccd_pars):
         raise ValueError('hipercam.makedata: no CCDs found in ' + config)
+
+    # get the timing data
+    utc_start = Time(conf['timing']['utc_start'])
+    exposure = float(conf['timing']['exposure'])
+    deadtime = float(conf['timing']['deadtime'])
 
     # Generate the CCDs, store the read / gain values
     ccds = hcam.Group()
@@ -638,8 +651,17 @@ def makedata(args=None):
                         float(conf[key]['read']), float(conf[key]['gain'])
                     )
 
+        # Generate header with timing data
+        head = fits.Header()
+        td = TimeDelta(pars['toff'], format='sec')
+        utc = utc_start + td
+        head['UTC'] = (utc.isot, 'UTC at mid exposure')
+        head['MJD'] = (utc.mjd, 'MJD at mid exposure')
+        head['EXPOSE'] = (exposure, 'Exposure time, seconds')
+        head['TIMEOK'] = (True, 'Time status flag')
+
         # Accumulate CCDs
-        ccds[cnam] = hcam.CCD(winds,pars['nxtot'],pars['nytot'])
+        ccds[cnam] = hcam.CCD(winds,pars['nxtot'],pars['nytot'],head)
 
     # Make the template MCCD
     mccd = hcam.MCCD(ccds, thead)
@@ -693,29 +715,6 @@ def makedata(args=None):
         bias.set_const(0.)
         print('No bias frame generated')
 
-    # Now build up Fields
-    fields = []
-    for key in conf:
-        if key.startswith('field'):
-            field = hcam.Field()
-            r = conf[key]
-            ntarg = int(r['ntarg'])
-            height1 = float(r['height1'])
-            height2 = float(r['height2'])
-            angle1 = float(r['angle1'])
-            angle2 = float(r['angle2'])
-            fwhm1 = float(r['fwhm1'])
-            fwhm2 = float(r['fwhm2'])
-            beta = float(r['beta'])
-            fmin = float(r['fmin'])
-            ndiv = int(r['ndiv'])
-
-            field.add_random(ntarg,-5.,maxnx+5.,-5.,maxny+5.,
-                             height1, height2, angle1, angle2,
-                             fwhm1, fwhm2, beta, fmin)
-
-            fields.append((ndiv, field))
-
     # Everything is set to go, so now generate data files
     nfiles = int(conf['files']['nfiles'])
     if nfiles == 0:
@@ -724,32 +723,47 @@ def makedata(args=None):
         out.wfits(fname, overwrite)
         print('Written data to',fname)
     else:
+        # file naming info
         root = conf['files']['root']
         ndigit = int(conf['files']['ndigit'])
 
+        # movement
+        xdrift = float(conf['movement']['xdrift'])
+        ydrift = float(conf['movement']['ydrift'])
+        nreset = int(conf['movement']['nreset'])
+        jitter = float(conf['movement']['jitter'])
+
         print('Now generating data')
+
+        tdelta = TimeDelta(exposure+deadtime, format='sec')
 
         for nfile in range(nfiles):
 
             # copy over template
             frame = mccd.copy()
 
+            # get x,y offset
+            xoff = np.random.normal(xdrift*(nfile % nreset), jitter)
+            yoff = np.random.normal(ydrift*(nfile % nreset), jitter)
+
             # add targets
             for cnam, ccd in frame.items():
-                # get field modification settings
                 p = ccd_pars[cnam]
-                transform = Transform(
-                    p['nxtot'], p['nytot'], p['xcen'], p['ycen'],
-                    p['angle'], p['scale'], p['xoff'], p['yoff'])
-                fscale = p['fscale']
+                if p['field'] is not None:
+                    # get field modification settings
+                    transform = Transform(
+                        p['nxtot'], p['nytot'], p['xcen'], p['ycen'],
+                        p['angle'], p['scale'],
+                        p['xoff']+xoff, p['yoff']+yoff
+                    )
+                    fscale = p['fscale']
 
-                # wind through each window
-                for wnam, wind in ccd.items():
-
-                    # add targets from each field
-                    for ndiv, field in fields:
-                        mfield = field.modify(transform, fscale)
-                        mfield.add(wind, ndiv)
+                    # wind through each window
+                    for wnam, wind in ccd.items():
+                        # copy the template field, transform it,
+                        # add to the window
+                        mfield = p['field'].modify(transform, fscale)
+                        mfield.add(wind, p['ndiv'])
 
             # Apply flat
             frame *= flat
@@ -763,10 +777,25 @@ def makedata(args=None):
             # Apply bias
             frame += bias
 
+            # data type on output
+            if dtype == 'float32':
+                frame.float32()
+            elif dtype == 'uint16':
+                frame.uint16()
+
             # Save
-            fname = '{0:s}{1:0{2:d}d}{3:s}'.format(root,nfile+1,ndigit,hcam.HCAM)
+            fname = '{0:s}{1:0{2:d}d}{3:s}'.format(
+                root,nfile+1,ndigit,hcam.HCAM
+            )
             frame.wfits(fname, overwrite)
             print('Written file {0:d} to {1:s}'.format(nfile+1,fname))
+
+            # update times in template
+            for ccd in mccd.values():
+                head = ccd.head
+                utc = Time(head['UTC']) + tdelta
+                head['UTC'] = (utc.isot, 'UTC at mid exposure')
+                head['MJD'] = (utc.mjd, 'MJD at mid exposure')
 
 #####################################################################
 #
@@ -775,15 +804,17 @@ def makedata(args=None):
 #####################################################################
 
 def makefield(args=None):
-    """Script to generate an artificial star field which is saved to disk file, a
-    first step in generating fake data. If the name supplied corresponds to an
-    existing file, an attempt will be made to read it in first and then add to
-    it. In this way a complex field can be generated. The targets are
-    distributed at random, with random peak heights based on constant
-    luminosity objects distributed throughout 3D space, and random angles
-    uniform over the input range. All targets otherwise have the same shape
-    thus multiple calls are needed to generate a field of objects of multiple
-    shapes. Ellisoidal "Moffat" functions [1/(1+r^2)^beta] are used.
+    """Script to generate an artificial star field which is saved to a disk
+    file, a first step in generating fake data. The resulting files are needed
+    by makedata if you want to add in artificial star fields. If the name
+    supplied corresponds to an existing file, an attempt will be made to read
+    it in first and then add to it. In this way a complex field can be
+    generated. The targets are distributed at random, with random peak heights
+    based on constant luminosity objects distributed throughout 3D space, and
+    random angles uniform over the input range. All targets otherwise have the
+    same shape thus multiple calls are needed to generate a field of objects
+    of multiple shapes. Ellipsoidal "Moffat" functions [1/(1+r^2)^beta] are
+    used.
 
     Arguments::
 
@@ -820,7 +851,7 @@ def makefield(args=None):
        fwhm1 : (float)
           FWHM along axis 1 [unbinned pixels]
 
-       fwmin : (float)
+       fwhm2 : (float)
           FWHM along axis 2 [unbinned pixels]
 
        beta : (float)
@@ -847,10 +878,11 @@ def makefield(args=None):
         cl.register('fwhm1', Cline.LOCAL, Cline.PROMPT)
         cl.register('fwhm2', Cline.LOCAL, Cline.PROMPT)
         cl.register('beta', Cline.LOCAL, Cline.PROMPT)
+        cl.register('fmin', Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         fname = cl.get_value('fname', 'file to save field to',
-                             cline.Fname('field', hcam.FIELD, hcam.Fname.NEW))
+                             cline.Fname('field', hcam.FIELD, cline.Fname.NEW))
         if os.path.exists(fname):
             # Initialise the field from a file
             field = hcam.Field.rjson(fname)
@@ -872,9 +904,12 @@ def makefield(args=None):
         fwhm1 = cl.get_value('fwhm1', 'FWHM along axis 1', 4., 1.e-6)
         fwhm2 = cl.get_value('fwhm2', 'FWHM along axis 2', 4., 1.e-6)
         beta = cl.get_value('beta', 'Moffat exponent', 4., 1.0)
+        fmin = cl.get_value('fmin', 'minimum flux level (counts/pix)',
+                            0.001, 0.0)
 
     # add targets
-    field.add_random(ntarg, x1, x2, y1, y2, h1, h2, angle1, angle2, fwmax, fwmin, beta)
+    field.add_random(ntarg, x1, x2, y1, y2, h1, h2, angle1, angle2,
+                     fwhm1, fwhm2, beta, fmin)
 
     # save result
     field.wjson(fname)
@@ -1079,29 +1114,35 @@ def rtplot(args=None):
     nccd = len(ccds)
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
+    # slice up viewport
     pgsubp(nx,ny)
 
+    # plot axes, labels, titles
     for cnam in ccds:
         pgsci(hcam.pgp.Params['axis.ci'])
         pgsch(hcam.pgp.Params['axis.number.ch'])
         pgenv(xlo, xhi, ylo, yhi, 1, 0)
         pglab('X','Y','CCD {:s}'.format(cnam))
-    pgpanl(1,1)
 
-    # Finally plot stuff
-    with hcam.data_source(instrument, run, flist, server, first, True) as spool:
+    # Finally plot images
+    with hcam.data_source(instrument, run, flist, server, first) as spool:
         n = 1
         for frame in spool:
             print('Exposure {:d}'.format(n+1))
             n += 1
+            nc = 0
             for cnam in ccds:
                 # subtract bias
                 if bias is not None:
                     frame[cnam] -= bframe[cnam]
-                # plot CCD
+
+                # set to the correct panel and then plot CCD
+                ix = (nc % nx) + 1
+                iy = nc // nx + 1
+                pgpanl(ix,iy)
+                nc += 1
                 hcam.pgp.pccd(frame[cnam],iset,plo,phi,ilo,ihi)
-                pgpage()
-            pgpanl(1,1)
+
 
 ############################################################################
 #
@@ -1162,5 +1203,5 @@ class Transform:
         xcen += xc + self.xoff
         ycen += yc + self.yoff
 
-        # Retunr change in position
+        # Return change in position
         return (xcen-x,ycen-y)
