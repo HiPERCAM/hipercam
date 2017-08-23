@@ -581,11 +581,13 @@ def get_ccd_info(fname):
             # The header of the HDU
             head = hdu.header
 
-            if not first and 'CCD' in head and ccd_label != head['CCD']:
+            if not first and (
+                ('CCD' in head and ccd_label != head['CCD']) or
+                ('NXTOT' in head and 'NYTOT' in head)):
                 # Reset because we think we are on the first HDU of a CCD
                 first = True
 
-            if first:
+            if first and 'NXTOT' in head and 'NYTOT' in head:
                 # Extract header from first HDU of a CCD
                 if 'CCD' in head:
                     ccd_label = head['CCD']
