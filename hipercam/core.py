@@ -4,6 +4,8 @@ Core classes and functions for the hipercam package
 """
 
 from astropy.utils.exceptions import AstropyUserWarning
+import numpy as np
+from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
 
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'add_extension',
@@ -32,6 +34,44 @@ def add_extension(fname, ext):
         return fname + ext
     else:
         return fname
+
+def detect(img, fwhm, fft=True):
+    """
+    Detects the position of one star in an image. Works by convolving the
+    image with a gaussian of FWHM = fwhm, and returning the location of the
+    brightest pixel of the result. The convolution reduces the chance of
+    problems being caused by cosmic rays, although if there is more overall
+    flux in a cosmic ray than the star, it will go wrong, so some form of
+    prior cleaning is advisable in such cases. It is up to the user to pass a
+    small enough image so that the star of interest is the brightest object.
+
+    This routine is intended to provide a first cut in position for more
+    precise methods to polish.
+
+    Arguments::
+
+       img   : (2D numpy array)
+          the image
+
+       fwhm  : (float)
+          Gaussian FWHM in pixels.
+
+       fft   : (bool)
+          The astropy.convolution routines are used. By default FFT-based
+          convolution is applied as it scales better with fwhm, especially for
+          fwhm >> 1, however the direct method (fft=False) may be faster for
+          small fwhm values.
+
+    Returns: (x,y), the location of brightest pixel in the convolved image,
+    with the lower-left pixel taken to lie at (0,0).
+    """
+    kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
+    if fft:
+        cimg = convolve_fft(img, kern)
+    else:
+        cimg = convolve(img, kern)
+    y, x = np.unravel_index(cimg.argmax(), cimg.shape)
+    return(x,y)
 
 class HipercamError (Exception):
     """
