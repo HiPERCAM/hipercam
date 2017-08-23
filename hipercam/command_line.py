@@ -595,7 +595,7 @@ def makedata(args=None):
             maxny = max(maxny, nytot)
 
             # store parameters
-            ccd_pars[int(key[3:])] = {
+            ccd_pars[key[3:].strip()] = {
                 'nxtot' : nxtot,
                 'nytot' : nytot,
                 'xcen' : xcen,
@@ -612,17 +612,16 @@ def makedata(args=None):
         raise ValueError('hipercam.makedata: no CCDs found in ' + config)
 
     # Generate the CCDs, store the read / gain values
-    ccds = []
+    ccds = hcam.Group()
     rgs = {}
-    for nccd, pars in ccd_pars.items():
+    for cnam, pars in ccd_pars.items():
         # Generate the Windats
-        winds = []
-        rgs[nccd] = {}
+        winds = hcam.Group()
+        rgs[cnam] = {}
         for key in conf:
             if key.startswith('window'):
-                iccd, nwin = key[6:].split()
-                if int(iccd) == nccd:
-                    nwin = int(nwin)
+                iccd, wnam = key[6:].split()
+                if iccd == cnam:
                     llx = int(conf[key]['llx'])
                     lly = int(conf[key]['lly'])
                     nx = int(conf[key]['nx'])
@@ -632,15 +631,15 @@ def makedata(args=None):
                     wind = hcam.Windat(hcam.Window(llx,lly,nx,ny,xbin,ybin))
 
                     # Accumulate Windats in the CCD
-                    winds.append((nwin, wind))
+                    winds[wnam] = wind
 
                     # Store read / gain value
-                    rgs[nccd][nwin] = (
+                    rgs[cnam][wnam] = (
                         float(conf[key]['read']), float(conf[key]['gain'])
                     )
 
         # Accumulate CCDs
-        ccds.append((nccd, hcam.CCD(winds,pars['nxtot'],pars['nytot'])))
+        ccds[cnam] = hcam.CCD(winds,pars['nxtot'],pars['nytot'])
 
     # Make the template MCCD
     mccd = hcam.MCCD(ccds, thead)
@@ -736,16 +735,16 @@ def makedata(args=None):
             frame = mccd.copy()
 
             # add targets
-            for nccd, ccd in frame.items():
+            for cnam, ccd in frame.items():
                 # get field modification settings
-                p = ccd_pars[nccd]
+                p = ccd_pars[cnam]
                 transform = Transform(
                     p['nxtot'], p['nytot'], p['xcen'], p['ycen'],
                     p['angle'], p['scale'], p['xoff'], p['yoff'])
                 fscale = p['fscale']
 
                 # wind through each window
-                for nwin, wind in ccd.items():
+                for wnam, wind in ccd.items():
 
                     # add targets from each field
                     for ndiv, field in fields:
@@ -756,9 +755,9 @@ def makedata(args=None):
             frame *= flat
 
             # Add noise
-            for nccd, ccd in frame.items():
-                for nwin, wind in ccd.items():
-                    readout, gain = rgs[nccd][nwin]
+            for cnam, ccd in frame.items():
+                for wnam, wind in ccd.items():
+                    readout, gain = rgs[cnam][wnam]
                     wind.add_noise(readout, gain)
 
             # Apply bias
