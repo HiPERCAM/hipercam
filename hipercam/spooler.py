@@ -75,7 +75,7 @@ class UcamDiskSpool(SpoolerBase):
     a raw ULTRACAM or ULTRASPEC disk file.
     """
 
-    def __init__(self, run, first=1, flt=False):
+    def __init__(self, run, first=1):
         """Attaches the UcamDiskSpool to a run.
 
         Arguments::
@@ -87,12 +87,8 @@ class UcamDiskSpool(SpoolerBase):
            first : (int)
               The first frame to access.
 
-           flt : (bool)
-              If True, a conversion to 4-byte floats on input will be attempted
-              if the data are of integer form.
-
         """
-        self._iter = ucam.Rdata(run, first, flt, False)
+        self._iter = ucam.Rdata(run, first, False)
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
@@ -106,7 +102,7 @@ class UcamServSpool(SpoolerBase):
     a raw ULTRACAM or ULTRASPEC raw file served from the ATC FileServer
     """
 
-    def __init__(self, run, first=1, flt=False):
+    def __init__(self, run, first=1):
         """Attaches the UcamDiskSpool to a run.
 
         Arguments::
@@ -123,7 +119,7 @@ class UcamServSpool(SpoolerBase):
               if the data are of integer form.
 
         """
-        self._iter = ucam.Rdata(run, first, flt, True)
+        self._iter = ucam.Rdata(run, first, True)
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
@@ -166,7 +162,7 @@ class HcamDiskSpool(SpoolerBase):
     a raw HiPERCAM file.
     """
 
-    def __init__(self, run, first=1, flt=False):
+    def __init__(self, run, first=1):
         """Attaches the HcamDiskSpool to a run.
 
         Arguments::
@@ -178,12 +174,8 @@ class HcamDiskSpool(SpoolerBase):
            first : (int)
               The first frame to access.
 
-           flt : (bool)
-              If True, a conversion to 4-byte floats on input will be attempted
-              if the data are of integer form.
-
         """
-        self._iter = hcam.Rdata(run, first, flt, False)
+        self._iter = hcam.Rdata(run, first, False)
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
@@ -191,7 +183,7 @@ class HcamDiskSpool(SpoolerBase):
     def __next__(self):
         return self._iter.__next__()
 
-def data_source(inst, resource, flist, server, first, flt):
+def data_source(inst, resource, flist, server, first):
     """Returns a context manager needed to run through a set of exposures.
     This is basically a wrapper around the various context managers that
     hook off the SpoolerBase class.
@@ -219,9 +211,6 @@ def data_source(inst, resource, flist, server, first, flt):
           If a raw disk file is being read, either locally or via a server,
           this parameter sets where to start in the file.
 
-       flt      : (bool)
-          If True, convert to 32-bit floats on input.
-
     Returns::
 
        A :class:`SpoolerBase` object that can appear inside a "with" 
@@ -238,9 +227,9 @@ def data_source(inst, resource, flist, server, first, flt):
                 )
 
         if server:
-            return UcamServSpool(resource,first,flt)
+            return UcamServSpool(resource,first)
         else:
-            return UcamDiskSpool(resource,first,flt)
+            return UcamDiskSpool(resource,first)
 
     elif inst == 'HIPER':
         if flist:
@@ -250,7 +239,7 @@ def data_source(inst, resource, flist, server, first, flt):
                 'spooler.data_source: HiPERCAM server not implemented yet'
                 )
         else:
-            return HcamDiskSpool(resource,first,flt)
+            return HcamDiskSpool(resource,first)
 
     else:
         raise ValueError(
