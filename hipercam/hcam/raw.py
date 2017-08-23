@@ -226,7 +226,7 @@ class Rdata (Rhead):
 
     """
 
-    def __init__(self, fname, nframe=1, flt=True, server=False):
+    def __init__(self, fname, nframe=1, server=False):
         """Connects to a raw HiPERCAM FITS file for reading. The file is kept
         open.  The Rdata object can then generate MCCD objects through being
         called as a function or iterator.
@@ -239,14 +239,6 @@ class Rdata (Rhead):
            nframe : (int)
               the frame number to read first [1 is the first].
 
-           flt : (bool)
-              True for reading data in as floats. This is the default for
-              safety, however the data are stored on disk as unsigned 2-byte
-              ints. If you are not doing much to the data, and wish to keep
-              them in this form for speed and efficiency, then set flt=False.
-              This parameter is used when iterating through an Rdata. The
-              __call__ method can override it.
-
            server : (bool)
               True/False for server vs local disk access
         """
@@ -255,7 +247,6 @@ class Rdata (Rhead):
         Rhead.__init__(self, fname, server)
         self.nframe = nframe
         self.server = server
-        self.flt = flt
 
     # Want to run this as a context manager
     def __enter__(self):
@@ -270,7 +261,7 @@ class Rdata (Rhead):
 
     def __next__(self):
         try:
-            return self.__call__(flt=self.flt)
+            return self.__call__()
         except (HendError, urllib.error.HTTPError):
             raise StopIteration
 
@@ -304,7 +295,7 @@ class Rdata (Rhead):
         else:
             raise NotImplementedError('needs HiPERCAM timing info implementing')
 
-    def __call__(self, nframe=None, flt=None):
+    def __call__(self, nframe=None):
         """Reads one exposure from the run the :class:`Rdata` is attached
         to. It works on the assumption that the internal file pointer in the
         :class:`Rdata` is positioned at the start of a frame. If `nframe` is
@@ -321,13 +312,6 @@ class Rdata (Rhead):
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted.
 
-           flt : (bool)
-              Set True to read data in as floats. The data are stored on disk
-              as unsigned 2-byte ints. If you are not doing much to the data,
-              and wish to keep them in this form for speed and efficiency,
-              then set flt=False. If None then the value used when
-              constructing the MCCD will be used.
-
         Returns an MCCD for ULTRACAM, a CCD for ULTRASPEC.
 
         Apart from reading the raw bytes, the main job of this routine is to
@@ -335,8 +319,6 @@ class Rdata (Rhead):
         constructing CCD objects.
 
         """
-
-        if flt is None: flt = self.flt
 
         if self.server:
             raise NotImplementedError('needs HiPERCAM server access to be implemented')
