@@ -173,9 +173,20 @@ def grab(args=None):
       bias   : (string)
          Name of bias frame to subtract, 'none' to ignore.
 
-      toflt  : (bool)
-         Convert to 4-bytes floats [if no bias frame specified]
+      dtype  : (string)
+         Data type on output. Options::
 
+            'r' : "raw", do nothing; this is safe but could
+                  be profligate as you could end up storing 64-bit
+                  double precision values if you subtract a bias.
+
+            'f' : Convert to 32-bit floats if already in 64-bit form. Leave
+                  integers untouched. This implies some loss of precision,
+                  but requires half the space.
+
+            'i' : Convert to 16-bit unsigned integers. A warning will be
+                  issued if loss of precision occurs; an exception will
+                  be raised if the data are outside the range 0 to 65535.
     """
 
     if args is None:
@@ -192,7 +203,7 @@ def grab(args=None):
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('toflt', Cline.LOCAL, Cline.PROMPT)
+        cl.register('dtype', Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         source = cl.get_value(
@@ -224,7 +235,10 @@ def grab(args=None):
             # read the bias frame
             bframe = hcam.MCCD.rfits(bias)
 
-        flt = cl.get_value('toflt', 'convert to 4-byte floats', False)
+        dtype = cl.get_value(
+            'dtype', 'data type [r(aw), f(32-bit float), i(16-bit uint)]',
+            'f', lvals=('r','f','i')
+        )
 
     # Now the actual work. First set up the arguments for data_source
     server = source == 's'
@@ -247,6 +261,11 @@ def grab(args=None):
             # subtract bias
             if bias is not None:
                 frame -= bframe
+
+            if dtype == 'i':
+                frame.uint16()
+            elif dtype == 'f':
+                frame.float32()
 
             # write to disk
             fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
@@ -884,48 +903,56 @@ def rtplot(args=None):
            's' = server, 'l' = local, 'f' = file list (ucm for ULTRACAM / ULTRASPEC,
            FITS files for HiPERCAM)
 
-        inst : (string)
+        inst   : (string)
            If 's' = server, 'l' = local, name of instrument. Choices: 'u' for
            ULTRACAM / ULTRASPEC, 'h' for HiPERCAM. This is needed because of the
            different formats.
 
-        run : (string)
+        run    : (string)
            If source == 's' or 'l', run number to access, e.g. 'run034'
 
-        flist : (string)
+        flist  : (string)
            If source == 'f', name of file list
 
-        nccd : (int)
+        first  : (int)
+           If source='s' or 'l', this is the exposure to start from. 1 = first frame; set
+           = 0 to always try to get the most recent frame (if it has changed)
+
+        nccd   : (int)
            CCD number to plot, 0 for all.
 
-        nx : (int)
+        nx     : (int)
            number of panels across to display.
 
-      iset   : (string) [single character]
-         determines how the intensities are determined. There are three
-         options: 'a' for automatic simply scales from the minimum to the
-         maximum value found on a per CCD basis. 'd' for direct just takes two
-         numbers from the user. 'p' for percentile dtermines levels based upon
-         percentiles determined from the entire CCD on a per CCD bais.
+        bias   : (string)
+           Name of bias frame to subtract, 'none' to ignore.
 
-      ilo    : (float) [if iset='d']
-         lower intensity level
+        iset   : (string) [single character]
+           determines how the intensities are determined. There are three
+           options: 'a' for automatic simply scales from the minimum to the
+           maximum value found on a per CCD basis. 'd' for direct just takes
+           two numbers from the user. 'p' for percentile dtermines levels
+           based upon percentiles determined from the entire CCD on a per CCD
+           basis.
 
-      ihi    : (float) [if iset='d']
-         upper intensity level
+        ilo    : (float) [if iset='d']
+           lower intensity level
 
-      plo    : (float) [if iset='p']
-         lower percentile level
+        ihi    : (float) [if iset='d']
+           upper intensity level
 
-      phi    : (float) [if iset='p']
-         upper percentile level
+        plo    : (float) [if iset='p']
+           lower percentile level
 
-      width  : (float) [hidden]
-         plot width (inches). Set = 0 to let the program choose.
+        phi    : (float) [if iset='p']
+           upper percentile level
 
-      height : (float) [hidden]
-         plot height (inches). Set = 0 to let the program choose. BOTH width
-         AND height must be non-zero to have any effect
+        width  : (float) [hidden]
+           plot width (inches). Set = 0 to let the program choose.
+
+        height : (float) [hidden]
+           plot height (inches). Set = 0 to let the program choose. BOTH width
+           AND height must be non-zero to have any effect
     """
 
     if args is None:
@@ -943,6 +970,7 @@ def rtplot(args=None):
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
+        cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
@@ -1005,6 +1033,15 @@ def rtplot(args=None):
             nx = 1
             ccds = list(ccdinf.keys())
 
+        # bias frame (if any)
+        bias = cl.get_value(
+            'bias', "bias frame ['none' to ignore]",
+            cline.Fname('bias', hcam.HCAM), ignore='none'
+        )
+        if bias is not None:
+            # read the bias frame
+            bframe = hcam.MCCD.rfits(bias)
+
         # define the display intensities
         iset = cl.get_value(
             'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
@@ -1055,11 +1092,15 @@ def rtplot(args=None):
     # Finally plot stuff
     with hcam.data_source(instrument, run, flist, server, first, True) as spool:
         n = 1
-        for mccd in spool:
+        for frame in spool:
             print('Exposure {:d}'.format(n+1))
             n += 1
             for cnam in ccds:
-                hcam.pgp.pccd(mccd[cnam],iset,plo,phi,ilo,ihi)
+                # subtract bias
+                if bias is not None:
+                    frame[cnam] -= bframe[cnam]
+                # plot CCD
+                hcam.pgp.pccd(frame[cnam],iset,plo,phi,ilo,ihi)
                 pgpage()
             pgpanl(1,1)
 
