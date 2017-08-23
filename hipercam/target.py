@@ -154,8 +154,8 @@ class Target(object):
         self._comp_abc()
 
     def offset(self, dx, dy):
-        """This generates a new :class:`Target` by offsetting the position of the
-:class:`Target`
+        """This generates a new :class:`Target` by offsetting the position
+        of the :class:`Target`
 
         Arguments::
 
@@ -209,13 +209,14 @@ class Target(object):
             return 0
 
     def __repr__(self):
-        return 'Target(xcen={!r}, ycen={!r}, height={!r}, fwhm1={!r}, fwhm2={!r}, angle={!r}, beta={!r})'.format(
+        return 'Target(xcen={!r}, ycen={!r}, height={!r}, fwhm1={!r}, fwhm2={!r}, angle={!r}, beta={!r}, fmin={!r})'.format(
             self.xcen, self.ycen, self.height, self.fwhm1, self.fwhm2,
-            self.angle, self.beta)
+            self.angle, self.beta, self.fmin)
 
 class Field(list):
-    """Object to represent a star field as a list of :class:`Target`s. This is to help
-    with simulation of star fields.
+    """Object to represent a star field as a list of :class:`Target`s. This is to
+    help with simulation of star fields.
+
     """
 
     def __init__(self):
@@ -366,7 +367,8 @@ class Field(list):
         for dat in data:
             field.append(
                 Target(dat['xcen'], dat['ycen'], dat['height'],
-                       dat['fwhm1'], dat['fwhm2'], dat['angle'], dat['beta'])
+                       dat['fwhm1'], dat['fwhm2'], dat['angle'],
+                       dat['beta'], dat['fmin'])
             )
         return field
 
@@ -383,7 +385,7 @@ class TargetEncoder(json.JSONEncoder):
                 '_comment': 'hipercam.Target',
                 'xcen' : obj.xcen, 'ycen' : obj.ycen, 'height' : obj.height,
                 'fwhm1' : obj.fwhm1, 'fwhm2' : obj.fwhm2, 'angle' : obj.angle,
-                'beta' : obj.beta}
+                'beta' : obj.beta, 'fmin' : obj.fmin}
 
         # Default
         return json.JSONEncoder.default(self, obj)
