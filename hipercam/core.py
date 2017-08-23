@@ -10,7 +10,7 @@ from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'add_extension',
     'HipercamError', 'HipercamWarning', 'HCM_NXTOT',
-    'HCM_NYTOT'
+    'HCM_NYTOT', 'detect'
 )
 
 # Constants for general use
@@ -54,7 +54,8 @@ def detect(img, fwhm, fft=True):
           the image
 
        fwhm  : (float)
-          Gaussian FWHM in pixels.
+          Gaussian FWHM in pixels. If <= 0, there will be no convolution, although
+          this is not advisable as a useful strategy.
 
        fft   : (bool)
           The astropy.convolution routines are used. By default FFT-based
@@ -65,12 +66,18 @@ def detect(img, fwhm, fft=True):
     Returns: (x,y), the location of brightest pixel in the convolved image,
     with the lower-left pixel taken to lie at (0,0).
     """
-    kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
-    if fft:
-        cimg = convolve_fft(img, kern)
+    if fwhm > 0:
+        kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
+        if fft:
+            cimg = convolve_fft(img, kern)
+        else:
+            cimg = convolve(img, kern)
     else:
-        cimg = convolve(img, kern)
+        cimg = img
+
+    # locate coords of maximum pixel.
     y, x = np.unravel_index(cimg.argmax(), cimg.shape)
+
     return(x,y)
 
 class HipercamError (Exception):
