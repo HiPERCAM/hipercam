@@ -23,7 +23,7 @@ APER = '.ape'
 HRAW = '.fits'
 
 # Maximum dimensions of HiPERCAM CCDs
-HCM_NXTOT, HCM_NYTOT = 2028, 1040
+HCM_NXTOT, HCM_NYTOT = 2048, 1040
 
 def add_extension(fname, ext):
     """Add extension ext to a file name if it is not already there, and returns
