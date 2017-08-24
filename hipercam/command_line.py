@@ -199,7 +199,7 @@ def grab(args=None):
     with Cline('HIPERCAM_ENV', '.hipercam', 'grab', args) as cl:
 
         # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
+        cl.register('source', Cline.LOCAL, Cline.HIDE)
         cl.register('inst', Cline.GLOBAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
@@ -966,18 +966,27 @@ def rtplot(args=None):
            ULTRACAM / ULTRASPEC, 'h' for HiPERCAM. This is needed because of the
            different formats.
 
-        run    : (string)
-           If source == 's' or 'l', run number to access, e.g. 'run034'
+        run    : (string) [if source == 's' or 'l']
+           run number to access, e.g. 'run034'
 
-        flist  : (string)
-           If source == 'f', name of file list
+        flist  : (string) [if source == 'f']
+           name of file list
 
-        first  : (int)
-           If source='s' or 'l', this is the exposure to start from. 1 = first frame; set
-           = 0 to always try to get the most recent frame (if it has changed)
+        first  : (int) [if source='s' or 'l']
+           exposure number to start from. 1 = first frame; set = 0 to
+           always try to get the most recent frame (if it has changed)
 
-        nccd   : (int)
-           CCD number to plot, 0 for all.
+        twait  : (float) [if source == 's']
+           time to wait between attempts to find a new exposure, seconds.
+
+        tmax   : (float) [if source == 's']
+           maximum time to wait between attempts to find a new exposure, seconds.
+
+        pause  : (float)
+           seconds to pause between frames (defaults to 0)
+
+        ccd    : (string)
+           CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
 
         nx     : (int)
            number of panels across to display.
@@ -1021,12 +1030,15 @@ def rtplot(args=None):
 
         # register parameters
         cl.register('device', Cline.LOCAL, Cline.HIDE)
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
+        cl.register('source', Cline.LOCAL, Cline.HIDE)
         cl.register('inst', Cline.GLOBAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
+        cl.register('twait', Cline.LOCAL, Cline.HIDE)
+        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('pause', Cline.LOCAL, Cline.HIDE)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
@@ -1052,6 +1064,10 @@ def rtplot(args=None):
                                 'h', lvals=('h','u'))
             run = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to plot', 1, 1)
+
+            if source == 's':
+                twait = cl.get_value('twait', 'time to wait for a new frame [secs]', 1., 0.)
+                tmax = cl.get_value('tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
 
         else:
             # set inst = 'h' as only lists of HiPERCAM files are supported
@@ -1090,6 +1106,9 @@ def rtplot(args=None):
         elif len(ccdinf) == 1:
             nx = 1
             ccds = list(ccdinf.keys())
+
+        cl.set_default('pause', 0.)
+        pause = cl.get_value('pause', 'time delay to add between frame plots [secs]', 0., 0.)
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -1163,6 +1182,56 @@ def rtplot(args=None):
                 pgpanl(ix,iy)
                 hcam.pgp.pccd(frame[cnam],iset,plo,phi,ilo,ihi)
 
+
+###########################################################
+#
+# stats -- lists basic stats of each window of a multi-CCD image.
+#
+###########################################################
+
+def stats(args=None):
+    """Lists basic stats of a multi-CCD image, i.e. the minimum, maximum,
+    mean, median and standard deviation of each window of each CCD. The output
+    format can be altered to suit preference.
+
+    Arguments::
+
+      input  : (string)
+         name of the MCCD file
+
+      format : (string) [hidden, defaults to 9.3f]
+         C-style format code as used in Python format statements for output of
+         the numerical values. e.g. '300.00' is '6.2f' (6 characters toal, 2 after
+         the decimal point), '1.22e24' is '.2e' (as many characters as needed, 2
+         after the decimal point)
+
+    """
+
+    if args is None:
+        args = sys.argv[1:]
+
+    # get input section
+    with Cline('HIPERCAM_ENV', '.hipercam', 'stats', args) as cl:
+
+        # register parameters
+        cl.register('input', Cline.LOCAL, Cline.PROMPT)
+        cl.register('format', Cline.LOCAL, Cline.HIDE)
+
+        # get inputs
+        frame = cl.get_value('input', 'frame to lists stats of',
+                             cline.Fname('hcam', hcam.HCAM))
+        mccd = hcam.MCCD.rfits(frame)
+
+        cl.set_default('format','9.3f')
+        format = cl.get_value('format', 'output format for numbers', '9.3f')
+
+    for cnam, ccd in mccd.items():
+        for wnam, wind in ccd.items():
+            print(
+                'CCD {0:s}, window {1:s}: min = {3:{2:s}}, max = {4:{2:s}}, mean = {5:{2:s}}, median = {6:{2:s}}, std = {7:{2:s}}'.format(
+                    cnam, wnam, format, wind.min(), wind.max(), wind.mean(), wind.median(), wind.std()
+                    )
+                )
 
 ############################################################################
 #
