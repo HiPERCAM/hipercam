@@ -419,6 +419,12 @@ class Windat(Window):
         """
         return self.data.mean()
 
+    def median(self):
+        """
+        Returns the median value of the :class:`Windat`.
+        """
+        return np.median(self.data)
+
     def sum(self):
         """
         Returns the sum of the :class:`Windat`.
