@@ -61,14 +61,6 @@ class CCD(Agroup):
 
         """
         super().__init__(winds)
-
-        if len(self):
-            # swift sanity check, 'cos it's easy to get confused
-            first = next(iter(self.values()))
-            if not isinstance(first, Windat):
-                raise ValueError(
-                    'CCD.__init__: values of "winds" must all be Windat objects')
-
         self.nxtot = nxtot
         self.nytot = nytot
         if head is None:
@@ -78,6 +70,20 @@ class CCD(Agroup):
 
         if copy:
             self = self.copy()
+
+        if len(self):
+            # swift sanity check, 'cos it's easy to get confused
+            first = next(iter(self.values()))
+            if not isinstance(first, Windat):
+                raise ValueError(
+                    'CCD.__init__: values of "winds" must all be Windat objects')
+
+
+    def __reduce__(self):
+        """This is to overcome a problem with pickling CCDs. The arguments for
+        init don't get picked up for some reason so this must return them in
+        the second element of the tuple"""
+        return (self.__class__, (list(self.items()), self.nxtot, self.nytot, self.head))
 
     def min(self):
         """
@@ -351,7 +357,9 @@ class CCD(Agroup):
             wind.uint16()
 
     def __repr__(self):
-        return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(self.__class__.__name__,super().__repr__(),self.nxtot,self.nytot,self.head)
+        return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(
+            self.__class__.__name__,super().__repr__(),self.nxtot,self.nytot,self.head
+            )
 
 class MCCD(Agroup):
     """Class representing a multi-CCD as a Group of CCD objects plus a FITS
@@ -444,6 +452,12 @@ class MCCD(Agroup):
             self.head = head
         if copy:
             self = self.copy()
+
+    def __reduce__(self):
+        """This is to overcome a problem with pickling MCCDs. The arguments for
+        init don't get picked up for some reason so this must return them in
+        the second element of the tuple"""
+        return (self.__class__, (list(self.items()), self.head))
 
     def wfits(self, fname, overwrite=False):
         """Writes out the MCCD to a FITS file.
