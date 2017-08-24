@@ -313,13 +313,15 @@ class CCD(Agroup):
 
     def matches(self, ccd):
         """Check that the :class:`CCD` matches another, which in this means checking
-        that each window of the same label matches the equivalent in the other `CCD`.
+        that each window of the same label matches the equivalent in the other
+        `CCD`.
 
         There will be no match if there any windows present in one `CCD` but
         not the other and the windows must have identical location, size and
         binning.
 
         Raises KeyError or ValueError exception depending on the problem.
+
         """
         for key in self:
             if key not in ccd:
@@ -355,6 +357,16 @@ class CCD(Agroup):
         """Applies :class:Windat.uint16 to all Windats of a CCD"""
         for wind in self.values():
             wind.uint16()
+
+    def inside(self, x, y, dmin):
+        """Tests whether a point x,y lies within any Windat of a CCD, at
+        least dmin from its outer edge. It returns with the Windat label
+        or None if the point is not inside any Windat"""
+
+        for wnam, wind in self.items():
+            if wind.distance(x,y) > dmin:
+                return wnam
+        return None
 
     def __repr__(self):
         return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(

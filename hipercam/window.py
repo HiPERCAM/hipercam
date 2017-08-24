@@ -6,6 +6,7 @@ functions.
 
 import warnings
 import json
+import math
 import numpy as np
 from astropy.io import fits
 from .core import *
@@ -49,14 +50,14 @@ class Window:
             Binning factor in Y
         """
 
-        self.llx   = llx
-        self.lly   = lly
-        self.xbin  = xbin
-        self.ybin  = ybin
+        self.llx = llx
+        self.lly = lly
+        self.xbin = xbin
+        self.ybin = ybin
         # Have to take care with the next two since in
         # Windat they are connected to the array size
-        self._nx    = nx
-        self._ny    = ny
+        self._nx = nx
+        self._ny = ny
 
     @property
     def nx(self):
@@ -246,6 +247,72 @@ class Window:
         """
         return Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
 
+    def distance(self, x, y):
+        """Calculates the minimum distance of a point from the edge of the Window. If
+        the point is outside the Window the distance will be negative; if
+        inside it will be positive. The edge is defined as the line running
+        around the outside of the outer set of pixels. For a point outside the
+        box in both x and y, the value returned is a lower limit to the
+        distance.
+
+        """
+        if x < self.llx-0.5:
+            if y < self.lly-0.5:
+                dist = max(self.llx-0.5-x, self.lly-0.5-y)
+            elif y > self.ury + 0.5:
+                dist = max(self.llx-0.5-x, y-self.ury-0.5)
+            else:
+                dist = self.llx-0.5-x
+
+        elif x > self.urx + 0.5:
+            if y < self.lly-0.5:
+                dist = max(x-self.urx-0.5, self.lly-0.5-y)
+            elif y > self.ury + 0.5:
+                dist = max(x-self.urx-0.5, y-self.ury-0.5)
+            else:
+                dist = x-self.urx-0.5
+
+        else:
+            if y < self.lly-0.5:
+                dist = self.lly-0.5-y
+            elif y > self.ury + 0.5:
+                dist = y-self.ury-0.5
+            else:
+                # we are *in* the box
+                dist = min(x-self.llx+0.5, self.urx+0.5-x,
+                           y-self.lly+0.5, self.ury+0.5-y)
+
+        return dist
+
+    def crop(self, xlo, xhi, ylo, yhi):
+        """Generates a new Window by cropping the Window to whatever complete pixels
+        are seen within a range xlo to xhi, ylo to yhi.
+
+        Arguments::
+
+           xlo : (float)
+              minimum X, unbinned pixels (extreme left pixels of CCD centred on 1)
+
+           xhi : (float)
+              maximum X, unbinned pixels
+
+           ylo : (float)
+              minimum Y, unbinned pixels (bottom pixels of CCD centred on 1)
+
+           yhi : (float)
+              maximum Y, unbinned pixels
+
+        Returns the cropped Window. Raises a ValueError if there are no visible
+        pixels.
+        """
+
+        llx = max(self.llx, self.llx + self.xbin*int(math.ceil((xlo-self.llx+0.5)/self.xbin)))
+        lly = max(self.lly, self.lly + self.ybin*int(math.ceil((ylo-self.lly+0.5)/self.ybin)))
+        nx = self.nx - (llx-self.llx)//self.xbin - max(0,int(math.ceil((self.urx+0.5-xhi)/self.xbin)))
+        ny = self.ny - (lly-self.lly)//self.ybin - max(0,int(math.ceil((self.ury+0.5-yhi)/self.ybin)))
+
+        return Window(llx, lly, nx, ny, self.xbin, self.ybin)
+
     def __copy__(self):
         return self.copy()
 
@@ -280,7 +347,7 @@ class WindowEncoder (json.JSONEncoder):
                    'nx' : self.nx, 'ny' : self.ny,
                    'xbin' : self.xbin, 'ybin' : self.ybin}
         else:
-            super(WindowEncoder, self).default(obj)
+            super().default(obj)
 
 class Windat(Window):
     """
@@ -328,8 +395,7 @@ class Windat(Window):
 
             self.data = data
 
-        super(Windat, self).__init__(win.llx, win.lly,
-                                      win.nx, win.ny, win.xbin, win.ybin)
+        super().__init__(win.llx, win.lly, win.nx, win.ny, win.xbin, win.ybin)
 
     @property
     def nx(self):
@@ -540,6 +606,34 @@ class Windat(Window):
         copy.copy and copy.deepcopy of a `Windat` use this method
         """
         return Windat(self.win, self.data.copy())
+
+    def crop(self, xlo, xhi, ylo, yhi):
+        """Creates a new Windat by cropping the Windat. See :class:Window.crop
+        for more detail.
+
+        Arguments::
+
+           xlo : (float)
+              minimum X, unbinned pixels (extreme left pixels of CCD centred on 1)
+
+           xhi : (float)
+              maximum X, unbinned pixels
+
+           ylo : (float)
+              minimum Y, unbinned pixels (bottom pixels of CCD centred on 1)
+
+           yhi : (float)
+              maximum Y, unbinned pixels
+
+        Returns the cropped Windat.
+        """
+        win = super().crop(xlo, xhi, ylo, yhi)
+        x1 = (win.llx-self.llx)//self.xbin
+        y1 = (win.lly-self.lly)//self.ybin
+        if self.data is None:
+            return Windat(win)
+        else:
+            return Windat(win, self.data[y1:y1+win.ny,x1:x1+win.nx])
 
     def float32(self):
         """
