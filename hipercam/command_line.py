@@ -8,6 +8,8 @@ import sys
 import os
 import math
 from collections import OrderedDict as Odict
+from multiprocessing import Pool
+import pickle
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -520,8 +522,13 @@ def makedata(args=None):
 
     Arguments::
 
-       config: (string)
+       config   : (string)
           file defining the parameters.
+
+       parallel : (bool)
+          True / yes etc to run in parallel. Be warned: it does not always make things faster,
+          which I assume is the result of overheads when parallelising. It will simply use whatever
+          CPUs are available.
 
     Depending upon the setting in the config file, this could generate a large
     number of different files and so the first time you run it, you may want
@@ -544,6 +551,7 @@ def makedata(args=None):
 
     """
     import configparser
+    global _gframe, _gfield
 
     if args is None:
         args = sys.argv[1:]
@@ -553,9 +561,11 @@ def makedata(args=None):
 
         # Register parameters
         cl.register('config', Cline.LOCAL, Cline.PROMPT)
+        cl.register('parallel', Cline.LOCAL, Cline.PROMPT)
 
         config = cl.get_value('config', 'configuration file',
                               cline.Fname('config'))
+        parallel = cl.get_value('parallel', 'add targets in parallel?', False)
 
     # Read the config file
     conf = configparser.ConfigParser()
@@ -739,15 +749,16 @@ def makedata(args=None):
 
         for nfile in range(nfiles):
 
-            # copy over template
-            frame = mccd.copy()
+            # copy over template (into a global variable for multiprocessing speed)
+            _gframe = mccd.copy()
 
             # get x,y offset
             xoff = np.random.normal(xdrift*(nfile % nreset), jitter)
             yoff = np.random.normal(ydrift*(nfile % nreset), jitter)
 
-            # add targets
-            for cnam, ccd in frame.items():
+            # create target fields for each CCD
+            _gfield = {}
+            for cnam in _gframe.keys():
                 p = ccd_pars[cnam]
                 if p['field'] is not None:
                     # get field modification settings
@@ -757,37 +768,50 @@ def makedata(args=None):
                         p['xoff']+xoff, p['yoff']+yoff
                     )
                     fscale = p['fscale']
+                    _gfield[cnam] = p['field'].modify(transform, fscale)
 
-                    # wind through each window
-                    for wnam, wind in ccd.items():
-                        # copy the template field, transform it,
-                        # add to the window
-                        mfield = p['field'].modify(transform, fscale)
-                        mfield.add(wind, p['ndiv'])
+
+
+            # add the targets in (slow step)
+            if parallel:
+                # run in parallel on whatever cores are available
+                args = [(cnam,ccd_pars[cnam]['ndiv']) for cnam in _gfield]
+                with Pool() as pool:
+                    ccds = pool.map(worker, args)
+                for cnam in _gfield:
+                    _gframe[cnam] = ccds.pop(0)
+            else:
+                # single core
+                for cnam in _gfield:
+                    ccd = _gframe[cnam]
+                    ndiv = ccd_pars[cnam]['ndiv']
+                    field = _gfield[cnam]
+                    for wind in ccd.values():
+                        field.add(wind, ndiv)
 
             # Apply flat
-            frame *= flat
+            _gframe *= flat
 
             # Add noise
-            for cnam, ccd in frame.items():
+            for cnam, ccd in _gframe.items():
                 for wnam, wind in ccd.items():
                     readout, gain = rgs[cnam][wnam]
                     wind.add_noise(readout, gain)
 
             # Apply bias
-            frame += bias
+            _gframe += bias
 
             # data type on output
             if dtype == 'float32':
-                frame.float32()
+                _gframe.float32()
             elif dtype == 'uint16':
-                frame.uint16()
+                _gframe.uint16()
 
             # Save
             fname = '{0:s}{1:0{2:d}d}{3:s}'.format(
                 root,nfile+1,ndigit,hcam.HCAM
             )
-            frame.wfits(fname, overwrite)
+            _gframe.wfits(fname, overwrite)
             print('Written file {0:d} to {1:s}'.format(nfile+1,fname))
 
             # update times in template
@@ -1126,12 +1150,9 @@ def rtplot(args=None):
 
     # Finally plot images
     with hcam.data_source(instrument, run, flist, server, first) as spool:
-        n = 1
-        for frame in spool:
+        for n, frame in enumerate(spool):
             print('Exposure {:d}'.format(n+1))
-            n += 1
-            nc = 0
-            for cnam in ccds:
+            for nc, cnam in enumerate(ccds):
                 # subtract bias
                 if bias is not None:
                     frame[cnam] -= bframe[cnam]
@@ -1140,7 +1161,6 @@ def rtplot(args=None):
                 ix = (nc % nx) + 1
                 iy = nc // nx + 1
                 pgpanl(ix,iy)
-                nc += 1
                 hcam.pgp.pccd(frame[cnam],iset,plo,phi,ilo,ihi)
 
 
@@ -1205,3 +1225,17 @@ class Transform:
 
         # Return change in position
         return (xcen-x,ycen-y)
+
+# globals and a function used in the multiprocessing used in 'makedata'. The globals
+# are to reduce the need for pickling / unpickling large bits of data
+_gframe = None
+_gfield = None
+
+def worker(arg):
+    global _gframe, _gfield
+    cnam, ndiv = arg
+    ccd = _gframe[cnam]
+    field = _gfield[cnam]
+    for wind in ccd.values():
+        field.add(wind, ndiv)
+    return ccd
