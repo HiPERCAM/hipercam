@@ -367,8 +367,8 @@ class Rdata (Rhead):
                 win2 = self.windows[4]
 
                 # get view covering second 4 windows of data
-                # skip 32 timing bytes / 16 words at the end]
-                frame2 = frame[:,:,data_size1:-16]
+                data_size2 = 20*win2.nx*win2.ny
+                frame2 = frame[:,:,data_size1:data_size1+data_size2]
 
                 # re-view as 4D array indexed by (ccd,window,y,x)
                 data2 = as_strided(
