@@ -111,6 +111,34 @@ class Window:
         """
         return self.lly-1+self.ny*self.ybin
 
+    @property
+    def xlo(self):
+        """
+        Returns left-hand edge of window (llx-0.5)
+        """
+        return self.llx-0.5
+
+    @property
+    def xhi(self):
+        """
+        Returns right-hand edge of window (urx+0.5)
+        """
+        return self.llx-1+self.nx*self.xbin+0.5
+
+    @property
+    def ylo(self):
+        """
+        Returns bottom edge of window (lly-0.5)
+        """
+        return self.lly-0.5
+
+    @property
+    def yhi(self):
+        """
+        Returns top edge of window (ury+0.5)
+        """
+        return self.lly-1+self.ny*self.ybin+0.5
+
     def x(self, xpix):
         """Given an X-pixel position, returns the physical X in the CCD.
 
@@ -175,17 +203,23 @@ class Window:
 
         """
         Returns (left,right,bottom,top) boundaries of :class:`Window`
+        i.e. (xlo,xhi,ylo,yhi)
         """
-        return (self.llx-0.5,self.urx+0.5,self.lly-0.5,self.ury+0.5)
+        return (self.xlo,self.xhi,self.ylo,self.yhi)
 
     def outside(self, win):
         """
-        Returns True if `self` contains `win` in such a way
-        that it could be cut down to it. This implies that
-        even if binned, its pixels are "in step", or that its
-        bin factors are divisors of those of `win`.
+        Returns True if `self` contains the :class:Window `win` in such a way
+        that it could be cut down to it. This implies that even if binned, its
+        pixels are "in step", aka "synchronised", and that its binning factors
+        are integer divisors of those of `win`.
 
-        See also :func:`inside`.
+        Arguments::
+
+          win  : (:class:Window)
+             the :class:Window that we are testing against to see if `self` surrounds it.
+
+        See also :func:`inside`, :func:`shrink`
         """
         return win.xbin % self.xbin == 0 and win.ybin % self.ybin == 0 and \
             self.llx <= win.llx and self.urx >= win.urx and \
@@ -195,12 +229,17 @@ class Window:
 
     def inside(self, win):
         """
-        Returns True if `win` contains `self` in such a way
-        that it could be cut down to it. This implies that
-        even if binned, its pixels are "in step", or that its
-        bin factors are divisors of those of `self`.
+        Returns True if `win` contains `self` in such a way that it could be
+        cut down to it. This implies that even if binned, its pixels are "in
+        step", aka "synchronised", and that its bin factors are integer
+        divisors of those of `self`.
 
-        See also :func:`outside`.
+        Arguments::
+
+          win  : (:class:Window)
+             the :class:Window that we are testing against to see if `self` in inside it.
+
+        See also :func:`outside`, :func:`shrink`
         """
         return self.xbin % win.xbin == 0 and self.ybin % win.ybin == 0 and \
             win.llx <= self.llx and win.urx >= self.urx and \
@@ -216,7 +255,9 @@ class Window:
         """
         if self.llx <=  win.urx and self.urx >= win.llx and \
            self.lly <=  win.ury and self.ury >= win.lly:
-            raise ValueError('Window.clash: self = {:s} clashes with win = {:s}'.format(self.format(), win.format()))
+            raise ValueError(
+                'self = {:s} clashes with win = {:s}'.format(self.format(), win.format())
+                )
 
     def xy(self):
         """Returns two 2D arrays containing the x and y values at the centre
@@ -256,42 +297,42 @@ class Window:
         distance.
 
         """
-        if x < self.llx-0.5:
-            if y < self.lly-0.5:
-                dist = max(self.llx-0.5-x, self.lly-0.5-y)
-            elif y > self.ury + 0.5:
-                dist = max(self.llx-0.5-x, y-self.ury-0.5)
+        if x < self.xlo:
+            if y < self.ylo:
+                dist = max(self.xlo-x, self.ylo-y)
+            elif y > self.yhi:
+                dist = max(self.xlo-x, y-self.yhi)
             else:
-                dist = self.llx-0.5-x
+                dist = self.xlo-x
 
-        elif x > self.urx + 0.5:
-            if y < self.lly-0.5:
-                dist = max(x-self.urx-0.5, self.lly-0.5-y)
+        elif x > self.xhi:
+            if y < self.ylo:
+                dist = max(x-self.xhi, self.ylo-y)
             elif y > self.ury + 0.5:
-                dist = max(x-self.urx-0.5, y-self.ury-0.5)
+                dist = max(x-self.xhi, y-self.yhi)
             else:
-                dist = x-self.urx-0.5
+                dist = x-self.xhi
 
         else:
-            if y < self.lly-0.5:
-                dist = self.lly-0.5-y
-            elif y > self.ury + 0.5:
-                dist = y-self.ury-0.5
+            if y < self.ylo:
+                dist = self.ylo-y
+            elif y > self.yhi:
+                dist = y-self.yhi
             else:
                 # we are *in* the box
-                dist = min(x-self.llx+0.5, self.urx+0.5-x,
-                           y-self.lly+0.5, self.ury+0.5-y)
+                dist = min(x-self.xlo, self.xhi-x, y-self.ylo, self.yhi-y)
 
         return dist
 
-    def crop(self, xlo, xhi, ylo, yhi):
-        """Generates a new Window by cropping the Window to whatever complete pixels
-        are seen within a range xlo to xhi, ylo to yhi.
+    def shrink(self, xlo, xhi, ylo, yhi):
+        """Generates a new Window by shrinking the Window to match the
+        complete pixels visible within the range xlo to xhi, ylo to yhi.
 
         Arguments::
 
            xlo : (float)
-              minimum X, unbinned pixels (extreme left pixels of CCD centred on 1)
+              minimum X, unbinned pixels (extreme left pixels of CCD centred
+              on 1)
 
            xhi : (float)
               maximum X, unbinned pixels
@@ -302,14 +343,20 @@ class Window:
            yhi : (float)
               maximum Y, unbinned pixels
 
-        Returns the cropped Window. Raises a ValueError if there are no visible
-        pixels.
+        Returns the shrunken Window. Raises a ValueError if there are no
+        visible pixels.
         """
 
-        llx = max(self.llx, self.llx + self.xbin*int(math.ceil((xlo-self.llx+0.5)/self.xbin)))
-        lly = max(self.lly, self.lly + self.ybin*int(math.ceil((ylo-self.lly+0.5)/self.ybin)))
-        nx = self.nx - (llx-self.llx)//self.xbin - max(0,int(math.ceil((self.urx+0.5-xhi)/self.xbin)))
-        ny = self.ny - (lly-self.lly)//self.ybin - max(0,int(math.ceil((self.ury+0.5-yhi)/self.ybin)))
+        llx = max(self.llx, self.llx + self.xbin*int(math.ceil((xlo-self.xlo)/self.xbin)))
+        lly = max(self.lly, self.lly + self.ybin*int(math.ceil((ylo-self.ylo)/self.ybin)))
+        nx = self.nx - (llx-self.llx)//self.xbin - max(0,int(math.ceil((self.xhi-xhi)/self.xbin)))
+        ny = self.ny - (lly-self.lly)//self.ybin - max(0,int(math.ceil((self.yhi-yhi)/self.ybin)))
+
+        if nx <= 0 or ny <= 0:
+            raise ValueError(
+                'no overlap of Window = {!r} with region = ({:.2f},{.2f},{.2f},{.2f})'.format(
+                    self, xlo, xhi, ylo, yhi)
+                )
 
         return Window(llx, lly, nx, ny, self.xbin, self.ybin)
 
@@ -607,9 +654,9 @@ class Windat(Window):
         """
         return Windat(self.win, self.data.copy())
 
-    def crop(self, xlo, xhi, ylo, yhi):
-        """Creates a new Windat by cropping the Windat. See :class:Window.crop
-        for more detail.
+    def shrink(self, xlo, xhi, ylo, yhi):
+        """Creates a new Windat by shrinking the Windat. See :class:Window.crop
+        for more details.
 
         Arguments::
 
@@ -625,9 +672,12 @@ class Windat(Window):
            yhi : (float)
               maximum Y, unbinned pixels
 
-        Returns the cropped Windat.
+        Returns the shrunken Windat.
         """
         win = super().crop(xlo, xhi, ylo, yhi)
+
+        # we know the Window generated is in step with the current Window which saves
+        # some checks that would be applied if 'crop' was used at this point
         x1 = (win.llx-self.llx)//self.xbin
         y1 = (win.lly-self.lly)//self.ybin
         if self.data is None:
