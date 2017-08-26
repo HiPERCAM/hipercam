@@ -8,6 +8,7 @@ import warnings
 import json
 import math
 import numpy as np
+from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
 from .core import *
 
@@ -354,7 +355,7 @@ class Window:
 
         if nx <= 0 or ny <= 0:
             raise ValueError(
-                'no overlap of Window = {!r} with region = ({:.2f},{.2f},{.2f},{.2f})'.format(
+                '{!r} has no overlap with region = ({:.2f},{.2f},{.2f},{.2f})'.format(
                     self, xlo, xhi, ylo, yhi)
                 )
 
@@ -674,7 +675,7 @@ class Windat(Window):
 
         Returns the shrunken Windat.
         """
-        win = super().crop(xlo, xhi, ylo, yhi)
+        win = super().shrink(xlo, xhi, ylo, yhi)
 
         # we know the Window generated is in step with the current Window which saves
         # some checks that would be applied if 'crop' was used at this point
@@ -684,6 +685,48 @@ class Windat(Window):
             return Windat(win)
         else:
             return Windat(win, self.data[y1:y1+win.ny,x1:x1+win.nx])
+
+    def crop(self, win):
+        """Creates a new :class:Windat by cropping the current :class:Windat to the
+        format defined by :class:Window `win`. Will throw a ValueError if the
+        operation is impossible or res ults in no overlap. The current
+        :class:Windat must lie outside `win` and must be synchronised (in
+        step) if any binning is used. If binning is used then the binning
+        factors of the :class:Windat must be divisors of the binning factors
+        of those of `win`. If binning takes place it will be carried out by
+        averaging, as appropriate for cropping flat-field frames (but not star
+        fields).
+
+        Arguments::
+
+           win : (:class:Window)
+              the new format to apply.
+
+        """
+        if self.outside(win):
+            # first slice down to size
+            xstart = (win.llx-self.llx)//self.xbin
+            xend = xstart + win.nx*win.xbin//self.xbin
+            ystart = (win.lly-self.lly)//self.ybin
+            yend = ystart + win.ny*win.ybin//self.ybin
+            data = self.data[ystart:yend,xstart:xend]
+
+            if win.xbin > self.xbin or win.ybin > self.ybin:
+                # in this case we also need to rebin which is a matter of
+                # averaging over blocks of (win.xbin//self.xbin,
+                # win.ybin//self.ybin) which we do with a striding trick
+                block = (win.ybin//self.ybin, win.xbin//self.xbin)
+                shape= (data.shape[0]//block[0], data.shape[1]//block[1]) + block
+                strides= (block[0]*data.strides[0], block[1]*data.strides[1]) + data.strides
+                data = as_strided(data, shape, strides)
+                data = data.mean(-1).mean(-1)
+
+            return Windat(win, data)
+
+        else:
+            raise ValueError(
+                'Cannot crop {!r} to {!r}'.format(self,win)
+            )
 
     def float32(self):
         """
