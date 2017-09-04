@@ -947,21 +947,22 @@ def makefield(args=None):
 ###############################################################
 
 def rtplot(args=None):
-    """Plots a sequence of images as a movie in near 'real time', hence
+    """Plots a sequence of images as a movie in near 'real time', hence the
     'rt'. Designed to be used to look at images coming in while at the
-    telescope.
+    telescope, 'rtplot' comes with many options, a large number of which are
+    hidden by default. If you want to see them all, invoke as 'rtplot PROMPT'.
 
     Arguments::
 
-        device : (string)
+        device : (string) [hidden]
           Plot device. PGPLOT is used so this should be a PGPLOT-style name,
           e.g. '/xs', '1/xs' etc. At the moment only ones ending /xs are supported.
 
-        source : (string)
+        source : (string) [hidden]
            's' = server, 'l' = local, 'f' = file list (ucm for ULTRACAM / ULTRASPEC,
            FITS files for HiPERCAM)
 
-        inst   : (string)
+        inst   : (string) [hidden]
            If 's' = server, 'l' = local, name of instrument. Choices: 'u' for
            ULTRACAM / ULTRASPEC, 'h' for HiPERCAM. This is needed because of the
            different formats.
@@ -976,13 +977,13 @@ def rtplot(args=None):
            exposure number to start from. 1 = first frame; set = 0 to
            always try to get the most recent frame (if it has changed)
 
-        twait  : (float) [if source == 's']
+        twait  : (float) [if source == 's'; hidden]
            time to wait between attempts to find a new exposure, seconds.
 
-        tmax   : (float) [if source == 's']
+        tmax   : (float) [if source == 's'; hidden]
            maximum time to wait between attempts to find a new exposure, seconds.
 
-        pause  : (float)
+        pause  : (float) [hidden]
            seconds to pause between frames (defaults to 0)
 
         ccd    : (string)
@@ -1013,6 +1014,18 @@ def rtplot(args=None):
 
         phi    : (float) [if iset='p']
            upper percentile level
+
+        profit : (bool) [if plotting a single CCD]
+           carry out profile fits or not. If you say yes, then on the first
+           plot, you will have the option to pick objects with a cursor. The
+           program will then attempt to track these from frame to frame, and
+           fit their profile. You may need to adjust 'first' to see anything.
+           The parameters used for profile fits are hidden and you may want to
+           invoke the command with 'PROMPT' the first time you try profile fitting.
+
+        method : (string) [if profit; hidden]
+           this defines the profile fitting method, either a gaussian or a moffat profile. The
+           latter is usually best.
 
         width  : (float) [hidden]
            plot width (inches). Set = 0 to let the program choose.
@@ -1046,6 +1059,7 @@ def rtplot(args=None):
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
         cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('phi', Cline.LOCAL, Cline.PROMPT)
+        cl.register('profit', Cline.LOCAL, Cline.PROMPT)
         cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
@@ -1134,6 +1148,21 @@ def rtplot(args=None):
             plo = cl.get_value('plo', 'lower intensity limit percentile', 5., 0., 100.)
             phi = cl.get_value('phi', 'upper intensity limit percentile', 95., 0., 100.)
 
+        if len(ccds) == 1:
+            profit = cl.get_value('profit', 'do you want profile fits?', False)
+
+            if profit:
+                method = cl.get_value('method', 'fit method g(aussian) or m(offat)', 'm', lvals=['g','m'])
+                if method == 'm':
+                    cl.get_value('beta', 'initial exponent for Moffat fits', 5., 0.5)
+                cl.get_value('fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., 2.)
+                cl.get_value('swidth', 'width of box for initial location of target [unbinned pixels]', 51, 3)
+                cl.get_value('smooth', 'FWHM for smoothing for initial object detection [binned pixels]', 6.)
+                cl.get_value('fwidth', 'width of box for profile fit [unbinned pixels]', 21, 3)
+
+        else:
+            profit = False
+
         nxmax, nymax = 0, 0
         for cnam in ccds:
             nxtot, nytot = ccdinf[cnam]
@@ -1172,15 +1201,39 @@ def rtplot(args=None):
         for n, frame in enumerate(spool):
             print('Exposure {:d}'.format(n+1))
             for nc, cnam in enumerate(ccds):
+                ccd = frame[cnam]
+
                 # subtract bias
                 if bias is not None:
-                    frame[cnam] -= bframe[cnam]
+                    ccd -= bframe[cnam]
 
                 # set to the correct panel and then plot CCD
                 ix = (nc % nx) + 1
                 iy = nc // nx + 1
                 pgpanl(ix,iy)
-                hcam.pgp.pccd(frame[cnam],iset,plo,phi,ilo,ihi)
+                hcam.pgp.pccd(ccd,iset,plo,phi,ilo,ihi)
+
+                # cursor selection of targets after first plot, if profit
+                if n == 0 and profit:
+                    print('Please select targets for profile fitting. You can select as many as you like.')
+                    x, y, reply = (xlo+xhi)/2, (ylo+yhi)/2, ''
+                    while reply != 'Q':
+                        print("Place cursor on target. Any key to register, 'q' to quit")
+                        x, y, reply = pgcurs(x, y)
+                        if reply == 'q':
+                            break
+                        else:
+                            # check that the position is a good one
+                            wnam = ccd.inside(x, y)
+                            pass
+#    try{
+#                                    float sky, peak;
+#                                    double xm=x, ym=y;
+#                                    Ultracam::profit_init(data[nccd], dvar[nccd], xm, ym, initial_search, fwhm1d, hwidth1d, hwidth, sky, peak, true);#
+#
+#                                    // Initial estimate of 'a' from FWHM
+#                                    double a = 1./2./Subs::sqr(fwhm/Constants::EFAC);
+
 
 
 ###########################################################
