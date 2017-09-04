@@ -19,7 +19,7 @@ urllib.request.install_opener(opener)
 
 # Set the URL of the FileServer from the environment or default to localhost.
 URL = os.environ['ULTRACAM_DEFAULT_URL'] if 'ULTRACAM_DEFAULT_URL' in os.environ else \
-      'http://localhost/'
+      'http://localhost:8007/'
 
 def get_nframe_from_server(run):
     """
