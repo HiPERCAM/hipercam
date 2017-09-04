@@ -4,14 +4,16 @@ with a single HDU containing extensive header information and the data in
 a "FITS cube" of unusual nature.
 """
 
+import os
 import struct
 import warnings
-import numpy as np
-import urllib.request
+import json
+import websocket
 
+import numpy as np
 from numpy.lib.stride_tricks import as_strided
-import fitsio
 from astropy.io import fits
+from astropy.time import Time
 
 from hipercam import (CCD, Group, MCCD, Windat, Window, HCM_NXTOT, HCM_NYTOT)
 from hipercam import (HRAW, add_extension) 
@@ -19,36 +21,46 @@ from .herrors import *
 
 __all__ = ['Rhead', 'Rdata']
 
+# Set the URL of the FileServer from the environment or default to localhost.
+URL = os.environ['HIPERCAM_DEFAULT_URL'] if 'HIPERCAM_DEFAULT_URL' in os.environ else \
+      'ws://localhost:8007/'
+
+# FITS offset to convert from signed to unsigned 16-bit ints and vice versa
+BZERO = (1 << 15)
+
 class Rhead:
-    """Reads an interprets header information from a HiPERCAM run and
-    generates the window formats needed to interpret the data. The file is
-    kept open while the Rhead exists.
+    """Reads an interprets header information from a HiPERCAM run (3D FITS file)
+    and generates the window formats needed to interpret the data. The file is
+    kept open while the Rhead exists. The file can be on the local disk or obtained
+    via the fileserver.
 
     The following attributes are set::
 
-      cheads  : (list of astropy.io.fits.Header)
+      cheads    : (list of astropy.io.fits.Header)
          the headers for each CCD which contain any info needed per CCD, above
-         all the 'skip' numbers.
+         all the 'skip' numbers, which are used when creating MCCD frames.
 
-      ffile   : (fitsio.FITS)
-         the opened file
-
-      fname   : (string)
+      fname     : (string)
          the file name
 
-      header  : (fitsio??)
-         the header of the FITS file
+      header    : (astropy.io.fits.Header)
+         the header of the FITS file.
 
-      thead   : (astropy.io.fits.Header)
-         the top-level header
+      mode      : (string)
+         the readout mode used, read from 'ESO DET READ CURNAME'
 
-      windows : (list of Windows)
+      ntbytes   : (int)
+         number of timing bytes, deduced from the dimensions of the FITS cube
+         (NAXIS1 contains all pixels and timing bytes) compared to the window
+         dimensions.
+
+      thead     : (astropy.io.fits.Header)
+         the top-level header that will be used to create MCCDs.
+
+      windows   : (list of Windows)
          the windows are the same for each CCD, so these are just one set
          in EFGH order for window 1 and then the same for window 2 if there
          is one, so either 4 or 8 Windows.
-
-      mode    : (string)
-         the readout mode used.
 
     """
 
@@ -59,7 +71,16 @@ class Rhead:
         Arguments::
 
            fname  : (string)
-              file name
+              file name. '.fits' will be added to it. NB If server==True, this
+              must have the form 'run010' (possibly with a path) as the server
+              uses this to distinguish runs from other stuff.
+
+           server : (bool)
+              True/False for server vs local disk access. Server access goes
+              through a websocket.  It uses a base URL taken from the
+              environment variable "HIPERCAM_DEFAULT_URL", or, if that is not
+              set, "ws://localhost:8007/".  The server here is Stu Littlefair's
+              Python-based server that defaults to port 8007.
 
            server : (bool)
               True to access the data from a server. It uses a URL set in an
@@ -72,14 +93,37 @@ class Rhead:
               images where you don't to waste effort.
         """
 
-        # store the file name
+        # store the file name and whether server being used
         self.fname = fname
+        self.server = server
 
-        # open the file with fitsio
-        self.ffile = fitsio.FITS(add_extension(fname,HRAW))
+        if server:
+            # open socket connection to server
+            self._ws = websocket.create_connection(URL + fname)
 
-        # read the header
-        self.header = self.ffile[0].read_header()
+            # read the header from the server
+            data = json.dumps(dict(action='get_hdr'))
+            self._ws.send(data)
+            self.header = fits.Header.fromstring(self._ws.recv())
+
+        else:
+            # open the file
+            self._ffile = open(add_extension(fname, HRAW),'rb')
+
+            # read the header
+            self.header = fits.Header.fromfile(self._ffile)
+
+            # store number of bytes read from header. used to offset later
+            # requests for data
+            self._hbytes = self._ffile.tell()
+
+        # calculate the framesize in bytes
+        bitpix = abs(self.header['BITPIX'])
+        self._framesize = (bitpix*self.header['NAXIS1']) // 8
+
+        # store the scaling and offset
+        self._bscale = self.header['BSCALE']
+        self._bzero = self.header['BZERO']
 
         # create the top-level header
         self.thead = fits.Header()
@@ -88,6 +132,9 @@ class Rhead:
         # This is essential.
         self.mode = self.header['ESO DET READ CURNAME']
         self.thead['MODE'] = (self.mode,'HiPERCAM readout mode')
+
+        # now we start on decoding the header parameters into Windows
+        # required to construct MCCD objects
 
         # tuples of fixed data for each quadrant
         LLX = (1, 1025, 1025, 1)
@@ -135,6 +182,9 @@ class Rhead:
             msg = 'mode {} not currently supported'.format(self.mode)
             raise ValueError(msg)
 
+        # track total number of pixels in order to compute the number of timing bytes
+        npixels = 20*nx*ny
+
         # add in the first four Windows
         self.windows = []
         for llx, lly in zip(llxs, llys):
@@ -155,11 +205,17 @@ class Rhead:
             for llx, lly in zip(llxs, llys):
                 self.windows.append(Window(llx, lly, nx, ny, xbin, ybin))
 
+            # add in the pixels
+            npixels += 20*nx*ny
+
+        # any extra bytes above those needed for the data are timing
+        self.ntbytes = self._framesize - (bitpix*npixels) // 8
+
         # Build (more) header info
         if 'DATE' in self.header:
-            self.thead['DATE'] = (self.header.get('DATE'), self.header.get_comment('DATE'))
+            self.thead['DATE'] = (self.header['DATE'], self.header.comments['DATE'])
         if full and 'ESO DET GPS' in self.header:
-            self.thead['GPS'] = (self.header.get('ESO DET GPS'), self.header.get_comment('ESO DET GPS'))
+            self.thead['GPS'] = (self.header['ESO DET GPS'], self.header.comments['ESO DET GPS'])
 
         # Header per CCD
         self.cheads = []
@@ -169,41 +225,52 @@ class Rhead:
             # Essential items
             hnam = 'ESO DET NSKIP{:d}'.format(n)
             if hnam in self.header:
-                chead['NSKIP'] = (self.header.get(hnam), self.header.get_comment(hnam))
+                chead['NSKIP'] = (self.header[hnam], self.header.comments[hnam])
 
             # Nice-if-you-can-get-them items
             if full:
                 # whether this CCD has gone through a reflection
                 hnam = 'ESO DET REFLECT{:d}'.format(n)
                 if hnam in self.header:
-                    chead['REFLECT'] = (self.header.get(hnam), 'is image reflected')
+                    chead['REFLECT'] = (self.header[hnam], 'is image reflected')
 
                 # readout noise
                 hnam = 'ESO DET CHIP{:d} RON'.format(n)
                 if hnam in self.header:
-                    chead['RONOISE'] = (self.header.get(hnam), self.header.get_comment(hnam))
+                    chead['RONOISE'] = (self.header[hnam], self.header.comments[hnam])
 
                 # gain
                 hnam = 'ESO DET CHIP{:d} GAIN'.format(n)
                 if hnam in self.header:
-                    chead['GAIN'] = (self.header.get(hnam), self.header.get_comment(hnam))
+                    chead['GAIN'] = (self.header[hnam], self.header.comments[hnam])
 
             self.cheads.append(chead)
 
         # end of constructor / initialiser
 
     def __del__(self):
-        """Destructor closes the file"""
-        self.ffile.close()
+        """Destructor closes the file or web socket"""
+        if self.server:
+            if hasattr(self, '_ws'): self._ws.close()
+        else:
+            if hasattr(self, '_ffile'): self._ffile.close()
 
     def npix(self):
         """
-        Returns number of (binned) pixels per CCD
+        Returns the number of (binned) pixels per CCD
         """
         np = 0
         for win in self.windows:
             np += win.nx*win.ny
         return np
+
+    # Want to run this as a context manager
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.__del__()
+
 
 class Rdata (Rhead):
     """Callable, iterable object to represent HiPERCAM raw data files.
@@ -237,32 +304,33 @@ class Rdata (Rhead):
               run name, e.g. 'run036'.
 
            nframe : (int)
-              the frame number to read first [1 is the first].
+              the frame number to read first [1 is the first]. This initialises an attribute
+              of the same name that is used when reading frames sequentially.
 
            server : (bool)
-              True/False for server vs local disk access
+              True/False for server vs local disk access. Server access goes
+              through a websocket.  It uses a base URL taken from the
+              environment variable "HIPERCAM_DEFAULT_URL", or, if that is not
+              set, "ws://localhost:8007/".  The server here is Stu Littlefair's
+              Python-based server that defaults to port 8007.
         """
 
         # read the header
         Rhead.__init__(self, fname, server)
+
+        # move to the start of the frame
         self.nframe = nframe
-        self.server = server
+        if not server:
+            self._ffile.seek(self._hbytes+self._framesize*(self.nframe-1))
 
-    # Want to run this as a context manager
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.__del__()
-
-    # and as an iterator.
+    # Rdata objects functions as iterators.
     def __iter__(self):
         return self
 
     def __next__(self):
         try:
             return self.__call__()
-        except (HendError, urllib.error.HTTPError):
+        except (HendError):
             raise StopIteration
 
     def ntotal(self):
@@ -297,14 +365,12 @@ class Rdata (Rhead):
 
     def __call__(self, nframe=None):
         """Reads one exposure from the run the :class:`Rdata` is attached
-        to. It works on the assumption that the internal file pointer in the
-        :class:`Rdata` is positioned at the start of a frame. If `nframe` is
-        None, then it will read the frame it is positioned at. If nframe is an
-        integer > 0, it will try to read that particular frame; if nframe ==
-        0, it reads the last complete frame.  nframe == 1 gives the first
-        frame. This returns an MCCD object. It raises an exception if it fails
-        to read data.  The data are stored internally as either 4-byte floats
-        or 2-byte unsigned ints.
+        to. If `nframe` is None, then it will read the frame it is positioned
+        at. If nframe is an integer > 0, it will try to read that particular
+        frame; if nframe == 0, it reads the last complete frame.  nframe == 1
+        gives the first frame. If all works, an MCCD object is returned. It
+        raises an exception if it fails to read data.  The data are stored
+        internally as either 4-byte floats or 2-byte unsigned ints.
 
         Arguments::
 
@@ -312,108 +378,189 @@ class Rdata (Rhead):
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted.
 
-        Returns an MCCD for ULTRACAM, a CCD for ULTRASPEC.
-
         Apart from reading the raw bytes, the main job of this routine is to
         divide up and re-package the bytes read into Windats suitable for
         constructing CCD objects.
-
         """
 
-        if self.server:
-            raise NotImplementedError('needs HiPERCAM server access to be implemented')
+        # set the frame to be read and whether the file pointer needs to be
+        # reset
+        if nframe is None:
+            # just read whatever frane we are on
+            reset = False
         else:
-            # timing bytes will need to be implemented
-
-            # read data
             if nframe == 0:
-                self.nframe = self.ntotal()
-            elif nframe is not None:
-                self.nframe = nframe
+                # go for the last one
+                nframe = self.ntotal()
 
-            if self.nframe > self.ntotal():
-                self.nframe = 1
-                raise HendError('Rdata.__call__: tried to access a frame exceeding the maximum')
+            # update frame counter
+            reset = self.nframe != nframe
+            self.nframe = nframe
 
-            # read in frame
-            frame = self.ffile[0][self.nframe-1,:,:]
+        # ?? need a maximum frame number routine in the server 
+        # at the moment just don't run ntotal if server
+        if not self.server and self.nframe > self.ntotal():
+            self.nframe = 1
+            raise HendError('Rdata.__call__: tried to access a frame exceeding the maximum')
 
-            # Now build up Windats-->CCDs-->MCCD
-            cnams = ('1', '2', '3', '4', '5')
-            wnams1 = ('E1', 'F1', 'G1', 'H1')
-            wnams2 = ('E2', 'F2', 'G2', 'H2')
-
-            # Below, the intermediate arrays data1 and data2 are 4D arrays
-            # indexed by (ccd,window,ny,nx) containing the image data. The crucial
-            # step is contained in the as_strided routine
-
-            ccds = Group()
-
-            if self.mode.startswith('TwoWindows'):
-                # get an example of the first set of Windows
-                win1 = self.windows[0]
-
-                # get view covering first 4 windows of data
-                data_size1 = 20*win1.nx*win1.ny
-                frame1 = frame[:,:,:data_size1]
-
-                # re-view the data as a 4D array indexed by (ccd,window,y,x)
-                data1 = as_strided(
-                    frame1, strides=(8, 2, 40*win1.nx, 40),
-                    shape=(5, 4, win1.ny, win1.nx)
-                )
-
-                # get an example of the second set of Windows
-                win2 = self.windows[4]
-
-                # get view covering second 4 windows of data
-                data_size2 = 20*win2.nx*win2.ny
-                frame2 = frame[:,:,data_size1:data_size1+data_size2]
-
-                # re-view as 4D array indexed by (ccd,window,y,x)
-                data2 = as_strided(
-                    frame2, strides=(8, 2, 40*win2.nx, 40),
-                    shape=(5, 4, win2.ny, win2.nx)
-                )
-
-                # load into CCDs
-                for nccd, (cnam, chead) in enumerate(zip(cnams,self.cheads)):
-                    # now the Windats
-                    windats = Group()
-                    for nwin, (wnam1, wnam2) in enumerate(zip(wnams1, wnams2)):
-                        windats[wnam1] = Windat(self.windows[nwin], data1[nccd, nwin])
-                        windats[wnam2] = Windat(self.windows[nwin+4], data2[nccd, nwin])
-
-                    # compile the CCD
-                    ccds[cnam] = CCD(windats, HCM_NXTOT, HCM_NYTOT, chead)
+        if self.server:
+            # define command to send to server
+            if reset:
+                # requires a seek as well as a read
+                data = json.dumps(dict(action='get_frame', frame_number=self.nframe))
             else:
-                # get an example of the first set of Windows
-                win1 = self.windows[0]
+                # just read next set of bytes
+                data = json.dumps(dict(action='get_next'))
 
-                # get view covering first 4 windows of data
-                data_size1 = 20*win1.nx*win1.ny
-                frame1 = frame[:,:,:data_size1]
+            # get data
+            self._ws.send(data)
+            raw_bytes = self._ws.recv()
 
-                # re-view as 4D array indexed by (ccd,window,y,x)
-                data1 = as_strided(
-                    frame1, strides=(8, 2, 40*win1.nx, 40),
-                    shape=(5, 4, win1.ny, win1.nx)
+            # separate into the frame and timing data, correcting the frame
+            # bytes for the FITS BZERO offset
+            frame  = np.fromstring(raw_bytes[:-self.ntbytes], '>u2')
+            frame += BZERO
+            tbytes = raw_bytes[-self.ntbytes:]
+
+        else:
+            # find the start of the frame if necessary
+            if reset:
+                self._ffile.seek(self._hbytes+self._framesize*(self.nframe-1))
+
+            # read in frame and then the timing data, correcting the frame for
+            # the standard FITS BZERO offset
+            frame  = np.fromfile(self._ffile, '>u2', (self._framesize - self.ntbytes) // 2)
+            frame += BZERO
+            tbytes = self._ffile.read(self.ntbytes)
+
+        # we now have all the pixels and timing bytes of the frame of interest
+        # read into a 1D ndarray of unsigned 2-byte integers. Now interpret them.
+
+        # first the time
+        frameCount, timeStampCount, years, day_of_year, hours, mins, seconds, nanoseconds = \
+            decode_timing_bytes(tbytes)
+
+        time_string = '{}:{}:{}:{}:{:.7f}'.format(
+            years, day_of_year, hours, mins, seconds+nanoseconds/1e9
+            )
+        tstamp = Time(time_string, format='yday')
+        self.thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
+
+        # Now build up Windats-->CCDs-->MCCD
+        cnams = ('1', '2', '3', '4', '5')
+        wnams1 = ('E1', 'F1', 'G1', 'H1')
+        wnams2 = ('E2', 'F2', 'G2', 'H2')
+
+        # Below, the intermediate arrays data1 and data2 are 4D arrays
+        # indexed by (ccd,window,ny,nx) containing the image data. The crucial
+        # step is contained in the as_strided routine
+
+        ccds = Group()
+
+        if self.mode.startswith('TwoWindows'):
+            # get an example of the first set of Windows
+            win1 = self.windows[0]
+
+            # get view covering first 4 windows of data
+            data_size1 = 20*win1.nx*win1.ny
+            frame1 = frame[:data_size1]
+
+            # re-view the data as a 4D array indexed by (ccd,window,y,x)
+            data1 = as_strided(
+                frame1, strides=(8, 2, 40*win1.nx, 40),
+                shape=(5, 4, win1.ny, win1.nx)
                 )
 
-                # load into CCDs
-                for nccd, (cnam, chead) in enumerate(zip(cnams,self.cheads)):
-                    # now the Windats
-                    windats = Group()
-                    for nwin, wnam1 in enumerate(wnams1):
-                        windats[wnam1] = Windat(self.windows[nwin], data1[nccd, nwin])
+            # get an example of the second set of Windows
+            win2 = self.windows[4]
 
-                    # compile the CCD
-                    ccds[cnam] = CCD(windats, HCM_NXTOT, HCM_NYTOT, chead)
+            # get view covering second 4 windows of data
+            frame2 = frame[data_size1:]
 
-            # finally create the MCCD
-            mccd = MCCD(ccds, self.thead)
+            # re-view as 4D array indexed by (ccd,window,y,x)
+            data2 = as_strided(
+                frame2, strides=(8, 2, 40*win2.nx, 40),
+                shape=(5, 4, win2.ny, win2.nx)
+                )
+
+            # load into CCDs
+            for nccd, (cnam, chead) in enumerate(zip(cnams,self.cheads)):
+                # now the Windats
+                windats = Group()
+                for nwin, (wnam1, wnam2) in enumerate(zip(wnams1, wnams2)):
+                    windats[wnam1] = Windat(self.windows[nwin], data1[nccd, nwin])
+                    windats[wnam2] = Windat(self.windows[nwin+4], data2[nccd, nwin])
+
+                # compile the CCD
+                ccds[cnam] = CCD(windats, HCM_NXTOT, HCM_NYTOT, chead)
+
+        else:
+            # get an example of the first set of Windows
+            win1 = self.windows[0]
+
+            # re-view as 4D array indexed by (ccd,window,y,x)
+            data1 = as_strided(
+                frame, strides=(8, 2, 40*win1.nx, 40),
+                shape=(5, 4, win1.ny, win1.nx)
+                )
+
+            # load into CCDs
+            for nccd, (cnam, chead) in enumerate(zip(cnams,self.cheads)):
+                # now the Windats
+                windats = Group()
+                for nwin, wnam1 in enumerate(wnams1):
+                    windats[wnam1] = Windat(self.windows[nwin], data1[nccd, nwin])
+
+                # compile the CCD
+                ccds[cnam] = CCD(windats, HCM_NXTOT, HCM_NYTOT, chead)
+
+        # finally create the MCCD
+        mccd = MCCD(ccds, self.thead)
 
         # update the frame counter
         self.nframe += 1
 
         return mccd
+
+
+def decode_timing_bytes(tbytes):
+    """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the 3D FITS file.
+
+    The timing bytes are originally encoded as a series of 4 byte
+    little-endian unsigned integers. On saving to FITS they are mangled
+    because:
+
+      1) they are split into 2-byte uints
+      2) 2**15 is subtracted from each to map to 2-byte signed ints
+      3) These are written in big-endian order to FITS
+
+    This routine reverses this process to recover the original timestamp tuple by
+
+      1) unpacking the timing bytes as big-endian 16-bit signed integers
+      2) adding 32768 to each value
+      3) packing these values as little-endian 16-bit unsigned integers
+      4) unpacking the result as 32-bit, little-endian unsigned integers
+
+    Parameters
+    ----------
+
+       tbytes: (bytes)
+           a Python bytes object which contains the timestamp bytes as written in the
+           FITS file
+
+    Returns
+    --------
+
+      timestamp : (tuple)
+          a tuple containing (frameCount, timeStampCount, years, day_of_year,
+          hours, mins, seconds, nanoseconds) values.
+
+    [Straight from Stu Littlefair's original code.]
+
+    """
+    if len(tbytes) == 32:
+        # early format with 32 timing bytes.
+        buf = struct.pack('<' + 'H'*16, *(val + BZERO for val in struct.unpack('>'+'h'*16, tbytes)))
+        return struct.unpack('<' + 'I'*8, buf)
+    else:
+        raise ValueError('only 32 byte timing decoding implemented')
