@@ -31,7 +31,7 @@ def add_extension(fname, ext):
 
     """
     if len(ext) and not fname.endswith(ext):
-        return fname + ext
+        return '{}{}'.format(fname, ext)
     else:
         return fname
 
