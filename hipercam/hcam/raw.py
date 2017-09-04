@@ -1,7 +1,9 @@
 """
-Section for handling the raw HiPERCAM data files. These are FITS files
-with a single HDU containing extensive header information and the data in
-a "FITS cube" of unusual nature.
+Section for handling the raw HiPERCAM data files. These are FITS files with a
+single HDU containing extensive header information and the data in a "FITS
+cube" of unusual nature in that it has dimensions of nframe by 1 by lots,
+where "lots" contains all pixels of all windows of all CCDs plus a few timing
+bytes at the end.
 """
 
 import os
@@ -19,7 +21,7 @@ from hipercam import (CCD, Group, MCCD, Windat, Window, HCM_NXTOT, HCM_NYTOT)
 from hipercam import (HRAW, add_extension) 
 from .herrors import *
 
-__all__ = ['Rhead', 'Rdata']
+__all__ = ['Rhead', 'Rdata', 'Rtime']
 
 # Set the URL of the FileServer from the environment or default to localhost.
 URL = os.environ['HIPERCAM_DEFAULT_URL'] if 'HIPERCAM_DEFAULT_URL' in os.environ else \
@@ -264,6 +266,16 @@ class Rhead:
             np += win.nx*win.ny
         return np
 
+    def ntotal(self):
+        """
+        Returns the total number of complete frames
+        """
+        if self.server:
+            raise NotImplementedError('needs HiPERCAM server to be implemented')
+        else:
+            ntot = self.header['NAXIS3']
+        return ntot
+
     # Want to run this as a context manager
     def __enter__(self):
         return self
@@ -279,14 +291,14 @@ class Rdata (Rhead):
     object generated can be used to deliver MCCD objects by specifying a frame
     number e.g.::
 
-      rdat = Rdata('run045.fits')
-      fr10 = rdat(10)
-      fr11 = rdat()
+      >> rdat = Rdata('run045.fits')
+      >> fr10 = rdat(10)
+      >> fr11 = rdat()
 
     reads frame number 10 and then 11 in from 'run045.fits', or sequentially::
 
-      for mccd in Rdata('run045.fits'):
-         print('nccd = ',len(mccd))
+      >> for mccd in Rdata('run045.fits'):
+      >>    print('nccd = ',len(mccd))
 
     which just prints out the number of CCDs from every exposure in the file
     (=5 in all cases),
@@ -332,36 +344,6 @@ class Rdata (Rhead):
             return self.__call__()
         except (HendError):
             raise StopIteration
-
-    def ntotal(self):
-        """
-        Returns the total number of complete frames
-        """
-        if self.server:
-            raise NotImplementedError('needs HiPERCAM server to be implemented')
-        else:
-            ntot = self.header['NAXIS3']
-        return ntot
-
-    def time(self, nframe=None):
-        """Returns timing information of frame nframe (starts from 1). This saves
-        effort reading the data in some cases. Once done, it moves to the next
-        frame.
-
-        Arguments::
-
-           nframe : (int | None)
-              frame number to get, starting at 1. 0 for the last (complete)
-              frame. If nframe == None, the current frame will be used.
-
-        See utimer for what gets returned by this. See also Rtime for a class
-        dedicated to reading times only.
-        """
-
-        if self.server:
-            raise NotImplementedError('needs HiPERCAM server to be implemented')
-        else:
-            raise NotImplementedError('needs HiPERCAM timing info implementing')
 
     def __call__(self, nframe=None):
         """Reads one exposure from the run the :class:`Rdata` is attached
@@ -522,6 +504,135 @@ class Rdata (Rhead):
 
         return mccd
 
+class Rtime (Rhead):
+    """Callable, iterable object to represent the timestamps only of HiPERCAM raw data files.
+
+    This is very nearly the same as Rdata except for speed it only reads the
+    timing data of each frame in the case of local disk files and it does no
+    processing of raw data other than the timing in any circumstance.  Each
+    call to it returns an astropy.time.Time object, thus
+
+       >> for time in Rtime('run045'):
+       >>     print(time.isot)
+
+    lists all the timestamps of the run.
+    """
+
+    def __init__(self, fname, nframe=1, server=False):
+        """Connects to a raw HiPERCAM FITS file for reading. The file is kept
+        open.  The Rdata object can then generate MCCD objects through being
+        called as a function or iterator.
+
+        Arguments::
+
+           fname : (string)
+              run name, e.g. 'run036'.
+
+           nframe : (int)
+              the frame number to read first [1 is the first]. This initialises an attribute
+              of the same name that is used when reading frames sequentially.
+
+           server : (bool)
+              True/False for server vs local disk access. Server access goes
+              through a websocket.  It uses a base URL taken from the
+              environment variable "HIPERCAM_DEFAULT_URL", or, if that is not
+              set, "ws://localhost:8007/".  The server here is Stu Littlefair's
+              Python-based server that defaults to port 8007.
+        """
+
+        # read the header
+        Rhead.__init__(self, fname, server)
+
+        # move to the start of the timing bytes
+        self.nframe = nframe
+        if not server:
+            self._ffile.seek(self._hbytes+self._framesize*self.nframe-self.ntbytes)
+
+    # Rtime objects functions as iterators.
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            return self.__call__()
+        except (HendError):
+            raise StopIteration
+
+    def __call__(self, nframe=None):
+        """Reads the timing data of one frame from the run the :class:`Rtime`
+        is attached to. If `nframe` is None, then it will read the frame it is
+        positioned at. If nframe is an integer > 0, it will try to read that
+        particular frame; if nframe == 0, it reads the last complete frame.
+        nframe == 1 gives the first frame. If all works, an astropy.time.Time
+        object is returned. 
+
+        Arguments::
+
+           nframe : (int)
+              frame number to get, starting at 1. 0 for the last (complete)
+              frame. 'None' indicates that the next frame is wanted.
+
+        """
+
+        # set the frame to be read and whether the file pointer needs to be
+        # reset
+        if nframe is None:
+            # just read whatever frane we are on
+            reset = False
+        else:
+            if nframe == 0:
+                # go for the last one
+                nframe = self.ntotal()
+
+            # update frame counter
+            reset = self.nframe != nframe
+            self.nframe = nframe
+
+        # ?? need a maximum frame number routine in the server 
+        # at the moment just don't run ntotal if server
+        if not self.server and self.nframe > self.ntotal():
+            self.nframe = 1
+            raise HendError('Rdata.__call__: tried to access a frame exceeding the maximum')
+
+        if self.server:
+            # define command to send to server
+            if reset:
+                # requires a seek as well as a read
+                data = json.dumps(dict(action='get_frame', frame_number=self.nframe))
+            else:
+                # just read next set of bytes
+                data = json.dumps(dict(action='get_next'))
+
+            # get data
+            self._ws.send(data)
+            raw_bytes = self._ws.recv()
+
+            # extract the timing data
+            tbytes = raw_bytes[-self.ntbytes:]
+
+        else:
+            # find the start of the timing data if necessary
+            if reset:
+                self._ffile.seek(self._hbytes+self._framesize*self.nframe-self.ntbytes)
+
+            # read the timing data, skip forward to next set
+            tbytes = self._ffile.read(self.ntbytes)
+            self._ffile.seek(self._framesize-self.ntbytes, 1)
+
+        # Now interpret them.
+        frameCount, timeStampCount, years, day_of_year, hours, mins, seconds, nanoseconds = \
+            decode_timing_bytes(tbytes)
+
+        time_string = '{}:{}:{}:{}:{:.7f}'.format(
+            years, day_of_year, hours, mins, seconds+nanoseconds/1e9
+            )
+        tstamp = Time(time_string, format='yday')
+
+        # update the frame counter
+        self.nframe += 1
+
+        # Return
+        return tstamp
 
 def decode_timing_bytes(tbytes):
     """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the 3D FITS file.
