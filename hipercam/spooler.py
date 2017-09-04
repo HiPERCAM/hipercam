@@ -1,5 +1,6 @@
 """Defines classes and methods for reading data of varying formats and
-for iterating through multiple images from a variety of sources.
+for iterating through multiple images from a variety of sources in a
+standardised manner.
 
 
 """
@@ -126,6 +127,33 @@ class UcamServSpool(SpoolerBase):
     def __next__(self):
         return self._iter.__next__()
 
+class HcamDiskSpool(SpoolerBase):
+
+    """Provides an iterable context manager to loop through frames within
+    a raw HiPERCAM file.
+    """
+
+    def __init__(self, run, first=1):
+        """Attaches the HcamDiskSpool to a run.
+
+        Arguments::
+
+           run : (string)
+
+              The run number, e.g. 'run003' or 'data/run004'. 
+
+           first : (int)
+              The first frame to access.
+
+        """
+        self._iter = hcam.Rdata(run, first, False)
+
+    def __exit__(self, *args):
+        self._iter.__exit__(args)
+
+    def __next__(self):
+        return self._iter.__next__()
+
 class HcamListSpool(SpoolerBase):
 
     """Provides an iterable context manager to loop through frames within
@@ -155,32 +183,33 @@ class HcamListSpool(SpoolerBase):
             raise StopIteration
         return ccd.MCCD.rfits(core.add_extension(fname.strip(), core.HCAM))
 
-class HcamDiskSpool(SpoolerBase):
+class HcamServSpool(SpoolerBase):
 
     """Provides an iterable context manager to loop through frames within
-    a raw HiPERCAM file.
+    a raw HiPERCAM file served from Stu's FileServer
     """
 
     def __init__(self, run, first=1):
-        """Attaches the HcamDiskSpool to a run.
+        """Attaches the HcamServSpool to a run.
 
         Arguments::
 
            run : (string)
 
-              The run number, e.g. 'run003' or 'data/run004'. 
+              The run number, e.g. 'run003' or 'data/run004'.
 
            first : (int)
-              The first frame to access.
+              The first frame to access, 0 to always try to return the last complete one.
 
         """
-        self._iter = hcam.Rdata(run, first, False)
+        self._iter = hcam.Rdata(run, first, True)
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
 
     def __next__(self):
         return self._iter.__next__()
+
 
 def data_source(inst, resource, flist, server, first):
     """Returns a context manager needed to run through a set of exposures.
@@ -234,9 +263,7 @@ def data_source(inst, resource, flist, server, first):
         if flist:
             return HcamListSpool(resource)
         elif server:
-            raise NotImplementedError(
-                'spooler.data_source: HiPERCAM server not implemented yet'
-                )
+            return HcamServSpool(resource,first)
         else:
             return HcamDiskSpool(resource,first)
 
