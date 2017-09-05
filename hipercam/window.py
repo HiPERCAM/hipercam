@@ -300,25 +300,25 @@ class Window:
         """
         if x < self.xlo:
             if y < self.ylo:
-                dist = max(self.xlo-x, self.ylo-y)
+                dist = -min(self.xlo-x, self.ylo-y)
             elif y > self.yhi:
-                dist = max(self.xlo-x, y-self.yhi)
+                dist = -min(self.xlo-x, y-self.yhi)
             else:
-                dist = self.xlo-x
+                dist = x-self.xlo
 
         elif x > self.xhi:
             if y < self.ylo:
-                dist = max(x-self.xhi, self.ylo-y)
-            elif y > self.ury + 0.5:
-                dist = max(x-self.xhi, y-self.yhi)
+                dist = -min(x-self.xhi, self.ylo-y)
+            elif y > self.yhi:
+                dist = -min(x-self.xhi, y-self.yhi)
             else:
-                dist = x-self.xhi
+                dist = self.xhi-x
 
         else:
             if y < self.ylo:
-                dist = self.ylo-y
+                dist = y-self.ylo
             elif y > self.yhi:
-                dist = y-self.yhi
+                dist = self.yhi-y
             else:
                 # we are *in* the box
                 dist = min(x-self.xlo, self.xhi-x, y-self.ylo, self.yhi-y)
@@ -355,7 +355,7 @@ class Window:
 
         if nx <= 0 or ny <= 0:
             raise ValueError(
-                '{!r} has no overlap with region = ({:.2f},{.2f},{.2f},{.2f})'.format(
+                '{!r} has no overlap with region = ({:.2f},{:.2f},{:.2f},{:.2f})'.format(
                     self, xlo, xhi, ylo, yhi)
                 )
 
