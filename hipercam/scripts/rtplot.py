@@ -22,11 +22,17 @@ def rtplot(args=None):
     """Plots a sequence of images as a movie in near 'real time', hence
     'rt'. Designed to be used to look at images coming in while at the
     telescope, 'rtplot' comes with many options, a large number of which are
-    hidden by default. If you want to see them all, invoke as 'rtplot PROMPT'.
+    hidden by default, and many of which are only prompted if other arguments
+    are set correctly. If you want to see them all, invoke as 'rtplot PROMPT'.
 
     rtplot can source data from both the ULTRACAM and HiPERCAM servers, from
-    local raw ULTRACAM and HiPERCAM files and from lists of HiPERCAM '.hcm'
-    files.
+    local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
+    FITS files for HiPERCAM) and from lists of HiPERCAM '.hcm' files.
+
+    rtplot optionally allows the selection of targets to be fitted with
+    gaussian or moffat profiles, and, if successful, will plot circles of 2x
+    the measured FWHM in green over the selected targets. This option only
+    works if a single CCD is being plotted.
 
     Arguments::
 
@@ -99,7 +105,7 @@ def rtplot(args=None):
         phi     : (float) [if iset='p']
            upper percentile level
 
-        profit  : (bool) [if plotting a single CCD]
+        profit  : (bool) [if plotting a single CCD only]
            carry out profile fits or not. If you say yes, then on the first
            plot, you will have the option to pick objects with a cursor. The
            program will then attempt to track these from frame to frame, and
@@ -130,20 +136,28 @@ def rtplot(args=None):
            default FWHM, unbinned pixels.
 
         swidth : (float) [if profit; hidden]
-           half width of box for searching for a star, binned pixels.
+           half width of box for searching for a star, binned pixels. The
+           brightest target in a region +/- swidth around an intial position
+           will be found. 'swidth' should be large enough to allow for likely
+           changes in position from frame to frame, but try to keep it as
+           small as you can to avoid jumping to different targets and to reduce
+           the chances of interference by cosmic rays.
 
         smooth : (float) [if profit; hidden]
            FWHM for gaussian smoothing, binned pixels. The initial position
            for fitting is determined by finding the maximum flux in a smoothed
-           version of the image in a box of width swidth around the starter
-           position.
+           version of the image in a box of width +/- swidth around the starter
+           position. Typically should be comparable to the stellar width. Its main
+           purpose is to combat cosmi rays which tend only to occupy a single pixel.
 
         fwidth : (float) [if profit; hidden]
            half width of box for profile fit, binned pixels. The fit box is centred
            on the position located by the initial search. It should normally be
            smaller than 'swidth'.
 
-
+        thresh : (float) [if profit; hidden]
+           height threshold to accept a fit. If the height is below this value, the
+           position will not be updated. This is to help in cloudy conditions.
     """
 
     if args is None:
@@ -328,7 +342,7 @@ def rtplot(args=None):
     # plot images
     with hcam.data_source(instrument, run, flist, server, first) as spool:
 
-        # 'spool' is an iterable source of MCCDs 
+        # 'spool' is an iterable source of MCCDs
         for n, frame in enumerate(spool):
             print('Exposure {:d}'.format(n+1))
 
@@ -347,15 +361,10 @@ def rtplot(args=None):
                 hcam.pgp.pccd(ccd,iset,plo,phi,ilo,ihi)
 
                 if n == 0 and profit:
-
-                    class Fpars:
-                        """Container class for fit parameters"""
-                        def __init__(self, x, y, wind):
-                            self.x, self.y, self.wind = x, y, wind
-
                     # cursor selection of targets after first plot, if profit
                     # accumulate list of starter positions
                     fpos = []
+
                     print('Please select targets for profile fitting. You can select as many as you like.')
                     x, y, reply = (xlo+xhi)/2, (ylo+yhi)/2, ''
                     while reply != 'Q':
@@ -367,11 +376,12 @@ def rtplot(args=None):
                             # check that the position is inside a window
                             wnam = ccd.inside(x, y, 2)
                             if wnam is not None:
-                                # store the position and the window name
+                                # store the position and the window name in the Fpars
+                                # container class (see end of file)
                                 fpos.append(Fpars(x,y,ccd[wnam]))
 
                     if len(fpos):
-                        # open fit plot device
+                        # if some targets were selected, open the fit plot device
                         fdev = hcam.pgp.Device(fdevice)
                         if fwidth > 0 and fheight > 0:
                             pgpap(fwidth,fheight/fwidth)
@@ -379,17 +389,17 @@ def rtplot(args=None):
                 if profit and len(fpos):
                     # carry out fits
                     for fpar in fpos:
-                        # create search region
-                        swind = fpar.wind.shrink(
+                        # extract search box
+                        swind = fpar.wind.window(
                             fpar.x-swidth, fpar.x+swidth, fpar.y-swidth, fpar.y+swidth)
 
                         # carry out initial search
-                        x,y = detect(swind.data, smooth)
+                        xp,yp = detect(swind.data, smooth)
 
                         # plot location on image
                         imdev.select()
                         pgsci(3)
-#                        pgpt1(swind.llx+swind
+                        pgpt1(swind.x(xp), swind.y(yp), 5)
 
 
 #    try{
@@ -399,4 +409,12 @@ def rtplot(args=None):
 #
 #                                    // Initial estimate of 'a' from FWHM
 #                                    double a = 1./2./Subs::sqr(fwhm/Constants::EFAC);
+
+class Fpars:
+    """
+    Trivial container class for profile fit parameters. Stores the x,y
+    position and the Windat that contains it.
+    """
+    def __init__(self, x, y, wind):
+        self.x, self.y, self.wind = x, y, wind
 
