@@ -69,16 +69,16 @@ def detect(img, fwhm, fft=True):
     if fwhm > 0:
         kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
         if fft:
-            cimg = convolve_fft(img, kern)
+            cimg = convolve_fft(img, kern, 'wrap')
         else:
-            cimg = convolve(img, kern)
+            cimg = convolve(img, kern, 'extend')
     else:
         cimg = img
 
     # locate coords of maximum pixel.
     y, x = np.unravel_index(cimg.argmax(), cimg.shape)
 
-    return(x,y)
+    return (x,y)
 
 class HipercamError (Exception):
     """
