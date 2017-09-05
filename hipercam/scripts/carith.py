@@ -7,6 +7,8 @@ import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
 
+__all__ = ['carith',]
+
 #############################################
 #
 # carith -- arithematic with multi-CCD images
@@ -15,11 +17,11 @@ from hipercam.cline import Cline
 
 def carith(args=None):
     """
-    Carries out operations of the form output = input [op] constant
-    where [op] is '+', '-', '*' or '/'. This is meant to be used as
-    an entry point script. If called within a program, then the first
-    argument should be 'cadd', 'csub', 'cmul' or 'cdiv' to define the
-    default parameter file name.
+    Carries out operations of the form output = input [op] constant where [op]
+    is '+', '-', '*' or '/' referred to by 'cadd', 'csub', 'cmul' and
+    'cdiv'. This is meant to be used as an entry point script. If called
+    within a program, then the first argument should be 'cadd', 'csub', 'cmul'
+    or 'cdiv' to define the default parameter file name.
 
     Arguments::
 

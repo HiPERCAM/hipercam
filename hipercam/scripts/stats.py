@@ -7,6 +7,8 @@ import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
 
+__all__ = ['stats',]
+
 #################################################################
 #
 # stats -- lists basic stats of each window of a multi-CCD image.

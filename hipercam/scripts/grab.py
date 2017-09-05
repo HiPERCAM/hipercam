@@ -1,3 +1,5 @@
+"""Command line script to grab images"""
+
 import sys
 import os
 
@@ -7,6 +9,8 @@ import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
 
+__all__ =  ['grab',]
+
 ###########################################################
 #
 # grab -- downloads a series of images from a raw data file
@@ -15,7 +19,9 @@ from hipercam.cline import Cline
 
 def grab(args=None):
     """This downloads a sequence of images from a raw data file and writes them
-    out to a series CCD / MCCD files. Arguments::
+    out to a series CCD / MCCD files.
+
+    Arguments::
 
       source : (string)
          's' = server, 'l' = local

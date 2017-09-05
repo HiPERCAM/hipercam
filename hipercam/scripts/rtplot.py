@@ -10,6 +10,8 @@ import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
 
+__all__ = ['rtplot',]
+
 ######################################
 #
 # rtplot -- display of multiple images

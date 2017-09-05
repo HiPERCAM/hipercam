@@ -12,6 +12,8 @@ import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
 
+__all__ = ['makedata', 'makefield']
+
 ###########################################
 #
 # makedata -- generates fake multi-CCD data

@@ -7,6 +7,8 @@ import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
 
+__all__ = ['combine',]
+
 ############################
 #
 # combine -- combines images
