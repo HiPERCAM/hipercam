@@ -1,9 +1,11 @@
 """
 Section for handling the raw HiPERCAM data files. These are FITS files with a
-single HDU containing extensive header information and the data in a "FITS
-cube" of unusual nature in that it has dimensions of nframe by 1 by lots,
-where "lots" contains all pixels of all windows of all CCDs plus a few timing
-bytes at the end.
+single HDU containing header information on the window format amonst other
+things with the data in a "FITS cube" of unusual nature in that it has
+dimensions of nframe x 1 x lots, where "lots" contains all pixels of all
+windows of all CCDs plus timing bytes at the end. The pixels come in an odd
+order (pixel 1 of each window and then the same for each CCD etc), and the main
+work of the code is in disentangling them to produce :class:MCCD objects.
 """
 
 import os
@@ -351,8 +353,10 @@ class Rdata (Rhead):
         at. If nframe is an integer > 0, it will try to read that particular
         frame; if nframe == 0, it reads the last complete frame.  nframe == 1
         gives the first frame. If all works, an MCCD object is returned. It
-        raises an exception if it fails to read data.  The data are stored
-        internally as either 4-byte floats or 2-byte unsigned ints.
+        raises an HendError if it reaches the end of a local disk file. If it
+        fails to read from the server it returns None, but does not raise an
+        Exception in order to allow continued attempts as reading from what
+        might be a growing file.
 
         Arguments::
 
@@ -363,12 +367,15 @@ class Rdata (Rhead):
         Apart from reading the raw bytes, the main job of this routine is to
         divide up and re-package the bytes read into Windats suitable for
         constructing CCD objects.
+
+        If access via a server is requested, it is assumed that the file being
+        accessed could be being added to. In
         """
 
         # set the frame to be read and whether the file pointer needs to be
         # reset
         if nframe is None:
-            # just read whatever frane we are on
+            # just read whatever frame we are on
             reset = False
         else:
             if nframe == 0:
@@ -379,8 +386,7 @@ class Rdata (Rhead):
             reset = self.nframe != nframe
             self.nframe = nframe
 
-        # ?? need a maximum frame number routine in the server 
-        # at the moment just don't run ntotal if server
+        # don't attempt to read off end of disk file
         if not self.server and self.nframe > self.ntotal():
             self.nframe = 1
             raise HendError('Rdata.__call__: tried to access a frame exceeding the maximum')
@@ -398,6 +404,12 @@ class Rdata (Rhead):
             self._ws.send(data)
             raw_bytes = self._ws.recv()
 
+            if len(raw_bytes) == 0:
+                # if we are trying to access a file that has not yet been written
+                # 0 bytes will be returned. In this case we return with None. NB we
+                # do not upfate self.nframe in this case.
+                return None
+
             # separate into the frame and timing data, correcting the frame
             # bytes for the FITS BZERO offset
             frame  = np.fromstring(raw_bytes[:-self.ntbytes], '>u2')
@@ -414,6 +426,8 @@ class Rdata (Rhead):
             frame  = np.fromfile(self._ffile, '>u2', (self._framesize - self.ntbytes) // 2)
             frame += BZERO
             tbytes = self._ffile.read(self.ntbytes)
+            if len(tbytes) != self.ntbytes:
+                raise IOError('failed to read frame from disk file')
 
         # we now have all the pixels and timing bytes of the frame of interest
         # read into a 1D ndarray of unsigned 2-byte integers. Now interpret them.
@@ -422,11 +436,19 @@ class Rdata (Rhead):
         frameCount, timeStampCount, years, day_of_year, hours, mins, seconds, nanoseconds = \
             decode_timing_bytes(tbytes)
 
+        if frameCount+1 != self.nframe:
+            # check that frameCount is as expected
+            warnings.warn(
+                'unexpected clash timestamp frame number = {:d} with that expected = {:d}'.format(
+                    frameCount+1, self.nframe
+                    ))
+
         time_string = '{}:{}:{}:{}:{:.7f}'.format(
             years, day_of_year, hours, mins, seconds+nanoseconds/1e9
             )
         tstamp = Time(time_string, format='yday')
         self.thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
+        self.thead['NFRAME'] = (frameCount+1, 'Frame number')
 
         # Now build up Windats-->CCDs-->MCCD
         cnams = ('1', '2', '3', '4', '5')
