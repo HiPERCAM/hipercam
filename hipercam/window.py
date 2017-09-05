@@ -220,7 +220,7 @@ class Window:
           win  : (:class:Window)
              the :class:Window that we are testing against to see if `self` surrounds it.
 
-        See also :func:`inside`, :func:`shrink`
+        See also :func:`inside`, :func:`window`
         """
         return win.xbin % self.xbin == 0 and win.ybin % self.ybin == 0 and \
             self.llx <= win.llx and self.urx >= win.urx and \
@@ -240,7 +240,7 @@ class Window:
           win  : (:class:Window)
              the :class:Window that we are testing against to see if `self` in inside it.
 
-        See also :func:`outside`, :func:`shrink`
+        See also :func:`outside`, :func:`window`
         """
         return self.xbin % win.xbin == 0 and self.ybin % win.ybin == 0 and \
             win.llx <= self.llx and win.urx >= self.urx and \
@@ -325,8 +325,8 @@ class Window:
 
         return dist
 
-    def shrink(self, xlo, xhi, ylo, yhi):
-        """Generates a new Window by shrinking the Window to match the
+    def window(self, xlo, xhi, ylo, yhi):
+        """Generates a new Window by windowing it to match the
         complete pixels visible within the range xlo to xhi, ylo to yhi.
 
         Arguments::
@@ -344,7 +344,7 @@ class Window:
            yhi : (float)
               maximum Y, unbinned pixels
 
-        Returns the shrunken Window. Raises a ValueError if there are no
+        Returns the windowed Window. Raises a ValueError if there are no
         visible pixels.
         """
 
@@ -655,9 +655,9 @@ class Windat(Window):
         """
         return Windat(self.win, self.data.copy())
 
-    def shrink(self, xlo, xhi, ylo, yhi):
-        """Creates a new Windat by shrinking the Windat. See :class:Window.crop
-        for more details.
+    def window(self, xlo, xhi, ylo, yhi):
+        """Creates a new Windat by windowing it down to whatever complete pixels are
+        visible in the region xlo to xhi, ylo to yhi.
 
         Arguments::
 
@@ -673,9 +673,9 @@ class Windat(Window):
            yhi : (float)
               maximum Y, unbinned pixels
 
-        Returns the shrunken Windat.
+        Returns the windowed Windat.
         """
-        win = super().shrink(xlo, xhi, ylo, yhi)
+        win = super().window(xlo, xhi, ylo, yhi)
 
         # we know the Window generated is in step with the current Window which saves
         # some checks that would be applied if 'crop' was used at this point
