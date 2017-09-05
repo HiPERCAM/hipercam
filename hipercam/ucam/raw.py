@@ -697,7 +697,9 @@ class Rdata (Rhead):
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted.
 
-        Returns an MCCD for ULTRACAM, a CCD for ULTRASPEC.
+        Returns an MCCD for ULTRACAM, a CCD for ULTRASPEC. When reading from the server,
+        if a read fails, it is assumed to be because we are at the end of a file that
+        might grow and None is returned. It is left up to the calling program to handle this.
 
         Apart from reading the raw bytes, the main job of this routine is to
         divide up and re-package the bytes read into Windats suitable for
@@ -713,11 +715,13 @@ class Rdata (Rhead):
             full_url = '{:s}{:s}?action=get_frame&frame={:s}'.format(
                 URL, self.run, self.nframe-1)
             buff     = urllib.request.urlopen(full_url).read()
+
             if len(buff) != self.framesize:
-                self.nframe = 1
-                raise UltracamError(
-                    'Rdata.__call__: failed to read frame {:s} from FileServer. Buffer length vs expected = {:s} vs {:s} bytes.'.format(self.nframe,len(buff),self.framesize)
-                )
+                # we return None in this case as we might want to wait for
+                # more data to accumulate. It's up to the calling script to do
+                # something sensible with this. Note that self.nframe is left
+                # untouched.
+                return None
 
             # have data. Re-format into the timing bytes and unsigned 2 byte
             # int data buffer
