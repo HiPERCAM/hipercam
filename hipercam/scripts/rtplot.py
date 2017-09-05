@@ -137,7 +137,7 @@ def rtplot(args=None):
            default FWHM, unbinned pixels.
 
         shbox  : (float) [if profit; hidden]
-           half width of box for searching for a star, binned pixels. The
+           half width of box for searching for a star, unbinned pixels. The
            brightest target in a region +/- shbox around an intial position
            will be found. 'shbox' should be large enough to allow for likely
            changes in position from frame to frame, but try to keep it as
@@ -151,8 +151,12 @@ def rtplot(args=None):
            position. Typically should be comparable to the stellar width. Its main
            purpose is to combat cosmi rays which tend only to occupy a single pixel.
 
+        splot  : (bool) [if profit; hidden]
+           Controls whether an outline of the search box and a target number
+           is plotted (in red) or not.
+
         fhbox  : (float) [if profit; hidden]
-           half width of box for profile fit, binned pixels. The fit box is centred
+           half width of box for profile fit, unbinned pixels. The fit box is centred
            on the position located by the initial search. It should normally be
            > ~2x the expected FWHM.
 
@@ -196,6 +200,7 @@ def rtplot(args=None):
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('shbox', Cline.LOCAL, Cline.HIDE)
         cl.register('smooth', Cline.LOCAL, Cline.HIDE)
+        cl.register('splot', Cline.LOCAL, Cline.HIDE)
         cl.register('fhbox', Cline.LOCAL, Cline.HIDE)
         cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
@@ -301,9 +306,11 @@ def rtplot(args=None):
                     cl.get_value('beta', 'initial exponent for Moffat fits', 5., 0.5)
                 fwhm = cl.get_value('fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., 2.)
                 shbox = cl.get_value(
-                    'shbox', 'half width of box for initial location of target [unbinned pixels]', 7., 2.)
+                    'shbox', 'half width of box for initial location of target [unbinned pixels]', 11., 2.)
                 smooth = cl.get_value(
                     'smooth', 'FWHM for smoothing for initial object detection [binned pixels]', 6.)
+                splot = cl.get_value(
+                    'splot', 'plot outline of search box?', True)
                 fhbox = cl.get_value(
                     'fhbox', 'half width of box for profile fit [unbinned pixels]', 21., 3.)
 
@@ -316,10 +323,14 @@ def rtplot(args=None):
             nxmax = max(nxmax, nxtot)
             nymax = max(nymax, nytot)
 
-        xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., nxmax+1)
-        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., nxmax+1)
-        ylo = cl.get_value('ylo', 'lower Y value', 0., 0., nymax+1)
-        yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., nymax+1)
+        xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., float(nxmax+1))
+        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., float(nxmax+1))
+        ylo = cl.get_value('ylo', 'lower Y value', 0., 0., float(nymax+1))
+        yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., float(nymax+1))
+
+    #
+    # all the inputs have now been obtained. Get on with doing stuff
+    #
 
     # open image plot device
     imdev = hcam.pgp.Device(device)
@@ -340,8 +351,12 @@ def rtplot(args=None):
         pgenv(xlo, xhi, ylo, yhi, 1, 0)
         pglab('X','Y','CCD {:s}'.format(cnam))
 
+
+    # a couple of initialisations
+    total_time = 0 # time waiting for new frame
+    fpos = [] # list of target positions to fit
+
     # plot images
-    total_time = 0
     with hcam.data_source(instrument, run, flist, server, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
@@ -352,11 +367,11 @@ def rtplot(args=None):
             if server and frame is None:
 
                 if tmax < total_time + twait:
-                    print('Have waited for {:.1f} seconds cf tmax = {:.1f}; will wait no more'.format(total_time, tmax))
+                    print('Have waited for {:.1f} sec. cf tmax = {:.1f}; will wait no more'.format(total_time, tmax))
                     print('rtplot stopped.')
                     break
 
-                print('Have waited for {:.1f} seconds cf tmax = {:.1f}; will wait another twait = {:.1f} seconds'.format(
+                print('Have waited for {:.1f} sec. cf tmax = {:.1f}; will wait another twait = {:.1f} sec.'.format(
                         total_time, tmax, twait
                         ))
 
@@ -373,7 +388,7 @@ def rtplot(args=None):
 
             # indicate progress
             if flist:
-                print('File{:d}'.format(n+1))
+                print('File {:d}'.format(n+1))
             else:
                 print('Frame {:d}'.format(frame.head['NFRAME']))
 
@@ -381,7 +396,7 @@ def rtplot(args=None):
             for nc, cnam in enumerate(ccds):
                 ccd = frame[cnam]
 
-                # subtract bias
+                # subtract the bias
                 if bias is not None:
                     ccd -= bframe[cnam]
 
@@ -394,10 +409,10 @@ def rtplot(args=None):
                 if n == 0 and profit:
                     # cursor selection of targets after first plot, if profit
                     # accumulate list of starter positions
-                    fpos = []
 
                     print('Please select targets for profile fitting. You can select as many as you like.')
                     x, y, reply = (xlo+xhi)/2, (ylo+yhi)/2, ''
+                    ntarg = 0
                     while reply != 'Q':
                         print("Place cursor on fit target. Any key to register, 'q' to quit")
                         x, y, reply = pgcurs(x, y)
@@ -406,10 +421,16 @@ def rtplot(args=None):
                         else:
                             # check that the position is inside a window
                             wnam = ccd.inside(x, y, 2)
+
                             if wnam is not None:
-                                # store the position and the window name in the Fpars
-                                # container class (see end of file)
-                                fpos.append(Fpars(x,y,ccd[wnam]))
+                                # store the position, Windat label, target number, box size
+                                ntarg += 1
+                                fpos.append(Fpar(x,y,wnam,ntarg,shbox))
+
+                                # report information, overplot search box
+                                print('Target {:d} selected at {:.1f},{:.1f} in window {:s}'.format(ntarg,x,y,wnam))
+                                if splot:
+                                    fpos[-1].plot()
 
                     if len(fpos):
                         # if some targets were selected, open the fit plot device
@@ -417,35 +438,55 @@ def rtplot(args=None):
                         if fwidth > 0 and fheight > 0:
                             pgpap(fwidth,fheight/fwidth)
 
-                if profit and len(fpos):
-                    # carry out fits
-                    for fpar in fpos:
-                        # extract search box
-                        swind = fpar.wind.window(
-                            fpar.x-shbox, fpar.x+shbox, fpar.y-shbox, fpar.y+shbox)
+                # carry out fits. Nothing happens if fpos is empty
+                for fpar in fpos:
+                    # switch to the image plot
+                    imdev.select()
 
-                        # carry out initial search
-                        xp,yp = detect(swind.data, smooth)
+                    # plot search box
+                    if splot:
+                        fpar.plot()
 
-                        # plot location on image
-                        imdev.select()
-                        pgsci(3)
-                        pgpt1(swind.x(xp), swind.y(yp), 5)
+                    # extract search box from the CCD
+                    swind = fpar.swind(ccd)
 
+                    # carry out initial search
+                    xp,yp = hcam.detect(swind.data, smooth, False)
 
-#    try{
-#                                    float sky, peak;
-#                                    double xm=x, ym=y;
-#                                    Ultracam::profit_init(data[nccd], dvar[nccd], xm, ym, initial_search, fwhm1d, hwidth1d, hwidth, sky, peak, true);#
-#
-#                                    // Initial estimate of 'a' from FWHM
-#                                    double a = 1./2./Subs::sqr(fwhm/Constants::EFAC);
+                    # plot location on image
+                    x, y = swind.x(xp), swind.y(yp)
+                    pgsci(3)
+                    pgpt1(x, y, 5)
 
-class Fpars:
-    """
-    Trivial container class for profile fit parameters. Stores the x,y
-    position and the Windat that contains it.
-    """
-    def __init__(self, x, y, wind):
-        self.x, self.y, self.wind = x, y, wind
+                    # update search centre for next frame
+                    fpar.x, fpar.y = x, y
 
+                    print('Target {:d} at x,y = {:.1f},{:.1f}'.format(fpar.ntarg,x,y))
+
+# From here is support code not visible outside
+
+class Fpar:
+    """Class for profile fits. Able to plot the search box around an x,y
+    position and come up with a Windat representing that region."""
+
+    def __init__(self, x, y, wnam, ntarg, shbox):
+        self.x = x
+        self.y = y
+        self.wnam = wnam
+        self.ntarg = ntarg
+        self.shbox = shbox
+
+    def region(self):
+        return (self.x-self.shbox, self.x+self.shbox, self.y-self.shbox, self.y+self.shbox)
+
+    def plot(self):
+        """Plots search region"""
+        pgsci(2)
+        xlo, xhi, ylo, yhi = self.region()
+        pgrect(xlo, xhi, ylo, yhi)
+        pgptxt(xlo, ylo, 0, 1.3, str(self.ntarg))
+
+    def swind(self, ccd):
+        """Returns with search Windat"""
+        xlo, xhi, ylo, yhi = self.region()
+        return ccd[self.wnam].window(xlo, xhi, ylo, yhi)
