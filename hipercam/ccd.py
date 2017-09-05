@@ -366,7 +366,8 @@ class CCD(Agroup):
         for wnam, wind in self.items():
             if wind.distance(x,y) > dmin:
                 return wnam
-        return None
+        else:
+            return None
 
     def __repr__(self):
         return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(
