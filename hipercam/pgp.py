@@ -67,7 +67,7 @@ class Device(PGdevice):
         for i, (r,g,b) in enumerate(Params['cis']):
             pgscr(i,r,g,b)
 
-def pwin(win, label=None, xoff=-5):
+def pwin(win, label=None):
     """
     Plots boundary of a :class:`Window` as a line. (PGPLOT)
     Plots to the current device with current line width, colour
@@ -80,9 +80,6 @@ def pwin(win, label=None, xoff=-5):
 
       label : (string / None)
            label to plot at lower-left corner of Window
-
-      xoff : (float)
-           X offset relative to lower-left corner
     """
     left,right,bottom,top = win.extent()
 
@@ -93,7 +90,7 @@ def pwin(win, label=None, xoff=-5):
     if label is not None:
         pgsci(Params['win.label.ci'])
         pgsch(Params['win.label.ch'])
-        pgptxt(left+xoff,bottom,0,1,label)
+        pgptxt(left,bottom,0,1.3,label)
 
 def pwind(wind, vmin, vmax, label=None):
     """Plots :class:`Windata` as an image with a line border. (PGPLOT).
