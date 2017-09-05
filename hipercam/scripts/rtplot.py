@@ -328,9 +328,10 @@ def rtplot(args=None):
         ylo = cl.get_value('ylo', 'lower Y value', 0., 0., float(nymax+1))
         yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., float(nymax+1))
 
+    ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
-    #
+
 
     # open image plot device
     imdev = hcam.pgp.Device(device)
@@ -453,8 +454,13 @@ def rtplot(args=None):
                     # carry out initial search
                     xp,yp = hcam.detect(swind.data, smooth, False)
 
-                    # plot location on image
+                    # compute location in "device" coordinates
                     x, y = swind.x(xp), swind.y(yp)
+
+                    # now for a more refined fit. First extract fit Windat
+                    fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, yhi+fhbox)
+
+                    # plot location on image
                     pgsci(3)
                     pgpt1(x, y, 5)
 

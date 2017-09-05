@@ -80,6 +80,7 @@ def detect(img, fwhm, fft=True):
 
     return (x,y)
 
+
 class HipercamError (Exception):
     """
     Class for the hipercam package errors

@@ -754,6 +754,43 @@ class Windat(Window):
 
             self.data = self.data.astype(np.uint16)
 
+    def profile(self, method, x, y, sky, fwhm, fwhm_min, beta=None):
+        """
+        Fits the profile of one target in a Windat with either a Gaussian
+        or a Moffat profile given initial starting parameters. This will fit
+        the entire Windat so normally one should generate a windowed object.
+
+        Arguments::
+
+            method   : (string)
+               'gaussian' or 'moffat'
+
+            x        : (float)
+               initial X value at centre of profile, unbinned absolute coordinates
+
+            y        : (float)
+               initial Y value at centre of profile, unbinned absolute coordinates
+
+            sky      : (float)
+               value of the (assumed constant) sky background
+
+            fwhm     : (float)
+               initial FWHM in unbinned pixels.
+
+            fwhm_min : (float)
+               minimum value to allow FWHM to go to.
+
+            beta    : (float)
+               for Moffat profiles, this is the exponent.
+
+        Returns:: (tuple)
+
+           (x,y,sky,fwhm,beta) revised values. beta unchanged (and meaningless)
+           in the case of Gaussian fits.
+
+        """
+        raise NotImplementedError('have not coded the profile fitting yet')
+
     def __copy__(self):
         return self.copy()
 
@@ -913,6 +950,9 @@ class Windat(Window):
 
         """
         return Windat(self.win, other / self.data)
+
+
+
 
 
 
