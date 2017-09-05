@@ -98,17 +98,17 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts' : [
-            'cadd=hipercam.command_line:carith',
-            'cdiv=hipercam.command_line:carith',
-            'cmul=hipercam.command_line:carith',
-            'csub=hipercam.command_line:carith',
-            'combine=hipercam.command_line:combine',
-            'grab=hipercam.command_line:grab',
-            'hplot=hipercam.command_line:hplot',
-            'makedata=hipercam.command_line:makedata',
-            'makefield=hipercam.command_line:makefield',
-            'rtplot=hipercam.command_line:rtplot',
-            'stats=hipercam.command_line:stats',
+            'cadd=hipercam.scripts.carith:carith',
+            'cdiv=hipercam.scripts.carith:carith',
+            'cmul=hipercam.scripts.carith:carith',
+            'csub=hipercam.scripts.carith:carith',
+            'combine=hipercam.scripts.combine:combine',
+            'grab=hipercam.scripts.grab:grab',
+            'hplot=hipercam.scripts.hplot:hplot',
+            'makedata=hipercam.scripts.makestuff:makedata',
+            'makefield=hipercam.scripts.makestuff:makefield',
+            'rtplot=hipercam.scripts.rtplot:rtplot',
+            'stats=hipercam.scripts.stats:stats',
         ],
     },
 
