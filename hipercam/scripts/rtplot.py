@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -135,10 +136,10 @@ def rtplot(args=None):
         fwhm   : (float) [if profit; hidden]
            default FWHM, unbinned pixels.
 
-        swidth : (float) [if profit; hidden]
+        shbox  : (float) [if profit; hidden]
            half width of box for searching for a star, binned pixels. The
-           brightest target in a region +/- swidth around an intial position
-           will be found. 'swidth' should be large enough to allow for likely
+           brightest target in a region +/- shbox around an intial position
+           will be found. 'shbox' should be large enough to allow for likely
            changes in position from frame to frame, but try to keep it as
            small as you can to avoid jumping to different targets and to reduce
            the chances of interference by cosmic rays.
@@ -146,14 +147,14 @@ def rtplot(args=None):
         smooth : (float) [if profit; hidden]
            FWHM for gaussian smoothing, binned pixels. The initial position
            for fitting is determined by finding the maximum flux in a smoothed
-           version of the image in a box of width +/- swidth around the starter
+           version of the image in a box of width +/- shbox around the starter
            position. Typically should be comparable to the stellar width. Its main
            purpose is to combat cosmi rays which tend only to occupy a single pixel.
 
-        fwidth : (float) [if profit; hidden]
+        fhbox  : (float) [if profit; hidden]
            half width of box for profile fit, binned pixels. The fit box is centred
            on the position located by the initial search. It should normally be
-           smaller than 'swidth'.
+           > ~2x the expected FWHM.
 
         thresh : (float) [if profit; hidden]
            height threshold to accept a fit. If the height is below this value, the
@@ -193,9 +194,9 @@ def rtplot(args=None):
         cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('beta', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('swidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('shbox', Cline.LOCAL, Cline.HIDE)
         cl.register('smooth', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('fhbox', Cline.LOCAL, Cline.HIDE)
         cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
@@ -299,12 +300,12 @@ def rtplot(args=None):
                 if method == 'm':
                     cl.get_value('beta', 'initial exponent for Moffat fits', 5., 0.5)
                 fwhm = cl.get_value('fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., 2.)
-                swidth = cl.get_value(
-                    'swidth', 'half width of box for initial location of target [unbinned pixels]', 51., 3.)
+                shbox = cl.get_value(
+                    'shbox', 'half width of box for initial location of target [unbinned pixels]', 7., 2.)
                 smooth = cl.get_value(
                     'smooth', 'FWHM for smoothing for initial object detection [binned pixels]', 6.)
-                fwidth = cl.get_value(
-                    'fwidth', 'half width of box for profile fit [unbinned pixels]', 21., 3.)
+                fhbox = cl.get_value(
+                    'fhbox', 'half width of box for profile fit [unbinned pixels]', 21., 3.)
 
         else:
             profit = False
@@ -340,11 +341,41 @@ def rtplot(args=None):
         pglab('X','Y','CCD {:s}'.format(cnam))
 
     # plot images
+    total_time = 0
     with hcam.data_source(instrument, run, flist, server, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
         for n, frame in enumerate(spool):
-            print('Exposure {:d}'.format(n+1))
+
+            # None objects are returned from failed server reads. This could
+            # be because the file is still exposing, so we hang about.
+            if server and frame is None:
+
+                if tmax < total_time + twait:
+                    print('Have waited for {:.1f} seconds cf tmax = {:.1f}; will wait no more'.format(total_time, tmax))
+                    print('rtplot stopped.')
+                    break
+
+                print('Have waited for {:.1f} seconds cf tmax = {:.1f}; will wait another twait = {:.1f} seconds'.format(
+                        total_time, tmax, twait
+                        ))
+
+                # pause
+                time.sleep(twait)
+                total_time += twait
+
+                # have another go
+                continue
+
+            elif server:
+                # reset the total time waited when we have a success
+                total_time = 0
+
+            # indicate progress
+            if flist:
+                print('File{:d}'.format(n+1))
+            else:
+                print('Frame {:d}'.format(frame.head['NFRAME']))
 
             # display the CCDs chosen
             for nc, cnam in enumerate(ccds):
@@ -391,7 +422,7 @@ def rtplot(args=None):
                     for fpar in fpos:
                         # extract search box
                         swind = fpar.wind.window(
-                            fpar.x-swidth, fpar.x+swidth, fpar.y-swidth, fpar.y+swidth)
+                            fpar.x-shbox, fpar.x+shbox, fpar.y-shbox, fpar.y+shbox)
 
                         # carry out initial search
                         xp,yp = detect(swind.data, smooth)
