@@ -490,7 +490,7 @@ def rtplot(args=None):
                     sky = np.percentile(fwind.data, 25)
 
                     if method == 'g':
-                        (sky, peak, x, y, fwhm), sigs, fit = \
+                        (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
                             fwind.fitGaussian(sky, peak-sky, x, y, fpar.fwhm, fwhm_min, read, gain, sigma)
 
                         if sigs is None:
@@ -505,10 +505,33 @@ def rtplot(args=None):
                             if peak > thresh:
                                 # update search centre & fwhm for next frame
                                 fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
+
+                                # plot values versus radial distance
+                                R = np.sqrt((X-x)**2+(Y-y)**2)
+                                fdev.select()
+                                vmin, vmax = fwind.min(), fwind.max()
+                                range = vmax-vmin
+                                pgeras()
+                                pgvstd()
+                                pgswin( 0, R.max(), vmin-0.05*range, vmax+0.05*range)
+                                pgsci(4)
+                                pgbox('bcnst',0,0,'bcnst',0,0)
+                                pgsci(1)
+                                pgpt(R.flat, fwind.data.flat, 1)
+
+                                # line fit
+                                pgsci(3)
+                                r = np.linspace(0,R.max(),200)
+                                g = sky+peak*np.exp(-4*np.log(2)*(r/fwhm)**2)
+                                pgline(r,g)
+
+                                # back to the image to plot circle of radius FWHM
+                                imdev.select()
                                 pgsci(3)
                                 pgcirc(x,y,fwhm)
+
                             else:
-                                print('     *** below detection threshold; position & FWHM will not be updated')
+                                print('     *** below detection threshold; position & FWHM will not updated')
                                 pgsci(2)
                     else:
                         raise NotImplementedError('{:s} fitting method not implemented'.format(method))

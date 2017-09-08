@@ -854,19 +854,22 @@ class Windat(Window):
                for outlier rejection. The fit is re-run with outliers removed by setting
                their weight = 0.
 
-        Returns:: (tuple)
+        Returns:: (tuple of tuples)
 
-           (pars, sigs, fit) where::
+           (pars, sigs, extras) where::
 
              pars : (tuple)
-               parameters. unpacks to sky, height, xcen, yce, fwhm
+                parameters. unpacks to sky, height, xcen, yce, fwhm
 
              sigs : (tuple)
-               standard deviations. unpacks in same order, (sky, height, xcen, yce, fwhm). Can come
-               back as 'None' if the fit fails.
+                standard deviations. unpacks in same order, (sky, height, xcen, yce, fwhm). Can come
+                back as 'None' if the fit fails so don't try to unpack on the fly.
 
-             fit  : (Windat)
-               contains the fit
+             extras : (tuple)
+                some extra stuff that might come in useful, namely (fit, X, Y, weights) where `fit`
+                is a :class:Windat containing the best fit, X and Y are the X and Y positions of
+                all pixels (2D numpy arrays) and weights is the final set of weights, some of which
+                might = 0 indicating rejection.
 
         """
 
@@ -927,7 +930,8 @@ class Windat(Window):
                     np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
                     EFAC*np.sqrt(cov[4,4]))
 
-        return (pars, sigs, fwind)
+        extras = (fwind, X, Y, weights)
+        return (pars, sigs, extras)
 
     def __copy__(self):
         return self.copy()
