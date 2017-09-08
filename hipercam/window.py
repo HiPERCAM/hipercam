@@ -7,9 +7,15 @@ functions.
 import warnings
 import json
 import math
+
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
+
 from astropy.io import fits
+from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
+from astropy.modeling import models, fitting
+
+import matplotlib.pyplot as plt
 from .core import *
 
 __all__ = ('Window', 'Windat')
@@ -145,7 +151,7 @@ class Window:
 
         Arguments::
 
-          xpix : (float)
+          xpix : (float / ndarray)
             X-pixel position in terms of binned pixels. Centre of left-most
             pixel is 0.
 
@@ -159,7 +165,7 @@ class Window:
 
         Arguments::
 
-          ypix : (float)
+          ypix : (float / ndarray)
             Y-pixel position in terms of binned pixels. Centre of lowest
             pixel is 0.
 
@@ -684,7 +690,7 @@ class Windat(Window):
         if self.data is None:
             return Windat(win)
         else:
-            return Windat(win, self.data[y1:y1+win.ny,x1:x1+win.nx])
+            return Windat(win, self.data[y1:y1+win.ny, x1:x1+win.nx])
 
     def crop(self, win):
         """Creates a new :class:Windat by cropping the current :class:Windat to the
@@ -754,42 +760,174 @@ class Windat(Window):
 
             self.data = self.data.astype(np.uint16)
 
-    def profile(self, method, x, y, sky, fwhm, fwhm_min, beta=None):
+    def find(self, fwhm, fft=True):
         """
-        Fits the profile of one target in a Windat with either a Gaussian
-        or a Moffat profile given initial starting parameters. This will fit
-        the entire Windat so normally one should generate a windowed object.
+        Finds the position of one star in a :class:Windat. Works by convolving
+        the image with a gaussian of FWHM = fwhm, and returns the location of
+        the brightest pixel of the result along with the value of that pixel
+        in the uncolvolved image. The convolution improves the reliability of
+        the identification of the object position and reduces the chance of
+        problems being caused by cosmic rays, although if there is more
+        overall flux in a cosmic ray than the star, it will go wrong, so some
+        form of prior cleaning is advisable in such cases. It is up to the
+        user to make the :class:Windat small enough the star of interest is the
+        brightest object (see e.g. `window`).
+
+        This routine is intended to provide a first cut in position for more
+        precise methods to polish.
 
         Arguments::
 
-            method   : (string)
-               'gaussian' or 'moffat'
+          fwhm  : (float)
+            Gaussian FWHM in pixels. If <= 0, there will be no convolution, although
+            this is not advisable as a useful strategy.
 
-            x        : (float)
-               initial X value at centre of profile, unbinned absolute coordinates
+          fft   : (bool)
+            The astropy.convolution routines are used. By default FFT-based
+            convolution is applied as it scales better with fwhm, especially
+            for fwhm >> 1, however the direct method (fft=False) may be faster
+            for small fwhm values and images and has a better behaviour at the
+            edges where it extends value with the nearest pixel while the FFT
+            wraps values.
 
-            y        : (float)
-               initial Y value at centre of profile, unbinned absolute coordinates
+        Returns:: 
+
+          (x,y,peak) : (tuple) x,y is the location of the brightest pixel
+            measured in terms of CCD coordinates (i.e. lower-left pixel is at
+            (1,1)). `peak` is the image value at the peak pixel, in the
+            *unconvolved* image. It might be useful for initial estimates of
+            peak height.
+
+        """
+        if fwhm > 0:
+            kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
+            if fft:
+                cimg = convolve_fft(self.data, kern, 'wrap')
+            else:
+                cimg = convolve(self.data, kern, 'extend')
+        else:
+            cimg = self.data
+
+        # locate coords of maximum pixel.
+        iy, ix = np.unravel_index(cimg.argmax(), cimg.shape)
+
+        # return with device coords and the value
+        return (self.x(ix),self.y(iy),self.data[iy,ix])
+
+    def fitGaussian(self, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain, sigma):
+        """
+        Fits the profile of one target in a Windat with a symmetric 2D
+        Gaussian profile given initial starting parameters. NB This will fit
+        the entire Windat so normally one should window down to the object of
+        interest. It returns the fitted parameters, covariances and the fit itself.
+        The FWHM can be constrained to lie above a lower limit which can be useful.
+
+        Arguments::
 
             sky      : (float)
                value of the (assumed constant) sky background
+
+            height   : (float)
+               peak height of profile
+
+            xcen     : (float)
+               initial X value at centre of profile, unbinned absolute coordinates
+
+            ycen     : (float)
+               initial Y value at centre of profile, unbinned absolute coordinates
 
             fwhm     : (float)
                initial FWHM in unbinned pixels.
 
             fwhm_min : (float)
-               minimum value to allow FWHM to go to.
+               minimum value to allow FWHM to go to. Useful for heavily binned data
+               especially where all signal might be in a single pixel to prevent going
+               to silly values.
 
-            beta    : (float)
-               for Moffat profiles, this is the exponent.
+            read     : (float)
+               readout noise, RMS ADU, from which weights are generated
+
+            gain     : (float)
+               gain, e-/ADU, from which weights are generated
+
+            sigma   : (float)
+               for outlier rejection. The fit is re-run with outliers removed by setting
+               their weight = 0.
 
         Returns:: (tuple)
 
-           (x,y,sky,fwhm,beta) revised values. beta unchanged (and meaningless)
-           in the case of Gaussian fits.
+           (pars, sigs, fit) where::
+
+             pars : (tuple)
+               parameters. unpacks to sky, height, xcen, yce, fwhm
+
+             sigs : (tuple)
+               standard deviations. unpacks in same order, (sky, height, xcen, yce, fwhm). Can come
+               back as 'None' if the fit fails.
+
+             fit  : (Windat)
+               contains the fit
 
         """
-        raise NotImplementedError('have not coded the profile fitting yet')
+
+        # generate 2D arrays of x and y values
+        x = self.x(np.arange(self.nx))
+        y = self.y(np.arange(self.ny))
+        X, Y = np.meshgrid(x, y)
+
+        # generate weights
+        weights = 1./np.sqrt(read**2+np.maximum(0,self.data)/gain)
+
+        # conversion factor betwen FWHM & STD for Gaussian
+        EFAC = np.sqrt(8*np.log(2))
+
+        sigma = fwhm/EFAC
+        sigma_min = fwhm_min/EFAC
+
+        # creat symmetric 2D Gaussian model
+        gauss = models.Gaussian2D(height, xcen, ycen, sigma, sigma)
+
+        # fix the angle
+        gauss.theta.fixed = True
+
+        # set a minimum for x_stddev
+        gauss.x_stddev.min = sigma_min
+
+        # add a constant for the sky ('comp' is thus a compound model)
+        const = models.Polynomial2D(0)
+        const.c0_0 = sky
+        comp = const + gauss
+
+        # tie the Y std to the X value so that they are the same. Note the
+        # trailing '_1's needed because this is now part of a compound model
+        comp.y_stddev_1.tied = lambda c: c.x_stddev_1
+
+        # Lev-Marq fitting
+        fitter = fitting.LevMarLSQFitter()
+
+        # run the fit
+        fit = fitter(comp, X, Y, self.data, weights=weights)
+
+        # extract the covariances
+        cov = fitter.fit_info['param_cov']
+
+        # compute the fit & store in a Windat
+        fwind = Windat(self, fit(X, Y))
+
+        # extract parameters and return
+        pars = (fit.c0_0_0.value, fit.amplitude_1.value, 
+                fit.x_mean_1.value,fit.y_mean_1.value,
+                EFAC*fit.x_stddev_1.value)
+
+        # extract diagonal elements of covariances
+        if cov is None:
+            sigs = None
+        else:
+            sigs = (np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
+                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
+                    EFAC*np.sqrt(cov[4,4]))
+
+        return (pars, sigs, fwind)
 
     def __copy__(self):
         return self.copy()

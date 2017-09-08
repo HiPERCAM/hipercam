@@ -37,6 +37,15 @@ def rtplot(args=None):
 
     Arguments::
 
+        source  : (string) [hidden]
+           's' = server, 'l' = local, 'f' = file list (ucm for ULTRACAM /
+           ULTRASPEC, FITS files for HiPERCAM)
+
+        inst    : (string) [hidden]
+           If 's' = server, 'l' = local, name of instrument. Choices: 'u' for
+           ULTRACAM / ULTRASPEC, 'h' for HiPERCAM. This is needed because of the
+           different formats.
+
         device  : (string) [hidden]
           Plot device. PGPLOT is used so this should be a PGPLOT-style name,
           e.g. '/xs', '1/xs' etc. At the moment only ones ending /xs are
@@ -48,15 +57,6 @@ def rtplot(args=None):
         height  : (float) [hidden]
            plot height (inches). Set = 0 to let the program choose. BOTH width
            AND height must be non-zero to have any effect
-
-        source  : (string) [hidden]
-           's' = server, 'l' = local, 'f' = file list (ucm for ULTRACAM /
-           ULTRASPEC, FITS files for HiPERCAM)
-
-        inst    : (string) [hidden]
-           If 's' = server, 'l' = local, name of instrument. Choices: 'u' for
-           ULTRACAM / ULTRASPEC, 'h' for HiPERCAM. This is needed because of the
-           different formats.
 
         run     : (string) [if source == 's' or 'l']
            run number to access, e.g. 'run034'
@@ -136,6 +136,9 @@ def rtplot(args=None):
         fwhm   : (float) [if profit; hidden]
            default FWHM, unbinned pixels.
 
+        fwhm_min : (float) [if profit; hidden]
+           minimum FWHM to allow, unbinned pixels.
+
         shbox  : (float) [if profit; hidden]
            half width of box for searching for a star, unbinned pixels. The
            brightest target in a region +/- shbox around an intial position
@@ -163,6 +166,15 @@ def rtplot(args=None):
         thresh : (float) [if profit; hidden]
            height threshold to accept a fit. If the height is below this value, the
            position will not be updated. This is to help in cloudy conditions.
+
+        read   : (float) [if profit; hidden]
+           readout noise, RMS ADU, for assigning uncertainties
+
+        gain   : (float) [if profit; hidden]
+           gain, ADU/count, for assigning uncertainties
+
+        sigma  : (float) [if profit; hidden]
+           sigma rejection threshold
     """
 
     if args is None:
@@ -172,11 +184,11 @@ def rtplot(args=None):
     with Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args) as cl:
 
         # register parameters
+        cl.register('source', Cline.LOCAL, Cline.HIDE)
+        cl.register('inst', Cline.GLOBAL, Cline.HIDE)
         cl.register('device', Cline.LOCAL, Cline.HIDE)
         cl.register('width', Cline.LOCAL, Cline.HIDE)
         cl.register('height', Cline.LOCAL, Cline.HIDE)
-        cl.register('source', Cline.LOCAL, Cline.HIDE)
-        cl.register('inst', Cline.GLOBAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
@@ -191,35 +203,43 @@ def rtplot(args=None):
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
         cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('phi', Cline.LOCAL, Cline.PROMPT)
+        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
         cl.register('profit', Cline.LOCAL, Cline.PROMPT)
-        cl.register('fdevice', Cline.LOCAL, Cline.PROMPT)
+        cl.register('fdevice', Cline.LOCAL, Cline.HIDE)
         cl.register('fwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('fheight', Cline.LOCAL, Cline.HIDE)
         cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('beta', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
+        cl.register('fwhm_min', Cline.LOCAL, Cline.HIDE)
         cl.register('shbox', Cline.LOCAL, Cline.HIDE)
         cl.register('smooth', Cline.LOCAL, Cline.HIDE)
         cl.register('splot', Cline.LOCAL, Cline.HIDE)
         cl.register('fhbox', Cline.LOCAL, Cline.HIDE)
-        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('thresh', Cline.LOCAL, Cline.HIDE)
+        cl.register('read', Cline.LOCAL, Cline.HIDE)
+        cl.register('gain', Cline.LOCAL, Cline.HIDE)
+        cl.register('sigma', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
 
         # image plot
-        device = cl.get_value('device', 'plot device', '1/xs')
-        width = cl.get_value('width', 'plot width (inches)', 0.)
-        height = cl.get_value('height', 'plot height (inches)', 0.)
-
         source = cl.get_value('source', 'data source [s(erver), l(ocal), f(ile list)]',
                               'l', lvals=('s','l','f'))
 
         if source == 's' or source == 'l':
             inst = cl.get_value('inst', 'instrument [h(ipercam), u(ltracam/spec)]',
                                 'h', lvals=('h','u'))
+
+        # plot device stuff
+        device = cl.get_value('device', 'plot device', '1/xs')
+        width = cl.get_value('width', 'plot width (inches)', 0.)
+        height = cl.get_value('height', 'plot height (inches)', 0.)
+
+        if source == 's' or source == 'l':
             run = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to plot', 1, 1)
 
@@ -292,6 +312,19 @@ def rtplot(args=None):
             plo = cl.get_value('plo', 'lower intensity limit percentile', 5., 0., 100.)
             phi = cl.get_value('phi', 'upper intensity limit percentile', 95., 0., 100.)
 
+        # region to plot
+        nxmax, nymax = 0, 0
+        for cnam in ccds:
+            nxtot, nytot = ccdinf[cnam]
+            nxmax = max(nxmax, nxtot)
+            nymax = max(nymax, nytot)
+
+        xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., float(nxmax+1))
+        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., float(nxmax+1))
+        ylo = cl.get_value('ylo', 'lower Y value', 0., 0., float(nymax+1))
+        yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., float(nymax+1))
+
+        # profile fitting if just one CCD chosen
         if len(ccds) == 1:
             # many parameters for profile fits, although most are not plotted
             # by default
@@ -304,7 +337,8 @@ def rtplot(args=None):
                 method = cl.get_value('method', 'fit method g(aussian) or m(offat)', 'm', lvals=['g','m'])
                 if method == 'm':
                     cl.get_value('beta', 'initial exponent for Moffat fits', 5., 0.5)
-                fwhm = cl.get_value('fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., 2.)
+                fwhm_min = cl.get_value('fwhm_min', 'minimum FWHM to allow [unbinned pixels]', 1.5, 0.01)
+                fwhm = cl.get_value('fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., fwhm_min)
                 shbox = cl.get_value(
                     'shbox', 'half width of box for initial location of target [unbinned pixels]', 11., 2.)
                 smooth = cl.get_value(
@@ -313,20 +347,14 @@ def rtplot(args=None):
                     'splot', 'plot outline of search box?', True)
                 fhbox = cl.get_value(
                     'fhbox', 'half width of box for profile fit [unbinned pixels]', 21., 3.)
+                thresh = cl.get_value('thresh', 'peak height threshold to counts as OK', 50.)
+                read = cl.get_value('read', 'readout noise, RMS ADU', 3.)
+                gain = cl.get_value('gain', 'gain, ADU/e-', 1.)
+                sigma = cl.get_value('sigma', 'readout noise, RMS ADU', 3.)
 
         else:
             profit = False
 
-        nxmax, nymax = 0, 0
-        for cnam in ccds:
-            nxtot, nytot = ccdinf[cnam]
-            nxmax = max(nxmax, nxtot)
-            nymax = max(nymax, nytot)
-
-        xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., float(nxmax+1))
-        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., float(nxmax+1))
-        ylo = cl.get_value('ylo', 'lower Y value', 0., 0., float(nymax+1))
-        yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., float(nymax+1))
 
     ################################################################
     #
@@ -414,6 +442,8 @@ def rtplot(args=None):
                     print('Please select targets for profile fitting. You can select as many as you like.')
                     x, y, reply = (xlo+xhi)/2, (ylo+yhi)/2, ''
                     ntarg = 0
+                    pgsci(2)
+                    pgslw(2)
                     while reply != 'Q':
                         print("Place cursor on fit target. Any key to register, 'q' to quit")
                         x, y, reply = pgcurs(x, y)
@@ -426,7 +456,7 @@ def rtplot(args=None):
                             if wnam is not None:
                                 # store the position, Windat label, target number, box size
                                 ntarg += 1
-                                fpos.append(Fpar(x,y,wnam,ntarg,shbox))
+                                fpos.append(Fpar(x,y,wnam,ntarg,shbox,fwhm))
 
                                 # report information, overplot search box
                                 print('Target {:d} selected at {:.1f},{:.1f} in window {:s}'.format(ntarg,x,y,wnam))
@@ -434,6 +464,7 @@ def rtplot(args=None):
                                     fpos[-1].plot()
 
                     if len(fpos):
+                        print(len(fpos),'targets selected')
                         # if some targets were selected, open the fit plot device
                         fdev = hcam.pgp.Device(fdevice)
                         if fwidth > 0 and fheight > 0:
@@ -452,22 +483,38 @@ def rtplot(args=None):
                     swind = fpar.swind(ccd)
 
                     # carry out initial search
-                    xp,yp = hcam.detect(swind.data, smooth, False)
-
-                    # compute location in "device" coordinates
-                    x, y = swind.x(xp), swind.y(yp)
+                    x,y,peak = swind.find(smooth, False)
 
                     # now for a more refined fit. First extract fit Windat
-                    fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, yhi+fhbox)
+                    fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                    sky = np.percentile(fwind.data, 25)
 
-                    # plot location on image
-                    pgsci(3)
+                    if method == 'g':
+                        (sky, peak, x, y, fwhm), sigs, fit = \
+                            fwind.fitGaussian(sky, peak-sky, x, y, fpar.fwhm, fwhm_min, read, gain, sigma)
+
+                        if sigs is None:
+                            print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
+                            pgsci(2)
+                        else:
+                            esky, epeak, ex, ey, efwhm = sigs 
+                            print(' >> Targ {:d}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
+                                    fpar.ntarg,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky)
+                                  )
+
+                            if peak > thresh:
+                                # update search centre & fwhm for next frame
+                                fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
+                                pgsci(3)
+                                pgcirc(x,y,fwhm)
+                            else:
+                                print('     *** below detection threshold; position & FWHM will not be updated')
+                                pgsci(2)
+                    else:
+                        raise NotImplementedError('{:s} fitting method not implemented'.format(method))
+
+                    # plot location on image as a cross
                     pgpt1(x, y, 5)
-
-                    # update search centre for next frame
-                    fpar.x, fpar.y = x, y
-
-                    print('Target {:d} at x,y = {:.1f},{:.1f}'.format(fpar.ntarg,x,y))
 
 # From here is support code not visible outside
 
@@ -475,12 +522,13 @@ class Fpar:
     """Class for profile fits. Able to plot the search box around an x,y
     position and come up with a Windat representing that region."""
 
-    def __init__(self, x, y, wnam, ntarg, shbox):
+    def __init__(self, x, y, wnam, ntarg, shbox, fwhm):
         self.x = x
         self.y = y
         self.wnam = wnam
         self.ntarg = ntarg
         self.shbox = shbox
+        self.fwhm = fwhm
 
     def region(self):
         return (self.x-self.shbox, self.x+self.shbox, self.y-self.shbox, self.y+self.shbox)
