@@ -111,6 +111,7 @@ def makedata(args=None):
                 if 'field' in conf[key] else None
             ndiv = int(conf[key]['ndiv']) \
                 if field is not None else None
+            back = float(conf[key]['back'])
 
             # determine maximum total dimension
             maxnx = max(maxnx, nxtot)
@@ -129,7 +130,8 @@ def makedata(args=None):
                 'fscale' : fscale,
                 'toff'  : toff,
                 'field'  : field,
-                'ndiv'  : ndiv
+                'ndiv'  : ndiv,
+                'back' : back,
             }
 
     if not len(ccd_pars):
@@ -262,10 +264,12 @@ def makedata(args=None):
             xoff = np.random.normal(xdrift*(nfile % nreset), jitter)
             yoff = np.random.normal(ydrift*(nfile % nreset), jitter)
 
-            # create target fields for each CCD
+            # create target fields for each CCD, add background
             _gfield = {}
             for cnam in _gframe.keys():
                 p = ccd_pars[cnam]
+                _gframe[cnam] += p['back']
+
                 if p['field'] is not None:
                     # get field modification settings
                     transform = Transform(
@@ -275,8 +279,6 @@ def makedata(args=None):
                     )
                     fscale = p['fscale']
                     _gfield[cnam] = p['field'].modify(transform, fscale)
-
-
 
             # add the targets in (slow step)
             if parallel:
