@@ -152,10 +152,16 @@ class Rhead:
         xbin = self.header['ESO DET BINX1']
         ybin = self.header['ESO DET BINY1']
 
+        # check for overscan / prescan
+        oscan = self.header['ESO DET INCOVSCY']
+        pscan = self.header['ESO DET INCPRSCX']
+        yframe = 520 if oscan else 512
+        xframe = 1074 if pscan else 1024
+
         # extract the data to build the first 4 windows
         if self.mode.startswith('FullFrame'):
-            nx = 1024 // xbin
-            ny = 520 // ybin
+            nx = xframe // xbin
+            ny = yframe // ybin
             llxs = LLX
             llys = LLY
 
@@ -433,7 +439,7 @@ class Rdata (Rhead):
         # read into a 1D ndarray of unsigned 2-byte integers. Now interpret them.
 
         # first the time
-        frameCount, timeStampCount, years, day_of_year, hours, mins, seconds, nanoseconds = \
+        frameCount, timeStampCount, years, day_of_year, hours, mins, seconds, nanoseconds, nsats, synced = \
             decode_timing_bytes(tbytes)
 
         if frameCount+1 != self.nframe:
@@ -642,7 +648,7 @@ class Rtime (Rhead):
             self._ffile.seek(self._framesize-self.ntbytes, 1)
 
         # Now interpret them.
-        frameCount, timeStampCount, years, day_of_year, hours, mins, seconds, nanoseconds = \
+        frameCount, timeStampCount, years, day_of_year, hours, mins, seconds, nanoseconds, nsats, synced = \
             decode_timing_bytes(tbytes)
 
         time_string = '{}:{}:{}:{}:{:.7f}'.format(
@@ -659,8 +665,8 @@ class Rtime (Rhead):
 def decode_timing_bytes(tbytes):
     """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the 3D FITS file.
 
-    The timing bytes are originally encoded as a series of 4 byte
-    little-endian unsigned integers. On saving to FITS they are mangled
+    The timing bytes are encoded as 8x4-byte little-endian unsigned integers followed
+    by 2x2-byte little-endian . On saving to FITS they are mangled
     because:
 
       1) they are split into 2-byte uints
@@ -686,14 +692,13 @@ def decode_timing_bytes(tbytes):
 
       timestamp : (tuple)
           a tuple containing (frameCount, timeStampCount, years, day_of_year,
-          hours, mins, seconds, nanoseconds) values.
+          hours, mins, seconds, nanoseconds, nsats, synced) values.
 
     [Straight from Stu Littlefair's original code.]
 
     """
-    if len(tbytes) == 32:
-        # early format with 32 timing bytes.
-        buf = struct.pack('<' + 'H'*16, *(val + BZERO for val in struct.unpack('>'+'h'*16, tbytes)))
-        return struct.unpack('<' + 'I'*8, buf)
-    else:
-        raise ValueError('only 32 byte timing decoding implemented')
+
+    # format with 36 timing bytes (last two of which are ignored)
+    buf = struct.pack('<HHHHHHHHHHHHHHHHH',
+                      *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh', tbytes[:-2])))
+    return struct.unpack('<IIIIIIIIbb', buf)
