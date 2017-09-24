@@ -108,6 +108,7 @@ setup(
             'makedata=hipercam.scripts.makestuff:makedata',
             'makefield=hipercam.scripts.makestuff:makefield',
             'rtplot=hipercam.scripts.rtplot:rtplot',
+            'setaper=hipercam.scripts.setaper:setaper',
             'stats=hipercam.scripts.stats:stats',
         ],
     },
