@@ -331,10 +331,10 @@ def get_ccd_pars(inst, resource, flist):
             # HiPERCAM raw data file: fixed data
             return OrderedDict(
                 (
-                    ('1',(core.HCM_NXTOT, core.HCM_NYTOT)),
-                    ('2',(core.HCM_NXTOT, core.HCM_NYTOT)),
-                    ('3',(core.HCM_NXTOT, core.HCM_NYTOT)),
-                    ('4',(core.HCM_NXTOT, core.HCM_NYTOT)),
-                    ('5',(core.HCM_NXTOT, core.HCM_NYTOT))
+                    ('1',(hcam.HCM_NXTOT, hcam.HCM_NYTOT)),
+                    ('2',(hcam.HCM_NXTOT, hcam.HCM_NYTOT)),
+                    ('3',(hcam.HCM_NXTOT, hcam.HCM_NYTOT)),
+                    ('4',(hcam.HCM_NXTOT, hcam.HCM_NYTOT)),
+                    ('5',(hcam.HCM_NXTOT, hcam.HCM_NYTOT))
                     )
                 )
