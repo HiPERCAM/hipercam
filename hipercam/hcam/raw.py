@@ -19,11 +19,11 @@ from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
 from astropy.time import Time
 
-from hipercam import (CCD, Group, MCCD, Windat, Window, HCM_NXTOT, HCM_NYTOT)
+from hipercam import (CCD, Group, MCCD, Windat, Window)
 from hipercam import (HRAW, add_extension) 
 from .herrors import *
 
-__all__ = ['Rhead', 'Rdata', 'Rtime']
+__all__ = ['Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT']
 
 # Set the URL of the FileServer from the environment or default to localhost.
 URL = os.environ['HIPERCAM_DEFAULT_URL'] if 'HIPERCAM_DEFAULT_URL' in os.environ else \
@@ -31,6 +31,9 @@ URL = os.environ['HIPERCAM_DEFAULT_URL'] if 'HIPERCAM_DEFAULT_URL' in os.environ
 
 # FITS offset to convert from signed to unsigned 16-bit ints and vice versa
 BZERO = (1 << 15)
+
+# Maximum dimensions of HiPERCAM CCDs
+HCM_NXTOT, HCM_NYTOT = 2148, 1040
 
 class Rhead:
     """Reads an interprets header information from a HiPERCAM run (3D FITS file)
@@ -40,32 +43,38 @@ class Rhead:
 
     The following attributes are set::
 
-      cheads    : (list of astropy.io.fits.Header)
-         the headers for each CCD which contain any info needed per CCD, above
-         all the 'skip' numbers, which are used when creating MCCD frames.
+       cheads    : (list of astropy.io.fits.Header)
+           the headers for each CCD which contain any info needed per CCD, above
+           all the 'skip' numbers, which are used when creating MCCD frames.
 
-      fname     : (string)
-         the file name
+       fname     : (string)
+           the file name
 
-      header    : (astropy.io.fits.Header)
-         the header of the FITS file.
+       header    : (astropy.io.fits.Header)
+           the header of the FITS file.
 
-      mode      : (string)
-         the readout mode used, read from 'ESO DET READ CURNAME'
+       mode      : (string)
+           the readout mode used, read from 'ESO DET READ CURNAME'
 
-      ntbytes   : (int)
-         number of timing bytes, deduced from the dimensions of the FITS cube
-         (NAXIS1 contains all pixels and timing bytes) compared to the window
-         dimensions.
+       ntbytes   : (int)
+           number of timing bytes, deduced from the dimensions of the FITS cube
+           (NAXIS1 contains all pixels and timing bytes) compared to the window
+           dimensions.
 
-      thead     : (astropy.io.fits.Header)
-         the top-level header that will be used to create MCCDs.
+        nwins     : (tuple)
+           integer indices of the windows for any one quadrant. This is (0,) for
+           one window modes, (0,1) for two window modes.
 
-      windows   : (list of Windows)
-         the windows are the same for each CCD, so these are just one set
-         in EFGH order for window 1 and then the same for window 2 if there
-         is one, so either 4 or 8 Windows.
+        thead     : (astropy.io.fits.Header)
+           the top-level header that will be used to create MCCDs.
 
+        windows   : (list of list of list of (Window, flip) tuples)
+           windows[nccd][nquad][nwin] returns the Window and set of axes for
+           window nwin of quadrant nquad of CCD nccd. nwin indexes the windows
+           of a given quadrant (at most there are 2, so nwin = 0 or 1). nquad
+           indexes the quadrants in EFGH order. nccd index the 5 CCDs. 'flip'
+           is a tuple of axes to be flipped using numpy.flip to account for
+           where the CCD is read and reflections.
     """
 
     def __init__(self, fname, server=False, full=True):
@@ -135,88 +144,115 @@ class Rhead:
         # set the mode, one or two windows per quadrant, drift etc.
         # This is essential.
         self.mode = self.header['ESO DET READ CURNAME']
-        self.thead['MODE'] = (self.mode,'HiPERCAM readout mode')
+        self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
 
-        # now we start on decoding the header parameters into Windows
-        # required to construct MCCD objects
-
-        # tuples of fixed data for each quadrant
-        LLX = (1, 1025, 1025, 1)
-        LLY = (1, 1, 521, 521)
-        READOUT_Y = (1, 1, 1040, 1040)
-        OFFSET = (1, 1, -1, -1)
-        ADD_YSIZE = (0, 0, 1, 1)
-        QUAD = ('E', 'F', 'G', 'H')
-
-        # extract the binning factors
-        xbin = self.header['ESO DET BINX1']
-        ybin = self.header['ESO DET BINY1']
-
+        # Framesize parameters
         # check for overscan / prescan
         oscan = self.header['ESO DET INCOVSCY']
         pscan = self.header['ESO DET INCPRSCX']
         yframe = 520 if oscan else 512
         xframe = 1074 if pscan else 1024
 
-        # extract the data to build the first 4 windows
-        if self.mode.startswith('FullFrame'):
-            nx = xframe // xbin
-            ny = yframe // ybin
-            llxs = LLX
-            llys = LLY
+        # binning factors
+        xbin = self.header['ESO DET BINX1']
+        ybin = self.header['ESO DET BINY1']
 
-        elif self.mode.startswith('OneWindow') or \
-             self.mode.startswith('TwoWindows'):
-            nx = self.header['ESO DET WIN1 NX'] // xbin
-            ny = self.header['ESO DET WIN1 NY'] // ybin
-            llxs = [llx + self.header['ESO DET WIN1 XS{}'.format(quad)]
-                    for llx, quad in zip(LLX, QUAD)]
-            llys = [
-                readout_y + offset*self.header['ESO DET WIN1 YS'] -
-                add_ysize*self.header['ESO DET WIN1 NY']
-                for readout_y, offset, add_ysize in zip(READOUT_Y, OFFSET, ADD_YSIZE)
-                ]
+        # This mapping is needed for the g and z channels due to reflections.
+        # They need to be flipped around x=0 and be rotated 180 degrees so that
+        # whatever falls on E in the other CCDs falls on F
+        QUAD_MAPPING = {'E': 'F', 'F': 'E', 'G': 'H', 'H': 'G'}
+        QUAD = ('E', 'F', 'G', 'H')
 
-        elif self.mode.startswith('Drift'):
-            nx = self.header['ESO DET DRWIN NX'] // xbin
-            ny = self.header['ESO DET DRWIN NY'] // ybin
-            llxs = [llx + self.header['ESO DET DRWIN XS{}'.format(quad)]
-                    for llx, quad in zip(LLX, QUAD)]
-            llys = [
-                readout_y + offset*self.header['ESO DET DRWIN1 YS'] -
-                add_ysize*self.header['ESO DET DRWIN NY']
-                for readout_y, offset, add_ysize in zip(READOUT_Y, OFFSET, ADD_YSIZE)
-                ]
+        # bottom-left coordinate of quadrant
+        LLX = {'E': 1, 'F': xframe+1, 'G': xframe+1, 'H': 1}
+        LLY = {'E': 1, 'F': 1, 'G': yframe+1, 'H': yframe+1}
 
+        # direction increasing X- or Y-start moves window in quad
+        X_DIRN = {'E': 1, 'F': -1, 'G': -1, 'H': 1}
+        Y_DIRN = {'E': 1, 'F': 1, 'G': -1, 'H': -1}
+
+        # whether we need to add size of window to find bottom-left
+        # coordinate of window
+        ADD_YSIZES = {'E': 0, 'F': 0, 'G': 1, 'H': 1}
+        ADD_XSIZES = {'E': 0, 'F': 1, 'G': 1, 'H': 0}
+
+        # some axes need flipping, since the data is read out such that the
+        # bottom-left is not always the first pixel which axes need flipping
+        # to get data in correct orientation using numpy C-convention, 1=y,
+        # 0=x. These are fed to numpy.flip later
+        FLIP_AXES = {'E': (), 'F': (1,), 'G': (1, 0), 'H': (0,)}
+
+        if self.mode.startswith('TwoWindow'):
+            self.nwins = (0,1)
         else:
-            msg = 'mode {} not currently supported'.format(self.mode)
-            raise ValueError(msg)
+            self.nwins = (0,)
 
-        # track total number of pixels in order to compute the number of timing bytes
-        npixels = 20*nx*ny
-
-        # add in the first four Windows
+        # build windows for each window of each quadrant of each CCDs
         self.windows = []
-        for llx, lly in zip(llxs, llys):
-            self.windows.append(Window(llx, lly, nx, ny, xbin, ybin))
+        for nwin in self.nwins:
+            self.windows.append([])
+            for nccd in range(5):
+                self.windows[-1].append([])
+                for quad in QUAD:
+                    if nccd in (1, 4):
+                        # reflections for g (1) and z (4)
+                        quad = QUAD_MAPPING[quad]
 
-        if self.mode.startswith('TwoWindows'):
-            # add extra four for this mode
-            nx = self.header['ESO DET WIN2 NX'] // xbin
-            ny = self.header['ESO DET WIN2 NY'] // ybin
-            llxs = [llx + self.header['ESO DET WIN2 XS{}'.format(quad)]
-                    for llx, quad in zip(LLX, QUAD)]
-            llys = [
-                readout_y + offset*self.header['ESO DET WIN2 YS'] -
-                add_ysize*self.header['ESO DET WIN2 NY']
-                for readout_y, offset, add_ysize in zip(READOUT_Y, OFFSET, ADD_YSIZE)
-                ]
+                    if self.mode.startswith('FullFrame'):
+                        nx = xframe // xbin
+                        ny = yframe // xbin
+                        llx = LLX[quad]
+                        lly = LLY[quad]
 
-            for llx, lly in zip(llxs, llys):
-                self.windows.append(Window(llx, lly, nx, ny, xbin, ybin))
+                    elif self.mode.startswith('OneWindow') or \
+                         self.mode.startswith('TwoWindow'):
+                        winID = 'ESO DET WIN{} '.format(nwin+1)
+                        nx = self.header[winID + 'NX'] // xbin
+                        ny = self.header[winID + 'NY'] // ybin
+                        win_xs = self.header[winID + 'XS{}'.format(quad)]
+                        win_nx = self.header[winID + 'NX']
+                        win_ys = self.header[winID + 'YS']
+                        win_ny = self.header[winID + 'NY']
+                        llx = (
+                            LLX[quad] + X_DIRN[quad] * win_xs +
+                            ADD_XSIZES[quad] * (xframe - win_nx)
+                        )
+                        lly = (
+                            LLY[quad] + Y_DIRN[quad] * win_ys +
+                            ADD_YSIZES[quad] * (yframe - win_ny)
+                        )
 
-            # add in the pixels
-            npixels += 20*nx*ny
+                    elif self.mode.startswith('Drift'):
+                        nx = self.header['ESO DET DRWIN NX'] // xbin
+                        ny = self.header['ESO DET DRWIN NY'] // ybin
+                        win_xs = self.header['ESO DET DRWIN XS{}'.format(quad)]
+                        win_nx = self.header['ESO DET DRWIN NX']
+                        win_ys = self.header['ESO DET DRWIN YS']
+                        win_ny = self.header['ESO DET DRWIN NY']
+                        llx = (
+                            LLX[quad] + X_DIRN[quad] * win_xs +
+                            ADD_XSIZES[quad] * (xframe - win_nx)
+                        )
+                        lly = (
+                            LLY[quad] + Y_DIRN[quad] * win_ys +
+                            ADD_YSIZES[quad] * (yframe - win_ny)
+                        )
+
+                    else:
+                        msg = 'mode {} not currently supported'.format(mode)
+                        raise ValueError(msg)
+
+                    # store the window and the axes to flip
+                    self.windows[-1][-1].append(
+                        (Window(llx, lly, nx, ny, xbin, ybin), FLIP_AXES[quad])
+                    )
+
+        # compute the total number of pixels (making use of symmetry between
+        # quadrants and CCDs, hence factor 20)
+        npixels = 0
+        for nwin in self.nwins:
+            win = self.windows[nwin][0][0][0]
+            npixels += 20*win.nx*win.ny
 
         # any extra bytes above those needed for the data are timing
         self.ntbytes = self._framesize - (bitpix*npixels) // 8
@@ -225,32 +261,33 @@ class Rhead:
         if 'DATE' in self.header:
             self.thead['DATE'] = (self.header['DATE'], self.header.comments['DATE'])
         if full and 'ESO DET GPS' in self.header:
-            self.thead['GPS'] = (self.header['ESO DET GPS'], self.header.comments['ESO DET GPS'])
+            self.thead['GPS'] = (self.header['ESO DET GPS'],
+                                 self.header.comments['ESO DET GPS'])
 
         # Header per CCD
         self.cheads = []
-        for n in range(1,6):
+        for n in range(5):
             chead = fits.Header()
 
             # Essential items
-            hnam = 'ESO DET NSKIP{:d}'.format(n)
+            hnam = 'ESO DET NSKIP{:d}'.format(n+1)
             if hnam in self.header:
                 chead['NSKIP'] = (self.header[hnam], self.header.comments[hnam])
 
             # Nice-if-you-can-get-them items
             if full:
                 # whether this CCD has gone through a reflection
-                hnam = 'ESO DET REFLECT{:d}'.format(n)
+                hnam = 'ESO DET REFLECT{:d}'.format(n+1)
                 if hnam in self.header:
                     chead['REFLECT'] = (self.header[hnam], 'is image reflected')
 
                 # readout noise
-                hnam = 'ESO DET CHIP{:d} RON'.format(n)
+                hnam = 'ESO DET CHIP{:d} RON'.format(n+1)
                 if hnam in self.header:
                     chead['RONOISE'] = (self.header[hnam], self.header.comments[hnam])
 
                 # gain
-                hnam = 'ESO DET CHIP{:d} GAIN'.format(n)
+                hnam = 'ESO DET CHIP{:d} GAIN'.format(n+1)
                 if hnam in self.header:
                     chead['GAIN'] = (self.header[hnam], self.header.comments[hnam])
 
@@ -264,15 +301,6 @@ class Rhead:
             if hasattr(self, '_ws'): self._ws.close()
         else:
             if hasattr(self, '_ffile'): self._ffile.close()
-
-    def npix(self):
-        """
-        Returns the number of (binned) pixels per CCD
-        """
-        np = 0
-        for win in self.windows:
-            np += win.nx*win.ny
-        return np
 
     def ntotal(self):
         """
@@ -435,12 +463,17 @@ class Rdata (Rhead):
             if len(tbytes) != self.ntbytes:
                 raise IOError('failed to read frame from disk file')
 
-        # we now have all the pixels and timing bytes of the frame of interest
-        # read into a 1D ndarray of unsigned 2-byte integers. Now interpret them.
+        ##############################################################
+        #
+        # We now have all the pixels (in 'frame') and timing bytes (in
+        # 'tbytes') of the frame of interest read into a 1D ndarray of
+        # unsigned, 2-byte integers. Now interpret them.
+        #
+        ##############################################################
 
-        # first the time
-        frameCount, timeStampCount, years, day_of_year, hours, mins, seconds, nanoseconds, nsats, synced = \
-            decode_timing_bytes(tbytes)
+        # First the timing bytes
+        frameCount, timeStampCount, years, day_of_year, hours, mins, \
+            seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
 
         if frameCount+1 != self.nframe:
             # check that frameCount is as expected
@@ -456,75 +489,55 @@ class Rdata (Rhead):
         self.thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
         self.thead['NFRAME'] = (frameCount+1, 'Frame number')
 
-        # Now build up Windats-->CCDs-->MCCD
-        cnams = ('1', '2', '3', '4', '5')
-        wnams1 = ('E1', 'F1', 'G1', 'H1')
-        wnams2 = ('E2', 'F2', 'G2', 'H2')
+        # second, the data bytes
 
-        # Below, the intermediate arrays data1 and data2 are 4D arrays
-        # indexed by (ccd,window,ny,nx) containing the image data. The crucial
-        # step is contained in the as_strided routine
+        # build Windats-->CCDs-->MCCD
+        CNAMS = ('1', '2', '3', '4', '5')
+        QNAMS = ('E', 'F', 'G', 'H')
 
+        # initialise CCDs with empty Groups. These will be added to later
         ccds = Group()
+        for cnam, chead in zip(CNAMS, self.cheads):
+            ccds[cnam] = CCD(Group(), HCM_NXTOT, HCM_NYTOT, chead)
 
-        if self.mode.startswith('TwoWindows'):
-            # get an example of the first set of Windows
-            win1 = self.windows[0]
+        # npixel points to the start pixel of the set of windows under
+        # consideration
+        npixel = 0
+        for nwin in self.nwins:
 
-            # get view covering first 4 windows of data
-            data_size1 = 20*win1.nx*win1.ny
-            frame1 = frame[:data_size1]
+            # get an example window for this set
+            win = self.windows[nwin][0][0][0]
+            nchunk = 20*win.nx*win.ny
+
+            # allwins contains data of all windows 1 or 2
+            allwins = frame[npixel:npixel+nchunk]
 
             # re-view the data as a 4D array indexed by (ccd,window,y,x)
-            data1 = as_strided(
-                frame1, strides=(8, 2, 40*win1.nx, 40),
-                shape=(5, 4, win1.ny, win1.nx)
-                )
+            data = as_strided(
+                allwins, strides=(8, 2, 40*win.nx, 40),
+                shape=(5, 4, win.ny, win.nx)
+            )
 
-            # get an example of the second set of Windows
-            win2 = self.windows[4]
+            # now build the Windats
+            for nccd, cnam in enumerate(CNAMS):
+                for nquad, qnam in enumerate(QNAMS):
+                    wnam = '{:s}{:d}'.format(qnam,nwin+1)
 
-            # get view covering second 4 windows of data
-            frame2 = frame[data_size1:]
+                    # recover the window and flip parameters
+                    win, flip_axes = self.windows[nwin][nccd][nquad]
 
-            # re-view as 4D array indexed by (ccd,window,y,x)
-            data2 = as_strided(
-                frame2, strides=(8, 2, 40*win2.nx, 40),
-                shape=(5, 4, win2.ny, win2.nx)
-                )
+                    # get the window data and apply flips
+                    windata = data[nccd, nwin]
+                    for ax in flip_axes:
+                        windata = np.flip(windata, ax)
 
-            # load into CCDs
-            for nccd, (cnam, chead) in enumerate(zip(cnams,self.cheads)):
-                # now the Windats
-                windats = Group()
-                for nwin, (wnam1, wnam2) in enumerate(zip(wnams1, wnams2)):
-                    windats[wnam1] = Windat(self.windows[nwin], data1[nccd, nwin])
-                    windats[wnam2] = Windat(self.windows[nwin+4], data2[nccd, nwin])
+                    # finally store as a Windat
+                    ccds[cnam][wnam] = Windat(win, windata)
 
-                # compile the CCD
-                ccds[cnam] = CCD(windats, HCM_NXTOT, HCM_NYTOT, chead)
+            # move pointer on for next set of windows
+            npixel += nchunk
 
-        else:
-            # get an example of the first set of Windows
-            win1 = self.windows[0]
-
-            # re-view as 4D array indexed by (ccd,window,y,x)
-            data1 = as_strided(
-                frame, strides=(8, 2, 40*win1.nx, 40),
-                shape=(5, 4, win1.ny, win1.nx)
-                )
-
-            # load into CCDs
-            for nccd, (cnam, chead) in enumerate(zip(cnams,self.cheads)):
-                # now the Windats
-                windats = Group()
-                for nwin, wnam1 in enumerate(wnams1):
-                    windats[wnam1] = Windat(self.windows[nwin], data1[nccd, nwin])
-
-                # compile the CCD
-                ccds[cnam] = CCD(windats, HCM_NXTOT, HCM_NYTOT, chead)
-
-        # finally create the MCCD
+        # create the MCCD
         mccd = MCCD(ccds, self.thead)
 
         # update the frame counter
@@ -648,8 +661,8 @@ class Rtime (Rhead):
             self._ffile.seek(self._framesize-self.ntbytes, 1)
 
         # Now interpret them.
-        frameCount, timeStampCount, years, day_of_year, hours, mins, seconds, nanoseconds, nsats, synced = \
-            decode_timing_bytes(tbytes)
+        frameCount, timeStampCount, years, day_of_year, \
+            hours, mins, seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
 
         time_string = '{}:{}:{}:{}:{:.7f}'.format(
             years, day_of_year, hours, mins, seconds+nanoseconds/1e9
@@ -663,17 +676,19 @@ class Rtime (Rhead):
         return tstamp
 
 def decode_timing_bytes(tbytes):
-    """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the 3D FITS file.
+    """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the
+    3D FITS file.
 
-    The timing bytes are encoded as 8x4-byte little-endian unsigned integers followed
-    by 2x2-byte little-endian . On saving to FITS they are mangled
+    The timing bytes are encoded as 8x4-byte little-endian unsigned integers
+    followed by 2x2-byte little-endian . On saving to FITS they are mangled
     because:
 
       1) they are split into 2-byte uints
       2) 2**15 is subtracted from each to map to 2-byte signed ints
       3) These are written in big-endian order to FITS
 
-    This routine reverses this process to recover the original timestamp tuple by
+    This routine reverses this process to recover the original timestamp tuple
+    by
 
       1) unpacking the timing bytes as big-endian 16-bit signed integers
       2) adding 32768 to each value
@@ -684,8 +699,8 @@ def decode_timing_bytes(tbytes):
     ----------
 
        tbytes: (bytes)
-           a Python bytes object which contains the timestamp bytes as written in the
-           FITS file
+           a Python bytes object which contains the timestamp bytes as written
+           in the FITS file
 
     Returns
     --------
@@ -700,5 +715,8 @@ def decode_timing_bytes(tbytes):
 
     # format with 36 timing bytes (last two of which are ignored)
     buf = struct.pack('<HHHHHHHHHHHHHHHHH',
-                      *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh', tbytes[:-2])))
+                      *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
+                                                             tbytes[:-2])))
     return struct.unpack('<IIIIIIIIbb', buf)
+
+
