@@ -8,8 +8,7 @@ import numpy as np
 
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'add_extension',
-    'HipercamError', 'HipercamWarning', 'HCM_NXTOT',
-    'HCM_NYTOT', 
+    'HipercamError', 'HipercamWarning'
 )
 
 # Constants for general use
@@ -20,9 +19,6 @@ HCAM = '.hcm'
 LIST = '.lis'
 APER = '.ape'
 HRAW = '.fits'
-
-# Maximum dimensions of HiPERCAM CCDs
-HCM_NXTOT, HCM_NYTOT = 2048, 1040
 
 def add_extension(fname, ext):
     """Add extension ext to a file name if it is not already there, and returns
