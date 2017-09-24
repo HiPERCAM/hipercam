@@ -49,6 +49,9 @@ def hplot(args=None):
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
 
+      msub   : (bool)
+         True/False to subtract median from each window before scaling
+
       iset   : (string) [single character]
          determines how the intensities are determined. There are three
          options: 'a' for automatic simply scales from the minimum to the
@@ -101,6 +104,7 @@ def hplot(args=None):
         cl.register('device', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
+        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
@@ -159,6 +163,8 @@ def hplot(args=None):
             nx = 1
 
         # define the display intensities
+        msub = cl.get_value('msub', 'subtract median from each window?', True)
+
         iset = cl.get_value(
             'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
             'a', lvals=['a','A','d','D','p','P'])
@@ -207,11 +213,18 @@ def hplot(args=None):
             else:
                 axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
                 axes.set_aspect('equal', adjustable='datalim')
-            hcam.mpl.pccd(plt,mccd[cnam],iset,plo,phi,ilo,ihi)
 
-            plt.title('CCD {:s}'.format(cnam))
-            plt.xlabel('X')
-            plt.ylabel('Y')
+            if msub:
+                # subtract median from each window
+                for wind in mccd[cnam].values():
+                    wind -= wind.median()
+
+            vmin, vmax = hcam.mpl.pccd(axes,mccd[cnam],iset,plo,phi,ilo,ihi)
+            print('CCD =',cnam,'plot range =',vmin,'to',vmax)
+
+            axes.set_title('CCD {:s}'.format(cnam))
+            axes.set_xlabel('X')
+            axes.set_ylabel('Y')
 
         plt.tight_layout()
         if hard == '':
@@ -236,5 +249,6 @@ def hplot(args=None):
             pgsch(hcam.pgp.Params['axis.number.ch'])
             pgenv(xlo, xhi, ylo, yhi, 1, 0)
             pglab('X','Y','CCD {:s}'.format(cnam))
-            hcam.pgp.pccd(mccd[cnam],iset,plo,phi,ilo,ihi)
+            vmin, vmax = hcam.pgp.pccd(mccd[cnam],iset,plo,phi,ilo,ihi)
+            print('CCD =',cnam,'plot range =',vmin,'to',vmax)
 
