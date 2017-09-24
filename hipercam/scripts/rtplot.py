@@ -86,6 +86,10 @@ def rtplot(args=None):
         bias    : (string)
            Name of bias frame to subtract, 'none' to ignore.
 
+        msub    : (bool)
+           subtract the median from each window before scaling for the
+           image display or not. This happens after any bias subtraction.
+
         iset    : (string) [single character]
            determines how the intensities are determined. There are three
            options: 'a' for automatic simply scales from the minimum to the
@@ -198,6 +202,7 @@ def rtplot(args=None):
         cl.register('pause', Cline.LOCAL, Cline.HIDE)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
@@ -298,6 +303,8 @@ def rtplot(args=None):
             bframe = hcam.MCCD.rfits(bias)
 
         # define the display intensities
+        msub = cl.get_value('msub', 'subtract median from each window?', True)
+
         iset = cl.get_value(
             'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
             'a', lvals=['a','A','d','D','p','P'])
@@ -417,11 +424,12 @@ def rtplot(args=None):
 
             # indicate progress
             if flist:
-                print('File {:d}'.format(n+1))
+                print('File {:d}: '.format(n+1), end='')
             else:
-                print('Frame {:d}'.format(frame.head['NFRAME']))
+                print('Frame {:d}: '.format(frame.head['NFRAME']), end='')
 
             # display the CCDs chosen
+            message = ''
             for nc, cnam in enumerate(ccds):
                 ccd = frame[cnam]
 
@@ -429,115 +437,129 @@ def rtplot(args=None):
                 if bias is not None:
                     ccd -= bframe[cnam]
 
+                if msub:
+                    # subtract median from each window
+                    for wind in ccd.values():
+                        wind -= wind.median()
+
                 # set to the correct panel and then plot CCD
                 ix = (nc % nx) + 1
                 iy = nc // nx + 1
                 pgpanl(ix,iy)
-                hcam.pgp.pccd(ccd,iset,plo,phi,ilo,ihi)
+                vmin, vmax = hcam.pgp.pccd(ccd,iset,plo,phi,ilo,ihi)
 
-                if n == 0 and profit:
-                    # cursor selection of targets after first plot, if profit
-                    # accumulate list of starter positions
+                # accumulate string of image scalings
+                if nc:
+                    message += ', ccd {:s}: {:.2f} to {:.2f}'.format(cnam,vmin,vmax)
+                else:
+                    message += 'ccd {:s}: {:.2f} to {:.2f}'.format(cnam,vmin,vmax)
 
-                    print('Please select targets for profile fitting. You can select as many as you like.')
-                    x, y, reply = (xlo+xhi)/2, (ylo+yhi)/2, ''
-                    ntarg = 0
-                    pgsci(2)
-                    pgslw(2)
-                    while reply != 'Q':
-                        print("Place cursor on fit target. Any key to register, 'q' to quit")
-                        x, y, reply = pgcurs(x, y)
-                        if reply == 'q':
-                            break
-                        else:
-                            # check that the position is inside a window
-                            wnam = ccd.inside(x, y, 2)
+            # end of CCD display loop
+            print(message)
 
-                            if wnam is not None:
-                                # store the position, Windat label, target number, box size
-                                ntarg += 1
-                                fpos.append(Fpar(x,y,wnam,ntarg,shbox,fwhm))
+            if n == 0 and profit:
+                # cursor selection of targets after first plot, if profit
+                # accumulate list of starter positions
 
-                                # report information, overplot search box
-                                print('Target {:d} selected at {:.1f},{:.1f} in window {:s}'.format(ntarg,x,y,wnam))
-                                if splot:
-                                    fpos[-1].plot()
-
-                    if len(fpos):
-                        print(len(fpos),'targets selected')
-                        # if some targets were selected, open the fit plot device
-                        fdev = hcam.pgp.Device(fdevice)
-                        if fwidth > 0 and fheight > 0:
-                            pgpap(fwidth,fheight/fwidth)
-
-                # carry out fits. Nothing happens if fpos is empty
-                for fpar in fpos:
-                    # switch to the image plot
-                    imdev.select()
-
-                    # plot search box
-                    if splot:
-                        fpar.plot()
-
-                    # extract search box from the CCD
-                    swind = fpar.swind(ccd)
-
-                    # carry out initial search
-                    x,y,peak = swind.find(smooth, False)
-
-                    # now for a more refined fit. First extract fit Windat
-                    fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                    sky = np.percentile(fwind.data, 25)
-
-                    if method == 'g':
-                        (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
-                            fwind.fitGaussian(sky, peak-sky, x, y, fpar.fwhm, fwhm_min, read, gain, sigma)
-
-                        if sigs is None:
-                            print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
-                            pgsci(2)
-                        else:
-                            esky, epeak, ex, ey, efwhm = sigs 
-                            print(' >> Targ {:d}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
-                                    fpar.ntarg,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky)
-                                  )
-
-                            if peak > thresh:
-                                # update search centre & fwhm for next frame
-                                fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
-
-                                # plot values versus radial distance
-                                R = np.sqrt((X-x)**2+(Y-y)**2)
-                                fdev.select()
-                                vmin, vmax = fwind.min(), fwind.max()
-                                range = vmax-vmin
-                                pgeras()
-                                pgvstd()
-                                pgswin( 0, R.max(), vmin-0.05*range, vmax+0.05*range)
-                                pgsci(4)
-                                pgbox('bcnst',0,0,'bcnst',0,0)
-                                pgsci(1)
-                                pgpt(R.flat, fwind.data.flat, 1)
-
-                                # line fit
-                                pgsci(3)
-                                r = np.linspace(0,R.max(),200)
-                                g = sky+peak*np.exp(-4*np.log(2)*(r/fwhm)**2)
-                                pgline(r,g)
-
-                                # back to the image to plot circle of radius FWHM
-                                imdev.select()
-                                pgsci(3)
-                                pgcirc(x,y,fwhm)
-
-                            else:
-                                print('     *** below detection threshold; position & FWHM will not updated')
-                                pgsci(2)
+                print('Please select targets for profile fitting. You can select as many as you like.')
+                x, y, reply = (xlo+xhi)/2, (ylo+yhi)/2, ''
+                ntarg = 0
+                pgsci(2)
+                pgslw(2)
+                while reply != 'Q':
+                    print("Place cursor on fit target. Any key to register, 'q' to quit")
+                    x, y, reply = pgcurs(x, y)
+                    if reply == 'q':
+                        break
                     else:
-                        raise NotImplementedError('{:s} fitting method not implemented'.format(method))
+                        # check that the position is inside a window
+                        wnam = ccd.inside(x, y, 2)
 
-                    # plot location on image as a cross
-                    pgpt1(x, y, 5)
+                        if wnam is not None:
+                            # store the position, Windat label, target number, box size
+                            ntarg += 1
+                            fpos.append(Fpar(x,y,wnam,ntarg,shbox,fwhm))
+
+                            # report information, overplot search box
+                            print('Target {:d} selected at {:.1f},{:.1f} in window {:s}'.format(ntarg,x,y,wnam))
+                            if splot:
+                                fpos[-1].plot()
+
+                if len(fpos):
+                    print(len(fpos),'targets selected')
+                    # if some targets were selected, open the fit plot device
+                    fdev = hcam.pgp.Device(fdevice)
+                    if fwidth > 0 and fheight > 0:
+                        pgpap(fwidth,fheight/fwidth)
+
+            # carry out fits. Nothing happens if fpos is empty
+            for fpar in fpos:
+                # switch to the image plot
+                imdev.select()
+
+                # plot search box
+                if splot:
+                    fpar.plot()
+
+                # extract search box from the CCD
+                swind = fpar.swind(ccd)
+
+                # carry out initial search
+                x,y,peak = swind.find(smooth, False)
+
+                # now for a more refined fit. First extract fit Windat
+                fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                sky = np.percentile(fwind.data, 25)
+
+                if method == 'g':
+                    (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
+                    fwind.fitGaussian(sky, peak-sky, x, y, fpar.fwhm, fwhm_min, read, gain, sigma)
+
+                    if sigs is None:
+                        print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
+                        pgsci(2)
+                    else:
+                        esky, epeak, ex, ey, efwhm = sigs 
+                        print(' >> Targ {:d}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
+                            fpar.ntarg,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky)
+                        )
+
+                        if peak > thresh:
+                            # update search centre & fwhm for next frame
+                            fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
+
+                            # plot values versus radial distance
+                            R = np.sqrt((X-x)**2+(Y-y)**2)
+                            fdev.select()
+                            vmin, vmax = fwind.min(), fwind.max()
+                            range = vmax-vmin
+                            pgeras()
+                            pgvstd()
+                            pgswin( 0, R.max(), vmin-0.05*range, vmax+0.05*range)
+                            pgsci(4)
+                            pgbox('bcnst',0,0,'bcnst',0,0)
+                            pgsci(1)
+                            pgpt(R.flat, fwind.data.flat, 1)
+
+                            # line fit
+                            pgsci(3)
+                            r = np.linspace(0,R.max(),200)
+                            g = sky+peak*np.exp(-4*np.log(2)*(r/fwhm)**2)
+                            pgline(r,g)
+
+                            # back to the image to plot circle of radius FWHM
+                            imdev.select()
+                            pgsci(3)
+                            pgcirc(x,y,fwhm)
+
+                        else:
+                            print('     *** below detection threshold; position & FWHM will not updated')
+                            pgsci(2)
+                else:
+                    raise NotImplementedError('{:s} fitting method not implemented'.format(method))
+
+                # plot location on image as a cross
+                pgpt1(x, y, 5)
 
 # From here is support code not visible outside
 
