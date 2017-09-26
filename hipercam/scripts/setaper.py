@@ -4,6 +4,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Cursor
+from matplotlib.backend_bases import NavigationToolbar2
 
 from trm.pgplot import *
 import hipercam as hcam
@@ -17,7 +18,7 @@ from hipercam.cline import Cline
 #############################################
 
 def setaper(args=None):
-    """Defines photometric extraction apertures
+    """Interactive definition of photometric extraction apertures
 
     Arguments::
 
@@ -45,6 +46,9 @@ def setaper(args=None):
       nx     : (int)
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
+
+      msub   : (bool)
+         True/False to subtract median from each window before scaling
 
       iset   : (string) [single character]
          determines how the intensities are determined. There are three
@@ -98,6 +102,7 @@ def setaper(args=None):
         cl.register('device', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
+        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
@@ -156,6 +161,8 @@ def setaper(args=None):
             nx = 1
 
         # define the display intensities
+        msub = cl.get_value('msub', 'subtract median from each window?', True)
+
         iset = cl.get_value(
             'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
             'a', lvals=['a','A','d','D','p','P'])
@@ -193,27 +200,41 @@ def setaper(args=None):
         else:
             fig = plt.figure()
 
+        # get the 
+        toolbar = fig.canvas.manager.toolbar
+
         nccd = len(ccds)
         ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
+
         ax = None
-        curses = {}
+        pstars = {}
+        axes = {}
         for n, cnam in enumerate(ccds):
             if ax is None:
-                axes = ax = fig.add_subplot(ny, nx, n+1)
-                axes.set_aspect('equal', adjustable='box')
+                axes[cnam] = ax = fig.add_subplot(ny, nx, n+1)
+                axes[cnam].set_aspect('equal', adjustable='box')
             else:
-                axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-                axes.set_aspect('equal', adjustable='datalim')
-            hcam.mpl.pccd(plt,mccd[cnam],iset,plo,phi,ilo,ihi)
+#                axes[cnam] = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
+                axes[cnam] = fig.add_subplot(ny, nx, n+1)
+                axes[cnam].set_aspect('equal', adjustable='datalim')
+            print(str(axes[cnam]))
+            if msub:
+                # subtract median from each window
+                for wind in mccd[cnam].values():
+                    wind -= wind.median()
+
+            hcam.mpl.pccd(axes[cnam],mccd[cnam],iset,plo,phi,ilo,ihi)
 
             plt.title('CCD {:s}'.format(cnam))
             plt.xlabel('X')
             plt.ylabel('Y')
 
-            curses[cnam] = Cursor(axes, useblit=True, color='red', linewidth=1)
+            # define a picker for each CCD
+            pstars[cnam] = PickStar(cnam, axes[cnam], toolbar, fig)
 
         plt.tight_layout()
+        print('a(dd), r(emove) p(an/zoom), h(elp)')
         plt.show()
 
     elif ptype == 'PGP':
@@ -234,4 +255,39 @@ def setaper(args=None):
             pgenv(xlo, xhi, ylo, yhi, 1, 0)
             pglab('X','Y','CCD {:s}'.format(cnam))
             hcam.pgp.pccd(mccd[cnam],iset,plo,phi,ilo,ihi)
+
+class PickStar:
+    """Class to pick targets for apertures.
+    """
+
+    def __init__(self, cnam, axes, toolbar, fig):
+        self.cnam = cnam
+        self.axes = axes
+        self.toolbar = toolbar
+        self.fig = fig
+        self.fig.canvas.mpl_connect('button_press_event', self._buttonPressEvent)
+        self.fig.canvas.mpl_connect('key_press_event', self._keyPressEvent)
+
+    def _buttonPressEvent(self, event):
+        if self.toolbar.mode != 'pan/zoom':
+            print(
+                'button press event', event, event.button,
+                event.xdata, event.ydata, event.inaxes, self.cnam
+                )
+
+    def _keyPressEvent(self, event):
+        if self.toolbar.mode != 'pan/zoom':
+            if event.key == 'h':
+                print('a(dd)      : add an aperture')
+                print('p(an/zoom) : toggle between pan/zoom vs selection mode')
+                print('r(emove)   : remove an aperture')
+                print('h(elp)     : print this list')
+            elif event.key == 'a':
+                print('will add an aperture to CCD',self.cnam)
+            elif event.key == 'p':
+                pass
+            elif event.key == 'r':
+                print('will remove an aperture from CCD',self.cnam)
+            else:
+                print('unrecognised key event',event,event.key,event.x,event.y,event.inaxes)
 
