@@ -25,17 +25,6 @@ def setaper(args=None):
       input  : (string)
          name of MCCD file
 
-      device : (string) [hidden]
-         Plot device name. Uses characters after a final trailing '/' to
-         identify the type in PGPLOT style. Thus::
-
-                   /xs : PGPLOT xserver interactive plot
-                  1/xs : PGPLOT xserver interactive plot called '1'
-           plot.ps/cps : PGPLOT colour postscript called 'plot.ps'
-           plot.ps/vps : PGPLOT B&W portrait oriented plot
-                  /mpl : matplotlib interactive plot
-          plot.pdf/mpl : matplotlib PDF plot
-
       ccd    : (string)
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
          are possible inputs (without the quotes). '3 4' will plot CCD '3' and
@@ -99,7 +88,6 @@ def setaper(args=None):
 
         # register parameters
         cl.register('input', Cline.LOCAL, Cline.PROMPT)
-        cl.register('device', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
@@ -119,23 +107,6 @@ def setaper(args=None):
         frame = cl.get_value('input', 'frame to plot',
                              cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.rfits(frame)
-
-        device = cl.get_value('device', 'plot device name', 'term')
-
-        # set type of plot (PGPLOT or matplotlib) and the name of the file
-        # if any in the case of matplotlib
-        fslash = device.rfind('/')
-        if fslash > -1:
-            if device[fslash+1:] == 'mpl':
-                ptype = 'MPL'
-                hard = device[:fslash].strip()
-            else:
-                ptype = 'PGP'
-
-        else:
-            raise ValueError(
-                'Could not identify plot type from device = {:s}'.format(device)
-                )
 
         # define the panel grid
         try:
@@ -182,112 +153,97 @@ def setaper(args=None):
             nxmax = max(nxmax, mccd[cnam].nxtot)
             nymax = max(nymax, mccd[cnam].nytot)
 
-        if ptype == 'PGP' or hard != '':
-            xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., nxmax+1)
-            xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., nxmax+1)
-            ylo = cl.get_value('ylo', 'lower Y value', 0., 0., nymax+1)
-            yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., nymax+1)
-        else:
-            xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
+        xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
 
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
 
     # all inputs obtained, plot
-    if ptype == 'MPL':
-        if width > 0 and height > 0:
-            fig = plt.figure(figsize=(width,height))
+    if width > 0 and height > 0:
+        fig = plt.figure(figsize=(width,height))
+    else:
+        fig = plt.figure()
+
+    # get the navigation toolbar which we use to check the 
+    # pan/zoom mode
+    toolbar = fig.canvas.manager.toolbar
+
+    nccd = len(ccds)
+    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+
+    ax = None
+    pstars = {}
+    cnams = {}
+    for n, cnam in enumerate(ccds):
+        if ax is None:
+            axes = ax = fig.add_subplot(ny, nx, n+1)
+            axes.set_aspect('equal', adjustable='box')
         else:
-            fig = plt.figure()
+            axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
+            axes.set_aspect('equal', adjustable='datalim')
 
-        # get the 
-        toolbar = fig.canvas.manager.toolbar
+        if msub:
+            # subtract median from each window
+            for wind in mccd[cnam].values():
+                wind -= wind.median()
 
-        nccd = len(ccds)
-        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+        hcam.mpl.pccd(axes,mccd[cnam],iset,plo,phi,ilo,ihi)
 
+        plt.title('CCD {:s}'.format(cnam))
+        plt.xlabel('X')
+        plt.ylabel('Y')
 
-        ax = None
-        pstars = {}
-        axes = {}
-        for n, cnam in enumerate(ccds):
-            if ax is None:
-                axes[cnam] = ax = fig.add_subplot(ny, nx, n+1)
-                axes[cnam].set_aspect('equal', adjustable='box')
-            else:
-#                axes[cnam] = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-                axes[cnam] = fig.add_subplot(ny, nx, n+1)
-                axes[cnam].set_aspect('equal', adjustable='datalim')
-            print(str(axes[cnam]))
-            if msub:
-                # subtract median from each window
-                for wind in mccd[cnam].values():
-                    wind -= wind.median()
+        # keep track of the CCDs associated with each axes
+        cnams[axes] = cnam
 
-            hcam.mpl.pccd(axes[cnam],mccd[cnam],iset,plo,phi,ilo,ihi)
+    # define the picker for each CCD
+    picker = PickStar(cnams, toolbar, fig)
 
-            plt.title('CCD {:s}'.format(cnam))
-            plt.xlabel('X')
-            plt.ylabel('Y')
+    plt.tight_layout()
+    print('a(dd), r(emove) p(an/zoom), h(elp), q(uit)')
 
-            # define a picker for each CCD
-            pstars[cnam] = PickStar(cnam, axes[cnam], toolbar, fig)
+    # once this goes we enter into a loop where we can select stars
+    # using the 
+    plt.show()
 
-        plt.tight_layout()
-        print('a(dd), r(emove) p(an/zoom), h(elp)')
-        plt.show()
-
-    elif ptype == 'PGP':
-        # open the plot
-        dev = hcam.pgp.Device(device)
-        if width > 0 and height > 0:
-            pgpap(width,height/width)
-
-        nccd = len(ccds)
-        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
-        # set up panels and axes
-        pgsubp(nx,ny)
-
-        for cnam in ccds:
-            pgsci(hcam.pgp.Params['axis.ci'])
-            pgsch(hcam.pgp.Params['axis.number.ch'])
-            pgenv(xlo, xhi, ylo, yhi, 1, 0)
-            pglab('X','Y','CCD {:s}'.format(cnam))
-            hcam.pgp.pccd(mccd[cnam],iset,plo,phi,ilo,ihi)
 
 class PickStar:
     """Class to pick targets for apertures.
     """
 
-    def __init__(self, cnam, axes, toolbar, fig):
-        self.cnam = cnam
-        self.axes = axes
+    def __init__(self, cnams, toolbar, fig):
+        """
+        axes is dictionary keyed by CCD label of the axes
+        """
+        self.cnams = cnams
         self.toolbar = toolbar
         self.fig = fig
-        self.fig.canvas.mpl_connect('button_press_event', self._buttonPressEvent)
         self.fig.canvas.mpl_connect('key_press_event', self._keyPressEvent)
 
-    def _buttonPressEvent(self, event):
-        if self.toolbar.mode != 'pan/zoom':
-            print(
-                'button press event', event, event.button,
-                event.xdata, event.ydata, event.inaxes, self.cnam
-                )
-
     def _keyPressEvent(self, event):
-        if self.toolbar.mode != 'pan/zoom':
+        """
+        This is where we do most of the hard work
+        """
+        if self.toolbar.mode != 'pan/zoom' and event.inaxes is not None:
+            cnam = self.cnams[event.inaxes]
             if event.key == 'h':
                 print('a(dd)      : add an aperture')
                 print('p(an/zoom) : toggle between pan/zoom vs selection mode')
                 print('r(emove)   : remove an aperture')
                 print('h(elp)     : print this list')
             elif event.key == 'a':
-                print('will add an aperture to CCD',self.cnam)
+                print('will add an aperture to CCD',cnam)
             elif event.key == 'p':
                 pass
+            elif event.key == 'q':
+                # quit and clear up
+                plt.close()
+                print('apertures saved. bye')
             elif event.key == 'r':
-                print('will remove an aperture from CCD',self.cnam)
+                print('will remove an aperture from CCD',cnam)
+            elif event.key == 'enter':
+                print('a(dd), r(emove) p(an/zoom), h(elp), q(uit)')
             else:
-                print('unrecognised key event',event,event.key,event.x,event.y,event.inaxes)
+                print('There is no action for key =',event.key,'(x,y,axes =',
+                      event.x,event.y,event.inaxes,')')
 
