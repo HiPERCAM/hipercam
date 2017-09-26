@@ -38,7 +38,7 @@ or
 
   python setup.py --user
 
-depending on whether you have root priveledges and how you have set things up.
+depending on whether you have root priviledges and how you have set things up.
 
 
 Tom Marsh
