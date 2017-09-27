@@ -768,7 +768,7 @@ class Rdata (Rhead):
             # 3 CCDs. Windows come in pairs. Data from equivalent windows come out
             # on a pitch of 6. Some further jiggery-pokery is involved to get the
             # orientation of the frames correct.
-            wins1, wins2, wins3 = Group(), Group(), Group()
+            wins1, wins2, wins3 = Group(Windat), Group(Windat), Group(Windat)
 
             if self.mode != 'FFOVER' and self.mode != 'FFOVNC':
                 # Non-overscan modes: flag indicating that outer pixels will
@@ -936,7 +936,7 @@ class Rdata (Rhead):
 
         elif self.instrument == 'ULTRASPEC':
 
-            wins = Group()
+            wins = Group(Windat)
             nwin = 1
             noff = 0
             if self.mode.startswith('USPEC'):

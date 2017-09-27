@@ -187,7 +187,7 @@ def setaper(args=None):
             for wind in mccd[cnam].values():
                 wind -= wind.median()
 
-        hcam.mpl.pccd(axes,mccd[cnam],iset,plo,phi,ilo,ihi)
+        hcam.mpl.pCcd(axes,mccd[cnam],iset,plo,phi,ilo,ihi)
 
         plt.title('CCD {:s}'.format(cnam))
         plt.xlabel('X')

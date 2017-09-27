@@ -146,7 +146,10 @@ class _decoder(json.JSONDecoder):
 
     def object_hook(self, jobj):
         if 'r1' in jobj and 'r2' in jobj and 'r3' in jobj and 'link' in jobj:
-            return Aperture(jobj['x'],jobj['y'],jobj['r1'],jobj['r2'],jobj['r3'],jobj['link'],jobj['mask'],jobj['extra'])
+            return Aperture(
+                jobj['x'],jobj['y'],jobj['r1'],jobj['r2'],jobj['r3'],
+                jobj['link'],jobj['mask'],jobj['extra']
+            )
         else:
             return jobj
 
@@ -156,7 +159,7 @@ class CcdAper(Group):
     Normal usage is to create an empty one and then add
     """
 
-    def __init__(self, aps=Group()):
+    def __init__(self, aps=Group(None)):
         """Constructs a :class:`CcdAper`.
 
         Arguments::
@@ -164,19 +167,4 @@ class CcdAper(Group):
           aps : (Group)
               Group of :class:`Aperture` objects
         """
-        super().__init__(aps)
-
-        if len(self):
-            # swift sanity check, 'cos it's easy to get confused
-            first = next(iter(self.values()))
-            if not isinstance(first, Windat):
-                raise ValueError(
-                    'values of "aps" must all be Aperture objects')
-
-    def __setitem__(self, key, item):
-        if not isinstance(item, Aperture):
-            raise HipercamError(
-                'key = ' + str(key) + ', item type (=' + str(type(item)) +
-                ') is not "Aperture"'
-            )
-        super().__setitem__(key, item)
+        super().__init__(type(Aperture), aps)

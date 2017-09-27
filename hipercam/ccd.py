@@ -60,7 +60,8 @@ class CCD(Agroup):
         nxtot, nytot and head are stored as identically-named attributes of the CCD.
 
         """
-        super().__init__(winds)
+        super().__init__(Windat, winds)
+
         self.nxtot = nxtot
         self.nytot = nytot
         if head is None:
@@ -70,14 +71,6 @@ class CCD(Agroup):
 
         if copy:
             self = self.copy()
-
-        if len(self):
-            # swift sanity check, 'cos it's easy to get confused
-            first = next(iter(self.values()))
-            if not isinstance(first, Windat):
-                raise ValueError(
-                    'CCD.__init__: values of "winds" must all be Windat objects')
-
 
     def __reduce__(self):
         """This is to overcome a problem with pickling CCDs. The arguments for
@@ -211,7 +204,7 @@ class CCD(Agroup):
                ... do something
 
         """
-        winds = Group()
+        winds = Group(Windat)
         nwin = 1
         first = True
 
@@ -226,7 +219,7 @@ class CCD(Agroup):
                 # CCD and return the old one.
                 if ccd_label != head['CCD']:
                     ccd = cls(winds, nxtot, nytot, main_head)
-                    winds = Group()
+                    winds = Group(Windat)
                     first = True
                     nwin = 1
                     yield (ccd_label,ccd)
@@ -251,7 +244,7 @@ class CCD(Agroup):
                 if 'WINDOW' in head:
                     label = head['WINDOW']
                 elif str(nwin) in winds:
-                    raise KeyError('CCD.rhdul: window label conflict')
+                    raise KeyError('window label conflict')
                 else:
                     label = str(nwin)
 
@@ -326,15 +319,15 @@ class CCD(Agroup):
         for key in self:
             if key not in ccd:
                 raise KeyError(
-                    'hipercam.CCD.matches: window {0:d} not found in ccd'.format(key))
+                    'window {0:d} not found in ccd'.format(key))
 
         for key in ccd:
             if key not in self:
                 raise KeyError(
-                    'hipercam.CCD.matches: window {0:d} not found in self'.format(key))
+                    'window {0:d} not found in self'.format(key))
 
         if self.nxtot != ccd.nxtot or self.nytot != ccd.nytot:
-            raise ValueError('hipercam.CCD.matches: self / ccd have conflicting total (nxtot,nytot): ({0:d},{1:d}) vs ({2:d},{3:d})'.format(self.nxtot,self.nytot,ccd.nxtot,ccd.nytot))
+            raise ValueError('self / ccd have conflicting total (nxtot,nytot): ({0:d},{1:d}) vs ({2:d},{3:d})'.format(self.nxtot,self.nytot,ccd.nxtot,ccd.nytot))
 
         for key, wind in self.items():
             wind.matches(ccd[key])
@@ -431,33 +424,25 @@ class MCCD(Agroup):
     """
 
     def __init__(self, ccds, head=None, copy=False):
-        """
-        Constructs a :class:`MCCD`
+        """Constructs a :class:`MCCD`
 
         Arguments::
 
           ccds : (Group)
-              Group of CCD objects, or something that can be loaded into
-              a Group.
+              Group of CCD objects.
 
           head : (astropy.io.fits.Header)
-              a header which will be written as the primary header. If head=None
-              on input, and empty header will be created.
+              a header which will be written as the primary header. If
+              head=None on input, and empty header will be created.
 
           copy : (bool)
               if True, copy all the data over, otherwise only references are
               held. Holding references is fine if the calling program keeps
               re-generating the data but could cause problems in some
               circumstances.
-        """
-        super().__init__(ccds)
 
-        if len(self):
-            # swift sanity check, 'cos it's easy to get confused
-            first = next(iter(self.values()))
-            if not isinstance(first, CCD):
-                raise ValueError(
-                    'MCCD.__init__: values of "ccds" must all be CCD objects')
+        """
+        super().__init__(CCD, ccds)
 
         if head is None:
             self.head = fits.Header()
@@ -543,7 +528,7 @@ class MCCD(Agroup):
         if 'NUMCCD' in head: del head['NUMCCD']
 
         # Attempt to read the rest of HDUs into a series of CCDs
-        ccds = Group()
+        ccds = Group(Windat)
         for label, ccd in CCD.rhdul(hdul[1:],True):
             ccds[label] = ccd
 
@@ -568,12 +553,12 @@ class MCCD(Agroup):
         for key in self:
             if key not in mccd:
                 raise KeyError(
-                    'hipercam.MCCD.matches: CCD {0:d} not found in mccd'.format(key))
+                    'CCD {0:d} not found in mccd'.format(key))
 
         for key in mccd:
             if key not in self:
                 raise KeyError(
-                    'hipercam.MCCD.matches: CCD {0:d} not found in self'.format(key))
+                    'CCD {0:d} not found in self'.format(key))
 
         for key, ccd in self.items():
             ccd.matches(mccd[key])

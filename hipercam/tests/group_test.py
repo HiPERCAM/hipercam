@@ -28,7 +28,7 @@ class TestGroup(unittest.TestCase):
                          'Agroup copy failed')
 
     def test_group_setitem(self):
-        group = Group()
+        group = Group(Window)
         window = Window(1,1,100,100,1,1)
         self.assertRaises(KeyError, group.__setitem__, 'a', window)
         group[1] = window

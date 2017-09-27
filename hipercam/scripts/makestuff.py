@@ -143,11 +143,11 @@ def makedata(args=None):
     deadtime = float(conf['timing']['deadtime'])
 
     # Generate the CCDs, store the read / gain values
-    ccds = hcam.Group()
+    ccds = hcam.Group(hcam.CCD)
     rgs = {}
     for cnam, pars in ccd_pars.items():
         # Generate the Windats
-        winds = hcam.Group()
+        winds = hcam.Group(hcam.Windat)
         rgs[cnam] = {}
         for key in conf:
             if key.startswith('window'):

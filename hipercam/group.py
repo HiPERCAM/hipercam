@@ -15,25 +15,27 @@ from .core import *
 __all__ = ('Group', 'Agroup')
 
 class Group(OrderedDict):
-    """A specialized OrderedDict for storing objects which all match in terms of
-    "instance" and are indexed by strings only. It will check for conflicts
-    between the stored objects if the objects have a method `clash` with
-    signature `clash(self, other)` which raises an exception if `self` and
-    `other` conflict in some way. The objects should support a `copy` method
-    to return a deepcopy. This is used in the :class:`Group`s copy operation.
+    """A specialized OrderedDict that allows only string keys and can enforce a
+    uniform type for the values. It will also check for conflicts between the
+    stored objects if the objects have a method `clash` with signature
+    `clash(self, other)` which raises an exception if `self` and `other`
+    conflict in some way. The objects should support a `copy` method to return
+    a deepcopy for use in the :class:`Group`s copy operation.
 
+    :class:`Group` is designed to amalgamate several of the classes used for
+    objects associated with CCDs such as :class:`Windat` (see :class:`CCD`),
+    and :class:`Aperture` (see :class:`CcdAper`)
     """
 
-    def __init__(self, *args, **kwargs):
-        """Group constructor; see `dict` for possible arguments. The keys are checked
-        to ensure that they are integers, and the object types are checked to
-        see that they are identical. The order of the keys is tracked to help
-        with file output.
-
-        Sets attribute `otype`, the type of the stored objects (used for
-        simple input checks)
+    def __init__(self, exobj, *args, **kwargs):
+        """Group constructor; see :class:`OrderedDict` for possible values of args and
+        kwargs. The first argument, `exobj`, is an example object class (e.g.
+        Windat, Aperture) defining the allowed instances. Set it to None if
+        you don't want to enforce a uniform type.
 
         """
+        # not quite sure whether the order next is right ...
+        self.exobj = exobj
         super().__init__(*args, **kwargs)
 
         # rather un-"pythonic" level of checking here, but better IMO
@@ -42,18 +44,14 @@ class Group(OrderedDict):
 
         # keys must be strings
         if any(not isinstance(key,str) for key in self.keys()):
-            raise HipercamError('Group.__init__: keys must be strings')
+            raise HipercamError('keys must be strings')
 
-        if len(self):
-            # iterator over stored objects
-            oiter = iter(self.values())
-
-            # type of first object
-            self.otype = type(next(oiter))
-
-            # check the rest have the same type
-            if any(not isinstance(obj, self.otype) for obj in oiter):
-                raise HipercamError('Group.__init__: more than one object type')
+        if len(self) and exobj is not None:
+            # check the type
+            if any(not isinstance(obj, exobj) for obj in self.values()):
+                raise HipercamError(
+                    'input object type clashes with {!s}'.format(exobj)
+                )
 
             try:
                 # check for clashes, an N*(N-1)/2 problem. 'clash'
@@ -73,21 +71,13 @@ class Group(OrderedDict):
         `Group`.
         """
         if not isinstance(key,str):
-            raise KeyError(
-                'Group.__setitem__: key must be an string')
+            raise KeyError('key must be an string')
 
         # store or check that the new item matches in type
-        if not hasattr(self, 'otype'):
-            if len(self):
-                raise ValueError(
-                    'Group.__setitem__: non-zero elements but otype not defined')
-            else:
-                self.otype = type(item)
-        else:
-            if not isinstance(item, self.otype):
-                raise HipercamError(
-                    'Group.__setitem__: key = ' + str(key) + ', item type (=' + str(type(item)) +
-                    ') differs from existing Group data type (=' + str(self.otype) + ')')
+        if self.exobj is not None and not isinstance(item, self.exobj):
+            raise HipercamError(
+                'key = {:s}: item = {!s} is not an instance of the example object = {!s}'.format(key,type(item),self.exobj)
+            )
 
         try:
             # check that the new item does not clash with any current one
@@ -106,8 +96,7 @@ class Group(OrderedDict):
         """Copy operation. The stored objects must have a `copy(self, memo)` method.
 
         """
-        group = Group()
-        group.otype = self.otype
+        group = Group(self.exobj)
         for key, val in self.items():
             group[key] = val.copy(memo)
         return group
@@ -125,7 +114,8 @@ class Group(OrderedDict):
         return self.copy(memo)
 
     def __repr__(self):
-        return 'Group([{}])'.format(
+        return 'Group(exobj={!r}, [{}])'.format(
+            self.exobj,
             ', '.join('({!r}, {!r})'.format(key,val)
                       for key, val in self.items())
         )
@@ -144,11 +134,14 @@ class Agroup(Group):
         """Copy operation.
 
         """
-        return Agroup(super().copy(memo))
+        agroup = Agroup(self.exobj)
+        for key, val in self.items():
+            agroup[key] = val.copy(memo)
+        return agroup
 
     def __iadd__(self, other):
         """Adds `other` to the :class:`Agroup` as 'self += other'. If `other` is
-        another :class:`Agroup` with the same object type (`otype`) as self,
+        another :class:`Agroup` with the same object type (`exobj`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
         to add to each object in the :class:`Agroup`.
@@ -158,7 +151,7 @@ class Agroup(Group):
 
         """
 
-        if isinstance(other, Agroup) and other.otype == self.otype:
+        if isinstance(other, Agroup) and isinstance(other.exobj,self.exobj):
             for key, obj in self.items():
                 if key in other:
                     obj += other[key]
@@ -170,7 +163,7 @@ class Agroup(Group):
 
     def __isub__(self, other):
         """Subtracts `other` from the :class:`Agroup` as 'self -= other'. If `other`
-        is another :class:`Agroup` with the same object type (`otype`) as
+        is another :class:`Agroup` with the same object type (`exobj`) as
         self, then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
         to subtract from each object in the :class:`Agroup`.
@@ -180,7 +173,7 @@ class Agroup(Group):
 
         """
 
-        if isinstance(other, Agroup) and other.otype == self.otype:
+        if isinstance(other, Agroup) and isinstance(other.exobj,self.exobj):
             for key, obj in self.items():
                 if key in other:
                     obj -= other[key]
@@ -192,7 +185,7 @@ class Agroup(Group):
 
     def __imul__(self, other):
         """Multiplies the :class:`Agroup` by `other` as 'self *= other'. If `other` is
-        another :class:`Agroup` with the same object type (`otype`) as self,
+        another :class:`Agroup` with the same object type (`exobj`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
         to multiply each object in the :class:`Agroup`.
@@ -202,7 +195,7 @@ class Agroup(Group):
 
         """
 
-        if isinstance(other, Agroup) and other.otype == self.otype:
+        if isinstance(other, Agroup) and isinstance(other.exobj,self.exobj):
             for key, obj in self.items():
                 if key in other:
                     obj *= other[key]
@@ -214,7 +207,7 @@ class Agroup(Group):
 
     def __itruediv__(self, other):
         """Divides the :class:`Agroup` by `other` as 'self /= other'. If `other` is
-        another :class:`Agroup` with the same object type (`otype`) as self,
+        another :class:`Agroup` with the same object type (`exobj`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
         to divide into each object in the :class:`Agroup`.
@@ -224,7 +217,7 @@ class Agroup(Group):
 
         """
 
-        if isinstance(other, Agroup) and other.otype == self.otype:
+        if isinstance(other, Agroup) and isinstance(other.exobj,self.exobj):
             for key, obj in self.items():
                 if key in other:
                     obj /= other[key]
@@ -236,7 +229,7 @@ class Agroup(Group):
 
     def __add__(self, other):
         """Adds `other` to the :class:`Agroup` as '= self + other'. If `other` is
-        another :class:`Agroup` with the same object type (`otype`) as self,
+        another :class:`Agroup` with the same object type (`exobj`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
         to add to each object in the :class:`Agroup`.
@@ -251,7 +244,7 @@ class Agroup(Group):
 
     def __sub__(self, other):
         """Subtracts `other` from the :class:`Agroup` as '= self - other'. If `other` is
-        another :class:`Agroup` with the same object type (`otype`) as self,
+        another :class:`Agroup` with the same object type (`exobj`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
         to subtract from each object in the :class:`Agroup`.
@@ -266,7 +259,7 @@ class Agroup(Group):
 
     def __mul__(self, other):
         """Multiplies the :class:`Agroup` by `other` as '= self * other'. If `other`
-        is another :class:`Agroup` with the same object type (`otype`) as
+        is another :class:`Agroup` with the same object type (`exobj`) as
         self, then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
         to multiply each object in the :class:`Agroup`.
@@ -281,7 +274,7 @@ class Agroup(Group):
 
     def __truediv__(self, other):
         """Divides the :class:`Agroup` by `other` as '= self / other'. If `other` is
-        another :class:`Agroup` with the same object type (`otype`) as self,
+        another :class:`Agroup` with the same object type (`exobj`) as self,
         then the operation will be applied to each pair of objects with
         matching keys. Otherwise `other` will be regarded as a constant object
         to divide into each object in the :class:`Agroup`.
@@ -320,7 +313,8 @@ class Agroup(Group):
         return cself
 
     def __repr__(self):
-        return 'Agroup([{}])'.format(
+        return 'Agroup(exobj={!r}, [{}])'.format(
+            self.exobj,
             ', '.join('({!r}, {!r})'.format(key,val)
                       for key, val in self.items())
         )

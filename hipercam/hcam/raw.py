@@ -496,9 +496,9 @@ class Rdata (Rhead):
         QNAMS = ('E', 'F', 'G', 'H')
 
         # initialise CCDs with empty Groups. These will be added to later
-        ccds = Group()
+        ccds = Group(CCD)
         for cnam, chead in zip(CNAMS, self.cheads):
-            ccds[cnam] = CCD(Group(), HCM_NXTOT, HCM_NYTOT, chead)
+            ccds[cnam] = CCD(Group(Windat), HCM_NXTOT, HCM_NYTOT, chead)
 
         # npixel points to the start pixel of the set of windows under
         # consideration
