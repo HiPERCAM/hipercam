@@ -7,6 +7,9 @@ import numpy as np
 import json
 from collections import OrderedDict
 from .core import *
+from .group import *
+
+__all__ = ('Aperture',)
 
 class Aperture(object):
 
@@ -121,7 +124,7 @@ class Aperture(object):
         return json.load(fp, cls=_decoder)
 
 
-# classes to support JSON serialisation
+# classes to support JSON serialisation of Aperture objects
 class _encoder(json.JSONEncoder):
     def default(self, aperture):
         return OrderedDict((
@@ -147,3 +150,33 @@ class _decoder(json.JSONDecoder):
         else:
             return jobj
 
+
+class CcdAper(Group):
+    """Class representing all the :class:Apertures for a single CCD.
+    Normal usage is to create an empty one and then add
+    """
+
+    def __init__(self, aps=Group()):
+        """Constructs a :class:`CcdAper`.
+
+        Arguments::
+
+          aps : (Group)
+              Group of :class:`Aperture` objects
+        """
+        super().__init__(aps)
+
+        if len(self):
+            # swift sanity check, 'cos it's easy to get confused
+            first = next(iter(self.values()))
+            if not isinstance(first, Windat):
+                raise ValueError(
+                    'values of "aps" must all be Aperture objects')
+
+    def __setitem__(self, key, item):
+        if not isinstance(item, Aperture):
+            raise HipercamError(
+                'key = ' + str(key) + ', item type (=' + str(type(item)) +
+                ') is not "Aperture"'
+            )
+        super().__setitem__(key, item)
