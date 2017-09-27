@@ -3,11 +3,13 @@
 matplotlib plotting functions.
 """
 
+from matplotlib.patches import Circle
+
 from .core import *
 from .window import *
 from .ccd import *
 
-def pwin(axes, win, col='k', lw=1, **kwargs):
+def pWin(axes, win, col='k', lw=1, **kwargs):
     """
     Plots boundary of a :class:`Window` as a line. (matplotlib)
     Arguments::
@@ -31,7 +33,7 @@ def pwin(axes, win, col='k', lw=1, **kwargs):
     axes.plot([left,right,right,left,left],[bottom,bottom,top,top,bottom],
               color=col, lw=lw, **kwargs)
 
-def pwind(axes, wind, col='k', lw=1, aspect='equal', **kwargs):
+def pWind(axes, wind, col='k', lw=1, aspect='equal', **kwargs):
     """Plots :class:`Windata` as an image with a line border. (matplotlib).
     Note that the keyword arguments are only passed to :func:`imshow` and
     you should plot the border separately if you want anything out of the
@@ -70,9 +72,9 @@ def pwind(axes, wind, col='k', lw=1, aspect='equal', **kwargs):
         axes.imshow(wind.data,extent=(left,right,bottom,top),
                     aspect=aspect,origin='lower',cmap='Greys',
                     interpolation='nearest',**kwargs)
-    pwin(axes, wind, col, lw)
+    pWin(axes, wind, col, lw)
 
-def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
+def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
          label=True, col='k', lw=1, aspect='equal', **kwargs):
     """Plots :class:`CCD` as a set of :class:`Windata` objects correctly
     positioned with respect to each other. The keyword arguments
@@ -135,13 +137,13 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
         vmin, vmax = dlo, dhi
 
     else:
-        raise ValueError('mpl.pccd: did not recognise iset = "' +
+        raise ValueError('did not recognise iset = "' +
                          iset + '"')
     kwargs['vmin'] = vmin
     kwargs['vmax'] = vmax
 
     for key, wind in ccd.items():
-        pwind(axes, wind, col, lw, aspect, **kwargs)
+        pWind(axes, wind, col, lw, aspect, **kwargs)
 
     # plot outermost border of CCD
     axes.plot([0.5,ccd.nxtot+0.5,ccd.nxtot+0.5,0.5,0.5],
@@ -149,3 +151,35 @@ def pccd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
               color=col, lw=lw)
 
     return (vmin,vmax)
+
+def pAper(axes, aper):
+    """
+    Plots an :class:`Aperture` object.
+
+    Arguments::
+
+      axes : (:class:`matplotlib.axes.Axes`)
+           the Axes to plot to.
+
+      aper : (Aperture)
+           the :class:`Aperture` to plot
+    """
+    # create circles
+    axes.add_patch(Circle((aper.x,aper.y),aper.r1,fill=False))
+    axes.add_patch(Circle((aper.x,aper.y),aper.r2,fill=False))
+    axes.add_patch(Circle((aper.x,aper.y),aper.r3,fill=False))
+
+def pCcdAper(axes, ccdAper):
+    """
+    Plots a :class:`CcdAper` object.
+
+    Arguments::
+
+      axes    : (:class:`matplotlib.axes.Axes`)
+           the Axes to plot to.
+
+      ccdAper : (CcdAper)
+           the :class:`CcdAper` to plot
+    """
+    for key, aper in ccdAper.items():
+        pAper(axes, aper)

@@ -446,7 +446,7 @@ def rtplot(args=None):
                 ix = (nc % nx) + 1
                 iy = nc // nx + 1
                 pgpanl(ix,iy)
-                vmin, vmax = hcam.pgp.pccd(ccd,iset,plo,phi,ilo,ihi)
+                vmin, vmax = hcam.pgp.pCcd(ccd,iset,plo,phi,ilo,ihi)
 
                 # accumulate string of image scalings
                 if nc:

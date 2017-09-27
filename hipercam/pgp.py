@@ -14,7 +14,7 @@ from .ccd import *
 
 __all__ = (
     'Params', 'Device',
-    'pwin', 'pwind', 'pccd'
+    'pWin', 'pWind', 'pCcd'
     )
 
 
@@ -67,7 +67,7 @@ class Device(PGdevice):
         for i, (r,g,b) in enumerate(Params['cis']):
             pgscr(i,r,g,b)
 
-def pwin(win, label=None):
+def pWin(win, label=None):
     """
     Plots boundary of a :class:`Window` as a line. (PGPLOT)
     Plots to the current device with current line width, colour
@@ -92,7 +92,7 @@ def pwin(win, label=None):
         pgsch(Params['win.label.ch'])
         pgptxt(left,bottom,0,1.3,label)
 
-def pwind(wind, vmin, vmax, label=None):
+def pWind(wind, vmin, vmax, label=None):
     """Plots :class:`Windata` as an image with a line border. (PGPLOT).
 
     Arguments::
@@ -112,9 +112,9 @@ def pwind(wind, vmin, vmax, label=None):
     tr = [wind.llx+(wind.xbin-1)/2,wind.xbin,0,
           wind.lly+(wind.ybin-1)/2,0,wind.ybin]
     pggray(wind.data, vmax, vmin, tr)
-    pwin(wind, label)
+    pWin(wind, label)
 
-def pccd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.):
+def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.):
     """Plots :class:`CCD` as a set of :class:`Windata` objects correctly
     positioned with respect to each other.
 
@@ -155,11 +155,11 @@ def pccd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.):
 
     else:
         raise ValueError(
-            'pgp.pccd: did not recognise iset = "' + iset + '"'
+            'did not recognise iset = "' + iset + '"'
         )
 
     for key, wind in ccd.items():
-        pwind(wind, vmin, vmax, '{!s}'.format(key))
+        pWind(wind, vmin, vmax, '{!s}'.format(key))
 
     # plot outermost border of CCD
     pgsci(Params['ccd.box.ci'])
