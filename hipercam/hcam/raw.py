@@ -527,7 +527,7 @@ class Rdata (Rhead):
                     win, flip_axes = self.windows[nwin][nccd][nquad]
 
                     # get the window data and apply flips
-                    windata = data[nccd, nwin]
+                    windata = data[nccd, nquad]
                     for ax in flip_axes:
                         windata = np.flip(windata, ax)
 
