@@ -212,4 +212,4 @@ def pCcdAper(axes, ccdAper):
            the :class:`CcdAper` to plot
     """
     for key, aper in ccdAper.items():
-        pAper(axes, aper)
+        pAper(axes, aper, key)
