@@ -219,12 +219,10 @@ def hplot(args=None):
                 for wind in mccd[cnam].values():
                     wind -= wind.median()
 
-            vmin, vmax = hcam.mpl.pCcd(axes,mccd[cnam],iset,plo,phi,ilo,ihi)
+            vmin, vmax = hcam.mpl.pCcd(
+                axes,mccd[cnam],iset,plo,phi,ilo,ihi,'CCD {:s}'.format(cnam)
+                )
             print('CCD =',cnam,'plot range =',vmin,'to',vmax)
-
-            axes.set_title('CCD {:s}'.format(cnam))
-            axes.set_xlabel('X')
-            axes.set_ylabel('Y')
 
         plt.tight_layout()
         if hard == '':
@@ -248,7 +246,7 @@ def hplot(args=None):
             pgsci(hcam.pgp.Params['axis.ci'])
             pgsch(hcam.pgp.Params['axis.number.ch'])
             pgenv(xlo, xhi, ylo, yhi, 1, 0)
-            pglab('X','Y','CCD {:s}'.format(cnam))
-            vmin, vmax = hcam.pgp.pCcd(mccd[cnam],iset,plo,phi,ilo,ihi)
+
+            vmin, vmax = hcam.pgp.pCcd(mccd[cnam],iset,plo,phi,ilo,ihi,'CCD {:s}'.format(cnam))
             print('CCD =',cnam,'plot range =',vmin,'to',vmax)
 
