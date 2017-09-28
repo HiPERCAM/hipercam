@@ -431,7 +431,8 @@ class PickStar:
             elif key == 'Q':
                 # quit and clear up
                 plt.close()
-                self.mccdaper.toJson(self.apernam)
+                with open(self.apernam,'w') as fp:
+                    self.mccdaper.toJson(fp)
                 print('apertures saved to {:s} bye'.format(self.apernam))
 
             elif key == 'enter':
