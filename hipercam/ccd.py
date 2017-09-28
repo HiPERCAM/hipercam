@@ -454,7 +454,8 @@ class MCCD(Agroup):
     def __reduce__(self):
         """This is to overcome a problem with pickling MCCDs. The arguments for
         init don't get picked up for some reason so this must return them in
-        the second element of the tuple"""
+        the second element of the tuple
+        """
         return (self.__class__, (list(self.items()), self.head))
 
     def wfits(self, fname, overwrite=False):
@@ -528,7 +529,7 @@ class MCCD(Agroup):
         if 'NUMCCD' in head: del head['NUMCCD']
 
         # Attempt to read the rest of HDUs into a series of CCDs
-        ccds = Group(Windat)
+        ccds = Group(CCD)
         for label, ccd in CCD.rhdul(hdul[1:],True):
             ccds[label] = ccd
 
