@@ -9,31 +9,68 @@ from .core import *
 from .window import *
 from .ccd import *
 
-def pWin(axes, win, col='k', lw=1, **kwargs):
+# some look-and-feel globals.
+Params = {
+
+    # axis label fontsize
+    'axis.label.fs' : 14,
+
+    # axis label colour
+    'axis.label.col' : CIS[2],
+
+    # axis number fontsize
+    'axis.number.fs' : 14,
+
+    # axis colour
+    'axis.col' : CIS[4],
+
+    # window box colour
+    'ccd.box.col' : CIS[1],
+
+    # window label font size
+    'win.label.fs' : 12,
+
+    # window label colour
+    'win.label.col' : CIS[5],
+
+    # window box colour
+    'win.box.col' : CIS[7],
+
+    # aperture target colour
+    'aper.target.col' : CIS[3],
+
+    # aperture sky colour
+    'aper.sky.col' : CIS[2],
+
+    # aperture label colour
+    'aper.label.col' : CIS[6],
+}
+
+def pWin(axes, win, label=''):
     """
     Plots boundary of a :class:`Window` as a line. (matplotlib)
     Arguments::
 
-      axes : (:class:`matplotlib.axes.Axes`)
+      axes   : (:class:`matplotlib.axes.Axes`)
            the Axes to plot to.
 
-      win : (Window)
+      win    : (Window)
            the :class:`Window` to plot
 
-      col : (matplotlib colour)
-           the colour to use
-
-      lw : (float)
-           linewidth in points
+      label  : (string)
+           label to attach to the Window
 
       kwargs : (keyword arguments)
            other arguments to feed to :func:`matplotlib.pyplot.plot`
     """
     left,right,bottom,top = win.extent()
     axes.plot([left,right,right,left,left],[bottom,bottom,top,top,bottom],
-              color=col, lw=lw, **kwargs)
+              color=Params['win.box.col'])
+    if label != '':
+        axes.text(left-3,bottom-3,label,fontsize=Params['win.label.fs'],
+                  color=Params['win.label.col'], ha='right', va='top')
 
-def pWind(axes, wind, col='k', lw=1, aspect='equal', **kwargs):
+def pWind(axes, wind,  vmin, vmax, label=''):
     """Plots :class:`Windata` as an image with a line border. (matplotlib).
     Note that the keyword arguments are only passed to :func:`imshow` and
     you should plot the border separately if you want anything out of the
@@ -48,38 +85,25 @@ def pWind(axes, wind, col='k', lw=1, aspect='equal', **kwargs):
       wind : (Windata)
            the :class:`Windata` to plot
 
-      col : (matplotlib colour)
-           the colour to use for the border
+      vmin : (float)
+           image value at minimum intensity
 
-      lw : (float)
-           linewidth of the border in points (0 to skip)
-
-      aspect : (string)
-           aspect ratio
-
-      kwargs : (keyword arguments)
-           other arguments to feed to :func:`matplotlib.pyplot.imshow`.
-           Useful ones are 'vmin', 'vmax', 'cmap'
-
+      vmax : (float)
+           image value at maximum intensity
     """
     left,right,bottom,top = wind.extent()
 
-    if 'cmap' in kwargs:
-        axes.imshow(wind.data,extent=(left,right,bottom,top),
-                    aspect=aspect,origin='lower',
-                    interpolation='nearest',**kwargs)
-    else:
-        axes.imshow(wind.data,extent=(left,right,bottom,top),
-                    aspect=aspect,origin='lower',cmap='Greys',
-                    interpolation='nearest',**kwargs)
-    pWin(axes, wind, col, lw)
+    # plot image
+    axes.imshow(wind.data,extent=(left,right,bottom,top),
+                aspect='equal',origin='lower',cmap='Greys',
+                interpolation='nearest',vmin=vmin,vmax=vmax)
 
-def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
-         label=True, col='k', lw=1, aspect='equal', **kwargs):
+    # plot window border
+    pWin(axes, wind, label)
+
+def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
     """Plots :class:`CCD` as a set of :class:`Windata` objects correctly
-    positioned with respect to each other. The keyword arguments
-    are passed to :func:`imshow`. If no colour map
-    ('cmap') is specified, it will be set to 'Greys'
+    positioned with respect to each other.
 
     Arguments::
 
@@ -106,24 +130,11 @@ def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
       dhi : (float)
            value to use for upper intensity limit (if iset='d')
 
-      label : (boolean)
-           whether to attach a label to the Windows or not.
+      tlabel : (string)
+           label to use for top of plot; 'X' and 'Y' will also be added if this is
+           not blank.
 
-      col : (matplotlib colour)
-           the colour to use for the borders
-
-      lw : (float)
-           linewidth of the borders in points (0 to skip)
-
-      aspect : (string)
-           aspect ratio
-
-      kwargs : (keyword arguments)
-           other arguments to feed to :func:`matplotlib.pyplot.imshow`.
-           'cmap' is useful. 'vmin' and 'vmax' are overridden by the
-           iset method.
-
-    Returns: (vmin,vmax) the intensity limits used.
+    Returns: (vmin,vmax), the intensity limits used.
     """
     if iset == 'p':
         # Set intensities from percentiles
@@ -137,37 +148,45 @@ def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000.,
         vmin, vmax = dlo, dhi
 
     else:
-        raise ValueError('did not recognise iset = "' +
-                         iset + '"')
-    kwargs['vmin'] = vmin
-    kwargs['vmax'] = vmax
+        raise ValueError('did not recognise iset = "' + iset + '"')
 
     for key, wind in ccd.items():
-        pWind(axes, wind, col, lw, aspect, **kwargs)
+        pWind(axes, wind, vmin, vmax, key)
 
     # plot outermost border of CCD
     axes.plot([0.5,ccd.nxtot+0.5,ccd.nxtot+0.5,0.5,0.5],
               [0.5,0.5,ccd.nytot+0.5,ccd.nytot+0.5,0.5],
-              color=col, lw=lw)
+              color=Params['ccd.box.col'])
+    if tlabel != '':
+        axes.set_title(tlabel,color=Params['axis.label.col'],fontsize=Params['axis.label.fs'])
+        axes.set_xlabel('X',color=Params['axis.label.col'],fontsize=Params['axis.label.fs'])
+        axes.set_ylabel('Y',color=Params['axis.label.col'],fontsize=Params['axis.label.fs'])
 
     return (vmin,vmax)
 
-def pAper(axes, aper):
+def pAper(axes, aper, label=''):
     """
     Plots an :class:`Aperture` object.
 
     Arguments::
 
-      axes : (:class:`matplotlib.axes.Axes`)
+      axes  : (:class:`matplotlib.axes.Axes`)
            the Axes to plot to.
 
-      aper : (Aperture)
+      aper  : (Aperture)
            the :class:`Aperture` to plot
+
+      label : (string)
+           a string label to add
     """
     # create circles
-    axes.add_patch(Circle((aper.x,aper.y),aper.r1,fill=False))
+    axes.add_patch(Circle((aper.x,aper.y),aper.r1,fill=False,color=Params['aper.target.col']))
     axes.add_patch(Circle((aper.x,aper.y),aper.r2,fill=False))
     axes.add_patch(Circle((aper.x,aper.y),aper.r3,fill=False))
+
+    if label != '':
+        axes.text(aper.x-aper.rsky2,aper.y-aper.rsky2,label,
+                  color=Params['aper.label.col'],ha='right',va='top')
 
 def pCcdAper(axes, ccdAper):
     """
