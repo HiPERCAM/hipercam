@@ -32,6 +32,17 @@ def setaper(args=None):
          prompted for the number of panels in the X direction. This parameter
          will not be prompted if there is only one CCD in the file.
 
+      rtarg  : (float) [unbinned pixels]
+         radius of target aperture. The exact value of this does not matter too much since
+         it is normally overridden in 'reduce', but typically one aims for 1.5 to 2.5 x FWHM,
+         seeing, depending upon the target brightness.
+
+      rsky1  : (float) [unbinned pixels]
+         inner radius of sky aperture.
+
+      rsky2  : (float) [unbinned pixels]
+         radius of target aperture
+
       nx     : (int)
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
@@ -89,6 +100,9 @@ def setaper(args=None):
         # register parameters
         cl.register('input', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('rtarg', Cline.LOCAL, Cline.PROMPT)
+        cl.register('rsky1', Cline.LOCAL, Cline.PROMPT)
+        cl.register('rsky2', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
@@ -121,14 +135,20 @@ def setaper(args=None):
                 ccds = list(mccd.keys())
             else:
                 ccds = ccd.split()
-            if len(ccds) > 1:
-                nxdef = min(len(ccds), nxdef)
-                cl.set_default('nx', nxdef)
-                nx = cl.get_value('nx', 'number of panels in X', 3, 1)
-            else:
-                nx = 1
         else:
             ccds = list(mccd.keys())
+
+        # aperture radii
+        rtarg = cl.get_value('rtarg', 'target aperture radius [unbinned pixels]', 10., 0.)
+        rsky1 = cl.get_value('rsky1', 'inner sky aperture radius [unbinned pixels]', 15., 0.)
+        rsky2 = cl.get_value('rsky2', 'outer sky aperture radius [unbinned pixels]', 25., 0.)
+
+        # number of panels in X
+        if len(ccds) > 1:
+            nxdef = min(len(ccds), nxdef)
+            cl.set_default('nx', nxdef)
+            nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+        else:
             nx = 1
 
         # define the display intensities
@@ -164,8 +184,7 @@ def setaper(args=None):
     else:
         fig = plt.figure()
 
-    # get the navigation toolbar which we use to check the 
-    # pan/zoom mode
+    # get the navigation toolbar which is used to check the pan/zoom mode
     toolbar = fig.canvas.manager.toolbar
 
     nccd = len(ccds)
@@ -187,17 +206,16 @@ def setaper(args=None):
             for wind in mccd[cnam].values():
                 wind -= wind.median()
 
-        hcam.mpl.pCcd(axes,mccd[cnam],iset,plo,phi,ilo,ihi)
-
-        plt.title('CCD {:s}'.format(cnam))
-        plt.xlabel('X')
-        plt.ylabel('Y')
+        hcam.mpl.pCcd(
+            axes,mccd[cnam],iset,plo,phi,ilo,ihi,'CCD {:s}'.format(cnam)
+            )
 
         # keep track of the CCDs associated with each axes
         cnams[axes] = cnam
 
-    # define the picker for each CCD
-    picker = PickStar(cnams, toolbar, fig)
+    # define the aperture picker
+    ccdaper = hcam.CcdAper()
+    picker = PickStar(cnams, toolbar, fig, ccdaper)
 
     plt.tight_layout()
     print('a(dd), r(emove) p(an/zoom), h(elp), q(uit)')
@@ -211,7 +229,7 @@ class PickStar:
     """Class to pick targets for apertures.
     """
 
-    def __init__(self, cnams, toolbar, fig):
+    def __init__(self, cnams, toolbar, fig, rtarg, rsky1, rsky2, ccdaper):
         """
         axes is dictionary keyed by CCD label of the axes
         """
@@ -219,6 +237,10 @@ class PickStar:
         self.toolbar = toolbar
         self.fig = fig
         self.fig.canvas.mpl_connect('key_press_event', self._keyPressEvent)
+        self.rtarg = rtarg
+        self.rsky1 = rsky1
+        self.rsky2 = rsky2
+        self.ccdaper = ccdaper
 
     def _keyPressEvent(self, event):
         """
@@ -231,7 +253,27 @@ class PickStar:
                 print('p(an/zoom) : toggle between pan/zoom vs selection mode')
                 print('r(emove)   : remove an aperture')
                 print('h(elp)     : print this list')
+
             elif event.key == 'a':
+                # add a new aperture
+                while 1:
+                    label = input("enter a label for the aperture, '!' to abort: ")
+                    if label in ccdaper:
+                        print(
+                            'label={:s} already in use; please try again'.format(label),
+                            file=sys.stderr
+                            )
+                    elif label == '':
+                        print(
+                            'label blank; please try again'.format(label),
+                            file=sys.stderr
+                            )
+                    elif label != '!':
+                        # add & plot aperture
+                        aper = hcam.Aperture(event.x, event.y, rtarg, rsky1, rsky2)
+                        ccdaper[label] = aper
+                        hcam.mpl.pAper(event.inaxes, aper)
+                        
                 print('will add an aperture to CCD',cnam)
             elif event.key == 'p':
                 pass
