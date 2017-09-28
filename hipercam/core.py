@@ -8,7 +8,7 @@ import numpy as np
 
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'add_extension',
-    'HipercamError', 'HipercamWarning'
+    'HipercamError', 'HipercamWarning', 'CIS'
 )
 
 # Constants for general use
@@ -19,6 +19,21 @@ HCAM = '.hcm'
 LIST = '.lis'
 APER = '.ape'
 HRAW = '.fits'
+
+# For compatibility between PGPLOT and matplotlib, establish a uniform
+# set of colours. These are fed directly to matplotlib, and used to override
+# the colour indices used by PGPLOT. Could extend from 0 to 15 max.
+CIS = (
+    (1,1,1),      # 0 -- white
+    (0,0,0),      # 1 -- black
+    (0.5,0,0),    # 2 -- red
+    (0,0.5,0),    # 3 -- green
+    (0,0,0.5),    # 4 -- blue
+    (0.5,0.3,0),  # 5 -- yellow
+    (0.5,0,0.5),  # 6 -- purple
+    (0,0.5,0.5),  # 7 -- turqoise
+    )
+
 
 def add_extension(fname, ext):
     """Add extension ext to a file name if it is not already there, and returns
