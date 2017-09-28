@@ -454,8 +454,7 @@ class MCCD(Agroup):
     def __reduce__(self):
         """This is to overcome a problem with pickling MCCDs. The arguments for
         init don't get picked up for some reason so this must return them in
-        the second element of the tuple
-        """
+        the second element of the tuple"""
         return (self.__class__, (list(self.items()), self.head))
 
     def wfits(self, fname, overwrite=False):
