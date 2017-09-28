@@ -37,7 +37,10 @@ Params = {
     'win.box.col' : CIS[7],
 
     # aperture target colour
-    'aper.target.col' : CIS[3],
+    'aper.target.col' : CIS[1],
+
+    # aperture reference target colour
+    'aper.reference.col' : CIS[3],
 
     # aperture sky colour
     'aper.sky.col' : CIS[2],
@@ -179,10 +182,18 @@ def pAper(axes, aper, label=''):
       label : (string)
            a string label to add
     """
-    # create circles
-    axes.add_patch(Circle((aper.x,aper.y),aper.r1,fill=False,color=Params['aper.target.col']))
-    axes.add_patch(Circle((aper.x,aper.y),aper.r2,fill=False))
-    axes.add_patch(Circle((aper.x,aper.y),aper.r3,fill=False))
+    # draw circles to represent the aperture
+    if aper.ref:
+        axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
+                              color=Params['aper.reference.col']))
+    else:
+        axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
+                              color=Params['aper.target.col']))
+
+    axes.add_patch(Circle((aper.x,aper.y),aper.rsky1,fill=False,
+                          color=Params['aper.sky.col']))
+    axes.add_patch(Circle((aper.x,aper.y),aper.rsky2,fill=False,
+                          color=Params['aper.sky.col']))
 
     if label != '':
         axes.text(aper.x-aper.rsky2,aper.y-aper.rsky2,label,
