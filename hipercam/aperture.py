@@ -15,7 +15,7 @@ class Aperture(object):
 
     """Class representing a photometric aperture for measuring the flux of a
     star. At its most basic this consists of 3 circles representing the
-    object, radius `r1`, and the sky annulus between radii `r2` and `r3`,
+    object, radius `rtarg`, and the sky annulus between radii `r2` and `r3`,
     centered at a specific position, but there are several extra
     characteristics in addition. These are:
 
@@ -37,37 +37,37 @@ class Aperture(object):
 
     """
 
-    def __init__(self, x, y, r1, r2, r3, ref, link=None, mask=[], extra=[]):
+    def __init__(self, x, y, rtarg, rsky1, rsky2, ref, link=None, mask=[], extra=[]):
         """
         Constructor. Arguments::
 
-        x  : (float)
+        x     : (float)
             X position of centre of aperture, or the X offset to apply
             if the aperture is linked from another.
 
-        y  : (float)
+        y     : (float)
             Y position of centre of aperture, or the Y offset to apply
             if the aperture is linked from another.
 
-        r1 : (float)
+        rtarg : (float)
             Radius (unbinned pixels) of target aperture
 
-        r2 : (float)
+        rsky1 : (float)
             Inner radius (unbinned pixels) of sky annulus
 
-        r3 : (float)
+        rsky2 : (float)
             Outer radius (unbinned pixels) of sky annulus
 
-        ref : (bool)
+        ref   : (bool)
             True/False to indicate whether this is a reference
             aperture meaning that its position will be re-determined
             before non-reference apertures to provide a shift.
 
-        link : (Aperture / None)
+        link  : (Aperture / None)
             If set, this is an Aperture that *this* Aperture is linked from.
             Set to `None` for no link.
 
-        mask : (list of 3 element tuples)
+        mask  : (list of 3 element tuples)
             Each tuple in the list consists of an x,y offset and a radius in
             unbinned pixels. These are used to mask nearby areas when
             determining the sky value (e.g. to exclude stars)
@@ -85,17 +85,17 @@ class Aperture(object):
 
         self.x = x
         self.y = y
-        self.r1 = r1
-        self.r2 = r2
-        self.r3 = r3
+        self.rtarg = rtarg
+        self.rsky1 = rsky1
+        self.rsky2 = rsky2
         self.ref = ref
         self._link = link
         self._mask = mask
         self._extra = extra
 
     def __repr__(self):
-        return 'Aperture(x={!r}, y={!r}, r1={!r}, r2={!r}, r3={!r}, ref={!r}, link={!r}, mask={!r}, extra={!r})'.format(
-            self.x,self.y,self.r1,self.r2,self.r3,self.ref,self._link,self._mask,self._extra
+        return 'Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, link={!r}, mask={!r}, extra={!r})'.format(
+            self.x,self.y,self.rtarg,self.rsky1,self.rsky2,self.ref,self._link,self._mask,self._extra
             )
 
     def add_mask(self, xoff, yoff, radius):
@@ -131,9 +131,9 @@ class _encoder(json.JSONEncoder):
                 ('Comment', 'This is an Aperture object'),
                 ('x', aperture.x),
                 ('y', aperture.y),
-                ('r1', aperture.r1),
-                ('r2', aperture.r2),
-                ('r3', aperture.r3),
+                ('rtarg', aperture.rtarg),
+                ('rsky1', aperture.rsky1),
+                ('rsky2', aperture.rsky2),
                 ('link', aperture._link),
                 ('mask', aperture._mask),
                 ('extra', aperture._extra),
@@ -145,9 +145,9 @@ class _decoder(json.JSONDecoder):
         super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, jobj):
-        if 'r1' in jobj and 'r2' in jobj and 'r3' in jobj and 'link' in jobj:
+        if 'rtarg' in jobj and 'rsky1' in jobj and 'rsky2' in jobj and 'link' in jobj:
             return Aperture(
-                jobj['x'],jobj['y'],jobj['r1'],jobj['r2'],jobj['r3'],
+                jobj['x'],jobj['y'],jobj['rtarg'],jobj['rsky1'],jobj['rsky2'],
                 jobj['link'],jobj['mask'],jobj['extra']
             )
         else:
