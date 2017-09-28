@@ -1,6 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Defines a class to represent a photometric apertures.
+Defines classes to represent photometric apertures. These support
+JSON-style serialisation to allow apertures to be saved to disk in
+a fairly easily read and editable format.
 """
 
 import numpy as np
@@ -9,7 +11,7 @@ from collections import OrderedDict
 from .core import *
 from .group import *
 
-__all__ = ('Aperture',)
+__all__ = ('Aperture', 'CcdAper', 'MccdAper')
 
 class Aperture(object):
 
@@ -37,7 +39,7 @@ class Aperture(object):
 
     """
 
-    def __init__(self, x, y, rtarg, rsky1, rsky2, ref, link=None, mask=[], extra=[]):
+    def __init__(self, x, y, rtarg, rsky1, rsky2, ref, mask=[], extra=[], link=''):
         """
         Constructor. Arguments::
 
@@ -63,10 +65,6 @@ class Aperture(object):
             aperture meaning that its position will be re-determined
             before non-reference apertures to provide a shift.
 
-        link  : (Aperture / None)
-            If set, this is an Aperture that *this* Aperture is linked from.
-            Set to `None` for no link.
-
         mask  : (list of 3 element tuples)
             Each tuple in the list consists of an x,y offset and a radius in
             unbinned pixels. These are used to mask nearby areas when
@@ -79,6 +77,11 @@ class Aperture(object):
             typically blended stars that cannot be allowed to straddle the
             edge of the inner target aperture.
 
+        link  : (string)
+            If != '', this is a string label for another :class:Aperture that *this* 
+            :class:Aperture is linked from. The idea is that this label can be used
+            to lookup the :class:Aperture.
+
         Notes: normal practice would be to set link, mask, extra later, having created
         the Aperture
         """
@@ -89,13 +92,14 @@ class Aperture(object):
         self.rsky1 = rsky1
         self.rsky2 = rsky2
         self.ref = ref
-        self._link = link
         self._mask = mask
         self._extra = extra
+        self._link = link
 
     def __repr__(self):
-        return 'Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, link={!r}, mask={!r}, extra={!r})'.format(
-            self.x,self.y,self.rtarg,self.rsky1,self.rsky2,self.ref,self._link,self._mask,self._extra
+        return 'Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, mask={!r}, extra={!r}, link={!r})'.format(
+            self.x, self.y, self.rtarg, self.rsky1, self.rsky2, self.ref,
+            self._mask, self._extra, self._link
             )
 
     def add_mask(self, xoff, yoff, radius):
@@ -106,60 +110,31 @@ class Aperture(object):
         """Adds a mask to the :class:Aperture"""
         self._extra.append((xoff,yoff,radius))
 
-    def set_link(self, aperture):
-        """Links this :class:Aperture to another"""
-        self._link = aperture
+    def set_link(self, aplabel):
+        """Links this :class:Aperture to a lookup label for another"""
+        self._link = aplabel
 
     def break_link(self):
         """Cancels any link to another :class:Aperture"""
-        self._link = None
+        self._link = ''
 
     def toJson(self, fp):
-        """Write in JSON-format to file pointer fp"""
-        json.dump(self, fp, cls=_encoder, indent=2)
+        """Dumps Aperture in JSON format to fp"""
+        json.dump(self, fp, cls=_Encoder, indent=2)
 
     @classmethod
     def fromJson(cls, fp):
         """Read from JSON-format file pointer fp"""
-        return json.load(fp, cls=_decoder)
-
-
-# classes to support JSON serialisation of Aperture objects
-class _encoder(json.JSONEncoder):
-    def default(self, aperture):
-        return OrderedDict((
-                ('Comment', 'This is an Aperture object'),
-                ('x', aperture.x),
-                ('y', aperture.y),
-                ('rtarg', aperture.rtarg),
-                ('rsky1', aperture.rsky1),
-                ('rsky2', aperture.rsky2),
-                ('link', aperture._link),
-                ('mask', aperture._mask),
-                ('extra', aperture._extra),
-                ))
-
-class _decoder(json.JSONDecoder):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(object_hook=self.object_hook, *args, **kwargs)
-
-    def object_hook(self, jobj):
-        if 'rtarg' in jobj and 'rsky1' in jobj and 'rsky2' in jobj and 'link' in jobj:
-            return Aperture(
-                jobj['x'],jobj['y'],jobj['rtarg'],jobj['rsky1'],jobj['rsky2'],
-                jobj['link'],jobj['mask'],jobj['extra']
-            )
-        else:
-            return jobj
-
+        return json.load(fp, cls=_Decoder)
 
 class CcdAper(Group):
     """Class representing all the :class:Apertures for a single CCD.
-    Normal usage is to create an empty one and then add
+    Normal usage is to create an empty one and then add apertures via
+    the usual mechanism for updating dictionaries, i.e. ccdap[label] =
+    aperture.
     """
 
-    def __init__(self, aps=Group(None)):
+    def __init__(self, aps=Group(Aperture)):
         """Constructs a :class:`CcdAper`.
 
         Arguments::
@@ -167,4 +142,106 @@ class CcdAper(Group):
           aps : (Group)
               Group of :class:`Aperture` objects
         """
-        super().__init__(type(Aperture), aps)
+        super().__init__(Aperture, aps)
+
+    def __repr__(self):
+        return '{:s}(aps={:s})'.format(
+            self.__class__.__name__, super().__repr__()
+            )
+
+    def toJson(self, fp):
+        """Dumps ccdAper in JSON format to fp"""
+        # dumps as list to retain order through default iterator encoding
+        # that buggers things otherwise
+        listify = ['hipercam.CcdAper'] + list(self.items)
+        return json.dump(listify, fp, cls=_Encoder, indent=2)
+
+    @classmethod
+    def fromJson(cls, fp):
+        """Read from JSON-format file pointer fp"""
+        obj = json.load(fp, cls=_Decoder)
+        return CcdAper(obj[1:])
+
+
+class MccdAper(Group):
+    """Class representing all the :class:Apertures for multiple CCDs.
+    Normal usage is to create an empty one and then add apertures via
+    the usual mechanism for updating dictionaries, e.g.
+
+      >> mccdap = MccdAper()
+      >> mccdap['ccd1'] = CcdAper()
+      >> mccdap['ccd2'] = CcdAper()
+      >> mccdap['ccd1']['ap1'] = Aperture(100,200,10,15,125,False)
+
+    etc.
+    """
+
+    def __init__(self, aps=Group(CcdAper)):
+        """Constructs a :class:`CcdAper`.
+
+        Arguments::
+
+          aps : (Group)
+              Group of :class:`CcdAper` objects
+        """
+        super().__init__(CcdAper, aps)
+
+    def __repr__(self):
+        return '{:s}(aps={:s})'.format(
+            self.__class__.__name__, super().__repr__()
+            )
+
+    def toJson(self, fp):
+        """Dumps MccdAper in JSON format to fp"""
+        # dumps as list to retain order through default iterator encoding
+        # that buggers things otherwise
+        listify = ['hipercam.MccdAper'] + list(
+            ((key,['hipercam.CcdAper']+list(val.items())) \
+             for key, val in self.items())
+        )
+        return json.dump(listify, fp, cls=_Encoder, indent=2)
+
+    @classmethod
+    def fromJson(cls, fp):
+        """Read from JSON-format file pointer fp"""
+        obj = json.load(fp, cls=_Decoder)
+        listify = [(v1,CcdAper(v2[1:])) for v1,v2 in obj[1:]]
+        return MccdAper(listify)
+
+# classes to support JSON serialisation of Aperture objects
+class _Encoder(json.JSONEncoder):
+
+    def default(self, obj):
+
+        if isinstance(obj, Aperture):
+            return OrderedDict(
+                (
+                    ('Comment', 'Start of an Aperture'),
+                    ('x', obj.x),
+                    ('y', obj.y),
+                    ('rtarg', obj.rtarg),
+                    ('rsky1', obj.rsky1),
+                    ('rsky2', obj.rsky2),
+                    ('ref', obj.ref),
+                    ('mask', obj._mask),
+                    ('extra', obj._extra),
+                    ('link', obj._link),
+                    )
+                )
+
+        return super().default(obj)
+
+class _Decoder(json.JSONDecoder):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, obj):
+        # looks out for Aperture objects. Everything else done by default
+        if 'rtarg' in obj and 'rsky1' in obj and 'rsky2' in obj and 'link' in obj:
+            return Aperture(
+                obj['x'], obj['y'], obj['rtarg'], obj['rsky1'], obj['rsky2'],
+                obj['ref'], obj['mask'], obj['extra'], obj['link'] 
+            )
+
+        return obj
