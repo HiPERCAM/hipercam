@@ -216,7 +216,7 @@ class _Encoder(json.JSONEncoder):
         if isinstance(obj, Aperture):
             return OrderedDict(
                 (
-                    ('Comment', 'Start of an Aperture'),
+                    ('Comment', 'hipercam.Aperture'),
                     ('x', obj.x),
                     ('y', obj.y),
                     ('rtarg', obj.rtarg),

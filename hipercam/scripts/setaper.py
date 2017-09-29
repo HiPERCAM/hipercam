@@ -18,12 +18,19 @@ from hipercam.cline import Cline
 #############################################
 
 def setaper(args=None):
-    """Interactive definition of photometric extraction apertures
+    """Interactive definition of photometric extraction apertures. This is
+    a matplotlib-based routine allowing you to place apertures on targets
+    using the cursor.
 
     Arguments::
 
       mccd   : (string)
-         name of MCCD file
+         name of an MCCD file, as produced by e.g. 'grab'
+
+      aper   : (string)
+         the name of an aperture file. If it exists it will be read so that apertures
+         can be added to it. If it does not exist, it will be created on exiting the
+         routine. The aperture files are is a fairly readable / editiable text format
 
       ccd    : (string)
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
@@ -32,10 +39,17 @@ def setaper(args=None):
          prompted for the number of panels in the X direction. This parameter
          will not be prompted if there is only one CCD in the file.
 
+      schar  : (bool) [hidden]
+         flag determining whether single character input without needing to
+         hit <CR> is used for aperture labelling or not. Single character
+         input is probably what is wanted when observing (allowed characters
+         0-9, a-z, A-Z) as it's fastest.
+
       rtarg  : (float) [unbinned pixels]
-         radius of target aperture. The exact value of this does not matter too much since
-         it is normally overridden in 'reduce', but typically one aims for 1.5 to 2.5 x FWHM,
-         seeing, depending upon the target brightness.
+         radius of target aperture. The exact value of this does not matter
+         too much since it is normally overridden in 'reduce', but typically
+         one aims for 1.5 to 2.5 x FWHM, seeing, depending upon the target
+         brightness.
 
       rsky1  : (float) [unbinned pixels]
          inner radius of sky aperture.
@@ -99,8 +113,11 @@ def setaper(args=None):
       3. The label input can be switched between single- and multi-character
          input ('schar'). Single character input requires no <enter>.
 
-    Various standard keyboard shortcuts are disabled as they just confuse things
-    and are of limited use in setaper in any case.
+    Various standard keyboard shortcuts (e.g. 's' to save) are disabled as
+    they just confuse things and are of limited use in setaper in any case.
+
+    Some aspects of the usage of matplotlib in setaper are tricky. It is possible
+    that particular 'backends' will cause problems. I have tested this with Qt4Agg.
     """
 
     if args is None:
@@ -138,6 +155,14 @@ def setaper(args=None):
 
         aper = cl.get_value('aper', 'frame to plot',
                             cline.Fname('hcam', hcam.APER, exist=False))
+
+        if os.path.exists(aper):
+            # read in old apertures
+            with open(aper) as fp:
+                mccdaper = hcam.MccdAper.fromJson(fp)
+        else:
+            # create empty container
+            mccdaper = hcam.MccdAper()
 
         # define the panel grid
         try:
@@ -197,6 +222,8 @@ def setaper(args=None):
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
 
+    # Inputs obtained.
+
     # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
     plt.rcParams['keymap.back'] = ''
     plt.rcParams['keymap.forward'] = ''
@@ -210,11 +237,12 @@ def setaper(args=None):
     plt.rcParams['keymap.yscale'] = ''
     plt.rcParams['keymap.zoom'] = ''
 
-    # all inputs obtained, plot
+    # start plot
     if width > 0 and height > 0:
         fig = plt.figure(figsize=(width,height))
     else:
         fig = plt.figure()
+#    plt.ion()
 
     # get the navigation toolbar which is used to check the pan/zoom mode
     toolbar = fig.canvas.manager.toolbar
@@ -225,9 +253,6 @@ def setaper(args=None):
     ax = None
     pstars = {}
     cnams = {}
-
-    # define the multi-apertures and the picker
-    mccdaper = hcam.MccdAper()
 
     for n, cnam in enumerate(ccds):
         if ax is None:
@@ -249,22 +274,28 @@ def setaper(args=None):
         # keep track of the CCDs associated with each axes
         cnams[axes] = cnam
 
-        if cnam not in mccdaper:
-            # add in CcdApers for each CCD
+        if cnam in mccdaper:
+            # plot any pre-existing apertures
+            hcam.mpl.pCcdAper(axes, mccdaper[cnam])
+
+        else:
+            # add in an empty CcdApers for any CCD not already present
             mccdaper[cnam] = hcam.CcdAper()
 
-    picker = PickStar(cnams, toolbar, fig, mccdaper, schar, rtarg, rsky1, rsky2, aper)
+    # create the aperture picker (see below for class def)
+    picker = PickStar(cnams, toolbar, fig, mccdaper, schar,
+                      rtarg, rsky1, rsky2, aper)
 
     plt.tight_layout()
-    print('a(dd), d(elete), h(elp), Q(uit)')
+    print('a(dd), d(elete), h(elp), q(uit)')
 
     # finally show stuff ....
     plt.show()
 
 
-# the next class is where all the action occurs. A rather complicated
-# matter of handling events. note that standard terminal input with 'input'
-# becomes impossible, explaining some of the weirdness
+# the next class is where all the action occurs. A rather complicated matter
+# of handling events. note that standard terminal input with 'input' becomes
+# impossible, explaining some of the weirdness (accumulation mode)
 
 class PickStar:
     """Class to pick targets for apertures.
@@ -272,17 +303,22 @@ class PickStar:
 
     ADD_PROMPT = "enter a label for the aperture, '!' to abort: "
 
-    def __init__(self, cnams, toolbar, fig, mccdaper, schar, rtarg, rsky1, rsky2, apernam):
-        """
-        axes is dictionary keyed by CCD label of the axes. all the args are
+    def __init__(self, cnams, toolbar, fig, mccdaper, schar,
+                 rtarg, rsky1, rsky2, apernam):
+        """axes is dictionary keyed by CCD label of the axes. all the args are
         stored as attributes to allow "global"-type access to a call back
         added to fig.canvas to handle KeyPress events from the user.
+
         """
+
+        # save the inputs, tack on event handlers.
         self.cnams = cnams
         self.toolbar = toolbar
         self.fig = fig
-        self.fig.canvas.mpl_connect('key_press_event', self._keyPressEvent)
-        self.fig.canvas.mpl_connect('button_press_event', self._buttonPressEvent)
+        self.fig.canvas.mpl_connect('key_press_event',
+                                    self._keyPressEvent)
+        self.fig.canvas.mpl_connect('button_press_event',
+                                    self._buttonPressEvent)
         self.mccdaper = mccdaper
         self.schar = schar
         self.rtarg = rtarg
@@ -321,7 +357,7 @@ class PickStar:
 
 
     def _buttonPressEvent(self, event):
-        """Treat a button press event as equivalent to 'enter' as a convenience"""
+        """Treat a mouse button press event as equivalent to 'enter' as a convenience"""
         if self._accum:
             # accumulation mode action, pretend we have hit 'enter'
             self._accumulate('enter')
@@ -363,7 +399,7 @@ class PickStar:
         elif key == '!' and self._buffer == '':
             # terminate accumulation mode without bothering to wait for an 'enter'
             print('\n*** no aperture added')
-            print('\na(dd), d(elete), h(elp), Q(uit)')
+            print('\na(dd), d(elete), h(elp), q(uit)')
             self._accum = False
 
         elif key == 'backspace' or key == 'delete':
@@ -378,6 +414,27 @@ class PickStar:
                 # single character input. bail out immediately (inside _add_aperture)
                 print(key)
 
+                if self._action == 'a':
+                    if self._buffer in self.mccdaper[self._cnam]:
+                        print(
+                        'label={:s} already in use; please try again'.format(self._buffer),
+                        file=sys.stderr
+                        )
+                    print(PickStar.ADD_PROMPT, end='',flush=True)
+                    self._buffer = ''
+
+                elif self._buffer == '':
+                    print(
+                        'label blank; please try again'.format(self._buffer),
+                        file=sys.stderr
+                        )
+                    print(PickStar.ADD_PROMPT, end='',flush=True)
+
+                else:
+                    # add & plot aperture
+                    self._add_aperture()
+
+
                 # add & plot aperture
                 self._add_aperture()
 
@@ -388,8 +445,8 @@ class PickStar:
     def _standard(self, key, x, y, axes):
         """
         Carries out the work needed when we are in the standard mode. Just pass through
-        the value of the key pressed and this will handle the rest. It defines how we
-        treat characters.
+        the value of the key pressed, the associated x, y position and the axes instance
+        (all from the event) and this will handle the rest.
         """
 
         if key == 'alt':
@@ -397,24 +454,25 @@ class PickStar:
                 print('switched to pan/zoom mode')
             else:
                 print('switched to aperture update mode')
-                print('a(dd), d(elete), h(elp), Q(uit)')
+                print('a(dd), d(elete), h(elp), q(uit)')
 
         elif self.toolbar.mode != 'pan/zoom' and axes is not None:
 
-            # save information which is useful for accumulation mode
-            # with the axes
+            # store information in attributes accessible to all methods, sort
+            # of restricted global variables in effect.
             self._cnam = self.cnams[axes]
             self._key = key
             self._axes = axes
             self._axes = axes
-
+            self._x = x
+            self._y = y
 
             if key == 'h':
                 print('a(dd)      : add an aperture')
                 print('p(an/zoom) : toggle between pan/zoom vs selection mode')
                 print('d(elete)   : delete an aperture')
                 print('h(elp)     : print this list')
-                print('Q(uit)     : quite setaper')
+                print('q(uit)     : quit setaper and save apertures')
 
             elif key == 'a':
                 print(PickStar.ADD_PROMPT, end='',flush=True)
@@ -428,34 +486,47 @@ class PickStar:
             elif key == 'd':
                 print('will delete aperture from CCD',cnam)
 
-            elif key == 'Q':
+            elif key == 'q':
                 # quit and clear up
                 plt.close()
+
+                # old files aer over-written at this point
                 with open(self.apernam,'w') as fp:
                     self.mccdaper.toJson(fp)
-                print('apertures saved to {:s} bye'.format(self.apernam))
+                print('apertures saved to {:s}.\nBye'.format(self.apernam))
 
             elif key == 'enter':
-                print('a(dd), r(emove) p(an/zoom), h(elp), Q(uit)')
+                print('a(dd), r(emove) p(an/zoom), h(elp), q(uit)')
+
+            elif key == 'shift':
+                # trap some special keys to avoid irritating messages
+                pass
 
             else:
-                print('There is no action defined for key =',key,'(xdata,ydata,axes =',
-                      x,y,axes,')')
+                print('No action is defined for key = "{:s}"'.format(key))
 
     def _add_aperture(self):
-        # add & plot aperture
+        """
+        Once all set to add an aperture, and relevant attribute values
+        are all set, this routine actually carries out the necessary
+        operations which are (i) create the aperture, (ii) store in the
+        multiaperture object, (iii) plot it.
+        """
+
         aper = hcam.Aperture(
             self._x, self._y, self.rtarg, self.rsky1, self.rsky2, False)
         self.mccdaper[self._cnam][self._buffer] = aper
 
         # add aperture to the plot
-        hcam.mpl.pAper(self._axes, aper)
+        hcam.mpl.pAper(self._axes, aper, self._buffer)
 
         # make sure it appears
-        self.fig.canvas.draw()
+        plt.draw()
 
-        print('added aperture {:s} to CCD {:s}'.format(self._buffer,self._cnam))
-        print('\na(dd), d(elete), h(elp), Q(uit)')
+        print('added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
+                self._buffer,self._cnam,self._x,self._y)
+              )
+        print('\na(dd), d(elete), h(elp), q(uit)')
 
         # terminate accumulation mode
         self._accum = False
