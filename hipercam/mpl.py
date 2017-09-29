@@ -7,6 +7,7 @@ from matplotlib.patches import Circle
 
 from .core import *
 from .window import *
+from .group import *
 from .ccd import *
 
 # some look-and-feel globals.
@@ -169,7 +170,8 @@ def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
 
 def pAper(axes, aper, label=''):
     """
-    Plots an :class:`Aperture` object.
+    Plots an :class:`Aperture` object, returning references to the
+    plot objects.
 
     Arguments::
 
@@ -181,27 +183,40 @@ def pAper(axes, aper, label=''):
 
       label : (string)
            a string label to add
-    """
-    # draw circles to represent the aperture
-    if aper.ref:
-        axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
-                              color=Params['aper.reference.col']))
-    else:
-        axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
-                              color=Params['aper.target.col']))
 
-    axes.add_patch(Circle((aper.x,aper.y),aper.rsky1,fill=False,
-                          color=Params['aper.sky.col']))
-    axes.add_patch(Circle((aper.x,aper.y),aper.rsky2,fill=False,
-                          color=Params['aper.sky.col']))
+    Returns a tuple containing references to all the objects created
+    when plotting the Aperture in case of a later need to delete them
+    """
+    # draw circles to represent the aperture. 'objs' is a list of the
+    # objects that we keep to return for possible later deletion.
+    objs = []
+    if aper.ref:
+        objs.append(
+            axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
+                                  color=Params['aper.reference.col'])))
+    else:
+        objs.append(
+            axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
+                                  color=Params['aper.target.col'])))
+
+    objs.append(
+        axes.add_patch(Circle((aper.x,aper.y),aper.rsky1,fill=False,
+                              color=Params['aper.sky.col'])))
+    objs.append(
+        axes.add_patch(Circle((aper.x,aper.y),aper.rsky2,fill=False,
+                              color=Params['aper.sky.col'])))
 
     if label != '':
-        axes.text(aper.x-aper.rsky2,aper.y-aper.rsky2,label,
-                  color=Params['aper.label.col'],ha='right',va='top')
+        objs.append(
+            axes.text(aper.x-aper.rsky2,aper.y-aper.rsky2,label,
+                      color=Params['aper.label.col'],ha='right',va='top'))
+
+    return tuple(objs)
 
 def pCcdAper(axes, ccdAper):
     """
-    Plots a :class:`CcdAper` object.
+    Plots a :class:`CcdAper` object, returning references to the plot
+    objects.
 
     Arguments::
 
@@ -210,6 +225,14 @@ def pCcdAper(axes, ccdAper):
 
       ccdAper : (CcdAper)
            the :class:`CcdAper` to plot
+
+    Returns a Group keyed on the same keys as ccdAper but containing
+    tuples of the plot objects used to plot each Aperture. This can be
+    used to delete them if need be.
     """
+    g = Group(tuple)
     for key, aper in ccdAper.items():
-        pAper(axes, aper, key)
+        objs = pAper(axes, aper, key)
+        g[key] = objs
+
+    return g

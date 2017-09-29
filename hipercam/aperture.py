@@ -83,7 +83,7 @@ class Aperture(object):
             to lookup the :class:Aperture.
 
         Notes: normal practice would be to set link, mask, extra later, having created
-        the Aperture
+        the Aperture. Attributes of the same name as all the arguments are defined.
         """
 
         self.x = x
@@ -92,31 +92,31 @@ class Aperture(object):
         self.rsky1 = rsky1
         self.rsky2 = rsky2
         self.ref = ref
-        self._mask = mask
-        self._extra = extra
-        self._link = link
+        self.mask = mask
+        self.extra = extra
+        self.link = link
 
     def __repr__(self):
         return 'Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, mask={!r}, extra={!r}, link={!r})'.format(
             self.x, self.y, self.rtarg, self.rsky1, self.rsky2, self.ref,
-            self._mask, self._extra, self._link
+            self.mask, self.extra, self.link
             )
 
     def add_mask(self, xoff, yoff, radius):
         """Adds a mask to the :class:Aperture"""
-        self._mask.append((xoff,yoff,radius))
+        self.mask.append((xoff,yoff,radius))
 
     def add_extra(self, xoff, yoff, radius):
         """Adds a mask to the :class:Aperture"""
-        self._extra.append((xoff,yoff,radius))
+        self.extra.append((xoff,yoff,radius))
 
     def set_link(self, aplabel):
         """Links this :class:Aperture to a lookup label for another"""
-        self._link = aplabel
+        self.link = aplabel
 
     def break_link(self):
         """Cancels any link to another :class:Aperture"""
-        self._link = ''
+        self.link = ''
 
     def toJson(self, fp):
         """Dumps Aperture in JSON format to fp"""
@@ -245,3 +245,4 @@ class _Decoder(json.JSONDecoder):
             )
 
         return obj
+
