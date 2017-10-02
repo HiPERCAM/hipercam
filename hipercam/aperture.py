@@ -223,9 +223,9 @@ class _Encoder(json.JSONEncoder):
                     ('rsky1', obj.rsky1),
                     ('rsky2', obj.rsky2),
                     ('ref', obj.ref),
-                    ('mask', obj._mask),
-                    ('extra', obj._extra),
-                    ('link', obj._link),
+                    ('mask', obj.mask),
+                    ('extra', obj.extra),
+                    ('link', obj.link),
                     )
                 )
 
