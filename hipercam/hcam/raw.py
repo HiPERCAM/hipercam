@@ -482,12 +482,25 @@ class Rdata (Rhead):
                     frameCount+1, self.nframe
                     ))
 
+        if nsats == -1 and synced == -1:
+            # invalid time; pretend we are on 2000-01-01 taking one frame per second.
+           tstamp = Time(51544 + self.nframe/86400., format='MJD')
+        else:
+            time_string = '{}:{}:{}:{}:{:.7f}'.format(
+                years, day_of_year, hours, mins, seconds+nanoseconds/1e9
+                )
+            tstamp = Time(time_string, format='yday')
+
         time_string = '{}:{}:{}:{}:{:.7f}'.format(
             years, day_of_year, hours, mins, seconds+nanoseconds/1e9
             )
         tstamp = Time(time_string, format='yday')
         self.thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
-        self.thead['NFRAME'] = (frameCount+1, 'Frame number')
+        if nsats == -1 and synced == -1:
+            self.thead['GOODTIM'] = (False, 'Is TIMSTAMP thought to be OK?')
+        else:
+            self.thead['GOODTIM'] = (True, 'Is TIMSTAMP thought to be OK?')
+        self.thead['NFRAME'] = (self.nframe, 'Frame number')
 
         # second, the data bytes
 
@@ -664,10 +677,14 @@ class Rtime (Rhead):
         frameCount, timeStampCount, years, day_of_year, \
             hours, mins, seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
 
-        time_string = '{}:{}:{}:{}:{:.7f}'.format(
-            years, day_of_year, hours, mins, seconds+nanoseconds/1e9
-            )
-        tstamp = Time(time_string, format='yday')
+        if nsats == -1 and synced == -1:
+            # invalid time; pretend we are on 2000-01-01 taking one frame per second.
+           tstamp = Time(51544 + self.nframe/86400., format='MJD')
+        else:
+            time_string = '{}:{}:{}:{}:{:.7f}'.format(
+                years, day_of_year, hours, mins, seconds+nanoseconds/1e9
+                )
+            tstamp = Time(time_string, format='yday')
 
         # update the frame counter
         self.nframe += 1
