@@ -17,7 +17,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='hipercam',
 
-    # Versions should comply with PEP440. 
+    # Versions should comply with PEP440.
     version='1',
 
     description='hipercam',
@@ -110,6 +110,7 @@ setup(
             'rtplot=hipercam.scripts.rtplot:rtplot',
             'setaper=hipercam.scripts.setaper:setaper',
             'stats=hipercam.scripts.stats:stats',
+            'aligntool=hipercam.scripts.aligntool:main'
         ],
     },
 
