@@ -492,7 +492,7 @@ class Rdata (Rhead):
             tstamp = Time(time_string, format='yday')
 
         self.thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
-        if nsats == -1 and synced == -1:
+        if (nsats == -1 and synced == -1) or synced == 0:
             self.thead['GOODTIM'] = (False, 'Is TIMSTAMP thought to be OK?')
         else:
             self.thead['GOODTIM'] = (True, 'Is TIMSTAMP thought to be OK?')
@@ -675,7 +675,7 @@ class Rtime (Rhead):
 
         if nsats == -1 and synced == -1:
             # invalid time; pretend we are on 2000-01-01 taking one frame per second.
-           tstamp = Time(51544 + self.nframe/86400., format='MJD')
+            tstamp = Time(51544 + self.nframe/86400., format='MJD')
         else:
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
                 years, day_of_year, hours, mins, seconds+nanoseconds/1e9
