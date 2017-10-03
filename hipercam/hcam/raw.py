@@ -20,7 +20,7 @@ from astropy.io import fits
 from astropy.time import Time
 
 from hipercam import (CCD, Group, MCCD, Windat, Window)
-from hipercam import (HRAW, add_extension) 
+from hipercam import (HRAW, add_extension)
 from .herrors import *
 
 __all__ = ['Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT']
@@ -491,10 +491,6 @@ class Rdata (Rhead):
                 )
             tstamp = Time(time_string, format='yday')
 
-        time_string = '{}:{}:{}:{}:{:.7f}'.format(
-            years, day_of_year, hours, mins, seconds+nanoseconds/1e9
-            )
-        tstamp = Time(time_string, format='yday')
         self.thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
         if nsats == -1 and synced == -1:
             self.thead['GOODTIM'] = (False, 'Is TIMSTAMP thought to be OK?')
@@ -618,7 +614,7 @@ class Rtime (Rhead):
         positioned at. If nframe is an integer > 0, it will try to read that
         particular frame; if nframe == 0, it reads the last complete frame.
         nframe == 1 gives the first frame. If all works, an astropy.time.Time
-        object is returned. 
+        object is returned.
 
         Arguments::
 
@@ -642,7 +638,7 @@ class Rtime (Rhead):
             reset = self.nframe != nframe
             self.nframe = nframe
 
-        # ?? need a maximum frame number routine in the server 
+        # ?? need a maximum frame number routine in the server
         # at the moment just don't run ntotal if server
         if not self.server and self.nframe > self.ntotal():
             self.nframe = 1
