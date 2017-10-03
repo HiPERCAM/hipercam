@@ -488,10 +488,8 @@ class PickStar:
         """
         if cr:
             print()
-        if self.profit:
-            print('a(dd), c(entre), d(elete), f(ixed), h(elp), r(eference), q(uit): ', end='',flush=True)
-        else:
-            print('a(dd), c(entre) d(elete), h(elp), p(rofit), r(eference), q(uit): ', end='',flush=True)
+
+        print('a(dd), c(entre) d(elete), h(elp), p(rofit), r(eference), q(uit): ', end='',flush=True)
 
 
     def _keyPressEvent(self, event):
@@ -642,9 +640,8 @@ Help on the actions available in 'setaper'. Actions:
  a(dd)      : add an aperture
  c(entre)   : centres an aperture by fitting nearby star
  d(elete)   : delete an aperture
- f(ixed)    : switch to no fitting and no position correction [see 'profit']
  h(elp)     : print this help text
- p(rofit)   : switch to fitting and position correction [see 'fixed']
+ p(rofit)   : toggles between fitting+position correction and no fits
  r(eference): marks an aperture as a reference aperture
  q(uit)     : quit setaper and save apertures
 
@@ -681,16 +678,13 @@ the aperture centre.
                 print(key)
                 self._delete_aperture()
 
-            elif key == 'f':
-                print(key)
-                self.profit = False
-                print(' switched off profile fitting & re-positioning when adding apertures')
-                self.action_prompt(True)
-
             elif key == 'p':
                 print(key)
-                self.profit = True
-                print(' turned on profile fitting & re-positioning')
+                self.profit = not self.profit
+                if self.profit:
+                    print(' turned on profile fitting & re-positioning when adding apertures')
+                else:
+                    print(' switched off profile fitting & re-positioning when adding apertures')
                 self.action_prompt(True)
 
             elif key == 'q':
@@ -702,6 +696,10 @@ the aperture centre.
                 with open(self.apernam,'w') as fp:
                     self.mccdaper.toJson(fp)
                 print(' apertures saved to {:s}.\nBye'.format(self.apernam))
+
+            elif key == 'r':
+                print(key)
+                self._toggle_reference()
 
             elif key == 'enter':
                 self.action_prompt(True)
@@ -796,35 +794,27 @@ the aperture centre.
         """
 
         # first see if there is an aperture near enough the selected position
-        dmin = None
-        apmin = None
-        anmin = None
-        for anam, aper in self.mccdaper[self._cnam].items():
-            dist = np.sqrt((aper.x-self._x)**2+(aper.y-self._y)**2)
-            if dmin is None or dist < dmin:
-                dmin = dist
-                apmin = aper
-                anmin = anam
+        aper, apnam, dmin = self._find_aper()
 
         if dmin is not None and dmin < max(self.rtarg,min(100,max(20.,2*self.rsky2))):
             # near enough for deletion
-            for obj in self.pobjs[self._cnam][anmin]:
+            for obj in self.pobjs[self._cnam][apnam]:
                 obj.remove()
 
             # update plot
             plt.draw()
-            print('  deleted aperture "{:s}"'.format(anmin))
+            print('  deleted aperture "{:s}"'.format(apnam))
 
             # delete Aperture from containers
-            del self.pobjs[self._cnam][anmin]
-            del self.mccdaper[self._cnam][anmin]
+            del self.pobjs[self._cnam][apnam]
+            del self.mccdaper[self._cnam][apnam]
 
             # break any links to the deleted aperture
             for anam, aper in self.mccdaper[self._cnam].items():
-                if aper.link == anmin:
+                if aper.link == apnam:
                     aper.link = ''
                     print('  removed link to aperture "{:s}" from aperture "{:s}"'.format(
-                            anmin, anam))
+                            apnam, anam))
 
         else:
             print('  found no aperture near enough the cursor position for deletion')
@@ -837,15 +827,7 @@ the aperture centre.
         """
 
         # first see if there is an aperture near enough the selected position
-        dmin = None
-        apmin = None
-        anmin = None
-        for anam, aper in self.mccdaper[self._cnam].items():
-            dist = np.sqrt((aper.x-self._x)**2+(aper.y-self._y)**2)
-            if dmin is None or dist < dmin:
-                dmin = dist
-                apmin = aper
-                anmin = anam
+        aper, apnam, dmin = self._find_aper()
 
         if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
             print('  *** found no aperture near enough the cursor position to re-centre')
@@ -875,7 +857,8 @@ the aperture centre.
                 if self.method == 'g':
                     # gaussian fit
                     (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
-                        fwind.fitGaussian(sky, peak-sky, x, y, self.fwhm, self.fwhm_min, self.read, self.gain, self.sigma)
+                        fwind.fitGaussian(sky, peak-sky, x, y, self.fwhm, self.fwhm_min,
+                                          self.read, self.gain, self.sigma)
 
                     if sigs is None:
                         print('  *** Aperture {:s}: fit failed; current aperture left as is'.format(anmin), file=sys.stderr)
@@ -887,16 +870,15 @@ the aperture centre.
                         print('  shifted by dx,dy = {:.2f},{:.2f}'.format(x-self._x,y-self._y)) 
 
                         # update aperture position
-                        aper = self.mccdaper[self._cnam][anmin]
                         aper.x = x
                         aper.y = y
 
                         # remove old aperture from from plot
-                        for obj in self.pobjs[self._cnam][anmin]:
+                        for obj in self.pobjs[self._cnam][apnam]:
                             obj.remove()
 
                         # plot in new position, over-writing the plot objects
-                        self.pobjs[self._cnam][anmin] = hcam.mpl.pAper(self._axes, aper, anmin)
+                        self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
                         plt.draw()
 
                 else:
@@ -904,3 +886,50 @@ the aperture centre.
 
         self.action_prompt(True)
 
+    def _toggle_reference(self):
+       """
+        Toggles the reference status of an aperture
+        """
+
+        # first see if there is an aperture near enough the selected position
+        aper, apnam, dmin = self._find_aper()
+
+        if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
+            print('  *** found no aperture near enough the cursor position')
+        else:
+            aper.ref = not aper.ref
+            if aper.ref:
+                print('  aperture {:s} is now a reference aperture'.format(apnam))
+            else:
+                print('  aperture {:s} is no longer a reference aperture'.format(apnam))
+
+            # remove aperture from plot
+            for obj in self.pobjs[self._cnam][apnam]:
+                obj.remove()
+
+            # re-plot new version, over-writing plot objects
+            self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+
+        self.action_prompt(True)
+
+
+    def _find_aper(self):
+        """
+        Finds the nearest aperture to the currently selected position,
+
+        It returns (aper, apnam, dmin) where aper is the Aperture, apnam its label,
+        and dmin is the minimum distance. These are all returned as None if no
+        suitable Aperture is found.
+        """
+
+        dmin = None
+        apmin = None
+        anmin = None
+        for anam, aper in self.mccdaper[self._cnam].items():
+            dist = np.sqrt((aper.x-self._x)**2+(aper.y-self._y)**2)
+            if dmin is None or dist < dmin:
+                dmin = dist
+                apmin = aper
+                anmin = anam
+
+        return (apmin, anmin, dmin)
