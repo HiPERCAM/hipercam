@@ -381,7 +381,7 @@ def setaper(args=None):
 
 # the next class is where all the action occurs. A rather complicated matter
 # of handling events. note that standard terminal input with 'input' becomes
-# impossible, explaining some of the weirdness (accumulation mode)
+# impossible, explaining some of the weirdness
 
 class PickStar:
     """Class to pick targets for apertures.
@@ -393,52 +393,6 @@ class PickStar:
                  rtarg, rsky1, rsky2, profit, method, beta,
                  fwhm_min, fwhm, shbox, smooth, fhbox,
                  read, gain, sigma, apernam, pobjs):
-        """axes is dictionary keyed by CCD label of the axes. all the args are
-        stored as attributes to allow "global"-type access to a call back
-        added to fig.canvas to handle KeyPress events from the user.
-
-          mccd     : (hipercam.MCCD)
-            the MCCD to define the apertures
-
-          cnams    : (dict)
-            dictionary keyed on Axes instances giving corresponding CCD labels.
-            They are in 1-to-1 correspondence.
-
-          toolbar  : (NavigationToolbar2)
-             represents the plot toolbar
-
-          fig      : (Figure)
-             the Figure object of the whole plot
-
-          mccdaper : (MccdAper)
-             contains whatever Apertures have been loaded from file
-
-          schar    : (bool)
-             schar == True implies apertures labels are input as single characters
-             without needing <CR>.
-
-          rtarg    : (float)
-             target aperture radius, unbinned pixels
-
-          rsky1    : (float)
-             inner sky aperture radius, unbinned pixels
-
-          rsky2    : (float)
-             outer sky aperture radius, unbinned pixels
-
-          profit   : (bool)
-             whether to apply profile fitting to refine the aperture positions. This carries
-             out a source search before the fit.
-
-          apernam  : (string)
-             name of file to store final aperture set
-
-          pobjs    : (Group(Group))
-             container for all plot objects for the apertures to allow
-             deletion. Specifically it stores tuples of plot objects so the
-             inner Groups must be created starting Group(tuple,...)
-
-        """
 
         # save the inputs, tack on event handlers.
         self.mccd = mccd
@@ -469,16 +423,11 @@ class PickStar:
         self.apernam = apernam
         self.pobjs = pobjs
 
-        # the next are to do with entering / leaving accumulation mode and
-        # storing the state at the point when we enter accumulation mode
-        self._accum = False
-        self._action = None
-        self._buffer = None
-        self._cnam = None
-        self._key = None
-        self._x = None
-        self._y = None
-        self._axes = None
+        # then mutually exclusive flags to indicate the action we are in
+        # for actions that require extra input. We are not in these at the
+        # start so we set them False
+        self._add_mode = False
+        self._link_mode = False
 
     def action_prompt(self, cr):
         """
@@ -489,7 +438,8 @@ class PickStar:
         if cr:
             print()
 
-        print('a(dd), c(entre) d(elete), h(elp), p(rofit), r(eference), q(uit): ', end='',flush=True)
+        print('a(dd), b(reak), c(entre), d(elete), h(elp), l(ink), ' +
+              'p(rofit), q(uit), r(eference): ', end='',flush=True)
 
 
     def _keyPressEvent(self, event):
@@ -501,9 +451,26 @@ class PickStar:
         The latter stage comes first.
         """
 
-        if self._accum:
-            # accumulation mode action
-            self._accumulate(event.key)
+        if self._add_mode:
+            # accumulate input
+            self._add_input(event.key)
+
+        elif self._link_mode:
+            # if in link mode, we should be selecting another aperture,
+            # the one to link to
+            if event.key == 'q':
+                # trap 'q' for quit during linking
+                self._link_mode = False
+                self.action_prompt(True)
+
+            elif event.key == 'l':
+                # link mode. this should be the second aperture
+                # store essential data
+                self._cnam = self.cnams[event.inaxes]
+                self._axes = event.inaxes
+                self._x = event.xdata
+                self._y = event.ydata
+                self._link()
 
         else:
             # standard mode action
@@ -516,93 +483,32 @@ class PickStar:
         not in pan/zoom mode that is
         """
         if self.toolbar.mode != 'pan/zoom':
-            if self._accum:
-                # accumulation mode action, pretend we have hit 'enter'
-                self._accumulate('enter')
+
+            if self._add_mode:
+                # add mode: pretend we have hit 'enter'
+                self._add_input('enter')
 
             elif event.inaxes is not None:
-                # standard mode action, either pretend we have hit 'a' for add
-                # or 'd' for delete if the cursor is inside an existing aperture
 
-                for anam, aper in self.mccdaper[self._cnam].items():
-                    if np.sqrt((aper.x-event.xdata)**2+(aper.y-event.ydata)**2) < self.rtarg:
-                        self._standard('d', event.xdata, event.ydata, event.inaxes)
-                        break
-                else:
-                    self._standard('a', event.xdata, event.ydata, event.inaxes)
-
-    def _accumulate(self, key):
-        """Carries out the work needed when we are in accumulation mode. Just pass
-        through the value of the key pressed and this will handle the rest. It
-        defines how we treat characters.
-
-        """
-
-        if key == 'enter':
-            # trap 'enter'
-            print()
-            if self._action == 'a':
-                if self._buffer in self.mccdaper[self._cnam]:
-                    print(
-                        'label={:s} already in use; please try again'.format(self._buffer),
-                        file=sys.stderr
-                        )
-                    print(PickStar.ADD_PROMPT, end='',flush=True)
-                    self._buffer = ''
-
-                elif self._buffer == '':
-                    print(
-                        'label blank; please try again'.format(self._buffer),
-                        file=sys.stderr
-                        )
-                    print(PickStar.ADD_PROMPT, end='',flush=True)
+                # clicked inside an Axes
+                if self._link_mode:
+                    # link mode. this should be the second aperture
+                    # store essential data
+                    self._cnam = self.cnams[event.inaxes]
+                    self._axes = event.inaxes
+                    self._x = event.xdata
+                    self._y = event.ydata
+                    self._link()
 
                 else:
-                    # add & plot aperture
-                    self._add_aperture()
-                    self._accum = False
-
-        elif key == '!' and self._buffer == '':
-            # terminate accumulation mode without bothering to wait for an 'enter'
-            print('\n*** no aperture added')
-            self.action_prompt(True)
-            self._accum = False
-
-        elif key == 'backspace' or key == 'delete':
-            # remove a character 
-            self._buffer = self._buffer[:-1]
-            print('{:s}{:s} '.format(PickStar.ADD_PROMPT, self._buffer))
-
-        elif key in '!0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
-            # accumulate input and add to the
-            self._buffer += key
-            if self.schar:
-                # single character input. bail out immediately (inside _add_aperture)
-                print(key)
-                if self._action == 'a':
-                    if self._buffer in self.mccdaper[self._cnam]:
-                        print(
-                            'label={:s} already in use; please try again'.format(self._buffer),
-                            file=sys.stderr
-                            )
-                        print(PickStar.ADD_PROMPT, end='',flush=True)
-                        self._buffer = ''
-
-                    elif self._buffer == '':
-                        print(
-                            'label blank; please try again'.format(self._buffer),
-                            file=sys.stderr
-                            )
-                        print(PickStar.ADD_PROMPT, end='',flush=True)
-
+                    # add or delete action, depending upon location relative to
+                    # existing apertures
+                    for anam, aper in self.mccdaper[self.cnams[event.inaxes]].items():
+                        if np.sqrt((aper.x-event.xdata)**2+(aper.y-event.ydata)**2) < self.rtarg:
+                            self._standard('d', event.xdata, event.ydata, event.inaxes)
+                            break
                     else:
-                        # add & plot aperture
-                        self._add_aperture()
-                        self._accum = False
-
-            else:
-                # multi character input. just accumulate characters
-                print(key, end='', flush=True)
+                        self._standard('a', event.xdata, event.ydata, event.inaxes)
 
     def _standard(self, key, x, y, axes):
         """
@@ -622,25 +528,27 @@ class PickStar:
 
         elif self.toolbar.mode != 'pan/zoom' and axes is not None:
 
-            # store information in attributes accessible to all methods, sort
-            # of restricted global variables in effect.
+            # store information in attributes accessible to all methods, for
+            # later access: name, the key hit, the axes instance, x, y
             self._cnam = self.cnams[axes]
             self._key = key
-            self._axes = axes
             self._axes = axes
             self._x = x
             self._y = y
 
             if key == 'h':
+                # help text
                 print(key)
                 print("""
 
 Help on the actions available in 'setaper'. Actions:
 
  a(dd)      : add an aperture
+ b(reak)    : breaks the link on an aperture
  c(entre)   : centres an aperture by fitting nearby star
  d(elete)   : delete an aperture
  h(elp)     : print this help text
+ l(ink)     : link one aperture to another in the same CCD for re-positioning
  p(rofit)   : toggles between fitting+position correction and no fits
  r(eference): marks an aperture as a reference aperture
  q(uit)     : quit setaper and save apertures
@@ -664,19 +572,40 @@ the aperture centre.
 """)
 
             elif key == 'a':
+                # add aperture
                 print(key)
                 print(PickStar.ADD_PROMPT, end='',flush=True)
-                self._accum = True
+
+                # switch to ad mode, initialise buffer for label input
+                self._add_mode = True
                 self._buffer = ''
-                self._action = 'a'
+
+            elif key == 'b':
+                # break a link
+                print(key)
+                self._break()
 
             elif key == 'c':
+                # centre an aperture
                 print(key)
-                self._centre_aperture()
+                self._centre()
 
             elif key == 'd':
+                # delete an aperture
                 print(key)
-                self._delete_aperture()
+                self._delete()
+
+            elif key == 'l':
+                # link an aperture
+                print(key)
+                if len(self.mccdaper[self._cnam]) < 2:
+                    print('need at least 2 apertures in a CCD to be able to make links')
+                    self.action_prompt(True)
+                else:
+                    # switch to link mode, set number of apertures picked
+                    self.naper = 0
+                    self._link_mode = True
+                    self._link()
 
             elif key == 'p':
                 print(key)
@@ -699,7 +628,7 @@ the aperture centre.
 
             elif key == 'r':
                 print(key)
-                self._toggle_reference()
+                self._reference()
 
             elif key == 'enter':
                 self.action_prompt(True)
@@ -712,7 +641,7 @@ the aperture centre.
                 print('\nNo action is defined for key = "{:s}"'.format(key))
                 self.action_prompt(False)
 
-    def _add_aperture(self):
+    def _add(self):
         """
         Once all set to add an aperture, and relevant attribute values are all
         set, this routine actually carries out the necessary operations which
@@ -782,8 +711,7 @@ the aperture centre.
 
         self.action_prompt(True)
 
-
-    def _delete_aperture(self):
+    def _delete(self):
         """
         This deletes the nearest aperture to the currently selected
         position, if it is near enough. It will also break any links
@@ -821,7 +749,7 @@ the aperture centre.
 
         self.action_prompt(True)
 
-    def _centre_aperture(self):
+    def _centre(self):
         """
         Centres an aperture using the current fit parameters.
         """
@@ -830,7 +758,7 @@ the aperture centre.
         aper, apnam, dmin = self._find_aper()
 
         if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
-            print('  *** found no aperture near enough the cursor position to re-centre')
+            print('  *** found no aperture near to the cursor position to re-centre')
         else:
             # OK, there is one near enough
             print ('  fitting ...')
@@ -886,8 +814,8 @@ the aperture centre.
 
         self.action_prompt(True)
 
-    def _toggle_reference(self):
-       """
+    def _reference(self):
+        """
         Toggles the reference status of an aperture
         """
 
@@ -895,7 +823,7 @@ the aperture centre.
         aper, apnam, dmin = self._find_aper()
 
         if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
-            print('  *** found no aperture near enough the cursor position')
+            print('  *** found no aperture near to the cursor position')
         else:
             aper.ref = not aper.ref
             if aper.ref:
@@ -909,6 +837,100 @@ the aperture centre.
 
             # re-plot new version, over-writing plot objects
             self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+
+        self.action_prompt(True)
+
+    def _link(self):
+        """
+        Links one aperture to another. The other one is used when re-positioning. The actions
+        of this depend upon the link status ._link which is used to separate the first from the second
+        aperture.
+        """
+
+        # first see if there is an aperture near enough the selected position
+        aper, apnam, dmin = self._find_aper()
+        print(apnam, dmin, self._x, self._y)
+
+        if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
+            print('  *** found no aperture near to the cursor position to link')
+            if self.naper == 1:
+                print(' select the aperture to link aperture {:s} from [q to quit]'.format(apnam))
+            else:
+                print('  *** no link made.')
+                self.action_prompt(True)
+
+        else:
+
+            # ok, we have an aperture
+            self.naper += 1
+
+            if self.naper == 1:
+                # first time through, store the CCD, aperture label and
+                # aperture of the first aperture which is the one that will
+                # contain the link, set the link status to True and prompt the
+                # user. these values are used second time round
+                self._link_cnam = self._cnam
+                self._link_aper = aper
+                self._link_apnam = apnam
+                print(' click the link aperture [q to quit]'.format(apnam))
+
+            else:
+                # second time through. Check we are in the same CCD but on a
+                # different aperture first change the link status
+                self._link_mode = False
+
+                # then see if we can make a valid link.
+                if self._cnam != self._link_cnam:
+                    print('  *** cannot link across CCDs; no link made')
+                elif apnam == self._link_apnam:
+                    print('  *** cannot link an aperture to itself; no link made')
+                else:
+                    # add link to the first aperture
+                    self.mccdaper[self._link_cnam][self._link_apnam].set_link(apnam)
+
+                    # delete the first aperture
+                    for obj in self.pobjs[self._cnam][self._link_apnam]:
+                        obj.remove()
+
+                    # re-plot new version, over-writing plot objects
+                    self.pobjs[self._cnam][self._link_apnam] = hcam.mpl.pAper(
+                        self._axes, self._link_aper, self._link_apnam,
+                        self.mccdaper[self._link_cnam])
+                    plt.draw()
+
+                    print('  linked aperture {:s} to aperture {:s} in CCD {:s}'.format(
+                            self._link_apnam, apnam, self._link_cnam))
+                    self.action_prompt(True)
+
+    def _break(self):
+        """
+        Breaks the link on an aperture (if any)
+        """
+
+        # first see if there is an aperture near enough the selected position
+        aper, apnam, dmin = self._find_aper()
+
+        if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
+            print('  *** found no aperture near to the cursor position')
+
+        elif aper.link == '':
+            print('  *** there is no link on aperture {:s}'.format(apnam))
+
+        else:
+
+            # cancel the link on the aperture
+            self.mccdaper[self._cnam][apnam].break_link()
+
+            # delete the aperture
+            for obj in self.pobjs[self._cnam][apnam]:
+                obj.remove()
+
+            # re-plot new version, over-writing plot objects
+            self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+            plt.draw()
+
+            print('  cancelled link on aperture {:s} in CCD {:s}'.format(
+                    apnam, self._cnam))
 
         self.action_prompt(True)
 
@@ -933,3 +955,73 @@ the aperture centre.
                 anmin = anam
 
         return (apmin, anmin, dmin)
+
+    def _add_input(self, key):
+        """Accumulates input to label an aperture
+        """
+
+        if key == 'enter':
+            # trap 'enter'
+            print()
+
+            if self._buffer in self.mccdaper[self._cnam]:
+                print(
+                    'label={:s} already in use; please try again'.format(self._buffer),
+                    file=sys.stderr
+                )
+                print(PickStar.ADD_PROMPT, end='',flush=True)
+                self._buffer = ''
+
+            elif self._buffer == '':
+                print(
+                    'label blank; please try again'.format(self._buffer),
+                    file=sys.stderr
+                )
+                print(PickStar.ADD_PROMPT, end='',flush=True)
+
+            else:
+                # add & plot aperture
+                self._add_aperture()
+                self._add_mode = False
+
+        elif key == '!' and self._buffer == '':
+            # terminate accumulation mode without bothering to wait for an 'enter'
+            print('\n*** no aperture added')
+            self.action_prompt(True)
+            self._add_mode = False
+
+        elif key == 'backspace' or key == 'delete':
+            # remove a character 
+            self._buffer = self._buffer[:-1]
+            print('{:s}{:s} '.format(PickStar.ADD_PROMPT, self._buffer))
+
+        elif key in '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            # accumulate input and add to the
+            self._buffer += key
+            if self.schar:
+                # single character input. bail out immediately (inside _add_aperture)
+                print(key)
+
+                if self._buffer in self.mccdaper[self._cnam]:
+                    print(
+                        'label={:s} already in use; please try again'.format(self._buffer),
+                        file=sys.stderr
+                    )
+                    print(PickStar.ADD_PROMPT, end='',flush=True)
+                    self._buffer = ''
+
+                elif self._buffer == '':
+                    print(
+                        'label blank; please try again'.format(self._buffer),
+                        file=sys.stderr
+                    )
+                    print(PickStar.ADD_PROMPT, end='',flush=True)
+
+                else:
+                    # add & plot aperture
+                    self._add_aperture()
+                    self._add_mode = False
+
+            else:
+                # multi character input. just accumulate characters
+                print(key, end='', flush=True)
