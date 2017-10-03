@@ -241,7 +241,7 @@ class _Decoder(json.JSONDecoder):
         if 'rtarg' in obj and 'rsky1' in obj and 'rsky2' in obj and 'link' in obj:
             return Aperture(
                 obj['x'], obj['y'], obj['rtarg'], obj['rsky1'], obj['rsky2'],
-                obj['ref'], obj['mask'], obj['extra'], obj['link'] 
+                obj['ref'], obj['mask'], obj['extra'], obj['link']
             )
 
         return obj
