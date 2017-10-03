@@ -9,6 +9,7 @@ from .core import *
 from .window import *
 from .group import *
 from .ccd import *
+from . import utils
 
 # some look-and-feel globals.
 Params = {
@@ -168,48 +169,80 @@ def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
 
     return (vmin,vmax)
 
-def pAper(axes, aper, label=''):
+def pAper(axes, aper, label='', ccdAper=None):
     """
     Plots an :class:`Aperture` object, returning references to the
     plot objects.
 
     Arguments::
 
-      axes  : (:class:`matplotlib.axes.Axes`)
+      axes    : (:class:`matplotlib.axes.Axes`)
            the Axes to plot to.
 
-      aper  : (Aperture)
+      aper    : (Aperture)
            the :class:`Aperture` to plot
 
-      label : (string)
+      label   : (string)
            a string label to add
+
+      ccdAper : (CcdAper)
+           needed if plotting multiple apertures with links
 
     Returns a tuple containing references to all the objects created
     when plotting the Aperture in case of a later need to delete them
     """
+
     # draw circles to represent the aperture. 'objs' is a list of the
     # objects that we keep to return for possible later deletion.
     objs = []
     if aper.ref:
         objs.append(
             axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
-                                  color=Params['aper.reference.col'])))
+                                  color=Params['aper.reference.col']))
+        )
     else:
         objs.append(
             axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
-                                  color=Params['aper.target.col'])))
+                                  color=Params['aper.target.col']))
+        )
 
     objs.append(
         axes.add_patch(Circle((aper.x,aper.y),aper.rsky1,fill=False,
-                              color=Params['aper.sky.col'])))
+                              color=Params['aper.sky.col']))
+    )
     objs.append(
         axes.add_patch(Circle((aper.x,aper.y),aper.rsky2,fill=False,
-                              color=Params['aper.sky.col'])))
+                              color=Params['aper.sky.col']))
+    )
+
+    if aper.link != '':
+        if ccdAper is None:
+            raise ValueError('to plot a linked aperture, need to pass through an CcdAper')
+        else:
+            laper = ccdAper[aper.link]
+
+            # draw arrow starting at target aperture of one
+            # aperture to the other.
+            p1 = utils.Vec2D(aper.x, aper.y)
+            p2 = utils.Vec2D(laper.x, laper.y)
+            v = p2-p1
+            uv = v.unit()
+            r1 = aper.rtarg*uv
+            r2 = laper.rtarg*uv
+            v -= (aper.rtarg+laper.rtarg)*uv
+            p1 += r1
+            objs.append(
+                axes.arrow(p1.x, p1.y, v.x, v.y,
+                           width=0.5, length_includes_head=True, overhang=0.8, lw=2, color='b')
+            )
 
     if label != '':
         objs.append(
-            axes.text(aper.x-aper.rsky2,aper.y-aper.rsky2,label,
-                      color=Params['aper.label.col'],ha='right',va='top'))
+            axes.text(
+                aper.x-aper.rsky2,aper.y-aper.rsky2,label,
+                color=Params['aper.label.col'],ha='right',va='top'
+            )
+        )
 
     return tuple(objs)
 
@@ -232,7 +265,7 @@ def pCcdAper(axes, ccdAper):
     """
     g = Group(tuple)
     for key, aper in ccdAper.items():
-        objs = pAper(axes, aper, key)
+        objs = pAper(axes, aper, key, ccdAper)
         g[key] = objs
 
     return g
