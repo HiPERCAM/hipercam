@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-matplotlib plotting functions.
+matplotlib plotting functions. 
 """
 
 from matplotlib.patches import Circle
@@ -49,6 +49,12 @@ Params = {
 
     # aperture label colour
     'aper.label.col' : CIS[6],
+
+    # aperture link colour
+    'aper.link.col' : CIS[5],
+
+    # aperture mask colour
+    'aper.mask.col' : CIS[5],
 }
 
 def pWin(axes, win, label=''):
@@ -216,6 +222,7 @@ def pAper(axes, aper, label='', ccdAper=None):
     )
 
     if aper.link != '':
+        # indicate a link with an arrow
         if ccdAper is None:
             raise ValueError('to plot a linked aperture, need to pass through an CcdAper')
         else:
@@ -233,7 +240,22 @@ def pAper(axes, aper, label='', ccdAper=None):
             p1 += r1
             objs.append(
                 axes.arrow(p1.x, p1.y, v.x, v.y,
-                           width=0.5, length_includes_head=True, overhang=0.8, lw=2, color='b')
+                           width=0.5, length_includes_head=True, overhang=0.8, lw=2, color=Params['aper.link.col'])
+            )
+
+    # draw dashed lines connecting the aperture to the centres of mask indicated with circles. NB
+    # plot returns a list of the lines added, only one in this case, so we extract it rather than
+    # storing a list
+    for xoff,yoff,r in aper.mask:
+        # draw the line
+        objs.append(
+            axes.plot([aper.x, aper.x+xoff], [aper.y, aper.y+yoff], '--', color=Params['aper.mask.col'])[0]
+            )
+
+        # and now the circle
+        objs.append(
+            axes.add_patch(Circle((aper.x+xoff,aper.y+yoff),r,fill=False,ls='dashed',
+                                  color=Params['aper.sky.col']))
             )
 
     if label != '':

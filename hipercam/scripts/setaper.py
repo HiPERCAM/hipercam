@@ -381,7 +381,8 @@ def setaper(args=None):
 
 # the next class is where all the action occurs. A rather complicated matter
 # of handling events. note that standard terminal input with 'input' becomes
-# impossible, explaining some of the weirdness
+# impossible, explaining some of the weirdness. Effectively the class is used
+# here to define a scope for variables that would otherwise be treated as globals
 
 class PickStar:
     """Class to pick targets for apertures.
@@ -428,6 +429,7 @@ class PickStar:
         # start so we set them False
         self._add_mode = False
         self._link_mode = False
+        self._mask_mode = False
 
     def action_prompt(self, cr):
         """
@@ -438,7 +440,7 @@ class PickStar:
         if cr:
             print()
 
-        print('a(dd), b(reak), c(entre), d(elete), h(elp), l(ink), ' +
+        print('a(dd), b(reak), c(entre), d(elete), h(elp), l(ink), m(ask), ' +
               'p(rofit), q(uit), r(eference): ', end='',flush=True)
 
 
@@ -472,6 +474,19 @@ class PickStar:
                 self._y = event.ydata
                 self._link()
 
+        elif self._mask_mode:
+            if event.key == 'q':
+                self._mask_mode = False
+                self.action_prompt(True)
+
+            elif event.key == 'm':
+                # mask mode. store essential data
+                self._cnam = self.cnams[event.inaxes]
+                self._axes = event.inaxes
+                self._x = event.xdata
+                self._y = event.ydata
+                self._mask()
+
         else:
             # standard mode action
             self._standard(event.key, event.xdata, event.ydata, event.inaxes)
@@ -499,6 +514,14 @@ class PickStar:
                     self._x = event.xdata
                     self._y = event.ydata
                     self._link()
+
+                elif self._mask_mode:
+                    # mask mode. store essential data
+                    self._cnam = self.cnams[event.inaxes]
+                    self._axes = event.inaxes
+                    self._x = event.xdata
+                    self._y = event.ydata
+                    self._mask()
 
                 else:
                     # add or delete action, depending upon location relative to
@@ -549,6 +572,7 @@ Help on the actions available in 'setaper'. Actions:
  d(elete)   : delete an aperture
  h(elp)     : print this help text
  l(ink)     : link one aperture to another in the same CCD for re-positioning
+ m(ask)     : adds a mask to an aperture to ignore regions of sky
  p(rofit)   : toggles between fitting+position correction and no fits
  r(eference): marks an aperture as a reference aperture
  q(uit)     : quit setaper and save apertures
@@ -603,9 +627,18 @@ the aperture centre.
                     self.action_prompt(True)
                 else:
                     # switch to link mode, set number of apertures picked
-                    self.naper = 0
+                    self._link_stage = 0
                     self._link_mode = True
                     self._link()
+
+            elif key == 'm':
+                # add a sky mask to an aperture
+                print(key)
+
+                # switch to link mode, set number of apertures picked
+                self._mask_mode = True
+                self._mask_stage = 0
+                self._mask()
 
             elif key == 'p':
                 print(key)
@@ -849,11 +882,10 @@ the aperture centre.
 
         # first see if there is an aperture near enough the selected position
         aper, apnam, dmin = self._find_aper()
-        print(apnam, dmin, self._x, self._y)
 
         if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
             print('  *** found no aperture near to the cursor position to link')
-            if self.naper == 1:
+            if self._link_stage == 1:
                 print(' select the aperture to link aperture {:s} from [q to quit]'.format(apnam))
             else:
                 print('  *** no link made.')
@@ -862,9 +894,9 @@ the aperture centre.
         else:
 
             # ok, we have an aperture
-            self.naper += 1
+            self._link_stage += 1
 
-            if self.naper == 1:
+            if self._link_stage == 1:
                 # first time through, store the CCD, aperture label and
                 # aperture of the first aperture which is the one that will
                 # contain the link, set the link status to True and prompt the
@@ -875,7 +907,7 @@ the aperture centre.
                 print(' click the link aperture [q to quit]'.format(apnam))
 
             else:
-                # second time through. Check we are in the same CCD but on a
+                # second (or more) time through. Check we are in the same CCD but on a
                 # different aperture first change the link status
                 self._link_mode = False
 
@@ -884,11 +916,11 @@ the aperture centre.
                     print('  *** cannot link across CCDs; no link made')
                 elif apnam == self._link_apnam:
                     print('  *** cannot link an aperture to itself; no link made')
-                elif self.mccdaper[self._link_cnam][apnam].is_linked():
+                elif self._link_aper.is_linked():
                     print('  *** cannot link an aperture to an aperture that is itself linked; no link made')
                 else:
                     # add link to the first aperture
-                    self.mccdaper[self._link_cnam][self._link_apnam].set_link(apnam)
+                    self._link_aper.set_link(apnam)
 
                     # delete the first aperture
                     for obj in self.pobjs[self._cnam][self._link_apnam]:
@@ -903,6 +935,74 @@ the aperture centre.
                     print('  linked aperture {:s} to aperture {:s} in CCD {:s}'.format(
                             self._link_apnam, apnam, self._link_cnam))
                     self.action_prompt(True)
+
+    def _mask(self):
+        """
+        Adds a sky mask to an aperture
+        """
+
+        # count the stage we are at
+        self._mask_stage += 1
+
+        if self._mask_stage == 1:
+            # Stage 1first see if there is an aperture near enough the selected position
+            aper, apnam, dmin = self._find_aper()
+
+            if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
+                print('  *** found no aperture near to the cursor position to mask; nothing done')
+                self.action_prompt(True)
+
+            else:
+
+                # ok, we have an aperture. store the CCD, aperture label and
+                # aperture for future ref.
+                self._mask_cnam = self._cnam
+                self._mask_aper = aper
+                self._mask_apnam = apnam
+
+                # prompt stage 2
+                print(' click the cursor at the centre of the region to mask [will be circular]')
+
+        elif self._mask_stage == 2:
+
+            if self._cnam != self._mask_cnam:
+                print('  *** cannot add sky mask across CCDs; no mask added')
+                self._mask_mode = False
+            else:
+                # store mask centre
+                self._mask_xcen = self._x
+                self._mask_ycen = self._y
+
+                # prompt stage 3
+                print(' click the cursor at the edge of the region to mask [will be circular]')
+
+        elif self._mask_stage == 3:
+
+            # final stage of mask mode
+            self._mask_mode = False
+
+            if self._cnam != self._mask_cnam:
+                print('  *** cannot add sky mask across CCDs; no mask added')
+            else:
+                # compute radius
+                radius = np.sqrt((self._x-self._mask_xcen)**2 +  (self._y-self._mask_ycen)**2)
+
+                # add mask to the aperture
+                self._mask_aper.add_mask(self._mask_xcen-self._mask_aper.x, self._mask_ycen-self._mask_aper.y, radius)
+
+                # delete the aperture from the plot
+                for obj in self.pobjs[self._cnam][self._mask_apnam]:
+                    obj.remove()
+
+                # re-plot new version, over-writing plot objects
+                self.pobjs[self._cnam][self._mask_apnam] = hcam.mpl.pAper(
+                    self._axes, self._mask_aper, self._mask_apnam,
+                    self.mccdaper[self._mask_cnam])
+                plt.draw()
+
+                print('  added mask to aperture {:s} in CCD {:s}'.format(
+                            self._mask_apnam, self._mask_cnam))
+                self.action_prompt(True)
 
     def _break(self):
         """
