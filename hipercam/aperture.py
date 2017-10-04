@@ -118,6 +118,23 @@ class Aperture(object):
         """Cancels any link to another :class:Aperture"""
         self.link = ''
 
+    def is_linked(self):
+        """Returns True if the :class:Aperture is linked to another"""
+        return self.link != ''
+
+    def check(self):
+        """Run a few checks on an :class:Aperture. Raises a ValueError if there are problems."""
+
+        if self.rtarg <= 0:
+            raise ValueError('Aperture = {!r}\nTarget aperture radius = {:.2f} <= 0'.format(self, self.rtarg))
+
+        elif self.rsky1 > self.rsky2:
+            raise ValueError('Aperture = {!r}\nInner sky aperture radius (={:.2f}) > outer radius (={:.2f})'.format(
+                    self, self.rsky1,self.rsky2))
+
+        elif not isinstance(self.link,str) or not isinstance(self.mask,list) or not isinstance(self.ref,bool):
+            raise ValueError('Aperture = {!r}\nOne or more of link, mask, extra has the wrong type'.format(self))
+
     def toJson(self, fp):
         """Dumps Aperture in JSON format to fp"""
         json.dump(self, fp, cls=_Encoder, indent=2)
@@ -125,7 +142,9 @@ class Aperture(object):
     @classmethod
     def fromJson(cls, fp):
         """Read from JSON-format file pointer fp"""
-        return json.load(fp, cls=_Decoder)
+        aper = json.load(fp, cls=_Decoder)
+        aper.check()
+        return aper
 
 class CcdAper(Group):
     """Class representing all the :class:Apertures for a single CCD.
@@ -149,18 +168,21 @@ class CcdAper(Group):
             self.__class__.__name__, super().__repr__()
             )
 
+    def check(self):
+        """Checks for problems with links"""
+        for apnam, aper in self.items():
+            if aper.is_linked():
+                if aper.link not in self:
+                    raise ValueError('Aperture = {!r} links to anon-existent aperture'.format(self))
+                elif self[aper.link].is_linked():
+                    raise ValueError('Aperture = {!r} is linked to an aperture which is itself linked'.format(self))
+
     def toJson(self, fp):
         """Dumps ccdAper in JSON format to fp"""
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
         listify = ['hipercam.CcdAper'] + list(self.items)
         return json.dump(listify, fp, cls=_Encoder, indent=2)
-
-    @classmethod
-    def fromJson(cls, fp):
-        """Read from JSON-format file pointer fp"""
-        obj = json.load(fp, cls=_Decoder)
-        return CcdAper(obj[1:])
 
 
 class MccdAper(Group):
@@ -203,10 +225,22 @@ class MccdAper(Group):
 
     @classmethod
     def fromJson(cls, fp):
-        """Read from JSON-format file pointer fp"""
+        """Read from JSON-format file pointer fp. Since such files can fairly
+        easily be corrupted by injudicious editing, some consistency checks
+        are run. File loading does not happen often, so this should not be a
+        serious overhead
+
+          fp : a file-like object opened for reading of text
+
+        Returns an MccdAper object.
+
+        """
         obj = json.load(fp, cls=_Decoder)
         listify = [(v1,CcdAper(v2[1:])) for v1,v2 in obj[1:]]
-        return MccdAper(listify)
+        mccdaper = MccdAper(listify)
+        for cnam, ccdaper in mccdaper.items():
+            ccdaper.check()
+        return mccdaper
 
 # classes to support JSON serialisation of Aperture objects
 class _Encoder(json.JSONEncoder):
