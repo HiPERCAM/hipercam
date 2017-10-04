@@ -884,6 +884,8 @@ the aperture centre.
                     print('  *** cannot link across CCDs; no link made')
                 elif apnam == self._link_apnam:
                     print('  *** cannot link an aperture to itself; no link made')
+                elif self.mccdaper[self._link_cnam][apnam].is_linked():
+                    print('  *** cannot link an aperture to an aperture that is itself linked; no link made')
                 else:
                     # add link to the first aperture
                     self.mccdaper[self._link_cnam][self._link_apnam].set_link(apnam)
