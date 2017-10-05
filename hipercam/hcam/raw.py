@@ -543,10 +543,22 @@ class Rdata (Rhead):
                     # recover the window and flip parameters
                     win, flip_axes = self.windows[nwin][nccd][nquad]
 
-                    # get the window data and apply flips
+                    # get the window data and apply flips. using older
+                    # flipud and fliplr rather than more modern flip
+                    # to avoid a need to upgrade numpy as flip only
+                    # came in version 1.12 and many linux distros
+                    # are behind.
                     windata = data[nccd, nquad]
                     for ax in flip_axes:
-                        windata = np.flip(windata, ax)
+                        # windata = np.flip(windata, ax)
+                        if ax == 0:
+                            windata = np.flipud(windata)
+                        elif ax == 1:
+                            windata = np.fliplr(windata)
+                        else:
+                            raise ValueError(
+                                'can only flip on axis 0 or 1, but got = {:d}'.format(ax)
+                            )
 
                     # finally store as a Windat
                     ccds[cnam][wnam] = Windat(win, windata)
