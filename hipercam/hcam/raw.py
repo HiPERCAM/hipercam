@@ -266,6 +266,11 @@ class Rhead:
         if full and 'ESO DET GPS' in self.header:
             self.thead['GPS'] = (self.header['ESO DET GPS'],
                                  self.header.comments['ESO DET GPS'])
+        if full:
+            self.thead['XBIN'] = (xbin, self.header.comments['ESO DET BINX1'])
+            self.thead['YBIN'] = (ybin, self.header.comments['ESO DET BINY1'])
+            self.thead['SPEED'] = (self.header['ESO DET SPEED'],
+                                   self.header.comments['ESO DET SPEED'])
 
         # Header per CCD
         self.cheads = []
