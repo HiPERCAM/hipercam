@@ -7,8 +7,8 @@ from astropy.utils.exceptions import AstropyUserWarning
 import numpy as np
 
 __all__ = (
-    'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'add_extension',
-    'HipercamError', 'HipercamWarning', 'CIS'
+    'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
+    'add_extension', 'HipercamError', 'HipercamWarning', 'CIS'
 )
 
 # Constants for general use
@@ -19,6 +19,7 @@ HCAM = '.hcm'
 LIST = '.lis'
 APER = '.ape'
 HRAW = '.fits'
+RED  = '.red'
 
 # For compatibility between PGPLOT and matplotlib, establish a uniform
 # set of colours. These are fed directly to matplotlib, and used to override
@@ -31,7 +32,7 @@ CIS = (
     (0,0,0.5),    # 4 -- blue
     (0.5,0.3,0),  # 5 -- pinkish
     (0.5,0,0.5),  # 6 -- purple
-    (0,0.5,0.5),  # 7 -- turqoise
+    (0,0.5,0.5),  # 7 -- turquoise
     )
 
 
