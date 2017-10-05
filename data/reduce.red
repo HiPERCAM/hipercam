@@ -1,8 +1,8 @@
-#
 # This is an example "reduce file" which defines the operation of the reduce
 # script. Basically it consists of a series of sections each of which contains
 # a number of parameters. This file explains the meaning of these parameters.
-#
+# The idea is that these are to large extent unchanging and it would be annoying
+# to be prompted every time for them.
 
 # the 'apertures' section defines how the apertures are re-positioned from
 # frame to frame. If not static, apertures are re-positioned through a
@@ -10,16 +10,17 @@
 # parameters below are associated with this process
 
 [apertures]
-file                = aper                 # file of software apertures for each CCD
-reposition_mode     = reference_plus_tweak # static, individual, individual_plus_tweak, reference_plus_tweak
-search_half_width   = 11                   # for initial search around start location, unbinned pixels
-search_smooth_fwhm  = 4                    # smoothing FWHM, binned pixels
+file            = aper                 # file of software apertures for each CCD
+reposition_mode = reference_plus_tweak # static, individual, individual_plus_tweak, reference_plus_tweak
+search_half_width  = 11                # for initial search around start location, unbinned pixels
+search_smooth_fwhm = 4                 # smoothing FWHM, binned pixels
 
-fit_method       = gaussian         # gaussian or moffat
-fit_beta         = 4.               # Moffat exponent
-fit_fwhm         = 6.               # FWHM, unbinned pixels
-fit_fwhm_min     = 2.               # Minimum FWHM, unbinned pixels
-fit_half_width   = 21               # for fit, unbinned pixels
+fit_method     = gaussian   # gaussian or moffat
+fit_beta       = 4.         # Moffat exponent
+fit_fwhm       = 6.         # FWHM, unbinned pixels
+fit_fwhm_min   = 2.         # Minimum FWHM, unbinned pixels
+fit_half_width = 21         # for fit, unbinned pixels
+fit_sigma      = 4          # rejection threshold for fits
 
 # Calibration frames and constants
 [calibration]
@@ -28,3 +29,6 @@ dark =        # Dark frame, blank to ignore
 flat =        # Flat field frame, blank to ignore
 readout = 3.  # RMS ADU. Float or string name of a file
 gain = 1.     # Gain, electrons/ADU. Float or string name of a file
+
+[general]
+version = 2017-10-05 # must match date in reduce itself.
