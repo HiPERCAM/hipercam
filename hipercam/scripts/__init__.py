@@ -16,10 +16,13 @@ from .combine import combine
 from .grab import grab
 from .hplot import hplot
 from .makestuff import makedata, makefield
+from .reduce import reduce
 from .rtplot import rtplot
+from .setaper import setaper
 from .stats import stats
 
 __all__ = [
     'carith', 'combine', 'grab', 'hplot',
-    'makedata', 'makefield', 'rtplot', 'stats'
+    'makedata', 'makefield', 'reduce',
+    'rtplot', 'setaper', 'stats'
     ]
