@@ -113,6 +113,9 @@ class Rhead:
         if server:
             # open socket connection to server
             self._ws = websocket.create_connection(URL + fname)
+            status = json.loads(self._ws.recv())['status']
+            if status == 'no such run':
+                raise HipercamError('Run not found: {}'.format(fname))
 
             # read the header from the server
             data = json.dumps(dict(action='get_hdr'))
