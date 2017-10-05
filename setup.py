@@ -118,4 +118,5 @@ setup(
     # tests
     test_suite = 'nose.collector',
     tests_require = ['nose','numpy','astropy'],
+
 )
