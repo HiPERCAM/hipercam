@@ -658,8 +658,7 @@ the aperture centre.
                 plt.close()
 
                 # old files are over-written at this point
-                with open(self.apernam,'w') as fp:
-                    self.mccdaper.toJson(fp)
+                self.mccdaper.toJson(self.apernam)
                 print(' apertures saved to {:s}.\nBye'.format(self.apernam))
 
             elif key == 'r':
