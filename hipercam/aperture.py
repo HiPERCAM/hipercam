@@ -135,9 +135,10 @@ class Aperture(object):
         elif not isinstance(self.link,str) or not isinstance(self.mask,list) or not isinstance(self.ref,bool):
             raise ValueError('Aperture = {!r}\nOne or more of link, mask, extra has the wrong type'.format(self))
 
-    def toJson(self, fp):
-        """Dumps Aperture in JSON format to fp"""
-        json.dump(self, fp, cls=_Encoder, indent=2)
+    def toJson(self, fname):
+        """Dumps Aperture in JSON format to a file called fname"""
+        with open(fname,'w') as fp:
+            json.dump(self, fp, cls=_Encoder, indent=2)
 
     @classmethod
     def fromJson(cls, fp):
@@ -177,13 +178,14 @@ class CcdAper(Group):
                 elif self[aper.link].is_linked():
                     raise ValueError('Aperture = {!r} is linked to an aperture which is itself linked'.format(self))
 
-    def toJson(self, fp):
-        """Dumps ccdAper in JSON format to fp"""
+    def toJson(self, fname):
+        """Dumps ccdAper in JSON format to a file called fname"""
+
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
         listify = ['hipercam.CcdAper'] + list(self.items)
-        return json.dump(listify, fp, cls=_Encoder, indent=2)
-
+        with open(fname,'w') as fp:
+            json.dump(listify, fp, cls=_Encoder, indent=2)
 
 class MccdAper(Group):
     """Class representing all the :class:Apertures for multiple CCDs.
@@ -213,15 +215,17 @@ class MccdAper(Group):
             self.__class__.__name__, super().__repr__()
             )
 
-    def toJson(self, fp):
-        """Dumps MccdAper in JSON format to fp"""
+    def toJson(self, fname):
+        """Dumps MccdAper in JSON format to a file called fname"""
+
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
         listify = ['hipercam.MccdAper'] + list(
             ((key,['hipercam.CcdAper']+list(val.items())) \
              for key, val in self.items())
         )
-        return json.dump(listify, fp, cls=_Encoder, indent=2)
+        with open(fname,'w') as fp:
+            json.dump(listify, fp, cls=_Encoder, indent=2)
 
     @classmethod
     def fromJson(cls, fp):
