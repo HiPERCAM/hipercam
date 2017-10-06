@@ -121,7 +121,7 @@ def rtplot(args=None):
 
         fdevice : (string) [if profit; hidden]
            plot device for profile fits, PGPLOT-style name.
-           e.g. '/xs', '2/xs' etc. 
+           e.g. '/xs', '2/xs' etc.
 
         fwidth  : (float) [hidden]
            fit plot width (inches). Set = 0 to let the program choose.
@@ -344,6 +344,8 @@ def rtplot(args=None):
                 method = cl.get_value('method', 'fit method g(aussian) or m(offat)', 'm', lvals=['g','m'])
                 if method == 'm':
                     cl.get_value('beta', 'initial exponent for Moffat fits', 5., 0.5)
+                else:
+                    beta = 0.
                 fwhm_min = cl.get_value('fwhm_min', 'minimum FWHM to allow [unbinned pixels]', 1.5, 0.01)
                 fwhm = cl.get_value('fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., fwhm_min)
                 shbox = cl.get_value(
@@ -477,8 +479,9 @@ def rtplot(args=None):
 
                         if wnam is not None:
                             # store the position, Windat label, target number, box size
+                            # fwhm, beta
                             ntarg += 1
-                            fpos.append(Fpar(x,y,wnam,ntarg,shbox,fwhm))
+                            fpos.append(Fpar(x,y,wnam,ntarg,shbox,fwhm,beta))
 
                             # report information, overplot search box
                             print('Target {:d} selected at {:.1f},{:.1f} in window {:s}'.format(ntarg,x,y,wnam))
@@ -501,7 +504,8 @@ def rtplot(args=None):
                 if splot:
                     fpar.plot()
 
-                # extract search box from the CCD
+                # extract search box from the CCD. 'fpar' is updated later
+                # if the fit is successful to reflect the new position
                 swind = fpar.swind(ccd)
 
                 # carry out initial search
@@ -509,54 +513,80 @@ def rtplot(args=None):
 
                 # now for a more refined fit. First extract fit Windat
                 fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+
+                # crude estimate of sky background
                 sky = np.percentile(fwind.data, 25)
 
                 if method == 'g':
+                    # gaussian fit
                     (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
-                    fwind.fitGaussian(sky, peak-sky, x, y, fpar.fwhm, fwhm_min, read, gain, sigma)
+                        hcam.fitGaussian(
+                        fwind, sky, peak-sky, x, y, fpar.fwhm, fwhm_min, read, gain)
 
-                    if sigs is None:
-                        print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
-                        pgsci(2)
-                    else:
-                        esky, epeak, ex, ey, efwhm = sigs 
+                elif method == 'm':
+                    # moffat profile fit
+                    (sky, peak, x, y, fwhm, beta), sigs, (fit, X, Y, weights) = \
+                        hcam.fitMoffat(
+                        fwind, sky, peak-sky, x, y, fpar.fwhm, fwhm_min, fpar.beta, read, gain)
+
+                else:
+                    raise NotImplementedError('{:s} fitting method not implemented'.format(method))
+
+                if sigs is None:
+                    print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
+                    pgsci(2)
+
+                else:
+                    if method == 'g':
+                        esky, epeak, ex, ey, efwhm = sigs
                         print(' >> Targ {:d}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
                             fpar.ntarg,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky)
                         )
 
-                        if peak > thresh:
-                            # update search centre & fwhm for next frame
+                    elif method == 'm':
+                        esky, epeak, ex, ey, efwhm, ebeta = sigs
+                        print(' >> Targ {:d}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f}), beta = {:.2f}({.2f})'.format(
+                            fpar.ntarg,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky,beta,ebeta)
+                        )
+
+                    if peak > thresh:
+                        # update some initial parameters for next time
+                        if method == 'g':
                             fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
+                        elif method == 'm':
+                            fpar.x, fpar.y, fpar.fwhm, fpar.beta = x, y, fwhm, beta
 
-                            # plot values versus radial distance
-                            R = np.sqrt((X-x)**2+(Y-y)**2)
-                            fdev.select()
-                            vmin, vmax = fwind.min(), fwind.max()
-                            range = vmax-vmin
-                            pgeras()
-                            pgvstd()
-                            pgswin( 0, R.max(), vmin-0.05*range, vmax+0.05*range)
-                            pgsci(4)
-                            pgbox('bcnst',0,0,'bcnst',0,0)
-                            pgsci(1)
-                            pgpt(R.flat, fwind.data.flat, 1)
+                        # plot values versus radial distance
+                        R = np.sqrt((X-x)**2+(Y-y)**2)
+                        fdev.select()
+                        vmin, vmax = fwind.min(), fwind.max()
+                        range = vmax-vmin
+                        pgeras()
+                        pgvstd()
+                        pgswin( 0, R.max(), vmin-0.05*range, vmax+0.05*range)
+                        pgsci(4)
+                        pgbox('bcnst',0,0,'bcnst',0,0)
+                        pgsci(1)
+                        pgpt(R.flat, fwind.data.flat, 1)
 
-                            # line fit
-                            pgsci(3)
-                            r = np.linspace(0,R.max(),200)
-                            g = sky+peak*np.exp(-4*np.log(2)*(r/fwhm)**2)
-                            pgline(r,g)
+                        # line fit
+                        pgsci(3)
+                        r = np.linspace(0,R.max(),200)
+                        if method == 'g':
+                            f = sky+peak*np.exp(-4*np.log(2)*(r/fwhm)**2)
+                        elif method == 'm':
+                            alpha = 4*(2**(1/beta)-1)/fwhm**2
+                            f = sky+peak/(1+alpha*r**2)**beta
+                        pgline(r,f)
 
-                            # back to the image to plot circle of radius FWHM
-                            imdev.select()
-                            pgsci(3)
-                            pgcirc(x,y,fwhm)
+                        # back to the image to plot circle of radius FWHM
+                        imdev.select()
+                        pgsci(3)
+                        pgcirc(x,y,fwhm)
 
-                        else:
-                            print('     *** below detection threshold; position & FWHM will not updated')
-                            pgsci(2)
-                else:
-                    raise NotImplementedError('{:s} fitting method not implemented'.format(method))
+                    else:
+                        print('     *** below detection threshold; position & FWHM will not updated')
+                        pgsci(2)
 
                 # plot location on image as a cross
                 pgpt1(x, y, 5)
@@ -567,13 +597,14 @@ class Fpar:
     """Class for profile fits. Able to plot the search box around an x,y
     position and come up with a Windat representing that region."""
 
-    def __init__(self, x, y, wnam, ntarg, shbox, fwhm):
+    def __init__(self, x, y, wnam, ntarg, shbox, fwhm, beta):
         self.x = x
         self.y = y
         self.wnam = wnam
         self.ntarg = ntarg
         self.shbox = shbox
         self.fwhm = fwhm
+        self.beta = beta
 
     def region(self):
         return (self.x-self.shbox, self.x+self.shbox, self.y-self.shbox, self.y+self.shbox)
