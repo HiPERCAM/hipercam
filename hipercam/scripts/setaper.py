@@ -375,7 +375,7 @@ def setaper(args=None):
                       read, gain, sigma, aper, pobjs)
 
     plt.tight_layout()
-    picker.action_prompt(False)
+    PickStar.action_prompt(False)
 
     # finally show stuff ....
     plt.show()
@@ -433,7 +433,8 @@ class PickStar:
         self._link_mode = False
         self._mask_mode = False
 
-    def action_prompt(self, cr):
+    @staticmethod
+    def action_prompt(cr):
         """
         Prompts user for an action. cr controls whether there is an intial carriage return or not.
         It leaves the cursor at the end of the line. This appears in multiple places hence why it
@@ -465,7 +466,7 @@ class PickStar:
             if event.key == 'q':
                 # trap 'q' for quit during linking
                 self._link_mode = False
-                self.action_prompt(True)
+                PickStar.action_prompt(True)
 
             elif event.key == 'l':
                 # link mode. this should be the second aperture
@@ -479,7 +480,7 @@ class PickStar:
         elif self._mask_mode:
             if event.key == 'q':
                 self._mask_mode = False
-                self.action_prompt(True)
+                PickStar.action_prompt(True)
 
             elif event.key == 'm':
                 # mask mode. store essential data
@@ -549,7 +550,7 @@ class PickStar:
                 print('\nswitched to pan/zoom mode')
             else:
                 print('\nswitched to aperture update mode')
-                self.action_prompt(False)
+                PickStar.action_prompt(False)
 
         elif self.toolbar.mode != 'pan/zoom' and axes is not None:
 
@@ -626,7 +627,7 @@ the aperture centre.
                 print(key)
                 if len(self.mccdaper[self._cnam]) < 2:
                     print('need at least 2 apertures in a CCD to be able to make links')
-                    self.action_prompt(True)
+                    PickStar.action_prompt(True)
                 else:
                     # switch to link mode, set number of apertures picked
                     self._link_stage = 0
@@ -649,7 +650,7 @@ the aperture centre.
                     print(' turned on profile fitting & re-positioning when adding apertures')
                 else:
                     print(' switched off profile fitting & re-positioning when adding apertures')
-                self.action_prompt(True)
+                PickStar.action_prompt(True)
 
             elif key == 'q':
                 print(key)
@@ -666,7 +667,7 @@ the aperture centre.
                 self._reference()
 
             elif key == 'enter':
-                self.action_prompt(True)
+                PickStar.action_prompt(True)
 
             elif key == 'shift':
                 # trap some special keys to avoid irritating messages
@@ -674,7 +675,7 @@ the aperture centre.
 
             else:
                 print('\nNo action is defined for key = "{:s}"'.format(key))
-                self.action_prompt(False)
+                PickStar.action_prompt(False)
 
     def _add(self):
         """
@@ -695,7 +696,7 @@ the aperture centre.
             wnam = ccd.inside(self._x, self._y, 2)
             if wnam is None:
                 print('  *** selected position ({:.1f},{:.1f}) not in a window; should not occur'.format(self._x,self._y), file=sys.stderr)
-                self.action_prompt(True)
+                PickStar.action_prompt(True)
                 return
 
             # get Windat around the selected position
@@ -709,26 +710,14 @@ the aperture centre.
             sky = np.percentile(fwind.data, 25)
 
             # refine the Aperture position by fitting the profile
-            if self.method == 'g':
-                # gaussian fit
-                (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
-                    fwind.fitGaussian(sky, peak-sky, x, y, self.fwhm, self.fwhm_min, self.read, self.gain, self.sigma)
-
-                if sigs is None:
-                    print('  *** Aperture {:s}: fit failed'.format(self._buffer), file=sys.stderr)
-                    self.action_prompt(True)
-                    return
-                else:
-                    esky, epeak, ex, ey, efwhm = sigs 
-                    print('  x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
-                            self._buffer,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky)
-                          )
-                    print(  'shifted by dx,dy = {:.2f},{.2f}'.format(x-self._x,y-self._y)) 
-                    self._x = x
-                    self._y = y
-
+            status, x, y = fit(self._buffer, self.method, fwind, sky, peak-sky, x, y, self.fwhm, self.fwhm_min, self.beta, self.read, self.gain)
+            if status:
+                self._x = x
+                self._y = y
             else:
-                raise NotImplementedError('{:s} fitting method not implemented'.format(method))
+                # oops, return early, fit failed.
+                PickStar.action_prompt(True)
+                return
 
         # create and add aperture
         aper = hcam.Aperture(self._x, self._y, self.rtarg, self.rsky1, self.rsky2, False)
@@ -743,8 +732,8 @@ the aperture centre.
         print('added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
                 self._buffer,self._cnam,self._x,self._y)
               )
+        PickStar.action_prompt(True)
 
-        self.action_prompt(True)
 
     def _delete(self):
         """
@@ -764,10 +753,6 @@ the aperture centre.
             for obj in self.pobjs[self._cnam][apnam]:
                 obj.remove()
 
-            # update plot
-            plt.draw()
-            print('  deleted aperture "{:s}"'.format(apnam))
-
             # delete Aperture from containers
             del self.pobjs[self._cnam][apnam]
             del self.mccdaper[self._cnam][apnam]
@@ -779,10 +764,21 @@ the aperture centre.
                     print('  removed link to aperture "{:s}" from aperture "{:s}"'.format(
                             apnam, anam))
 
+                    # remove the plot of the aperture that was linked in to wipe the link
+                    for obj in self.pobjs[self._cnam][anam]:
+                        obj.remove()
+
+                    # then re-plot
+                    self.pobjs[self._cnam][anam] = hcam.mpl.pAper(self._axes, aper, anam)
+
+            # update plot
+            plt.draw()
+            print('  deleted aperture "{:s}"'.format(apnam))
+
         else:
             print('  found no aperture near enough the cursor position for deletion')
 
-        self.action_prompt(True)
+        PickStar.action_prompt(True)
 
     def _centre(self):
         """
@@ -817,37 +813,22 @@ the aperture centre.
                 sky = np.percentile(fwind.data, 25)
 
                 # refine the Aperture position by fitting the profile
-                if self.method == 'g':
-                    # gaussian fit
-                    (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
-                        fwind.fitGaussian(sky, peak-sky, x, y, self.fwhm, self.fwhm_min,
-                                          self.read, self.gain, self.sigma)
+                status, x, y = fit(apnam, self.method, fwind, sky, peak-sky, x, y, self.fwhm, self.fwhm_min, self.beta, self.read, self.gain)
+                if status:
+                    aper.x = x
+                    aper.y = y
+                    # remove old aperture from from plot
+                    for obj in self.pobjs[self._cnam][apnam]:
+                        obj.remove()
 
-                    if sigs is None:
-                        print('  *** Aperture {:s}: fit failed; current aperture left as is'.format(anmin), file=sys.stderr)
-                    else:
-                        esky, epeak, ex, ey, efwhm = sigs 
-                        print('  x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
-                                x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky)
-                              )
-                        print('  shifted by dx,dy = {:.2f},{:.2f}'.format(x-self._x,y-self._y)) 
-
-                        # update aperture position
-                        aper.x = x
-                        aper.y = y
-
-                        # remove old aperture from from plot
-                        for obj in self.pobjs[self._cnam][apnam]:
-                            obj.remove()
-
-                        # plot in new position, over-writing the plot objects
-                        self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
-                        plt.draw()
+                    # plot in new position, over-writing the plot objects
+                    self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+                    plt.draw()
 
                 else:
-                    raise NotImplementedError('{:s} fitting method not implemented'.format(method))
+                    print('  *** aperture left as is')
 
-        self.action_prompt(True)
+        PickStar.action_prompt(True)
 
     def _reference(self):
         """
@@ -873,7 +854,7 @@ the aperture centre.
             # re-plot new version, over-writing plot objects
             self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
 
-        self.action_prompt(True)
+        PickStar.action_prompt(True)
 
     def _link(self):
         """
@@ -891,7 +872,7 @@ the aperture centre.
                 print(' select the aperture to link aperture {:s} from [q to quit]'.format(apnam))
             else:
                 print('  *** no link made.')
-                self.action_prompt(True)
+                PickStar.action_prompt(True)
 
         else:
 
@@ -936,7 +917,7 @@ the aperture centre.
 
                     print('  linked aperture {:s} to aperture {:s} in CCD {:s}'.format(
                             self._link_apnam, apnam, self._link_cnam))
-                    self.action_prompt(True)
+                    PickStar.action_prompt(True)
 
     def _mask(self):
         """
@@ -952,7 +933,7 @@ the aperture centre.
 
             if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
                 print('  *** found no aperture near to the cursor position to mask; nothing done')
-                self.action_prompt(True)
+                PickStar.action_prompt(True)
 
             else:
 
@@ -1004,7 +985,7 @@ the aperture centre.
 
                 print('  added mask to aperture {:s} in CCD {:s}'.format(
                             self._mask_apnam, self._mask_cnam))
-                self.action_prompt(True)
+                PickStar.action_prompt(True)
 
     def _break(self):
         """
@@ -1036,7 +1017,7 @@ the aperture centre.
             print('  cancelled link on aperture {:s} in CCD {:s}'.format(
                     apnam, self._cnam))
 
-        self.action_prompt(True)
+        PickStar.action_prompt(True)
 
 
     def _find_aper(self):
@@ -1091,7 +1072,7 @@ the aperture centre.
         elif key == '!' and self._buffer == '':
             # terminate accumulation mode without bothering to wait for an 'enter'
             print('\n*** no aperture added')
-            self.action_prompt(True)
+            PickStar.action_prompt(True)
             self._add_mode = False
 
         elif key == 'backspace' or key == 'delete':
@@ -1123,9 +1104,56 @@ the aperture centre.
 
                 else:
                     # add & plot aperture
-                    self._add_aperture()
+                    self._add()
                     self._add_mode = False
 
             else:
                 # multi character input. just accumulate characters
                 print(key, end='', flush=True)
+
+
+def fit(apnam, method, wind, sky, height, x, y, fwhm, fwhm_min, beta, read, gain):
+
+    # To avoid repetition. This carries out a gaussian or moffat fit to a
+    # Windat given a set of initial parameters return (status,x,y) where
+    # status is a bool indicating the success or not of the fit and x, and y
+    # are the new values of x and y or 0, 0 if the fit fails
+
+    xold, yold = x, y
+    if method == 'g':
+        # gaussian fit
+        (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
+            hcam.fitGaussian(
+            wind, sky, height, x, y, fwhm, fwhm_min, read, gain)
+
+    elif method == 'm':
+        # gaussian fit
+        (sky, peak, x, y, fwhm, beta), sigs, (fit, X, Y, weights) = \
+            hcam.fitMoffat(
+            wind, sky, height, x, y, fwhm, fwhm_min, beta, read, gain)
+
+    else:
+        raise NotImplementedError('{:s} fitting method not implemented'.format(method))
+
+    if sigs is None:
+        print('  *** Aperture {:s}: fit failed'.format(apnam), file=sys.stderr)
+        PickStar.action_prompt(True)
+        return (False, 0, 0)
+
+    else:
+
+        if method == 'g':
+            esky, epeak, ex, ey, efwhm = sigs
+            print(' aperture = {:s}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
+                    apnam,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky)
+                  )
+
+        elif method == 'm':
+            esky, epeak, ex, ey, efwhm, ebeta = sigs
+            print('  aperture = {:s}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f}), beta = {:.2f}({:.2f})'.format(
+                    apnam,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky,beta,ebeta)
+                  )
+
+        print('   shifted by dx,dy = {:.2f},{:.2f}'.format(x-xold,y-yold))
+        return (True, x, y)
+

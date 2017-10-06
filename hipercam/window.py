@@ -13,12 +13,12 @@ from numpy.lib.stride_tricks import as_strided
 
 from astropy.io import fits
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
-from astropy.modeling import models, fitting
+from astropy.modeling import models, fitting, Fittable2DModel, Parameter
 
 import matplotlib.pyplot as plt
 from .core import *
 
-__all__ = ('Window', 'Windat')
+__all__ = ('Window', 'Windat', 'fitGaussian', 'fitMoffat')
 
 class Window:
     """
@@ -820,125 +820,6 @@ class Windat(Window):
         # return with device coords and the value
         return (self.x(ix),self.y(iy),self.data[iy,ix])
 
-    def fitGaussian(self, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain, sigma):
-        """
-        Fits the profile of one target in a Windat with a symmetric 2D
-        Gaussian profile given initial starting parameters. NB This will fit
-        the entire Windat so normally one should window down to the object of
-        interest. It returns the fitted parameters, covariances and the fit itself.
-        The FWHM can be constrained to lie above a lower limit which can be useful.
-
-        Arguments::
-
-            sky      : (float)
-               value of the (assumed constant) sky background
-
-            height   : (float)
-               peak height of profile
-
-            xcen     : (float)
-               initial X value at centre of profile, unbinned absolute coordinates
-
-            ycen     : (float)
-               initial Y value at centre of profile, unbinned absolute coordinates
-
-            fwhm     : (float)
-               initial FWHM in unbinned pixels.
-
-            fwhm_min : (float)
-               minimum value to allow FWHM to go to. Useful for heavily binned data
-               especially where all signal might be in a single pixel to prevent going
-               to silly values.
-
-            read     : (float)
-               readout noise, RMS ADU, from which weights are generated
-
-            gain     : (float)
-               gain, e-/ADU, from which weights are generated
-
-            sigma   : (float)
-               for outlier rejection. The fit is re-run with outliers removed by setting
-               their weight = 0.
-
-        Returns:: (tuple of tuples)
-
-           (pars, sigs, extras) where::
-
-             pars : (tuple)
-                parameters. unpacks to sky, height, xcen, yce, fwhm
-
-             sigs : (tuple)
-                standard deviations. unpacks in same order, (sky, height, xcen, yce, fwhm). Can come
-                back as 'None' if the fit fails so don't try to unpack on the fly.
-
-             extras : (tuple)
-                some extra stuff that might come in useful, namely (fit, X, Y, weights) where `fit`
-                is a :class:Windat containing the best fit, X and Y are the X and Y positions of
-                all pixels (2D numpy arrays) and weights is the final set of weights, some of which
-                might = 0 indicating rejection.
-
-        """
-
-        # generate 2D arrays of x and y values
-        x = self.x(np.arange(self.nx))
-        y = self.y(np.arange(self.ny))
-        X, Y = np.meshgrid(x, y)
-
-        # generate weights
-        weights = 1./np.sqrt(read**2+np.maximum(0,self.data)/gain)
-
-        # conversion factor betwen FWHM & STD for Gaussian
-        EFAC = np.sqrt(8*np.log(2))
-
-        sigma = fwhm/EFAC
-        sigma_min = fwhm_min/EFAC
-
-        # creat symmetric 2D Gaussian model
-        gauss = models.Gaussian2D(height, xcen, ycen, sigma, sigma)
-
-        # fix the angle
-        gauss.theta.fixed = True
-
-        # set a minimum for x_stddev
-        gauss.x_stddev.min = sigma_min
-
-        # add a constant for the sky ('comp' is thus a compound model)
-        const = models.Polynomial2D(0)
-        const.c0_0 = sky
-        comp = const + gauss
-
-        # tie the Y std to the X value so that they are the same. Note the
-        # trailing '_1's needed because this is now part of a compound model
-        comp.y_stddev_1.tied = lambda c: c.x_stddev_1
-
-        # Lev-Marq fitting
-        fitter = fitting.LevMarLSQFitter()
-
-        # run the fit
-        fit = fitter(comp, X, Y, self.data, weights=weights)
-
-        # extract the covariances
-        cov = fitter.fit_info['param_cov']
-
-        # compute the fit & store in a Windat
-        fwind = Windat(self, fit(X, Y))
-
-        # extract parameters and return
-        pars = (fit.c0_0_0.value, fit.amplitude_1.value, 
-                fit.x_mean_1.value,fit.y_mean_1.value,
-                EFAC*fit.x_stddev_1.value)
-
-        # extract diagonal elements of covariances
-        if cov is None:
-            sigs = None
-        else:
-            sigs = (np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
-                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
-                    EFAC*np.sqrt(cov[4,4]))
-
-        extras = (fwind, X, Y, weights)
-        return (pars, sigs, extras)
-
     def __copy__(self):
         return self.copy()
 
@@ -1163,3 +1044,292 @@ class Windat(Window):
         # carry out multiplication to a float type
         data = np.true_divide(other, self.data, dtype=np.float)
         return Windat(self.win, data)
+
+# have decided that these relatively specialised routines are better as
+# separate methods rather than class methods
+
+def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain):
+    """
+    Fits the profile of one target in a Windat with a symmetric 2D
+    Gaussian profile given initial starting parameters. NB This will fit
+    the entire Windat so normally one should window down to the object of
+    interest. It returns the fitted parameters, covariances and the fit itself.
+    The FWHM can be constrained to lie above a lower limit which can be useful.
+
+    Arguments::
+
+        wind     : (float)
+            the Windat under consideration
+
+        sky      : (float)
+            value of the (assumed constant) sky background
+
+        height   : (float)
+            peak height of profile
+
+        xcen     : (float)
+            initial X value at centre of profile, unbinned absolute coordinates
+
+        ycen     : (float)
+            initial Y value at centre of profile, unbinned absolute coordinates
+
+        fwhm     : (float)
+            initial FWHM in unbinned pixels.
+
+        fwhm_min : (float)
+            minimum value to allow FWHM to go to. Useful for heavily binned data
+            especially where all signal might be in a single pixel to prevent going
+            to silly values.
+
+        read     : (float)
+            readout noise, RMS ADU, from which weights are generated
+
+        gain     : (float)
+            gain, e-/ADU, from which weights are generated
+
+    Returns:: (tuple of tuples)
+
+       (pars, sigs, extras) where::
+
+         pars : (tuple)
+            parameters. unpacks to sky, height, xcen, yce, fwhm
+
+         sigs : (tuple)
+            standard deviations. unpacks in same order, (sky, height, xcen, yce, fwhm). Can come
+            back as 'None' if the fit fails so don't try to unpack on the fly.
+
+         extras : (tuple)
+            some extra stuff that might come in useful, namely (fit, X, Y, weights) where `fit`
+            is a :class:Windat containing the best fit, X and Y are the X and Y positions of
+            all pixels (2D numpy arrays) and weights is the final set of weights, some of which
+            might = 0 indicating rejection.
+
+    """
+
+    # generate 2D arrays of x and y values
+    x = wind.x(np.arange(wind.nx))
+    y = wind.y(np.arange(wind.ny))
+    X, Y = np.meshgrid(x, y)
+
+    # generate weights
+    weights = 1./np.sqrt(read**2+np.maximum(0,wind.data)/gain)
+
+    # create symmetric 2D Gaussian model
+    gauss = Gaussian(sky, height, xcen, ycen, fwhm)
+
+    # set a minimum for fwhm
+    gauss.fwhm.min = fwhm_min
+
+    # Lev-Marq fitting
+    fitter = fitting.LevMarLSQFitter()
+
+    # run the fit
+    fit = fitter(gauss, X, Y, wind.data, weights=weights)
+
+    # extract the covariances
+    cov = fitter.fit_info['param_cov']
+
+    # compute the fit & store in a Windat
+    fwind = Windat(wind, fit(X, Y))
+
+    # extract parameters and return
+    pars = (fit.constant.value, fit.height.value,
+            fit.xcen.value,fit.ycen.value,
+            fit.fwhm.value)
+
+    # extract diagonal elements of covariances
+    if cov is None:
+        sigs = None
+    else:
+        sigs = (np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
+                np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
+                np.sqrt(cov[4,4]))
+
+    extras = (fwind, X, Y, weights)
+    return (pars, sigs, extras)
+
+class Gaussian(Fittable2DModel):
+    """Model of a Gaussian plus a constant, with the width specified in terms
+    of the FWHM rather than the standard deviation"""
+
+    constant = Parameter()
+    height = Parameter()
+    xcen = Parameter()
+    ycen = Parameter()
+    fwhm = Parameter()
+
+    EFAC = np.sqrt(8.*np.log(2.))
+
+    @staticmethod
+    def evaluate(x, y, constant, height, xcen, ycen, fwhm):
+        rsq = (x-xcen)**2+(y-ycen)**2
+        return constant+height*np.exp(-rsq/(2.*(fwhm/Gaussian.EFAC)**2))
+
+    @staticmethod
+    def fit_deriv(x, y, constant, height, xcen, ycen, fwhm):
+
+        # intermediate time savers (but each the same dimension as x and y)
+        xoff = x-xcen
+        yoff = y-ycen
+        rsq = xoff**2 + yoff**2
+        alpha = 1/(2.*(fwhm/Gaussian.EFAC)**2)
+
+        # derivatives
+        d_constant = np.ones_like(x)
+
+        d_height = np.exp(-alpha*rsq)
+
+        d_xcen = (2*alpha*height)*d_height*xoff
+
+        d_ycen = (2*alpha*height)*d_height*yoff
+
+        d_fwhm = (2*alpha*height/fwhm)*d_height*rsq
+
+        return [d_constant, d_height, d_xcen, d_ycen, d_fwhm]
+
+
+def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, beta, read, gain):
+    """
+    Fits the profile of one target in a Windat with a 2D Moffat profile,
+    h/(1+(r/a)**2)**beta where r is the distance from the centre of the
+    aperture. It returns the fitted parameters, covariances and the fit itself.
+    The FWHM can be constrained to lie above a lower limit which can be useful.
+
+    Arguments::
+
+        sky      : (float)
+            value of the (assumed constant) sky background
+
+        height   : (float)
+            peak height of profile
+
+        xcen     : (float)
+            initial X value at centre of profile, unbinned absolute coordinates
+
+        ycen     : (float)
+            initial Y value at centre of profile, unbinned absolute coordinates
+
+        fwhm     : (float)
+            initial FWHM in unbinned pixels.
+
+        fwhm_min : (float)
+            minimum value to allow FWHM to go to. Useful for heavily binned data
+            especially where all signal might be in a single pixel to prevent going
+            to silly values.
+
+        read     : (float)
+            readout noise, RMS ADU, from which weights are generated
+
+        gain     : (float)
+            gain, e-/ADU, from which weights are generated
+
+        sigma   : (float)
+            for outlier rejection. The fit is re-run with outliers removed by setting
+            their weight = 0.
+
+    Returns:: (tuple of tuples)
+
+        (pars, sigs, extras) where::
+
+           pars : (tuple)
+                parameters. unpacks to sky, height, xcen, yce, fwhm
+
+           sigs : (tuple)
+                standard deviations. unpacks in same order, (sky, height, xcen, yce, fwhm). Can come
+                back as 'None' if the fit fails so don't try to unpack on the fly.
+
+           extras : (tuple)
+                some extra stuff that might come in useful, namely (fit, X, Y, weights) where `fit`
+                is a :class:Windat containing the best fit, X and Y are the X and Y positions of
+                all pixels (2D numpy arrays) and weights is the final set of weights, some of which
+                might = 0 indicating rejection.
+
+    """
+
+    # generate 2D arrays of x and y values
+    x = wind.x(np.arange(wind.nx))
+    y = wind.y(np.arange(wind.ny))
+    X, Y = np.meshgrid(x, y)
+
+    # generate weights
+    weights = 1./np.sqrt(read**2+np.maximum(0,wind.data)/gain)
+
+    # create a Moffat model
+    moffat = Moffat(sky, height, xcen, ycen, fwhm, beta)
+
+    # set a minimum for the FWHM to prevent peaking up on single pixels
+    moffat.fwhm.min = fwhm_min
+
+    # Lev-Marq fitting
+    fitter = fitting.LevMarLSQFitter()
+
+    # run the fit
+    fit = fitter(moffat, X, Y, wind.data, weights=weights)
+
+    # extract the covariances
+    cov = fitter.fit_info['param_cov']
+
+    # compute the fit & store in a Windat
+    fwind = Windat(wind, fit(X, Y))
+
+    # extract parameters and return
+    pars = (fit.constant.value, fit.height.value, 
+            fit.xcen.value,fit.ycen.value,
+            fit.fwhm.value,fit.beta.value)
+
+    # extract diagonal elements of covariances
+    if cov is None:
+        sigs = None
+    else:
+        sigs = (np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
+                np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
+                np.sqrt(cov[4,4]), np.sqrt(cov[5,5]))
+
+    extras = (fwind, X, Y, weights)
+    return (pars, sigs, extras)
+
+class Moffat(Fittable2DModel):
+
+    constant = Parameter()
+    height = Parameter()
+    xcen = Parameter()
+    ycen = Parameter()
+    fwhm = Parameter()
+    beta = Parameter()
+
+    # In code below, Moffat written as c + h/(1+alpha*r**2)**beta where alpha
+    # = 4*(2**(1/beta)-1)/fwhm**2 and r**2 = (x-x0)**2+(y-y0)**2
+
+    @staticmethod
+    def evaluate(x, y, constant, height, xcen, ycen, fwhm, beta):
+        rsq = (x-xcen)**2+(y-ycen)**2
+        alpha = 4*(2**(1/beta)-1)/fwhm**2
+        return constant+height/(1+alpha*rsq)**beta
+
+    @staticmethod
+    def fit_deriv(x, y, constant, height, xcen, ycen, fwhm, beta):
+
+        # intermediate time savers (but each the same dimension as x and y)
+        xoff = x-xcen
+        yoff = y-ycen
+        rsq = xoff**2 + yoff**2
+        alpha = 4*(2**(1/beta)-1)/fwhm**2
+        denom = 1+alpha*rsq
+        save1 = height/denom**(beta+1)
+        save2 = save1*rsq
+
+        # derivatives. beta is a bit complicated because it appears directly
+        # through the exponent but also indirectly through alpha
+        d_constant = np.ones_like(x)
+
+        d_height = 1/denom**beta
+
+        d_xcen = (2*alpha*beta)*xoff*save1
+
+        d_ycen = (2*alpha*beta)*yoff*save1
+
+        d_fwhm = (2*alpha*beta/fwhm)*save2
+
+        d_beta = -np.log(denom)*height*d_height + (4.*np.log(2)*2**(1/beta)/beta/fwhm**2)*save2
+
+        return [d_constant, d_height, d_xcen, d_ycen, d_fwhm, d_beta]
