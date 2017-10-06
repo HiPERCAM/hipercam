@@ -362,6 +362,31 @@ class CCD(Agroup):
         else:
             return None
 
+    def crop(self, ccd):
+        """Given a template :class:CCD called `ccd`, this tries to modify the format
+        of the :class:CCD, returning a new :class:CCD. This is often needed
+        e.g. prior to applying a full frame flat field. In general this
+        operation requires re-labelling of the :class:`Windat`s composing the
+        CCD. It raises a HipercamError if it fails.
+
+        """
+        # build an empty CCD to get the headers. this will be added to
+        tccd = CCD(Group(Windat), self.nxtot, self.nytot, self.head)
+
+        # wind through the Windats of the template CCD
+        for twnam, twind in ccd.items():
+
+            # for each one, search for a surrounding Windat in
+            # the CCD we are chopping down to
+            for wind in ccd.values():
+                try:
+                    tccd[twnam] = wind.crop(twind)
+                except ValueError:
+                    pass
+            else:
+                raise HipercamError('failed to find any enclosing window for window label = {:s}'.format(wnam))
+        return tccd
+
     def __repr__(self):
         return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(
             self.__class__.__name__,super().__repr__(),self.nxtot,self.nytot,self.head
@@ -563,6 +588,20 @@ class MCCD(Agroup):
 
         for key, ccd in self.items():
             ccd.matches(mccd[key])
+
+    def crop(self, mccd):
+        """Crops the :class:MCCD to the same format as a template, `mccd`. Returns
+        the new version. Will raise a HipercamError if it fails.
+        """
+
+        # build an empty CCD to get the headers. this will be added to
+        tmccd = MCCD(Group(CCD), self.head)
+
+        # wind through the Windats of the template CCD
+        for cnam, ccd in mccd.items():
+            tmccd[cnam] = self[cnam].crop(ccd)
+
+        return tmccd
 
     def __repr__(self):
         return '{:s}(ccds={:s}, head={!r})'.format(
