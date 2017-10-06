@@ -7,6 +7,7 @@ functions.
 import warnings
 import json
 import math
+from collections import OrderedDict
 
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
@@ -17,8 +18,11 @@ from astropy.modeling import models, fitting, Fittable2DModel, Parameter
 
 import matplotlib.pyplot as plt
 from .core import *
-
-__all__ = ('Window', 'Windat', 'fitGaussian', 'fitMoffat')
+from .group import *
+ 
+__all__ = ('Window', 'Windat',
+           'CcdWin', 'MccdWin',
+           'fitGaussian', 'fitMoffat')
 
 class Window:
     """
@@ -389,19 +393,148 @@ class Window:
         """
         return not (self == win)
 
-class WindowEncoder (json.JSONEncoder):
+    def toJson(self, fname):
+        """Dumps Window in JSON format to fp"""
+        with open(fname,'w') as fp:
+            json.dump(self, fp, cls=_Encoder, indent=2)
+
+    @classmethod
+    def fromJson(cls, fp):
+        """Read from JSON-format file pointer fp"""
+        aper = json.load(fp, cls=_Decoder)
+        aper.check()
+        return aper
+
+class _Encoder (json.JSONEncoder):
     """
     Provides a default that can be used to write Window
     objects to json files
     """
     def default(self, obj):
-        if instance(obj, Window):
-            obj = {'_comment': 'This is a hipercam.Window JSON file.',
-                   'llx' : self.llx, 'lly' : self.lly,
-                   'nx' : self.nx, 'ny' : self.ny,
-                   'xbin' : self.xbin, 'ybin' : self.ybin}
-        else:
-            super().default(obj)
+        if isinstance(obj, Window):
+            return OrderedDict(
+                (
+                    ('Comment', 'hipercam.Window'),
+                    ('llx', obj.llx),
+                    ('lly', obj.lly),
+                    ('nx', obj.nx),
+                    ('ny', obj.ny),
+                    ('xbin', obj.xbin),
+                    ('ybin', obj.ybin)
+                ))
+
+        super().default(obj)
+
+class _Decoder(json.JSONDecoder):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, obj):
+        # looks out for Aperture objects. Everything else done by default
+        if 'Comment' in obj and r['Comment'] == 'hipercam.Window':
+            return Window(
+                obj['llx'], obj['lly'], obj['nx'], obj['ny'],
+                obj['xbin'], obj['ybin']
+            )
+
+        return obj
+
+class CcdWin(Group):
+    """Class representing all the :class:`Window`s for a single CCD.
+    """
+
+    def __init__(self, wins=Group(Window)):
+        """Constructs a :class:`CcdWin`.
+
+        Arguments::
+
+          wins : (Group)
+              Group of :class:`Window` objects
+        """
+        super().__init__(Window, wins)
+
+    def __repr__(self):
+        return '{:s}(wins={:s})'.format(
+            self.__class__.__name__, super().__repr__()
+            )
+
+    def toJson(self, fname):
+        """Dumps ccdWin in JSON format to a file
+
+        Arguments::
+
+           fname : (string)
+              name of file to dump to
+        """
+
+        # dumps as list to retain order through default iterator encoding that
+        # buggers things otherwise
+        listify = ['hipercam.CcdWin'] + list(self.items)
+        with open(fname,'w') as fp:
+            json.dump(listify, fp, cls=_Encoder, indent=2)
+
+class MccdWin(Group):
+    """Class representing all the :class:`Window`s for multiple CCDs.
+    """
+
+    def __init__(self, wins=Group(CcdWin)):
+        """Constructs a :class:`MccdWin`.
+
+        Arguments::
+
+          aps : (Group)
+              Group of :class:`CcdWin` objects
+        """
+        super().__init__(CcdWin, wins)
+
+    def __repr__(self):
+        return '{:s}(wins={:s})'.format(
+            self.__class__.__name__, super().__repr__()
+            )
+
+    def toJson(self, fname):
+        """Dumps MccdWin in JSON format to a file
+
+        Arguments::
+
+            fname : (string)
+               file to dump to
+        """
+        # dumps as list to retain order through default iterator encoding
+        # that buggers things otherwise
+        listify = ['hipercam.MccdWin'] + list(
+            ((key,['hipercam.CcdWin']+list(val.items())) \
+             for key, val in self.items())
+        )
+        with open(fname, 'w') as fp:
+            json.dump(listify, fp, cls=_Encoder, indent=2)
+
+    @classmethod
+    def fromJson(cls, fp):
+        """Read from JSON-format file pointer fp.
+
+          fp : a file-like object opened for reading of text
+
+        Returns an MccdWin object.
+
+        """
+        obj = json.load(fp, cls=_Decoder)
+        listify = [(v1,CcdWin(v2[1:])) for v1,v2 in obj[1:]]
+        mccdwin = MccdWin(listify)
+        for cnam, ccdwin in mccdwin.items():
+            ccdwin.check()
+        return mccdwin
+
+    @classmethod
+    def fromMccd(cls, mccd):
+        mccdwin = MccdWin()
+        for cnam, ccd in mccd.items():
+            mccdwin[cnam] = CcdWin()
+            for wnam, wind in ccd.items():
+                print(wind)
+                mccdwin[cnam][wnam] = wind.win
+        return mccdwin
 
 class Windat(Window):
     """Class representing a CCD window with data. Constructed from
@@ -701,7 +834,7 @@ class Windat(Window):
     def crop(self, win):
         """Creates a new :class:Windat by cropping the current :class:Windat to the
         format defined by :class:Window `win`. Will throw a ValueError if the
-        operation is impossible or res ults in no overlap. The current
+        operation is impossible or results in no overlap. The current
         :class:Windat must lie outside `win` and must be synchronised (in
         step) if any binning is used. If binning is used then the binning
         factors of the :class:Windat must be divisors of the binning factors
@@ -1150,7 +1283,12 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain):
 
 class Gaussian(Fittable2DModel):
     """Model of a Gaussian plus a constant, with the width specified in terms
-    of the FWHM rather than the standard deviation"""
+    of the FWHM rather than the standard deviation
+
+    I did try out the compound model option of the astropy.modeling stuff but
+    it did not seem to work reliably and a be-spoke model like this seems a
+    fair bit easier to manage.
+    """
 
     constant = Parameter()
     height = Parameter()
@@ -1186,7 +1324,6 @@ class Gaussian(Fittable2DModel):
         d_fwhm = (2*alpha*height/fwhm)*d_height*rsq
 
         return [d_constant, d_height, d_xcen, d_ycen, d_fwhm]
-
 
 def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, beta, read, gain):
     """
