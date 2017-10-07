@@ -21,7 +21,6 @@ def setaper(args=None):
     """Interactive definition of photometric extraction apertures. This is
     a matplotlib-based routine allowing you to place apertures on targets
     using the cursor.
-
     Arguments::
 
       mccd   : (string)
@@ -208,8 +207,7 @@ def setaper(args=None):
 
         if os.path.exists(aper):
             # read in old apertures
-            with open(aper) as fp:
-                mccdaper = hcam.MccdAper.fromJson(fp)
+            mccdaper = hcam.MccdAper.fromJson(aper)
             print('Loaded existing file = {:s}'.format(aper))
         else:
             # create empty container
@@ -709,28 +707,39 @@ the aperture centre.
             sky = np.percentile(fwind.data, 25)
 
             # refine the Aperture position by fitting the profile
-            status, x, y = fit(self._buffer, self.method, fwind, sky, peak-sky, x, y, self.fwhm, self.fwhm_min, self.beta, self.read, self.gain)
-            if status:
+            try:
+                (sky, height, x, y, fwhm, beta), epars, \
+                    (X, Y, message) = hcam.combFit(
+                        fwind, self.method, sky, peak-sky,
+                        x, y, self.fwhm, self.fwhm_min,
+                        self.beta, self.read, self.gain
+                    )
+
+                print('Aperture {:s}: {:s}'.format(self._buffer,message))
                 self._x = x
                 self._y = y
-            else:
-                # oops, return early, fit failed.
+
+            except hcam.HipercamError as err:
+                print(err, file=sys.stderr)
+                # fit failed.
                 PickStar.action_prompt(True)
                 return
 
         # create and add aperture
-        aper = hcam.Aperture(self._x, self._y, self.rtarg, self.rsky1, self.rsky2, False)
+        aper = hcam.Aperture(
+            self._x, self._y, self.rtarg, self.rsky1, self.rsky2, False)
         self.mccdaper[self._cnam][self._buffer] = aper
 
         # add aperture to the plot, store plot objects
-        self.pobjs[self._cnam][self._buffer] = hcam.mpl.pAper(self._axes, aper, self._buffer)
+        self.pobjs[self._cnam][self._buffer] = hcam.mpl.pAper(
+            self._axes, aper, self._buffer)
 
         # make sure it appears
         plt.draw()
 
         print('added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
-                self._buffer,self._cnam,self._x,self._y)
-              )
+            self._buffer,self._cnam,self._x,self._y)
+        )
         PickStar.action_prompt(True)
 
 
@@ -802,29 +811,43 @@ the aperture centre.
                 print('  *** selected position ({:.1f},{:.1f}) not in a window; should not occur'.format(self._x,self._y), file=sys.stderr)
             else:
                 # get Windat around the selected position
-                wind = ccd[wnam].window(self._x-self.shbox, self._x+self.shbox, self._y-self.shbox, self._y+self.shbox)
+                wind = ccd[wnam].window(
+                    self._x-self.shbox, self._x+self.shbox,
+                    self._y-self.shbox, self._y+self.shbox)
 
                 # carry out initial search
                 x,y,peak = wind.find(self.smooth, False)
 
                 # now for a more refined fit. First extract fit Windat
-                fwind = ccd[wnam].window(x-self.fhbox, x+self.fhbox, y-self.fhbox, y+self.fhbox)
+                fwind = ccd[wnam].window(
+                    x-self.fhbox, x+self.fhbox,
+                    y-self.fhbox, y+self.fhbox)
                 sky = np.percentile(fwind.data, 25)
 
                 # refine the Aperture position by fitting the profile
-                status, x, y = fit(apnam, self.method, fwind, sky, peak-sky, x, y, self.fwhm, self.fwhm_min, self.beta, self.read, self.gain)
-                if status:
+                try:
+                    (sky, height, x, y, fwhm, beta), epars, \
+                        (X, Y, message) = hcam.combFit(
+                            fwind, self.method, sky, peak-sky,
+                            x, y, self.fwhm, self.fwhm_min,
+                            self.beta, self.read, self.gain
+                        )
+
+                    print('Aperture {:s}: {:s}'.format(apnam,message))
                     aper.x = x
                     aper.y = y
+
                     # remove old aperture from from plot
                     for obj in self.pobjs[self._cnam][apnam]:
                         obj.remove()
 
                     # plot in new position, over-writing the plot objects
-                    self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+                    self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(
+                        self._axes, aper, apnam)
                     plt.draw()
 
-                else:
+                except hcam.HipercamError as err:
+                    print(err, file=sys.stderr)
                     print('  *** aperture left as is')
 
         PickStar.action_prompt(True)
@@ -1110,49 +1133,4 @@ the aperture centre.
                 # multi character input. just accumulate characters
                 print(key, end='', flush=True)
 
-
-def fit(apnam, method, wind, sky, height, x, y, fwhm, fwhm_min, beta, read, gain):
-
-    # To avoid repetition. This carries out a gaussian or moffat fit to a
-    # Windat given a set of initial parameters return (status,x,y) where
-    # status is a bool indicating the success or not of the fit and x, and y
-    # are the new values of x and y or 0, 0 if the fit fails
-
-    xold, yold = x, y
-    if method == 'g':
-        # gaussian fit
-        (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
-            hcam.fitGaussian(
-            wind, sky, height, x, y, fwhm, fwhm_min, read, gain)
-
-    elif method == 'm':
-        # gaussian fit
-        (sky, peak, x, y, fwhm, beta), sigs, (fit, X, Y, weights) = \
-            hcam.fitMoffat(
-            wind, sky, height, x, y, fwhm, fwhm_min, beta, read, gain)
-
-    else:
-        raise NotImplementedError('{:s} fitting method not implemented'.format(method))
-
-    if sigs is None:
-        print('  *** Aperture {:s}: fit failed'.format(apnam), file=sys.stderr)
-        PickStar.action_prompt(True)
-        return (False, 0, 0)
-
-    else:
-
-        if method == 'g':
-            esky, epeak, ex, ey, efwhm = sigs
-            print(' aperture = {:s}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
-                    apnam,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky)
-                  )
-
-        elif method == 'm':
-            esky, epeak, ex, ey, efwhm, ebeta = sigs
-            print('  aperture = {:s}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f}), beta = {:.2f}({:.2f})'.format(
-                    apnam,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky,beta,ebeta)
-                  )
-
-        print('   shifted by dx,dy = {:.2f},{:.2f}'.format(x-xold,y-yold))
-        return (True, x, y)
 
