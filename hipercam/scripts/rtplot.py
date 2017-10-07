@@ -343,7 +343,8 @@ def rtplot(args=None):
                 fheight = cl.get_value('fheight', 'fit plot height (inches)', 0.)
                 method = cl.get_value('method', 'fit method g(aussian) or m(offat)', 'm', lvals=['g','m'])
                 if method == 'm':
-                    cl.get_value('beta', 'initial exponent for Moffat fits', 5., 0.5)
+                    beta = cl.get_value(
+                        'beta', 'initial exponent for Moffat fits', 5., 0.5)
                 else:
                     beta = 0.
                 fwhm_min = cl.get_value('fwhm_min', 'minimum FWHM to allow [unbinned pixels]', 1.5, 0.01)
@@ -517,37 +518,16 @@ def rtplot(args=None):
                 # crude estimate of sky background
                 sky = np.percentile(fwind.data, 25)
 
-                if method == 'g':
-                    # gaussian fit
-                    (sky, peak, x, y, fwhm), sigs, (fit, X, Y, weights) = \
-                        hcam.fitGaussian(
-                        fwind, sky, peak-sky, x, y, fpar.fwhm, fwhm_min, read, gain)
-
-                elif method == 'm':
-                    # moffat profile fit
-                    (sky, peak, x, y, fwhm, beta), sigs, (fit, X, Y, weights) = \
-                        hcam.fitMoffat(
-                        fwind, sky, peak-sky, x, y, fpar.fwhm, fwhm_min, fpar.beta, read, gain)
-
-                else:
-                    raise NotImplementedError('{:s} fitting method not implemented'.format(method))
-
-                if sigs is None:
-                    print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
-                    pgsci(2)
-
-                else:
-                    if method == 'g':
-                        esky, epeak, ex, ey, efwhm = sigs
-                        print(' >> Targ {:d}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
-                            fpar.ntarg,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky)
+                # refine the Aperture position by fitting the profile
+                try:
+                    (sky, height, x, y, fwhm, beta), epars, \
+                        (X, Y, message) = hcam.combFit(
+                            fwind, method, sky, peak-sky,
+                            x, y, fpar.fwhm, fwhm_min,
+                            fpar.beta, read, gain
                         )
 
-                    elif method == 'm':
-                        esky, epeak, ex, ey, efwhm, ebeta = sigs
-                        print(' >> Targ {:d}: x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f}), beta = {:.2f}({.2f})'.format(
-                            fpar.ntarg,x,ex,y,ey,fwhm,efwhm,peak,epeak,sky,esky,beta,ebeta)
-                        )
+                    print('Targ {:d}: {:s}'.format(fpar.ntarg,message))
 
                     if peak > thresh:
                         # update some initial parameters for next time
@@ -585,11 +565,15 @@ def rtplot(args=None):
                         pgcirc(x,y,fwhm)
 
                     else:
-                        print('     *** below detection threshold; position & FWHM will not updated')
+                        print('  *** below detection threshold; position & FWHM will not updated')
                         pgsci(2)
 
-                # plot location on image as a cross
-                pgpt1(x, y, 5)
+                    # plot location on image as a cross
+                    pgpt1(x, y, 5)
+
+                except hcam.HipercamError:
+                    print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
+                    pgsci(2)
 
 # From here is support code not visible outside
 
