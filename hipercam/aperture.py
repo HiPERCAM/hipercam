@@ -141,9 +141,10 @@ class Aperture(object):
             json.dump(self, fp, cls=_Encoder, indent=2)
 
     @classmethod
-    def fromJson(cls, fp):
-        """Read from JSON-format file pointer fp"""
-        aper = json.load(fp, cls=_Decoder)
+    def fromJson(cls, fname):
+        """Read from JSON-format file fname"""
+        with open(fname) as fp:
+            aper = json.load(fp, cls=_Decoder)
         aper.check()
         return aper
 
@@ -228,10 +229,10 @@ class MccdAper(Group):
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
     @classmethod
-    def fromJson(cls, fp):
-        """Read from JSON-format file pointer fp. Since such files can fairly
-        easily be corrupted by injudicious editing, some consistency checks
-        are run. File loading does not happen often, so this should not be a
+    def fromJson(cls, fname):
+        """Read from JSON-format file fname. Since such files can fairly easily be
+        corrupted by injudicious editing, some consistency checks are
+        run. File loading does not happen often, so this should not be a
         serious overhead
 
           fp : a file-like object opened for reading of text
@@ -239,7 +240,8 @@ class MccdAper(Group):
         Returns an MccdAper object.
 
         """
-        obj = json.load(fp, cls=_Decoder)
+        with open(fname) as fp:
+            obj = json.load(fp, cls=_Decoder)
         listify = [(v1,CcdAper(v2[1:])) for v1,v2 in obj[1:]]
         mccdaper = MccdAper(listify)
         for cnam, ccdaper in mccdaper.items():
