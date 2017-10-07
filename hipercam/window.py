@@ -20,9 +20,12 @@ import matplotlib.pyplot as plt
 from .core import *
 from .group import *
  
-__all__ = ('Window', 'Windat',
-           'CcdWin', 'MccdWin',
-           'fitGaussian', 'fitMoffat')
+__all__ = (
+    'Window', 'Windat',
+    'CcdWin', 'MccdWin',
+    'fitGaussian', 'fitMoffat',
+    'combFit'
+)
 
 class Window:
     """
@@ -399,11 +402,11 @@ class Window:
             json.dump(self, fp, cls=_Encoder, indent=2)
 
     @classmethod
-    def fromJson(cls, fp):
-        """Read from JSON-format file pointer fp"""
-        aper = json.load(fp, cls=_Decoder)
-        aper.check()
-        return aper
+    def fromJson(cls, fname):
+        """Read from JSON-format file fname"""
+        with open(fname) as fp:
+            win = json.load(fp, cls=_Decoder)
+        return win
 
 class _Encoder (json.JSONEncoder):
     """
@@ -511,19 +514,15 @@ class MccdWin(Group):
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
     @classmethod
-    def fromJson(cls, fp):
-        """Read from JSON-format file pointer fp.
-
-          fp : a file-like object opened for reading of text
+    def fromJson(cls, fname):
+        """Read from JSON-format file fname
 
         Returns an MccdWin object.
-
         """
-        obj = json.load(fp, cls=_Decoder)
+        with open(fname) as fp:
+            obj = json.load(fp, cls=_Decoder)
         listify = [(v1,CcdWin(v2[1:])) for v1,v2 in obj[1:]]
         mccdwin = MccdWin(listify)
-        for cnam, ccdwin in mccdwin.items():
-            ccdwin.check()
         return mccdwin
 
     @classmethod
@@ -1274,9 +1273,14 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain):
     if cov is None:
         sigs = None
     else:
-        sigs = (np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
+        sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
                 np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
-                np.sqrt(cov[4,4]))
+                np.sqrt(cov[4,4])]
+
+        # set the errors if at the limit to -1
+        if fit.fwhm.value == gaussian.fwhm.min:
+            sigs[4] = -1
+        sigs = tuple(sigs)
 
     extras = (fwind, X, Y, weights)
     return (pars, sigs, extras)
@@ -1397,6 +1401,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, beta, read, gain):
     # set a minimum for the FWHM to prevent peaking up on single pixels
     moffat.fwhm.min = fwhm_min
 
+    # limit the range of beta
+    moffat.beta.min = 1.
+    moffat.beta.max = 100.
+
     # Lev-Marq fitting
     fitter = fitting.LevMarLSQFitter()
 
@@ -1418,9 +1426,19 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, beta, read, gain):
     if cov is None:
         sigs = None
     else:
-        sigs = (np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
+        sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
                 np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
-                np.sqrt(cov[4,4]), np.sqrt(cov[5,5]))
+                np.sqrt(cov[4,4]), np.sqrt(cov[5,5])]
+
+        # set the errors on ones that are at the limit to -1
+        if fit.fwhm.value == moffat.fwhm.min:
+            sigs[4] = -1
+
+        if fit.beta.value == moffat.beta.min or \
+           fit.beta.value == moffat.beta.max:
+            sigs[5] = -1
+
+        sigs = tuple(sigs)
 
     extras = (fwind, X, Y, weights)
     return (pars, sigs, extras)
@@ -1470,3 +1488,102 @@ class Moffat(Fittable2DModel):
         d_beta = -np.log(denom)*height*d_height + (4.*np.log(2)*2**(1/beta)/beta/fwhm**2)*save2
 
         return [d_constant, d_height, d_xcen, d_ycen, d_fwhm, d_beta]
+
+def combFit(wind, method, sky, height, x, y,
+            fwhm, fwhm_min, beta, read, gain):
+    """
+    Fits a stellar profile in a :class:Windat using either a 2D Gaussian
+    or Moffat profile. This is a convenience routine because one practically
+    always wants both options.
+
+    Arguments::
+
+        wind      : (:class:Windat)
+            the Windat containing the stellar profile to fit
+
+        method    : (string)
+            fitting method 'g' for Gaussian, 'm' for Moffat
+
+        sky       : (float)
+            initial sky level
+
+        height    : (float)
+            initial peak height
+
+        x         : (float)
+            initial central X value
+
+        y         : (float)
+            initial central Y value
+ 
+        fwhm      : (float)
+            initial FWHM, unbinned pixels.
+
+        fwhm_min  : (float)
+            minimum FWHM, unbinned pixels.
+
+        beta      : (float) [if method == 'm']
+            exponent of Moffat function
+
+        read      : (float)
+            readout noise, RMS ADU
+
+        gain      : (float)
+            gain, electrons per ADU
+
+    Returns:: (pars, epars, extras)
+
+    where::
+
+       pars    : (tuple)
+          Fitted parameters: (sky, height, x, y, fwhm, beta)
+          beta is None if method=='g'
+
+       epars   : (tuple)
+          Fitted uncertainties: (esky, eheight, ex, ey, efwhm, ebeta)
+          ebeta is None if method=='g'
+
+       extras  : (tuple)
+          (X,Y,message) -- X and Y are the X and Y coordinates of
+          the pixels. message summarises the fit values.
+
+    Raises a HipercamError if the fit fails.
+    """
+
+    if method == 'g':
+        # gaussian fit
+        (sky, peak, x, y, fwhm), sigs, \
+            (fit, X, Y, weights) = fitGaussian(
+                wind, sky, height, x, y, fwhm, fwhm_min, read, gain
+            )
+
+    elif method == 'm':
+        # moffat fit
+        (sky, peak, x, y, fwhm, beta), sigs, \
+            (fit, X, Y, weights) = fitMoffat(
+                wind, sky, height, x, y, fwhm, fwhm_min, beta, read, gain
+            )
+
+    else:
+        raise NotImplementedError(
+            '{:s} fitting method not implemented'.format(method)
+        )
+
+    if sigs is None:
+        raise HipercamError('fit failed')
+
+    if method == 'g':
+        esky, eheight, ex, ey, efwhm = sigs
+        message = 'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
+            x,ex,y,ey,fwhm,efwhm,peak,eheight,sky,esky)
+        beta, ebeta = None, None
+    elif method == 'm':
+        esky, eheight, ex, ey, efwhm, ebeta = sigs
+        message = 'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f}), beta = {:.2f}({:.2f})'.format(
+            x,ex,y,ey,fwhm,efwhm,peak,eheight,sky,esky,beta,ebeta)
+
+    return (
+        (sky, height, x, y, fwhm, beta),
+        (esky, eheight, ex, ey, efwhm, ebeta),
+        (X, Y, message)
+    )
