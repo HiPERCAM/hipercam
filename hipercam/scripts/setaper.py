@@ -870,18 +870,22 @@ the aperture centre.
         if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
             print('  *** found no aperture near to the cursor position')
         else:
-            aper.ref = not aper.ref
-            if aper.ref:
-                print('  aperture {:s} is now a reference aperture'.format(apnam))
+
+            if aper.is_linked():
+                print('  *** a linked aperture cannot become a reference aperture')
             else:
-                print('  aperture {:s} is no longer a reference aperture'.format(apnam))
+                aper.ref = not aper.ref
+                if aper.ref:
+                    print('  aperture {:s} is now a reference aperture'.format(apnam))
+                else:
+                    print('  aperture {:s} is no longer a reference aperture'.format(apnam))
 
-            # remove aperture from plot
-            for obj in self.pobjs[self._cnam][apnam]:
-                obj.remove()
+                # remove aperture from plot
+                for obj in self.pobjs[self._cnam][apnam]:
+                    obj.remove()
 
-            # re-plot new version, over-writing plot objects
-            self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+                # re-plot new version, over-writing plot objects
+                self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
 
         PickStar.action_prompt(True)
 
@@ -909,14 +913,19 @@ the aperture centre.
             self._link_stage += 1
 
             if self._link_stage == 1:
-                # first time through, store the CCD, aperture label and
-                # aperture of the first aperture which is the one that will
-                # contain the link, set the link status to True and prompt the
-                # user. these values are used second time round
-                self._link_cnam = self._cnam
-                self._link_aper = aper
-                self._link_apnam = apnam
-                print(' click the link aperture [q to quit]'.format(apnam))
+                if aper.ref:
+                    print('  *** cannot link a reference aperture')
+                    self._link_mode = False
+
+                else:
+                    # first time through, store the CCD, aperture label and
+                    # aperture of the first aperture which is the one that will
+                    # contain the link, set the link status to True and prompt the
+                    # user. these values are used second time round
+                    self._link_cnam = self._cnam
+                    self._link_aper = aper
+                    self._link_apnam = apnam
+                    print(' click the link aperture [q to quit]'.format(apnam))
 
             else:
                 # second (or more) time through. Check we are in the same CCD but on a
