@@ -17,7 +17,8 @@ installed first; in the future I might make it more automatic::
 
   matplotlib : plotting package
 
-  numpy      : numerical data package
+  numpy      : numerical data package. You need at least version 1.10
+               providing numpy.stack
 
   trm.pgplot : my own Cythonised wrapper for PGPLOT which I wrote specifically
                for hipercam although it is entirely independent of it. PGPLOT
