@@ -157,11 +157,11 @@ def reduce(args=None):
     total_time = 0 # time waiting for new frame
     fpos = [] # list of target positions to fit
 
-    # plot images
+    # get frames
     with hcam.data_source(instrument, run, flist, server, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
-        for n, mccd in enumerate(spool):
+        for nframe, mccd in enumerate(spool):
 
             # None objects are returned from failed server reads. This could
             # be because the file is still exposing, so we hang about.
@@ -193,24 +193,70 @@ def reduce(args=None):
             else:
                 print('Frame {:d}: '.format(mccd.head['NFRAME']), end='')
 
-            # do something else ...
+            if nframe == 0:
+                # This is the very first data frame read in. We need to get the 
+                rfile.coerce()
 
+            # do something else ...
+            mccdwins = {}
+            for cnam in mccd:
+                # get the CCD and the apertures
+                ccd = mccd[cnam]
+                ccdaper = rfile.aper[cnam]
+                if nframe == 0:
+                    # first time through, work out an array of which window each aperture lies in
+                    # we will assume this is fixed for the whole run, i.e. that apertures do not
+                    # drift from one window to another. Set to None if no window found
+                    mccdwins[cnam] = {}
+                    for apnam, aper in ccdaper.items():
+                        for wnam, wind in ccd.items():
+                            if wnam.distance(aper.x,aper.y) > 0:
+                                mccdwins[cnam][apnam] = wnam
+                                break
+                        else:
+                            mccdwins[cnam][apnam] = None
+
+                    store ={}
+
+                ccdwins = mccdwins[cnam]
+
+                if isinstance(rfile.read, hcam.MCCD):
+                    read = rfile.read[cnam]
+                else:
+                    read = rfile.read
+
+                if isinstance(rfile.gain, hcam.MCCD):
+                    gain = rfile.gain[cnam]
+                else:
+                    gain = rfile.gain
+
+                # at this point 'ccd' contains all the Windats of a CCD, ccdaper all of its apertures
+                # ccdwins the label of the Windat relevant for each aperture, rfile contains some
+                # control parameters, read contains the readout noise, either a float or a CCD,
+                # gain contains the gain, either a float or a CCD.
+
+                moveApers(cnam, ccd, ccdaper, ccdwins, rfile, read, gain, store)
+                print('frame=',nframe,'\n',ccdaper,'\n')
 
 # From here is support code not visible outside
 
 class Rfile(configparser.ConfigParser):
-    """Class to read and interpret reduce scripts."""
+    """Class to read and interpret reduce files."""
 
     # Data
     VERSION = '2017-10-05'
 
     @classmethod
     def fromFile(self, filename):
+
         # read it in, stripping off trailing comments
         rfile = configparser.ConfigParser(inline_comment_prefixes='#')
         with open(filename) as fp:
             rfile.read_file(fp)
 
+        # process it
+
+        # the version
         if rfile['general']['version'] != Rfile.VERSION:
             # check the version
             raise ValueError(
@@ -218,4 +264,262 @@ class Rfile(configparser.ConfigParser):
                     rfile['general']['version'], Rfile.VERSION)
             )
 
+        # the apertures
+        self.aper = hcam.MccdAper.fromJson(
+            hcam.add_extension(rfile['apertures']['aperfile'],hcam.APER)
+            )
+        if rfile['apertures']['fit_method'] == 'moffat':
+            self.method = 'm'
+        elif  rfile['apertures']['fit_method'] == 'gaussian':
+            self.method = 'g'
+        else:
+            raise NotImplementedError('apertures.fit_method = {:s} not recognised'.format(
+                    rfile['apertures']['fit_method']))
+
+        if rfile['apertures']['reposition'] != 'yes' and rfile['apertures']['reposition'] != 'no':
+            raise ValueError("apertures.reposition: 'yes' or 'no' are the only supported values")
+
+        if rfile['apertures']['fit_fwhm_fixed'] != 'yes' and rfile['apertures']['fit_fwhm_fixed'] != 'no':
+            raise ValueError("apertures.reposition: 'yes' or 'no' are the only supported values")
+
+        # the calibrations
+        if rfile['calibration']['bias'] != '':
+            self.bias == hcam.MCCD.rfits(
+                hcam.add_extension(rfile['calibration']['bias'],hcam.HCAM)
+                )
+        else:
+            self.bias = None
+
+        if rfile['calibration']['dark'] != '':
+            self.dark == hcam.MCCD.rfits(
+                hcam.add_extension(rfile['calibration']['dark'],hcam.HCAM)
+                )
+        else:
+            self.dark = None
+
+        if rfile['calibration']['flat'] != '':
+            self.flat == hcam.MCCD.rfits(
+                hcam.add_extension(rfile['calibration']['flat'],hcam.HCAM)
+                )
+        else:
+            self.flat = None
+
+        try:
+            self.readout = float(rfile['calibration']['readout'])
+        except TypeError:
+            self.readout = hcam.MCCD.rfits(
+                hcam.add_extension(rfile['calibration']['readout'],hcam.HCAM)
+                )
+
+        try:
+            self.readout = float(rfile['calibration']['gain'])
+        except TypeError:
+            self.gain = hcam.MCCD.rfits(
+                hcam.add_extension(rfile['calibration']['gain'],hcam.HCAM)
+                )
+
         return rfile
+
+    def coerce(self, mccd):
+        """
+        This uses a template file 'mccd' to try to get the calibration files into the same format.
+        """
+        if self.bias is not None:
+            self.bias = self.bias.crop(mccd)
+
+        if self.dark is not None:
+            self.dark = self.dark.crop(dark)
+
+        if self.flat is not None:
+            self.flat = self.flat.crop(flat)
+
+        if isinstance(self.read, hcam.MCCD):
+            self.read = self.read.crop(read)
+
+        if isinstance(self.gain, hcam.MCCD):
+            self.read = self.gain.crop(read)
+
+def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
+    """
+    Encapsulates aperture re-positioning. 'store'
+    is a dictionary of results that will be used to start
+    the fits from one frame to the next. It must start
+    as {}.
+    """
+
+    if rfile['apertures']['reposition'] == 'no':
+        # do nothing
+        return
+
+    # first of all try to get a mean shift from the reference apertures.
+    xsum, ysum = 0., 0.
+    wxsum, wysum = 0., 0.
+    ref = False
+
+    for apnam, aper:
+        if aper.ref:
+            ref = True
+            # extract Windat for this reference aperture
+            wind = ccd[ccdwin[apnam]]
+
+            if isinstance(read, hcam.CCD):
+                rd = read[ccdwin[apnam]].data
+            else:
+                rd = read
+
+            if isinstance(gain, hcam.CCD):
+                gn = gain[ccdwin[apnam]].data
+            else:
+                gn = gain
+
+            # get sub-windat around start position
+            shbox = int(rfile['apertures']['search_half_width_ref'])
+            swind = wind.window(aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox)
+
+            # carry out initial search
+            x,y,peak = swind.find(float(rfile['apertures']['search_smooth_fwhm']), False)
+
+            # now for a more refined fit. First extract fit Windat
+            fhbox = int(rfile['apertures']['fit_half_width'])
+            fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+            sky = np.percentile(fwind.data, 25)
+
+            # get some parameters from previous run where possible
+            if apnam in store and store[apnam]['efwhm'] > 0.:
+                fit_fwhm = store[apnam]['fwhm']
+            else:
+                fit_fwhm = float(rfile['apertures']['fit_fwhm'])
+
+            if apnam in store and store[apnam]['ebeta'] > 0.:
+                fit_beta = store[apnam]['beta']
+            else:
+                fit_beta = float(rfile['apertures']['fit_beta'])
+
+            # refine the Aperture position by fitting the profile
+            try:
+                (sky, height, x, y, fwhm, beta), \
+                    (esky, eheight, ex, ey, efwhm, ebeta), \
+                    extras = hcam.combFit(
+                    fwind, rfile.method, sky, peak-sky,
+                    x, y, fit_fwhm,
+                    float(rfile['apertures']['fit_fwhm_min']),
+                    rfile['apertures']['fit_fwhm_fixed'] == 'yes',
+                    fit_beta, rd, gn
+                    )
+
+                if height > float(rfile['apertures']['height_min']):
+                    dx = x - aper.x
+                    wx = 1./ex**2
+                    wxsum += wx
+                    xsum += wx*dx
+
+                    dy = y - aper.y
+                    wy = 1./ey**2
+                    wysum += wy
+                    ysum += wy*dy
+
+                    # store some stuff for next time
+                    store[apnam] = {'fwhm' : fwhm, 'efwhm' : efwhm,
+                                    'beta' : beta, 'ebeta' : ebeta}
+                else:
+                    print('CCD {:s}, reference aperture {:s}, peak = {:.1f} < {:s}'.format(
+                            cnam, apnam, height, rfile['apertures']['height_min']),
+                          file=sys.stderr)
+                    store[apnam] = {'efwhm' : -1, 'ebeta' : -1}
+
+
+            except hcam.HipercamError as err:
+                print('CCD {:s}, reference aperture {:s}, fit failed'.format(cnam, apnam), file=sys.stderr)
+                store[apnam] = {'efwhm' : -1, 'ebeta' : -1}
+
+    if ref:
+        if wxsum > 0 and wysum > 0:
+            xshift = xsum / wxsum
+            yshift = ysum / wysum
+            print('Mean x,y shift from reference aperture(s) = {:.2f}, {:.2f}'.format(xshift, yshift))
+
+        else:
+            raise hcam.HipercamError('reference aperture fit(s) failed; giving up.')
+
+    else:
+        # no reference apertures. All individual
+        xshift, yshift = 0., 0.
+
+
+    # now go over all apertures
+    for apnam, aper:
+        if aper.ref:
+            if store['apnam']['efwhm'] <= 0.:
+                # Move failed reference fit to the mean shift
+                aper.x += xshift
+                aper.y += yshift
+
+        else:
+
+            # extract Windat for this reference aperture
+            wind = ccd[ccdwin[apnam]]
+
+            if isinstance(read, hcam.CCD):
+                rd = read[ccdwin[apnam]].data
+            else:
+                rd = read
+
+            if isinstance(gain, hcam.CCD):
+                gn = gain[ccdwin[apnam]].data
+            else:
+                gn = gain
+
+            # get sub-windat around start position
+            shbox = int(rfile['apertures']['search_half_width_non'])
+            swind = wind.window(aper.x+xshift-shbox, aper.x+xshift+shbox, aper.y+yshift-shbox, aper.y+yshift+shbox)
+
+            # carry out initial search
+            x,y,peak = swind.find(float(rfile['apertures']['search_smooth_fwhm']), False)
+
+            # now for a more refined fit. First extract fit Windat
+            fhbox = int(rfile['apertures']['fit_half_width'])
+            fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+            sky = np.percentile(fwind.data, 25)
+
+            # get some parameters from previous run where possible
+            if apnam in store and store[apnam]['efwhm'] > 0.:
+                fit_fwhm = store[apnam]['fwhm']
+            else:
+                fit_fwhm = float(rfile['apertures']['fit_fwhm'])
+
+            if apnam in store and store[apnam]['ebeta'] > 0.:
+                fit_beta = store[apnam]['beta']
+            else:
+                fit_beta = float(rfile['apertures']['fit_beta'])
+
+            # refine the Aperture position by fitting the profile
+            try:
+                (sky, height, x, y, fwhm, beta), \
+                    (esky, eheight, ex, ey, efwhm, ebeta), \
+                    extras = hcam.combFit(
+                    fwind, rfile.method, sky, peak-sky,
+                    x, y, fit_fwhm,
+                    float(rfile['apertures']['fit_fwhm_min']),
+                    rfile['apertures']['fit_fwhm_fixed'] == 'yes',
+                    fit_beta, rd, gn
+                    )
+
+                if height > float(rfile['apertures']['height_min']):
+                    aper.x = x
+                    aper.y = y
+
+                    # store some stuff for next time
+                    store[apnam] = {'fwhm' : fwhm, 'efwhm' : efwhm,
+                                    'beta' : beta, 'ebeta' : ebeta}
+                else:
+                    print('CCD {:s}, aperture {:s}, peak = {:.1f} < {:s}'.format(
+                            cnam, apnam, height, rfile['apertures']['height_min']),
+                          file=sys.stderr)
+                    store[apnam] = {'efwhm' : -1, 'ebeta' : -1}
+
+
+            except hcam.HipercamError as err:
+                print('CCD {:s}, reference aperture {:s}, fit failed'.format(cnam, apnam), file=sys.stderr)
+                store[apnam] = {'efwhm' : -1, 'ebeta' : -1}
+
+
