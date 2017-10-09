@@ -302,7 +302,7 @@ def get_ccd_pars(inst, resource, flist):
         rhead = ucam.Rhead(resource)
         if rhead.instrument == 'ULTRACAM':
             # ULTRACAM raw data file: fixed data
-            return OrderedDict((('r',(1080,1032)), ('g',(1080,1032)), ('b',(1080,1032))))
+            return OrderedDict((('1',(1080,1032)), ('2',(1080,1032)), ('3',(1080,1032))))
 
         elif rhead.instrument == 'ULTRASPEC':
             # ULTRASPEC raw data file: fixed data

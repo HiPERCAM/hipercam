@@ -932,7 +932,7 @@ class Rdata (Rhead):
             ccd3 = CCD(wins3, self.nxmax, self.nymax, bhead)
 
             # Finally, return an MCCD
-            return MCCD([('r',ccd1),('g',ccd2),('b',ccd3)], self)
+            return MCCD([('1',ccd1),('2',ccd2),('3',ccd3)], self)
 
         elif self.instrument == 'ULTRASPEC':
 
