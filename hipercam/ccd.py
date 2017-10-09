@@ -247,7 +247,6 @@ class CCD(Agroup):
                     raise KeyError('window label conflict')
                 else:
                     label = str(nwin)
-
                 winds[label] = Windat.rhdu(hdu)
 
             # step the window counter
