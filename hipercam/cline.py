@@ -215,7 +215,7 @@ class Cline:
 
             if direnv is None and defdir is None:
                 raise ClineError(
-                    'hipercam.cline.Cline: no default file environment variable or directory name supplied')
+                    'no default file environment variable or directory name supplied')
 
             if direnv is not None and direnv in os.environ:
                 self._ddir = os.environ[direnv]
@@ -263,7 +263,7 @@ class Cline:
                 p,v = arg.split('=',1)
                 if p in self._pbynam:
                     raise ClineError(
-                        'hipercam.cline.Cline: parameter = ' + p + ' defined more than once in argument list.')
+                        'parameter = ' + p + ' defined more than once in argument list.')
                 self._pbynam[p] = v
             else:
                 self._pbypos.append(arg)
@@ -453,12 +453,12 @@ class Cline:
 
         if param not in self._rpars:
             raise ClineError(
-                'hipercam.cline.Cline.get_value: parameter = "{:s}" has not been registered.'.format(param.upper())
+                'parameter = "{:s}" has not been registered.'.format(param.upper())
                 )
 
         if lvals != None and defval not in lvals:
             raise ClineError(
-                'hipercam.cline.Cline.get_value: default = {!s} not in allowed list = {!s}'.format(defval,lvals)
+                'default = {!s} not in allowed list = {!s}'.format(defval,lvals)
             )
 
         # Now get the parameter value by one of three methods
@@ -550,7 +550,7 @@ class Cline:
                         value = False
                     else:
                         raise ClineError(
-                            'hipercam.cline.Cline.get_value: could not translate "' + value +
+                            'could not translate "' + value +
                             '" to a boolean True or False.'
                             )
             elif isinstance(defval, int):
@@ -563,14 +563,14 @@ class Cline:
                             value = minval
                         else:
                             raise ClineError(
-                                'hipercam.cline.Cline.get_value: {:s} has no minimum value'.format(param)
+                                '{:s} has no minimum value'.format(param)
                                 )
                     elif value == 'max':
                         if maxval is not None:
                             value = maxval
                         else:
                             raise ClineError(
-                                'hipercam.cline.Cline.get_value: {:s} has no maximum value'.format(param)
+                                '{:s} has no maximum value'.format(param)
                                 )
 
                 value = int(value)
@@ -585,14 +585,14 @@ class Cline:
                             value = minval
                         else:
                             raise ClineError(
-                                'hipercam.cline.Cline.get_value: {:s} has no minimum value'.format(param)
+                                '{:s} has no minimum value'.format(param)
                                 )
                     elif value == 'max':
                         if maxval is not None:
                             value = maxval
                         else:
                             raise ClineError(
-                                'hipercam.cline.Cline.get_value: {:s} has no maximum value'.format(param)
+                                '{:s} has no maximum value'.format(param)
                                 )
 
                 value = float(value)
@@ -609,33 +609,29 @@ class Cline:
                     value = tuple(value)
             else:
                 raise ClineError(
-                    'hipercam.cline.Cline.get_value: did not recognize the data type of the default supplied for parameter {:s} = {!s}'.format(param, type(defval))
+                    'did not recognize the data type of the default supplied for parameter {:s} = {!s}'.format(param, type(defval))
                 )
 
         except ValueError as err:
-            raise ClineError('hipercam.cline.Cline.get_value: {!s}'.format(err))
+            raise ClineError('{!s}'.format(err))
 
         # ensure value is within range
         if minval != None and value < minval:
             raise ClineError(
-                'hipercam.cline.Cline.get_value: ' +
                 param + ' = ' + str(value) + ' < ' + str(minval))
         elif maxval != None and value > maxval:
             raise ClineError(
-                'hipercam.cline.Cline.get_value: ' +
                 param + ' = ' + str(value) + ' > ' + str(maxval)
             )
 
         # and that it is an OK value
         if lvals != None and value not in lvals:
             raise ClineError(
-                'hipercam.cline.Cline.get_value: ' +
                 str(value) + ' is not one of the allowed values = ' + str(lvals)
             )
 
         if multipleof != None and value % multipleof != 0:
             raise ClineError(
-                'hipercam.cline.Cline.get_value: ' +
                 str(value) + ' is not a multiple of ' + str(multipleof)
             )
 
@@ -718,7 +714,7 @@ class Fname(str):
 
         if ftype != Fname.OLD and ftype != Fname.NEW and ftype != Fname.NOCLOBBER:
             raise ClineError(
-                'hipercam.cline.Fname.__new__: ftype must be either OLD, NEW or NOCLOBBER')
+                'ftype must be either OLD, NEW or NOCLOBBER')
 
         # store root with no extension
         if len(ext) and root.endswith(ext):
@@ -780,11 +776,11 @@ class Fname(str):
 
         if self.exist and self.ftype == Fname.OLD and not os.path.exists(fname):
             raise ClineError(
-                'hipercam.cline.Fname.__call__: could not find file = ' + fname)
+                'could not find file = ' + fname)
 
         if self.ftype == Fname.NOCLOBBER and os.path.exists(fname):
             raise ClineError(
-                'hipercam.cline.Fname.__call__: file = ' + fname + ' already exists')
+                'file = ' + fname + ' already exists')
 
         return fname
 
