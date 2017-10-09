@@ -3,7 +3,7 @@ import math
 class Vec2D:
     """Simple 2D vector class."""
 
-    def __init__(self, x, y):
+    def __init__(self, x=0., y=0.):
         self.x = x
         self.y = y
 
