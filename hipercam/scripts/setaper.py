@@ -101,11 +101,14 @@ def setaper(args=None):
       beta   : (float) [if method == 'm'; hidden]
          default Moffat exponent
 
+      fwmin  : (float) [hidden]
+         minimum FWHM to allow, unbinned pixels.
+
       fwhm   : (float) [hidden]
          default FWHM, unbinned pixels.
 
-      fwhm_min : (float) [hidden]
-         minimum FWHM to allow, unbinned pixels.
+      fwfix  : (bool) [hidden]
+         don't fit the FWHM. Can be more robust; the position is still fitted.
 
       shbox  : (float) [hidden]
          half width of box for searching for a star, unbinned pixels. The
@@ -188,7 +191,8 @@ def setaper(args=None):
         cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('beta', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwhm_min', Cline.LOCAL, Cline.HIDE)
+        cl.register('fwmin', Cline.LOCAL, Cline.HIDE)
+        cl.register('fwfix', Cline.LOCAL, Cline.HIDE)
         cl.register('shbox', Cline.LOCAL, Cline.HIDE)
         cl.register('smooth', Cline.LOCAL, Cline.HIDE)
 #        cl.register('splot', Cline.LOCAL, Cline.HIDE)
@@ -281,8 +285,10 @@ def setaper(args=None):
             beta = cl.get_value('beta', 'initial exponent for Moffat fits', 5., 0.5)
         else:
             beta = 0
-        fwhm_min = cl.get_value('fwhm_min', 'minimum FWHM to allow [unbinned pixels]', 1.5, 0.01)
+        fwhm_min = cl.get_value('fwmin', 'minimum FWHM to allow [unbinned pixels]', 1.5, 0.01)
         fwhm = cl.get_value('fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., fwhm_min)
+        fwhm_fix = cl.get_value('fwfix', 'fix the FWHM at start value?', False)
+
         shbox = cl.get_value(
             'shbox', 'half width of box for initial location of target [unbinned pixels]', 11., 2.)
         smooth = cl.get_value(
@@ -369,7 +375,7 @@ def setaper(args=None):
     # create the aperture picker (see below for class def)
     picker = PickStar(mccd, cnams, toolbar, fig, mccdaper, schar,
                       rtarg, rsky1, rsky2, profit, method, beta,
-                      fwhm_min, fwhm, shbox, smooth, fhbox,
+                      fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
                       read, gain, sigma, aper, pobjs)
 
     plt.tight_layout()
@@ -392,7 +398,7 @@ class PickStar:
 
     def __init__(self, mccd, cnams, toolbar, fig, mccdaper, schar,
                  rtarg, rsky1, rsky2, profit, method, beta,
-                 fwhm_min, fwhm, shbox, smooth, fhbox,
+                 fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
                  read, gain, sigma, apernam, pobjs):
 
         # save the inputs, tack on event handlers.
@@ -413,8 +419,9 @@ class PickStar:
         self.profit = profit
         self.method = method
         self.beta = beta
-        self.fwhm_min = fwhm_min
         self.fwhm = fwhm
+        self.fwhm_min = fwhm_min
+        self.fwhm_fix = fwhm_fix
         self.shbox = shbox
         self.smooth = smooth
         self.fhbox = fhbox
@@ -711,7 +718,7 @@ the aperture centre.
                 (sky, height, x, y, fwhm, beta), epars, \
                     (X, Y, message) = hcam.combFit(
                         fwind, self.method, sky, peak-sky,
-                        x, y, self.fwhm, self.fwhm_min,
+                        x, y, self.fwhm, self.fwhm_min, self.fwhm_fix,
                         self.beta, self.read, self.gain
                     )
 
@@ -829,7 +836,7 @@ the aperture centre.
                     (sky, height, x, y, fwhm, beta), epars, \
                         (X, Y, message) = hcam.combFit(
                             fwind, self.method, sky, peak-sky,
-                            x, y, self.fwhm, self.fwhm_min,
+                            x, y, self.fwhm, self.fwhm_min, self.fwhm_fix,
                             self.beta, self.read, self.gain
                         )
 
