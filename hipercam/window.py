@@ -1180,7 +1180,7 @@ class Windat(Window):
 # have decided that these relatively specialised routines are better as
 # separate methods rather than class methods
 
-def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain):
+def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, read, gain):
     """
     Fits the profile of one target in a Windat with a symmetric 2D
     Gaussian profile given initial starting parameters. NB This will fit
@@ -1213,6 +1213,9 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain):
             especially where all signal might be in a single pixel to prevent going
             to silly values.
 
+        fwhm_fix : (bool)
+            whether to hold the FWHM fixed or not.
+
         read     : (float)
             readout noise, RMS ADU, from which weights are generated
 
@@ -1237,6 +1240,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain):
             might = 0 indicating rejection.
 
     """
+    global FFWHM
 
     # generate 2D arrays of x and y values
     x = wind.x(np.arange(wind.nx))
@@ -1246,11 +1250,17 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain):
     # generate weights
     weights = 1./np.sqrt(read**2+np.maximum(0,wind.data)/gain)
 
-    # create symmetric 2D Gaussian model
-    gauss = Gaussian(sky, height, xcen, ycen, fwhm)
+    # create symmetric 2D Gaussian model (two versions: one with
+    # a fixed FWHM, the other not)
+    if fwhm_fix:
+        FFWHM = fwhm
+        gauss = GaussianFF(sky, height, xcen, ycen)
 
-    # set a minimum for fwhm
-    gauss.fwhm.min = fwhm_min
+    else:
+        gauss = Gaussian(sky, height, xcen, ycen, fwhm)
+
+        # set a minimum for fwhm
+        gauss.fwhm.min = fwhm_min
 
     # Lev-Marq fitting
     fitter = fitting.LevMarLSQFitter()
@@ -1265,21 +1275,31 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, read, gain):
     fwind = Windat(wind, fit(X, Y))
 
     # extract parameters and return
-    pars = (fit.constant.value, fit.height.value,
-            fit.xcen.value,fit.ycen.value,
-            fit.fwhm.value)
+    if fwhm_fix:
+        pars = (fit.constant.value, fit.height.value,
+                fit.xcen.value, fit.ycen.value,
+                FFWHM)
+    else:
+        pars = (fit.constant.value, fit.height.value,
+                fit.xcen.value, fit.ycen.value,
+                fit.fwhm.value)
 
     # extract diagonal elements of covariances
     if cov is None:
         sigs = None
     else:
-        sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
-                np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
-                np.sqrt(cov[4,4])]
+        if fwhm_fix:
+            sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
+                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
+                    -1]
+        else:
+            sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
+                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
+                    np.sqrt(cov[4,4])]
 
-        # set the errors if at the limit to -1
-        if fit.fwhm.value == gaussian.fwhm.min:
-            sigs[4] = -1
+            # set the errors if at the limit to -1
+            if fit.fwhm.value == gauss.fwhm.min:
+                sigs[4] = -1
         sigs = tuple(sigs)
 
     extras = (fwind, X, Y, weights)
@@ -1329,7 +1349,52 @@ class Gaussian(Fittable2DModel):
 
         return [d_constant, d_height, d_xcen, d_ycen, d_fwhm]
 
-def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, beta, read, gain):
+class GaussianFF(Fittable2DModel):
+    """Model of a Gaussian plus a constant, with the width specified in terms
+    of the FWHM rather than the standard deviation. cf Gaussian this one has
+    a fixed FWHM using a global value 'FFWHM'
+
+    I did try out the compound model option of the astropy.modeling stuff but
+    it did not seem to work reliably and a be-spoke model like this seems a
+    fair bit easier to manage.
+    """
+
+    constant = Parameter()
+    height = Parameter()
+    xcen = Parameter()
+    ycen = Parameter()
+
+    EFAC = np.sqrt(8.*np.log(2.))
+
+    @staticmethod
+    def evaluate(x, y, constant, height, xcen, ycen):
+        global FFWHM
+        rsq = (x-xcen)**2+(y-ycen)**2
+        return constant+height*np.exp(-rsq/(2.*(FFWHM/Gaussian.EFAC)**2))
+
+    @staticmethod
+    def fit_deriv(x, y, constant, height, xcen, ycen):
+        global FFWHM
+
+        # intermediate time savers (but each the same dimension as x and y)
+        xoff = x-xcen
+        yoff = y-ycen
+        rsq = xoff**2 + yoff**2
+        alpha = 1/(2.*(FFWHM/Gaussian.EFAC)**2)
+
+        # derivatives
+        d_constant = np.ones_like(x)
+
+        d_height = np.exp(-alpha*rsq)
+
+        d_xcen = (2*alpha*height)*d_height*xoff
+
+        d_ycen = (2*alpha*height)*d_height*yoff
+
+        return [d_constant, d_height, d_xcen, d_ycen]
+
+
+def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, read, gain):
     """
     Fits the profile of one target in a Windat with a 2D Moffat profile,
     h/(1+(r/a)**2)**beta where r is the distance from the centre of the
@@ -1357,6 +1422,9 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, beta, read, gain):
             minimum value to allow FWHM to go to. Useful for heavily binned data
             especially where all signal might be in a single pixel to prevent going
             to silly values.
+
+        fwhm_fix : (bool)
+            whether or not to vary the FWHM. In some cases one may not want to for safety or speed.
 
         read     : (float)
             readout noise, RMS ADU, from which weights are generated
@@ -1387,6 +1455,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, beta, read, gain):
 
     """
 
+    global FFWHM
+
     # generate 2D arrays of x and y values
     x = wind.x(np.arange(wind.nx))
     y = wind.y(np.arange(wind.ny))
@@ -1395,11 +1465,17 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, beta, read, gain):
     # generate weights
     weights = 1./np.sqrt(read**2+np.maximum(0,wind.data)/gain)
 
-    # create a Moffat model
-    moffat = Moffat(sky, height, xcen, ycen, fwhm, beta)
+    if fwhm_fix:
+        FFWHM = fwhm
+        # create a Moffat model
+        moffat = MoffatFF(sky, height, xcen, ycen, beta)
 
-    # set a minimum for the FWHM to prevent peaking up on single pixels
-    moffat.fwhm.min = fwhm_min
+    else:
+        # create a Moffat model
+        moffat = Moffat(sky, height, xcen, ycen, fwhm, beta)
+
+        # set a minimum for the FWHM to prevent peaking up on single pixels
+        moffat.fwhm.min = fwhm_min
 
     # limit the range of beta
     moffat.beta.min = 1.
@@ -1418,21 +1494,32 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, beta, read, gain):
     fwind = Windat(wind, fit(X, Y))
 
     # extract parameters and return
-    pars = (fit.constant.value, fit.height.value, 
-            fit.xcen.value,fit.ycen.value,
-            fit.fwhm.value,fit.beta.value)
+    if fwhm_fix:
+        pars = (fit.constant.value, fit.height.value,
+                fit.xcen.value,fit.ycen.value,
+                FFWHM,fit.beta.value)
+    else:
+        pars = (fit.constant.value, fit.height.value,
+                fit.xcen.value,fit.ycen.value,
+                fit.fwhm.value,fit.beta.value)
 
     # extract diagonal elements of covariances
     if cov is None:
         sigs = None
     else:
-        sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
-                np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
-                np.sqrt(cov[4,4]), np.sqrt(cov[5,5])]
+        if fwhm_fix:
+            sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
+                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
+                    -1, np.sqrt(cov[4,4])]
 
-        # set the errors on ones that are at the limit to -1
-        if fit.fwhm.value == moffat.fwhm.min:
-            sigs[4] = -1
+        else:
+            sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
+                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
+                    np.sqrt(cov[4,4]), np.sqrt(cov[5,5])]
+
+            # set the errors on ones that are at the limit to -1
+            if fit.fwhm.value == moffat.fwhm.min:
+                sigs[4] = -1
 
         if fit.beta.value == moffat.beta.min or \
            fit.beta.value == moffat.beta.max:
@@ -1489,8 +1576,53 @@ class Moffat(Fittable2DModel):
 
         return [d_constant, d_height, d_xcen, d_ycen, d_fwhm, d_beta]
 
+class MoffatFF(Fittable2DModel):
+
+    constant = Parameter()
+    height = Parameter()
+    xcen = Parameter()
+    ycen = Parameter()
+    beta = Parameter()
+
+    # In code below, Moffat written as c + h/(1+alpha*r**2)**beta where alpha
+    # = 4*(2**(1/beta)-1)/fwhm**2 and r**2 = (x-x0)**2+(y-y0)**2
+
+    @staticmethod
+    def evaluate(x, y, constant, height, xcen, ycen, beta):
+        global FFWHM
+        rsq = (x-xcen)**2+(y-ycen)**2
+        alpha = 4*(2**(1/beta)-1)/FFWHM**2
+        return constant+height/(1+alpha*rsq)**beta
+
+    @staticmethod
+    def fit_deriv(x, y, constant, height, xcen, ycen, beta):
+        global FFWHM
+
+        # intermediate time savers (but each the same dimension as x and y)
+        xoff = x-xcen
+        yoff = y-ycen
+        rsq = xoff**2 + yoff**2
+        alpha = 4*(2**(1/beta)-1)/FFWHM**2
+        denom = 1+alpha*rsq
+        save1 = height/denom**(beta+1)
+        save2 = save1*rsq
+
+        # derivatives. beta is a bit complicated because it appears directly
+        # through the exponent but also indirectly through alpha
+        d_constant = np.ones_like(x)
+
+        d_height = 1/denom**beta
+
+        d_xcen = (2*alpha*beta)*xoff*save1
+
+        d_ycen = (2*alpha*beta)*yoff*save1
+
+        d_beta = -np.log(denom)*height*d_height + (4.*np.log(2)*2**(1/beta)/beta/FFWHM**2)*save2
+
+        return [d_constant, d_height, d_xcen, d_ycen, d_beta]
+
 def combFit(wind, method, sky, height, x, y,
-            fwhm, fwhm_min, beta, read, gain):
+            fwhm, fwhm_min, fwhm_fix, beta, read, gain):
     """
     Fits a stellar profile in a :class:Windat using either a 2D Gaussian
     or Moffat profile. This is a convenience routine because one practically
@@ -1515,12 +1647,15 @@ def combFit(wind, method, sky, height, x, y,
 
         y         : (float)
             initial central Y value
- 
+
         fwhm      : (float)
             initial FWHM, unbinned pixels.
 
         fwhm_min  : (float)
             minimum FWHM, unbinned pixels.
+
+        fwhm_fix  : (float)
+            fix the FWHM (i.e. don't fit it)
 
         beta      : (float) [if method == 'm']
             exponent of Moffat function
@@ -1554,14 +1689,14 @@ def combFit(wind, method, sky, height, x, y,
         # gaussian fit
         (sky, peak, x, y, fwhm), sigs, \
             (fit, X, Y, weights) = fitGaussian(
-                wind, sky, height, x, y, fwhm, fwhm_min, read, gain
+                wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, read, gain
             )
 
     elif method == 'm':
         # moffat fit
         (sky, peak, x, y, fwhm, beta), sigs, \
             (fit, X, Y, weights) = fitMoffat(
-                wind, sky, height, x, y, fwhm, fwhm_min, beta, read, gain
+                wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta, read, gain
             )
 
     else:
