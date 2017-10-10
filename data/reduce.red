@@ -13,7 +13,7 @@
 # shift. The search on non-reference apertures can then be tightened.
 
 [apertures]
-aperfile           = aper              # file of software apertures for each CCD
+aperfile           = reduce            # file of software apertures for each CCD
 reposition         = yes               # yes / no to re-position the apertures
 search_half_width_ref  = 11            # for initial search around reference aperture, unbinned pixels
 search_half_width_non  = 5             # for initial search around non-reference aperture, unbinned pixels
@@ -23,14 +23,14 @@ fit_method     = moffat     # gaussian or moffat
 fit_beta       = 4.         # Moffat exponent
 fit_fwhm       = 6.         # FWHM, unbinned pixels
 fit_fwhm_min   = 2.         # Minimum FWHM, unbinned pixels
-fit_fwhm_fixed = yes        # Slightly faster not to fit the FWHM.
+fit_fwhm_fixed = no         # Slightly faster not to fit the FWHM.
 fit_half_width = 21         # for fit, unbinned pixels
 fit_sigma      = 4          # rejection threshold for fits
 fit_height_min = 50         # minimum height to accept a fit 
 
 # Calibration frames and constants
 [calibration]
-coerce = yes  # Try to force the calibrations to match the data
+crop = yes    # Crop calibrations to match the data
 bias =        # Bias frame, blank to ignore
 dark =        # Dark frame, blank to ignore
 flat =        # Flat field frame, blank to ignore
