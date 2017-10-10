@@ -531,7 +531,6 @@ class MccdWin(Group):
         for cnam, ccd in mccd.items():
             mccdwin[cnam] = CcdWin()
             for wnam, wind in ccd.items():
-                print(wind)
                 mccdwin[cnam][wnam] = wind.win
         return mccdwin
 
@@ -1395,8 +1394,7 @@ class GaussianFF(Fittable2DModel):
 
 
 def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, read, gain):
-    """
-    Fits the profile of one target in a Windat with a 2D Moffat profile,
+    """Fits the profile of one target in a Windat with a 2D Moffat profile,
     h/(1+(r/a)**2)**beta where r is the distance from the centre of the
     aperture. It returns the fitted parameters, covariances and the fit itself.
     The FWHM can be constrained to lie above a lower limit which can be useful.
@@ -1419,12 +1417,13 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, rea
             initial FWHM in unbinned pixels.
 
         fwhm_min : (float)
-            minimum value to allow FWHM to go to. Useful for heavily binned data
-            especially where all signal might be in a single pixel to prevent going
-            to silly values.
+            minimum value to allow FWHM to go to. Useful for heavily binned
+            data especially where all signal might be in a single pixel to
+            prevent going to silly values.
 
         fwhm_fix : (bool)
-            whether or not to vary the FWHM. In some cases one may not want to for safety or speed.
+            whether or not to vary the FWHM. In some cases one may not want to
+            for safety or speed.
 
         read     : (float)
             readout noise, RMS ADU, from which weights are generated
@@ -1433,8 +1432,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, rea
             gain, e-/ADU, from which weights are generated
 
         sigma   : (float)
-            for outlier rejection. The fit is re-run with outliers removed by setting
-            their weight = 0.
+            for outlier rejection. The fit is re-run with outliers removed by
+            setting their weight = 0.
 
     Returns:: (tuple of tuples)
 
@@ -1444,13 +1443,15 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, rea
                 parameters. unpacks to sky, height, xcen, yce, fwhm
 
            sigs : (tuple)
-                standard deviations. unpacks in same order, (sky, height, xcen, yce, fwhm). Can come
-                back as 'None' if the fit fails so don't try to unpack on the fly.
+                standard deviations. unpacks in same order, (sky, height,
+                xcen, yce, fwhm). Can come back as 'None' if the fit fails so
+                don't try to unpack on the fly.
 
            extras : (tuple)
-                some extra stuff that might come in useful, namely (fit, X, Y, weights) where `fit`
-                is a :class:Windat containing the best fit, X and Y are the X and Y positions of
-                all pixels (2D numpy arrays) and weights is the final set of weights, some of which
+                some extra stuff that might come in useful, namely (fit, X, Y,
+                weights) where `fit` is a :class:Windat containing the best
+                fit, X and Y are the X and Y positions of all pixels (2D numpy
+                arrays) and weights is the final set of weights, some of which
                 might = 0 indicating rejection.
 
     """
@@ -1467,10 +1468,12 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, rea
 
     if fwhm_fix:
         FFWHM = fwhm
+
         # create a Moffat model
         moffat = MoffatFF(sky, height, xcen, ycen, beta)
 
     else:
+
         # create a Moffat model
         moffat = Moffat(sky, height, xcen, ycen, fwhm, beta)
 
@@ -1687,14 +1690,14 @@ def combFit(wind, method, sky, height, x, y,
 
     if method == 'g':
         # gaussian fit
-        (sky, peak, x, y, fwhm), sigs, \
+        (sky, height, x, y, fwhm), sigs, \
             (fit, X, Y, weights) = fitGaussian(
                 wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, read, gain
             )
 
     elif method == 'm':
         # moffat fit
-        (sky, peak, x, y, fwhm, beta), sigs, \
+        (sky, height, x, y, fwhm, beta), sigs, \
             (fit, X, Y, weights) = fitMoffat(
                 wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta, read, gain
             )
@@ -1710,12 +1713,12 @@ def combFit(wind, method, sky, height, x, y,
     if method == 'g':
         esky, eheight, ex, ey, efwhm = sigs
         message = 'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
-            x,ex,y,ey,fwhm,efwhm,peak,eheight,sky,esky)
+            x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky)
         beta, ebeta = None, None
     elif method == 'm':
         esky, eheight, ex, ey, efwhm, ebeta = sigs
         message = 'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f}), beta = {:.2f}({:.2f})'.format(
-            x,ex,y,ey,fwhm,efwhm,peak,eheight,sky,esky,beta,ebeta)
+            x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,beta,ebeta)
 
     return (
         (sky, height, x, y, fwhm, beta),
