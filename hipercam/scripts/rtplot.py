@@ -523,7 +523,7 @@ def rtplot(args=None):
                     (sky, height, x, y, fwhm, beta), epars, \
                         (X, Y, message) = hcam.combFit(
                             fwind, method, sky, peak-sky,
-                            x, y, fpar.fwhm, fwhm_min,
+                            x, y, fpar.fwhm, fwhm_min, False,
                             fpar.beta, read, gain
                         )
 
