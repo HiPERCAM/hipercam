@@ -4,20 +4,23 @@
 # The idea is that these are to large extent unchanging and it would be annoying
 # to be prompted every time for them.
 
-# the 'apertures' section defines how the apertures are re-positioned from
-# frame to frame. If not static, apertures are re-positioned through a
-# combination of a search near a start location followed by a 2D fit. Several
-# parameters below are associated with this process
+# the next section defines how the apertures are re-positioned from frame to
+# frame. If not static, apertures are re-positioned through a combination of a
+# search near a start location followed by a 2D fit. Several parameters below
+# are associated with this process
 
 # If there are reference apertures, they are located first to give a mean
 # shift. The search on non-reference apertures can then be tightened.
 
+[general]
+version = 2017-10-05 # must match date in reduce itself.
+
 [apertures]
-aperfile           = reduce            # file of software apertures for each CCD
-reposition         = yes               # yes / no to re-position the apertures
-search_half_width_ref  = 11            # for initial search around reference aperture, unbinned pixels
-search_half_width_non  = 5             # for initial search around non-reference aperture, unbinned pixels
-search_smooth_fwhm = 4                 # smoothing FWHM, binned pixels
+aperfile               = reduce  # file of software apertures for each CCD
+
+search_half_width_ref  = 11   # for initial search around reference aperture, unbinned pixels
+search_half_width_non  = 5    # for initial search around non-reference aperture, unbinned pixels
+search_smooth_fwhm     = 4    # smoothing FWHM, binned pixels
 
 fit_method     = moffat     # gaussian or moffat
 fit_beta       = 4.         # Moffat exponent
@@ -26,7 +29,41 @@ fit_fwhm_min   = 2.         # Minimum FWHM, unbinned pixels
 fit_fwhm_fixed = no         # Slightly faster not to fit the FWHM.
 fit_half_width = 21         # for fit, unbinned pixels
 fit_sigma      = 4          # rejection threshold for fits
-fit_height_min = 50         # minimum height to accept a fit 
+fit_height_min = 50         # minimum height to accept a fit
+
+# The next lines define how the apertures will be re-sized and how the flux
+# will be extracted from the aperture. There is one line per CCD which starts
+# with "CCD label =" and then is followed by
+#
+# variable | fixed : how the aperture size will be determined. If variable it
+# will be scaled relative to the FWHM, so there needs to be a FWHM.
+#
+# normal | optimal : how the flux will be extracted. 'normal' means a straight
+# sum of sky subtracted flux over the aperture. This is often the best choice.
+# 'optimum' tries to weight more towards regions of high flux, this is only
+# possible if you have fit the profile earlier.
+#
+# Then follows a series of numbers in three triplets, each of which is a scale
+# factor relative to the FWHM for the aperture radius if the 'variable' option
+# was chosen, then a minimum and a maximum aperture radius in unbinned pixels.
+# The three triples correspond to the innermost target aperture radius, the 
+# inner sky radius and finally the outer sky radius. 
+
+[extraction]
+1 = variable normal 1.7 6.0 30.0 2.5 30.0 30.0 3.0 40.0 40.0
+2 = variable normal 1.7 6.0 30.0 2.5 30.0 30.0 3.0 40.0 40.0
+3 = variable normal 1.7 6.0 30.0 2.5 30.0 30.0 3.0 40.0 40.0
+4 = variable normal 1.7 6.0 30.0 2.5 30.0 30.0 3.0 40.0 40.0
+5 = variable normal 1.7 6.0 30.0 2.5 30.0 30.0 3.0 40.0 40.0
+
+# next lines determine how the sky background level is calculated. Note
+# you can only set error = variance if method = clipped. 'median' should
+# usually be avoided as it can cause noticable steps in light curves. It's
+# here as a comparator.
+[sky]
+method = clipped    # 'clipped' | 'median'
+error  = variance   # 'variance' | 'photon': first uses actual variance of sky
+thresh = 3          # threshold in terms of RMS for 'clipped'
 
 # Calibration frames and constants
 [calibration]
@@ -37,5 +74,25 @@ flat =        # Flat field frame, blank to ignore
 readout = 3.  # RMS ADU. Float or string name of a file
 gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 
-[general]
-version = 2017-10-05 # must match date in reduce itself.
+# configures the light curve plot. There are general configuration options
+# which should be obvious and then a series of lines, each starting 'targ'
+# specifying the target to be plotted giving the CCD label, the target
+# (aperture label), the comparison aperture label (enter '!' if you don't want
+# to use a comparison), an additive offset, a multiplicative scaling factor
+# and then a colour for the data and a colour for the error bar
+
+[light]
+height  = 3         # height of light curve plot, arbitrary units
+device  = 1/xs      # PGPLOT plot device
+xrange  = 0         # maximum range in X to plot (minutes), <= 0 for everything
+extend_xrange = 10  # amount by which to extend xrange, minutes.
+linear  = yes       # linear vertical scale (else magnitudes): 'yes' or 'no'
+yrange_fixed = no   # keep a fixed vertical range or not: 'yes' or 'no'
+y1 = 0              # initial lower y value
+y2 = 0.2            # initial upper y value
+extend_yrange = 1.2 # factor by which to extend y range if yrange_fixed == 'no'
+targ = 1 1 2 0 1 red red
+targ = 1 3 2 0 1 red red
+targ = 2 1 2 0 1 green red
+targ = 2 3 2 0 1 green red
+
