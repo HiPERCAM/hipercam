@@ -74,19 +74,24 @@ flat =        # Flat field frame, blank to ignore
 readout = 3.  # RMS ADU. Float or string name of a file
 gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 
-# configures the light curve plot. There are general configuration options
-# which should be obvious and then a series of lines, each starting 'plot'
-# which specify one light curve to be plotted giving CCD, target, comparison
-# ('!' if you don't want a comparison), an additive offset, a multiplicative
-# scaling factor and then a colour for the data and a colour for the error bar
-# There will always be a light curve plot, whereas later elements are
-# optional, therefore the light curve panel is defined to have unit height and
-# all others are scaled relative to this.
+# the light curve plot (includes transmission & seeing as well)
 
-[light]
+[lcplot]
 device  = 1/xs      # PGPLOT plot device
 xrange  = 0         # maximum range in X to plot (minutes), <= 0 for everything
 extend_xrange = 10  # amount by which to extend xrange, minutes.
+width   = 0         # plot width, inches, 0 to let program choose
+height  = 0         # plot height, inches
+
+# light curve panel (must be present). Mostly obvious, then a series of lines,
+# each starting 'plot' which specify one light curve to be plotted giving CCD,
+# target, comparison ('!' if you don't want a comparison), an additive offset,
+# a multiplicative scaling factor and then a colour for the data and a colour
+# for the error bar There will always be a light curve plot, whereas later
+# elements are optional, therefore the light curve panel is defined to have
+# unit height and all others are scaled relative to this.
+
+[light]
 linear  = yes       # linear vertical scale (else magnitudes): 'yes' or 'no'
 yrange_fixed = no   # keep a fixed vertical range or not: 'yes' or 'no'
 y1 = 0              # initial lower y value
