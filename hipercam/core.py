@@ -8,7 +8,8 @@ import numpy as np
 
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
-    'add_extension', 'HipercamError', 'HipercamWarning', 'CIS'
+    'add_extension', 'HipercamError', 'HipercamWarning', 'CIS',
+    'DMINS'
 )
 
 # Constants for general use
@@ -20,6 +21,9 @@ LIST = '.lis'
 APER = '.ape'
 HRAW = '.fits'
 RED  = '.red'
+
+# number of minutes in a day
+DMINS = 1440.
 
 # For compatibility between PGPLOT and matplotlib, establish a uniform
 # set of colours. These are fed directly to matplotlib, and used to override
