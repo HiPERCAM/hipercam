@@ -25,7 +25,7 @@ Params = {
     'axis.label.ch' : 1.5,
 
     # axis label colour
-    'axis.label.col' : 2,
+    'axis.label.ci' : 2,
 
     # axis number character height
     'axis.number.ch' : 1.5,
@@ -155,7 +155,7 @@ def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
 
     if tlabel != '':
         pgsch(Params['axis.label.ch'])
-        pgsci(Params['axis.label.col'])
+        pgsci(Params['axis.label.ci'])
         pglab('X','Y',tlabel)
 
     for key, wind in ccd.items():
