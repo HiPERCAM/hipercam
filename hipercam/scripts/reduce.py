@@ -157,29 +157,72 @@ def reduce(args=None):
     if lwidth > 0 and lheight > 0:
         pgpap(lwidth,lheight/lwidth)
 
-    # define and draw panels. 'theight' is the total height of all panel which
-    # will be used to work out the fraction occupied by each one
-    theight = 1.0
+    # define and draw panels. 'total' is the total height of all panel which
+    # will be used to work out the fraction occupied by each one. There is
+    # always a light curve panel of unit height.
+    lheight = 1.0
+    total = lheight
+
+    if rfile.transmission:
+        theight = rfile['transmission']['height']
+        total += theight
+
+    if rfile.seeing:
+        sheight = rfile['seeing']['height']
+        total += sheight
 
     # define standard viewport. We set the character height to ensure there is
     # enough room around the edges.
     pgsch(max(hcam.pgp.Params['axis.label.ch'],hcam.pgp.Params['axis.number.ch']))
     pgvstd()
     xv1, xv2, yv1, yv2 = pgqvp()
+    x1, x2 = 0, rfile['light']['extend_xrange']
 
-    # Light curve is always the top panel. 
-    yv1_lc = yv1 + (theight-1.)/theight*(yv2-yv1)
+    # scale = vertical height of LC panel in device coordinates
+    scale = (yv2-yv1) / total
 
-    # set up the light curve panel
-    lcpanel = Panel(
-        lcdev, xv1, xv2, yv1_lc, yv2, 'Time [mins]',
+    # Work from the bottom up to get the X-axis labelling right
+    # since it has to be turned off for the upper panels.
+    # at each step yv1, yv2 is the Panel's vertical range
+    xlabel = 'Time [mins]'
+    xopt = 'bcnst'
+
+    if rfile.seeing:
+        # the seeing panel
+        yv2 = yv1 + scale*sheight
+        spanel = Panel(
+            lcdev, xv1, xv2, yv1, yv2, xlabel, 'Seeing (")',
+            '', xopt, 'bcnst', x1, x2, 0, rfile['seeing']['ymax']
+            )
+        spanel.plot()
+
+        xlabel = ''
+        xopt = 'bcst'
+        yv1 = yv2
+
+    if rfile.transmission:
+        # the transmission panel
+        yv2 = yv1 + scale*theight
+        tpanel = Panel(
+            lcdev, xv1, xv2, yv1, yv2, xlabel, '% trans',
+            '', xopt, 'bcnst', x1, x2, 0, rfile['transmission']['ymax']
+            )
+        tpanel.plot()
+
+        xlabel = ''
+        xopt = 'bcst'
+        yv1 = yv2
+
+    # Light curve is not an option and is always at the top
+    yv2 = yv1 + scale*lheight
+
+    lpanel = Panel(
+        lcdev, xv1, xv2, yv1, yv2, xlabel,
         'Flux' if rfile['light']['linear'] else 'Magnitudes', '',
-        'bcnst', 'bcnst', 0, rfile['light']['extend_xrange'],
+        xopt, 'bcnst', x1, x2,
         rfile['light']['y1'], rfile['light']['y2']
         )
-
-    # plot it
-    lcpanel.plot()
+    lpanel.plot()
 
     # a couple of initialisations
     total_time = 0 # time waiting for new frame
@@ -191,9 +234,14 @@ def reduce(args=None):
     mccdwins = {}
 
     # create buffers to store the points plotted in each panel
-    lcbuffer = []
-    for tconf in rfile['light']['plot']:
-        lcbuffer.append(LC(tconf, rfile['light']['linear']))
+    lbuffer = []
+    for plot_config in rfile['light']['plot']:
+        lbuffer.append(LightCurve(plot_config, rfile['light']['linear']))
+
+    if rfile.transmission:
+        tbuffer = []
+        for plot_config in rfile['transmission']['plot']:
+            tbuffer.append(Transmission(plot_config))
 
     # get frames
     with hcam.data_source(instrument, run, flist, server, first) as spool:
@@ -298,22 +346,33 @@ def reduce(args=None):
                     read, gain, store, mfwhm
                 )
 
-            # plot the light curve
             t = nframe / 10 # temporary test
-            replot = plotLight(lcpanel, t, results, rfile, lcbuffer)
 
-            # plot some other stuff ...
+            # plot the light curve
+            replot = plotLight(lpanel, t, results, rfile, lbuffer)
+
+            if rfile.transmission:
+                # plot the transmission
+                replot |= plotTrans(tpanel, t, results, rfile, tbuffer)
+
+            if rfile.seeing:
+                # plot the seeing
+                #replot |= plotSeeing(spanel, t, results, rfile, sbuffer)
+                pass
 
             # re-plot
             if replot:
+
+                print('re-plotting')
+
                 # start buffering, erase, re-plot, end buffering
                 pgbbuf()
                 pgeras()
 
                 # re-draw the light curve panel
-                lcpanel.plot()
+                lpanel.plot()
 
-                for lc in lcbuffer:
+                for lc in lbuffer:
                     # convert the buffered data into float32 ndarrays
                     t = np.array(lc.t, dtype=np.float32)
                     f = np.array(lc.f, dtype=np.float32)
@@ -326,6 +385,48 @@ def reduce(args=None):
                     # Plot the data
                     pgsci(lc.dcol)
                     pgpt(t, f, 17)
+
+
+                if rfile.transmission:
+
+                    # re-draw the transmission panel
+                    tpanel.plot()
+
+                    for trans in tbuffer:
+                        # convert the buffered data into float32 ndarrays
+                        t = np.array(trans.t, dtype=np.float32)
+                        f = np.array(trans.f, dtype=np.float32)
+                        fe = np.array(trans.fe, dtype=np.float32)
+                        scale = np.float32(100./trans.fmax)
+                        f *= scale
+                        fe *= scale
+
+                        # Plot the error bars
+                        pgsci(trans.ecol)
+                        pgerry(t, f-fe, f+fe, 0)
+
+                        # Plot the data
+                        pgsci(trans.dcol)
+                        pgpt(t, f, 17)
+
+                if rfile.seeing:
+
+                    # re-draw the seeing panel
+                    spanel.plot()
+
+#                    for see in sbuffer:
+#                        # convert the buffered data into float32 ndarrays
+#                        t = np.array(trans.t, dtype=np.float32)
+#                        f = np.array(trans.f, dtype=np.float32)
+#                        fe = np.array(trans.fe, dtype=np.float32)
+
+#                        # Plot the error bars
+#                        pgsci(trans.ecol)
+#                        pgerry(t, f-fe, f+fe, 0)
+
+#                        # Plot the data
+#                        pgsci(trans.dcol)
+#                        pgpt(t, f, 17)
 
                 pgebuf()
 
@@ -520,20 +621,20 @@ class Rfile(OrderedDict):
         skysec['thresh'] = float(skysec['thresh'])
 
         #
-        # Light curve plot section
+        # light curve plot section
         #
 
-        ligsec = rfile['light']
+        sect = rfile['light']
 
-        targ = ligsec['plot']
-        if isinstance(targ, str):
-            targ = [targ]
+        plot = sect['plot']
+        if isinstance(plot, str):
+            plot = [plot]
 
         # convert entries to the right type here and try colours to
         # PGPLOT colour indices.
-        for n in range(len(targ)):
-            cnam, tnm, cnm, off, fac, dcol, ecol = targ[n].split()
-            targ[n] = {
+        for n in range(len(plot)):
+            cnam, tnm, cnm, off, fac, dcol, ecol = plot[n].split()
+            plot[n] = {
                 'ccd' : cnam,
                 'targ' : tnm,
                 'comp' : cnm,
@@ -543,21 +644,93 @@ class Rfile(OrderedDict):
                 'dcol' : ctrans(dcol),
                 'ecol' : ctrans(ecol)
                 }
+        sect['plot'] = plot
 
-        ligsec['xrange'] = float(ligsec['xrange'])
-        ligsec['extend_xrange'] = float(ligsec['extend_xrange'])
-        if ligsec['extend_xrange'] <= 0:
+        sect['xrange'] = float(sect['xrange'])
+        sect['extend_xrange'] = float(sect['extend_xrange'])
+        if sect['extend_xrange'] <= 0:
             raise ValueError('light.extend_xrange must be > 0')
 
         toBool(rfile, 'light', 'linear')
         toBool(rfile, 'light', 'yrange_fixed')
-        ligsec['y1'] = float(ligsec['y1'])
-        ligsec['y2'] = float(ligsec['y2'])
-        ligsec['extend_yrange'] = float(ligsec['extend_yrange'])
-        if ligsec['extend_yrange'] <= 0:
+        sect['y1'] = float(sect['y1'])
+        sect['y2'] = float(sect['y2'])
+        sect['extend_yrange'] = float(sect['extend_yrange'])
+        if sect['extend_yrange'] <= 0:
             raise ValueError('light.extend_yrange must be > 0')
 
-        # We are finally done reading and hecking the reduce script.
+        #
+        # transmission plot section
+        #
+
+        rfile.transmission = 'transmission' in rfile
+        if rfile.transmission:
+            sect = rfile['transmission']
+
+            plot = sect['plot']
+            if isinstance(plot, str):
+                plot = [plot]
+
+            # convert entries to the right type here and try colours to
+            # PGPLOT colour indices.
+            for n in range(len(plot)):
+                cnam, tnm, dcol, ecol = plot[n].split()
+                plot[n] = {
+                    'ccd' : cnam,
+                    'targ' : tnm,
+                    'dcol' : ctrans(dcol),
+                    'ecol' : ctrans(ecol)
+                    }
+            sect['plot'] = plot
+
+            sect['height'] = float(sect['height'])
+            if sect['height'] <= 0:
+                raise ValueError('transmission.height must be > 0')
+
+            sect['ymax'] = float(sect['ymax'])
+            if sect['ymax'] < 100:
+                raise ValueError('transmission.ymax must be >= 100')
+
+        #
+        # seeing plot section
+        #
+
+        rfile.seeing = 'seeing' in rfile
+        if rfile.seeing:
+            sect = rfile['seeing']
+
+            plot = sect['plot']
+            if isinstance(plot, str):
+                plot = [plot]
+
+            # convert entries to the right type here and try colours to
+            # PGPLOT colour indices.
+            for n in range(len(plot)):
+                cnam, tnm, dcol, ecol = plot[n].split()
+                plot[n] = {
+                    'ccd' : cnam,
+                    'targ' : tnm,
+                    'dcol' : ctrans(dcol),
+                    'ecol' : ctrans(ecol)
+                    }
+
+            sect['height'] = float(sect['height'])
+            if sect['height'] <= 0:
+                raise ValueError('seeing.height must be > 0')
+
+            sect['ymax'] = float(sect['ymax'])
+            if sect['ymax'] <= 0:
+                raise ValueError('seeing.ymax must be > 0')
+
+            sect['scale'] = float(sect['scale'])
+            if sect['scale'] <= 0:
+                raise ValueError('seeing.scale must be > 0')
+
+            sect['extend_yrange'] = float(sect['extend_yrange'])
+            if sect['extend_yrange'] <= 0:
+                raise ValueError('seeing.extend_yrange must be > 0')
+
+        # We are finally done reading and checking the reduce script.
         # rfile[section][param] should from now on return something
         # useful and somewhat reliable.
 
@@ -955,7 +1128,7 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
             # return early here as there is nothing much we can do.
             print('** CCD {:s}: no measured FWHM to re-size apertures; no extraction of any aperture')
             flag = 1 << 0
-            for apnam, aper in ccdaper:
+            for apnam, aper in ccdaper.items():
                 info = store[apnam]
                 results[apnam] = \
                     {
@@ -1214,7 +1387,7 @@ class Panel:
         pgswin(self.x1,self.x2,self.y1,self.y2)
 
 
-def plotLight(lcpanel, t, results, rfile, lcbuffer):
+def plotLight(panel, t, results, rfile, lbuffer):
     """Plots one set of results in the light curve panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
 
@@ -1227,19 +1400,19 @@ def plotLight(lcpanel, t, results, rfile, lcbuffer):
     replot = False
 
     # shorthand
-    lsect = rfile['light']
+    sect = rfile['light']
 
     # select the light curve panel
-    lcpanel.select()
+    panel.select()
 
     # Get the current y-range
-    ymin, ymax = lcpanel.y1, lcpanel.y2
+    ymin, ymax = panel.y1, panel.y2
     if ymin > ymax:
         ymin, ymax = ymax, ymin
 
     # add points to the plot and buffers, tracking the minimum and maximum values
     tmax = fmin = fmax = None
-    for lc in lcbuffer:
+    for lc in lbuffer:
         f = lc.add_point(t, results)
         if f is not None:
             fmin = f if fmin is None else min(fmin, f)
@@ -1248,57 +1421,94 @@ def plotLight(lcpanel, t, results, rfile, lcbuffer):
 
     # now determine whether we need to re-plot, and the new plot limits.
     # first set the default
-    if tmax > lcpanel.x2:
+    if tmax is not None and tmax > panel.x2:
         replot = True
-        x1, x2 = lcpanel.x1, lcpanel.x2
+        x1, x2 = panel.x1, panel.x2
         while tmax > x2:
-            x2 += lsect['extend_xrange']
+            x2 += sect['extend_xrange']
     else:
-        x1, x2 = lcpanel.x1, lcpanel.x2 
+        x1, x2 = panel.x1, panel.x2 
 
-    if lsect['yrange_fixed']:
-        y1, y2 = lcpanel.y1, lcpanel.y2
+    if sect['yrange_fixed']:
+        y1, y2 = panel.y1, panel.y2
 
     else:
 
-        if fmin < ymin or fmax > ymax:
+        if fmin is not None and (fmin < ymin or fmax > ymax):
             # we are going to have to replot because we have moved
             # outside the y-limits of the panel. We extend a little bit
             # more than necessary according to extend_yrange in order to
             # reduce the amount of such re-plotting
             replot = True
-            extend = lsect['extend_yrange']*(ymax-ymin)
+            extend = sect['extend_yrange']*(ymax-ymin)
             if fmin < ymin:
                 ymin = fmin - extend
             if fmax > ymax:
                 ymax = fmax + extend
 
-            if lsect['linear']:
+            if sect['linear']:
                 y1, y2 = ymin, ymax
             else:
                 y1, y2 = ymax, ymin
 
         else:
-            y1, y2 = lcpanel.y1, lcpanel.y2
+            y1, y2 = panel.y1, panel.y2
 
     if replot:
-        lcpanel.set_lims(x1, x2, y1, y2)
+        panel.set_lims(x1, x2, y1, y2)
 
     return replot
 
-class LC:
+def plotTrans(panel, t, results, rfile, tbuffer):
+    """Plots one set of results in the transmission panel. Handles storage of
+    points for future re-plots, computing new plot limits where needed.
+
+    It returns a bool which if True means that there is a need to re-plot.
+    This is deferred since there may be other panels to be adjusted as well
+    since if a plot is cleared, everything has to be re-built.
+    """
+
+    # by default, don't re-plot
+    replot = False
+
+    # shorthand
+    sect = rfile['transmission']
+
+    # select the light curve panel
+    panel.select()
+
+    # add points to the plot and buffers, resetting the maximum
+    # transmission where necessary
+    tmax = None
+    for trans in tbuffer:
+        f = trans.add_point(t, results)
+        if f is not None:
+            tmax = t if tmax is None else max(t, tmax)
+            if f > panel.y2:
+                trans.fmax *= f/100
+                replot = True
+
+    # check the time which might be off the end of the plot range
+    if tmax is not None and tmax > panel.x2:
+        replot = True
+        while tmax > panel.x2:
+            panel.x2 += rfile['light']['extend_xrange']
+
+    return replot
+
+class LightCurve:
     """
     Container for light curves so they can be re-plotted as they come in.
     There should be one of these per plot line in the 'light' section.
     """
-    def __init__(self, tconf, linear):
-        self.cnam = tconf['ccd']
-        self.targ = tconf['targ']
-        self.comp = tconf['comp']
-        self.off = tconf['off']
-        self.fac = tconf['fac']
-        self.dcol = tconf['dcol']
-        self.ecol = tconf['ecol']
+    def __init__(self, plot_config, linear):
+        self.cnam = plot_config['ccd']
+        self.targ = plot_config['targ']
+        self.comp = plot_config['comp']
+        self.off = plot_config['off']
+        self.fac = plot_config['fac']
+        self.dcol = plot_config['dcol']
+        self.ecol = plot_config['ecol']
         self.linear = linear
         self.t  = []
         self.f  = []
@@ -1306,14 +1516,13 @@ class LC:
 
     def add_point(self, t, results):
         """
-        Extracts the data to be plotted on the light curve
-        plot for the LC given the time and the results (for
-        all CCDs, as returned by extractFlux. Assuming all is
-        OK (errors > 0 for both comparison and target), it stores
-        (t, f, fe) in a recarray for possible re-plotting, plots
-        the point and returns the value of 'f' plotted to help with
-        re-scaling or None if nothing was plotted.
-        't' is the time in minutes since the start of the run
+        Extracts the data to be plotted on the light curve plot for the given
+        the time and the results (for all CCDs, as returned by
+        extractFlux. Assuming all is OK (errors > 0 for both comparison and
+        target), it stores (t, f, fe) for possible re-plotting, plots the
+        point and returns the value of 'f' plotted to help with re-scaling or
+        None if nothing was plotted.  't' is the time in minutes since the
+        start of the run
         """
 
         res = results[self.cnam]
@@ -1359,6 +1568,120 @@ class LC:
         self.t.append(t)
         self.f.append(f)
         self.fe.append(fe)
+
+        # Plot the point in minutes from start point
+        pgsci(self.ecol)
+        pgmove(t, f-fe)
+        pgdraw(t, f+fe)
+        pgsci(self.dcol)
+        pgpt1(t,f,17)
+
+        # return f up the line
+        return f
+
+class Transmission:
+    """
+    Container for light curves so they can be re-plotted as they come in.
+    There should be one of these per plot line in the 'light' section.
+    """
+    def __init__(self, plot_config):
+        self.cnam = plot_config['ccd']
+        self.targ = plot_config['targ']
+        self.dcol = plot_config['dcol']
+        self.ecol = plot_config['ecol']
+        self.t  = []
+        self.f  = []
+        self.fe = []
+        self.fmax = None # Maximum to scale the transmission
+
+    def add_point(self, t, results):
+        """
+        Extracts the data to be plotted on the transmission plot for given the
+        time and the results (for all CCDs, as returned by
+        extractFlux. Assuming all is OK (errors > 0), it stores (t, f, fe) for
+        possible re-plotting, plots the point and returns the value of 'f'
+        plotted to help with re-scaling or None if nothing was plotted.  't'
+        is the time in minutes since the start of the run
+        """
+
+        res = results[self.cnam]
+
+        targ = res[self.targ]
+        f = targ['counts']
+        fe = targ['ecounts']
+
+        if f <= 0 or fe <= 0:
+            # skip junk
+            return None
+
+        # Store new point
+        self.t.append(t)
+        self.f.append(f)
+        self.fe.append(fe)
+
+        if self.fmax is None:
+            # initialise the maximum flux
+            self.fmax = f
+
+        f  *= 100/self.fmax
+        fe *= 100/self.fmax
+
+        # Plot the point in minutes from start point
+        pgsci(self.ecol)
+        pgmove(t, f-fe)
+        pgdraw(t, f+fe)
+        pgsci(self.dcol)
+        pgpt1(t,f,17)
+
+        # return f up the line
+        return f
+
+class Seeing:
+    """
+    Container for light curves so they can be re-plotted as they come in.
+    There should be one of these per plot line in the 'light' section.
+    """
+    def __init__(self, plot_config):
+        self.cnam = plot_config['ccd']
+        self.targ = plot_config['targ']
+        self.dcol = plot_config['dcol']
+        self.ecol = plot_config['ecol']
+        self.t  = []
+        self.f  = []
+        self.fe = []
+        self.fmax = None # Maximum to scale the transmission
+
+    def add_point(self, t, results):
+        """
+        Extracts the data to be plotted on the transmission plot for given the
+        time and the results (for all CCDs, as returned by
+        extractFlux. Assuming all is OK (errors > 0), it stores (t, f, fe) for
+        possible re-plotting, plots the point and returns the value of 'f'
+        plotted to help with re-scaling or None if nothing was plotted.  't'
+        is the time in minutes since the start of the run
+        """
+
+        res = results[self.cnam]
+
+        targ = res[self.targ]
+        f = targ['counts']
+        fe = targ['ecounts']
+
+        if f <= 0 or fe <= 0:
+            # skip junk
+            return None
+
+        # Store new point
+        self.t.append(t)
+        self.f.append(f)
+        self.fe.append(fe)
+
+        if self.fmax is None:
+            # initialise the maximum flux
+            self.fmax = f
+
+        f  *= 100/self.fmax
+        fe *= 100/self.fmax
 
         # Plot the point in minutes from start point
         pgsci(self.ecol)

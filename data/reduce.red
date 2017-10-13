@@ -97,3 +97,24 @@ plot = 1 1 2 0 1 red red    # ccd, targ, comp, off, fac, dcol, ecol
 plot = 1 3 2 0 1 red red    # ccd, targ, comp, off, fac, dcol, ecol
 plot = 2 1 2 0 1 green red  # ccd, targ, comp, off, fac, dcol, ecol
 plot = 2 3 2 0 1 green red  # ccd, targ, comp, off, fac, dcol, ecol
+
+# configures the transmission plot. Can be commented out if you don't want one
+# but make sure to comment it out completely, section name and all parameters
+# you can have multiple plot lines
+
+[transmission]
+height = 0.5      # height relative to the light curve plot
+ymax   = 110      # Maximum transmission to plot (>= 100 to slow replotting)
+plot = 2 2 green red # CCD, target, data colour, error color
+
+# configures the seeing plot. Can be commented out if you don't want one but
+# make sure to comment it out completely, section name and all parameters you
+# can have multiple plot lines. Don't choose linked targets as their FWHMs are
+# not measured.
+
+[seeing]
+height = 0.5          # height relative to the light curve plot
+ymax = 1.999          # Initial maximum seeing
+scale = 0.3           # Arcsec per unbinned pixel
+extend_yrange = 0.2   # Y extension fraction if seeing goes off the top of the plot
+plot = 2 2 green red  # CCD, target, data colour, error colour
