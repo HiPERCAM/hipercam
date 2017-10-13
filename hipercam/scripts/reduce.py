@@ -157,10 +157,29 @@ def reduce(args=None):
     if lwidth > 0 and lheight > 0:
         pgpap(lwidth,lheight/lwidth)
 
-    pgsci(hcam.pgp.Params['axis.ci'])
-    pgsch(hcam.pgp.Params['axis.number.ch'])
-    pgenv(0, 10, 0, 10, 1, 0)
-    pglab('Time [mins]','Mag','')
+    # define and draw panels. 'theight' is the total height of all panel which
+    # will be used to work out the fraction occupied by each one
+    theight = 1.0
+
+    # define standard viewport. We set the character height to ensure there is
+    # enough room around the edges.
+    pgsch(max(hcam.pgp.Params['axis.label.ch'],hcam.pgp.Params['axis.number.ch']))
+    pgvstd()
+    xv1, xv2, yv1, yv2 = pgqvp()
+
+    # Light curve is always the top panel. 
+    yv1_lc = yv1 + (theight-1.)/theight*(yv2-yv1)
+
+    # set up the light curve panel
+    lcpanel = Panel(
+        lcdev, xv1, xv2, yv1_lc, yv2, 'Time [mins]',
+        'Flux' if rfile['light']['linear'] else 'Magnitudes', '',
+        'bcnst', 'bcnst', 0, rfile['light']['extend_xrange'],
+        rfile['light']['y1'], rfile['light']['y2']
+        )
+
+    # plot it
+    lcpanel.plot()
 
     # a couple of initialisations
     total_time = 0 # time waiting for new frame
@@ -170,6 +189,11 @@ def reduce(args=None):
     # window associated with a given aperture, i.e.
     # mccdwins[cnam][apnam] give the name of the Windat.
     mccdwins = {}
+
+    # create buffers to store the points plotted in each panel
+    lcbuffer = []
+    for tconf in rfile['light']['plot']:
+        lcbuffer.append(LC(tconf, rfile['light']['linear']))
 
     # get frames
     with hcam.data_source(instrument, run, flist, server, first) as spool:
@@ -210,13 +234,14 @@ def reduce(args=None):
             else:
                 print('Frame {:d}: '.format(mccd.head['NFRAME']))
 
-            if nframe == 0 and rfile['calibration']['crop'] == 'yes':
+            if nframe == 0 and rfile['calibration']['crop']:
                 # This is the very first data frame read in. We need to trim
                 # the calibrations, on the assumption that all data frames
                 # will have the same format
                 rfile.crop(mccd)
 
-            # do something else ...
+            # container for the results from each CCD
+            results = {}
             for cnam in mccd:
                 # get the apertures
                 ccdaper = rfile.aper[cnam]
@@ -267,23 +292,48 @@ def reduce(args=None):
                     read, gain, mfwhm, mbeta, store
                 )
 
-                # extract flux
-                results = extractFlux(
+                # extract flux from all apertures of each CCD
+                results[cnam] = extractFlux(
                     cnam, ccd, ccdaper, ccdwins, rfile,
                     read, gain, store, mfwhm
                 )
 
-                print(results)
+            # plot the light curve
+            t = nframe / 10 # temporary test
+            replot = plotLight(lcpanel, t, results, rfile, lcbuffer)
 
-                # plot the light curve
-                plotLight(lcdev, results, rfile)
+            # plot some other stuff ...
+
+            # re-plot
+            if replot:
+                # start buffering, erase, re-plot, end buffering
+                pgbbuf()
+                pgeras()
+
+                # re-draw the light curve panel
+                lcpanel.plot()
+
+                for lc in lcbuffer:
+                    # convert the buffered data into float32 ndarrays
+                    t = np.array(lc.t, dtype=np.float32)
+                    f = np.array(lc.f, dtype=np.float32)
+                    fe = np.array(lc.fe, dtype=np.float32)
+
+                    # Plot the error bars
+                    pgsci(lc.ecol)
+                    pgerry(t, f-fe, f+fe, 0)
+
+                    # Plot the data
+                    pgsci(lc.dcol)
+                    pgpt(t, f, 17)
+
+                pgebuf()
 
 # END OF MAIN SECTION
 
 #
 # From here is support code not exported outside
 #
-
 
 class Rfile(OrderedDict):
     """
@@ -368,15 +418,9 @@ class Rfile(OrderedDict):
             raise NotImplementedError('apertures.fit_method = {:s} not recognised'.format(
                     apsec['fit_method']))
 
-        # convert to booleans
-        if apsec['fit_fwhm_fixed'] == 'yes':
-            apsec['fit_fwhm_fixed'] = True
-        elif apsec['fit_fwhm_fixed'] == 'no':
-            apsec['fit_fwhm_fixed'] = False
-        else:
-            raise ValueError("apertures.fit_fwhm_fixed: 'yes' or 'no' are the only supported values")
+        # type conversions
+        toBool(rfile,'apertures','fit_fwhm_fixed')
 
-        # convert to numerical types
         apsec['search_half_width_ref'] = int(apsec['search_half_width_ref'])
         apsec['search_half_width_non'] = int(apsec['search_half_width_non'])
         apsec['search_smooth_fwhm'] = float(apsec['search_smooth_fwhm'])
@@ -392,9 +436,7 @@ class Rfile(OrderedDict):
         #
         calsec = rfile['calibration']
 
-        if calsec['crop'] != 'yes' and \
-           calsec['crop'] != 'no':
-            raise ValueError("calibration.crop: 'yes' or 'no' are the only supported values")
+        toBool(rfile,'calibration','crop')
 
         if calsec['bias'] != '':
             rfile.bias == hcam.MCCD.rfits(
@@ -481,19 +523,43 @@ class Rfile(OrderedDict):
         # Light curve plot section
         #
 
-        targ = rfile['light']['targ']
+        ligsec = rfile['light']
+
+        targ = ligsec['plot']
         if isinstance(targ, str):
             targ = [targ]
 
-        # convert entries to the right type here and try colours to 
+        # convert entries to the right type here and try colours to
         # PGPLOT colour indices.
         for n in range(len(targ)):
-            cnam, tnam, cnam, off, fac, dcol, ecol = targ[n].split()
-            targ[n] = (
-                cnam, tnam, cnam,
-                float(off), float(fac),
-                ctrans(dcol), ctrans(ecol)
-            )
+            cnam, tnm, cnm, off, fac, dcol, ecol = targ[n].split()
+            targ[n] = {
+                'ccd' : cnam,
+                'targ' : tnm,
+                'comp' : cnm,
+                'fac' : fac,
+                'off' : float(off),
+                'fac' : float(fac),
+                'dcol' : ctrans(dcol),
+                'ecol' : ctrans(ecol)
+                }
+
+        ligsec['xrange'] = float(ligsec['xrange'])
+        ligsec['extend_xrange'] = float(ligsec['extend_xrange'])
+        if ligsec['extend_xrange'] <= 0:
+            raise ValueError('light.extend_xrange must be > 0')
+
+        toBool(rfile, 'light', 'linear')
+        toBool(rfile, 'light', 'yrange_fixed')
+        ligsec['y1'] = float(ligsec['y1'])
+        ligsec['y2'] = float(ligsec['y2'])
+        ligsec['extend_yrange'] = float(ligsec['extend_yrange'])
+        if ligsec['extend_yrange'] <= 0:
+            raise ValueError('light.extend_yrange must be > 0')
+
+        # We are finally done reading and hecking the reduce script.
+        # rfile[section][param] should from now on return something
+        # useful and somewhat reliable.
 
         return rfile
 
@@ -515,23 +581,6 @@ class Rfile(OrderedDict):
 
         if isinstance(self.gain, hcam.MCCD):
             self.gain = self.gain.crop(mccd)
-
-
-def ctrans(cname):
-    """
-    Translates a colour name into a PGPLOT index
-    """
-
-    if cname == 'red':
-        cindex = 2
-    elif cname == 'green':
-        cindex = 3
-    elif cname == 'blue':
-        cindex = 4
-    else:
-        print('Failed to recognize colour = {:s}; defaulting to black'.format(
-            cname))
-    return cindex
 
 
 def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store):
@@ -908,9 +957,16 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
             flag = 1 << 0
             for apnam, aper in ccdaper:
                 info = store[apnam]
-                results[apnam] = [
-                    aper.x, info['ex'], aper.y, info['ey'], info['fwhm'],
-                    info['efwhm'], info['beta'], info['ebeta'], 0, -1, 0, 0, 0, flag]
+                results[apnam] = \
+                    {
+                    'x' : aper.x, 'ex' : info['ex'],
+                    'y' : aper.y, 'ey' : info['ey'],
+                    'fwhm' : info['fwhm'], 'efwhm' : info['efwhm'],
+                    'beta' : info['beta'], 'ebeta' : info['ebeta'],
+                    'counts' : 0., 'ecounts' : -1, 
+                    'sky' : 0., 'esky' : 0., 'nsky' : 0, 'nrej' : 0,
+                    'flag' : flag
+                    }
             return results
 
         else:
@@ -1058,15 +1114,307 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
 
         info = store[apnam]
 
-        results[apnam] = [
-            aper.x, info['ex'], aper.y, info['ey'], info['fwhm'],
-            info['efwhm'], info['beta'], info['ebeta'],
-            counts, ecounts, slevel, serror, nsky, nrej, flag
-        ]
+        results[apnam] = \
+        {
+            'x' : aper.x, 'ex' : info['ex'],
+            'y' : aper.y, 'ey' : info['ey'],
+            'fwhm' : info['fwhm'], 'efwhm' : info['efwhm'],
+            'beta' : info['beta'], 'ebeta' : info['ebeta'],
+            'counts' : counts, 'ecounts' : ecounts, 
+            'sky' : slevel, 'esky' : serror, 'nsky' : nsky, 'nrej' : nrej,
+            'flag' : flag
+            }
 
     # finally, we are done
     return results
 
-def plotLight(lcdev, results, rfile):
-    """Plots the light curve"""
-    pass
+class Panel:
+    """
+    Keeps track of the configuration of particular panels of plots so that
+    they can be easily re-plotted and selected for additional plotting if
+    need be.
+    """
+    def __init__(self, device, xv1, xv2, yv1, yv2,
+                 xlabel, ylabel, tlabel, xopt, yopt,
+                 x1, x2, y1, y2):
+        """
+        This takes all the arguments needs to set up some axes
+        at an arbitrary location, using PGPLOT commands pgsvp, pgswin,
+        pgbox and pglab. 'device' is the hipercam.pgp.Device to use
+        for the plot. It only stores these values. 'plot' actually
+        draws the axes.
+        """
+        self.device = device
+        self.xv1 = xv1
+        self.xv2 = xv2
+        self.yv1 = yv1
+        self.yv2 = yv2
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        self.tlabel = tlabel
+        self.xopt = xopt
+        self.yopt = yopt
+        self.x1 = x1
+        self.x2 = x2
+        self.y1 = y1
+        self.y2 = y2
+
+        # to indicate whether this has been used yet
+        self.used = False
+
+    def set_lims(self, x1, x2, y1, y2):
+        """
+        Re-sets the physical limits. Needs a call to plot to actually
+        perform the graphical update
+        """
+        self.x1 = x1
+        self.x2 = x2
+        self.y1 = y1
+        self.y2 = y2
+
+    def plot(self):
+        """
+        Plot the Panel with physical scales x1 to x2, y1 to y2, using the
+        properties set on instantiation. x1, x2, y1, y2 are stored for future
+        use when re-selecting the panel. After running this you can plot to
+        the Panel. If you plot to another Panel, you can return to this one
+        using 'select'.
+        """
+
+        # select the device
+        self.device.select()
+
+        # draw the axes
+        pgsci(hcam.pgp.Params['axis.ci'])
+        pgsch(hcam.pgp.Params['axis.number.ch'])
+        pgsvp(self.xv1, self.xv2, self.yv1, self.yv2)
+        pgswin(self.x1,self.x2,self.y1,self.y2)
+        pgbox(self.xopt, 0, 0, self.yopt, 0, 0)
+
+        # plot the labels
+        pgsci(hcam.pgp.Params['axis.label.ci'])
+        pgsch(hcam.pgp.Params['axis.label.ch'])
+        pglab(self.xlabel, self.ylabel, self.tlabel)
+
+        self.used = True
+
+    def select(self):
+        """
+        Selects this panel as the one to plot to. You can only use this if you
+        have plotted the panel.
+        """
+        if not self.used:
+            raise hcam.HipercamError('You must plot a panel before slecting it')
+
+        # select the device
+        self.device.select()
+
+        # set the physical scales and the viewport
+        pgsvp(self.xv1, self.xv2, self.yv1, self.yv2)
+        pgswin(self.x1,self.x2,self.y1,self.y2)
+
+
+def plotLight(lcpanel, t, results, rfile, lcbuffer):
+    """Plots one set of results in the light curve panel. Handles storage of
+    points for future re-plots, computing new plot limits where needed.
+
+    It returns a bool which if True means that there is a need to re-plot.
+    This is deferred since there may be other panels to be adjusted as well
+    since if a plot is cleared, everything has to be re-built.
+    """
+
+    # by default, don't re-plot
+    replot = False
+
+    # shorthand
+    lsect = rfile['light']
+
+    # select the light curve panel
+    lcpanel.select()
+
+    # Get the current y-range
+    ymin, ymax = lcpanel.y1, lcpanel.y2
+    if ymin > ymax:
+        ymin, ymax = ymax, ymin
+
+    # add points to the plot and buffers, tracking the minimum and maximum values
+    tmax = fmin = fmax = None
+    for lc in lcbuffer:
+        f = lc.add_point(t, results)
+        if f is not None:
+            fmin = f if fmin is None else min(fmin, f)
+            fmax = f if fmax is None else max(fmax, f)
+            tmax = t if tmax is None else max(tmax, t)
+
+    # now determine whether we need to re-plot, and the new plot limits.
+    # first set the default
+    if tmax > lcpanel.x2:
+        replot = True
+        x1, x2 = lcpanel.x1, lcpanel.x2
+        while tmax > x2:
+            x2 += lsect['extend_xrange']
+    else:
+        x1, x2 = lcpanel.x1, lcpanel.x2 
+
+    if lsect['yrange_fixed']:
+        y1, y2 = lcpanel.y1, lcpanel.y2
+
+    else:
+
+        if fmin < ymin or fmax > ymax:
+            # we are going to have to replot because we have moved
+            # outside the y-limits of the panel. We extend a little bit
+            # more than necessary according to extend_yrange in order to
+            # reduce the amount of such re-plotting
+            replot = True
+            extend = lsect['extend_yrange']*(ymax-ymin)
+            if fmin < ymin:
+                ymin = fmin - extend
+            if fmax > ymax:
+                ymax = fmax + extend
+
+            if lsect['linear']:
+                y1, y2 = ymin, ymax
+            else:
+                y1, y2 = ymax, ymin
+
+        else:
+            y1, y2 = lcpanel.y1, lcpanel.y2
+
+    if replot:
+        lcpanel.set_lims(x1, x2, y1, y2)
+
+    return replot
+
+class LC:
+    """
+    Container for light curves so they can be re-plotted as they come in.
+    There should be one of these per plot line in the 'light' section.
+    """
+    def __init__(self, tconf, linear):
+        self.cnam = tconf['ccd']
+        self.targ = tconf['targ']
+        self.comp = tconf['comp']
+        self.off = tconf['off']
+        self.fac = tconf['fac']
+        self.dcol = tconf['dcol']
+        self.ecol = tconf['ecol']
+        self.linear = linear
+        self.t  = []
+        self.f  = []
+        self.fe = []
+
+    def add_point(self, t, results):
+        """
+        Extracts the data to be plotted on the light curve
+        plot for the LC given the time and the results (for
+        all CCDs, as returned by extractFlux. Assuming all is
+        OK (errors > 0 for both comparison and target), it stores
+        (t, f, fe) in a recarray for possible re-plotting, plots
+        the point and returns the value of 'f' plotted to help with
+        re-scaling or None if nothing was plotted.
+        't' is the time in minutes since the start of the run
+        """
+
+        res = results[self.cnam]
+
+        targ = res[self.targ]
+        ft = targ['counts']
+        fte = targ['ecounts']
+
+        if fte > 0:
+
+            if self.comp != '!':
+                comp = res[self.comp]
+                fc = comp['counts']
+                fce = comp['ecounts']
+
+                if fc > 0:
+                    if fce > 0.:
+                        f = ft / fc
+                        fe = np.sqrt((fte/fc)**2+(t*fce/fc**2)**2)
+                    else:
+                        return None
+                else:
+                    return None
+            else:
+                f = ft
+                fe = fte
+        else:
+            return None
+
+        if not self.linear:
+            if f <= 0.:
+                return None
+
+            fe = 2.5/np.log(10)*(fe/f)
+            f = -2.5*np.log10(f)
+
+        # apply scaling factor and offset
+        f *= self.fac
+        fe *= self.fac
+        f += self.off
+
+        # OK, we are done. Store new point
+        self.t.append(t)
+        self.f.append(f)
+        self.fe.append(fe)
+
+        # Plot the point in minutes from start point
+        pgsci(self.ecol)
+        pgmove(t, f-fe)
+        pgdraw(t, f+fe)
+        pgsci(self.dcol)
+        pgpt1(t,f,17)
+
+        # return f up the line
+        return f
+
+def ctrans(cname):
+    """
+    Translates a colour name (cname) into a PGPLOT index
+    which is the return value. Defaults to index 1 and prints
+    a message if cname not recognised.
+    """
+
+    if cname == 'red':
+        cindex = 2
+    elif cname == 'green':
+        cindex = 3
+    elif cname == 'blue':
+        cindex = 4
+    else:
+        print('Failed to recognize colour = {:s}; defaulting to black'.format(
+            cname))
+    return cindex
+
+
+def toBool(rfile, section, param):
+    """
+    Converts yes / no responses into True / False. This is used a few times
+    in the code to read a reduce file.
+
+    Arguments::
+
+       rfile  : (Rfile)
+         the reduce file, an Odict of Odicts
+
+      section : (str)
+         the section name
+
+      param   : (str)
+         the parameter
+
+    Returns nothing; rfile modified on exit. A ValueError is
+    raised if the initial value is neither 'yes' nor 'no.
+    """
+
+    if rfile[section][param] == 'yes':
+        rfile[section][param] = True
+    elif rfile[section][param] == 'no':
+        rfile[section][param] = False
+    else:
+        raise ValueError(
+            "{:s}.{:s}: 'yes' or 'no' are the only supported values".format(
+                section,param)
+            )

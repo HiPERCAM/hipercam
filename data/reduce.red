@@ -75,14 +75,15 @@ readout = 3.  # RMS ADU. Float or string name of a file
 gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 
 # configures the light curve plot. There are general configuration options
-# which should be obvious and then a series of lines, each starting 'targ'
-# specifying the target to be plotted giving the CCD label, the target
-# (aperture label), the comparison aperture label (enter '!' if you don't want
-# to use a comparison), an additive offset, a multiplicative scaling factor
-# and then a colour for the data and a colour for the error bar
+# which should be obvious and then a series of lines, each starting 'plot'
+# which specify one light curve to be plotted giving CCD, target, comparison
+# ('!' if you don't want a comparison), an additive offset, a multiplicative
+# scaling factor and then a colour for the data and a colour for the error bar
+# There will always be a light curve plot, whereas later elements are
+# optional, therefore the light curve panel is defined to have unit height and
+# all others are scaled relative to this.
 
 [light]
-height  = 3         # height of light curve plot, arbitrary units
 device  = 1/xs      # PGPLOT plot device
 xrange  = 0         # maximum range in X to plot (minutes), <= 0 for everything
 extend_xrange = 10  # amount by which to extend xrange, minutes.
@@ -90,9 +91,9 @@ linear  = yes       # linear vertical scale (else magnitudes): 'yes' or 'no'
 yrange_fixed = no   # keep a fixed vertical range or not: 'yes' or 'no'
 y1 = 0              # initial lower y value
 y2 = 0.2            # initial upper y value
-extend_yrange = 1.2 # factor by which to extend y range if yrange_fixed == 'no'
-targ = 1 1 2 0 1 red red
-targ = 1 3 2 0 1 red red
-targ = 2 1 2 0 1 green red
-targ = 2 3 2 0 1 green red
+extend_yrange = 0.1 # fraction of plot height to extend beyond points when rescaling
 
+plot = 1 1 2 0 1 red red    # ccd, targ, comp, off, fac, dcol, ecol
+plot = 1 3 2 0 1 red red    # ccd, targ, comp, off, fac, dcol, ecol
+plot = 2 1 2 0 1 green red  # ccd, targ, comp, off, fac, dcol, ecol
+plot = 2 3 2 0 1 green red  # ccd, targ, comp, off, fac, dcol, ecol
