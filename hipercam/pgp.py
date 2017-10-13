@@ -22,13 +22,13 @@ __all__ = (
 Params = {
 
     # axis label character height
-    'axis.label.ch' : 1.5,
+    'axis.label.ch' : 1.2,
 
     # axis label colour
     'axis.label.ci' : 2,
 
     # axis number character height
-    'axis.number.ch' : 1.5,
+    'axis.number.ch' : 1.,
 
     # axis colour index
     'axis.ci' : 4,
