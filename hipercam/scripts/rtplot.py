@@ -410,6 +410,7 @@ def rtplot(args=None):
                 if total_time == 0:
                     # separate from frame message
                     print()
+
                 print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait another twait = {:.1f} sec.'.format(
                         total_time, tmax, twait
                         ))
