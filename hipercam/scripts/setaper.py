@@ -381,6 +381,9 @@ def setaper(args=None):
     plt.tight_layout()
     PickStar.action_prompt(False)
 
+    # squeeze space a bit
+    plt.subplots_adjust(wspace=0.1, hspace=0.1)
+
     # finally show stuff ....
     plt.show()
 
