@@ -9,6 +9,7 @@ import numpy as np
 import urllib.request
 
 from astropy.io import fits
+from astropy.time import Time
 
 from hipercam import (CCD, Group, MCCD, Windat, Window)
 
@@ -263,7 +264,7 @@ class Rhead(fits.Header):
             nblue = int(param['NBLUE']) if 'NBLUE' in param else 1
             self.nblue = nblue
 
-            # store paremeters of interest in FITS header
+            # store parameters of interest in FITS header
             self['EXPDELAY'] = (exposeTime, 'Exposure delay (seconds)')
             self['NUMEXP'] = (numexp, 'Number of exposures [-1 = infinity]')
             self['GAINSPED'] = (gainSpeed,'Gain speed [ULTRACAM]')
@@ -462,7 +463,7 @@ class Rhead(fits.Header):
         """
         return self.mode == 'PONOFF'
 
-class Time:
+class Utime:
     """
     Represents a time for a CCD. Four attributes::
 
@@ -485,7 +486,7 @@ class Time:
         self.reason = reason
 
     def __repr__(self):
-        return 'Time(mjd={:r}, expose={:r}, good={:r}, reason={:r})'.format(
+        return 'Utime(mjd={:r}, expose={:r}, good={:r}, reason={:r})'.format(
             self.mjd, self.expose, self.good, self.reason)
 
     def __str__(self):
@@ -911,8 +912,10 @@ class Rdata (Rhead):
             # Build the CCDs
             rhead = fits.Header()
             rhead['CCDNAME'] = 'Red CCD'
+            tstamp = Time(time.mjd, format='mjd')
+            rhead['TIMSTAMP'] = (tstamp.isot, 'Time at mid exposure, UTC')
             rhead['MJDUTC'] = (time.mjd, 'MJD(UTC) at centre of exposure')
-            rhead['EXPOSURE'] = (time.expose, 'Exposure time (sec)')
+            rhead['EXPTIME'] = (time.expose, 'Exposure time (sec)')
             rhead['GOODTIM'] = (time.good,'flag indicating reliability of time')
             rhead['MJDOKWHY'] = time.reason
 
@@ -924,12 +927,19 @@ class Rdata (Rhead):
 
             bhead = rhead.copy()
             bhead['CCDNAME'] = 'Blue CCD'
+            tstamp = Time(blueTime.mjd, format='mjd')
+            rhead['TIMSTAMP'] = (tstamp.isot, 'Time at mid exposure, UTC')
             bhead['MJDUTC'] = (blueTime.mjd, 'MJD(UTC) at centre of exposure')
-            bhead['EXPOSURE'] = (blueTime.expose, 'Exposure time (sec)')
+            bhead['EXPTIME'] = (blueTime.expose, 'Exposure time (sec)')
             bhead['GOODTIM'] = (blueTime.good,'Is MJDUTC reliable?')
             bhead['MJDOKWHY'] = blueTime.reason
             bhead['DSTATUS'] = (not badBlue,'blue data status flag')
             ccd3 = CCD(wins3, self.nxmax, self.nymax, bhead)
+
+            # transfer red/green time info to the general header
+            self['TIMSTAMP'] = (tstamp.isot, 'Red/Green time at mid exposure, UTC')
+            self['GOODTIM'] = (time.good,'flag indicating reliability of time')
+            self['EXPTIME'] = (time.expose, 'Exposure time (sec)')
 
             # Finally, return an MCCD
             return MCCD([('1',ccd1),('2',ccd2),('3',ccd3)], self)
