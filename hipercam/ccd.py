@@ -386,6 +386,12 @@ class CCD(Agroup):
                 raise HipercamError('failed to find any enclosing window for window label = {:s}'.format(wnam))
         return tccd
 
+    def is_data(self):
+        """Returns True / False according to whether the frame is thought
+        to contain data. Uses DSTATUS keyword if present, else returns True
+        """
+        return self.head['DSTATUS'] if 'DSTATUS' in self.head else True
+
     def __repr__(self):
         return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(
             self.__class__.__name__,super().__repr__(),self.nxtot,self.nytot,self.head
