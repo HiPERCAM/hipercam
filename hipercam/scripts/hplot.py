@@ -303,8 +303,8 @@ def buttonPressEvent(event):
                 print('\nClicked on x,y = {:.2f},{:.2f} in CCD {:s}, window {:s}'.format(
                     x,y,cnam,wnam)
                   )
-                print(' Stats box in window pixels, X,Y = [{:d}:{:d},{:d}:{:d}] ({:d}x{:d})'.format(
-                    ix1,ix2,iy1,iy2,ix2-ix1,iy2-iy1)
+                print(' Stats box in window pixels, X,Y = [{:d}:{:d},{:d}:{:d}] ({:d}x{:d}), central pixel = [{:d},{:d}], value = {:.2f}'.format(
+                    ix1,ix2,iy1,iy2,ix2-ix1,iy2-iy1,ix,iy,wind.data[iy,ix])
                 )
                 box = wind.data[iy1:iy2,ix1:ix2]
                 print(
