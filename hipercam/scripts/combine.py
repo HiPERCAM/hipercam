@@ -17,7 +17,8 @@ __all__ = ['combine',]
 
 def combine(args=None):
     """Combines a series of images defined by a list using median
-    combination.
+    combination. Only combines those CCDs for which is_data() is true (i.e. it
+    skips blank frames caused by NSKIP / NBLUE options)
 
     Arguments::
 
@@ -27,6 +28,7 @@ def combine(args=None):
 
         output : (string)
            output file
+
     """
 
     if args is None:
@@ -63,9 +65,13 @@ def combine(args=None):
     for cnam, occd in ofile.items():
         print('Combining CCD {:s} frames'.format(cnam))
         for wnam, owin in occd.items():
+            # build lists of all windows, but only for those
+            # CCD frames that return is_data() as True
             arrs = []
             for mccd in mccds:
-                arrs.append(mccd[cnam][wnam].data)
+                ccd = mccd[cnam]
+                if ccd.is_data():
+                    arrs.append(ccd[wnam].data)
             arr3d = np.stack(arrs)
             owin.data = np.median(arr3d,axis=0)
 
