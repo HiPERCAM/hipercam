@@ -26,35 +26,36 @@ Here are some examples of usage to illustrate this:
 A command with inputs 'device' (hidden), 'npoint' and 'output' could be
 invoked variously as
 
-command
+command<cr>
 
 (npoint and output will be prompted for)
 
 or 
 
-command device=/ps npoint=20
+command device=/ps npoint=20<cr>
 
 (output will be prompted for)
 
 or 
 
-command device=/ps \\
+command device=/ps \\<cr>
 
 (\ indicates take default values for npoint and output, in UNIX shells it must
 be escaped hence \\)
 
 or
 
-command 20
+command 20<cr>
 
 (npoint will be set = 20, output will be prompted for). Note that such unnamed
 parameters can only set the values of parameters which are by default prompted
 for. Hidden parameters must always be explicitly named to specify them on the
 command line.
 
-There are a number of special 'KEYWORD' arguments. These are::
+There are a number of special 'KEYWORD' arguments, which must be specified
+in capital letters. They are::
 
-  LIST :   lists all the parameter values used
+  LIST   : lists all the parameter values used
 
   NODEFS : bypasses any attempt to read or write the default files.  It is
            provided as a way to avoid clashes between multiple processes.
@@ -72,6 +73,7 @@ import re
 import sys
 import pickle
 import warnings
+from collections import OrderedDict
 
 # next two lines allow tab completion of file names
 import readline
@@ -148,10 +150,10 @@ class Cline:
     #    _cname   -- command name (string)
     #    _pbynam  -- parameter/value pairs read from arguments (dict)
     #    _pbypos  -- parameter values by position read from arguments (list)
-    #    _rpars   -- List of registered parameters. For each one a dictionary
-    #                specifies whether they are to be found in the global or
-    #                local default and whether they should be prompted for or
-    #                not.
+    #    _rpars   -- Registered parameters, keyed on the parameter name.
+    #                For each one a dictionary specifies whether they are
+    #                to be found in the global or local default and whether 
+    #                they should be prompted for or not (OrderedDict)
     #    _prompt  -- force prompting or not (bool)
     #    _list    -- list the parameter name / value pairs or not (bool)
     #    _nodefs  -- controls whether disk default files will be accessed or not
@@ -232,7 +234,7 @@ class Cline:
                 self._lpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    'hipercam.cline.Cline: failed to read local defaults file ' + self._lname + '; possible corrupted file.\n',
+                    'failed to read local defaults file ' + self._lname + '; possible corrupted file.\n',
                     ClineWarning)
                 self._lpars = {}
 
@@ -244,7 +246,7 @@ class Cline:
                 self._gpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    'hipercam.cline.Cline: failed to read global defaults file ' + self._gname + '; possible corrupted file.\n',
+                    'failed to read global defaults file ' + self._gname + '; possible corrupted file.\n',
                     ClineWarning)
                 self._gpars = {}
         else:
@@ -263,14 +265,43 @@ class Cline:
                 p,v = arg.split('=',1)
                 if p in self._pbynam:
                     raise ClineError(
-                        'parameter = ' + p + ' defined more than once in argument list.')
+                        'parameter = ' + p +
+                        ' defined more than once in argument list.')
                 self._pbynam[p] = v
             else:
                 self._pbypos.append(arg)
 
-        self._rpars = {}
+        self._rpars = OrderedDict()
         self.narg = 0
         self._usedef = False
+
+    def list(self, fp, comment='#   '):
+        """Lists the values of all parameters, one
+        line at a time in the order they were registered.
+
+        Arguments::
+
+           fp       : (file-like object)
+               has a write method.
+
+           comment  : (string)
+               this is prepended to each line
+        """
+
+        nc = 1
+        for param in self._rpars:
+            nc = max(nc,len(param))
+
+        for param, info in self._rpars.items():
+            # get value
+            if info['g_or_l'] == Cline.GLOBAL:
+                value = self._gpars[param]
+            else:
+                value = self._lpars[param]
+
+            # write out
+            fp.write('{:s}{:{:d}s} = {!s}\n'.format(
+                comment, param, nc, value))
 
     def save(self):
         """Saves parameter values to disk (if NODEFS has not been
@@ -286,11 +317,11 @@ class Cline:
                     os.mkdir(self._ddir, 0o755)
             except OSError:
                 warnings.warn(
-                    'hipercam.cline.Cline.__del__: failed to create defaults directory ' + self._ddir + '\n',
+                    'failed to create defaults directory ' + self._ddir + '\n',
                     ClineWarning)
             except AttributeError:
                 warnings.warn(
-                    'hipercam.cline.Cline.__del__: defaults directory attribute undefined; possible programming error\n',
+                    'defaults directory attribute undefined; possible programming error\n',
                     ClineWarning)
 
             # save local defaults
@@ -299,11 +330,11 @@ class Cline:
                     pickle.dump(self._lpars, flocal)
             except (IOError, TypeError):
                 warnings.warn(
-                    'hipercam.cline.Cline.__del__: failed to save local parameter/value pairs to ' + self._lname + '\n',
+                    'failed to save local parameter/value pairs to ' + self._lname + '\n',
                     ClineWarning)
             except AttributeError:
                 warnings.warn(
-                    'hipercam.cline.Cline.__del__: local parameter file attribute undefined; possible programming error\n',
+                    'local parameter file attribute undefined; possible programming error\n',
                     ClineWarning)
 
             # save global defaults
@@ -312,11 +343,11 @@ class Cline:
                     pickle.dump(self._gpars, fglobal)
             except (IOError, TypeError):
                     warnings.warn(
-                        'hipercam.cline.Cline.__del__: failed to save global parameter/value pairs to ' + self._gname + '\n',
+                        'failed to save global parameter/value pairs to ' + self._gname + '\n',
                         ClineWarning)
             except AttributeError:
                     warnings.warn(
-                        'hipercam.cline.Cline.__del__: global parameter file attribute undefined; possible programming error\n',
+                        'global parameter file attribute undefined; possible programming error\n',
                         ClineWarning)
 
     def prompt_state(self):
@@ -358,7 +389,9 @@ class Cline:
 
         """
 
-        if param.find(' ') != -1 or param.find('\t') != -1 or param.find('=') != -1 or param.find('"') != -1 or param.find("'") != -1:
+        if param.find(' ') != -1 or param.find('\t') != -1 or \
+           param.find('=') != -1 or param.find('"') != -1 or \
+           param.find("'") != -1:
             raise ClineError('Parameter = ' + param + ' is illegal.')
 
         if g_or_l != Cline.GLOBAL and g_or_l != Cline.LOCAL:

@@ -211,7 +211,7 @@ def setaper(args=None):
 
         if os.path.exists(aper):
             # read in old apertures
-            mccdaper = hcam.MccdAper.fromJson(aper)
+            mccdaper = hcam.MccdAper.fromFile(aper)
             print('Loaded existing file = {:s}'.format(aper))
         else:
             # create empty container
@@ -666,7 +666,7 @@ the aperture centre.
                 plt.close()
 
                 # old files are over-written at this point
-                self.mccdaper.toJson(self.apernam)
+                self.mccdaper.toFile(self.apernam)
                 print(' apertures saved to {:s}.\nBye'.format(self.apernam))
 
             elif key == 'r':

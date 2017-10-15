@@ -78,56 +78,69 @@ def reduce(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args) as cl:
+    # get the inputs. we want to print these to the reduce
+    # file later hence we don't use the 'with' construct
+    # and have to explicitly save the parameters
+    cl = Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args)
 
-        # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
-        cl.register('rfile', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-        cl.register('log', Cline.GLOBAL, Cline.PROMPT)
+    # register parameters
+    cl.register('source', Cline.GLOBAL, Cline.HIDE)
+    cl.register('rfile', Cline.GLOBAL, Cline.PROMPT)
+    cl.register('run', Cline.GLOBAL, Cline.PROMPT)
+    cl.register('first', Cline.LOCAL, Cline.PROMPT)
+    cl.register('twait', Cline.LOCAL, Cline.HIDE)
+    cl.register('tmax', Cline.LOCAL, Cline.HIDE)
+    cl.register('flist', Cline.LOCAL, Cline.PROMPT)
+    cl.register('log', Cline.GLOBAL, Cline.PROMPT)
 
-        # get inputs
-        source = cl.get_value('source', 'data source [hs, hl, us, ul, hf]',
-                              'hl', lvals=('hs','hl','us','ul','hf'))
+    # get inputs
+    source = cl.get_value(
+        'source', 'data source [hs, hl, us, ul, hf]',
+        'hl', lvals=('hs','hl','us','ul','hf'))
 
-        # set some flags
-        server_or_local = source.endswith('s') or source.endswith('l')
-        is_file_list = source.endswith('f')
-        server_on = source.endswith('s')
+    # set some flags
+    server_or_local = source.endswith('s') or source.endswith('l')
+    is_file_list = source.endswith('f')
+    server_on = source.endswith('s')
 
-        # distinguish between the instruments HiPERCAM or
-        # ULTRA(CAM/SPEC)
-        instrument = 'HIPER' if source.startswith('h') else 'ULTRA'
+    # distinguish between the instruments HiPERCAM or
+    # ULTRA(CAM/SPEC)
+    instrument = 'HIPER' if source.startswith('h') else 'ULTRA'
 
-        # the reduce file
-        rfilen = cl.get_value(
-            'rfile', 'reduce file', cline.Fname('reduce.red',hcam.RED))
-        rfile = Rfile.fromFile(rfilen)
+    # the reduce file
+    rfilen = cl.get_value(
+        'rfile', 'reduce file', cline.Fname('reduce.red',hcam.RED))
+    rfile = Rfile.fromFile(rfilen)
 
-        if server_or_local:
-            run = cl.get_value('run', 'run name', 'run005')
-            first = cl.get_value('first', 'first frame to plot', 1, 1)
-            twait = cl.get_value(
-                'twait', 'time to wait for a new frame [secs]', 1., 0.)
-            tmax = cl.get_value(
-                'tmax', 'maximum time to wait for a new frame [secs]',
-                10., 0.)
+    if server_or_local:
+        run = cl.get_value('run', 'run name', 'run005')
+        first = cl.get_value('first', 'first frame to reduce', 1, 1)
+        twait = cl.get_value(
+            'twait', 'time to wait for a new frame [secs]', 1., 0.)
+        tmax = cl.get_value(
+            'tmax', 'maximum time to wait for a new frame [secs]',
+            10., 0.)
 
-        else:
-            run = cl.get_value('flist', 'file list', cline.Fname('files.lis',hcam.LIST))
-            first = 1
+    else:
+        run = cl.get_value(
+            'flist', 'file list', cline.Fname('files.lis',hcam.LIST)
+        )
+        first = 1
 
-        # define the panel grid. first get the labels and maximum dimensions
-        ccdinf = hcam.get_ccd_pars(instrument, run, flist)
+    log = cl.get_value(
+        'log', 'name of log file to store results',
+        cline.Fname('reduce.log',hcam.LOG,cline.Fname.NEW)
+    )
+
+    # save all inputs
+    cl.save()
 
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
+
+    # define the panel grid. first get the labels and maximum dimensions
+    ccdinf = hcam.get_ccd_pars(instrument, run, is_file_list)
 
     # open the light curve plot
     lcdev = hcam.pgp.Device(rfile['lcplot']['device'])
@@ -228,224 +241,282 @@ def reduce(args=None):
             print(plot_config)
             sbuffer.append(Seeing(plot_config, rfile['seeing']['scale']))
 
-    # get frames
-    with hcam.data_source(instrument, run, is_file_list, server_on, first) as spool:
+    # open the log file
+    with open(log,'w') as logfile:
+        # start by writing a header.
+        logfile.write("""#
+# This is a logfile produced by the HiPERCAM pipeline. It consists of one
+# line per reduced CCD per exposure. Each line contains all the information
+# from all apertures defined for the CCD. The column names are defined just
+# before the data below. Before these are given, here are the command-line
+# inputs used for this reduction:
+#
+""")
+        # list the command-line inputs to the logfile
+        cl.list(logfile)
 
-        # 'spool' is an iterable source of MCCDs
-        for n, mccd in enumerate(spool):
+        # then list the reduce file
+        logfile.write("""#
+# and here is a minimal version of the reduce file used ['rfile' above]
+# with all between-line comments removed for compactness:
+#
+""")
 
-            # None objects are returned from failed server reads. This could
-            # be because the file is still exposing, so we hang about.
-            if mccd is None:
+        # skip these as they only affect the on the fly plots,
+        # not the final values
+        skip_sections = (
+            'lcplot', 'light', 'transmission', 'seeing'
+        )
+        skip = False
+        with open(rfilen) as fred:
+            for line in fred:
+                if not line.startswith('#') and not line.isspace():
+                    if line.startswith('['):
+                        sect = line[1:line.find(']')].strip()
+                        if sect in skip_sections:
+                            skip = True
+                            continue
+                        else:
+                            skip = False
+                        logfile.write('#\n#   {:s}'.format(line))
+                    elif not skip:
+                        logfile.write('#   {:s}'.format(line))
 
-                if tmax < total_time + twait:
-                    print(
-                        ' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait no more'.format(
-                            total_time, tmax)
-                    )
-                    print('reduce stopped.')
-                    break
+        logfile.write("""#
+# Next here is the aperture file used in JSON-style format that
+# (without comments) is readable by setaper and reduce:
+#
+""")
+        # convert aperture file to JSON-style string, split line by line,
+        # pre-pend comment and indentation, write out to the logfile.
+        lines = ['#   {:s}\n'.format(line) for line in rfile.aper.toString().split('\n')]
+        for line in lines:
+            logfile.write(line)
 
-                if total_time == 0:
-                    # separate from frame message
-                    print()
+        # finally the column names
+        logfile.write('#\n# Column names:\n#\n')
+        logfile.write('# frame mjd \n')
 
-                print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait another twait = {:.1f} sec.'.format(
+        # get frames
+        with hcam.data_source(
+                instrument, run, is_file_list, server_on, first) as spool:
+
+            # 'spool' is an iterable source of MCCDs
+            for nf, mccd in enumerate(spool):
+
+                # None objects are returned from failed server reads. This could
+                # be because the file is still exposing, so we hang about.
+                if mccd is None:
+
+                    if tmax < total_time + twait:
+                        print(
+                            ' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait no more'.format(
+                                total_time, tmax)
+                        )
+                        print('reduce stopped.')
+                        break
+
+                    if total_time == 0:
+                        # separate from frame message
+                        print()
+
+                    print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait another twait = {:.1f} sec.'.format(
                         total_time, tmax, twait
-                        ))
+                    ))
 
-                # pause
-                time.sleep(twait)
-                total_time += twait
+                    # pause
+                    time.sleep(twait)
+                    total_time += twait
 
-                # have another go
-                continue
-
-            else:
-                # reset the total time waited when we have a success
-                total_time = 0
-
-            # indicate progress
-            if is_file_list:
-                print('File {:d}: '.format(n+1))
-            else:
-                print('Frame {:d}, time = {:s}; '.format(
-                    frame.head['NFRAME'], frame.head['TIMSTAMP']))
-
-            if nframe == 0 and rfile['calibration']['crop']:
-                # This is the very first data frame read in. We need to trim
-                # the calibrations, on the assumption that all data frames
-                # will have the same format
-                rfile.crop(mccd)
-
-            # container for the results from each CCD
-            results = {}
-            for cnam in mccd:
-                # get the apertures
-                ccdaper = rfile.aper[cnam]
-                if len(ccdaper) == 0:
+                    # have another go
                     continue
 
-                # get the CCD and the apertures
-                ccd = mccd[cnam]
-
-                if nframe == 0:
-                    # first time through, work out an array of which window
-                    # each aperture lies in we will assume this is fixed for
-                    # the whole run, i.e. that apertures do not drift from one
-                    # window to another. Set to None if no window found
-                    mccdwins[cnam] = {}
-                    for apnam, aper in ccdaper.items():
-                        for wnam, wind in ccd.items():
-                            if wind.distance(aper.x,aper.y) > 0:
-                                mccdwins[cnam][apnam] = wnam
-                                break
-                        else:
-                            mccdwins[cnam][apnam] = None
-
-                    # initialisations
-                    store = {}
-                    mfwhm, mbeta = -1, -1
-
-                ccdwins = mccdwins[cnam]
-
-                if isinstance(rfile.readout, hcam.MCCD):
-                    read = rfile.readout[cnam]
                 else:
-                    read = rfile.readout
+                    # reset the total time waited when we have a success
+                    total_time = 0
 
-                if isinstance(rfile.gain, hcam.MCCD):
-                    gain = rfile.gain[cnam]
+                # indicate progress
+                if is_file_list:
+                    print('File {:d}: '.format(nf+1))
                 else:
-                    gain = rfile.gain
+                    print('Frame {:d}: {:s} '.format(
+                        mccd.head['NFRAME'], mccd.head['TIMSTAMP']))
 
-                # at this point 'ccd' contains all the Windats of a CCD,
-                # ccdaper all of its apertures ccdwins the label of the Windat
-                # relevant for each aperture, rfile contains some control
-                # parameters, read contains the readout noise, either a float
-                # or a CCD, gain contains the gain, either a float or a CCD.
+                if nf == 0 and rfile['calibration']['crop']:
+                    # This is the very first data frame read in. We need to
+                    # trim the calibrations, on the assumption that all data
+                    # frames will have the same format
+                    rfile.crop(mccd)
 
-                mfwhm, mbeta = moveApers(
-                    cnam, ccd, ccdaper, ccdwins, rfile,
-                    read, gain, mfwhm, mbeta, store
-                )
+                # container for the results from each CCD
+                results = {}
+                for cnam in mccd:
+                    # get the apertures
+                    ccdaper = rfile.aper[cnam]
+                    if len(ccdaper) == 0:
+                        continue
 
-                # extract flux from all apertures of each CCD
-                results[cnam] = extractFlux(
-                    cnam, ccd, ccdaper, ccdwins, rfile,
-                    read, gain, store, mfwhm
-                )
+                    # get the CCD and the apertures
+                    ccd = mccd[cnam]
 
-            t = nframe / 10 # temporary test
+                    if nf == 0:
+                        # first time through, work out an array of which
+                        # window each aperture lies in we will assume this is
+                        # fixed for the whole run, i.e. that apertures do not
+                        # drift from one window to another. Set to None if no
+                        # window found
+                        mccdwins[cnam] = {}
+                        for apnam, aper in ccdaper.items():
+                            for wnam, wind in ccd.items():
+                                if wind.distance(aper.x,aper.y) > 0:
+                                    mccdwins[cnam][apnam] = wnam
+                                    break
+                            else:
+                                mccdwins[cnam][apnam] = None
 
-            # track the maximum time
-            tmax = None
+                        # initialisations
+                        store = {}
+                        mfwhm, mbeta = -1, -1
 
-            # plot the light curve
-            replot, ltmax = plotLight(lpanel, t, results, rfile, lbuffer)
-            tmax = tmax if ltmax is None else ltmax if tmax is None else max(tmax, ltmax)
+                    ccdwins = mccdwins[cnam]
 
-            if rfile.transmission:
-                # plot the transmission
-                rep, ttmax = plotTrans(tpanel, t, results, rfile, tbuffer)
-                replot |= rep
-                tmax = tmax if ttmax is None else ttmax if tmax is None else max(tmax, ttmax)
+                    if isinstance(rfile.readout, hcam.MCCD):
+                        read = rfile.readout[cnam]
+                    else:
+                        read = rfile.readout
 
-            if rfile.seeing:
-                # plot the seeing
-                rep, stmax = plotSeeing(spanel, t, results, rfile, sbuffer)
-                replot |= rep
-                tmax = tmax if stmax is None else stmax if tmax is None else max(tmax, stmax)
+                    if isinstance(rfile.gain, hcam.MCCD):
+                        gain = rfile.gain[cnam]
+                    else:
+                        gain = rfile.gain
 
-            # check the time
-            if tmax is not None and tmax > lpanel.x2:
-                # extend range by multiple of extend_xrange
-                x2 = lpanel.x2
-                while tmax > x2:
-                    x2 += rfile['lcplot']['extend_xrange']
+                    # at this point 'ccd' contains all the Windats of a CCD,
+                    # ccdaper all of its apertures ccdwins the label of the
+                    # Windat relevant for each aperture, rfile contains some
+                    # control parameters, read contains the readout noise,
+                    # either a float or a CCD, gain contains the gain, either
+                    # a float or a CCD.
 
-                # need to re-plot
-                replot = True
-                lpanel.x2 = x2
+                    mfwhm, mbeta = moveApers(
+                        cnam, ccd, ccdaper, ccdwins, rfile,
+                        read, gain, mfwhm, mbeta, store
+                    )
+
+                    # extract flux from all apertures of each CCD
+                    results[cnam] = extractFlux(
+                        cnam, ccd, ccdaper, ccdwins, rfile,
+                        read, gain, store, mfwhm
+                    )
+
+                t = nf / 10 # temporary test
+
+                # track the maximum time
+                tmax = None
+
+                # plot the light curve
+                replot, ltmax = plotLight(lpanel, t, results, rfile, lbuffer)
+                tmax = tmax if ltmax is None else \
+                       ltmax if tmax is None else max(tmax, ltmax)
 
                 if rfile.transmission:
-                    tpanel.x2 = x2
+                    # plot the transmission
+                    rep, ttmax = plotTrans(tpanel, t, results, rfile, tbuffer)
+                    replot |= rep
+                    tmax = tmax if ttmax is None else \
+                           ttmax if tmax is None else max(tmax, ttmax)
 
                 if rfile.seeing:
-                    spanel.x2 = x2
+                    # plot the seeing
+                    rep, stmax = plotSeeing(spanel, t, results, rfile, sbuffer)
+                    replot |= rep
+                    tmax = tmax if stmax is None else \
+                           stmax if tmax is None else max(tmax, stmax)
 
-            if replot:
-                # re-plot
+                # check the time
+                if tmax is not None and tmax > lpanel.x2:
+                    # extend range by multiple of extend_xrange
+                    x2 = lpanel.x2
+                    while tmax > x2:
+                        x2 += rfile['lcplot']['extend_xrange']
 
-                print('re-plotting')
+                    # need to re-plot
+                    replot = True
+                    lpanel.x2 = x2
 
-                # start buffering
-                pgbbuf()
+                    if rfile.transmission:
+                        tpanel.x2 = x2
 
-                # erase plot
-                pgeras()
+                    if rfile.seeing:
+                        spanel.x2 = x2
 
-                # re-draw the light curve panel
-                lpanel.plot()
+                if replot:
+                    # re-plot
 
-                for lc in lbuffer:
-                    # convert the buffered data into float32 ndarrays
-                    t = np.array(lc.t, dtype=np.float32)
-                    f = np.array(lc.f, dtype=np.float32)
-                    fe = np.array(lc.fe, dtype=np.float32)
+                    # start buffering
+                    pgbbuf()
 
-                    # Plot the error bars
-                    pgsci(lc.ecol)
-                    pgerry(t, f-fe, f+fe, 0)
+                    # erase plot
+                    pgeras()
 
-                    # Plot the data
-                    pgsci(lc.dcol)
-                    pgpt(t, f, 17)
+                    # re-draw the light curve panel
+                    lpanel.plot()
 
-
-                if rfile.transmission:
-
-                    # re-draw the transmission panel
-                    tpanel.plot()
-
-                    for trans in tbuffer:
+                    for lc in lbuffer:
                         # convert the buffered data into float32 ndarrays
-                        t = np.array(trans.t, dtype=np.float32)
-                        f = np.array(trans.f, dtype=np.float32)
-                        fe = np.array(trans.fe, dtype=np.float32)
-                        scale = np.float32(100./trans.fmax)
-                        f *= scale
-                        fe *= scale
+                        t = np.array(lc.t, dtype=np.float32)
+                        f = np.array(lc.f, dtype=np.float32)
+                        fe = np.array(lc.fe, dtype=np.float32)
 
                         # Plot the error bars
-                        pgsci(trans.ecol)
+                        pgsci(lc.ecol)
                         pgerry(t, f-fe, f+fe, 0)
 
                         # Plot the data
-                        pgsci(trans.dcol)
+                        pgsci(lc.dcol)
                         pgpt(t, f, 17)
 
-                if rfile.seeing:
 
-                    # re-draw the seeing panel
-                    spanel.plot()
+                    if rfile.transmission:
+                        # re-draw the transmission panel
+                        tpanel.plot()
 
-                    for see in sbuffer:
-                        # convert the buffered data into float32 ndarrays
-                        t = np.array(see.t, dtype=np.float32)
-                        f = np.array(see.f, dtype=np.float32)
-                        fe = np.array(see.fe, dtype=np.float32)
+                        for trans in tbuffer:
+                            # convert the buffered data into float32 ndarrays
+                            t = np.array(trans.t, dtype=np.float32)
+                            f = np.array(trans.f, dtype=np.float32)
+                            fe = np.array(trans.fe, dtype=np.float32)
+                            scale = np.float32(100./trans.fmax)
+                            f *= scale
+                            fe *= scale
 
-                        # Plot the error bars
-                        pgsci(see.ecol)
-                        pgerry(t, f-fe, f+fe, 0)
+                            # Plot the error bars
+                            pgsci(trans.ecol)
+                            pgerry(t, f-fe, f+fe, 0)
 
-                        # Plot the data
-                        pgsci(see.dcol)
-                        pgpt(t, f, 17)
+                            # Plot the data
+                            pgsci(trans.dcol)
+                            pgpt(t, f, 17)
 
-                # end buffering
-                pgebuf()
+                    if rfile.seeing:
+                        # re-draw the seeing panel
+                        spanel.plot()
+
+                        for see in sbuffer:
+                            # convert the buffered data into float32 ndarrays
+                            t = np.array(see.t, dtype=np.float32)
+                            f = np.array(see.f, dtype=np.float32)
+                            fe = np.array(see.fe, dtype=np.float32)
+
+                            # Plot the error bars
+                            pgsci(see.ecol)
+                            pgerry(t, f-fe, f+fe, 0)
+
+                            # Plot the data
+                            pgsci(see.dcol)
+                            pgpt(t, f, 17)
+
+                    # end buffering
+                    pgebuf()
 
 # END OF MAIN SECTION
 
@@ -525,7 +596,7 @@ class Rfile(OrderedDict):
         #
         apsec = rfile['apertures']
 
-        rfile.aper = hcam.MccdAper.fromJson(
+        rfile.aper = hcam.MccdAper.fromFile(
             hcam.add_extension(apsec['aperfile'],hcam.APER)
             )
         if apsec['fit_method'] == 'moffat':

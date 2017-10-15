@@ -9,7 +9,7 @@ import numpy as np
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
     'add_extension', 'HipercamError', 'HipercamWarning', 'CIS',
-    'DMINS'
+    'DMINS', 'LOG'
 )
 
 # Constants for general use
@@ -21,6 +21,7 @@ LIST = '.lis'
 APER = '.ape'
 HRAW = '.fits'
 RED  = '.red'
+LOG  = '.log'
 
 # number of minutes in a day
 DMINS = 1440.

@@ -126,22 +126,29 @@ class Aperture(object):
         """Run a few checks on an :class:Aperture. Raises a ValueError if there are problems."""
 
         if self.rtarg <= 0:
-            raise ValueError('Aperture = {!r}\nTarget aperture radius = {:.2f} <= 0'.format(self, self.rtarg))
+            raise ValueError(
+                'Aperture = {!r}\nTarget aperture radius = {:.2f} <= 0'.format(self, self.rtarg))
 
         elif self.rsky1 > self.rsky2:
-            raise ValueError('Aperture = {!r}\nInner sky aperture radius (={:.2f}) > outer radius (={:.2f})'.format(
+            raise ValueError(
+                'Aperture = {!r}\nInner sky aperture radius (={:.2f}) > outer radius (={:.2f})'.format(
                     self, self.rsky1,self.rsky2))
 
         elif not isinstance(self.link,str) or not isinstance(self.mask,list) or not isinstance(self.ref,bool):
-            raise ValueError('Aperture = {!r}\nOne or more of link, mask, extra has the wrong type'.format(self))
+            raise ValueError(
+                'Aperture = {!r}\nOne or more of link, mask, extra has the wrong type'.format(self))
 
-    def toJson(self, fname):
+    def toFile(self, fname):
         """Dumps Aperture in JSON format to a file called fname"""
         with open(fname,'w') as fp:
-            json.dump(self, fp, cls=_Encoder, indent=2)
+            json.dump(self, cls=_Encoder, indent=2)
+
+    def toString(self):
+        """Returns Aperture as a JSON-type string"""
+        return json.dumps(self, fp, cls=_Encoder, indent=2)
 
     @classmethod
-    def fromJson(cls, fname):
+    def fromFile(cls, fname):
         """Read from JSON-format file fname"""
         with open(fname) as fp:
             aper = json.load(fp, cls=_Decoder)
@@ -179,7 +186,7 @@ class CcdAper(Group):
                 elif self[aper.link].is_linked():
                     raise ValueError('Aperture = {!r} is linked to an aperture which is itself linked'.format(self))
 
-    def toJson(self, fname):
+    def toFile(self, fname):
         """Dumps ccdAper in JSON format to a file called fname"""
 
         # dumps as list to retain order through default iterator encoding
@@ -216,7 +223,7 @@ class MccdAper(Group):
             self.__class__.__name__, super().__repr__()
             )
 
-    def toJson(self, fname):
+    def toFile(self, fname):
         """Dumps MccdAper in JSON format to a file called fname"""
 
         # dumps as list to retain order through default iterator encoding
@@ -228,8 +235,19 @@ class MccdAper(Group):
         with open(fname,'w') as fp:
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
+    def toString(self):
+        """Returns MccdAper in JSON format as a string"""
+
+        # dumps as list to retain order through default iterator encoding
+        # that buggers things otherwise
+        listify = ['hipercam.MccdAper'] + list(
+            ((key,['hipercam.CcdAper']+list(val.items())) \
+             for key, val in self.items())
+        )
+        return json.dumps(listify, cls=_Encoder, indent=2)
+
     @classmethod
-    def fromJson(cls, fname):
+    def fromFile(cls, fname):
         """Read from JSON-format file fname. Since such files can fairly easily be
         corrupted by injudicious editing, some consistency checks are
         run. File loading does not happen often, so this should not be a
