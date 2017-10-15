@@ -375,7 +375,9 @@ class Rdata (Rhead):
         # set flag to indicate first time through
         self.first = True
 
-        if not server:
+        if server:
+            self.nframe = nframe
+        else:
             # local file: go to correct location
             if self.last:
                 self.seek_last()
@@ -425,44 +427,37 @@ class Rdata (Rhead):
         """
 
         if self.server:
+
             # access frames via the server
 
+            # build the request
             if nframe == 0 or self.last:
-
-                # get the number of frames
-                ntot = self.ntotal()
-                if ntot == 0:
-                    # nothing ready yet
-                    return None
-
-                if self.first:
-                    # first time through
-                    self.nframe = ntot
-                    reset = True
-
-                elif ntot < self.nframe:
-                    # indicates no new frame has been added since
-                    # previous call.
-                    return None
+                # just want the last complete frame. Note that further
+                # down we check the frame counter against what we were
+                # hoping for (at least 1 further on) and if it isn't
+                # we actually return with None to indicate no progress.
+                request = json.dumps(dict(action='get_last'))
 
             elif nframe is None:
-                # simply get next set of bytes
-                reset = False
+                # in this case, on the first time through we need to
+                # explicitly request the frame, otherwise we can just read
+                # from where we are
+                if self.first:
+                    request = json.dumps(dict(action='get_frame', frame_number=self.nframe))
+                else:
+                    request = json.dumps(dict(action='get_next'))
 
             else:
-                reset = self.nframe != nframe
-                self.nframe = nframe
+                # a particular frame number is being requested. Check whether we have
+                # to request it explicitly or whether we can just get the next one
+                if self.nframe != nframe:
+                    request = json.dumps(dict(action='get_frame', frame_number=nframe))
+                    self.nframe = nframe
+                else:
+                    request = json.dumps(dict(action='get_next'))
 
-            # define command to send to server
-            if reset:
-                # requires a seek as well as a read
-                data = json.dumps(dict(action='get_frame', frame_number=self.nframe))
-            else:
-                # just read next set of bytes
-                data = json.dumps(dict(action='get_next'))
-
-            # get data
-            self._ws.send(data)
+            # send the request
+            self._ws.send(request)
             raw_bytes = self._ws.recv()
 
             if len(raw_bytes) == 0:
@@ -522,19 +517,26 @@ class Rdata (Rhead):
         #
         ##############################################################
 
-        # First the timing bytes
+        # First the timing bytes. the frameCount starts from 0 so we
+        # we add one to it
         frameCount, timeStampCount, years, day_of_year, hours, mins, \
             seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
+        frameCount += 1
 
-        if frameCount+1 != self.nframe:
-            # check that frameCount is as expected
-            warnings.warn(
-                'unexpected clash timestamp frame number = {:d} with that expected = {:d}'.format(
-                    frameCount+1, self.nframe
-                    ))
+        if self.server and (nframe == 0 or self.last) and not self.first and self.nframe > frameCount:
+            # server access tring to get the last complete frame. If the frame
+            # just read in is the same as the one before (i.e. frameCount <
+            # self.nframe), we return None to indicate that no progress is
+            # taking place. The calling routine then needs to wait for a new
+            # frame to come in. See rtplot for an example of this.
+            return None
+
+        # set the internal frame pointer to the frame just read
+        self.nframe = frameCount
 
         if nsats == -1 and synced == -1:
-            # invalid time; pretend we are on 2000-01-01 taking one frame per second.
+            # invalid time; pretend we are in 2000-01-01 taking one frame per second.
+            # just so we can get something.
             tstamp = Time(51544 + self.nframe/86400., format='mjd')
         else:
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
@@ -548,7 +550,7 @@ class Rdata (Rhead):
             self.thead['GOODTIM'] = (False, 'Is TIMSTAMP thought to be OK?')
         else:
             self.thead['GOODTIM'] = (True, 'Is TIMSTAMP thought to be OK?')
-        self.thead['NFRAME'] = (self.nframe, 'Frame number')
+        self.thead['NFRAME'] = (frameCount, 'Frame number')
 
         # second, the data bytes
 
@@ -626,7 +628,7 @@ class Rdata (Rhead):
         # create the MCCD
         mccd = MCCD(ccds, self.thead)
 
-        # update the frame counter
+        # update the frame counter for the next call
         self.nframe += 1
 
         # show that we have read something
@@ -636,7 +638,7 @@ class Rdata (Rhead):
 
     def ntotal(self):
         """
-        Returns the total number of complete frames. 
+        Returns the total number of complete frames.
         """
         if self.server:
             data = json.dumps(dict(action='get_nframes'))
