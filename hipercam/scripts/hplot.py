@@ -52,6 +52,10 @@ def hplot(args=None):
       msub   : (bool)
          True/False to subtract median from each window before scaling
 
+      hsbox  : (int) [if device = '/mpl'; hidden]
+         half-width in binned pixels of stats box as offset from central pixel
+         hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc.
+
       iset   : (string) [single character]
          determines how the intensities are determined. There are three
          options: 'a' for automatic simply scales from the minimum to the
@@ -93,6 +97,8 @@ def hplot(args=None):
 
     """
 
+    global fig, mccd, caxes, hsbox
+
     if args is None:
         args = sys.argv[1:]
 
@@ -105,6 +111,7 @@ def hplot(args=None):
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('hsbox', Cline.GLOBAL, Cline.HIDE)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
@@ -136,7 +143,7 @@ def hplot(args=None):
 
         else:
             raise ValueError(
-                'Could not indentify plot type from device = {:s}'.format(device)
+                'Could not identify plot type from device = {:s}'.format(device)
                 )
 
         # define the panel grid
@@ -164,6 +171,9 @@ def hplot(args=None):
 
         # define the display intensities
         msub = cl.get_value('msub', 'subtract median from each window?', True)
+
+        if ptype == 'MPL' and hard == '':
+            hsbox = cl.get_value('hsbox', 'half-width of stats box (binned pixels)', 2, 1)
 
         iset = cl.get_value(
             'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
@@ -206,6 +216,7 @@ def hplot(args=None):
         ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
         ax = None
+        caxes = {}
         for n, cnam in enumerate(ccds):
             if ax is None:
                 axes = ax = fig.add_subplot(ny, nx, n+1)
@@ -213,6 +224,9 @@ def hplot(args=None):
             else:
                 axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
                 axes.set_aspect('equal', adjustable='datalim')
+
+            # store the CCD associated with these axes for the cursor callback
+            caxes[axes] = cnam
 
             if msub:
                 # subtract median from each window
@@ -226,6 +240,11 @@ def hplot(args=None):
 
         plt.tight_layout()
         if hard == '':
+            # add in the callback
+            fig.canvas.mpl_connect('button_press_event', buttonPressEvent)
+            print('\nClick points in windows for stats in a {:d}x{:d} box'.format(
+                2*hsbox+1,2*hsbox+1)
+            )
             plt.show()
         else:
             plt.savefig(hard)
@@ -250,3 +269,41 @@ def hplot(args=None):
             vmin, vmax = hcam.pgp.pCcd(mccd[cnam],iset,plo,phi,ilo,ihi,'CCD {:s}'.format(cnam))
             print('CCD =',cnam,'plot range =',vmin,'to',vmax)
 
+def buttonPressEvent(event):
+    """
+    callback 
+    """
+    global fig, mccd, caxes, hsbox
+
+    pzoom = fig.canvas.manager.toolbar.mode == 'pan/zoom'
+
+    if not pzoom:
+        # only when not in pan/zoom mode
+        if event.inaxes is not None:
+            cnam = caxes[event.inaxes]
+            ccd = mccd[cnam]
+            x, y = event.xdata, event.ydata
+            wnam = ccd.inside(x,y,1)
+            if wnam is None:
+                print('\n *** selected position ({:.1f},{:.1f}) not in any window'.format(x,y))
+            else:
+                wind = ccd[wnam]
+                ix = int(round(wind.x_pixel(x)))
+                iy = int(round(wind.y_pixel(y)))
+                ix1 = max(0, ix - hsbox)
+                ix2 = min(wind.nx, ix + hsbox + 1)
+                iy1 = max(0, iy - hsbox)
+                iy2 = min(wind.ny, iy + hsbox + 1)
+
+                print('\nClicked on x,y = {:.2f},{:.2f} in CCD {:s}, window {:s}'.format(
+                    x,y,cnam,wnam)
+                  )
+                print(' Stats box in window pixels, X,Y = [{:d}:{:d},{:d}:{:d}] ({:d}x{:d})'.format(
+                    ix1,ix2,iy1,iy2,ix2-ix1,iy2-iy1)
+                )
+                box = wind.data[iy1:iy2,ix1:ix2]
+                print(
+                    ' Mean = {:.2f}, RMS = {:.2f}, min = {:.2f}, max = {:.2f}, median = {:.2f}'.format(
+                        box.mean(),box.std(),box.min(),box.max(),np.median(box)
+                        )
+                )
