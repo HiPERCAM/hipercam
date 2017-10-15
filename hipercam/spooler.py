@@ -237,7 +237,7 @@ def data_source(inst, resource, flist, server, first):
 
        first    : (int)
           If a raw disk file is being read, either locally or via a server,
-          this parameter sets where to start in the file.
+          this parameter sets where to start in the file. 0 for latest.
 
     Returns::
 

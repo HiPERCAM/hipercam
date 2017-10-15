@@ -282,7 +282,8 @@ class Rhead:
             # Essential items
             hnam = 'ESO DET NSKIP{:d}'.format(n+1)
             if hnam in self.header:
-                chead['NSKIP'] = (self.header[hnam], self.header.comments[hnam])
+                # used to identify blank frames
+                chead['NCYCLE'] = (self.header[hnam]+1, 'readout cycle period (NSKIP+1)')
 
             # Nice-if-you-can-get-them items
             if full:
@@ -311,16 +312,6 @@ class Rhead:
             if hasattr(self, '_ws'): self._ws.close()
         else:
             if hasattr(self, '_ffile'): self._ffile.close()
-
-    def ntotal(self):
-        """
-        Returns the total number of complete frames
-        """
-        if self.server:
-            raise NotImplementedError('needs HiPERCAM server to be implemented')
-        else:
-            ntot = self.header['NAXIS3']
-        return ntot
 
     # Want to run this as a context manager
     def __enter__(self):
@@ -363,7 +354,9 @@ class Rdata (Rhead):
 
            nframe : (int)
               the frame number to read first [1 is the first]. This initialises an attribute
-              of the same name that is used when reading frames sequentially.
+              of the same name that is used when reading frames sequentially. nframe=0
+              is an indication to set an attribute 'last' = True  to indicate that it should
+              always try to access the last frame.
 
            server : (bool)
               True/False for server vs local disk access. Server access goes
@@ -376,10 +369,18 @@ class Rdata (Rhead):
         # read the header
         Rhead.__init__(self, fname, server)
 
-        # move to the start of the frame
-        self.nframe = nframe
+        # flag to indicate should always try to get the last frame 
+        self.last = nframe == 0
+
+        # set flag to indicate first time through
+        self.first = True
+
         if not server:
-            self._ffile.seek(self._hbytes+self._framesize*(self.nframe-1))
+            # local file: go to correct location
+            if self.last:
+                self.seek_last()
+            else:
+                self.seek_frame(nframe)
 
     # Rdata objects functions as iterators.
     def __iter__(self):
@@ -395,18 +396,25 @@ class Rdata (Rhead):
         """Reads one exposure from the run the :class:`Rdata` is attached
         to. If `nframe` is None, then it will read the frame it is positioned
         at. If nframe is an integer > 0, it will try to read that particular
-        frame; if nframe == 0, it reads the last complete frame.  nframe == 1
+        frame; if nframe == 0, it reads the last complete frame. nframe == 1
         gives the first frame. If all works, an MCCD object is returned. It
         raises an HendError if it reaches the end of a local disk file. If it
         fails to read from the server it returns None, but does not raise an
         Exception in order to allow continued attempts as reading from what
         might be a growing file.
 
+        It maintains an attribute 'nframe' corresponding to the frame that
+        the file pointer is positioned to read next (most relevant to reading
+        of a local file). If it is set to read the last file and that file doesn't
+        change it returns None as a sign of failure.
+
         Arguments::
 
            nframe : (int)
               frame number to get, starting at 1. 0 for the last (complete)
-              frame. 'None' indicates that the next frame is wanted.
+              frame. 'None' indicates that the next frame is wanted, unless
+              self.nframe = 0 in which case it will try to get the most recent
+              frame, whatever that is.
 
         Apart from reading the raw bytes, the main job of this routine is to
         divide up and re-package the bytes read into Windats suitable for
@@ -416,26 +424,35 @@ class Rdata (Rhead):
         accessed could be being added to. In
         """
 
-        # set the frame to be read and whether the file pointer needs to be
-        # reset
-        if nframe is None:
-            # just read whatever frame we are on
-            reset = False
-        else:
-            if nframe == 0:
-                # go for the last one
-                nframe = self.ntotal()
-
-            # update frame counter
-            reset = self.nframe != nframe
-            self.nframe = nframe
-
-        # don't attempt to read off end of disk file
-        if not self.server and self.nframe > self.ntotal():
-            self.nframe = 1
-            raise HendError('Rdata.__call__: tried to access a frame exceeding the maximum')
-
         if self.server:
+            # access frames via the server
+
+            if nframe == 0 or self.last:
+
+                # get the number of frames
+                ntot = self.ntotal()
+                if ntot == 0:
+                    # nothing ready yet
+                    return None
+
+                if self.first:
+                    # first time through
+                    self.nframe = ntot
+                    reset = True
+
+                elif ntot < self.nframe:
+                    # indicates no new frame has been added since
+                    # previous call.
+                    return None
+
+            elif nframe is None:
+                # simply get next set of bytes
+                reset = False
+
+            else:
+                reset = self.nframe != nframe
+                self.nframe = nframe
+
             # define command to send to server
             if reset:
                 # requires a seek as well as a read
@@ -449,9 +466,9 @@ class Rdata (Rhead):
             raw_bytes = self._ws.recv()
 
             if len(raw_bytes) == 0:
-                # if we are trying to access a file that has not yet been written
+                # if we are trying to access a file that has not yet been written,
                 # 0 bytes will be returned. In this case we return with None. NB we
-                # do not upfate self.nframe in this case.
+                # do not update self.nframe in this case.
                 return None
 
             # separate into the frame and timing data, correcting the frame
@@ -461,17 +478,41 @@ class Rdata (Rhead):
             tbytes = raw_bytes[-self.ntbytes:]
 
         else:
-            # find the start of the frame if necessary
-            if reset:
-                self._ffile.seek(self._hbytes+self._framesize*(self.nframe-1))
+
+            # access frames in local file
+
+            if nframe == 0 or self.last:
+
+                # get the number of frames
+                nold = self.nframe
+                ntot = self.seek_last()
+
+                if ntot == 0:
+                    # nothing ready yet
+                    return None
+
+                if self.first:
+                    # first time through
+                    self.nframe = ntot
+
+                elif ntot < nold:
+                    # indicates no new frame has been added since
+                    # previous call after which the frame pointer
+                    # was incremented to the value stored in nold
+                    self.nframe += 1
+                    return None
+
+            elif nframe is not None:
+                # move to correct place
+                self.seek_frame(nframe)
 
             # read in frame and then the timing data, correcting the frame for
             # the standard FITS BZERO offset
-            frame  = np.fromfile(self._ffile, '>u2', (self._framesize - self.ntbytes) // 2)
+            frame = np.fromfile(self._ffile, '>u2', (self._framesize - self.ntbytes) // 2)
             frame += BZERO
             tbytes = self._ffile.read(self.ntbytes)
             if len(tbytes) != self.ntbytes:
-                raise IOError('failed to read frame from disk file')
+                raise HendError('failed to read frame from disk file')
 
         ##############################################################
         #
@@ -502,6 +543,7 @@ class Rdata (Rhead):
             tstamp = Time(time_string, format='yday')
 
         self.thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
+        self.thead['MJDUTC'] = (tstamp.mjd, 'MJD(UTC) equivalent')
         if (nsats == -1 and synced == -1) or synced == 0:
             self.thead['GOODTIM'] = (False, 'Is TIMSTAMP thought to be OK?')
         else:
@@ -517,6 +559,19 @@ class Rdata (Rhead):
         # initialise CCDs with empty Groups. These will be added to later
         ccds = Group(CCD)
         for cnam, chead in zip(CNAMS, self.cheads):
+
+            # use ncycle to determine whether this frame is really
+            # data as opposed to intermediate blank frame
+            isdata = self.nframe % chead['NCYCLE'] == 0 \
+                     if 'NCYCLE' in chead else True
+            chead['DSTATUS'] = (isdata, 'Data status when NCYCLE > 1')
+
+            # this is a temporary measure. need more work to sort the
+            # exact timing, so for now just copy over the top level value.
+            chead['MJDUTC'] = (self.thead['MJDUTC'], 'MJD(UTC) at centre of exposure')
+            chead['GOODTIM'] = (self.thead['GOODTIM'], 'Is MJDUTC reliable?')
+
+            # finally create the CCD
             ccds[cnam] = CCD(Group(Windat), HCM_NXTOT, HCM_NYTOT, chead)
 
         # npixel points to the start pixel of the set of windows under
@@ -574,7 +629,73 @@ class Rdata (Rhead):
         # update the frame counter
         self.nframe += 1
 
+        # show that we have read something
+        self.first = False
+
         return mccd
+
+    def ntotal(self):
+        """
+        Returns the total number of complete frames. 
+        """
+        if self.server:
+            data = json.dumps(dict(action='get_nframes'))
+            self._ws.send(data)
+            raw_bytes = self._ws.recv()
+            if len(raw_bytes) == 0:
+                raise hcam.HipercamError('failed to get total number of frames from server; 0 bytes returned')
+
+            raise NotImplementedError('needs to handle nframes return from server')
+        else:
+            # rather than read NAXIS3, this is designed to allow for the file
+            # being incremented. First seek the end of file
+            self._ffile.seek(0,2)
+
+            # compute byte offset at this point and thus the total number of
+            # complete frames (this is what we return)
+            ntot = (self._ffile.tell()-self._hbytes) // self._framesize
+
+            # return pointer to current frame
+            self._ffile.seek(self._hbytes+self._framesize*(self.nframe-1))
+
+        return ntot
+
+    def seek_frame(self, n):
+        """
+        Moves pointer position to the start of frame n and
+        updates the 'nframe' attribute appropriately.
+
+        This is not implemented for the server.
+        """
+        if self.server:
+            raise NotImplementedError('no seek_frame in the case of server access')
+        else:
+            # move pointer to the start of the last complete frame
+            # and adjust nframe
+            self._ffile.seek(self._hbytes+self._framesize*(n-1))
+            self.nframe = n
+
+    def seek_last(self):
+        """
+        In the case of a local file, this sets the pointer position
+        to the start of the final complete, and updates the 'nframe'
+        attribute appropriately. This is not implemented for the server.
+        It returns the number of the frame it moves to
+        """
+        if self.server:
+            raise NotImplementedError('no seek_last in the case of server access')
+        else:
+            # First seek the end of file
+            self._ffile.seek(0,2)
+
+            # compute byte offset at this point and thus the total number of
+            # complete frames
+            ntot = (self._ffile.tell()-self._hbytes) // self._framesize
+
+            # move pointer
+            self.seek_frame(ntot)
+
+        return ntot
 
 class Rtime (Rhead):
     """Callable, iterable object to represent the timestamps only of HiPERCAM raw data files.

@@ -246,11 +246,9 @@ def rtplot(args=None):
 
         if source == 's' or source == 'l':
             run = cl.get_value('run', 'run name', 'run005')
-            first = cl.get_value('first', 'first frame to plot', 1, 1)
-
-            if source == 's':
-                twait = cl.get_value('twait', 'time to wait for a new frame [secs]', 1., 0.)
-                tmax = cl.get_value('tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+            first = cl.get_value('first', 'first frame to plot', 1, 0)
+            twait = cl.get_value('twait', 'time to wait for a new frame [secs]', 1., 0.)
+            tmax = cl.get_value('tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
 
         else:
             # set inst = 'h' as only lists of HiPERCAM files are supported
@@ -403,7 +401,7 @@ def rtplot(args=None):
 
             # None objects are returned from failed server reads. This could
             # be because the file is still exposing, so we hang about.
-            if server and frame is None:
+            if frame is None:
 
                 if tmax < total_time + twait:
                     print('Have waited for {:.1f} sec. cf tmax = {:.1f}; will wait no more'.format(total_time, tmax))
@@ -421,7 +419,7 @@ def rtplot(args=None):
                 # have another go
                 continue
 
-            elif server:
+            else:
                 # reset the total time waited when we have a success
                 total_time = 0
 

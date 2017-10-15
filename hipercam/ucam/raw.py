@@ -913,7 +913,7 @@ class Rdata (Rhead):
             rhead['CCDNAME'] = 'Red CCD'
             rhead['MJDUTC'] = (time.mjd, 'MJD(UTC) at centre of exposure')
             rhead['EXPOSURE'] = (time.expose, 'Exposure time (sec)')
-            rhead['MJDOK'] = (time.good,'flag indicating reliability of time')
+            rhead['GOODTIM'] = (time.good,'flag indicating reliability of time')
             rhead['MJDOKWHY'] = time.reason
 
             ccd1 = CCD(wins1, self.nxmax, self.nymax, rhead)
@@ -926,7 +926,7 @@ class Rdata (Rhead):
             bhead['CCDNAME'] = 'Blue CCD'
             bhead['MJDUTC'] = (blueTime.mjd, 'MJD(UTC) at centre of exposure')
             bhead['EXPOSURE'] = (blueTime.expose, 'Exposure time (sec)')
-            bhead['MJDOK'] = (blueTime.good,'time reliability flag')
+            bhead['GOODTIM'] = (blueTime.good,'Is MJDUTC reliable?')
             bhead['MJDOKWHY'] = blueTime.reason
             bhead['DSTATUS'] = (not badBlue,'blue data status flag')
             ccd3 = CCD(wins3, self.nxmax, self.nymax, bhead)
