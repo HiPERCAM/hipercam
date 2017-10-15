@@ -1811,7 +1811,7 @@ def utimer(tbytes, rhead, fnum):
                 goodTime = False
 
     # Return some data
-    time = Time(mjdCentre, exposure, goodTime, reason)
+    time = Utime(mjdCentre, exposure, goodTime, reason)
 
     if rhead.instrument == 'ULTRACAM':
 
@@ -1853,7 +1853,7 @@ def utimer(tbytes, rhead, fnum):
                     ok = utimer.blueTimes[0].good and utimer.blueTimes[ncont-1].good
                     if not ok: reason  = 'time of start or end frame was unreliable'
 
-                blueTime = Time((start+end)/2., expose, ok, reason)
+                blueTime = Utime((start+end)/2., expose, ok, reason)
 
             # Avoid wasting memory storing past times
             if len(utimer.blueTimes) > rhead.nblue: utimer.blueTimes.pop()
