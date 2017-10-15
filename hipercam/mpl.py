@@ -3,6 +3,7 @@
 matplotlib plotting functions. 
 """
 
+import os
 from matplotlib.patches import Circle
 
 from .core import *
@@ -11,17 +12,21 @@ from .group import *
 from .ccd import *
 from . import utils
 
+# Font scale factor
+SCALE_FACTOR = float(os.environ['HIPERCAM_MPL_FSCALE']) \
+               if 'HIPERCAM_MPL_FSCALE' in os.environ else 1.0
+
 # some look-and-feel globals.
 Params = {
 
     # axis label fontsize
-    'axis.label.fs' : 14,
+    'axis.label.fs' : 14*SCALE_FACTOR,
 
     # axis label colour
     'axis.label.col' : CIS[2],
 
     # axis number fontsize
-    'axis.number.fs' : 14,
+    'axis.number.fs' : 14*SCALE_FACTOR,
 
     # axis colour
     'axis.col' : CIS[4],
@@ -30,7 +35,7 @@ Params = {
     'ccd.box.col' : CIS[1],
 
     # window label font size
-    'win.label.fs' : 12,
+    'win.label.fs' : 12*SCALE_FACTOR,
 
     # window label colour
     'win.label.col' : CIS[5],

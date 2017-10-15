@@ -2,6 +2,7 @@ import sys
 import os
 
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from trm.pgplot import *
@@ -212,6 +213,9 @@ def hplot(args=None):
         else:
             fig = plt.figure()
 
+        mpl.rcParams['xtick.labelsize'] = hcam.mpl.Params['axis.number.fs']
+        mpl.rcParams['ytick.labelsize'] = hcam.mpl.Params['axis.number.fs']
+
         nccd = len(ccds)
         ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
@@ -245,6 +249,7 @@ def hplot(args=None):
             print('\nClick points in windows for stats in a {:d}x{:d} box'.format(
                 2*hsbox+1,2*hsbox+1)
             )
+            plt.subplots_adjust(wspace=0.1, hspace=0.1)
             plt.show()
         else:
             plt.savefig(hard)
