@@ -101,21 +101,25 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts' : [
+            'add=hipercam.scripts.arith:arith',
+            'aligntool=hipercam.scripts.aligntool:main'
             'cadd=hipercam.scripts.carith:carith',
             'cdiv=hipercam.scripts.carith:carith',
             'cmul=hipercam.scripts.carith:carith',
             'csub=hipercam.scripts.carith:carith',
             'combine=hipercam.scripts.combine:combine',
+            'div=hipercam.scripts.arith:arith',
             'grab=hipercam.scripts.grab:grab',
             'hls=hipercam.scripts.hls:hls',
             'hplot=hipercam.scripts.hplot:hplot',
             'makedata=hipercam.scripts.makestuff:makedata',
             'makefield=hipercam.scripts.makestuff:makefield',
+            'mul=hipercam.scripts.arith:arith',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
             'setaper=hipercam.scripts.setaper:setaper',
             'stats=hipercam.scripts.stats:stats',
-            'aligntool=hipercam.scripts.aligntool:main'
+            'sub=hipercam.scripts.arith:arith',
         ],
     },
 
