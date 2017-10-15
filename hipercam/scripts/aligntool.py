@@ -236,8 +236,11 @@ def main(args=None):
     Arguments::
 
         ref     : (string)
-           name of an MCCD file to use as u-band reference , as produced
+           name of an MCCD file to use as reference , as produced
            by e.g. 'grab'
+
+        rccd    : (string)
+           CCD to use as reference
 
         thresh  : (float)
             threshold for object detection, in multiples of background RMS
@@ -334,6 +337,7 @@ def main(args=None):
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('rccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('pause', Cline.LOCAL, Cline.HIDE)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
@@ -392,6 +396,7 @@ def main(args=None):
         ccdinf = hcam.get_ccd_pars(instrument, run, flist)
         if len(ccdinf) > 1:
             ccdnam = cl.get_value('ccd', 'CCD to plot alignment of', '1')
+            rccdnam = cl.get_value('rccd', 'CCD to use as reference', '5')
 
         cl.set_default('pause', 0.)
         pause = cl.get_value('pause', 'time delay to add between frame plots [secs]', 0., 0.)
@@ -478,7 +483,7 @@ def main(args=None):
                 print('Frame {:d}: '.format(frame.head['NFRAME']), end='')
 
             ccd = frame[ccdnam]
-            ref_ccd = ref_mccd[ccdnam]
+            ref_ccd = ref_mccd[rccdnam]
 
             if bias is not None:
                 ccd -= bframe[ccdnam]
