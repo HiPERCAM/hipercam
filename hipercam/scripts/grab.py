@@ -2,6 +2,7 @@
 
 import sys
 import os
+import time
 
 import numpy as np
 
@@ -138,11 +139,43 @@ def grab(args=None):
     if run.endswith(hcam.HRAW):
         run = run[:run.find(hcam.HRAW)]
 
+    # initialisations
+    total_time = 0 # time waiting for new frame
+    nframe = first
+    root = os.path.basename(run)
+
     # Finally, we can go
     with hcam.data_source(instrument, run, is_file_list, server_on, first) as spool:
-        nframe = first
-        root = os.path.basename(run)
+
         for frame in spool:
+
+            # None objects are returned from failed server reads. This could
+            # be because the file is still exposing, so we hang about.
+            if frame is None:
+
+                if tmax < total_time + twait:
+                    print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait no more'.format(total_time, tmax))
+                    print('grab stopped.')
+                    break
+
+                if total_time == 0:
+                    # separate from frame message
+                    print()
+
+                print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait another twait = {:.1f} sec.'.format(
+                        total_time, tmax, twait
+                        ))
+
+                # pause
+                time.sleep(twait)
+                total_time += twait
+
+                # have another go
+                continue
+
+            else:
+                # reset the total time waited when we have a success
+                total_time = 0
 
             # subtract bias
             if bias is not None:
@@ -159,5 +192,7 @@ def grab(args=None):
 
             print('Written frame {:d} to {:s}'.format(nframe,fname))
             nframe += 1
-            if last and nframe > last: break
+            if last and nframe > last:
+                print('grab stopped')
+                break
 
