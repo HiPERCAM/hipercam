@@ -80,7 +80,7 @@ def grab(args=None):
     with Cline('HIPERCAM_ENV', '.hipercam', 'grab', args) as cl:
 
         # register parameters
-        cl.register('source', Cline.LOCAL, Cline.HIDE)
+        cl.register('source', Cline.GLOBAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)

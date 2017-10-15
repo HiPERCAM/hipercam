@@ -82,7 +82,7 @@ def reduce(args=None):
     with Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args) as cl:
 
         # register parameters
-        cl.register('source', Cline.LOCAL, Cline.HIDE)
+        cl.register('source', Cline.GLOBAL, Cline.HIDE)
         cl.register('rfile', Cline.GLOBAL, Cline.PROMPT)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)

@@ -80,6 +80,11 @@ def rtplot(args=None):
         pause   : (float) [hidden]
            seconds to pause between frames (defaults to 0)
 
+        plotall : (bool) [hidden]
+           plot all frames regardless of status (i.e. including blank frames
+           when nskips are enabled (defaults to False). The profile fitting
+           will still be disabled for bad frames.
+
         ccd     : (string)
            CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
 
@@ -192,7 +197,7 @@ def rtplot(args=None):
     with Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args) as cl:
 
         # register parameters
-        cl.register('source', Cline.LOCAL, Cline.HIDE)
+        cl.register('source', Cline.GLOBAL, Cline.HIDE)
         cl.register('device', Cline.LOCAL, Cline.HIDE)
         cl.register('width', Cline.LOCAL, Cline.HIDE)
         cl.register('height', Cline.LOCAL, Cline.HIDE)
@@ -203,6 +208,7 @@ def rtplot(args=None):
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('pause', Cline.LOCAL, Cline.HIDE)
+        cl.register('plotall', Cline.LOCAL, Cline.HIDE)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
@@ -289,6 +295,9 @@ def rtplot(args=None):
 
         cl.set_default('pause', 0.)
         pause = cl.get_value('pause', 'time delay to add between frame plots [secs]', 0., 0.)
+
+        cl.set_default('plotall', False)
+        plotall = cl.get_value('plotall', 'plot all frames, regardless of status?', False)
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -380,27 +389,29 @@ def rtplot(args=None):
     # slice up viewport
     pgsubp(nx,ny)
 
-    # plot axes, labels, titles
+    # plot axes, labels, titles. Happens once only
     for cnam in ccds:
         pgsci(hcam.pgp.Params['axis.ci'])
         pgsch(hcam.pgp.Params['axis.number.ch'])
         pgenv(xlo, xhi, ylo, yhi, 1, 0)
         pglab('X','Y','CCD {:s}'.format(cnam))
 
+    # initialisations. 'last_ok' is used to store the last OK frames of each
+    # CCD for retrieval when coping with skipped data.
 
-    # a couple of initialisations
     total_time = 0 # time waiting for new frame
-    fpos = [] # list of target positions to fit
+    fpos = []      # list of target positions to fit
+    first = True   # waiting for first valid frame with profit
 
     # plot images
     with hcam.data_source(instrument, run, is_file_list, server_on, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
-        for n, frame in enumerate(spool):
+        for n, mccd in enumerate(spool):
 
             # None objects are returned from failed server reads. This could
             # be because the file is still exposing, so we hang about.
-            if frame is None:
+            if mccd is None:
 
                 if tmax < total_time + twait:
                     print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait no more'.format(total_time, tmax))
@@ -431,38 +442,44 @@ def rtplot(args=None):
                 print('File {:d}: '.format(n+1), end='')
             else:
                 print('Frame {:d}, time = {:s}; '.format(
-                    frame.head['NFRAME'], frame.head['TIMSTAMP']), end='')
+                    mccd.head['NFRAME'], mccd.head['TIMSTAMP']), end='')
 
             # display the CCDs chosen
             message = ''
             for nc, cnam in enumerate(ccds):
-                ccd = frame[cnam]
+                ccd = mccd[cnam]
 
-                # subtract the bias
-                if bias is not None:
-                    ccd -= bframe[cnam]
+                if plotall or ccd.is_data():
+                    # this should be data as opposed to a blank frame
+                    # between data frames that occur with nskip > 0
 
-                if msub:
-                    # subtract median from each window
-                    for wind in ccd.values():
-                        wind -= wind.median()
+                    # subtract the bias
+                    if bias is not None:
+                        ccd -= bframe[cnam]
 
-                # set to the correct panel and then plot CCD
-                ix = (nc % nx) + 1
-                iy = nc // nx + 1
-                pgpanl(ix,iy)
-                vmin, vmax = hcam.pgp.pCcd(ccd,iset,plo,phi,ilo,ihi)
+                    if msub:
+                        # subtract median from each window
+                        for wind in ccd.values():
+                            wind -= wind.median()
 
-                # accumulate string of image scalings
-                if nc:
-                    message += ', ccd {:s}: {:.2f} to {:.2f}'.format(cnam,vmin,vmax)
-                else:
-                    message += 'ccd {:s}: {:.2f} to {:.2f}'.format(cnam,vmin,vmax)
+                    # set to the correct panel and then plot CCD
+                    ix = (nc % nx) + 1
+                    iy = nc // nx + 1
+                    pgpanl(ix,iy)
+                    vmin, vmax = hcam.pgp.pCcd(ccd,iset,plo,phi,ilo,ihi)
+
+                    # accumulate string of image scalings
+                    if nc:
+                        message += ', ccd {:s}: {:.2f} to {:.2f}'.format(cnam,vmin,vmax)
+                    else:
+                        message += 'ccd {:s}: {:.2f} to {:.2f}'.format(cnam,vmin,vmax)
 
             # end of CCD display loop
             print(message)
 
-            if n == 0 and profit:
+            if ccd.is_data() and profit and first:
+                first = False
+
                 # cursor selection of targets after first plot, if profit
                 # accumulate list of starter positions
 
@@ -498,84 +515,86 @@ def rtplot(args=None):
                     if fwidth > 0 and fheight > 0:
                         pgpap(fwidth,fheight/fwidth)
 
-            # carry out fits. Nothing happens if fpos is empty
-            for fpar in fpos:
-                # switch to the image plot
-                imdev.select()
+            if ccd.is_data():
 
-                # plot search box
-                if splot:
-                    fpar.plot()
+                # carry out fits. Nothing happens if fpos is empty
+                for fpar in fpos:
+                    # switch to the image plot
+                    imdev.select()
 
-                # extract search box from the CCD. 'fpar' is updated later
-                # if the fit is successful to reflect the new position
-                swind = fpar.swind(ccd)
+                    # plot search box
+                    if splot:
+                        fpar.plot()
 
-                # carry out initial search
-                x,y,peak = swind.find(smooth, False)
+                    # extract search box from the CCD. 'fpar' is updated later
+                    # if the fit is successful to reflect the new position
+                    swind = fpar.swind(ccd)
 
-                # now for a more refined fit. First extract fit Windat
-                fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                    # carry out initial search
+                    x,y,peak = swind.find(smooth, False)
 
-                # crude estimate of sky background
-                sky = np.percentile(fwind.data, 25)
+                    # now for a more refined fit. First extract fit Windat
+                    fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
-                # refine the Aperture position by fitting the profile
-                try:
-                    (sky, height, x, y, fwhm, beta), epars, \
-                        (X, Y, message) = hcam.combFit(
-                            fwind, method, sky, peak-sky,
-                            x, y, fpar.fwhm, fwhm_min, False,
-                            fpar.beta, read, gain
-                        )
+                    # crude estimate of sky background
+                    sky = np.percentile(fwind.data, 25)
 
-                    print('Targ {:d}: {:s}'.format(fpar.ntarg,message))
+                    # refine the Aperture position by fitting the profile
+                    try:
+                        (sky, height, x, y, fwhm, beta), epars, \
+                            (X, Y, message) = hcam.combFit(
+                                fwind, method, sky, peak-sky,
+                                x, y, fpar.fwhm, fwhm_min, False,
+                                fpar.beta, read, gain
+                            )
 
-                    if peak > thresh:
-                        # update some initial parameters for next time
-                        if method == 'g':
-                            fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
-                        elif method == 'm':
-                            fpar.x, fpar.y, fpar.fwhm, fpar.beta = x, y, fwhm, beta
+                        print('Targ {:d}: {:s}'.format(fpar.ntarg,message))
 
-                        # plot values versus radial distance
-                        R = np.sqrt((X-x)**2+(Y-y)**2)
-                        fdev.select()
-                        vmin, vmax = fwind.min(), fwind.max()
-                        range = vmax-vmin
-                        pgeras()
-                        pgvstd()
-                        pgswin( 0, R.max(), vmin-0.05*range, vmax+0.05*range)
-                        pgsci(4)
-                        pgbox('bcnst',0,0,'bcnst',0,0)
-                        pgsci(1)
-                        pgpt(R.flat, fwind.data.flat, 1)
+                        if peak > thresh:
+                            # update some initial parameters for next time
+                            if method == 'g':
+                                fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
+                            elif method == 'm':
+                                fpar.x, fpar.y, fpar.fwhm, fpar.beta = x, y, fwhm, beta
 
-                        # line fit
-                        pgsci(3)
-                        r = np.linspace(0,R.max(),200)
-                        if method == 'g':
-                            f = sky+peak*np.exp(-4*np.log(2)*(r/fwhm)**2)
-                        elif method == 'm':
-                            alpha = 4*(2**(1/beta)-1)/fwhm**2
-                            f = sky+peak/(1+alpha*r**2)**beta
-                        pgline(r,f)
+                            # plot values versus radial distance
+                            R = np.sqrt((X-x)**2+(Y-y)**2)
+                            fdev.select()
+                            vmin, vmax = fwind.min(), fwind.max()
+                            range = vmax-vmin
+                            pgeras()
+                            pgvstd()
+                            pgswin( 0, R.max(), vmin-0.05*range, vmax+0.05*range)
+                            pgsci(4)
+                            pgbox('bcnst',0,0,'bcnst',0,0)
+                            pgsci(1)
+                            pgpt(R.flat, fwind.data.flat, 1)
 
-                        # back to the image to plot circle of radius FWHM
-                        imdev.select()
-                        pgsci(3)
-                        pgcirc(x,y,fwhm)
+                            # line fit
+                            pgsci(3)
+                            r = np.linspace(0,R.max(),200)
+                            if method == 'g':
+                                f = sky+peak*np.exp(-4*np.log(2)*(r/fwhm)**2)
+                            elif method == 'm':
+                                alpha = 4*(2**(1/beta)-1)/fwhm**2
+                                f = sky+peak/(1+alpha*r**2)**beta
+                            pgline(r,f)
 
-                    else:
-                        print('  *** below detection threshold; position & FWHM will not updated')
+                            # back to the image to plot circle of radius FWHM
+                            imdev.select()
+                            pgsci(3)
+                            pgcirc(x,y,fwhm)
+
+                        else:
+                            print('  *** below detection threshold; position & FWHM will not updated')
+                            pgsci(2)
+
+                        # plot location on image as a cross
+                        pgpt1(x, y, 5)
+
+                    except hcam.HipercamError:
+                        print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
                         pgsci(2)
-
-                    # plot location on image as a cross
-                    pgpt1(x, y, 5)
-
-                except hcam.HipercamError:
-                    print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
-                    pgsci(2)
 
 # From here is support code not visible outside
 
