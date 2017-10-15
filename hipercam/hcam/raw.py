@@ -26,8 +26,8 @@ from .herrors import *
 __all__ = ['Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT']
 
 # Set the URL of the FileServer from the environment or default to localhost.
-URL = os.environ['HIPERCAM_DEFAULT_URL'] if 'HIPERCAM_DEFAULT_URL' in os.environ else \
-      'ws://localhost:8007/'
+URL = 'ws://{:s}'.format(os.environ['HIPERCAM_DEFAULT_URL']) \
+      if 'HIPERCAM_DEFAULT_URL' in os.environ else 'ws://localhost:8007/'
 
 # FITS offset to convert from signed to unsigned 16-bit ints and vice versa
 BZERO = (1 << 15)
