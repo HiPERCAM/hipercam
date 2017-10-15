@@ -39,7 +39,6 @@ CIS = (
     (0,0.5,0.5),  # 7 -- turquoise
     )
 
-
 def add_extension(fname, ext):
     """Add extension ext to a file name if it is not already there, and returns
     the revised name
