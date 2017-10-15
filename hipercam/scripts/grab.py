@@ -23,12 +23,16 @@ def grab(args=None):
 
     Arguments::
 
-      source : (string)
-         's' = server, 'l' = local
+        source  : (string) [hidden]
+           Data source, four options::
 
-      inst   : (string) [hidden]
-         Instrument involved. Two choices, 'u' for ULTRCAM or ULTRASPEC, 'h'
-         for HiPERCAM. This is needed because of the different formats.
+               'hs' : HiPERCAM server
+               'hl' : local HiPERCAM FITS file
+               'us' : ULTRACAM server
+               'ul' : local ULTRACAM .xml/.dat files
+
+           'hf' useful when looking at a set of frames generated
+           by 'grab' or converted from some foreign data format.
 
       run    : (string)
          run name to access
@@ -42,6 +46,12 @@ def grab(args=None):
 
       last   : (int)
          Last frame to access, 0 for the lot
+
+      twait  : (float) [hidden]
+         time to wait between attempts to find a new exposure, seconds.
+
+      tmax  : (float) [hidden]
+         maximum time to wait between attempts to find a new exposure, seconds.
 
       bias   : (string)
          Name of bias frame to subtract, 'none' to ignore.
@@ -70,25 +80,29 @@ def grab(args=None):
 
         # register parameters
         cl.register('source', Cline.LOCAL, Cline.HIDE)
-        cl.register('inst', Cline.GLOBAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
+        cl.register('twait', Cline.LOCAL, Cline.HIDE)
+        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('dtype', Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
-        source = cl.get_value(
-            'source', 'data source [s(erver), l(ocal)]',
-            'l', lvals=('s','l')
-        )
+        source = cl.get_value('source', 'data source [hs, hl, us, ul]',
+                              'hl', lvals=('hs','hl','us','ul'))
 
-        inst = cl.get_value(
-            'inst', 'instrument used [h(ipercam), u(ltracam/spec)]',
-            'h', lvals=('h','u')
-        )
+        # set some flags
+        server_or_local = source.endswith('s') or source.endswith('l')
+        is_file_list = False
+        server_on = source.endswith('s')
 
+        # distinguish between the instruments HiPERCAM or
+        # ULTRA(CAM/SPEC)
+        instrument = 'HIPER' if source.startswith('h') else 'ULTRA'
+
+        # OK, more inputs
         run = cl.get_value('run', 'run name', 'run005')
 
         ndigit = cl.get_value(
@@ -99,6 +113,11 @@ def grab(args=None):
         if last < first and last != 0:
             sys.stderr.write('last must be >= first or 0')
             sys.exit(1)
+
+        twait = cl.get_value(
+            'twait', 'time to wait for a new frame [secs]', 1., 0.)
+        tmax = cl.get_value(
+            'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
 
         bias = cl.get_value(
             'bias', "bias frame ['none' to ignore]",
@@ -113,20 +132,14 @@ def grab(args=None):
             'f', lvals=('r','f','i')
         )
 
-    # Now the actual work. First set up the arguments for data_source
-    server = source == 's'
-    flist = None
-    if inst == 'u':
-        instrument = 'ULTRA'
-    elif inst == 'h':
-        instrument = 'HIPER'
+    # Now the actual work.
 
     # strip off extensions
     if run.endswith(hcam.HRAW):
         run = run[:run.find(hcam.HRAW)]
 
     # Finally, we can go
-    with hcam.data_source(instrument, run, flist, server, first) as spool:
+    with hcam.data_source(instrument, run, is_file_list, server_on, first) as spool:
         nframe = first
         root = os.path.basename(run)
         for frame in spool:
