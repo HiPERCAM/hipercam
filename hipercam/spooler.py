@@ -5,6 +5,7 @@ standardised manner.
 
 """
 
+import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 
@@ -14,8 +15,11 @@ from . import ucam
 from . import hcam
 from . import core
 
-__all__ = ('SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
-           'UcamDiskSpool', 'HcamListSpool', 'get_ccd_pars')
+__all__ = (
+    'SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
+    'UcamDiskSpool', 'HcamListSpool', 'get_ccd_pars',
+    'hang_about'
+)
 
 def rhcam(fname):
     """Reads a HiPERCAM file containing either CCD or MCCD data and returns one or
@@ -338,3 +342,75 @@ def get_ccd_pars(inst, resource, flist):
                     ('5',(hcam.HCM_NXTOT, hcam.HCM_NYTOT))
                     )
                 )
+
+def hang_about(mccd, twait, tmax, total_time):
+    """
+    Carries out some standard actions when we loop through
+    frames which are common to rtplot, reduce and grab. This
+    is a case of seeing whether we want to try again for a
+    frame that may have arrived while we wait.
+
+    Arguments::
+
+         mccd   : (MCCD | none)
+            the frame just read. If None, that is a trigger to wait
+            a bit before trying again
+
+         twait  : (float)
+            how long to wait each time, seconds
+
+         tmax   : (float)
+            maximum time to wait, seconds
+
+         total_time : (float)
+            total time waited. Should be initialised to zero
+
+    Returns: (give_up, try_again, total_time)
+
+       give_up == True   ==> stop trying
+       try_again == True ==> have another go
+
+    If both are False, that indicates success and we carry on.
+    """
+
+    if mccd is None:
+
+        if tmax < total_time + twait:
+            print(
+                ' ** last frame unchanged for {:.1f} sec.'
+                ' cf tmax = {:.1f}; will wait no more'.format(
+                    total_time, tmax)
+            )
+            give_up, try_again = True, False
+
+        else:
+
+            if total_time == 0:
+                # add a blank line the first time round
+                print()
+
+            print(
+                ' ** last frame unchanged for {:.1f} sec.'
+                ' cf tmax = {:.1f}; will wait another'
+                ' twait = {:.1f} sec.'.format(
+                    total_time, tmax, twait)
+            )
+
+            # pause
+            time.sleep(twait)
+
+            # increment the waiting time
+            total_time += twait
+
+            # have another go
+            give_up, try_gain = False, True
+
+    else:
+        # we have a frame, reset the total time waited
+        # set flags to show we don't want to give up or
+        # try again
+        total_time = 0
+        give_up, try_again = False, False
+
+    return (give_up, try_again, total_time)
+
