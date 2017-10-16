@@ -243,22 +243,24 @@ def reduce(args=None):
 
     # open the log file
     with open(log,'w') as logfile:
-        # start by writing a header.
+        # start by writing headers (long section)
+
+        # first, a general description
         logfile.write("""#
-# This is a logfile produced by the HiPERCAM pipeline. It consists of one
-# line per reduced CCD per exposure. Each line contains all the information
-# from all apertures defined for the CCD. The column names are defined just
-# before the data below. Before these are given, here are the command-line
-# inputs used for this reduction:
+# This is a logfile produced by the HiPERCAM pipeline. It consists of one line
+# per reduced CCD per exposure. Each line contains all the information from all
+# apertures defined for the CCD. The column names are defined just before the
+# data below. Before these are given, here are the command-line inputs used for
+# this reduction:
 #
 """)
-        # list the command-line inputs to the logfile
+        # second, list the command-line inputs to the logfile
         cl.list(logfile)
 
-        # then list the reduce file
+        # third, list the reduce file
         logfile.write("""#
-# and here is a minimal version of the reduce file used ['rfile' above]
-# with all between-line comments removed for compactness:
+# and here is a minimal version of the reduce file used ['rfile' above] with
+# all between-line comments removed for compactness:
 #
 """)
 
@@ -282,9 +284,10 @@ def reduce(args=None):
                     elif not skip:
                         logfile.write('#   {:s}'.format(line))
 
+        # fourth, write the apertures
         logfile.write("""#
-# Next here is the aperture file used in JSON-style format that
-# (without comments) is readable by setaper and reduce:
+# Next here is the aperture file used in JSON-style format that (without
+# the initial comment hashes) is readable by setaper and reduce:
 #
 """)
         # convert aperture file to JSON-style string, split line by line,
@@ -293,60 +296,129 @@ def reduce(args=None):
         for line in lines:
             logfile.write(line)
 
-        # finally the column names
-        logfile.write('#\n# Column names:\n#\n')
-        logfile.write('# frame mjd \n')
+        # fifth the column names for each CCD which has any
+        # apertures
+        logfile.write("""#
+# Now follow column name definitions for each CCD. These include all apertures
+# of the CCD. Since there are 15 items stored per aperture and each column name
+# is built from the item name followed by an underscore and finally the aperture
+# name, thus these definition can be very long and won't be very readable. Each
+# line starts with the '<CCD label> = '. The various items have the following
+# meanings. First the generic ones at the start of the line:
+#
+#    CCD    : CCD label
+#    nframe : integer frame number
+#    MJD    : MJD at the centre of the exposure
+#    MJDok  : flag to say whether the MJD is thought reliable
+#    Exptim : exposure time, seconds
+#
+# Then a set of 15 items that is repeated for each aperture and will
+# have '_<apnam>' added to them. The 'errors' are RMS uncertainties, and
+# may often be set to -1 if no direct measurement is made. This can happen
+# through problems that occur or because an aperture is linked for instance.
+#
+#    x       : X-position
+#    xe      : X-position error
+#    y       : Y-position
+#    ye      : Y-position error
+#    fwhm    : FWHM
+#    fwhme   : FWHM error
+#    beta    : Moffat exponent
+#    betae   : Moffat exponent error
+#    counts  : sky-subtracted counts in aperture
+#    countse : error in       "          "
+#    sky     : sky level per pixel
+#    skye    : sky level 
+#    nsky    : number of contributing sky pixels (those not rejected)
+#    nrej    : number of sky pixels rejected
+#    flag    : status flag, 0 = all OK.
+#
+# Start of column name definitions:
+#
+""")
 
-        # get frames
+        for cnam, ccdaper in rfile.aper.items():
+            if len(ccdaper) == 0:
+                # nothing will be written for CCDs without
+                # apertures
+                continue
+            cnames = '# {:s} = CCD nframe MJD MJDok Exptim '.format(cnam)
+            for apnam in ccdaper:
+                cnames += 'x_{0:s} xe_{0:s} y_{0:s} ye_{0:s} ' \
+                          'fwhm_{0:s} fwhme_{0:s} beta_{0:s} betae_{0:s} ' \
+                          'counts_{0:s} countse_{0:s} sky_{0:s} skye_{0:s} ' \
+                          'nsky_{0:s} nrej_{0:s} flag_{0:s} '.format(
+                              apnam)
+            logfile.write(cnames + '\n')
+
+        # now the datatypes for building into structured arrays
+        logfile.write("""#
+# End of column name definitions
+#
+# Now follow a similar series of datatypes which are designed to be used to
+# build a dtype for each CCD to allow them to read into numpy structured
+# arrays.
+#
+# Start of data type definitions:
+#
+""")
+        atypes = 'f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 i4 i4 u4 '
+        for cnam, ccdaper in rfile.aper.items():
+            if len(ccdaper) == 0:
+                # nothing will be written for CCDs without
+                # apertures
+                continue
+
+            logfile.write(
+                '# {:s} = s i4 f8 ? f4 {:s}\n'.format(
+                    cnam,len(ccdaper)*atypes)
+            )
+
+        logfile.write("""#
+# End of data type definitions
+#
+""")
+
+        # that's it for the headers!
+
+
+        ##############################################
+        #
+        # Finally, start winding through the frames
+        #
         with hcam.data_source(
                 instrument, run, is_file_list, server_on, first) as spool:
 
             # 'spool' is an iterable source of MCCDs
             for nf, mccd in enumerate(spool):
 
-                # None objects are returned from failed server reads. This could
-                # be because the file is still exposing, so we hang about.
-                if mccd is None:
+                # Handle the waiting game ...
+                give_up, try_again, total_time = hcam.hang_about(
+                    mccd, twait, tmax, total_time
+                )
 
-                    if tmax < total_time + twait:
-                        print(
-                            ' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait no more'.format(
-                                total_time, tmax)
-                        )
-                        print('reduce stopped.')
-                        break
-
-                    if total_time == 0:
-                        # separate from frame message
-                        print()
-
-                    print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait another twait = {:.1f} sec.'.format(
-                        total_time, tmax, twait
-                    ))
-
-                    # pause
-                    time.sleep(twait)
-                    total_time += twait
-
-                    # have another go
+                if give_up:
+                    print('reduce stopped')
+                    break
+                elif try_again:
                     continue
 
-                else:
-                    # reset the total time waited when we have a success
-                    total_time = 0
-
                 # indicate progress
-                if is_file_list:
-                    print('File {:d}: '.format(nf+1))
+                if 'NFRAME' in mccd.head:
+                    nframe = mccd.head['NFRAME']
                 else:
-                    print('Frame {:d}: {:s} '.format(
-                        mccd.head['NFRAME'], mccd.head['TIMSTAMP']))
+                    nframe = nf + 1
+
+                print('Frame {:d}: {:s} '.format(
+                    nframe, mccd.head['TIMSTAMP']))
 
                 if nf == 0 and rfile['calibration']['crop']:
                     # This is the very first data frame read in. We need to
                     # trim the calibrations, on the assumption that all data
                     # frames will have the same format
                     rfile.crop(mccd)
+                    print(repr(mccd.head))
+                    tzero = mccd.head['MJDUTC']
 
                 # container for the results from each CCD
                 results = {}
@@ -408,7 +480,48 @@ def reduce(args=None):
                         read, gain, store, mfwhm
                     )
 
-                t = nf / 10 # temporary test
+                # write out results to the log file
+                logfile.write('#\n')
+                for cnam in mccd:
+                    # get the apertures
+                    ccdaper = rfile.aper[cnam]
+                    if len(ccdaper) == 0:
+                        continue
+
+                    # get time and flag
+                    mjd = mccd[cnam].head['MJDUTC']
+                    mjdok = mccd[cnam].head['GOODTIM']
+                    exptim = mccd[cnam].head['EXPTIME']
+
+                    # write generic data
+                    logfile.write(
+                        '{:s} {:d} {:13.7f} {:b} {:.5f} '.format(
+                            cnam, nframe, mjd, mjdok, exptim)
+                    )
+
+                    # now for data per aperture
+                    for apnam in rfile.aper[cnam]:
+                        r = results[cnam][apnam]
+                        logfile.write(
+                            '{:.3f} {:.3f} {:.3f} {:.3f} ' \
+                            '{:.2f} {:.2f} {:.2f} {:.2f} ' \
+                            '{:.1f} {:.1f} {:.2f} {:.2f} ' \
+                            '{:d} {:d} {:d} '.format(
+                                r['x'], r['xe'], r['y'], r['ye'],
+                                r['fwhm'], r['fwhme'], r['beta'], r['betae'],
+                                r['counts'], r['countse'], r['sky'], r['skye'],
+                                r['nsky'], r['nrej'], r['flag']
+                            )
+                        )
+                    logfile.write('\n')
+
+                # make sure we have complete lines
+                logfile.flush()
+
+                # now the plotting sections
+
+                # time in minutes since start
+                t = hcam.DMINS*(mccd.head['MJDUTC']-tzero)
 
                 # track the maximum time
                 tmax = None
@@ -986,9 +1099,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
 
                     # store some stuff for next time
                     store[apnam] = {
-                        'ex' : ex, 'ey' : ey,
-                        'fwhm' : fwhm, 'efwhm' : efwhm,
-                        'beta' : beta, 'ebeta' : ebeta,
+                        'xe' : ex, 'ye' : ey,
+                        'fwhm' : fwhm, 'fwhme' : efwhm,
+                        'beta' : beta, 'betae' : ebeta,
                         'dx' : x-aper.x, 'dy' : y-aper.y
                     }
 
@@ -1014,9 +1127,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                           file=sys.stderr)
 
                     store[apnam] = {
-                        'ex' : -1, 'ey' : -1,
-                        'fwhm' : 0, 'efwhm' : -1,
-                        'beta' : 0, 'ebeta' : -1,
+                        'xe' : -1, 'ye' : -1,
+                        'fwhm' : 0, 'fwhme' : -1,
+                        'beta' : 0, 'betae' : -1,
                         'dx' : 0, 'dy' : 0
                     }
 
@@ -1024,9 +1137,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                 print('CCD {:s}, reference aperture {:s}, fit failed'.format(cnam, apnam), file=sys.stderr)
 
                 store[apnam] = {
-                    'ex' : -1, 'ey' : -1,
-                    'fwhm' : 0, 'efwhm' : -1,
-                    'beta' : 0, 'ebeta' : -1,
+                    'xe' : -1, 'ye' : -1,
+                    'fwhm' : 0, 'fwhme' : -1,
+                    'beta' : 0, 'betae' : -1,
                     'dx' : 0, 'dy' : 0
                 }
 
@@ -1048,7 +1161,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
     # by the mean shift.
     for apnam, aper in ccdaper.items():
         if aper.ref:
-            if store['apnam']['efwhm'] <= 0.:
+            if store['apnam']['fwhme'] <= 0.:
                 # Move failed reference fit to the mean shift
                 aper.x += xshift
                 aper.y += yshift
@@ -1087,12 +1200,12 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
             sky = np.percentile(fwind.data, 25)
 
             # get some parameters from previous run where possible
-            if apnam in store and store[apnam]['efwhm'] > 0.:
+            if apnam in store and store[apnam]['fwhme'] > 0.:
                 fit_fwhm = store[apnam]['fwhm']
             else:
                 fit_fwhm = apsec['fit_fwhm']
 
-            if apnam in store and store[apnam]['ebeta'] > 0.:
+            if apnam in store and store[apnam]['betae'] > 0.:
                 fit_beta = store[apnam]['beta']
             else:
                 fit_beta = apsec['fit_beta']
@@ -1111,9 +1224,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                     # store some stuff for next time and for passing onto
                     # next routine
                     store[apnam] = {
-                        'ex' : ex, 'ey' : ey,
-                        'fwhm' : fwhm, 'efwhm' : efwhm,
-                        'beta' : beta, 'ebeta' : ebeta,
+                        'xe' : ex, 'ye' : ey,
+                        'fwhm' : fwhm, 'fwhme' : efwhm,
+                        'beta' : beta, 'betae' : ebeta,
                         'dx' : x-aper.x, 'dy' : y-aper.y
                     }
                     aper.x = x
@@ -1139,9 +1252,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                     aper.y += yshift
 
                     store[apnam] = {
-                        'ex' : -1, 'ey' : -1,
-                        'fwhm' : 0, 'efwhm' : -1,
-                        'beta' : 0, 'ebeta' : -1,
+                        'xe' : -1, 'ye' : -1,
+                        'fwhm' : 0, 'fwhme' : -1,
+                        'beta' : 0, 'betae' : -1,
                         'dx' : xshift, 'dy' : yshift
                     }
 
@@ -1154,9 +1267,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                 aper.y += yshift
 
                 store[apnam] = {
-                    'ex' : -1, 'ey' : -1,
-                    'fwhm' : 0, 'efwhm' : -1,
-                    'beta' : 0, 'ebeta' : -1,
+                    'xe' : -1, 'ye' : -1,
+                    'fwhm' : 0, 'fwhme' : -1,
+                    'beta' : 0, 'betae' : -1,
                     'dx' : xshift, 'dy' : yshift
                 }
 
@@ -1168,9 +1281,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
             aper.y += store[aper.link]['dy']
 
             store[apnam] = {
-                'ex' : -1, 'ey' : -1,
-                'fwhm' : 0, 'efwhm' : -1,
-                'beta' : 0, 'ebeta' : -1,
+                'xe' : -1, 'ye' : -1,
+                'fwhm' : 0, 'fwhme' : -1,
+                'beta' : 0, 'betae' : -1,
                 'dx' : store[aper.link]['dx'],
                 'dy' : store[aper.link]['dy']
             }
@@ -1235,12 +1348,12 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
                 info = store[apnam]
                 results[apnam] = \
                     {
-                    'x' : aper.x, 'ex' : info['ex'],
-                    'y' : aper.y, 'ey' : info['ey'],
-                    'fwhm' : info['fwhm'], 'efwhm' : info['efwhm'],
-                    'beta' : info['beta'], 'ebeta' : info['ebeta'],
-                    'counts' : 0., 'ecounts' : -1, 
-                    'sky' : 0., 'esky' : 0., 'nsky' : 0, 'nrej' : 0,
+                    'x' : aper.x, 'xe' : info['xe'],
+                    'y' : aper.y, 'ye' : info['ye'],
+                    'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
+                    'beta' : info['beta'], 'betae' : info['betae'],
+                    'counts' : 0., 'countse' : -1, 
+                    'sky' : 0., 'skye' : 0., 'nsky' : 0, 'nrej' : 0,
                     'flag' : flag
                     }
             return results
@@ -1392,12 +1505,12 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
 
         results[apnam] = \
         {
-            'x' : aper.x, 'ex' : info['ex'],
-            'y' : aper.y, 'ey' : info['ey'],
-            'fwhm' : info['fwhm'], 'efwhm' : info['efwhm'],
-            'beta' : info['beta'], 'ebeta' : info['ebeta'],
-            'counts' : counts, 'ecounts' : ecounts, 
-            'sky' : slevel, 'esky' : serror, 'nsky' : nsky, 'nrej' : nrej,
+            'x' : aper.x, 'xe' : info['xe'],
+            'y' : aper.y, 'ye' : info['ye'],
+            'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
+            'beta' : info['beta'], 'betae' : info['betae'],
+            'counts' : counts, 'countse' : ecounts, 
+            'sky' : slevel, 'skye' : serror, 'nsky' : nsky, 'nrej' : nrej,
             'flag' : flag
             }
 
@@ -1506,7 +1619,8 @@ def plotLight(panel, t, results, rfile, lbuffer):
     if ymin > ymax:
         ymin, ymax = ymax, ymin
 
-    # add points to the plot and buffers, tracking the minimum and maximum values
+    # add points to the plot and buffers, tracking the minimum and maximum
+    # values
     tmax = fmin = fmax = None
     for lc in lbuffer:
         f = lc.add_point(t, results)
@@ -1632,14 +1746,14 @@ class LightCurve:
 
         targ = res[self.targ]
         ft = targ['counts']
-        fte = targ['ecounts']
+        fte = targ['countse']
 
         if fte > 0:
 
             if self.comp != '!':
                 comp = res[self.comp]
                 fc = comp['counts']
-                fce = comp['ecounts']
+                fce = comp['countse']
 
                 if fc > 0:
                     if fce > 0.:
@@ -1711,7 +1825,7 @@ class Transmission:
 
         targ = res[self.targ]
         f = targ['counts']
-        fe = targ['ecounts']
+        fe = targ['countse']
 
         if f <= 0 or fe <= 0:
             # skip junk
@@ -1768,7 +1882,7 @@ class Seeing:
 
         targ = res[self.targ]
         f = targ['fwhm']
-        fe = targ['efwhm']
+        fe = targ['fwhme']
 
         if f <= 0 or fe <= 0:
             # skip junk
