@@ -9,7 +9,7 @@ import numpy as np
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
     'add_extension', 'HipercamError', 'HipercamWarning', 'CIS',
-    'DMINS', 'LOG'
+    'DMINS', 'LOG', 'sub_extension',
 )
 
 # Constants for general use
@@ -47,6 +47,16 @@ def add_extension(fname, ext):
     """
     if len(ext) and not fname.endswith(ext):
         return '{}{}'.format(fname, ext)
+    else:
+        return fname
+
+def sub_extension(fname, ext):
+    """Subtracts extension ext from a file name if it is present, and returns
+    the revised name
+
+    """
+    if fname.endswith(ext):
+        return fname[:-len(ext)]
     else:
         return fname
 

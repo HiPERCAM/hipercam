@@ -11,7 +11,8 @@ documentation on hipercam.cline for how to supply the arguments on the command
 line.
 """
 
-from .carith import carith
+from .arith import add, div, mul, sub
+from .carith import cadd, cdiv, cmul, csub
 from .combine import combine
 from .grab import grab
 from .hplot import hplot
@@ -22,7 +23,8 @@ from .setaper import setaper
 from .stats import stats
 
 __all__ = [
-    'carith', 'combine', 'grab', 'hplot',
-    'makedata', 'makefield', 'reduce',
-    'rtplot', 'setaper', 'stats'
+    'add', 'div', 'mul', 'sub',
+    'cadd', 'cdiv', 'cmul', 'csub', 
+    'combine', 'grab', 'hplot', 'makedata', 'makefield', 
+    'reduce', 'rtplot', 'setaper', 'stats',
     ]
