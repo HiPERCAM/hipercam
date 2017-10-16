@@ -921,25 +921,30 @@ class Rdata (Rhead):
 
             ccd1 = CCD(wins1, self.nxmax, self.nymax, rhead)
 
+            # green
             ghead = rhead.copy()
             ghead['CCDNAME'] = 'Green CCD'
             ccd2 = CCD(wins2, self.nxmax, self.nymax, ghead)
 
+            # transfer red/green time info to the general header
+            self['TIMSTAMP'] = (tstamp.isot,
+                                'Red/Green time at mid exposure, UTC')
+            self['MJDUTC'] = (time.mjd,
+                              'Red/Green time at mid exposure, UTC')
+            self['GOODTIM'] = (time.good,'flag indicating reliability of time')
+            self['EXPTIME'] = (time.expose, 'Exposure time (sec)')
+
+            # blue
             bhead = rhead.copy()
             bhead['CCDNAME'] = 'Blue CCD'
             tstamp = Time(blueTime.mjd, format='mjd')
-            rhead['TIMSTAMP'] = (tstamp.isot, 'Time at mid exposure, UTC')
+            bhead['TIMSTAMP'] = (tstamp.isot, 'Time at mid exposure, UTC')
             bhead['MJDUTC'] = (blueTime.mjd, 'MJD(UTC) at centre of exposure')
             bhead['EXPTIME'] = (blueTime.expose, 'Exposure time (sec)')
             bhead['GOODTIM'] = (blueTime.good,'Is MJDUTC reliable?')
             bhead['MJDOKWHY'] = blueTime.reason
             bhead['DSTATUS'] = (not badBlue,'blue data status flag')
             ccd3 = CCD(wins3, self.nxmax, self.nymax, bhead)
-
-            # transfer red/green time info to the general header
-            self['TIMSTAMP'] = (tstamp.isot, 'Red/Green time at mid exposure, UTC')
-            self['GOODTIM'] = (time.good,'flag indicating reliability of time')
-            self['EXPTIME'] = (time.expose, 'Exposure time (sec)')
 
             # Finally, return an MCCD
             return MCCD([('1',ccd1),('2',ccd2),('3',ccd3)], self)
