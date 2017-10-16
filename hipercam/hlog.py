@@ -28,6 +28,13 @@ from . import utils
 
 __all__ = ('Hlog', 'Tseries')
 
+# Bit masks
+NO_FWHM         = 0b1     # even though variable apertures are being used
+NO_SKY          = 0b10    # no sky pixels
+SKY_OFF_EDGE    = 0b100   # sky aperture off edge of window
+TARGET_OFF_EDGE = 0b1000  # target aperture off edge of window
+ANY = NO_FWHM | NO_SKY | SKY_OFF_EDGE | TARGET_OFF_EDGE
+
 class Hlog(dict):
     """
     Class to represent a HiPERCAM log as produced by reduce.
@@ -149,8 +156,7 @@ class Tseries:
         self.ye = ye
         self.mask = mask
 
-
-    def mplot(self, axes, colour='b', fmt='.', mask=0b111111111, capsize=0):
+    def mplot(self, axes, colour='b', fmt='.', mask=ANY, capsize=0):
         """
         Plots a Tseries to a matplotlib Axes instance, only
         plotting points without any of the same bits set as
@@ -175,8 +181,6 @@ class Tseries:
         or another Tseries or a compatible numpy array. If it is a Tseries,
         the bit masks are bitwise_or-ed together. If any input errors are
         negative, the equivalent output errors are set = -1.
-
-        See 'divide' for a version with more control.
         """
         if isinstance(other, Tseries):
             if not all(self.t == other.t):
@@ -197,6 +201,96 @@ class Tseries:
             ye = np.empty_like(y)
             ok = (self.ye > 0)
             ye[ok] = self.ye[ok] / other
+            ye[~ok] = -1
+            mask = self.mask.copy()
+
+        return Tseries(self.t, y, ye, mask)
+
+    def __mul__(self, other):
+        """Multiplies the Tseries by 'other' returning the result as another
+        Tseries. Propagates errors where possible. 'other' can be a constant
+        or another Tseries or a compatible numpy array. If it is a Tseries,
+        the bit masks are bitwise_or-ed together. If any input errors are
+        negative, the equivalent output errors are set = -1.
+        """
+        if isinstance(other, Tseries):
+            if not all(self.t == other.t):
+                raise ValueError('input times do not match')
+
+            y = self.y * other.y
+            ye = np.empty_like(y)
+            ok = (self.ye > 0) & (other.ye > 0)
+            ye[ok] = np.sqrt(
+                (other.y[ok]*self.ye[ok])**2 +
+                (self.ye[ok]*other.y[ok])**2
+            )
+            ye[~ok] = -1
+            mask = np.bitwise_or(self.mask, other.mask)
+
+        else:
+            # multiplication by a constant or an array of constants
+            y = self.y * other
+            ye = np.empty_like(y)
+            ok = (self.ye > 0)
+            ye[ok] = self.ye[ok] * other
+            ye[~ok] = -1
+            mask = self.mask.copy()
+
+        return Tseries(self.t, y, ye, mask)
+
+    def __add__(self, other):
+        """Add 'other' to the Tseries returning the result as another
+        Tseries. Propagates errors where possible. 'other' can be a constant
+        or another Tseries or a compatible numpy array. If it is a Tseries,
+        the bit masks are bitwise_or-ed together. If any input errors are
+        negative, the equivalent output errors are set = -1.
+        """
+        if isinstance(other, Tseries):
+            if not all(self.t == other.t):
+                raise ValueError('input times do not match')
+
+            y = self.y + other.y
+            ye = np.empty_like(y)
+            ok = (self.ye > 0) & (other.ye > 0)
+            ye[ok] = np.sqrt(self.ye[ok]**2 + other.y[ok]**2)
+            ye[~ok] = -1
+            mask = np.bitwise_or(self.mask, other.mask)
+
+        else:
+            # addition of a constant or an array of constants
+            y = self.y + other
+            ye = np.empty_like(y)
+            ok = (self.ye > 0)
+            ye[ok] = self.ye[ok]
+            ye[~ok] = -1
+            mask = self.mask.copy()
+
+        return Tseries(self.t, y, ye, mask)
+
+    def __sub__(self, other):
+        """Subtracts 'other' from the Tseries returning the result as another
+        Tseries. Propagates errors where possible. 'other' can be a constant
+        or another Tseries or a compatible numpy array. If it is a Tseries,
+        the bit masks are bitwise_or-ed together. If any input errors are
+        negative, the equivalent output errors are set = -1.
+        """
+        if isinstance(other, Tseries):
+            if not all(self.t == other.t):
+                raise ValueError('input times do not match')
+
+            y = self.y - other.y
+            ye = np.empty_like(y)
+            ok = (self.ye > 0) & (other.ye > 0)
+            ye[ok] = np.sqrt(self.ye[ok]**2 + other.y[ok]**2)
+            ye[~ok] = -1
+            mask = np.bitwise_or(self.mask, other.mask)
+
+        else:
+            # subtraction of a constant or an array of constants
+            y = self.y - other
+            ye = np.empty_like(y)
+            ok = (self.ye > 0)
+            ye[ok] = self.ye[ok]
             ye[~ok] = -1
             mask = self.mask.copy()
 
