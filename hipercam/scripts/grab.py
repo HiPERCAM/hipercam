@@ -145,50 +145,34 @@ def grab(args=None):
     root = os.path.basename(run)
 
     # Finally, we can go
-    with hcam.data_source(instrument, run, is_file_list, server_on, first) as spool:
+    with hcam.data_source(
+            instrument, run, is_file_list, server_on, first) as spool:
 
-        for frame in spool:
+        for mccd in spool:
 
-            # None objects are returned from failed server reads. This could
-            # be because the file is still exposing, so we hang about.
-            if frame is None:
+            # Handle the waiting game ...
+            give_up, try_again, total_time = hcam.hang_about(
+                mccd, twait, tmax, total_time
+            )
 
-                if tmax < total_time + twait:
-                    print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait no more'.format(total_time, tmax))
-                    print('grab stopped.')
-                    break
-
-                if total_time == 0:
-                    # separate from frame message
-                    print()
-
-                print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait another twait = {:.1f} sec.'.format(
-                        total_time, tmax, twait
-                        ))
-
-                # pause
-                time.sleep(twait)
-                total_time += twait
-
-                # have another go
+            if give_up:
+                print('grab stopped')
+                break
+            elif try_again:
                 continue
-
-            else:
-                # reset the total time waited when we have a success
-                total_time = 0
 
             # subtract bias
             if bias is not None:
-                frame -= bframe
+                mccd -= bframe
 
             if dtype == 'i':
-                frame.uint16()
+                mccd.uint16()
             elif dtype == 'f':
-                frame.float32()
+                mccd.float32()
 
             # write to disk
             fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
-            frame.wfits(fname,True)
+            mccd.wfits(fname,True)
 
             print('Written frame {:d} to {:s}'.format(nframe,fname))
             nframe += 1

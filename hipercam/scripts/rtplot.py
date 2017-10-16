@@ -404,38 +404,22 @@ def rtplot(args=None):
     first = True   # waiting for first valid frame with profit
 
     # plot images
-    with hcam.data_source(instrument, run, is_file_list, server_on, first) as spool:
+    with hcam.data_source(
+            instrument, run, is_file_list, server_on, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
         for n, mccd in enumerate(spool):
 
-            # None objects are returned from failed server reads. This could
-            # be because the file is still exposing, so we hang about.
-            if mccd is None:
+            # Handle the waiting game ...
+            give_up, try_again, total_time = hcam.hang_about(
+                mccd, twait, tmax, total_time
+            )
 
-                if tmax < total_time + twait:
-                    print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait no more'.format(total_time, tmax))
-                    print('rtplot stopped.')
-                    break
-
-                if total_time == 0:
-                    # separate from frame message
-                    print()
-
-                print(' ** last frame unchanged for {:.1f} sec. cf tmax = {:.1f}; will wait another twait = {:.1f} sec.'.format(
-                        total_time, tmax, twait
-                        ))
-
-                # pause
-                time.sleep(twait)
-                total_time += twait
-
-                # have another go
+            if give_up:
+                print('rtplot stopped')
+                break
+            elif try_again:
                 continue
-
-            else:
-                # reset the total time waited when we have a success
-                total_time = 0
 
             # indicate progress
             if is_file_list:
