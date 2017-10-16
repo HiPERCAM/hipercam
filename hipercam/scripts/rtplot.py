@@ -289,7 +289,7 @@ def rtplot(args=None):
                 nx = cl.get_value('nx', 'number of panels in X', 3, 1)
             else:
                 nx = 1
-        elif len(ccdinf) == 1:
+        else:
             nx = 1
             ccds = list(ccdinf.keys())
 
