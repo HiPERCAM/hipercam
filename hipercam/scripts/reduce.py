@@ -1315,7 +1315,8 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
     It returns the results as a dictionary keyed on the aperture label. Each
     entry returns a list:
 
-    [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, ecounts, sky, esky, nsky, nrej, flag]
+    [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, ecounts, sky, esky,
+    nsky, nrej, flag]
 
     flag = bitmask. If flag = 0, all is OK.
 
@@ -1326,9 +1327,14 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
 
     This code::
 
-       bset = flag & (1 << n)
+       >> bset = flag & (1 << n)
 
-    determines whether bit 'n' is set or not.
+    determines whether bit 'n' is set or not. See also the hlog sub-module
+    which sets explicit constants so that
+
+       >> bset = flag & hlog.NO_SKY
+
+    determines whether the no sky flag has been set.
     """
 
     # get the control parameters
