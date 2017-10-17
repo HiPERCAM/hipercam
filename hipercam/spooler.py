@@ -164,17 +164,21 @@ class HcamListSpool(SpoolerBase):
     a list of HiPERCAM .hcm files.
     """
 
-    def __init__(self, lname):
+    def __init__(self, lname, cnam=None):
         """Attaches the :class:`HcamListSpool` to a list of files
 
         Arguments::
 
            lname : (string)
-              Name of a list of HiPERCAM files. # at the start of a line is recognized
-              as a comment flag.
+              Name of a list of HiPERCAM files. # at the start of a line is
+              recognized as a comment flag.
 
+           cnam  : (string | None)
+              CCD label if you want to return individual CCDs rather than
+              MCCDs. This is used in 'combine' to save memory.
         """
         self._iter = open(lname)
+        self.cnam = cnam
 
     def __exit__(self, *args):
         self._iter.close()
@@ -185,7 +189,12 @@ class HcamListSpool(SpoolerBase):
                 break
         else:
             raise StopIteration
-        return ccd.MCCD.rfits(core.add_extension(fname.strip(), core.HCAM))
+        if self.cnam is None:
+            return ccd.MCCD.rfits(core.add_extension(fname.strip(), core.HCAM))
+        else:
+            return ccd.CCD.rfits(
+                core.add_extension(fname.strip(), core.HCAM), self.cnam
+            )
 
 class HcamServSpool(SpoolerBase):
 

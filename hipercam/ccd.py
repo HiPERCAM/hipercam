@@ -166,41 +166,48 @@ class CCD(Agroup):
         return hdul
 
     @classmethod
-    def rhdul(cls, hdul, multi=False):
-        """
-        Builds a :class:`CCD` or several :class:`CCD`s from an
-        :class:`HDUList`.  Given an :class:`HDUList` representing a single CCD
-        the header from the first HDU will be used to create the header for
-        the :class:`CCD`. The data from the remaining HDUs will be read into
-        the :class:`Windat`s that make up the CCD. Each data HDU will be
-        searched for a header parameter WINDOW to label the :class:`Windat`s,
-        but the routine will attempt to generate a sequential label if WINDOW
-        is not found. If the auto-generated label conflicts with one already
-        found, then a KeyError will be raised.
+    def rhdul(cls, hdul, multi=False, cnam=None):
+        """Builds a :class:`CCD` from an :class:`HDUList`. If multi=False and cnam is
+        None, given an :class:`HDUList` representing a single CCD, the header
+        from the first HDU will be used to create the header for the
+        :class:`CCD`. The data from the remaining HDUs will be read into the
+        :class:`Windat`s that make up the CCD. Each data HDU will be searched
+        for a header parameter WINDOW to label the :class:`Windat`s, but the
+        routine will attempt to generate a sequential label if WINDOW is not
+        found. If the auto-generated label conflicts with one already found,
+        then a KeyError will be raised.
 
-        The method can also run in a mode where the :class:`HDUList` is
-        assumed to contain several :class:`CCD`s. In this case each
-        :class:`CCD` comes in a series of continguous HDUs, starting with a
-        header-only one followed by the data windows, and all HDUs of a given
-        :class:`CCD` must be labelled with the keyword 'CCD' to allow the CCD
-        to be defined.
+        If multi=True, it is assumed that the file contains multiple CCDs in
+        MCCD format and then this routine acts as a generator returning the
+        CCDs one by one on successive calls.
+
+        If multi=False and cnam is not None, cnam is taken to be the label of a
+        CCD to be extracted from the :class:`HDUList` which may contain
+        multiple CCDs. It is assumed in this case that the CCD of interest has
+        a continguous set of HDUs all containing the keyword CCD set equal to
+        cnam. This allows individual CCDs to be read from hcm MCCD files.
 
         Arguments::
 
-          hdul : :class:`HDUList`
+          hdul  : :class:`HDUList`
                each ImageHDU will be read as sub-window of the :class:`CCD`
 
-          multi: (bool)
+          multi : (bool)
                if True, the routine will work as a generator, returning a
                :class:`CCD` each time a set of HDUs with identical header
                parameter 'CCD' has been found and processed.
+
+          cnam  : (None | string) [if multi=False]
+               if multi=False and cnam is not None, the routine will try to
+               find and return a :class:CCD built from a subset of HDUs that
+               matches cnam (keyword CCD is used)
 
         Returns::
 
           A :class:`CCD` if multi=False, or a series of (label, :class:`CCD`)
           2-element tuples if multi=True. In the latter case use as follows::
 
-            for label, ccd in MCCD.rhdul(hdul, True):
+            for label, ccd in CCD.rhdul(hdul, True):
                ... do something
 
         """
@@ -224,7 +231,7 @@ class CCD(Agroup):
                     nwin = 1
                     yield (ccd_label,ccd)
 
-            if first:
+            if first and (multi or cnam is None or cnam == head['CCD']):
                 # Extract header from first HDU (any data it might contain are
                 # ignored)
                 nxtot = head['NXTOT']
@@ -237,7 +244,7 @@ class CCD(Agroup):
                 main_head = head
                 first = False
 
-            else:
+            elif not first and (multi or cnam is None or cnam == head['CCD']):
 
                 # Except for the first HDU of a CCD, all should contain data,
                 # and for a single CCD, we assume all are part of the CCD.
@@ -249,10 +256,16 @@ class CCD(Agroup):
                     label = str(nwin)
                 winds[label] = Windat.rhdu(hdu)
 
+            elif not first and not multi and cnam is not None:
+                # have encountered an HDU with a mis-matching label
+                # since we assume each CCD is a continguous block,
+                # we stop
+                break
+
             # step the window counter
             nwin += 1
 
-        # Finishing up having gone through all CCDs.
+        # Finish up
         if multi:
             yield (ccd_label, cls(winds, nxtot, nytot, main_head))
         else:
@@ -295,13 +308,19 @@ class CCD(Agroup):
         hdul.writeto(fname,overwrite=overwrite)
 
     @classmethod
-    def rfits(cls, fname):
+    def rfits(cls, fname, cnam=None):
         """Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
         containing no data, followed by a series of HDUs each containing data
         for a series of non-overlapping windows.
+
+        This can also be applied to extract a particular CCD, labelled 'cnam'
+        from an MCCD hcm file, on the assumption that all HDUs for a given CCD
+        come in a contiguous block with each one labelled with the keyword
+        'CCD'.
+
         """
         with fits.open(fname) as hdul:
-            return cls.rhdul(hdul)
+            return cls.rhdul(hdul, cnam)
 
     def matches(self, ccd):
         """Check that the :class:`CCD` matches another, which in this means checking
