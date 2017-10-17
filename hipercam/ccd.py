@@ -166,8 +166,8 @@ class CCD(Agroup):
         return hdul
 
     @classmethod
-    def rhdul(cls, hdul, multi=False, cnam=None):
-        """Builds a :class:`CCD` from an :class:`HDUList`. If multi=False and cnam is
+    def rhdul(cls, hdul, cnam=None):
+        """Builds a single :class:`CCD` from an :class:`HDUList`. If cnam is
         None, given an :class:`HDUList` representing a single CCD, the header
         from the first HDU will be used to create the header for the
         :class:`CCD`. The data from the remaining HDUs will be read into the
@@ -177,14 +177,10 @@ class CCD(Agroup):
         found. If the auto-generated label conflicts with one already found,
         then a KeyError will be raised.
 
-        If multi=True, it is assumed that the file contains multiple CCDs in
-        MCCD format and then this routine acts as a generator returning the
-        CCDs one by one on successive calls.
-
-        If multi=False and cnam is not None, cnam is taken to be the label of a
-        CCD to be extracted from the :class:`HDUList` which may contain
-        multiple CCDs. It is assumed in this case that the CCD of interest has
-        a continguous set of HDUs all containing the keyword CCD set equal to
+        If cnam is not None, cnam is taken to be the label of a CCD to be
+        extracted from the :class:`HDUList` which may contain multiple
+        CCDs. It is assumed in this case that the CCD of interest has a
+        continguous set of HDUs all containing the keyword CCD set equal to
         cnam. This allows individual CCDs to be read from hcm MCCD files.
 
         Arguments::
@@ -192,55 +188,29 @@ class CCD(Agroup):
           hdul  : :class:`HDUList`
                each ImageHDU will be read as sub-window of the :class:`CCD`
 
-          multi : (bool)
-               if True, the routine will work as a generator, returning a
-               :class:`CCD` each time a set of HDUs with identical header
-               parameter 'CCD' has been found and processed.
-
-          cnam  : (None | string) [if multi=False]
+          cnam  : (None | string)
                if multi=False and cnam is not None, the routine will try to
                find and return a :class:CCD built from a subset of HDUs that
-               matches cnam (keyword CCD is used)
+               matches cnam (the keyword CCD is used)
 
-        Returns::
-
-          A :class:`CCD` if multi=False, or a series of (label, :class:`CCD`)
-          2-element tuples if multi=True. In the latter case use as follows::
-
-            for label, ccd in CCD.rhdul(hdul, True):
-               ... do something
+        Returns a :class:`CCD`
 
         """
-
-        print('CCD.rhdul:', cls, multi, cnam)
 
         winds = Group(Windat)
         nwin = 1
         first = True
 
-        for hdu in hdul:
+        for n, hdu in enumerate(hdul):
             # The header of the HDU
             head = hdu.header
 
-            if multi and not first:
-                # If we expect multiple CCDs, then each one is defined by
-                # matching values of the header keyword CCD. As soon as a
-                # mismatch is found, we assume that we have started on a new
-                # CCD and return the old one.
-                if ccd_label != head['CCD']:
-                    ccd = cls(winds, nxtot, nytot, main_head)
-                    winds = Group(Windat)
-                    first = True
-                    nwin = 1
-                    print('about to yield')
-                    yield (ccd_label,ccd)
-
-            if first and (multi or cnam is None or cnam == head['CCD']):
+            if first and \
+               (cnam is None or ('CCD' in head and cnam == head['CCD'])):
                 # Extract header from first HDU (any data it might contain are
                 # ignored)
                 nxtot = head['NXTOT']
                 nytot = head['NYTOT']
-                if multi: ccd_label = head['CCD']
 
                 del head['NXTOT']
                 del head['NYTOT']
@@ -248,7 +218,8 @@ class CCD(Agroup):
                 main_head = head
                 first = False
 
-            elif not first and (multi or cnam is None or cnam == head['CCD']):
+            elif not first and \
+                 (cnam is None or ('CCD' in head and cnam == head['CCD'])):
 
                 # Except for the first HDU of a CCD, all should contain data,
                 # and for a single CCD, we assume all are part of the CCD.
@@ -260,22 +231,92 @@ class CCD(Agroup):
                     label = str(nwin)
                 winds[label] = Windat.rhdu(hdu)
 
-            elif not first and not multi and cnam is not None:
-                # have encountered an HDU with a mis-matching label
-                # since we assume each CCD is a continguous block,
-                # we stop
+                # step the window counter
+                nwin += 1
+
+            elif not first and cnam is not None:
+                # have encountered an HDU with a mis-matching label and since
+                # we assume each CCD is a continguous block, we stop
                 break
 
-            # step the window counter
-            nwin += 1
+        return cls(winds, nxtot, nytot, main_head)
 
-        # Finish up
-        if multi:
-            print('about to finish')
-            return (ccd_label, cls(winds, nxtot, nytot, main_head))
-        else:
-            return cls(winds, nxtot, nytot, first_head)
+    @classmethod
+    def rmhdul(cls, hdul):
+        """Builds a :class:`CCD` from an :class:`HDUList` potentially
+        containing multiple CCDs, i.e. an MCCD object. This function
+        acts as a generator to allow the CCDs to be returned in
+        successive calls. It is assumed that hdul is positioned at
+        the start of the CCDs, with the first HDU the header of the first
+        CCD.
 
+        Arguments::
+
+          hdul  : :class:`HDUList`
+               each ImageHDU will be read as sub-window of the :class:`CCD`
+
+        Returns::
+
+          A series of (label, :class:`CCD`) 2-element tuples to be used as
+          as follows::
+
+            >> for label, ccd in CCD.rmhdul(hdul, True):
+            >>    ... do something
+
+        """
+
+        # initialise for the first CCD
+        winds = Group(Windat)
+        nwin = 1
+        first = True
+
+        for hdu in hdul:
+
+            # The header of the HDU
+            head = hdu.header
+
+            if not first:
+                # we have passed the first HDU already
+
+                if ccd_label != head['CCD']:
+                    # we have found a new CCD. Store the old CCD with what we
+                    # have so far
+                    ccd = cls(winds, nxtot, nytot, main_head)
+
+                    # re-initialise for the next
+                    winds = Group(Windat)
+                    first = True
+                    nwin = 1
+
+                    # return the label and the old CCD
+                    yield (ccd_label,ccd)
+
+                else:
+                    # we should on an HDU with data if we get here. store it.
+                    if 'WINDOW' in head:
+                        label = head['WINDOW']
+                    elif str(nwin) in winds:
+                        raise KeyError('window label conflict')
+                    else:
+                        label = str(nwin)
+                    winds[label] = Windat.rhdu(hdu)
+
+                    # step the window counter
+                    nwin += 1
+
+            if first:
+                # we are on an initial header-only HDU
+                nxtot = head['NXTOT']
+                nytot = head['NYTOT']
+                ccd_label = head['CCD']
+                del head['NXTOT']
+                del head['NYTOT']
+                if 'NUMWIN' in head: del head['NUMWIN']
+                main_head = head
+                first = False
+
+        # when we get here, we have data still to be returned
+        yield (ccd_label, cls(winds, nxtot, nytot, main_head))
 
     def wfits(self, fname, label=None, overwrite=False):
         """Writes out the CCD to a FITS file.
@@ -324,9 +365,9 @@ class CCD(Agroup):
         'CCD'.
 
         """
-        print('CCD.rfits',cls,fname,cnam)
+
         with fits.open(fname) as hdul:
-            return cls.rhdul(hdul, False, cnam)
+            return cls.rhdul(hdul, cnam)
 
     def matches(self, ccd):
         """Check that the :class:`CCD` matches another, which in this means checking
@@ -401,14 +442,20 @@ class CCD(Agroup):
         for twnam, twind in ccd.items():
 
             # for each one, search for a surrounding Windat in
-            # the CCD we are chopping down to
+            # the CCD we are chopping down to. if it succeeds,
+            # we break out of the loop to avoid the exception
             for wind in ccd.values():
                 try:
                     tccd[twnam] = wind.crop(twind)
+                    break
                 except ValueError:
                     pass
             else:
-                raise HipercamError('failed to find any enclosing window for window label = {:s}'.format(wnam))
+                raise HipercamError(
+                    'failed to find any enclosing window'
+                    ' for window label = {:s}'.format(twnam)
+                )
+
         return tccd
 
     def is_data(self):
@@ -585,7 +632,7 @@ class MCCD(Agroup):
 
         # Attempt to read the rest of HDUs into a series of CCDs
         ccds = Group(CCD)
-        for label, ccd in CCD.rhdul(hdul[1:],True):
+        for label, ccd in CCD.rmhdul(hdul[1:]):
             ccds[label] = ccd
 
         return cls(ccds, head)

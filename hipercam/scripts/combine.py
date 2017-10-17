@@ -36,7 +36,10 @@ def combine(args=None):
            Option 'n' is useful for twilight flats; 'b' for combining
            biases.
 
-        output : (string)
+        clobber : (bool) [hidden]
+           clobber any pre-existing output files
+
+        output  : (string)
            output file
 
     Notes: this routine reads all inputs into memory, so can be a bit of
@@ -54,6 +57,7 @@ def combine(args=None):
         cl.register('list', Cline.GLOBAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
         cl.register('adjust', Cline.LOCAL, Cline.PROMPT)
+        cl.register('clobber', Cline.LOCAL, Cline.PROMPT)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
@@ -76,9 +80,17 @@ def combine(args=None):
             'i', lvals=('i','n','b')
         )
 
+        clobber = cl.get_value(
+            'clobber', 'clobber any pre-existing files on output',
+            False
+        )
+
         outfile = cl.get_value(
             'output', 'output file',
-            cline.Fname('hcam', hcam.HCAM, cline.Fname.NOCLOBBER)
+            cline.Fname(
+                'hcam', hcam.HCAM,
+                cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
+            )
         )
 
     # inputs done with
@@ -109,22 +121,20 @@ def combine(args=None):
 
         # Read files into memory, insisting that they
         # all have the same set of CCDs
-        print('Loading all CCD labelled {:s} from {:s}'.format(cnam, flist))
+        print(
+            "\nLoading all CCDs labelled '{:s}' from {:s}".format(cnam, flist)
+        )
 
         ccds = []
         with hcam.HcamListSpool(flist, cnam) as spool:
-
-            a = spool.__next__()
-            print(a)
 
             if bias is not None:
                 # extract relevant CCD from the bias
                 bccd = bframe[cnam]
 
             mean = None
-            for n, ccd in enumerate(spool):
+            for ccd in spool:
 
-                print(ccd)
                 if ccd.is_data():
                     if bias is not None:
                         # subtract bias
@@ -149,7 +159,7 @@ def combine(args=None):
             if adjust == 'b' or adjust == 'n':
 
                 # adjust the means
-                print('Computing and adjusting the mean levels')
+                print('Computing and adjusting their mean levels')
 
                 # now carry out the adjustments
                 for ccd in ccds:
@@ -160,7 +170,7 @@ def combine(args=None):
                             ccd *= mean / ccd.mean()
 
             # Finally, combine
-            print('Combining CCD {:s}'.format(cnam))
+            print('Combining them and storing the result')
 
             for wnam, wind in template[cnam].items():
                 # build list of all data arrays
@@ -169,5 +179,5 @@ def combine(args=None):
                 wind.data = np.median(arr3d,axis=0)
 
     # write out
-    template.wfits(outfile)
-    print('Written result to {:s}'.format(outfile))
+    template.wfits(outfile, clobber)
+    print('\nFinal result written to {:s}'.format(outfile))

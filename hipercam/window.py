@@ -868,7 +868,7 @@ class Windat(Window):
 
         else:
             raise ValueError(
-                'Cannot crop {!r} to {!r}'.format(self,win)
+                'Cannot crop {!r} to {!r}'.format(self.win,win.win)
             )
 
     def float32(self):
