@@ -57,7 +57,7 @@ def grab(args=None):
       bias   : (string)
          Name of bias frame to subtract, 'none' to ignore.
 
-      dtype  : (string)
+      dtype  : (string) [hidden, defaults to 'f']
          Data type on output. Options::
 
             'r' : "raw", do nothing; this is safe but could
@@ -88,7 +88,7 @@ def grab(args=None):
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('dtype', Cline.LOCAL, Cline.PROMPT)
+        cl.register('dtype', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         source = cl.get_value('source', 'data source [hs, hl, us, ul]',
@@ -128,6 +128,7 @@ def grab(args=None):
             # read the bias frame
             bframe = hcam.MCCD.rfits(bias)
 
+        cl.set_default('dtype', 'f')
         dtype = cl.get_value(
             'dtype', 'data type [r(aw), f(32-bit float), i(16-bit uint)]',
             'f', lvals=('r','f','i')
