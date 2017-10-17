@@ -9,7 +9,7 @@ import numpy as np
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
     'add_extension', 'HipercamError', 'HipercamWarning', 'CIS',
-    'DMINS', 'LOG', 'sub_extension',
+    'DMINS', 'LOG', 'sub_extension', 'CNAMS',
 )
 
 # Constants for general use
@@ -30,15 +30,34 @@ DMINS = 1440.
 # set of colours. These are fed directly to matplotlib, and used to override
 # the colour indices used by PGPLOT. Could extend from 0 to 15 max.
 CIS = (
-    (1,1,1),      # 0 -- white
-    (0,0,0),      # 1 -- black
-    (0.5,0,0),    # 2 -- red
-    (0,0.4,0),    # 3 -- green
-    (0,0,0.5),    # 4 -- blue
-    (0.5,0.3,0),  # 5 -- pinkish
-    (0.5,0,0.5),  # 6 -- purple
-    (0,0.5,0.5),  # 7 -- turquoise
-    )
+    (1,1,1),              # 0 -- white
+    (0,0,0),              # 1 -- black
+    (0.898,0,0),          # 2 -- red
+    (0.082,0.690,0.102),  # 3 -- green
+    (0.012,0.263,0.875),  # 4 -- blue
+    (1,0.008,0.553),      # 5 -- pink
+    (0.494,0.118,0.612),  # 6 -- purple
+    (0.024,0.761,0.675),  # 7 -- turquoise
+    (0.976,0.451,0.024),  # 8 -- orange
+    (0.808,0.702,0.004),  # 9 -- mustard
+    (0.761,0.,0.471),     # 10 -- magenta
+    (0.682,0.443,0.505),  # 11 -- mauve
+)
+
+CNAMS = {
+    'white'  : 0,
+    'black'  : 1,
+    'red'    : 2,
+    'green'  : 3,
+    'blue'   : 4,
+    'pink'   : 5,
+    'purple' : 6,
+    'turquoise' : 7,
+    'orange' : 8,
+    'mustard' : 9,
+    'magenta' : 10,
+    'mauve' : 11,
+}
 
 def add_extension(fname, ext):
     """Add extension ext to a file name if it is not already there, and returns

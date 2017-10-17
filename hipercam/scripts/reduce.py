@@ -637,8 +637,9 @@ def reduce(args=None):
                         fe = np.array(lc.fe, dtype=np.float32)
 
                         # Plot the error bars
-                        pgsci(lc.ecol)
-                        pgerry(t, f-fe, f+fe, 0)
+                        if lc.ecol is not None:
+                            pgsci(lc.ecol)
+                            pgerry(t, f-fe, f+fe, 0)
 
                         # Plot the data
                         pgsci(lc.dcol)
@@ -656,8 +657,9 @@ def reduce(args=None):
                             fe = np.array(xpos.fe, dtype=np.float32)
 
                             # Plot the error bars
-                            pgsci(xpos.ecol)
-                            pgerry(t, f-fe, f+fe, 0)
+                            if xpos.ecol is not None:
+                                pgsci(xpos.ecol)
+                                pgerry(t, f-fe, f+fe, 0)
 
                             # Plot the data
                             pgsci(xpos.dcol)
@@ -672,8 +674,9 @@ def reduce(args=None):
                             fe = np.array(ypos.fe, dtype=np.float32)
 
                             # Plot the error bars
-                            pgsci(ypos.ecol)
-                            pgerry(t, f-fe, f+fe, 0)
+                            if ypos.ecol is not None:
+                                pgsci(ypos.ecol)
+                                pgerry(t, f-fe, f+fe, 0)
 
                             # Plot the data
                             pgsci(ypos.dcol)
@@ -694,8 +697,9 @@ def reduce(args=None):
                             fe *= scale
 
                             # Plot the error bars
-                            pgsci(trans.ecol)
-                            pgerry(t, f-fe, f+fe, 0)
+                            if trans.ecol is not None:
+                                pgsci(trans.ecol)
+                                pgerry(t, f-fe, f+fe, 0)
 
                             # Plot the data
                             pgsci(trans.dcol)
@@ -713,8 +717,9 @@ def reduce(args=None):
                             fe = np.array(see.fe, dtype=np.float32)
 
                             # Plot the error bars
-                            pgsci(see.ecol)
-                            pgerry(t, f-fe, f+fe, 0)
+                            if see.ecol is not None:
+                                pgsci(see.ecol)
+                                pgerry(t, f-fe, f+fe, 0)
 
                             # Plot the data
                             pgsci(see.dcol)
@@ -1382,7 +1387,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                         wbsum += wb
 
                 else:
-                    print('CCD {:s}, aperture {:s}, peak = {:.1f} < {:s}'.format(
+                    print('CCD {:s}, aperture {:s}, peak = {:.1f} < {:.1f}'.format(
                             cnam, apnam, height, apsec['fit_height_min']),
                           file=sys.stderr)
                     aper.x += xshift
@@ -1992,9 +1997,11 @@ class LightCurve:
 
         # Plot the point in minutes from start point
         pgsch(0.5)
-        pgsci(self.ecol)
-        pgmove(t, f-fe)
-        pgdraw(t, f+fe)
+        if self.ecol is not None:
+            pgsci(self.ecol)
+            pgmove(t, f-fe)
+            pgdraw(t, f+fe)
+
         pgsci(self.dcol)
         pgpt1(t,f,17)
 
@@ -2049,9 +2056,10 @@ class Xposition:
 
         # Plot the point in minutes from start point
         pgsch(0.5)
-        pgsci(self.ecol)
-        pgmove(t, x-xe)
-        pgdraw(t, x+xe)
+        if self.ecol is not None:
+            pgsci(self.ecol)
+            pgmove(t, x-xe)
+            pgdraw(t, x+xe)
         pgsci(self.dcol)
         pgpt1(t,x,17)
 
@@ -2106,9 +2114,10 @@ class Yposition:
 
         # Plot the point in minutes from start point
         pgsch(0.5)
-        pgsci(self.ecol)
-        pgmove(t, y-ye)
-        pgdraw(t, y+ye)
+        if self.ecol is not None:
+            pgsci(self.ecol)
+            pgmove(t, y-ye)
+            pgdraw(t, y+ye)
         pgsci(self.dcol)
         pgpt1(t,y,17)
 
@@ -2164,9 +2173,10 @@ class Transmission:
 
         # Plot the point in minutes from start point
         pgsch(0.5)
-        pgsci(self.ecol)
-        pgmove(t, f-fe)
-        pgdraw(t, f+fe)
+        if self.ecol is not None:
+            pgsci(self.ecol)
+            pgmove(t, f-fe)
+            pgdraw(t, f+fe)
         pgsci(self.dcol)
         pgpt1(t,f,17)
 
@@ -2218,9 +2228,10 @@ class Seeing:
 
         # Plot the point in minutes from start point
         pgsch(0.5)
-        pgsci(self.ecol)
-        pgmove(t, f-fe)
-        pgdraw(t, f+fe)
+        if self.ecol is not None:
+            pgsci(self.ecol)
+            pgmove(t, f-fe)
+            pgdraw(t, f+fe)
         pgsci(self.dcol)
         pgpt1(t,f,17)
 
@@ -2231,20 +2242,17 @@ def ctrans(cname):
     """
     Translates a colour name (cname) into a PGPLOT index
     which is the return value. Defaults to index 1 and prints
-    a message if cname not recognised.
+    a message if cname not recognised. Returns None if cname is None
     """
 
-    if cname == 'red':
-        cindex = 2
-    elif cname == 'green':
-        cindex = 3
-    elif cname == 'blue':
-        cindex = 4
+    if cname == '!':
+        return None
+    elif cname in hcam.CNAMS:
+        return hcam.CNAMS[cname]
     else:
         print('Failed to recognize colour = {:s}; defaulting to black'.format(
             cname))
-    return cindex
-
+        return 1
 
 def toBool(rfile, section, param):
     """
