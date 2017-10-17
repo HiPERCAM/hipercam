@@ -94,7 +94,7 @@ class CCD(Agroup):
 
     def mean(self):
         """
-        Returns the mean value of the :class:`Windat`.
+        Returns the mean value of the :class:`CCD`.
         """
         npix, total = 0, 0.
         for wind in self.values():
