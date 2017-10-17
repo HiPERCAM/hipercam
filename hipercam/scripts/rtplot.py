@@ -428,6 +428,10 @@ def rtplot(args=None):
                 print('Frame {:d}, time = {:s}; '.format(
                     mccd.head['NFRAME'], mccd.head['TIMSTAMP']), end='')
 
+            if n == 0 and bias is not None:
+                # crop the bias on the first frame only
+                bframe.crop(mccd)
+
             # display the CCDs chosen
             message = ''
             for nc, cnam in enumerate(ccds):
