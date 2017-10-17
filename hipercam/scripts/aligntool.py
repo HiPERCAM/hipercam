@@ -321,7 +321,7 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    with Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', 'aligntool', args) as cl:
         # register parameters
         cl.register('ref', Cline.LOCAL, Cline.PROMPT)
         cl.register('thresh', Cline.LOCAL, Cline.PROMPT)
