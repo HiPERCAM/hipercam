@@ -462,13 +462,12 @@ def reduce(args=None):
                 # container for the results from each CCD
                 results = {}
                 for cnam in mccd:
+
                     # get the apertures
-                    if cnam not in rfile:
+                    if cnam not in rfile.aper or len(rfile.aper[cnam]) == 0:
                         continue
 
                     ccdaper = rfile.aper[cnam]
-                    if len(ccdaper) == 0:
-                        continue
 
                     # get the CCD and the apertures
                     ccd = mccd[cnam]
@@ -527,15 +526,17 @@ def reduce(args=None):
                 logfile.write('#\n')
                 for cnam in mccd:
                     # get the apertures
-                    if cnam not in rfile or len(rfile.aper[cnam]) == 0:
+                    if cnam not in rfile.aper or len(rfile.aper[cnam]) == 0:
                         continue
                     ccdaper = rfile.aper[cnam]
 
                     # get time and flag
                     mjd = mccd[cnam].head['MJDUTC']
                     mjdok = mccd[cnam].head['GOODTIM']
-                    exptim = mccd[cnam].head['EXPTIME']
-
+                    if 'EXPTIME' in mccd[cnam].head:
+                        exptim = mccd[cnam].head['EXPTIME']
+                    else:
+                        exptim = 1.0
                     # write generic data
                     logfile.write(
                         '{:s} {:d} {:13.7f} {:b} {:.5f} '.format(
@@ -641,7 +642,8 @@ def reduce(args=None):
 
                         # Plot the data
                         pgsci(lc.dcol)
-                        pgpt(t, f, 1)
+                        pgsch(0.5)
+                        pgpt(t, f, 17)
 
                     if rfile.position:
                         # re-draw the position panels
@@ -659,7 +661,8 @@ def reduce(args=None):
 
                             # Plot the data
                             pgsci(xpos.dcol)
-                            pgpt(t, f, 1)
+                            pgsch(0.5)
+                            pgpt(t, f, 17)
 
                         ypanel.plot()
                         for ypos in xbuffer:
@@ -674,7 +677,8 @@ def reduce(args=None):
 
                             # Plot the data
                             pgsci(ypos.dcol)
-                            pgpt(t, f, 1)
+                            pgsch(0.5)
+                            pgpt(t, f, 17)
 
                     if rfile.transmission:
                         # re-draw the transmission panel
@@ -695,7 +699,8 @@ def reduce(args=None):
 
                             # Plot the data
                             pgsci(trans.dcol)
-                            pgpt(t, f, 1)
+                            pgsch(0.5)
+                            pgpt(t, f, 17)
 
                     if rfile.seeing:
                         # re-draw the seeing panel
@@ -713,7 +718,8 @@ def reduce(args=None):
 
                             # Plot the data
                             pgsci(see.dcol)
-                            pgpt(t, f, 1)
+                            pgsch(0.5)
+                            pgpt(t, f, 17)
 
                     # end buffering
                     pgebuf()
@@ -1985,11 +1991,12 @@ class LightCurve:
         self.fe.append(fe)
 
         # Plot the point in minutes from start point
+        pgsch(0.5)
         pgsci(self.ecol)
         pgmove(t, f-fe)
         pgdraw(t, f+fe)
         pgsci(self.dcol)
-        pgpt1(t,f,1)
+        pgpt1(t,f,17)
 
         # return f up the line
         return f
@@ -2041,11 +2048,12 @@ class Xposition:
         self.fe.append(xe)
 
         # Plot the point in minutes from start point
+        pgsch(0.5)
         pgsci(self.ecol)
         pgmove(t, x-xe)
         pgdraw(t, x+xe)
         pgsci(self.dcol)
-        pgpt1(t,x,1)
+        pgpt1(t,x,17)
 
         # return x up the line
         return x
@@ -2097,11 +2105,12 @@ class Yposition:
         self.fe.append(ye)
 
         # Plot the point in minutes from start point
+        pgsch(0.5)
         pgsci(self.ecol)
         pgmove(t, y-ye)
         pgdraw(t, y+ye)
         pgsci(self.dcol)
-        pgpt1(t,y,1)
+        pgpt1(t,y,17)
 
         # return y up the line
         return y
@@ -2154,11 +2163,12 @@ class Transmission:
         fe *= 100/self.fmax
 
         # Plot the point in minutes from start point
+        pgsch(0.5)
         pgsci(self.ecol)
         pgmove(t, f-fe)
         pgdraw(t, f+fe)
         pgsci(self.dcol)
-        pgpt1(t,f,1)
+        pgpt1(t,f,17)
 
         # return f up the line
         return f
@@ -2207,11 +2217,12 @@ class Seeing:
         self.fe.append(fe)
 
         # Plot the point in minutes from start point
+        pgsch(0.5)
         pgsci(self.ecol)
         pgmove(t, f-fe)
         pgdraw(t, f+fe)
         pgsci(self.dcol)
-        pgpt1(t,f,1)
+        pgpt1(t,f,17)
 
         # return f up the line
         return f
