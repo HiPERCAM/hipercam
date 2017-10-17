@@ -185,16 +185,14 @@ class HcamListSpool(SpoolerBase):
 
     def __next__(self):
         for fname in self._iter:
-            if not fname.startswith('#'):
+            if not fname.startswith('#') and not fname.isspace():
                 break
         else:
             raise StopIteration
 
         if self.cnam is None:
-            print('MCCD mode:')
             return ccd.MCCD.rfits(core.add_extension(fname.strip(), core.HCAM))
         else:
-            print('CCD mode:', self.cnam)
             return ccd.CCD.rfits(
                 core.add_extension(fname.strip(), core.HCAM), self.cnam
             )
