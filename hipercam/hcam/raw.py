@@ -370,7 +370,7 @@ class Rdata (Rhead):
         Rhead.__init__(self, fname, server)
 
         # flag to indicate should always try to get the last frame 
-        self.last = nframe == 0
+        self.last = (nframe == 0)
 
         # set flag to indicate first time through
         self.first = True

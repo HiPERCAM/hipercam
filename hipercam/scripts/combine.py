@@ -39,6 +39,9 @@ def combine(args=None):
         output : (string)
            output file
 
+    Notes: this routine reads all inputs into memory, so can be a bit of
+    a hog. However, it does so one CCD at a time to alleviate this. It will
+    fail if it cannot find a valid frame for any CCD
     """
 
     if args is None:
@@ -78,94 +81,93 @@ def combine(args=None):
             cline.Fname('hcam', hcam.HCAM, cline.Fname.NOCLOBBER)
         )
 
-    # Read files into memory, insisting that they
-    # all have the same set of CCDs
-    print('Loading files from {:s}'.format(flist))
-    mccds = []
+    # inputs done with
 
-    with hcam.HcamListSpool(flist) as spool:
-        for n, mccd in enumerate(spool):
-            if n == 0:
-                cnams = set(mccd.keys())
-                if bias is not None:
-                    # crop the bias on the first frame only
-                    bframe.crop(mccd)
-
-            elif set(mccd.keys()) != cnams:
-                raise hcam.HipercamError(
-                    'Conflicting sets of CCDs'
-                    ' found: {!s} vs {!s}'.format(
-                        set(mccd.keys()), cnams)
-                )
-
-            if bias is not None:
-                # subtract bias
-                mccd -= bframe
-
-            # keep the result
-            mccds.append(mccd)
-
-    print('Loaded {:d} files'.format(len(mccds)))
-
-    # check that all CCDs have at least one valid frame
-    for mccd in mccds:
-        for cnam, ccd in mccd.items():
-            if ccd.is_data() and cnam in cnams:
-                cnams.remove(cnam)
-        if len(cnams) == 0:
-            break
-    else:
-        raise hcam.HipercamError(
-            'Could not find a single valid frame for CCD(s) {:!s}'.format(
-                cnams)
+    # Read the first file of the list to act as a template
+    # for the CCD names etc.
+    with open(flist) as fin:
+        for line in fin:
+            if not line.startswith('#') and not line.isspace():
+                template_name = line.strip()
+                break
+        else:
+            raise hcam.HipercamError(
+                'List = {:s} is empty'.format(flist)
             )
 
-    if adjust == 'b' or adjust == 'n':
+    template = hcam.MCCD.rfits(
+        hcam.add_extension(template_name,hcam.HCAM)
+    )
 
-        # adjust the means
-        print('Computing and adjusting the mean levels')
+    if bias is not None:
+        # crop the bias
+        bframe.crop(template)
 
-        # first set reference means, a little tricky since we need to be sure
-        # that we are dealing with OK data
-        means = {}
-        cnams = set(mccd.keys())
-        for mccd in mccds:
-            # add in a mean for each CCD on the first valid frame we
-            # encounter
-            for cnam, ccd in mccd.items():
-                if ccd.is_data() and cnam not in means:
-                    means[cnam] = ccd.mean()
-                    cnams.remove(cnam)
+    # Now process each file CCD by CCD to reduce the memory
+    # footprint
+    for cnam in template:
 
-            if len(cnams) == 0:
-                # stop as soon as we can
-                break
+        # Read files into memory, insisting that they
+        # all have the same set of CCDs
+        print('Loading all CCD labelled {:s} from {:s}'.format(cnam, flist))
 
-        # now carry out the adjustments
-        for mccd in mccds:
-            for cnam, ccd in mccd.items():
+        ccds = []
+        with hcam.HcamListSpool(flist, cnam) as spool:
+
+            a = spool.__next__()
+            print(a)
+
+            if bias is not None:
+                # extract relevant CCD from the bias
+                bccd = bframe[cnam]
+
+            mean = None
+            for n, ccd in enumerate(spool):
+
+                print(ccd)
                 if ccd.is_data():
-                    if adjust == 'b':
-                        ccd += means[cnam]-ccd.mean()
-                    elif adjust == 'n':
-                        ccd *= means[cnam]/ccd.mean()
+                    if bias is not None:
+                        # subtract bias
+                        ccd -= bccd
 
-    # Finally, combine
-    ofile = mccds[0].copy()
-    for cnam, occd in ofile.items():
-        print('Combining CCD {:s} frames'.format(cnam))
-        for wnam, owin in occd.items():
-            # build lists of all windows, but only for those
-            # CCD frames that return is_data() as True
-            arrs = []
-            for mccd in mccds:
-                ccd = mccd[cnam]
-                if ccd.is_data():
-                    arrs.append(ccd[wnam].data)
-            arr3d = np.stack(arrs)
-            owin.data = np.median(arr3d,axis=0)
+                    # keep the result
+                    ccds.append(ccd)
+
+                    # store the first mean
+                    if mean is None:
+                        mean = ccd.mean()
+
+            if len(ccds) == 0:
+                raise hcam.HipercamError(
+                    'Found no valid examples of CCD {:s}'
+                    ' in list = {:s}'.format(cnam,flist)
+                )
+
+            else:
+                print('Loaded {:d} CCDs'.format(len(ccds)))
+
+            if adjust == 'b' or adjust == 'n':
+
+                # adjust the means
+                print('Computing and adjusting the mean levels')
+
+                # now carry out the adjustments
+                for ccd in ccds:
+                    for cnam, ccd in ccd.items():
+                        if adjust == 'b':
+                            ccd += mean - ccd.mean()
+                        elif adjust == 'n':
+                            ccd *= mean / ccd.mean()
+
+            # Finally, combine
+            print('Combining CCD {:s}'.format(cnam))
+
+            for wnam, wind in template[cnam].items():
+                # build list of all data arrays
+                arrs = [ccd[wnam].data for ccd in ccds]
+                arr3d = np.stack(arrs)
+                wind.data = np.median(arr3d,axis=0)
 
     # write out
-    ofile.wfits(outfile)
+    template.wfits(outfile)
     print('Written result to {:s}'.format(outfile))
-

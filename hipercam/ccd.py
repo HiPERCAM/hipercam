@@ -211,6 +211,9 @@ class CCD(Agroup):
                ... do something
 
         """
+
+        print('CCD.rhdul:', cls, multi, cnam)
+
         winds = Group(Windat)
         nwin = 1
         first = True
@@ -229,6 +232,7 @@ class CCD(Agroup):
                     winds = Group(Windat)
                     first = True
                     nwin = 1
+                    print('about to yield')
                     yield (ccd_label,ccd)
 
             if first and (multi or cnam is None or cnam == head['CCD']):
@@ -267,7 +271,8 @@ class CCD(Agroup):
 
         # Finish up
         if multi:
-            yield (ccd_label, cls(winds, nxtot, nytot, main_head))
+            print('about to finish')
+            return (ccd_label, cls(winds, nxtot, nytot, main_head))
         else:
             return cls(winds, nxtot, nytot, first_head)
 
@@ -319,8 +324,9 @@ class CCD(Agroup):
         'CCD'.
 
         """
+        print('CCD.rfits',cls,fname,cnam)
         with fits.open(fname) as hdul:
-            return cls.rhdul(hdul, cnam)
+            return cls.rhdul(hdul, False, cnam)
 
     def matches(self, ccd):
         """Check that the :class:`CCD` matches another, which in this means checking

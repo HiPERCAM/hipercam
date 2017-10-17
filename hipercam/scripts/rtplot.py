@@ -401,7 +401,7 @@ def rtplot(args=None):
 
     total_time = 0 # time waiting for new frame
     fpos = []      # list of target positions to fit
-    first = True   # waiting for first valid frame with profit
+    fframe = True   # waiting for first valid frame with profit
 
     # plot images
     with hcam.data_source(
@@ -465,8 +465,8 @@ def rtplot(args=None):
             # end of CCD display loop
             print(message)
 
-            if ccd.is_data() and profit and first:
-                first = False
+            if ccd.is_data() and profit and fframe:
+                fframe = False
 
                 # cursor selection of targets after first plot, if profit
                 # accumulate list of starter positions

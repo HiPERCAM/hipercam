@@ -18,7 +18,7 @@ from . import core
 __all__ = (
     'SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
     'UcamDiskSpool', 'HcamListSpool', 'get_ccd_pars',
-    'hang_about'
+    'hang_about', 'HcamServSpool'
 )
 
 def rhcam(fname):
@@ -189,9 +189,12 @@ class HcamListSpool(SpoolerBase):
                 break
         else:
             raise StopIteration
+
         if self.cnam is None:
+            print('MCCD mode:')
             return ccd.MCCD.rfits(core.add_extension(fname.strip(), core.HCAM))
         else:
+            print('CCD mode:', self.cnam)
             return ccd.CCD.rfits(
                 core.add_extension(fname.strip(), core.HCAM), self.cnam
             )
@@ -412,7 +415,7 @@ def hang_about(mccd, twait, tmax, total_time):
             total_time += twait
 
             # have another go
-            give_up, try_gain = False, True
+            give_up, try_again = False, True
 
     else:
         # we have a frame, reset the total time waited
