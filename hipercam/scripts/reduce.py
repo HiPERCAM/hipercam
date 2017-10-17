@@ -117,7 +117,7 @@ def reduce(args=None):
         first = cl.get_value('first', 'first frame to reduce', 1, 0)
         twait = cl.get_value(
             'twait', 'time to wait for a new frame [secs]', 1., 0.)
-        tmax = cl.get_value(
+        tmx = cl.get_value(
             'tmax', 'maximum time to wait for a new frame [secs]',
             10., 0.)
 
@@ -431,7 +431,7 @@ def reduce(args=None):
 
                 # Handle the waiting game ...
                 give_up, try_again, total_time = hcam.hang_about(
-                    mccd, twait, tmax, total_time
+                    mccd, twait, tmx, total_time
                 )
 
                 if give_up:
