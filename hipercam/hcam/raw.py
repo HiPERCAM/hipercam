@@ -211,6 +211,13 @@ class Rhead:
                          self.mode.startswith('TwoWindow'):
                         winID = 'ESO DET WIN{} '.format(nwin+1)
                         nx = self.header[winID + 'NX'] // xbin
+
+                        if pscan:
+                            # pre-scan adds 50 columns to every window
+                            # unbinned with some slightly tricky details
+                            # when binned
+                            nx += int(np.ceil(50 / xbin))
+
                         ny = self.header[winID + 'NY'] // ybin
                         win_xs = self.header[winID + 'XS{}'.format(quad)]
                         win_nx = self.header[winID + 'NX']
@@ -228,6 +235,13 @@ class Rhead:
                     elif self.mode.startswith('Drift'):
                         nx = self.header['ESO DET DRWIN NX'] // xbin
                         ny = self.header['ESO DET DRWIN NY'] // ybin
+
+                        if pscan:
+                            # pre-scan adds 50 columns to every window
+                            # unbinned with some slightly tricky details
+                            # when binned
+                            nx += int(np.ceil(50 / xbin))
+
                         win_xs = self.header['ESO DET DRWIN XS{}'.format(quad)]
                         win_nx = self.header['ESO DET DRWIN NX']
                         win_ys = self.header['ESO DET DRWIN YS']
