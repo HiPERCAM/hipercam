@@ -103,6 +103,21 @@ plot = 1 3 2 0 1 red red    # ccd, targ, comp, off, fac, dcol, ecol
 plot = 2 1 2 0 1 green red  # ccd, targ, comp, off, fac, dcol, ecol
 plot = 2 3 2 0 1 green red  # ccd, targ, comp, off, fac, dcol, ecol
 
+# configures the position plot. Can be commented out if you don't want one
+# but make sure to comment it out completely, section name and all parameters
+# you can have multiple plot lines
+
+[position]
+height  = 0.5    # height relative to light curve plot
+x_fixed = no     # keep X-position vertical range fixed
+x_min   = -5     # lower limit for X-position
+x_max   = +5     # upper limit for X-position
+y_fixed = no     # keep Y-position vertical range fixed
+y_min   = -5     # lower limit for Y-position
+y_max   = +5     # upper limit for Y-position
+extend_yrange = 0.2  # Vertical extension fraction if limits exceeded
+plot    = 1 1 green red
+
 # configures the transmission plot. Can be commented out if you don't want one
 # but make sure to comment it out completely, section name and all parameters
 # you can have multiple plot lines
@@ -121,5 +136,5 @@ plot = 2 2 green red # CCD, target, data colour, error color
 height = 0.5          # height relative to the light curve plot
 ymax = 1.999          # Initial maximum seeing
 scale = 0.3           # Arcsec per unbinned pixel
-extend_yrange = 0.2   # Y extension fraction if seeing goes off the top of the plot
+extend_yrange = 0.2   # Y extension fraction if out of range
 plot = 2 2 green red  # CCD, target, data colour, error colour

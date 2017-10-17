@@ -155,6 +155,10 @@ def reduce(args=None):
     lheight = 1.0
     total = lheight
 
+    if rfile.position:
+        pheight = rfile['position']['height']
+        total += pheight
+
     if rfile.transmission:
         theight = rfile['transmission']['height']
         total += theight
@@ -183,9 +187,9 @@ def reduce(args=None):
         # the seeing panel
         yv2 = yv1 + scale*sheight
         spanel = Panel(
-            lcdev, xv1, xv2, yv1, yv2, xlabel, 'Seeing (")',
+            lcdev, xv1, xv2, yv1, yv2, xlabel, 'FWHM (")',
             '', xopt, 'bcnst', x1, x2, 0, rfile['seeing']['ymax']
-            )
+        )
         spanel.plot()
 
         xlabel = ''
@@ -198,8 +202,35 @@ def reduce(args=None):
         tpanel = Panel(
             lcdev, xv1, xv2, yv1, yv2, xlabel, '% trans',
             '', xopt, 'bcnst', x1, x2, 0, rfile['transmission']['ymax']
-            )
+        )
         tpanel.plot()
+
+        xlabel = ''
+        xopt = 'bcst'
+        yv1 = yv2
+
+    if rfile.position:
+        # the X,Y position panels. First Y
+        yv2 = yv1 + scale*pheight/2.
+        ypanel = Panel(
+            lcdev, xv1, xv2, yv1, yv2, xlabel, 'Y',
+            '', xopt+'a', 'bcnst', x1, x2,
+            rfile['position']['y_min'], rfile['position']['y_max'],
+        )
+        ypanel.plot()
+
+        xlabel = ''
+        xopt = 'bcst'
+        yv1 = yv2
+
+        # then X
+        yv2 = yv1 + scale*pheight/2.
+        xpanel = Panel(
+            lcdev, xv1, xv2, yv1, yv2, xlabel, 'X',
+            '', xopt+'a', 'bcnst', x1, x2,
+            rfile['position']['x_min'], rfile['position']['x_max'],
+        )
+        xpanel.plot()
 
         xlabel = ''
         xopt = 'bcst'
@@ -213,7 +244,7 @@ def reduce(args=None):
         'Flux' if rfile['light']['linear'] else 'Magnitudes', '',
         xopt, 'bcnst', x1, x2,
         rfile['light']['y1'], rfile['light']['y2']
-        )
+    )
     lpanel.plot()
 
     # a couple of initialisations
@@ -229,6 +260,12 @@ def reduce(args=None):
     lbuffer = []
     for plot_config in rfile['light']['plot']:
         lbuffer.append(LightCurve(plot_config, rfile['light']['linear']))
+
+    if rfile.position:
+        xbuffer, ybuffer = [], []
+        for plot_config in rfile['position']['plot']:
+            xbuffer.append(Xposition(plot_config))
+            ybuffer.append(Yposition(plot_config))
 
     if rfile.transmission:
         tbuffer = []
@@ -328,7 +365,7 @@ def reduce(args=None):
 #    counts  : sky-subtracted counts in aperture
 #    countse : error in       "          "
 #    sky     : sky level per pixel
-#    skye    : sky level 
+#    skye    : sky level error
 #    nsky    : number of contributing sky pixels (those not rejected)
 #    nrej    : number of sky pixels rejected
 #    flag    : status flag, 0 = all OK.
@@ -410,14 +447,16 @@ def reduce(args=None):
                     nframe = nf + 1
 
                 print('Frame {:d}: {:s} '.format(
-                    nframe, mccd.head['TIMSTAMP']))
+                    nframe, mccd.head['TIMSTAMP'])
+                )
 
                 if nf == 0 and rfile['calibration']['crop']:
                     # This is the very first data frame read in. We need to
                     # trim the calibrations, on the assumption that all data
-                    # frames will have the same format
+                    # frames have the same format
                     rfile.crop(mccd)
-                    print(repr(mccd.head))
+
+                    # reference the times relative to the start frame.
                     tzero = mccd.head['MJDUTC']
 
                 # container for the results from each CCD
@@ -463,12 +502,13 @@ def reduce(args=None):
                         gain = rfile.gain
 
                     # at this point 'ccd' contains all the Windats of a CCD,
-                    # ccdaper all of its apertures ccdwins the label of the
-                    # Windat relevant for each aperture, rfile contains some
-                    # control parameters, read contains the readout noise,
-                    # either a float or a CCD, gain contains the gain, either
-                    # a float or a CCD.
+                    # 'ccdaper' all of its apertures, 'ccdwins' the label of
+                    # the Windat enclosing each aperture, 'rfile' contains
+                    # control parameters, 'read' contains the readout noise,
+                    # either as a float or a CCD, 'gain' contains the gain,
+                    # either a float or a CCD.
 
+                    # move the apertures
                     mfwhm, mbeta = moveApers(
                         cnam, ccd, ccdaper, ccdwins, rfile,
                         read, gain, mfwhm, mbeta, store
@@ -531,6 +571,14 @@ def reduce(args=None):
                 tmax = tmax if ltmax is None else \
                        ltmax if tmax is None else max(tmax, ltmax)
 
+                if rfile.position:
+                    # plot the positions
+                    rep, ptmax = plotPosition(
+                        xpanel, ypanel, t, results, rfile, xbuffer, ybuffer)
+                    replot |= rep
+                    tmax = tmax if ptmax is None else \
+                           ptmax if tmax is None else max(tmax, ptmax)
+
                 if rfile.transmission:
                     # plot the transmission
                     rep, ttmax = plotTrans(tpanel, t, results, rfile, tbuffer)
@@ -555,6 +603,10 @@ def reduce(args=None):
                     # need to re-plot
                     replot = True
                     lpanel.x2 = x2
+
+                    if rfile.position:
+                        xpanel.x2 = x2
+                        ypanel.x2 = x2
 
                     if rfile.transmission:
                         tpanel.x2 = x2
@@ -586,8 +638,40 @@ def reduce(args=None):
 
                         # Plot the data
                         pgsci(lc.dcol)
-                        pgpt(t, f, 17)
+                        pgpt(t, f, 1)
 
+                    if rfile.position:
+                        # re-draw the position panels
+
+                        xpanel.plot()
+                        for xpos in xbuffer:
+                            # convert the buffered data into float32 ndarrays
+                            t = np.array(xpos.t, dtype=np.float32)
+                            f = np.array(xpos.f, dtype=np.float32)
+                            fe = np.array(xpos.fe, dtype=np.float32)
+
+                            # Plot the error bars
+                            pgsci(xpos.ecol)
+                            pgerry(t, f-fe, f+fe, 0)
+
+                            # Plot the data
+                            pgsci(xpos.dcol)
+                            pgpt(t, f, 1)
+
+                        ypanel.plot()
+                        for ypos in xbuffer:
+                            # convert the buffered data into float32 ndarrays
+                            t = np.array(ypos.t, dtype=np.float32)
+                            f = np.array(ypos.f, dtype=np.float32)
+                            fe = np.array(ypos.fe, dtype=np.float32)
+
+                            # Plot the error bars
+                            pgsci(ypos.ecol)
+                            pgerry(t, f-fe, f+fe, 0)
+
+                            # Plot the data
+                            pgsci(ypos.dcol)
+                            pgpt(t, f, 1)
 
                     if rfile.transmission:
                         # re-draw the transmission panel
@@ -608,7 +692,7 @@ def reduce(args=None):
 
                             # Plot the data
                             pgsci(trans.dcol)
-                            pgpt(t, f, 17)
+                            pgpt(t, f, 1)
 
                     if rfile.seeing:
                         # re-draw the seeing panel
@@ -626,7 +710,7 @@ def reduce(args=None):
 
                             # Plot the data
                             pgsci(see.dcol)
-                            pgpt(t, f, 17)
+                            pgpt(t, f, 1)
 
                     # end buffering
                     pgebuf()
@@ -871,6 +955,50 @@ class Rfile(OrderedDict):
         sect['extend_yrange'] = float(sect['extend_yrange'])
         if sect['extend_yrange'] <= 0:
             raise ValueError('light.extend_yrange must be > 0')
+
+        #
+        # position panel section
+        #
+
+        rfile.position = 'position' in rfile
+        if rfile.position:
+            sect = rfile['position']
+
+            plot = sect['plot']
+            if isinstance(plot, str):
+                plot = [plot]
+
+            # convert entries to the right type here and try colours to
+            # PGPLOT colour indices.
+            for n in range(len(plot)):
+                cnam, tnm, dcol, ecol = plot[n].split()
+                plot[n] = {
+                    'ccd' : cnam,
+                    'targ' : tnm,
+                    'dcol' : ctrans(dcol),
+                    'ecol' : ctrans(ecol)
+                    }
+            sect['plot'] = plot
+
+            sect['height'] = float(sect['height'])
+            if sect['height'] <= 0:
+                raise ValueError('position.height must be > 0')
+
+            toBool(rfile, 'position', 'x_fixed')
+            sect['x_min'] = float(sect['x_min'])
+            sect['x_max'] = float(sect['x_max'])
+            if sect['x_max'] <= sect['x_min']:
+                raise ValueError('position.x_min must be < position.x_max')
+
+            toBool(rfile, 'position', 'y_fixed')
+            sect['y_min'] = float(sect['y_min'])
+            sect['y_max'] = float(sect['y_max'])
+            if sect['y_max'] <= sect['y_min']:
+                raise ValueError('position.y_min must be < position.y_max')
+
+            sect['extend_yrange'] = float(sect['extend_yrange'])
+            if sect['extend_yrange'] <= 0:
+                raise ValueError('seeing.extend_yrange must be > 0')
 
         #
         # transmission panel section
@@ -1655,6 +1783,67 @@ def plotLight(panel, t, results, rfile, lbuffer):
 
     return (replot, tmax)
 
+def plotPosition(xpanel, ypanel, t, results, rfile, xbuffer, ybuffer):
+    """Plots one set of results in the seeing panel. Handles storage of
+    points for future re-plots, computing new plot limits where needed.
+
+    It returns a bool which if True means that there is a need to re-plot.
+    This is deferred since there may be other panels to be adjusted as well
+    since if a plot is cleared, everything has to be re-built.
+    """
+
+    # by default, don't re-plot
+    replot = False
+
+    # shorthand
+    sect = rfile['position']
+
+    # select the X panel
+    xpanel.select()
+
+    # add points to the plot and buffers
+    tmax = xmin = xmax = None
+    for xpos in xbuffer:
+        x = xpos.add_point(t, results)
+        if x is not None:
+            tmax = t if tmax is None else max(t, tmax)
+            xmin = x if xmin is None else max(x, xmin)
+            xmax = x if xmax is None else max(x, xmax)
+
+    if xmin is not None and (xmin < xpanel.y1 or xmax > xpanel.y2) and \
+       not sect['x_fixed']:
+        replot = True
+        extend = sect['extend_yrange']*(xpanel.y2-xpanel.y1)
+        if xmin < xpanel.y1:
+            xpanel.y1 = xmin - extend
+
+        if xmax > xpanel.y2:
+            xpanel.y2 = xmax + extend
+
+    # select the panel
+    ypanel.select()
+
+    # add points to the plot and buffers
+    ymin = ymax = None
+    for ypos in ybuffer:
+        y = ypos.add_point(t, results)
+        if y is not None:
+            tmax = t if tmax is None else max(t, tmax)
+            ymin = y if ymin is None else max(y, ymin)
+            ymax = y if ymax is None else max(y, ymax)
+
+    if ymin is not None and (ymin < ypanel.y1 or ymax > ypanel.y2) and \
+       not sect['y_fixed']:
+        replot = True
+        extend = sect['extend_yrange']*(ypanel.y2-ypanel.y1)
+        if ymin < ypanel.y1:
+            ypanel.y1 = ymin - extend
+
+        if ymax > ypanel.y2:
+            ypanel.y2 = ymax + extend
+
+    return (replot, tmax)
+
 def plotTrans(panel, t, results, rfile, tbuffer):
     """Plots one set of results in the transmission panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
@@ -1797,10 +1986,122 @@ class LightCurve:
         pgmove(t, f-fe)
         pgdraw(t, f+fe)
         pgsci(self.dcol)
-        pgpt1(t,f,17)
+        pgpt1(t,f,1)
 
         # return f up the line
         return f
+
+class Xposition:
+    """Container for X measurements so they can be re-plotted as they come in.
+    There should be one of these per plot line in the 'position' section.
+
+    """
+    def __init__(self, plot_config):
+        self.cnam  = plot_config['ccd']
+        self.targ  = plot_config['targ']
+        self.dcol  = plot_config['dcol']
+        self.ecol  = plot_config['ecol']
+        self.t  = []
+        self.f  = []
+        self.fe = []
+        self.xzero = None
+
+    def add_point(self, t, results):
+        """
+        Extracts the data to be plotted on the position plot for given the
+        time and the results (for all CCDs, as returned by
+        extractFlux. Assuming all is OK (errors > 0), it stores (t, f, fe) for
+        possible re-plotting, plots the point and returns the value of 'f'
+        plotted to help with re-scaling or None if nothing was plotted.  't'
+        is the time in minutes since the start of the run
+        """
+
+        res = results[self.cnam]
+
+        targ = res[self.targ]
+        x = targ['x']
+        xe = targ['xe']
+
+        if xe <= 0:
+            # skip junk
+            return None
+
+        if self.xzero is None:
+            # initialise the start Y position
+            self.xzero = x
+
+        x -= self.xzero
+
+        # Store new point
+        self.t.append(t)
+        self.f.append(x)
+        self.fe.append(xe)
+
+        # Plot the point in minutes from start point
+        pgsci(self.ecol)
+        pgmove(t, x-xe)
+        pgdraw(t, x+xe)
+        pgsci(self.dcol)
+        pgpt1(t,x,1)
+
+        # return x up the line
+        return x
+
+class Yposition:
+    """Container for Y measurements so they can be re-plotted as they come in.
+    There should be one of these per plot line in the 'position' section.
+
+    """
+    def __init__(self, plot_config):
+        self.cnam  = plot_config['ccd']
+        self.targ  = plot_config['targ']
+        self.dcol  = plot_config['dcol']
+        self.ecol  = plot_config['ecol']
+        self.t  = []
+        self.f  = []
+        self.fe = []
+        self.yzero = None
+
+    def add_point(self, t, results):
+        """
+        Extracts the data to be plotted on the position plot for given the
+        time and the results (for all CCDs, as returned by
+        extractFlux. Assuming all is OK (errors > 0), it stores (t, f, fe) for
+        possible re-plotting, plots the point and returns the value of 'f'
+        plotted to help with re-scaling or None if nothing was plotted.  't'
+        is the time in minutes since the start of the run
+        """
+
+        res = results[self.cnam]
+
+        targ = res[self.targ]
+        y = targ['y']
+        ye = targ['ye']
+
+        if ye <= 0:
+            # skip junk
+            return None
+
+        if self.yzero is None:
+            # initialise the start Y position
+            self.yzero = y
+
+        y -= self.yzero
+
+        # Store new point
+        self.t.append(t)
+        self.f.append(y)
+        self.fe.append(ye)
+
+        # Plot the point in minutes from start point
+        pgsci(self.ecol)
+        pgmove(t, y-ye)
+        pgdraw(t, y+ye)
+        pgsci(self.dcol)
+        pgpt1(t,y,1)
+
+        # return y up the line
+        return y
 
 class Transmission:
     """
@@ -1854,7 +2155,7 @@ class Transmission:
         pgmove(t, f-fe)
         pgdraw(t, f+fe)
         pgsci(self.dcol)
-        pgpt1(t,f,17)
+        pgpt1(t,f,1)
 
         # return f up the line
         return f
@@ -1907,7 +2208,7 @@ class Seeing:
         pgmove(t, f-fe)
         pgdraw(t, f+fe)
         pgsci(self.dcol)
-        pgpt1(t,f,17)
+        pgpt1(t,f,1)
 
         # return f up the line
         return f
