@@ -109,7 +109,7 @@ def grab(args=None):
         ndigit = cl.get_value(
             'ndigit', 'number of digits in frame identifier', 3, 0)
 
-        first = cl.get_value('first', 'first frame to grab', 1, 1)
+        first = cl.get_value('first', 'first frame to grab', 1, 0)
         last = cl.get_value('last', 'last frame to grab', 0)
         if last < first and last != 0:
             sys.stderr.write('last must be >= first or 0')

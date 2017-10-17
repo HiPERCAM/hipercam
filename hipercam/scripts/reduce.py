@@ -1227,6 +1227,8 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                     x, y, fit_fwhm, apsec['fit_fwhm_min'],
                     apsec['fit_fwhm_fixed'], fit_beta, rd, gn
                     )
+                if beta is None or ebeta is None:
+                    beta, ebeta = 0., -1
 
                 if height > apsec['height_min']:
                     dx = x - aper.x
@@ -1361,6 +1363,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                     x, y, fit_fwhm, apsec['fit_fwhm_min'],
                     apsec['fit_fwhm_fixed'], fit_beta, rd, gn
                     )
+
+                if beta is None or ebeta is None:
+                    beta, ebeta = 0., -1
 
                 if height > apsec['fit_height_min']:
                     # store some stuff for next time and for passing onto
