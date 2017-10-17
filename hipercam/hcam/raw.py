@@ -280,7 +280,7 @@ class Rhead:
             chead = fits.Header()
 
             # Essential items
-            hnam = 'ESO DET NSKIP{:d}'.format(n+1)
+            hnam = 'ESO DET NSKIPS{:d}'.format(n+1)
             if hnam in self.header:
                 # used to identify blank frames
                 chead['NCYCLE'] = (self.header[hnam]+1, 'readout cycle period (NSKIP+1)')
