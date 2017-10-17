@@ -112,7 +112,7 @@ def pWind(axes, wind,  vmin, vmax, label=''):
     # plot image
     axes.imshow(wind.data,extent=(left,right,bottom,top),
                 aspect='equal',origin='lower',cmap='Greys',
-                interpolation='nearest',vmin=vmax,vmax=vmin)
+                interpolation='nearest',vmin=vmin,vmax=vmax)
 
     # plot window border
     pWin(axes, wind, label)
