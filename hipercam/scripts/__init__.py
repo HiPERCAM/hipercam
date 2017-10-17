@@ -17,6 +17,7 @@ from .combine import combine
 from .grab import grab
 from .hplot import hplot
 from .makestuff import makedata, makefield
+from .plog import plog
 from .reduce import reduce
 from .rtplot import rtplot
 from .setaper import setaper
@@ -26,5 +27,5 @@ __all__ = [
     'add', 'div', 'mul', 'sub',
     'cadd', 'cdiv', 'cmul', 'csub', 
     'combine', 'grab', 'hplot', 'makedata', 'makefield', 
-    'reduce', 'rtplot', 'setaper', 'stats',
+    'plog', 'reduce', 'rtplot', 'setaper', 'stats',
     ]

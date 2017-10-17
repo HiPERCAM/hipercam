@@ -116,6 +116,7 @@ setup(
             'hplot=hipercam.scripts.hplot:hplot',
             'makedata=hipercam.scripts.makestuff:makedata',
             'makefield=hipercam.scripts.makestuff:makefield',
+            'plog=hipercam.scripts.plog:plog',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
             'setaper=hipercam.scripts.setaper:setaper',
