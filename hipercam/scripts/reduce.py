@@ -114,7 +114,7 @@ def reduce(args=None):
 
     if server_or_local:
         run = cl.get_value('run', 'run name', 'run005')
-        first = cl.get_value('first', 'first frame to reduce', 1, 1)
+        first = cl.get_value('first', 'first frame to reduce', 1, 0)
         twait = cl.get_value(
             'twait', 'time to wait for a new frame [secs]', 1., 0.)
         tmax = cl.get_value(
@@ -527,9 +527,9 @@ def reduce(args=None):
                 logfile.write('#\n')
                 for cnam in mccd:
                     # get the apertures
-                    ccdaper = rfile.aper[cnam]
-                    if len(ccdaper) == 0:
+                    if cnam not in rfile or len(rfile.aper[cnam]) == 0:
                         continue
+                    ccdaper = rfile.aper[cnam]
 
                     # get time and flag
                     mjd = mccd[cnam].head['MJDUTC']
