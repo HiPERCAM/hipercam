@@ -156,27 +156,26 @@ def combine(args=None):
             else:
                 print('Loaded {:d} CCDs'.format(len(ccds)))
 
-            if adjust == 'b' or adjust == 'n':
+        if adjust == 'b' or adjust == 'n':
 
-                # adjust the means
-                print('Computing and adjusting their mean levels')
+            # adjust the means
+            print('Computing and adjusting their mean levels')
 
-                # now carry out the adjustments
-                for ccd in ccds:
-                    for cnam, ccd in ccd.items():
-                        if adjust == 'b':
-                            ccd += mean - ccd.mean()
-                        elif adjust == 'n':
-                            ccd *= mean / ccd.mean()
+            # now carry out the adjustments
+            for ccd in ccds:
+                if adjust == 'b':
+                    ccd += mean - ccd.mean()
+                elif adjust == 'n':
+                    ccd *= mean / ccd.mean()
 
-            # Finally, combine
-            print('Combining them and storing the result')
+        # Finally, combine
+        print('Combining them and storing the result')
 
-            for wnam, wind in template[cnam].items():
-                # build list of all data arrays
-                arrs = [ccd[wnam].data for ccd in ccds]
-                arr3d = np.stack(arrs)
-                wind.data = np.median(arr3d,axis=0)
+        for wnam, wind in template[cnam].items():
+            # build list of all data arrays
+            arrs = [ccd[wnam].data for ccd in ccds]
+            arr3d = np.stack(arrs)
+            wind.data = np.median(arr3d,axis=0)
 
     # write out
     template.wfits(outfile, clobber)
