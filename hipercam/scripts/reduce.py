@@ -292,7 +292,7 @@ def reduce(args=None):
 #
 """)
         # second, list the command-line inputs to the logfile
-        cl.list(logfile)
+#        cl.list(logfile)
 
         # third, list the reduce file
         logfile.write("""#
@@ -463,6 +463,9 @@ def reduce(args=None):
                 results = {}
                 for cnam in mccd:
                     # get the apertures
+                    if cnam not in rfile:
+                        continue
+
                     ccdaper = rfile.aper[cnam]
                     if len(ccdaper) == 0:
                         continue
