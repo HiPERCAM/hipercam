@@ -57,7 +57,7 @@ def combine(args=None):
         cl.register('list', Cline.GLOBAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
         cl.register('adjust', Cline.LOCAL, Cline.PROMPT)
-        cl.register('clobber', Cline.LOCAL, Cline.PROMPT)
+        cl.register('clobber', Cline.LOCAL, Cline.HIDE)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
