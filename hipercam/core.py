@@ -42,6 +42,9 @@ CIS = (
     (0.808,0.702,0.004),  # 9 -- mustard
     (0.761,0.,0.471),     # 10 -- magenta
     (0.682,0.443,0.505),  # 11 -- mauve
+    (0.635,0.643,0.082),  # 12 -- vomit
+    (0.604,0.008,0.0),    # 13 -- darkred
+    (0.498, 0.372, 0),    # 14 -- mud 
 )
 
 CNAMS = {
@@ -57,6 +60,9 @@ CNAMS = {
     'mustard' : 9,
     'magenta' : 10,
     'mauve' : 11,
+    'vomit' : 12,
+    'darkred' : 13,
+    'mud' : 14,
 }
 
 def add_extension(fname, ext):
