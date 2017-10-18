@@ -612,11 +612,20 @@ class Windat(Window):
 
     @classmethod
     def rhdu(cls, hdu):
-        """Constructs a :class:`Windat` from an ImageHdu. Requires
-        header parameters 'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.
+        """Constructs a :class:`Windat` from an ImageHdu. Requires header parameters
+        'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.  This converts the data
+        to float32 internally, unless it is read in as float64 in the first
+        place conversion f which would lose precision.
+
         """
         head = hdu.header
+
+        # data converted to float32 unless already float64.
+        # this prevents problems down the line with arithematic
+        # on integers which can generate junk in soime cases.
         data = hdu.data
+        if data.dtype != np.float64:
+            data = data.astype(np.float32)
 
         # construct Window
         llx = head['LLX']

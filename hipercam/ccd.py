@@ -193,7 +193,8 @@ class CCD(Agroup):
                find and return a :class:CCD built from a subset of HDUs that
                matches cnam (the keyword CCD is used)
 
-        Returns a :class:`CCD`
+        Returns a :class:`CCD`. Data are converted to float32 unless they are
+        read in as float64.
 
         """
 
@@ -263,6 +264,7 @@ class CCD(Agroup):
             >> for label, ccd in CCD.rmhdul(hdul, True):
             >>    ... do something
 
+        Data are converted to float32 unless they are read in as float64.
         """
 
         # initialise for the first CCD
@@ -364,6 +366,7 @@ class CCD(Agroup):
         come in a contiguous block with each one labelled with the keyword
         'CCD'.
 
+        Data are converted to float32 unless they are read in as float64.
         """
 
         with fits.open(fname) as hdul:
@@ -609,6 +612,8 @@ class MCCD(Agroup):
         """Builds an :class:`MCCD` from a FITS file. Expects a primary HDU,
         containing no data, followed by a series of HDU blocks consisting
         of the header for each CCD followed by data HDUs.
+
+        Data are converted to float32 unless they are read in as float64.
         """
         with fits.open(fname) as hdul:
             return cls.rhdul(hdul)
@@ -630,6 +635,7 @@ class MCCD(Agroup):
           hdul : :class:`HDUList`
                each ImageHDU will be read as sub-window of the :class:`CCD`
 
+        Data are converted to float32 unless they are read in as float64.
         """
         # Get the main header from the first hdu, but otherwise ignore it
         head = hdul[0].header
@@ -651,12 +657,14 @@ class MCCD(Agroup):
 
     def matches(self, mccd):
         """Check that the :class:`MCCD` matches another, which in this means checking
-        that each CCD of the same label matches the equivalent in the other `MCCD`.
+        that each CCD of the same label matches the equivalent in the other
+        `MCCD`.
 
         There will be no match if there any CCDs present in one `MCCD` which are
         not in the other.
 
         Raises KeyError or ValueError exception depending on the problem.
+
         """
         for key in self:
             if key not in mccd:
