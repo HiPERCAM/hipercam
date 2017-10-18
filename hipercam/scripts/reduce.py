@@ -277,7 +277,10 @@ def reduce(args=None):
         for plot_config in rfile['seeing']['plot']:
             sbuffer.append(Seeing(plot_config, rfile['seeing']['scale']))
 
-    # open the log file
+    ############################################
+    #
+    # open the log file. long section
+    #
     with open(log,'w') as logfile:
         # start by writing headers (long section)
 
@@ -463,7 +466,9 @@ def reduce(args=None):
                 for cnam in mccd:
 
                     # get the apertures
-                    if cnam not in rfile.aper or len(rfile.aper[cnam]) == 0:
+                    if cnam not in rfile.aper or \
+                       len(rfile.aper[cnam]) == 0 or \
+                       not mccd[cnam].is_data():
                         continue
 
                     ccdaper = rfile.aper[cnam]
@@ -471,7 +476,7 @@ def reduce(args=None):
                     # get the CCD and the apertures
                     ccd = mccd[cnam]
 
-                    if nf == 0:
+                    if cnam not in mccdwins:
                         # first time through, work out an array of which
                         # window each aperture lies in we will assume this is
                         # fixed for the whole run, i.e. that apertures do not
@@ -525,8 +530,11 @@ def reduce(args=None):
                 logfile.write('#\n')
                 for cnam in mccd:
                     # get the apertures
-                    if cnam not in rfile.aper or len(rfile.aper[cnam]) == 0:
+                    if cnam not in rfile.aper or \
+                       len(rfile.aper[cnam]) == 0 or \
+                       not mccd[cnam].is_data():
                         continue
+
                     ccdaper = rfile.aper[cnam]
 
                     # get time and flag
@@ -1277,7 +1285,10 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                     }
 
             except hcam.HipercamError as err:
-                print('CCD {:s}, reference aperture {:s}, fit failed'.format(cnam, apnam), file=sys.stderr)
+                print(
+                    'CCD {:s}, reference aperture {:s},'
+                    ' fit failed'.format(cnam, apnam), file=sys.stderr
+                )
 
                 store[apnam] = {
                     'xe' : -1, 'ye' : -1,
@@ -1290,7 +1301,10 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
         if wxsum > 0 and wysum > 0:
             xshift = xsum / wxsum
             yshift = ysum / wysum
-            print('Mean x,y shift from reference aperture(s) = {:.2f}, {:.2f}'.format(xshift, yshift))
+            print(
+                'Mean x,y shift from reference'
+                ' aperture(s) = {:.2f}, {:.2f}'.format(xshift, yshift)
+            )
 
         else:
             raise hcam.HipercamError('reference aperture fit(s) failed; giving up.')
@@ -1304,12 +1318,12 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
     # by the mean shift.
     for apnam, aper in ccdaper.items():
         if aper.ref:
-            if store['apnam']['fwhme'] <= 0.:
+            if store[apnam]['fwhme'] <= 0.:
                 # Move failed reference fit to the mean shift
                 aper.x += xshift
                 aper.y += yshift
-                store['apnam']['dx'] = xshift
-                store['apnam']['dy'] = yshift
+                store[apnam]['dx'] = xshift
+                store[apnam]['dy'] = yshift
 
         elif not aper.is_linked():
 
@@ -1969,6 +1983,9 @@ class LightCurve:
         start of the run
         """
 
+        if self.cnam not in results:
+            return None
+
         res = results[self.cnam]
 
         targ = res[self.targ]
@@ -2051,6 +2068,9 @@ class Xposition:
         is the time in minutes since the start of the run
         """
 
+        if self.cnam not in results:
+            return None
+
         res = results[self.cnam]
 
         targ = res[self.targ]
@@ -2108,6 +2128,9 @@ class Yposition:
         plotted to help with re-scaling or None if nothing was plotted.  't'
         is the time in minutes since the start of the run
         """
+
+        if self.cnam not in results:
+            return None
 
         res = results[self.cnam]
 
@@ -2167,6 +2190,9 @@ class Transmission:
         is the time in minutes since the start of the run
         """
 
+        if self.cnam not in results:
+            return None
+
         res = results[self.cnam]
 
         targ = res[self.targ]
@@ -2225,6 +2251,9 @@ class Seeing:
         plotted to help with re-scaling or None if nothing was plotted.  't'
         is the time in minutes since the start of the run
         """
+
+        if self.cnam not in results:
+            return None
 
         res = results[self.cnam]
 
