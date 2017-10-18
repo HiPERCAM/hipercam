@@ -100,12 +100,6 @@ def reduce(args=None):
 
     # set some flags
     server_or_local = source.endswith('s') or source.endswith('l')
-    is_file_list = source.endswith('f')
-    server_on = source.endswith('s')
-
-    # distinguish between the instruments HiPERCAM or
-    # ULTRA(CAM/SPEC)
-    instrument = 'HIPER' if source.startswith('h') else 'ULTRA'
 
     # the reduce file
     rfilen = cl.get_value(
@@ -140,7 +134,7 @@ def reduce(args=None):
     # all the inputs have now been obtained. Get on with doing stuff
 
     # define the panel grid. first get the labels and maximum dimensions
-    ccdinf = hcam.get_ccd_pars(instrument, run, is_file_list)
+    ccdinf = hcam.get_ccd_pars(source, run)
 
     # open the light curve plot
     lcdev = hcam.pgp.Device(rfile['lcplot']['device'])
@@ -424,22 +418,23 @@ def reduce(args=None):
         #
         # Finally, start winding through the frames
         #
-        with hcam.data_source(
-                instrument, run, is_file_list, server_on, first) as spool:
+        with hcam.data_source(source, run, first) as spool:
 
             # 'spool' is an iterable source of MCCDs
             for nf, mccd in enumerate(spool):
 
-                # Handle the waiting game ...
-                give_up, try_again, total_time = hcam.hang_about(
-                    mccd, twait, tmx, total_time
-                )
+                if server_or_local:
 
-                if give_up:
-                    print('reduce stopped')
-                    break
-                elif try_again:
-                    continue
+                    # Handle the waiting game ...
+                    give_up, try_again, total_time = hcam.hang_about(
+                        mccd, twait, tmx, total_time
+                    )
+
+                    if give_up:
+                        print('reduce stopped')
+                        break
+                    elif try_again:
+                        continue
 
                 # indicate progress
                 if 'NFRAME' in mccd.head:

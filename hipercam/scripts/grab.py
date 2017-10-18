@@ -90,15 +90,6 @@ def grab(args=None):
         source = cl.get_value('source', 'data source [hs, hl, us, ul]',
                               'hl', lvals=('hs','hl','us','ul'))
 
-        # set some flags
-        server_or_local = source.endswith('s') or source.endswith('l')
-        is_file_list = False
-        server_on = source.endswith('s')
-
-        # distinguish between the instruments HiPERCAM or
-        # ULTRA(CAM/SPEC)
-        instrument = 'HIPER' if source.startswith('h') else 'ULTRA'
-
         # OK, more inputs
         run = cl.get_value('run', 'run name', 'run005')
 
@@ -140,22 +131,20 @@ def grab(args=None):
     root = os.path.basename(run)
 
     # Finally, we can go
-    with hcam.data_source(
-            instrument, run, is_file_list, server_on, first) as spool:
+    with hcam.data_source(source, run, first) as spool:
 
         for mccd in spool:
 
-            if server_or_local:
-                # Handle the waiting game ...
-                give_up, try_again, total_time = hcam.hang_about(
-                    mccd, twait, tmax, total_time
-                )
+            # Handle the waiting game ...
+            give_up, try_again, total_time = hcam.hang_about(
+                mccd, twait, tmax, total_time
+            )
 
-                if give_up:
-                    print('grab stopped')
-                    break
-                elif try_again:
-                    continue
+            if give_up:
+                print('grab stopped')
+                break
+            elif try_again:
+                continue
 
             if bias is not None:
                 # read bias after first frame so we can

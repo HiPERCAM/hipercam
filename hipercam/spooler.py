@@ -225,98 +225,86 @@ class HcamServSpool(SpoolerBase):
         return self._iter.__next__()
 
 
-def data_source(inst, resource, flist, server, first):
+def data_source(source, resource, first=1):
     """Returns a context manager needed to run through a set of exposures.
     This is basically a wrapper around the various context managers that
     hook off the SpoolerBase class.
 
     Arguments::
 
-       inst     : (string)
-          Instrument name. Current choices: 'ULTRA' for ULTRACAM/SPEC, 'HIPER'
-          for 'HiPERCAM'. 'HIPER' is the one to use if you are looking at a list
-          of HiPERCAM-format 'hcm' files.
+       source    : (string)
+
+          Data source. Options are 'hl', 'hs', 'ul', 'us', 'hf'. The leading
+          ('h' | 'u') indicates ULTRA(CAM|SPEC), or HiPERCAM. The trailing
+          ('l' | 's' | 'f') refers to access through a local file for 'l'
+          (.fits for HiPERCAM or .dat/.xml for ULTRA(CAM|SPEC), a server for
+          's' (either the ATC fileserver for ULTRA(CAM|SPEC) or Stu
+          Littlefair's HiPERCAM server), or from a list of fils in HiPERCAM's
+          FITS-based hcm format.
 
        resource : (string)
-          File name. Either a run number for ULTRA or HIPER or a file list
-          if flist == True.
-
-       flist    : (bool)
-          True if 'resource' is a list of files.
-
-       server   : (bool)
-          If flist == False, then 'server' controls whether access will be attempted via
-          a server. If not, a local disk file is assumed. Note that this parameter is
-          ignored if flist == True.
+          File name. A run number if source=('?l'|'?s') or a file list
+          for source='hl'.
 
        first    : (int)
           If a raw disk file is being read, either locally or via a server,
-          this parameter sets where to start in the file. 0 for latest.
+          this parameter sets where to start in the file. 0 to always try
+          to get the last. See also 'hang_about' in this case. This parameter
+          is ignored if source=='hf'.
 
     Returns::
 
-       A :class:`SpoolerBase` object that can appear inside a "with" 
+       A :class:`SpoolerBase` object that can appear inside a "with"
        statement, e.g.
 
-         with data_source('ULTRA', 'run003') as dsource:
-            for frame in dsource:
+         >> with data_source('us', 'run003') as dsource:
+         >>    for frame in dsource:
+         >>       ... do something with 'frame'  
     """
 
-    if inst == 'ULTRA':
-        if flist:
-            raise NotImplementedError(
-                'spooler.data_source: file lists have not been implemented for inst = "ULTRA"'
-                )
-
-        if server:
-            return UcamServSpool(resource,first)
-        else:
-            return UcamDiskSpool(resource,first)
-
-    elif inst == 'HIPER':
-        if flist:
-            return HcamListSpool(resource)
-        elif server:
-            return HcamServSpool(resource,first)
-        else:
-            return HcamDiskSpool(resource,first)
-
+    if source == 'us':
+        return UcamServSpool(resource, first)
+    elif source == 'ul':
+        return UcamDiskSpool(resource, first)
+    elif source == 'hs':
+        return HcamServSpool(resource, first)
+    elif source == 'hl':
+        return HcamDiskSpool(resource, first)
+    elif source == 'hf':
+        return HcamListSpool(resource)
     else:
         raise ValueError(
-            'spooler.data_source: inst = {!s} not recognised'.format(inst)
+            '{!s} is not a recognised data source'.format(source)
         )
 
-def get_ccd_pars(inst, resource, flist):
-    """Returns a list of tuples of CCD labels, and maximum dimensions, i.e. (label, nxmax, nymax)
-    for each CCD pointed at by the input parameters.
+def get_ccd_pars(source, resource):
+    """Returns a list of tuples of CCD labels, and maximum dimensions,
+    i.e. (label, nxmax, nymax) for each CCD pointed at by the input
+    parameters.
 
     Arguments::
 
-       inst     : (string)
-          Instrument name. Current choices: 'ULTRA' for ULTRACAM/SPEC, 'HIPER'
-          for 'HiPERCAM'. 'HIPER' is the one to use if you are looking at a list
-          of HiPERCAM-format 'hcm' files.
+        source   : (string)
+           Data source. See 'data_source' for details.
 
        resource : (string)
-          File name. Either a run number for ULTRA or HIPER or a file list
-          if flist == True.
-
-       flist    : (bool)
-          True if 'resource' is a list of files.
+          File name. Either a run number or a file list. Again, see
+          'data_source' for details.
 
     Returns with a list of tuples with the information outlined above. In the
     case of file lists these are extracted from the first file of the list only.
+
     """
 
-    if inst == 'ULTRA':
-        if flist:
-            raise NotImplementedError(
-                'spooler.get_ccd_pars: file lists have not been implemented for inst = "ULTRA"'
-                )
+    if source.startswith('u'):
+
+        # ULTRA(CAM|SPEC)
         rhead = ucam.Rhead(resource)
         if rhead.instrument == 'ULTRACAM':
             # ULTRACAM raw data file: fixed data
-            return OrderedDict((('1',(1080,1032)), ('2',(1080,1032)), ('3',(1080,1032))))
+            return OrderedDict(
+                (('1',(1080,1032)), ('2',(1080,1032)), ('3',(1080,1032)))
+            )
 
         elif rhead.instrument == 'ULTRASPEC':
             # ULTRASPEC raw data file: fixed data
@@ -324,20 +312,21 @@ def get_ccd_pars(inst, resource, flist):
 
         else:
             raise ValueError(
-                'spooler.get_ccd_pars: instrument {:s} not supported'.format(rhead.instrument)
-                )
+                'instrument = {:s} not supported'.format(rhead.instrument)
+            )
 
-    elif inst == 'HIPER':
-        if flist:
-            # file list: we access the first file of the list to read the key and dimension
-            # info on the assumption that it is the same, for all files.
+    elif source.startswith('h'):
+        if source.endswith('f'):
+            # file list: we access the first file of the list to read the key
+            # and dimension info on the assumption that it is the same, for
+            # all files.
             with open(resource) as flp:
                 for fname in flp:
-                    if not fname.startswith('#'):
+                    if not fname.startswith('#') and not fname.isspace():
                         break
                 else:
                     raise ValueError(
-                        'spooler.get_ccd_pars: failed to find any file names in {:s}'.format(resource)
+                        'failed to find any file names in {:s}'.format(resource)
                         )
             return ccd.get_ccd_info(core.add_extension(fname.strip(), core.HCAM))
 

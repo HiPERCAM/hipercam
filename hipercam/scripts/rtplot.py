@@ -244,12 +244,6 @@ def rtplot(args=None):
 
         # set some flags
         server_or_local = source.endswith('s') or source.endswith('l')
-        is_file_list = source.endswith('f')
-        server_on = source.endswith('s')
-
-        # distinguish between the instruments HiPERCAM or
-        # ULTRA(CAM/SPEC)
-        instrument = 'HIPER' if source.startswith('h') else 'ULTRA'
 
         # plot device stuff
         device = cl.get_value('device', 'plot device', '1/xs')
@@ -265,11 +259,13 @@ def rtplot(args=None):
                 'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
 
         else:
-            run = cl.get_value('flist', 'file list', cline.Fname('files.lis',hcam.LIST))
+            run = cl.get_value(
+                'flist', 'file list', cline.Fname('files.lis',hcam.LIST)
+            )
             first = 1
 
         # define the panel grid. first get the labels and maximum dimensions
-        ccdinf = hcam.get_ccd_pars(instrument, run, is_file_list)
+        ccdinf = hcam.get_ccd_pars(source, run)
 
         try:
             nxdef = cl.get_default('nx')
@@ -294,10 +290,12 @@ def rtplot(args=None):
             ccds = list(ccdinf.keys())
 
         cl.set_default('pause', 0.)
-        pause = cl.get_value('pause', 'time delay to add between frame plots [secs]', 0., 0.)
+        pause = cl.get_value('pause', 'time delay to add between'
+                             ' frame plots [secs]', 0., 0.)
 
         cl.set_default('plotall', False)
-        plotall = cl.get_value('plotall', 'plot all frames, regardless of status?', False)
+        plotall = cl.get_value('plotall', 'plot all frames,'
+                               ' regardless of status?', False)
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -312,7 +310,8 @@ def rtplot(args=None):
         msub = cl.get_value('msub', 'subtract median from each window?', True)
 
         iset = cl.get_value(
-            'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
+            'iset', 'set intensity a(utomatically),'
+            ' d(irectly) or with p(ercentiles)?',
             'a', lvals=['a','A','d','D','p','P'])
         iset = iset.lower()
 
@@ -322,8 +321,10 @@ def rtplot(args=None):
             ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
             ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
         elif iset == 'p':
-            plo = cl.get_value('plo', 'lower intensity limit percentile', 5., 0., 100.)
-            phi = cl.get_value('phi', 'upper intensity limit percentile', 95., 0., 100.)
+            plo = cl.get_value('plo', 'lower intensity limit percentile',
+                               5., 0., 100.)
+            phi = cl.get_value('phi', 'upper intensity limit percentile',
+                               95., 0., 100.)
 
         # region to plot
         nxmax, nymax = 0, 0
@@ -333,9 +334,11 @@ def rtplot(args=None):
             nymax = max(nymax, nytot)
 
         xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., float(nxmax+1))
-        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., float(nxmax+1))
+        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax),
+                           0., float(nxmax+1))
         ylo = cl.get_value('ylo', 'lower Y value', 0., 0., float(nymax+1))
-        yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., float(nymax+1))
+        yhi = cl.get_value('yhi', 'upper Y value', float(nymax),
+                           0., float(nymax+1))
 
         # profile fitting if just one CCD chosen
         if len(ccds) == 1:
@@ -344,26 +347,41 @@ def rtplot(args=None):
             profit = cl.get_value('profit', 'do you want profile fits?', False)
 
             if profit:
-                fdevice = cl.get_value('fdevice', 'plot device for fits', '2/xs')
+                fdevice = cl.get_value('fdevice', 'plot device for fits',
+                                       '2/xs')
                 fwidth = cl.get_value('fwidth', 'fit plot width (inches)', 0.)
-                fheight = cl.get_value('fheight', 'fit plot height (inches)', 0.)
-                method = cl.get_value('method', 'fit method g(aussian) or m(offat)', 'm', lvals=['g','m'])
+                fheight = cl.get_value(
+                    'fheight', 'fit plot height (inches)', 0.)
+                method = cl.get_value(
+                    'method', 'fit method g(aussian) or m(offat)',
+                    'm', lvals=['g','m'])
                 if method == 'm':
                     beta = cl.get_value(
                         'beta', 'initial exponent for Moffat fits', 5., 0.5)
                 else:
                     beta = 0.
-                fwhm_min = cl.get_value('fwhm_min', 'minimum FWHM to allow [unbinned pixels]', 1.5, 0.01)
-                fwhm = cl.get_value('fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., fwhm_min)
+                fwhm_min = cl.get_value(
+                    'fwhm_min', 'minimum FWHM to allow [unbinned pixels]',
+                    1.5, 0.01
+                )
+                fwhm = cl.get_value(
+                    'fwhm', 'initial FWHM [unbinned pixels] for profile fits',
+                    6., fwhm_min
+                )
                 shbox = cl.get_value(
-                    'shbox', 'half width of box for initial location of target [unbinned pixels]', 11., 2.)
+                    'shbox', 'half width of box for initial location'
+                    ' of target [unbinned pixels]', 11., 2.)
                 smooth = cl.get_value(
-                    'smooth', 'FWHM for smoothing for initial object detection [binned pixels]', 6.)
+                    'smooth', 'FWHM for smoothing for initial object'
+                    ' detection [binned pixels]', 6.)
                 splot = cl.get_value(
                     'splot', 'plot outline of search box?', True)
                 fhbox = cl.get_value(
-                    'fhbox', 'half width of box for profile fit [unbinned pixels]', 21., 3.)
-                thresh = cl.get_value('thresh', 'peak height threshold to counts as OK', 50.)
+                    'fhbox', 'half width of box for profile fit'
+                    ' [unbinned pixels]', 21., 3.)
+                thresh = cl.get_value(
+                    'thresh', 'peak height threshold'
+                    ' to counts as OK', 50.)
                 read = cl.get_value('read', 'readout noise, RMS ADU', 3.)
                 gain = cl.get_value('gain', 'gain, ADU/e-', 1.)
                 sigma = cl.get_value('sigma', 'readout noise, RMS ADU', 3.)
@@ -404,8 +422,7 @@ def rtplot(args=None):
     fframe = True   # waiting for first valid frame with profit
 
     # plot images
-    with hcam.data_source(
-            instrument, run, is_file_list, server_on, first) as spool:
+    with hcam.data_source(source, run, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
         for n, mccd in enumerate(spool):
@@ -423,11 +440,10 @@ def rtplot(args=None):
                     continue
 
             # indicate progress
-            if is_file_list:
-                print('File {:d}: '.format(n+1), end='')
-            else:
-                print('Frame {:d}, time = {:s}; '.format(
-                    mccd.head['NFRAME'], mccd.head['TIMSTAMP']), end='')
+            print(
+                'Frame {:d}, time = {:s}; '.format(
+                    mccd.head['NFRAME'], mccd.head['TIMSTAMP']), end=''
+            )
 
             if n == 0 and bias is not None:
                 # crop the bias on the first frame only
