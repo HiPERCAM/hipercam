@@ -177,9 +177,9 @@ def reduce(args=None):
     # scale = vertical height of LC panel in device coordinates
     scale = (yv2-yv1) / total
 
-    # Work from the bottom up to get the X-axis labelling right
-    # since it has to be turned off for the upper panels.
-    # at each step yv1, yv2 is the Panel's vertical range
+    # Work from the bottom up to get the X-axis labelling right since it has
+    # to be turned off for the upper panels.  at each step yv1, yv2 is the
+    # Panel's vertical range
     xlabel = 'Time [mins]'
     xopt = 'bcnst'
 
@@ -251,9 +251,8 @@ def reduce(args=None):
     total_time = 0 # time waiting for new frame
     fpos = [] # list of target positions to fit
 
-    # dictionary of dictionaries for looking up the
-    # window associated with a given aperture, i.e.
-    # mccdwins[cnam][apnam] give the name of the Windat.
+    # dictionary of dictionaries for looking up the window associated with a
+    # given aperture, i.e.  mccdwins[cnam][apnam] give the name of the Windat.
     mccdwins = {}
 
     # create buffers to store the points plotted in each panel
@@ -294,7 +293,7 @@ def reduce(args=None):
 #
 """)
         # second, list the command-line inputs to the logfile
-#        cl.list(logfile)
+        cl.list(logfile)
 
         # third, list the reduce file
         logfile.write("""#

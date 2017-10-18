@@ -18,7 +18,9 @@ __all__ = ['averun',]
 def averun(args=None):
     """Averages images from a run using median combination. Only combines those
     CCDs for which is_data() is true (i.e. it skips blank frames caused by
-    NSKIP / NBLUE options)
+    NSKIP / NBLUE options). The intention is to provide a simple routine to
+    create median frames suitable for aperture selection with 'setaper'. See
+    'combine' if you want more fine-grained control for frame averaging.
 
     Arguments::
 
@@ -62,9 +64,11 @@ def averun(args=None):
         output  : (string)
            output file
 
-    Notes: this routine reads all inputs into memory, so it can be a bit of
-    a hog. 'combine' has a smaller footprint; this is meant for quick generation
-    of averages from a run.
+    Notes: this routine reads all inputs into memory (40MB per frame for full
+    5 CCD HiPERCAM frames for instance), so it can be a bit of a
+    hog. 'combine' has a smaller footprint; 'averun' is meant for quick
+    generation of averages from the first few files of a run rather than
+    something more sophisticated.
 
     """
 
@@ -82,9 +86,7 @@ def averun(args=None):
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-        cl.register('list', Cline.GLOBAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
-        cl.register('adjust', Cline.LOCAL, Cline.PROMPT)
         cl.register('clobber', Cline.LOCAL, Cline.HIDE)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
 
@@ -111,7 +113,8 @@ def averun(args=None):
                 'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
 
         else:
-            run = cl.get_value('flist', 'file list', cline.Fname('files.lis',hcam.LIST))
+            run = cl.get_value('flist', 'file list',
+                               cline.Fname('files.lis',hcam.LIST))
             first = 1
 
         # bias frame (if any)
@@ -149,22 +152,20 @@ def averun(args=None):
         # 'spool' is an iterable source of MCCDs
         for mccd in spool:
 
-            # Handle the waiting game ...
-            give_up, try_again, total_time = hcam.hang_about(
-                mccd, twait, tmax, total_time
-            )
+            if server_or_local:
+                # Handle the waiting game ...
+                give_up, try_again, total_time = hcam.hang_about(
+                    mccd, twait, tmax, total_time
+                )
 
-            if give_up:
-                print('rtplot stopped')
-                break
-            elif try_again:
-                continue
+                if give_up:
+                    print('rtplot stopped')
+                    break
+                elif try_again:
+                    continue
 
-            # i am not sure why the copy in the next line
-            # seems to be necessary, but it does otherwise
-            # all the mccd stored refer to the same frame
-
-            mccds.append(mccd.copy())
+            mccds.append(mccd)
+            print(' read frame {:d}'.format(nframe))
 
             if nframe >= last:
                 break

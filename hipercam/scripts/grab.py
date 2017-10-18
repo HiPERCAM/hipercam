@@ -57,20 +57,16 @@ def grab(args=None):
       bias   : (string)
          Name of bias frame to subtract, 'none' to ignore.
 
-      dtype  : (string) [hidden, defaults to 'f']
+      dtype  : (string) [hidden, defaults to 'f32']
          Data type on output. Options::
 
-            'r' : "raw", do nothing; this is safe but could
-                  be profligate as you could end up storing 64-bit
-                  double precision values if you subtract a bias.
+            'f32' : output as 32-bit floats (default)
 
-            'f' : Convert to 32-bit floats if already in 64-bit form. Leave
-                  integers untouched. This implies some loss of precision,
-                  but requires half the space.
+            'f64' : output as 64-bit floats.
 
-            'i' : Convert to 16-bit unsigned integers. A warning will be
-                  issued if loss of precision occurs; an exception will
-                  be raised if the data are outside the range 0 to 65535.
+            'u16' : output as 16-bit unsigned integers. A warning will be
+                    issued if loss of precision occurs; an exception will
+                    be raised if the data are outside the range 0 to 65535.
     """
 
     if args is None:
@@ -120,18 +116,16 @@ def grab(args=None):
         tmax = cl.get_value(
             'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
 
+        bframe = None
         bias = cl.get_value(
             'bias', "bias frame ['none' to ignore]",
             cline.Fname('bias', hcam.HCAM), ignore='none'
         )
-        if bias is not None:
-            # read the bias frame
-            bframe = hcam.MCCD.rfits(bias)
 
-        cl.set_default('dtype', 'f')
+        cl.set_default('dtype', 'f32')
         dtype = cl.get_value(
-            'dtype', 'data type [r(aw), f(32-bit float), i(16-bit uint)]',
-            'f', lvals=('r','f','i')
+            'dtype', 'data type [f32, f64, u16]',
+            'f32', lvals=('f32','f64','u16')
         )
 
     # Now the actual work.
@@ -151,25 +145,37 @@ def grab(args=None):
 
         for mccd in spool:
 
-            # Handle the waiting game ...
-            give_up, try_again, total_time = hcam.hang_about(
-                mccd, twait, tmax, total_time
-            )
+            if server_or_local:
+                # Handle the waiting game ...
+                give_up, try_again, total_time = hcam.hang_about(
+                    mccd, twait, tmax, total_time
+                )
 
-            if give_up:
-                print('grab stopped')
-                break
-            elif try_again:
-                continue
+                if give_up:
+                    print('grab stopped')
+                    break
+                elif try_again:
+                    continue
 
-            # subtract bias
             if bias is not None:
+                # read bias after first frame so we can
+                # chop the format
+                if bframe is not None:
+
+                    # read the bias frame
+                    bframe = hcam.MCCD.rfits(bias)
+
+                    # reformat
+                    bframe.chop(mccd)
+
                 mccd -= bframe
 
-            if dtype == 'i':
+            if dtype == 'u16':
                 mccd.uint16()
-            elif dtype == 'f':
+            elif dtype == 'f32':
                 mccd.float32()
+            elif dtype == 'f64':
+                mccd.float64()
 
             # write to disk
             fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)

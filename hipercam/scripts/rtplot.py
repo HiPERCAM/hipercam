@@ -410,16 +410,17 @@ def rtplot(args=None):
         # 'spool' is an iterable source of MCCDs
         for n, mccd in enumerate(spool):
 
-            # Handle the waiting game ...
-            give_up, try_again, total_time = hcam.hang_about(
-                mccd, twait, tmax, total_time
-            )
+            if server_or_local:
+                # Handle the waiting game ...
+                give_up, try_again, total_time = hcam.hang_about(
+                    mccd, twait, tmax, total_time
+                )
 
-            if give_up:
-                print('rtplot stopped')
-                break
-            elif try_again:
-                continue
+                if give_up:
+                    print('rtplot stopped')
+                    break
+                elif try_again:
+                    continue
 
             # indicate progress
             if is_file_list:
