@@ -288,7 +288,7 @@ class Rhead:
             self.thead['SPEED'] = (self.header['ESO DET SPEED'],
                                    self.header.comments['ESO DET SPEED'])
 
-        # Header per CCD
+        # Header per CCD. These are modified per CCD in Rdata
         self.cheads = []
         for n in range(5):
             chead = fits.Header()
@@ -297,7 +297,9 @@ class Rhead:
             hnam = 'ESO DET NSKIPS{:d}'.format(n+1)
             if hnam in self.header:
                 # used to identify blank frames
-                chead['NCYCLE'] = (self.header[hnam]+1, 'readout cycle period (NSKIP+1)')
+                chead['NCYCLE'] = (
+                    self.header[hnam]+1, 'readout cycle period (NSKIP+1)'
+                )
 
             # Nice-if-you-can-get-them items
             if full:
@@ -352,7 +354,11 @@ class Rdata (Rhead):
       >>    print('nccd = ',len(mccd))
 
     which just prints out the number of CCDs from every exposure in the file
-    (=5 in all cases),
+    (=5 in all cases).
+
+    Note: this casts all incoming data into 32-bit floats. This is perhaps
+    inefficient memory-wise but it is safer than leaving a 2-bytes ints which
+    can bite you.
 
     """
 
@@ -367,10 +373,11 @@ class Rdata (Rhead):
               run name, e.g. 'run036'.
 
            nframe : (int)
-              the frame number to read first [1 is the first]. This initialises an attribute
-              of the same name that is used when reading frames sequentially. nframe=0
-              is an indication to set an attribute 'last' = True  to indicate that it should
-              always try to access the last frame.
+              the frame number to read first [1 is the first]. This
+              initialises an attribute of the same name that is used when
+              reading frames sequentially. nframe=0 is an indication to set an
+              attribute 'last' = True to indicate that it should always try to
+              access the last frame.
 
            server : (bool)
               True/False for server vs local disk access. Server access goes
@@ -378,12 +385,13 @@ class Rdata (Rhead):
               environment variable "HIPERCAM_DEFAULT_URL", or, if that is not
               set, "ws://localhost:8007/".  The server here is Stu Littlefair's
               Python-based server that defaults to port 8007.
+
         """
 
         # read the header
         Rhead.__init__(self, fname, server)
 
-        # flag to indicate should always try to get the last frame 
+        # flag to indicate should always try to get the last frame
         self.last = (nframe == 0)
 
         # set flag to indicate first time through
@@ -409,19 +417,19 @@ class Rdata (Rhead):
             raise StopIteration
 
     def __call__(self, nframe=None):
-        """Reads one exposure from the run the :class:`Rdata` is attached
-        to. If `nframe` is None, then it will read the frame it is positioned
-        at. If nframe is an integer > 0, it will try to read that particular
-        frame; if nframe == 0, it reads the last complete frame. nframe == 1
-        gives the first frame. If all works, an MCCD object is returned. It
-        raises an HendError if it reaches the end of a local disk file. If it
-        fails to read from the server it returns None, but does not raise an
+        """Reads one exposure from the run the :class:`Rdata` is attached to. If
+        `nframe` is None, then it will read the frame it is positioned at. If
+        nframe is an integer > 0, it will try to read that particular frame;
+        if nframe == 0, it reads the last complete frame. nframe == 1 gives
+        the first frame. If all works, an MCCD object is returned. It raises
+        an HendError if it reaches the end of a local disk file. If it fails
+        to read from the server it returns None, but does not raise an
         Exception in order to allow continued attempts as reading from what
         might be a growing file.
 
-        It maintains an attribute 'nframe' corresponding to the frame that
-        the file pointer is positioned to read next (most relevant to reading
-        of a local file). If it is set to read the last file and that file doesn't
+        It maintains an attribute 'nframe' corresponding to the frame that the
+        file pointer is positioned to read next (most relevant to reading of a
+        local file). If it is set to read the last file and that file doesn't
         change it returns None as a sign of failure.
 
         Arguments::
@@ -457,15 +465,18 @@ class Rdata (Rhead):
                 # explicitly request the frame, otherwise we can just read
                 # from where we are
                 if self.first:
-                    request = json.dumps(dict(action='get_frame', frame_number=self.nframe))
+                    request = json.dumps(
+                        dict(action='get_frame', frame_number=self.nframe))
                 else:
                     request = json.dumps(dict(action='get_next'))
 
             else:
-                # a particular frame number is being requested. Check whether we have
-                # to request it explicitly or whether we can just get the next one
+                # a particular frame number is being requested. Check whether
+                # we have to request it explicitly or whether we can just get
+                # the next one
                 if self.nframe != nframe:
-                    request = json.dumps(dict(action='get_frame', frame_number=nframe))
+                    request = json.dumps(
+                        dict(action='get_frame', frame_number=nframe))
                     self.nframe = nframe
                 else:
                     request = json.dumps(dict(action='get_next'))
@@ -475,9 +486,9 @@ class Rdata (Rhead):
             raw_bytes = self._ws.recv()
 
             if len(raw_bytes) == 0:
-                # if we are trying to access a file that has not yet been written,
-                # 0 bytes will be returned. In this case we return with None. NB we
-                # do not update self.nframe in this case.
+                # if we are trying to access a file that has not yet been
+                # written, 0 bytes will be returned. In this case we return
+                # with None. NB we do not update self.nframe in this case.
                 return None
 
             # separate into the frame and timing data, correcting the frame
@@ -516,8 +527,10 @@ class Rdata (Rhead):
                 self.seek_frame(nframe)
 
             # read in frame and then the timing data, correcting the frame for
-            # the standard FITS BZERO offset
-            frame = np.fromfile(self._ffile, '>u2', (self._framesize - self.ntbytes) // 2)
+            # the standard FITS BZERO offset. At this stage we have the data
+            # as unsigned 2-byte ints
+            frame = np.fromfile(
+                self._ffile, '>u2', (self._framesize - self.ntbytes) // 2)
             frame += BZERO
             tbytes = self._ffile.read(self.ntbytes)
             if len(tbytes) != self.ntbytes:
@@ -531,13 +544,14 @@ class Rdata (Rhead):
         #
         ##############################################################
 
-        # First the timing bytes. the frameCount starts from 0 so we
+        # First the timing bytes. The frameCount starts from 0 so we
         # we add one to it
         frameCount, timeStampCount, years, day_of_year, hours, mins, \
             seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
         frameCount += 1
 
-        if self.server and (nframe == 0 or self.last) and not self.first and self.nframe > frameCount:
+        if self.server and (nframe == 0 or self.last) and \
+           not self.first and self.nframe > frameCount:
             # server access tring to get the last complete frame. If the frame
             # just read in is the same as the one before (i.e. frameCount <
             # self.nframe), we return None to indicate that no progress is
@@ -549,8 +563,8 @@ class Rdata (Rhead):
         self.nframe = frameCount
 
         if nsats == -1 and synced == -1:
-            # invalid time; pretend we are in 2000-01-01 taking one frame per second.
-            # just so we can get something.
+            # invalid time; pretend we are in 2000-01-01 taking one frame per
+            # second.  just so we can get something.
             tstamp = Time(51544 + self.nframe/86400., format='mjd')
         else:
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
@@ -558,13 +572,16 @@ class Rdata (Rhead):
                 )
             tstamp = Time(time_string, format='yday')
 
-        self.thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
-        self.thead['MJDUTC'] = (tstamp.mjd, 'MJD(UTC) equivalent')
+        # copy over the top-level header to avoid it becoming a reference
+        # common to all MCCDs produced by the routine
+        thead = self.thead.copy()
+        thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
+        thead['MJDUTC'] = (tstamp.mjd, 'MJD(UTC) equivalent')
         if (nsats == -1 and synced == -1) or synced == 0:
-            self.thead['GOODTIM'] = (False, 'Is TIMSTAMP thought to be OK?')
+            thead['GOODTIM'] = (False, 'Is TIMSTAMP thought to be OK?')
         else:
-            self.thead['GOODTIM'] = (True, 'Is TIMSTAMP thought to be OK?')
-        self.thead['NFRAME'] = (frameCount, 'Frame number')
+            thead['GOODTIM'] = (True, 'Is TIMSTAMP thought to be OK?')
+        thead['NFRAME'] = (frameCount, 'Frame number')
 
         # second, the data bytes
 
@@ -576,19 +593,23 @@ class Rdata (Rhead):
         ccds = Group(CCD)
         for cnam, chead in zip(CNAMS, self.cheads):
 
-            # use ncycle to determine whether this frame is really
-            # data as opposed to intermediate blank frame
-            isdata = self.nframe % chead['NCYCLE'] == 0 \
-                     if 'NCYCLE' in chead else True
-            chead['DSTATUS'] = (isdata, 'Data status when NCYCLE > 1')
+            # explicitly copy each header to avoid propagation of references
+            ch = chead.copy()
+
+            # use ncycle to determine whether this frame is really data as
+            # opposed to intermediate blank frame
+            isdata = self.nframe % ch['NCYCLE'] == 0 \
+                     if 'NCYCLE' in ch else True
+            ch['DSTATUS'] = (isdata, 'Data status when NCYCLE > 1')
 
             # this is a temporary measure. need more work to sort the
             # exact timing, so for now just copy over the top level value.
-            chead['MJDUTC'] = (self.thead['MJDUTC'], 'MJD(UTC) at centre of exposure')
-            chead['GOODTIM'] = (self.thead['GOODTIM'], 'Is MJDUTC reliable?')
+            ch['MJDUTC'] = (
+                thead['MJDUTC'], 'MJD(UTC) at centre of exposure')
+            ch['GOODTIM'] = (thead['GOODTIM'], 'Is MJDUTC reliable?')
 
             # finally create the CCD
-            ccds[cnam] = CCD(Group(Windat), HCM_NXTOT, HCM_NYTOT, chead)
+            ccds[cnam] = CCD(Group(Windat), HCM_NXTOT, HCM_NYTOT, ch)
 
         # npixel points to the start pixel of the set of windows under
         # consideration
@@ -633,14 +654,17 @@ class Rdata (Rhead):
                                 'can only flip on axis 0 or 1, but got = {:d}'.format(ax)
                             )
 
-                    # finally store as a Windat
-                    ccds[cnam][wnam] = Windat(win, windata)
+                    # finally store as a Windat, converting to 32-bit
+                    # floats to avoid problems down the line.
+                    ccds[cnam][wnam] = Windat(
+                        win, windata.astype(np.float32)
+                    )
 
             # move pointer on for next set of windows
             npixel += nchunk
 
         # create the MCCD
-        mccd = MCCD(ccds, self.thead)
+        mccd = MCCD(ccds, thead)
 
         # update the frame counter for the next call
         self.nframe += 1
@@ -890,5 +914,3 @@ def decode_timing_bytes(tbytes):
                       *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
                                                              tbytes[:-2])))
     return struct.unpack('<IIIIIIIIbb', buf)
-
-
