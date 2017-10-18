@@ -829,7 +829,7 @@ class Rfile(OrderedDict):
         apsec['fit_beta'] = float(apsec['fit_beta'])
         apsec['fit_half_width'] = int(apsec['fit_half_width'])
         apsec['fit_sigma'] = float(apsec['fit_sigma'])
-        apsec['fit_height_min'] = float(apsec['fit_sigma'])
+        apsec['fit_height_min'] = float(apsec['fit_height_min'])
 
         #
         # calibration section
@@ -1230,7 +1230,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                 if beta is None or ebeta is None:
                     beta, ebeta = 0., -1
 
-                if height > apsec['height_min']:
+                if height > apsec['fit_height_min']:
                     dx = x - aper.x
                     wx = 1./ex**2
                     wxsum += wx
@@ -1267,7 +1267,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
 
                 else:
                     print('CCD {:s}, reference aperture {:s}, peak = {:.1f} < {:s}'.format(
-                            cnam, apnam, height, apsec['height_min']),
+                            cnam, apnam, height, apsec['fit_height_min']),
                           file=sys.stderr)
 
                     store[apnam] = {
