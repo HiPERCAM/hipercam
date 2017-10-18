@@ -62,7 +62,8 @@ class Group(OrderedDict):
         # store or check that the new item matches in type
         if type(item) != self.ftype:
             raise HipercamError(
-                'key = {:s}: item = {!s} does not have the expected type = {!s}'.format(key,item,self.ftype)
+                'key = {:s}: item = {!s} does not have'
+                ' the expected type = {!s}'.format(key,item,self.ftype)
             )
 
         # checks passed, set the new item and add the key
@@ -76,6 +77,24 @@ class Group(OrderedDict):
         for key, val in self.items():
             group[key] = val.copy(memo)
         return group
+
+    def check(self):
+        """Checks validity of a Group if its objects have a method
+        'clash' defined to check that they are compatible. This should
+        have signature 'clash(self, other)', but does not have to be
+        defined for all objects storable in Groups. See :class:Window for
+        an example of an object for which this makes sense.
+
+        If the Group fails this check, a ValueError is raised.
+        """
+        keys = list(self.keys())
+        for key1 in keys[:-1]:
+            for key2 in keys[1:]:
+                try:
+                    self[key1].clash(self[key2])
+                except AttributeError:
+                    # if object doesn't support clash, break out early
+                    break
 
     def __copy__(self):
         """Copy operation for copy.copy

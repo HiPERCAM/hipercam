@@ -272,6 +272,20 @@ class Window:
 
         return np.meshgrid(x,y)
 
+    def clash(self, win):
+        """Raises a ValueError if two :class: `Window`s are considered to 'clash'.  In
+        this case this means if they have any pixels in common.  This method
+        is used in the 'check' method of the :class:`Group` class to check
+        the mutual validity of a set of :class:`Window`.
+
+        """
+        if self.llx <=  win.urx and self.urx >= win.llx and \
+           self.lly <=  win.ury and self.ury >= win.lly:
+            raise ValueError(
+                'self = {:s} clashes with win = {:s}'.format(
+                    self.format(), win.format())
+            )
+
     def matches(self, win):
         """Tests that the :class:`Window` matches another. If all OK, returns None,
         otherwise raises a ValueError reporting the two :class:`Window`s. See
@@ -357,7 +371,7 @@ class Window:
         if nx <= 0 or ny <= 0:
             raise ValueError(
                 '{!r} has no overlap with region = ({:.2f},{:.2f},{:.2f},{:.2f})'.format(
-                    self, xlo, xhi, ylo, yhi)
+                    self.format(), xlo, xhi, ylo, yhi)
                 )
 
         return Window(llx, lly, nx, ny, self.xbin, self.ybin)
@@ -596,7 +610,8 @@ class Windat(Window):
 
     @ny.setter
     def ny(self, ny):
-        raise NotImplementedError('cannot set ny directly; change data array instead')
+        raise NotImplementedError(
+            'cannot set ny directly; change data array instead')
 
     @classmethod
     def rhdu(cls, hdu):
@@ -865,7 +880,8 @@ class Windat(Window):
 
         else:
             raise ValueError(
-                'Cannot crop {!r} to {!r}'.format(self.win,win.win)
+                'Cannot crop {!r} to {!r}'.format(
+                    self.win.format(),win.win.format())
             )
 
     def float32(self):
