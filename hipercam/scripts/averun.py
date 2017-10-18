@@ -160,7 +160,11 @@ def averun(args=None):
             elif try_again:
                 continue
 
-            mccds.append(mccd)
+            # i am not sure why the copy in the next line
+            # seems to be necessary, but it does otherwise
+            # all the mccd stored refer to the same frame
+
+            mccds.append(mccd.copy())
 
             if nframe >= last:
                 break
@@ -172,7 +176,7 @@ def averun(args=None):
         print('{:d} frames read'.format(len(mccds)))
 
     # set up some buffers to hold the OK CCDs only
-    template = mccd
+    template = mccd.copy()
 
     if bias is not None:
         # crop the bias
