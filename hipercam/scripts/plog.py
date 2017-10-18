@@ -104,7 +104,7 @@ def plog(args=None):
             ccd1, aper1, param1)
 
         ccd2 = cl.get_value('ccd2', "second CCD to plot ['!' to ignore]", ccd1)
-        if ccd1 != '!':
+        if ccd2 != '!':
             aper2 = cl.get_value('aper2', 'second aperture', '1')
             param2 = cl.get_value(
                 'param2',
@@ -124,9 +124,8 @@ def plog(args=None):
             's' : 'sky'
         }
         pname1 = MAP[param1]
-        pname2 = MAP[param2]
-
         if ccd2 != '!':
+            pname2 = MAP[param2]
             scheme = cl.get_value(
                 'scheme', 'b(oth), d(ifference), r(atio), s(catter)',
                 'b', lvals=('b','d','r','s')
@@ -173,11 +172,11 @@ def plog(args=None):
             xlabel = lab1
             ylabel = lab2
 
-        else:
-            # just one
-            dat1.mplot(plt)
-            xlabel = 'Time [MJD]'
-            ylabel = lab1
+    else:
+        # just one
+        dat1.mplot(plt)
+        xlabel = 'Time [MJD]'
+        ylabel = lab1
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
