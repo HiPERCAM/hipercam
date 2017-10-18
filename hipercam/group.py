@@ -1,9 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""Defines classes which contain groups of objects of identical type. Can
-check for conflicts between the objects if they support a method called
-`clash` with signature `clash(self, other)` which raises an exception if
-`self` and `other` conflict in some way. For instance, two CCD sub-windows
-might be said to clash if they contain any pixels in common.
+"""Defines classes which contain groups of objects of identical type
+keyed with strings only.
 
 """
 
@@ -18,9 +15,6 @@ class Group(OrderedDict):
     """A specialized OrderedDict that enforces string keys only and a single
     type for the values. The objects stored as values should support a `copy`
     method to return a deepcopy for use in the :class:`Group`s copy operation.
-    :class:`Group` will also check for conflicts between the stored objects if
-    the objects have a method `clash` with signature `clash(self, other)`
-    which should raise an exception if `self` and `other` conflict in some way.
 
     :class:`Group` is designed to amalgamate several of the classes used for
     objects associated with CCDs such as :class:`Windat` (see :class:`CCD`),
@@ -58,20 +52,9 @@ class Group(OrderedDict):
                 'an input object type conflicts with ftype = {!s}'.format(ftype)
             )
 
-        # there must be no clashes if a method 'clash is defined
-        try:
-            objs = list(self.values())
-            for i, ob in enumerate(objs):
-                for obj in objs[i+1:]:
-                    ob.clash(obj)
-        except AttributeError:
-            pass
-
     def __setitem__(self, key, item):
         """Adds an item `item` keyed by `key`
-        checking that its type matches and that it does
-        does clash with any current member of the :class:
-        `Group`.
+        checking that its type matches 
         """
         if not isinstance(key,str):
             raise KeyError('key must be an string')
@@ -81,13 +64,6 @@ class Group(OrderedDict):
             raise HipercamError(
                 'key = {:s}: item = {!s} does not have the expected type = {!s}'.format(key,item,self.ftype)
             )
-
-        # check for clashes
-        try:
-            for obj in self.values():
-                item.clash(obj)
-        except AttributeError:
-            pass
 
         # checks passed, set the new item and add the key
         super().__setitem__(key, item)

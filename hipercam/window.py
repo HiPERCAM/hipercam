@@ -84,7 +84,7 @@ class Window:
     def nx(self, nx):
         if nx < 1:
             raise ValueError(
-                'hipercam.Window.nx: nx = {:d} is invalid'.format(nx))
+                'nx = {:d} is invalid'.format(nx))
         self._nx = nx
 
     @property
@@ -98,7 +98,7 @@ class Window:
     def ny(self, ny):
         if ny < 1:
             raise ValueError(
-                'hipercam.Window.ny: ny = {:d} is invalid'.format(ny))
+                'ny = {:d} is invalid'.format(ny))
         self._ny = ny
 
     def __repr__(self):
@@ -261,18 +261,6 @@ class Window:
             (self.llx-win.llx) % win.xbin == 0 and \
             (self.lly-win.lly) % win.ybin == 0
 
-    def clash(self, win):
-        """Raises a ValueError if two :class: `Window`s are considered to 'clash'.  In
-        this case this means if they have any pixels in common.  This method
-        is used when :class: `Window`s are collected into :class:`Group`s
-
-        """
-        if self.llx <=  win.urx and self.urx >= win.llx and \
-           self.lly <=  win.ury and self.ury >= win.lly:
-            raise ValueError(
-                'self = {:s} clashes with win = {:s}'.format(self.format(), win.format())
-                )
-
     def xy(self):
         """Returns two 2D arrays containing the x and y values at the centre
         of each pixel defined by the :class:`Window`. See numpy.meshgrid to
@@ -287,12 +275,12 @@ class Window:
     def matches(self, win):
         """Tests that the :class:`Window` matches another. If all OK, returns None,
         otherwise raises a ValueError reporting the two :class:`Window`s. See
-        also `__eq__` and `clash`
+        also `__eq__`
 
         """
         if self != win:
             raise ValueError(
-                'hipercam.Window.matches: self = {!s} clashes with win = {!s}'.format(self,win)
+                'self = {!s} clashes with win = {!s}'.format(self,win)
             )
 
     def copy(self, memo=None):
@@ -578,11 +566,11 @@ class Windat(Window):
             # Run a couple of checks
             if data.ndim != 2:
                 raise ValueError(
-                    'Windat.__init__: data must be 2D. Found {0:d}'.format(data.ndim))
+                    'data must be 2D. Found {0:d}'.format(data.ndim))
             ny, nx = data.shape
             if nx != win.nx or ny != win.ny:
                 raise ValueError(
-                    'Windat.__init__: win vs data dimension conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
+                    'win vs data dimension conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
 
             self.data = data
 
@@ -597,7 +585,7 @@ class Windat(Window):
 
     @nx.setter
     def nx(self, nx):
-        raise NotImplementedError('hipercam.Windat.nx: cannot set nx directly; change data array instead')
+        raise NotImplementedError('cannot set nx directly; change data array instead')
 
     @property
     def ny(self):
@@ -608,7 +596,7 @@ class Windat(Window):
 
     @ny.setter
     def ny(self, ny):
-        raise NotImplementedError('hipercam.Windat.ny: cannot set ny directly; change data array instead')
+        raise NotImplementedError('cannot set ny directly; change data array instead')
 
     @classmethod
     def rhdu(cls, hdu):
