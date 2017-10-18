@@ -91,17 +91,13 @@ def averun(args=None):
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
-        source = cl.get_value('source', 'data source [hs, hl, us, ul, hf]',
-                              'hl', lvals=('hs','hl','us','ul','hf'))
+        source = cl.get_value(
+            'source', 'data source [hs, hl, us, ul, hf]',
+            'hl', lvals=('hs','hl','us','ul','hf')
+        )
 
-        # set some flags
+        # set a flag
         server_or_local = source.endswith('s') or source.endswith('l')
-        is_file_list = source.endswith('f')
-        server_on = source.endswith('s')
-
-        # distinguish between the instruments HiPERCAM or
-        # ULTRA(CAM/SPEC)
-        instrument = 'HIPER' if source.startswith('h') else 'ULTRA'
 
         if server_or_local:
             run = cl.get_value('run', 'run name', 'run005')
@@ -146,8 +142,7 @@ def averun(args=None):
     nframe = first
     total_time = 0
     print('Reading frames')
-    with hcam.data_source(
-            instrument, run, is_file_list, server_on, first) as spool:
+    with hcam.data_source(source, run, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
         for mccd in spool:
