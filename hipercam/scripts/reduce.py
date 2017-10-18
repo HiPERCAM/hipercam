@@ -275,7 +275,6 @@ def reduce(args=None):
     if rfile.seeing:
         sbuffer = []
         for plot_config in rfile['seeing']['plot']:
-            print(plot_config)
             sbuffer.append(Seeing(plot_config, rfile['seeing']['scale']))
 
     # open the log file
@@ -1359,9 +1358,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                 (sky, height, x, y, fwhm, beta), \
                     (esky, eheight, ex, ey, efwhm, ebeta), extras = \
                     hcam.combFit(
-                    fwind, rfile.method, sky, peak-sky,
-                    x, y, fit_fwhm, apsec['fit_fwhm_min'],
-                    apsec['fit_fwhm_fixed'], fit_beta, rd, gn
+                        fwind, rfile.method, sky, peak-sky,
+                        x, y, fit_fwhm, apsec['fit_fwhm_min'],
+                        apsec['fit_fwhm_fixed'], fit_beta, rd, gn
                     )
 
                 if beta is None or ebeta is None:
@@ -1392,9 +1391,11 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                         wbsum += wb
 
                 else:
-                    print('CCD {:s}, aperture {:s}, peak = {:.1f} < {:.1f}'.format(
+                    print(
+                        'CCD {:s}, aperture {:s}, peak = {:.1f} < {:.1f}'.format(
                             cnam, apnam, height, apsec['fit_height_min']),
-                          file=sys.stderr)
+                          file=sys.stderr
+                    )
                     aper.x += xshift
                     aper.y += yshift
 
@@ -1426,6 +1427,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
         if aper.is_linked():
             aper.x += store[aper.link]['dx']
             aper.y += store[aper.link]['dy']
+            print('moved',apnam,'by',store[aper.link]['dx'],store[aper.link]['dy'])
 
             store[apnam] = {
                 'xe' : -1, 'ye' : -1,
@@ -1562,6 +1564,7 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         # of the aperture and squared to save a little effort
         x = swind.x(np.arange(swind.nx))-aper.x
         y = swind.y(np.arange(swind.ny))-aper.y
+
         X, Y = np.meshgrid(x, y)
         Rsq = X**2 + Y**2
 
@@ -1571,7 +1574,7 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         # sky selection, accounting for masks
         sok = (Rsq > R2sq) & (Rsq < R3sq)
         for xoff, yoff, radius in aper.mask:
-            sok &= (X-xoff)**2 + (Y-yoff)**2 < radius**2
+            sok &= (X-xoff)**2 + (Y-yoff)**2 > radius**2
 
         # generate sky
         dsky = swind.data[sok]
@@ -1652,20 +1655,22 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
             ecounts = np.sqrt(var)
 
         elif extype == 'optimal':
-            raise NotImplementedError('yet to add optimal extraction; sorry. feel free to whinge')
+            raise NotImplementedError(
+                'yet to add optimal extraction; sorry. feel free to whinge'
+            )
 
         info = store[apnam]
 
         results[apnam] = \
-        {
-            'x' : aper.x, 'xe' : info['xe'],
-            'y' : aper.y, 'ye' : info['ye'],
-            'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
-            'beta' : info['beta'], 'betae' : info['betae'],
-            'counts' : counts, 'countse' : ecounts, 
-            'sky' : slevel, 'skye' : serror, 'nsky' : nsky, 'nrej' : nrej,
-            'flag' : flag
-            }
+                         {
+                             'x' : aper.x, 'xe' : info['xe'],
+                             'y' : aper.y, 'ye' : info['ye'],
+                             'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
+                             'beta' : info['beta'], 'betae' : info['betae'],
+                             'counts' : counts, 'countse' : ecounts,
+                             'sky' : slevel, 'skye' : serror, 'nsky' : nsky,
+                             'nrej' : nrej, 'flag' : flag
+                         }
 
     # finally, we are done
     return results
