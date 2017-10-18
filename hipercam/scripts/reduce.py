@@ -1427,7 +1427,6 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
         if aper.is_linked():
             aper.x += store[aper.link]['dx']
             aper.y += store[aper.link]['dy']
-            print('moved',apnam,'by',store[aper.link]['dx'],store[aper.link]['dy'])
 
             store[apnam] = {
                 'xe' : -1, 'ye' : -1,
@@ -1634,12 +1633,17 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         dok = Rsq < R1sq
         dtarg = swind.data[dok]
 
+        # override to indicate we want to override
+        # the readout noise
         if nsky and rfile['sky']['error'] == 'variance':
             rd = srms
+            override = True
         elif isinstance(read, hcam.CCD):
             rd = sread[dok]
+            override = False
         else:
             rd = read
+            override = False
 
         if isinstance(gain, hcam.CCD):
             gn = sgain[dok]
@@ -1648,7 +1652,11 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
 
         if extype == 'normal':
             counts = (dtarg-slevel).sum()
-            var = (rd**2 + np.maximum(0, dtarg)/gn).sum()
+            if override:
+                var = (rd**2 + np.maximum(0, dtarg-slevel)/gn).sum()
+            else:
+                var = (rd**2 + np.maximum(0, dtarg)/gn).sum()
+
             if serror > 0:
                 # add in factor due to uncertainty in sky estimate
                 var += (len(dtarg)*serror)**2
