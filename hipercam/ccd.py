@@ -411,6 +411,11 @@ class CCD(Agroup):
         for wind in self.values():
             wind.float32()
 
+    def float64(self):
+        """Applies :class:Windat.float64 to all Windats of a CCD"""
+        for wind in self.values():
+            wind.float64()
+
     def uint16(self):
         """Applies :class:Windat.uint16 to all Windats of a CCD"""
         for wind in self.values():
@@ -688,6 +693,11 @@ class MCCD(Agroup):
         """Applies :class:Windat.float32 to all Windats of an MCCD"""
         for ccd in self.values():
             ccd.float32()
+
+    def float64(self):
+        """Applies :class:Windat.float64 to all Windats of an MCCD"""
+        for ccd in self.values():
+            ccd.float64()
 
     def uint16(self):
         """Applies :class:Windat.uint16 to all Windats of an MCCD"""

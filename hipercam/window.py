@@ -24,7 +24,7 @@ __all__ = (
     'Window', 'Windat',
     'CcdWin', 'MccdWin',
     'fitGaussian', 'fitMoffat',
-    'combFit'
+    'combFit', 'Moffat'
 )
 
 class Window:
@@ -90,7 +90,7 @@ class Window:
     @property
     def ny(self):
         """
-        Returns binned Y-dimension of the :class:`Window`. 
+        Returns binned Y-dimension of the :class:`Window`.
         """
         return self._ny
 
@@ -873,14 +873,15 @@ class Windat(Window):
 
     def float32(self):
         """
-        Converts the data type of the array to float32 if and only
-        if it is currently float64. Leaves all other types untouched.
-        This is to save space on output. Note that because of numpy's
-        promotion to higher precision, there is little point trying to
-        use this to save internal memory.
+        Converts the data type of the array to float32.
         """
-        if self.data.dtype == np.float64:
-            self.data = self.data.astype(np.float32)
+        self.data = self.data.astype(np.float32)
+
+    def float64(self):
+        """
+        Converts the data type of the array to float64.
+        """
+        self.data = self.data.astype(np.float64)
 
     def uint16(self):
         """
@@ -893,7 +894,10 @@ class Windat(Window):
                 raise ValueError('data outside range 0 to 65535')
 
             if not np.equal(np.mod(self.data, 1), 0):
-                warnings.warn('conversion to uint16 will result in loss of precision')
+                warnings.warn(
+                    'conversion to uint16 will result in'
+                    ' loss of precision'
+                )
 
             self.data = self.data.astype(np.uint16)
 
@@ -966,9 +970,8 @@ class Windat(Window):
 
     def __iadd__(self, other):
         """Adds `other` to the :class:`Windat` as 'wind += other'. `other` can be
-        another :class:`Windat`, or any object that can be added to a :class:`numpy.ndarray`.
-
-        For safety, the data array of the result will have a float type.
+        another :class:`Windat`, or any object that can be added to a
+        :class:`numpy.ndarray`.
         """
         if isinstance(other, Windat):
             # test compatibility between the windows (raises an exception)
@@ -977,12 +980,7 @@ class Windat(Window):
         else:
             num = other
 
-        # carry out operation 'in place' or with copying,
-        # depending on compatibility of the array type
-        if np.can_cast(np.float, self.data.dtype):
-            self.data += num
-        else:
-            self.data = np.add(self.data, num, dtype=np.float)
+        self.data += num
 
         return self
 
@@ -990,8 +988,6 @@ class Windat(Window):
         """Subtracts `other` from the :class:`Windat` as 'wind -= other`. `other` can
         be another Windat, or any object that can be subtracted from a
         :class:`numpy.ndarray`.
-
-        For safety, the data array of the result will have a float type.
         """
         if isinstance(other, Windat):
             # test compatibility between the windows (raises an exception)
@@ -1000,20 +996,15 @@ class Windat(Window):
         else:
             num = other
 
-        # carry out operation 'in place' or with copying,
-        # depending on compatibility of the array type
-        if np.can_cast(np.float, self.data.dtype):
-            self.data -= num
-        else:
-            self.data = np.subtract(self.data, num, dtype=np.float)
+        self.data -= num
 
         return self
 
     def __imul__(self, other):
-        """Multiplies the :class:`Windat` by `other` as 'wind *= other'. `other` can be
-        another :class:`Windat`, or any object that can multiply a :class:`numpy.ndarray`.
+        """Multiplies the :class:`Windat` by `other` as 'wind *= other'. `other` can
+        be another :class:`Windat`, or any object that can multiply a
+        :class:`numpy.ndarray`.
 
-        For safety, the data array of the result will have a float type.
         """
         if isinstance(other, Windat):
             # test compatibility between the windows (raises an exception)
@@ -1022,12 +1013,7 @@ class Windat(Window):
         else:
             num = other
 
-        # carry out operation 'in place' or with copying,
-        # depending on compatibility of the array type
-        if np.can_cast(np.float, self.data.dtype):
-            self.data *= num
-        else:
-            self.data = np.multiply(self.data, num, dtype=np.float)
+        self.data *= num
 
         return self
 
@@ -1036,7 +1022,6 @@ class Windat(Window):
         another Windat, or any object that can be divided into a
         :class:`numpy.ndarray`.
 
-        For safety, the data array of the result will have a float type.
         """
         if isinstance(other, Windat):
             # test compatibility between the windows (raises an exception)
@@ -1045,12 +1030,7 @@ class Windat(Window):
         else:
             num = other
 
-        # carry out operation 'in place' or with copying,
-        # depending on compatibility of the array type
-        if np.can_cast(np.float, self.data.dtype):
-            self.data /= num
-        else:
-            self.data = np.true_divide(self.data, num, dtype=np.float)
+        self.data /= num
 
         return self
 
@@ -1060,7 +1040,6 @@ class Windat(Window):
         be added to a :class:`numpy.ndarray`, e.g. a float, another matching
         array, etc. 
 
-        For safety, the data array of the result will have a float type.
         """
         if isinstance(other, Windat):
             # test compatibility between the windows (raises an exception)
@@ -1070,7 +1049,8 @@ class Windat(Window):
             num = other
 
         # carry out addition to a float type
-        data = np.add(self.data, num, dtype=np.float)
+        data = self.data + num
+
         return Windat(self.win, data)
 
 
@@ -1078,12 +1058,10 @@ class Windat(Window):
         """Adds `other` to a :class:`Windat` as `other + wind`.  Here `other` is any
         object that can be added to a :class:`numpy.ndarray`, e.g. a float,
         another matching array, etc.
-
-        For safety, the data array of the result will have a float type.
         """
 
         # carry out addition to a float type
-        data = np.add(self.data, other, dtype=np.float)
+        data = self.data + other
         return Windat(self.win, data)
 
     def __sub__(self, other):
@@ -1091,8 +1069,6 @@ class Windat(Window):
         can be a compatible :class:`Windat` (identical window) or any object
         that can be subtracted from a :class:`numpy.ndarray`, e.g. a float,
         another matching array, etc.
-
-        For safety, the data array of the result will have a float type.
         """
         if isinstance(other, Windat):
             # test compatibility between the windows (raises an exception)
@@ -1102,18 +1078,16 @@ class Windat(Window):
             num = other
 
         # carry out addition to a float type
-        data = np.subtract(self.data, num, dtype=np.float)
+        data = self.data - num
         return Windat(self.win, data)
 
     def __rsub__(self, other):
         """Subtracts a :class:`Windat` from `other` as `other - wind`.  Here `other`
         is any object that can have a :class:`numpy.ndarray` subtracted from it, e.g. a
         float, another matching array, etc.
-
-        For safety, the data array of the result will have a float type.
         """
         # carry out subtraction to a float type
-        data = np.subtract(other, self.data, dtype=np.float)
+        data = other - self.data
         return Windat(self.win, data)
 
     def __mul__(self, other):
@@ -1122,7 +1096,6 @@ class Windat(Window):
         that can multiply a :class:`numpy.ndarray`, e.g. a float, another
         matching array, etc.
 
-        For safety, the data array of the result will have a float type.
         """
         if isinstance(other, Windat):
             # test compatibility between the windows (raises an exception)
@@ -1132,7 +1105,7 @@ class Windat(Window):
             num = other
 
         # carry out multiplication to a float type
-        data = np.multiply(self.data, num, dtype=np.float)
+        data = self.data*num
         return Windat(self.win, data)
 
     def __rmul__(self, other):
@@ -1140,7 +1113,6 @@ class Windat(Window):
         any object that can multiply a :class:`numpy.ndarray`, e.g. a float,
         another matching array, etc.
 
-        For safety, the data array of the result will have a float type.
         """
         # carry out multiplication to a float type
         data = np.multiply(self.data, other, dtype=np.float)
@@ -1169,11 +1141,9 @@ class Windat(Window):
         """Divides `other` by a :class:`Windat` as `other / wind`.  Here `other` is
         any object that can be divided by a :class:`numpy.ndarray`, e.g. a
         float, another matching array, etc.
-
-        For safety, the data array of the result will have a float type.
         """
         # carry out multiplication to a float type
-        data = np.true_divide(other, self.data, dtype=np.float)
+        data = self.data*other
         return Windat(self.win, data)
 
 # have decided that these relatively specialised routines are better as
