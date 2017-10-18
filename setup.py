@@ -106,6 +106,7 @@ setup(
             'mul=hipercam.scripts.arith:mul',
             'sub=hipercam.scripts.arith:sub',
             'aligntool=hipercam.scripts.aligntool:main',
+            'averun=hipercam.scripts.averun:averun',
             'cadd=hipercam.scripts.carith:cadd',
             'cdiv=hipercam.scripts.carith:cdiv',
             'cmul=hipercam.scripts.carith:cmul',
