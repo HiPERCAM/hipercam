@@ -88,11 +88,11 @@ from .core import HipercamError, HipercamWarning, add_extension
 #readline.set_completer(complete)
 
 def clist(command):
-    """
-    Splits up a command string returning a list suitable for
-    constructing Cline objects. The reason for using this rather than
-    a simple string split is that it allows you to use double quotes
-    to get strings with spaces through. Returns a list of strings.
+    """Splits up a command string returning a list suitable for constructing
+    Cline objects. The reason for using this rather than a simple string split
+    is that it allows you to use double quotes to get strings with spaces
+    through. Returns a list of strings.
+
     """
 
     cl = re.findall('\"[^"]*\"|\S+', command)
@@ -107,9 +107,9 @@ class Cline:
     and commands to have a 'memory' between different invocations. To use the
     class you first create an instance, then register each parameter name, and
     finally get the input, either from the user, default values or disk. Cline
-    can be (and is best) invoked as a context manager with "with" as shown below.
-    This defines a clean 'get inputs' section and saves the values when it goes
-    out of context.
+    can be (and is best) invoked as a context manager with "with" as shown
+    below.  This defines a clean 'get inputs' section and saves the values
+    when it goes out of context.
 
     Here is some example code::
 
@@ -276,8 +276,8 @@ class Cline:
         self._usedef = False
 
     def list(self, fp, comment='#   '):
-        """Lists the values of all parameters, one
-        line at a time in the order they were registered.
+        """Lists the values of all parameters, one line at a time in the order they
+        were registered. It skips any without any value.
 
         Arguments::
 
@@ -286,6 +286,7 @@ class Cline:
 
            comment  : (string)
                this is prepended to each line
+
         """
 
         nc = 1
@@ -295,13 +296,19 @@ class Cline:
         for param, info in self._rpars.items():
             # get value
             if info['g_or_l'] == Cline.GLOBAL:
+                if param not in self._gpars:
+                    continue
                 value = self._gpars[param]
             else:
+                if param not in self._lpars:
+                    continue
                 value = self._lpars[param]
 
             # write out
-            fp.write('{:s}{:{:d}s} = {!s}\n'.format(
-                comment, param, nc, value))
+            fp.write(
+                '{:s}{:{:d}s} = {!s}\n'.format(
+                    comment, param, nc, value)
+            )
 
     def save(self):
         """Saves parameter values to disk (if NODEFS has not been
