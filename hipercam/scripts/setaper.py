@@ -329,6 +329,7 @@ def setaper(args=None):
     mpl.rcParams['keymap.home'] = ''
     mpl.rcParams['keymap.pan'] = ''
     mpl.rcParams['keymap.quit'] = ''
+# caused problem on drpc
 #    mpl.rcParams['keymap.quit_all'] = ''
     mpl.rcParams['keymap.save'] = ''
     mpl.rcParams['keymap.pan'] = ''
