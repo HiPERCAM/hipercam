@@ -2,9 +2,10 @@ import sys
 import os
 
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.backend_bases import cursors
 
-from trm.pgplot import *
 import hipercam as hcam
 import hipercam.cline as cline
 from hipercam.cline import Cline
@@ -21,6 +22,7 @@ def setaper(args=None):
     """Interactive definition of photometric extraction apertures. This is
     a matplotlib-based routine allowing you to place apertures on targets
     using the cursor.
+
     Arguments::
 
       mccd   : (string)
@@ -38,11 +40,13 @@ def setaper(args=None):
          prompted for the number of panels in the X direction. This parameter
          will not be prompted if there is only one CCD in the file.
 
-      schar  : (bool) [hidden]
-         flag determining whether single character input without needing to
-         hit <CR> is used for aperture labelling or not. Single character
-         input is probably what is wanted when observing (allowed characters
-         0-9, a-z, A-Z, no spaces / punctuation) as it's fastest.
+      linput  : (string) [hidden]
+         sets the way in which the apertures are labelled. 'n' = numerical
+         input, with the program just incrementing by 1 for each successive
+         aperture; 's' = single character (without requiring the user to hit
+         hit <CR>); 'm' = multi-character, ending with <CR>.
+         Allowed characters are 0-9, a-z, A-Z, no spaces or punctuation, but a
+         single '0' on its own is not permitted.
 
       width  : (float) [hidden]
          plot width (inches). Set = 0 to let the program choose.
@@ -90,13 +94,13 @@ def setaper(args=None):
          upper percentile level
 
       profit : (bool) [hidden]
-         start aperture selection with profile fitting-based position refinement (or not). Can be toggled
-         at any point.
+         start aperture selection with profile fitting-based position
+         refinement (or not). Can be toggled at any point.
 
       method : (string) [hidden]
-         this defines the profile fitting method, if profile fitting is used to refine
-         the aperture position. Either a gaussian or a moffat profile, 'g' or 'm'.
-         The latter is usually best.
+         this defines the profile fitting method, if profile fitting is used
+         to refine the aperture position. Either a gaussian or a moffat
+         profile, 'g' or 'm'.  The latter should usually be best.
 
       beta   : (float) [if method == 'm'; hidden]
          default Moffat exponent
@@ -147,19 +151,23 @@ def setaper(args=None):
 
     Notes. There are a few conveniences to make setaper easier::
 
-      1. You can toggle between the pan/zoom and input modes using the 'Alt'
-         button as well as the usual icon in the toolbar.
+      1. The plot is initialised in pan mode whereby you can move around and
+         scale using the left and right mouse buttons.
 
-      2. Clicking any mouse button acts like hitting 'a' for adding an aperture.
+      2. All input is accomplished with the keyboard; the mouse buttons are
+         only for navigating the image.
 
-      3. The label input can be switched between single- and multi-character
-         input ('schar'). Single character input requires no <enter>.
+      3. The label input can be switched between sequential numerical, 
+         single- and multi-character input ('linput').
 
     Various standard keyboard shortcuts (e.g. 's' to save) are disabled as
     they just confuse things and are of limited use in setaper in any case.
 
     Some aspects of the usage of matplotlib in setaper are tricky. It is possible
     that particular 'backends' will cause problems. I have tested this with Qt4Agg.
+    and GTK3Agg. One aspect is the cursor icon in pan mode is a rather indistinct
+    hand. I have suppressed this for Qt4Agg and GTK3Agg, but other backends would
+    need require extra work to include.
     """
 
     if args is None:
@@ -172,7 +180,7 @@ def setaper(args=None):
         cl.register('mccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('aper', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('schar', Cline.LOCAL, Cline.HIDE)
+        cl.register('linput', Cline.LOCAL, Cline.HIDE)
         cl.register('width', Cline.LOCAL, Cline.HIDE)
         cl.register('height', Cline.LOCAL, Cline.HIDE)
         cl.register('rtarg', Cline.LOCAL, Cline.PROMPT)
@@ -195,7 +203,6 @@ def setaper(args=None):
         cl.register('fwfix', Cline.LOCAL, Cline.HIDE)
         cl.register('shbox', Cline.LOCAL, Cline.HIDE)
         cl.register('smooth', Cline.LOCAL, Cline.HIDE)
-#        cl.register('splot', Cline.LOCAL, Cline.HIDE)
         cl.register('fhbox', Cline.LOCAL, Cline.HIDE)
         cl.register('read', Cline.LOCAL, Cline.HIDE)
         cl.register('gain', Cline.LOCAL, Cline.HIDE)
@@ -235,7 +242,10 @@ def setaper(args=None):
             ccds = list(mccd.keys())
 
         # next three are usually hidden
-        schar = cl.get_value('schar', 'single character input for aperture names?', True)
+        linput = cl.get_value(
+            'linput', 'n(umerical), s(ingle) or m(ulti)-character label input', 
+            's', lvals=('n','s','m')
+        )
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
 
@@ -302,19 +312,41 @@ def setaper(args=None):
         sigma = cl.get_value('sigma', 'readout noise, RMS ADU', 3.)
 
     # Inputs obtained.
-
+ 
     # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
-    plt.rcParams['keymap.back'] = ''
-    plt.rcParams['keymap.forward'] = ''
-    plt.rcParams['keymap.fullscreen'] = ''
-    plt.rcParams['keymap.grid'] = ''
-    plt.rcParams['keymap.home'] = ''
-    plt.rcParams['keymap.pan'] = ['alt']
-    plt.rcParams['keymap.pan'] = ['alt']
-    plt.rcParams['keymap.save'] = ''
-    plt.rcParams['keymap.xscale'] = ''
-    plt.rcParams['keymap.yscale'] = ''
-    plt.rcParams['keymap.zoom'] = ''
+    mpl.rcParams['keymap.back'] = ''
+    mpl.rcParams['keymap.forward'] = ''
+    mpl.rcParams['keymap.fullscreen'] = ''
+    mpl.rcParams['keymap.grid'] = ''
+    mpl.rcParams['keymap.home'] = ''
+    mpl.rcParams['keymap.pan'] = ''
+    mpl.rcParams['keymap.quit'] = ''
+    mpl.rcParams['keymap.quit_all'] = ''
+    mpl.rcParams['keymap.save'] = ''
+    mpl.rcParams['keymap.pan'] = ''
+    mpl.rcParams['keymap.save'] = ''
+    mpl.rcParams['keymap.xscale'] = ''
+    mpl.rcParams['keymap.yscale'] = ''
+    mpl.rcParams['keymap.zoom'] = ''
+
+    # re-configure the cursors: backend specific.
+    # aim to get rid of irritating 'hand' icon in
+    # favour of something pointier.
+    backend = mpl.get_backend()
+
+    if backend == 'Qt4Agg':
+        curs = mpl.backends.backend_qt5.cursord
+        curs[cursors.HAND] = curs[cursors.POINTER]
+        curs[cursors.WAIT] = curs[cursors.POINTER]
+        curs[cursors.SELECT_REGION] = curs[cursors.POINTER]
+        curs[cursors.MOVE] = curs[cursors.POINTER]
+
+    elif backend == 'GTK3agg':
+        curs = mpl.backends.backend_gtk3.cursord
+        curs[cursors.HAND] = curs[cursors.POINTER]
+        curs[cursors.WAIT] = curs[cursors.POINTER]
+        curs[cursors.SELECT_REGION] = curs[cursors.POINTER]
+        curs[cursors.MOVE] = curs[cursors.POINTER]
 
     # start plot
     if width > 0 and height > 0:
@@ -322,8 +354,10 @@ def setaper(args=None):
     else:
         fig = plt.figure()
 
-    # get the navigation toolbar which is used to check the pan/zoom mode
+    # get the navigation toolbar. Go straight into pan mode
+    # where we want to stay.
     toolbar = fig.canvas.manager.toolbar
+    toolbar.pan()
 
     nccd = len(ccds)
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
@@ -373,7 +407,7 @@ def setaper(args=None):
             pobjs[cnam] = hcam.Group(tuple)
 
     # create the aperture picker (see below for class def)
-    picker = PickStar(mccd, cnams, toolbar, fig, mccdaper, schar,
+    picker = PickStar(mccd, cnams, toolbar, fig, mccdaper, linput,
                       rtarg, rsky1, rsky2, profit, method, beta,
                       fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
                       read, gain, sigma, aper, pobjs)
@@ -399,22 +433,19 @@ class PickStar:
 
     ADD_PROMPT = "enter a label for the aperture, '!' to abort: "
 
-    def __init__(self, mccd, cnams, toolbar, fig, mccdaper, schar,
+    def __init__(self, mccd, cnams, toolbar, fig, mccdaper, linput,
                  rtarg, rsky1, rsky2, profit, method, beta,
                  fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
                  read, gain, sigma, apernam, pobjs):
 
         # save the inputs, tack on event handlers.
+        self.fig = fig
+        self.fig.canvas.mpl_connect('key_press_event', self._keyPressEvent)
         self.mccd = mccd
         self.cnams = cnams
         self.toolbar = toolbar
-        self.fig = fig
-        self.fig.canvas.mpl_connect('key_press_event',
-                                    self._keyPressEvent)
-        self.fig.canvas.mpl_connect('button_press_event',
-                                    self._buttonPressEvent)
         self.mccdaper = mccdaper
-        self.schar = schar
+        self.linput = linput
         self.rtarg = rtarg
         self.rsky1 = rsky1
         self.rsky2 = rsky2
@@ -451,8 +482,10 @@ class PickStar:
         if cr:
             print()
 
-        print('a(dd), b(reak), c(entre), d(elete), h(elp), l(ink), m(ask), ' +
-              'p(rofit), q(uit), r(eference): ', end='',flush=True)
+        print(
+            'a(dd), b(reak), c(entre), d(elete), h(elp), l(ink), m(ask), '
+            'p(rofit), q(uit), r(eference): ', end='', flush=True
+        )
 
 
     def _keyPressEvent(self, event):
@@ -502,48 +535,6 @@ class PickStar:
             # standard mode action
             self._standard(event.key, event.xdata, event.ydata, event.inaxes)
 
-
-    def _buttonPressEvent(self, event):
-        """
-        Treat a mouse button press event as equivalent to 'enter' as a convenience, if we are
-        not in pan/zoom mode that is
-        """
-        if self.toolbar.mode != 'pan/zoom':
-
-            if self._add_mode:
-                # add mode: pretend we have hit 'enter'
-                self._add_input('enter')
-
-            elif event.inaxes is not None:
-
-                # clicked inside an Axes
-                if self._link_mode:
-                    # link mode. this should be the second aperture
-                    # store essential data
-                    self._cnam = self.cnams[event.inaxes]
-                    self._axes = event.inaxes
-                    self._x = event.xdata
-                    self._y = event.ydata
-                    self._link()
-
-                elif self._mask_mode:
-                    # mask mode. store essential data
-                    self._cnam = self.cnams[event.inaxes]
-                    self._axes = event.inaxes
-                    self._x = event.xdata
-                    self._y = event.ydata
-                    self._mask()
-
-                else:
-                    # add or delete action, depending upon location relative to
-                    # existing apertures
-                    for anam, aper in self.mccdaper[self.cnams[event.inaxes]].items():
-                        if np.sqrt((aper.x-event.xdata)**2+(aper.y-event.ydata)**2) < self.rtarg:
-                            self._standard('d', event.xdata, event.ydata, event.inaxes)
-                            break
-                    else:
-                        self._standard('a', event.xdata, event.ydata, event.inaxes)
-
     def _standard(self, key, x, y, axes):
         """
         Carries out the work needed when we are in the standard mode. Just pass through
@@ -551,16 +542,7 @@ class PickStar:
         (all from the event) and this will handle the rest.
         """
 
-        if key == 'alt':
-            # toggle pan/zoom mode in which the plots can be zoomed and panned
-            # versus the mode which accepts character input to add apertures etc
-            if self.toolbar.mode == 'pan/zoom':
-                print('\nswitched to pan/zoom mode')
-            else:
-                print('\nswitched to aperture update mode')
-                PickStar.action_prompt(False)
-
-        elif self.toolbar.mode != 'pan/zoom' and axes is not None:
+        if axes is not None:
 
             # store information in attributes accessible to all methods, for
             # later access: name, the key hit, the axes instance, x, y
@@ -577,29 +559,16 @@ class PickStar:
 
 Help on the actions available in 'setaper'. Actions:
 
- a(dd)      : add an aperture
- b(reak)    : breaks the link on an aperture
- c(entre)   : centres an aperture by fitting nearby star
- d(elete)   : delete an aperture
- h(elp)     : print this help text
- l(ink)     : link one aperture to another in the same CCD for re-positioning
- m(ask)     : adds a mask to an aperture to ignore regions of sky
- p(rofit)   : toggles between fitting+position correction and no fits
- r(eference): marks an aperture as a reference aperture
- q(uit)     : quit setaper and save apertures
-
-A few shortcuts exist. The 'alt' key can be used to toggle between the
-aperture input mode where one starts, and 'pan & zoom' mode in which the plots
-can be zoomed in and out and moved (same action as clicking the crossed arrows
-in the top tool bar). Clicking the mouse buttons is equivalent to hitting 'a'
-to add an aperture unless you are inside the circle of the target aperture in
-which case it is taken as a 'd' to delete it. Thus clicking in an empty area
-then entering a character will label a new Aperture and another click without
-having moved the cursor will remove it. Clicking the mouse with one hand and
-entering labels with the other can be the fastest way to add a series of
-apertures. During multi-character entry, clicking the mouse buttons is
-equivalent to hitting the 'enter' key to terminate input which can free up the
-need to move your hand from mouse to keyboard.
+  a(dd)      : add an aperture
+  b(reak)    : breaks the link on an aperture
+  c(entre)   : centres an aperture by fitting nearby star
+  d(elete)   : delete an aperture
+  h(elp)     : print this help text
+  l(ink)     : link one aperture to another in the same CCD for re-positioning
+  m(ask)     : adds a mask to an aperture to ignore regions of sky
+  p(rofit)   : toggles between fitting+position correction and no fits
+  r(eference): toggles whether an aperture is a reference aperture
+  q(uit)     : quit setaper and save apertures
 
 Hitting 'd' will delete the aperture nearest to the cursor, as long as it is
 'close' defined as being within max(rtarg,min(100,max(20,2*rsky2))) pixels of
@@ -607,13 +576,30 @@ the aperture centre.
 """)
 
             elif key == 'a':
-                # add aperture
-                print(key)
-                print(PickStar.ADD_PROMPT, end='',flush=True)
 
-                # switch to ad mode, initialise buffer for label input
-                self._add_mode = True
-                self._buffer = ''
+                # add an aperture
+                print(key)
+
+                if self.linput == 'n':
+
+                    # numerical sequence input. Try to calculate
+                    # the largest number, label the new aperture
+                    # with one more
+                    high = 0
+                    for aper in self.mccdaper[self._cnam]:
+                        try:
+                            high = max(high, int(aper))
+                        except ValueError:
+                            pass
+                    self._buffer = str(high+1)
+                    self._add()
+                    self._add_mode = False
+
+                else:
+                    # switch to add mode, initialise buffer for label input
+                    self._add_mode = True
+                    self._buffer = ''
+                    print(PickStar.ADD_PROMPT, end='',flush=True)
 
             elif key == 'b':
                 # break a link
@@ -702,18 +688,23 @@ the aperture centre.
             # check that the selected position is inside a window
             wnam = ccd.inside(self._x, self._y, 2)
             if wnam is None:
-                print('  *** selected position ({:.1f},{:.1f}) not in a window; should not occur'.format(self._x,self._y), file=sys.stderr)
+                print(
+                    '  *** selected position ({:.1f},{:.1f}) not in a window;'
+                    ' should not occur'.format(self._x,self._y), file=sys.stderr
+                )
                 PickStar.action_prompt(True)
                 return
 
             # get Windat around the selected position
-            wind = ccd[wnam].window(self._x-self.shbox, self._x+self.shbox, self._y-self.shbox, self._y+self.shbox)
+            wind = ccd[wnam].window(self._x-self.shbox, self._x+self.shbox,
+                                    self._y-self.shbox, self._y+self.shbox)
 
             # carry out initial search
             x,y,peak = wind.find(self.smooth, False)
 
             # now for a more refined fit. First extract fit Windat
-            fwind = ccd[wnam].window(x-self.fhbox, x+self.fhbox, y-self.fhbox, y+self.fhbox)
+            fwind = ccd[wnam].window(x-self.fhbox, x+self.fhbox,
+                                     y-self.fhbox, y+self.fhbox)
             sky = np.percentile(fwind.data, 25)
 
             # refine the Aperture position by fitting the profile
@@ -818,7 +809,8 @@ the aperture centre.
             # check that the selected position is inside a window
             wnam = ccd.inside(self._x, self._y, 2)
             if wnam is None:
-                print('  *** selected position ({:.1f},{:.1f}) not in a window; should not occur'.format(self._x,self._y), file=sys.stderr)
+                print('  *** selected position ({:.1f},{:.1f}) not in a window;'
+                      ' should not occur'.format(self._x,self._y), file=sys.stderr)
             else:
                 # get Windat around the selected position
                 wind = ccd[wnam].window(
@@ -969,7 +961,7 @@ the aperture centre.
         self._mask_stage += 1
 
         if self._mask_stage == 1:
-            # Stage 1first see if there is an aperture near enough the selected position
+            # Stage 1 first see if there is an aperture near enough the selected position
             aper, apnam, dmin = self._find_aper()
 
             if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
@@ -1012,7 +1004,9 @@ the aperture centre.
                 radius = np.sqrt((self._x-self._mask_xcen)**2 +  (self._y-self._mask_ycen)**2)
 
                 # add mask to the aperture
-                self._mask_aper.add_mask(self._mask_xcen-self._mask_aper.x, self._mask_ycen-self._mask_aper.y, radius)
+                self._mask_aper.add_mask(
+                    self._mask_xcen-self._mask_aper.x, self._mask_ycen-self._mask_aper.y, radius
+                )
 
                 # delete the aperture from the plot
                 for obj in self.pobjs[self._cnam][self._mask_apnam]:
@@ -1021,7 +1015,8 @@ the aperture centre.
                 # re-plot new version, over-writing plot objects
                 self.pobjs[self._cnam][self._mask_apnam] = hcam.mpl.pAper(
                     self._axes, self._mask_aper, self._mask_apnam,
-                    self.mccdaper[self._mask_cnam])
+                    self.mccdaper[self._mask_cnam]
+                )
                 plt.draw()
 
                 print('  added mask to aperture {:s} in CCD {:s}'.format(
@@ -1122,13 +1117,19 @@ the aperture centre.
             print('{:s}{:s} '.format(PickStar.ADD_PROMPT, self._buffer))
 
         elif key in '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
-            # accumulate input and add to the
+            # accumulate input and add to the buffer
             self._buffer += key
-            if self.schar:
+
+            if self.linput == 's':
                 # single character input. bail out immediately (inside _add_aperture)
                 print(key)
 
-                if self._buffer in self.mccdaper[self._cnam]:
+                if key == '0':
+                    print("Apertures cannot be labelled just '0'")
+                    print(PickStar.ADD_PROMPT, end='',flush=True)
+                    self._buffer = ''
+
+                elif self._buffer in self.mccdaper[self._cnam]:
                     print(
                         'label={:s} already in use; please try again'.format(self._buffer),
                         file=sys.stderr
