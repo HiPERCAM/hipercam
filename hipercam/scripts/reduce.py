@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from astropy.time import Time, TimeDelta
 import configparser
 from collections import OrderedDict
+import warnings
 
 from trm.pgplot import *
 import hipercam as hcam
@@ -163,7 +164,8 @@ def reduce(args=None):
 
     # define standard viewport. We set the character height to ensure there is
     # enough room around the edges.
-    pgsch(max(hcam.pgp.Params['axis.label.ch'],hcam.pgp.Params['axis.number.ch']))
+    pgsch(max(hcam.pgp.Params['axis.label.ch'],
+              hcam.pgp.Params['axis.number.ch']))
     pgvstd()
     xv1, xv2, yv1, yv2 = pgqvp()
     x1, x2 = 0, rfile['lcplot']['extend_xrange']
@@ -1726,12 +1728,9 @@ class Panel:
         self.used = False
 
     def plot(self):
-        """
-        Plot the Panel with physical scales x1 to x2, y1 to y2, using the
-        properties set on instantiation. x1, x2, y1, y2 are stored for future
-        use when re-selecting the panel. After running this you can plot to
-        the Panel. If you plot to another Panel, you can return to this one
-        using 'select'.
+        """Plot the Panel. After running this you can plot to the Panel. If you plot
+        to another Panel, you can return to this one using 'select'.
+
         """
 
         # select the device
@@ -1741,7 +1740,18 @@ class Panel:
         pgsci(hcam.pgp.Params['axis.ci'])
         pgsch(hcam.pgp.Params['axis.number.ch'])
         pgsvp(self.xv1, self.xv2, self.yv1, self.yv2)
-        pgswin(self.x1,self.x2,self.y1,self.y2)
+
+        # avoid invalid limits warnings from PGPLOT
+        if self.x1 == self.x2:
+            x1, x2 = 0, 1
+        else:
+            x1, x2 = self.x1, self.x2
+        if self.y1 == self.y2:
+            y1, y2 = 0, 1
+        else:
+            y1, y2 = self.y1, self.y2
+        pgswin(x1,x2,y1,y2)
+
         pgbox(self.xopt, 0, 0, self.yopt, 0, 0)
 
         # plot the labels
@@ -1764,7 +1774,17 @@ class Panel:
 
         # set the physical scales and the viewport
         pgsvp(self.xv1, self.xv2, self.yv1, self.yv2)
-        pgswin(self.x1,self.x2,self.y1,self.y2)
+
+        # avoid invalid limits warnings from PGPLOT
+        if self.x1 == self.x2:
+            x1, x2 = 0, 1
+        else:
+            x1, x2 = self.x1, self.x2
+        if self.y1 == self.y2:
+            y1, y2 = 0, 1
+        else:
+            y1, y2 = self.y1, self.y2
+        pgswin(x1,x2,y1,y2)
 
 
 def plotLight(panel, t, results, rfile, lbuffer):
@@ -2291,8 +2311,15 @@ def ctrans(cname):
     elif cname in hcam.CNAMS:
         return hcam.CNAMS[cname]
     else:
-        print('Failed to recognize colour = {:s}; defaulting to black'.format(
-            cname))
+        rnames = list(hcam.CNAMS.keys())
+        rnames.sort()
+
+        warnings.warn(
+            "Failed to recognize colour = '{:s}'; defaulting to black.\n"
+            'Recognised colours are {:s}\n'.format(
+                cname,', '.join(
+                    ["'{:s}'".format(name) for name in rnames]))
+        )
         return 1
 
 def toBool(rfile, section, param):
