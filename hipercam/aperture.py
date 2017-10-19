@@ -103,6 +103,14 @@ class Aperture(object):
             self.mask, self.extra, self.link
             )
 
+    def copy(self, memo=None):
+        """Returns with a copy of the Aperture"""
+        return Aperture(
+            self.x, self.y, self.rtarg, self.rsky1, self.rsky2,
+            self.ref, self.mask.copy(), self.extra.copy(),
+            self.link
+        )
+
     def add_mask(self, xoff, yoff, radius):
         """Adds a mask to the :class:Aperture"""
         self.mask.append((xoff,yoff,radius))
@@ -195,6 +203,11 @@ class CcdAper(Group):
         listify = ['hipercam.CcdAper'] + list(self.items)
         with open(fname,'w') as fp:
             json.dump(listify, fp, cls=_Encoder, indent=2)
+
+    def copy(self, memo=None):
+        return CcdAper(
+            super().copy(memo)
+        )
 
 class MccdAper(Group):
     """Class representing all the :class:Apertures for multiple CCDs.

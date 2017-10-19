@@ -243,8 +243,8 @@ def setaper(args=None):
 
         # next three are usually hidden
         linput = cl.get_value(
-            'linput', 'n(umerical), s(ingle) or m(ulti)-character label input', 
-            's', lvals=('n','s','m')
+            'linput', 'n(umerical), s(ingle) or m(ulti)-character label input',
+            'n', lvals=('n','s','m')
         )
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
@@ -289,20 +289,28 @@ def setaper(args=None):
 
 #        fwidth = cl.get_value('fwidth', 'fit plot width (inches)', 0.)
 #        fheight = cl.get_value('fheight', 'fit plot height (inches)', 0.)
-        profit = cl.get_value('profit', 'use profile fits to refine the aperture positions?', True)
-        method = cl.get_value('method', 'fit method g(aussian) or m(offat)', 'm', lvals=['g','m'])
+        profit = cl.get_value(
+            'profit', 'use profile fits to refine the aperture positions?', True
+        )
+        method = cl.get_value(
+            'method', 'fit method g(aussian) or m(offat)', 'm', lvals=['g','m']
+        )
         if method == 'm':
             beta = cl.get_value('beta', 'initial exponent for Moffat fits', 5., 0.5)
         else:
             beta = 0
         fwhm_min = cl.get_value('fwmin', 'minimum FWHM to allow [unbinned pixels]', 1.5, 0.01)
-        fwhm = cl.get_value('fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., fwhm_min)
+        fwhm = cl.get_value(
+            'fwhm', 'initial FWHM [unbinned pixels] for profile fits', 6., fwhm_min
+        )
         fwhm_fix = cl.get_value('fwfix', 'fix the FWHM at start value?', False)
 
         shbox = cl.get_value(
-            'shbox', 'half width of box for initial location of target [unbinned pixels]', 11., 2.)
+            'shbox', 'half width of box for initial location of target [unbinned pixels]', 11., 2.
+        )
         smooth = cl.get_value(
-            'smooth', 'FWHM for smoothing for initial object detection [binned pixels]', 6.)
+            'smooth', 'FWHM for smoothing for initial object detection [binned pixels]', 6.
+        )
 #        splot = cl.get_value(
 #            'splot', 'plot outline of search box?', True)
         fhbox = cl.get_value(
@@ -312,7 +320,7 @@ def setaper(args=None):
         sigma = cl.get_value('sigma', 'readout noise, RMS ADU', 3.)
 
     # Inputs obtained.
- 
+
     # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
     mpl.rcParams['keymap.back'] = ''
     mpl.rcParams['keymap.forward'] = ''
@@ -365,6 +373,7 @@ def setaper(args=None):
     # we need to store some stuff
     ax = None
     cnams = {}
+    anams = {}
 
     # this is a container for all the objects used to plot apertures to allow
     # deletion. This is Group of Group objects supporting tuple storage. The idea
@@ -394,6 +403,9 @@ def setaper(args=None):
         # keep track of the CCDs associated with each axes
         cnams[axes] = cnam
 
+        # and axes associated with each CCD
+        anams[cnam] = axes
+
         if cnam in mccdaper:
             # plot any pre-existing apertures, keeping track of
             # the plot objects
@@ -407,10 +419,12 @@ def setaper(args=None):
             pobjs[cnam] = hcam.Group(tuple)
 
     # create the aperture picker (see below for class def)
-    picker = PickStar(mccd, cnams, toolbar, fig, mccdaper, linput,
-                      rtarg, rsky1, rsky2, profit, method, beta,
-                      fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
-                      read, gain, sigma, aper, pobjs)
+    picker = PickStar(
+        mccd, cnams, anams, toolbar, fig, mccdaper, linput,
+        rtarg, rsky1, rsky2, profit, method, beta,
+        fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
+        read, gain, sigma, aper, pobjs
+    )
 
     plt.tight_layout()
     PickStar.action_prompt(False)
@@ -433,16 +447,18 @@ class PickStar:
 
     ADD_PROMPT = "enter a label for the aperture, '!' to abort: "
 
-    def __init__(self, mccd, cnams, toolbar, fig, mccdaper, linput,
-                 rtarg, rsky1, rsky2, profit, method, beta,
-                 fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
-                 read, gain, sigma, apernam, pobjs):
+    def __init__(
+            self, mccd, cnams, anams, toolbar, fig, mccdaper, linput,
+            rtarg, rsky1, rsky2, profit, method, beta, fwhm, fwhm_min,
+            fwhm_fix, shbox, smooth, fhbox, read, gain, sigma, apernam,
+            pobjs):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
         self.fig.canvas.mpl_connect('key_press_event', self._keyPressEvent)
         self.mccd = mccd
         self.cnams = cnams
+        self.anams = anams
         self.toolbar = toolbar
         self.mccdaper = mccdaper
         self.linput = linput
@@ -484,7 +500,7 @@ class PickStar:
 
         print(
             'a(dd), b(reak), c(entre), d(elete), h(elp), l(ink), m(ask), '
-            'p(rofit), q(uit), r(eference): ', end='', flush=True
+            'p(rofit), q(uit), r(eference), C(opy): ', end='', flush=True
         )
 
 
@@ -558,18 +574,19 @@ class PickStar:
                 print(key)
                 print("""
 
-Help on the actions available in 'setaper'. Actions:
+Help on the actions available in 'setaper':
 
   a(dd)      : add an aperture
-  b(reak)    : breaks the link on an aperture
-  c(entre)   : centres an aperture by fitting nearby star
+  b(reak)    : break the link on an aperture
+  c(entre)   : centre an aperture by fitting nearby star
   d(elete)   : delete an aperture
   h(elp)     : print this help text
   l(ink)     : link one aperture to another in the same CCD for re-positioning
-  m(ask)     : adds a mask to an aperture to ignore regions of sky
-  p(rofit)   : toggles between fitting+position correction and no fits
-  r(eference): toggles whether an aperture is a reference aperture
-  q(uit)     : quit setaper and save apertures
+  m(ask)     : add a mask to an aperture to ignore regions of sky
+  p(rofit)   : toggle between fitting+position correction and no fits
+  r(eference): toggle whether an aperture is a reference aperture
+  C(opy)     : copy apertures of the CCD the cursor is in to all others (overwrites)
+  q(uit)     : quit 'setaper' and save the apertures to disk
 
 Hitting 'd' will delete the aperture nearest to the cursor, as long as it is
 'close' defined as being within max(rtarg,min(100,max(20,2*rsky2))) pixels of
@@ -660,10 +677,45 @@ the aperture centre.
                 print(key)
                 self._reference()
 
+            elif key == 'C':
+                print(key)
+
+                # clone the apertures from this CCD
+                if len(self.mccdaper[self._cnam]):
+
+                    # only if there are some to clone ...
+                    for cnam in self.mccdaper:
+
+                        if cnam != self._cnam and cnam in self.anams:
+                            # ... it is not the CCD to be cloned and it
+                            # is being displayed.
+
+                            # remove all existing aperture on this CCD from the plot
+                            for apnam in self.pobjs[cnam]:
+                                for obj in self.pobjs[cnam][apnam]:
+                                    obj.remove()
+
+                            # copy over the apertures of the CCD to be cloned
+                            self.mccdaper[cnam] = self.mccdaper[self._cnam].copy()
+
+                            # plot them, storing the plot objects
+                            self.pobjs[cnam] = hcam.mpl.pCcdAper(
+                                self.anams[cnam], self.mccdaper[cnam]
+                            )
+
+                            plt.draw()
+
+                    print('Copied apertures of CCD {:s}'
+                          ' to all other displayed CCDs'.format(self._cnam)
+                      )
+
+                PickStar.action_prompt(True)
+
             elif key == 'enter':
                 PickStar.action_prompt(True)
 
-            elif key == 'shift':
+            elif key == 'shift' or key == 'alt' or key == 'control' or \
+                 key == 'pagedown' or key == 'pageup':
                 # trap some special keys to avoid irritating messages
                 pass
 
@@ -842,6 +894,8 @@ the aperture centre.
                         )
 
                     print('Aperture {:s}: {:s}'.format(apnam,message))
+                    dx = x - aper.x
+                    dy = y - aper.y
                     aper.x = x
                     aper.y = y
 
@@ -852,6 +906,25 @@ the aperture centre.
                     # plot in new position, over-writing the plot objects
                     self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(
                         self._axes, aper, apnam)
+
+                    # look for any apertures linked to this one and adjust
+                    # them so the links are still valid
+                    for lanam, laper in self.mccdaper[self._cnam].items():
+                        if laper.link == apnam:
+                            laper.x += dx
+                            laper.y += dy
+
+                            # remove the plot of the aperture that was linked
+                            # in to wipe the link
+                            for obj in self.pobjs[self._cnam][lanam]:
+                                obj.remove()
+
+                            # then re-plot
+                            self.pobjs[self._cnam][lanam] = hcam.mpl.pAper(
+                                self._axes, laper, lanam, self.mccdaper[self._cnam]
+                            )
+
+                    # finally update the plot
                     plt.draw()
 
                 except hcam.HipercamError as err:
