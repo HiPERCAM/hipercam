@@ -502,14 +502,14 @@ class PickStar:
             self._add_input(event.key)
 
         elif self._link_mode:
-            # if in link mode, we should be selecting another aperture,
-            # the one to link to
+            # if in link mode, we should be selecting another aperture, the
+            # one to link to
             if event.key == 'q':
                 # trap 'q' for quit during linking
                 self._link_mode = False
                 PickStar.action_prompt(True)
 
-            elif event.key == 'l':
+            elif event.key in 'abcdefghijklmnoprstuvwxyz':
                 # link mode. this should be the second aperture
                 # store essential data
                 self._cnam = self.cnams[event.inaxes]
@@ -523,7 +523,8 @@ class PickStar:
                 self._mask_mode = False
                 PickStar.action_prompt(True)
 
-            elif event.key == 'm':
+            elif event.key in 'abcdefghijklmnoprstuvwxyz':
+
                 # mask mode. store essential data
                 self._cnam = self.cnams[event.inaxes]
                 self._axes = event.inaxes
@@ -696,8 +697,10 @@ the aperture centre.
                 return
 
             # get Windat around the selected position
-            wind = ccd[wnam].window(self._x-self.shbox, self._x+self.shbox,
-                                    self._y-self.shbox, self._y+self.shbox)
+            wind = ccd[wnam].window(
+                self._x-self.shbox, self._x+self.shbox,
+                self._y-self.shbox, self._y+self.shbox
+            )
 
             # carry out initial search
             x,y,peak = wind.find(self.smooth, False)
@@ -728,12 +731,15 @@ the aperture centre.
 
         # create and add aperture
         aper = hcam.Aperture(
-            self._x, self._y, self.rtarg, self.rsky1, self.rsky2, False)
+            self._x, self._y, self.rtarg, self.rsky1, self.rsky2, False
+        )
         self.mccdaper[self._cnam][self._buffer] = aper
+        print('added aperture=',aper)
 
         # add aperture to the plot, store plot objects
         self.pobjs[self._cnam][self._buffer] = hcam.mpl.pAper(
-            self._axes, aper, self._buffer)
+            self._axes, aper, self._buffer
+        )
 
         # make sure it appears
         plt.draw()
@@ -897,7 +903,8 @@ the aperture centre.
         if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
             print('  *** found no aperture near to the cursor position to link')
             if self._link_stage == 1:
-                print(' select the aperture to link aperture {:s} from [q to quit]'.format(apnam))
+                print(" 'l' to select the aperture to link"
+                      " aperture {:s} from ['q' to quit]".format(apnam))
             else:
                 print('  *** no link made.')
                 PickStar.action_prompt(True)
@@ -908,6 +915,7 @@ the aperture centre.
             self._link_stage += 1
 
             if self._link_stage == 1:
+
                 if aper.ref:
                     print('  *** cannot link a reference aperture')
                     self._link_mode = False
@@ -920,7 +928,8 @@ the aperture centre.
                     self._link_cnam = self._cnam
                     self._link_aper = aper
                     self._link_apnam = apnam
-                    print(' click the link aperture [q to quit]'.format(apnam))
+                    print(" 'l' to select the aperture to link"
+                          " aperture {:s} from ['q' to quit]".format(apnam))
 
             else:
                 # second (or more) time through. Check we are in the same CCD but on a
@@ -977,7 +986,7 @@ the aperture centre.
                 self._mask_apnam = apnam
 
                 # prompt stage 2
-                print(' click the cursor at the centre of the region to mask [will be circular]')
+                print(" 'm' at the centre of the region to mask ['q' to quit]")
 
         elif self._mask_stage == 2:
 
@@ -990,7 +999,7 @@ the aperture centre.
                 self._mask_ycen = self._y
 
                 # prompt stage 3
-                print(' click the cursor at the edge of the region to mask [will be circular]')
+                print(" 'm' at the edge of the region to mask ['q' to quit]")
 
         elif self._mask_stage == 3:
 
@@ -1019,8 +1028,10 @@ the aperture centre.
                 )
                 plt.draw()
 
-                print('  added mask to aperture {:s} in CCD {:s}'.format(
-                            self._mask_apnam, self._mask_cnam))
+                print(
+                    '  added mask to aperture {:s} in CCD {:s}'.format(
+                            self._mask_apnam, self._mask_cnam)
+                )
                 PickStar.action_prompt(True)
 
     def _break(self):

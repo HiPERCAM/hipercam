@@ -84,6 +84,7 @@ class Aperture(object):
 
         Notes: normal practice would be to set link, mask, extra later, having created
         the Aperture. Attributes of the same name as all the arguments are defined.
+        We copy the mask and extra apertures to avoid propagating references.
         """
 
         self.x = x
@@ -92,8 +93,8 @@ class Aperture(object):
         self.rsky1 = rsky1
         self.rsky2 = rsky2
         self.ref = ref
-        self.mask = mask
-        self.extra = extra
+        self.mask = mask.copy()
+        self.extra = extra.copy()
         self.link = link
 
     def __repr__(self):
