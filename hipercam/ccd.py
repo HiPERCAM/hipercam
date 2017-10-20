@@ -373,9 +373,9 @@ class CCD(Agroup):
             return cls.rhdul(hdul, cnam)
 
     def matches(self, ccd):
-        """Check that the :class:`CCD` matches another, which in this means checking
-        that each window of the same label matches the equivalent in the other
-        `CCD`.
+        """Check that the :class:`CCD` matches another, which in this case means
+        checking that each window of the same label matches the equivalent in
+        the other `CCD`.
 
         There will be no match if there any windows present in one `CCD` but
         not the other and the windows must have identical location, size and
@@ -395,7 +395,11 @@ class CCD(Agroup):
                     'window {0:d} not found in self'.format(key))
 
         if self.nxtot != ccd.nxtot or self.nytot != ccd.nytot:
-            raise ValueError('self / ccd have conflicting total (nxtot,nytot): ({0:d},{1:d}) vs ({2:d},{3:d})'.format(self.nxtot,self.nytot,ccd.nxtot,ccd.nytot))
+            raise ValueError(
+                'self / ccd have conflicting total (nxtot,nytot):'
+                ' ({0:d},{1:d}) vs ({2:d},{3:d})'.format(
+                    self.nxtot,self.nytot,ccd.nxtot,ccd.nytot)
+            )
 
         for key, wind in self.items():
             wind.matches(ccd[key])
@@ -452,7 +456,7 @@ class CCD(Agroup):
             # for each one, search for a surrounding Windat in
             # the CCD we are chopping down to. if it succeeds,
             # we break out of the loop to avoid the exception
-            for wind in ccd.values():
+            for wind in self.values():
                 try:
                     tccd[twnam] = wind.crop(twind)
                     break

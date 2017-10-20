@@ -294,7 +294,9 @@ class Window:
         """
         if self != win:
             raise ValueError(
-                'self = {!s} clashes with win = {!s}'.format(self,win)
+                'self = {!s} clashes with win = {!s}'.format(
+                    self.win,win.win
+                )
             )
 
     def copy(self, memo=None):
@@ -363,10 +365,14 @@ class Window:
         visible pixels.
         """
 
-        llx = max(self.llx, self.llx + self.xbin*int(math.ceil((xlo-self.xlo)/self.xbin)))
-        lly = max(self.lly, self.lly + self.ybin*int(math.ceil((ylo-self.ylo)/self.ybin)))
-        nx = self.nx - (llx-self.llx)//self.xbin - max(0,int(math.ceil((self.xhi-xhi)/self.xbin)))
-        ny = self.ny - (lly-self.lly)//self.ybin - max(0,int(math.ceil((self.yhi-yhi)/self.ybin)))
+        llx = max(self.llx, self.llx +
+                  self.xbin*int(math.ceil((xlo-self.xlo)/self.xbin)))
+        lly = max(self.lly, self.lly +
+                  self.ybin*int(math.ceil((ylo-self.ylo)/self.ybin)))
+        nx = self.nx - (llx-self.llx)//self.xbin - \
+             max(0,int(math.ceil((self.xhi-xhi)/self.xbin)))
+        ny = self.ny - (lly-self.lly)//self.ybin - \
+             max(0,int(math.ceil((self.yhi-yhi)/self.ybin)))
 
         if nx <= 0 or ny <= 0:
             raise ValueError(
@@ -860,7 +866,7 @@ class Windat(Window):
         """
         if self.outside(win):
             # first slice down to size
-            xstart = (win.llx-self.llx)//self.xbin
+            xstart = (win.llx-self.llx) // self.xbin
             xend = xstart + win.nx*win.xbin//self.xbin
             ystart = (win.lly-self.lly)//self.ybin
             yend = ystart + win.ny*win.ybin//self.ybin

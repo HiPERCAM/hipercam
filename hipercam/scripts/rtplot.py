@@ -316,7 +316,7 @@ def rtplot(args=None):
         )
         if bias is not None:
             # read the bias frame
-            bframe = hcam.MCCD.rfits(bias)
+            bias = hcam.MCCD.rfits(bias)
 
         # define the display intensities
         msub = cl.get_value('msub', 'subtract median from each window?', True)
@@ -461,10 +461,11 @@ def rtplot(args=None):
 
             if n == 0 and bias is not None:
                 # crop the bias on the first frame only
-                bframe.crop(mccd)
+                bias = bias.crop(mccd)
 
             # display the CCDs chosen
             message = ''
+            pgbbuf()
             for nc, cnam in enumerate(ccds):
                 ccd = mccd[cnam]
 
@@ -474,7 +475,7 @@ def rtplot(args=None):
 
                     # subtract the bias
                     if bias is not None:
-                        ccd -= bframe[cnam]
+                        ccd -= bias[cnam]
 
                     if msub:
                         # subtract median from each window
@@ -493,6 +494,7 @@ def rtplot(args=None):
                     else:
                         message += 'ccd {:s}: {:.2f} to {:.2f}'.format(cnam,vmin,vmax)
 
+            pgebuf()
             # end of CCD display loop
             print(message)
 
