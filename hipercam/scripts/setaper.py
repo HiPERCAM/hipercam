@@ -19,10 +19,13 @@ else:
 
 if curs is not None:
     from matplotlib.backend_bases import cursors
-    curs[cursors.HAND] = curs[cursors.POINTER]
-    curs[cursors.WAIT] = curs[cursors.POINTER]
-    curs[cursors.SELECT_REGION] = curs[cursors.POINTER]
-    curs[cursors.MOVE] = curs[cursors.POINTER]
+    try:
+        curs[cursors.HAND] = curs[cursors.POINTER]
+        curs[cursors.WAIT] = curs[cursors.POINTER]
+        curs[cursors.SELECT_REGION] = curs[cursors.POINTER]
+        curs[cursors.MOVE] = curs[cursors.POINTER]
+    except AttributeError:
+        pass
 
 import matplotlib.pyplot as plt
 import hipercam as hcam
