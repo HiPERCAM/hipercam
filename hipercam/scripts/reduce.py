@@ -29,8 +29,8 @@ def reduce(args=None):
     reduce can source data from both the ULTRACAM and HiPERCAM servers, from
     local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
     FITS files for HiPERCAM) and from lists of HiPERCAM '.hcm' files. If you
-    have data from a different instrument you should convert into the FITS-based
-    hcm format.
+    have data from a different instrument you should convert into the
+    FITS-based hcm format.
 
     reduce is primarily configured from a file, typically "reduce.red". This
     is closely related to the format of the ULTRACAM files except it uses
@@ -271,8 +271,8 @@ def reduce(args=None):
     if implot:
         # optional image plot
         imdev = hcam.pgp.Device(rfile['general']['idevice'])
-        iwidth = float(rfile['general']['iwidth'])
-        iheight = float(rfile['general']['iheight'])
+        iwidth = rfile['general']['iwidth']
+        iheight = rfile['general']['iheight']
 
         if iwidth > 0 and iheight > 0:
             pgpap(iwidth,iheight/iwidth)
@@ -294,8 +294,8 @@ def reduce(args=None):
 
     # open the light curve plot
     lcdev = hcam.pgp.Device(rfile['general']['ldevice'])
-    lwidth = rfile['lcplot']['width']
-    lheight = rfile['lcplot']['height']
+    lwidth = rfile['general']['lwidth']
+    lheight = rfile['general']['lheight']
     if lwidth > 0 and lheight > 0:
         pgpap(lwidth,lheight/lwidth)
 
@@ -949,7 +949,7 @@ class Rfile(OrderedDict):
     """
 
     # Data
-    VERSION = '2017-10-05'
+    VERSION = '2017-10-20'
 
     @classmethod
     def fromFile(cls, filename):
@@ -1010,8 +1010,18 @@ class Rfile(OrderedDict):
                     sect['version'], Rfile.VERSION)
             )
 
+        sect['lwidth'] = float(sect['lwidth'])
+        if sect['lwidth'] < 0:
+            raise ValueError('general.lwidth must be >= 0')
+        sect['lheight'] = float(sect['lheight'])
+        if sect['lheight'] < 0:
+            raise ValueError('general.lheight must be >= 0')
         sect['iwidth'] = float(sect['iwidth'])
+        if sect['iwidth'] < 0:
+            raise ValueError('general.iwidth must be >= 0')
         sect['iheight'] = float(sect['iheight'])
+        if sect['iheight'] < 0:
+            raise ValueError('general.iheight must be >= 0')
 
         #
         # apertures section
@@ -1141,12 +1151,6 @@ class Rfile(OrderedDict):
         sect['extend_xrange'] = float(sect['extend_xrange'])
         if sect['extend_xrange'] <= 0:
             raise ValueError('lcplot.extend_xrange must be > 0')
-        sect['width'] = float(sect['width'])
-        if sect['width'] < 0:
-            raise ValueError('lcplot.width must be >= 0')
-        sect['height'] = float(sect['height'])
-        if sect['height'] < 0:
-            raise ValueError('lcplot.height must be >= 0')
 
         #
         # light curve panel section

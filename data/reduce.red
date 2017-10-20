@@ -4,23 +4,26 @@
 # The idea is that these are to large extent unchanging and it would be annoying
 # to be prompted every time for them.
 
-# the next section defines how the apertures are re-positioned from frame to
-# frame. If not static, apertures are re-positioned through a combination of a
-# search near a start location followed by a 2D fit. Several parameters below
-# are associated with this process
-
-# If there are reference apertures, they are located first to give a mean
-# shift. The search on non-reference apertures can then be tightened.
-
 [general]
-version = 2017-10-05 # must match date in reduce itself.
-ldevice = 1/xs  # PGPLOT plot device for light curve plots
-idevice = 2/xs  # PGPLOT plot device for image plots [if implot True]
-iwidth   = 0  # image curve plot width, inches, 0 to let program choose
-iheight  = 0  # image curve plot height, inches
+version = 2017-10-10 # must match date in reduce itself.
+
+ldevice  = 1/xs  # PGPLOT plot device for light curve plots
+lwidth   = 0     # light curve plot width, inches, 0 to let program choose
+lheight  = 0     # light curve plot height, inches
+
+idevice  = 2/xs  # PGPLOT plot device for image plots [if implot True]
+iwidth   = 0     # image curve plot width, inches, 0 to let program choose
+iheight  = 0     # image curve plot height, inches
+
+# the next section defines how the apertures are re-positioned from frame to
+# frame. Apertures are re-positioned through a combination of a search near a
+# start location followed by a 2D fit. Several parameters below are associated
+# with this process. If there are reference apertures, they are located first
+# to give a mean shift. The search on non-reference apertures can then be
+# tightened.
 
 [apertures]
-aperfile               = reduce  # file of software apertures for each CCD
+aperfile   = aper  # file of software apertures for each CCD
 
 search_half_width_ref  = 11   # for initial search around reference aperture, unbinned pixels
 search_half_width_non  = 5    # for initial search around non-reference aperture, unbinned pixels
@@ -83,8 +86,6 @@ gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 [lcplot]
 xrange  = 0         # maximum range in X to plot (minutes), <= 0 for everything
 extend_xrange = 10  # amount by which to extend xrange, minutes.
-width   = 0         # light curve plot width, inches, 0 to let program choose
-height  = 0         # light curve plot height, inches
 
 # light curve panel (must be present). Mostly obvious, then a series of lines,
 # each starting 'plot' which specify one light curve to be plotted giving CCD,
