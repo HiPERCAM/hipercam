@@ -1112,8 +1112,9 @@ class Rfile(OrderedDict):
 
             if lst[1] != 'normal' and lst[1] != 'optimal':
                 raise ValueError(
-                    "second entry of extraction lines must either be 'normal' or 'optimal'"
-                    )
+                    "second entry of extraction lines'
+                    ' must either be 'normal' or 'optimal'"
+                )
 
             # type conversions
             for i in range(2,len(lst)):
@@ -1820,10 +1821,13 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         # squared aperture radii for comparison
         R1sq, R2sq, R3sq = aper.rtarg**2, aper.rsky1**2, aper.rsky2**2
 
-        # sky selection, accounting for masks
+        # sky selection, accounting for masks and extra (which we assume
+        # acts like a sky mask as well)
         sok = (Rsq > R2sq) & (Rsq < R3sq)
         for xoff, yoff, radius in aper.mask:
             sok &= (X-xoff)**2 + (Y-yoff)**2 > radius**2
+        for xoff, yoff in aper.extra:
+            sok &= (X-xoff)**2 + (Y-yoff)**2 > R1sq
 
         # generate sky
         dsky = swind.data[sok]

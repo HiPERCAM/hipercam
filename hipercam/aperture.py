@@ -31,15 +31,18 @@ class Aperture(object):
     fade so much that they cannot be detected. Such targets can be "linked" to
     others in the sense that they are offset from them.
 
-    Sky masks: these are fixed circles offset from the aperture in question
-    indicating pixels to ignore when estimating the sky background.
+    Sky masks: ('mask) these are fixed circles offset from the aperture in
+    question indicating pixels to ignore when estimating the sky background.
 
-    Star masks: these are circles offset from aperture indicating pixels to
-    include when summing the object flux.
+    Star masks: ('extra') these are circles offset from aperture indicating
+    pixels to include when summing the object flux. This is to combat problems
+    caused by blended objects. These *also* act as sky masks so there should
+    be no need to also mask such object.
 
     """
 
-    def __init__(self, x, y, rtarg, rsky1, rsky2, ref, mask=[], extra=[], link=''):
+    def __init__(self, x, y, rtarg, rsky1, rsky2, ref, mask=[], extra=[],
+                 link=''):
         """Constructor. Arguments::
 
         x     : (float)
@@ -73,7 +76,8 @@ class Aperture(object):
             Similar to `mask`, but each tuple in the list consists only of an
             x,y offset. These however are used as centres of additional target
             apertures to allow blended stars to be include in the total flux.
-            They are given the same radius as the target aperture.
+            They are given the same radius as the target aperture. They are also
+            used to exclude sky pixels.
 
         link  : (string)
             If != '', this is a string label for another :class:Aperture that
@@ -101,7 +105,7 @@ class Aperture(object):
         return 'Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, mask={!r}, extra={!r}, link={!r})'.format(
             self.x, self.y, self.rtarg, self.rsky1, self.rsky2, self.ref,
             self.mask, self.extra, self.link
-            )
+        )
 
     def copy(self, memo=None):
         """Returns with a copy of the Aperture"""
