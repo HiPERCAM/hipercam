@@ -120,7 +120,7 @@ def averun(args=None):
         )
         if bias is not None:
             # read the bias frame
-            bframe = hcam.MCCD.rfits(bias)
+            bias = hcam.MCCD.rfits(bias)
 
         clobber = cl.get_value(
             'clobber', 'clobber any pre-existing files on output',
@@ -176,7 +176,7 @@ def averun(args=None):
 
     if bias is not None:
         # crop the bias
-        bframe.crop(template)
+        bias = bias.crop(template)
 
     ccds = dict([(cnam,[]) for cnam in template])
 
@@ -184,7 +184,7 @@ def averun(args=None):
         for cnam, ccd in mccd.items():
             if ccd.is_data():
                 if bias is not None:
-                    ccd -= bframe[cnam]
+                    ccd -= bias[cnam]
                 ccds[cnam].append(ccd)
 
     # check that we have some frames in all CCDs

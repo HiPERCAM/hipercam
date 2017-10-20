@@ -73,7 +73,7 @@ def combine(args=None):
         )
         if bias is not None:
             # read the bias frame
-            bframe = hcam.MCCD.rfits(bias)
+            bias = hcam.MCCD.rfits(bias)
 
         adjust = cl.get_value(
             'adjust', 'i(gnore), n(ormalise) b(ias offsets)',
@@ -113,7 +113,7 @@ def combine(args=None):
 
     if bias is not None:
         # crop the bias
-        bframe.crop(template)
+        bias = bias.crop(template)
 
     # Now process each file CCD by CCD to reduce the memory
     # footprint
@@ -130,7 +130,7 @@ def combine(args=None):
 
             if bias is not None:
                 # extract relevant CCD from the bias
-                bccd = bframe[cnam]
+                bccd = bias[cnam]
 
             mean = None
             for ccd in spool:

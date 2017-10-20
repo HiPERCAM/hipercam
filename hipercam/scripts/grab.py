@@ -107,7 +107,6 @@ def grab(args=None):
         tmax = cl.get_value(
             'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
 
-        bframe = None
         bias = cl.get_value(
             'bias', "bias frame ['none' to ignore]",
             cline.Fname('bias', hcam.HCAM), ignore='none'
@@ -129,6 +128,7 @@ def grab(args=None):
     total_time = 0 # time waiting for new frame
     nframe = first
     root = os.path.basename(run)
+    bframe = None
 
     # Finally, we can go
     with hcam.data_source(source, run, first) as spool:
@@ -155,7 +155,7 @@ def grab(args=None):
                     bframe = hcam.MCCD.rfits(bias)
 
                     # reformat
-                    bframe.chop(mccd)
+                    bframe = bframe.chop(mccd)
 
                 mccd -= bframe
 
