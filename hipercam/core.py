@@ -85,6 +85,17 @@ def sub_extension(fname, ext):
     else:
         return fname
 
+def rgb(cname):
+    """Returns the RGB tuple associated with colour name 'cname', following
+    the colour definitions used by 'reduce'.
+
+    Returns a ValueError if cname is not recognised.
+    """
+    if cname not in CNAMS:
+        raise ValueError('colour = {:s} not recognised'.format(cname))
+    else:
+        return CIS[CNAMS[cnam]]
+
 class HipercamError (Exception):
     """
     Class for the hipercam package errors
