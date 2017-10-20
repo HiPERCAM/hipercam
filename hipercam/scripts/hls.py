@@ -27,9 +27,13 @@ def hls(args=None):
 
     # splits up response, searches for file names of the
     # form runXXXX, prints them as a list.
-
     fnames = [fname for fname in response.split('\n') \
               if fname.startswith('run') and len(fname) == 7]
+
+    # sort
+    fnames.sort()
+
+    # output to terminal
     print('\n'.join(fnames))
 
 
