@@ -118,6 +118,18 @@ def rtplot(args=None):
         phi     : (float) [if iset='p']
            upper percentile level
 
+        xlo     : (float)
+           left-hand X-limit for plot
+
+        xhi     : (float)
+           right-hand X-limit for plot (can actually be < xlo)
+
+        ylo     : (float)
+           lower Y-limit for plot
+
+        yhi     : (float)
+           upper Y-limit for plot (can be < ylo)
+
         profit  : (bool) [if plotting a single CCD only]
            carry out profile fits or not. If you say yes, then on the first
            plot, you will have the option to pick objects with a cursor. The
@@ -312,7 +324,7 @@ def rtplot(args=None):
         iset = cl.get_value(
             'iset', 'set intensity a(utomatically),'
             ' d(irectly) or with p(ercentiles)?',
-            'a', lvals=['a','A','d','D','p','P'])
+            'a', lvals=['a','d','p'])
         iset = iset.lower()
 
         plo, phi = 5, 95
@@ -333,10 +345,12 @@ def rtplot(args=None):
             nxmax = max(nxmax, nxtot)
             nymax = max(nymax, nytot)
 
-        xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., float(nxmax+1))
+        xlo = cl.get_value('xlo', 'left-hand X value',
+                           0., 0., float(nxmax+1))
         xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax),
                            0., float(nxmax+1))
-        ylo = cl.get_value('ylo', 'lower Y value', 0., 0., float(nymax+1))
+        ylo = cl.get_value('ylo', 'lower Y value',
+                           0., 0., float(nymax+1))
         yhi = cl.get_value('yhi', 'upper Y value', float(nymax),
                            0., float(nymax+1))
 

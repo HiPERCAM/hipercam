@@ -275,17 +275,9 @@ class Cline:
         self.narg = 0
         self._usedef = False
 
-    def list(self, fp, comment='#   '):
-        """Lists the values of all parameters, one line at a time in the order they
-        were registered. It skips any without any value.
-
-        Arguments::
-
-           fp       : (file-like object)
-               has a write method.
-
-           comment  : (string)
-               this is prepended to each line
+    def list(self):
+        """Returns with a list of strings listing all the parameter names and values
+        separated by carriage returns. Unset parameters are skipped.
 
         """
 
@@ -293,6 +285,7 @@ class Cline:
         for param in self._rpars:
             nc = max(nc,len(param))
 
+        slist = []
         for param, info in self._rpars.items():
             # get value
             if info['g_or_l'] == Cline.GLOBAL:
@@ -305,10 +298,10 @@ class Cline:
                 value = self._lpars[param]
 
             # write out
-            fp.write(
-                '{:s}{:{:d}s} = {!s}\n'.format(
-                    comment, param, nc, value)
+            slist.append('{:{:d}s} = {!s}\n'.format(
+                param, nc, value)
             )
+        return slist
 
     def save(self):
         """Saves parameter values to disk (if NODEFS has not been

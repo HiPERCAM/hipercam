@@ -14,6 +14,10 @@
 
 [general]
 version = 2017-10-05 # must match date in reduce itself.
+ldevice = 1/xs  # PGPLOT plot device for light curve plots
+idevice = 2/xs  # PGPLOT plot device for image plots [if implot True]
+iwidth   = 0  # image curve plot width, inches, 0 to let program choose
+iheight  = 0  # image curve plot height, inches
 
 [apertures]
 aperfile               = reduce  # file of software apertures for each CCD
@@ -77,11 +81,10 @@ gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 # the light curve plot (includes transmission & seeing as well)
 
 [lcplot]
-device  = 1/xs      # PGPLOT plot device
 xrange  = 0         # maximum range in X to plot (minutes), <= 0 for everything
 extend_xrange = 10  # amount by which to extend xrange, minutes.
-width   = 0         # plot width, inches, 0 to let program choose
-height  = 0         # plot height, inches
+width   = 0         # light curve plot width, inches, 0 to let program choose
+height  = 0         # light curve plot height, inches
 
 # light curve panel (must be present). Mostly obvious, then a series of lines,
 # each starting 'plot' which specify one light curve to be plotted giving CCD,

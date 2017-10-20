@@ -74,61 +74,192 @@ def reduce(args=None):
         log     : (string)
            log file for the results
 
+        implot  : (bool)
+           flag to indicate you want to plot images as well. The
+
+        ccd     : (string) [if implot]
+           CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
+
+        nx      : (int) [if implot]
+           number of panels across to display.
+
+        msub    : (bool) [if implot]
+           subtract the median from each window before scaling for the
+           image display or not. This happens after any bias subtraction.
+
+        xlo     : (float) [if implot]
+           left-hand X-limit for plot
+
+        xhi     : (float) [if implot]
+           right-hand X-limit for plot (can actually be < xlo)
+
+        ylo     : (float) [if implot]
+           lower Y-limit for plot
+
+        yhi     : (float) [if implot]
+           upper Y-limit for plot (can be < ylo)
+
+        iset    : (string) [if implot]
+           determines how the intensities are determined. There are three
+           options: 'a' for automatic simply scales from the minimum to the
+           maximum value found on a per CCD basis. 'd' for direct just takes
+           two numbers from the user. 'p' for percentile dtermines levels
+           based upon percentiles determined from the entire CCD on a per CCD
+           basis.
+
+        ilo     : (float) [if implot and iset='d']
+           lower intensity level
+
+        ihi     : (float) [if implot and iset='d']
+           upper intensity level
+
+        plo     : (float) [if implot and iset='p']
+           lower percentile level
+
+        phi     : (float) [if implot and iset='p']
+           upper percentile level
+
     """
 
     if args is None:
         args = sys.argv[1:]
 
-    # get the inputs. we want to print these to the reduce
-    # file later hence we don't use the 'with' construct
-    # and have to explicitly save the parameters
-    cl = Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args)
+    with Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args) as cl:
 
-    # register parameters
-    cl.register('source', Cline.GLOBAL, Cline.HIDE)
-    cl.register('rfile', Cline.GLOBAL, Cline.PROMPT)
-    cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-    cl.register('first', Cline.LOCAL, Cline.PROMPT)
-    cl.register('twait', Cline.LOCAL, Cline.HIDE)
-    cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-    cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-    cl.register('log', Cline.GLOBAL, Cline.PROMPT)
+        # register parameters
+        cl.register('source', Cline.GLOBAL, Cline.HIDE)
+        cl.register('rfile', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('first', Cline.LOCAL, Cline.PROMPT)
+        cl.register('twait', Cline.LOCAL, Cline.HIDE)
+        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
+        cl.register('flist', Cline.LOCAL, Cline.PROMPT)
+        cl.register('log', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('implot', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
+        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('phi', Cline.LOCAL, Cline.PROMPT)
+        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
 
-    # get inputs
-    source = cl.get_value(
-        'source', 'data source [hs, hl, us, ul, hf]',
-        'hl', lvals=('hs','hl','us','ul','hf'))
-
-    # set some flags
-    server_or_local = source.endswith('s') or source.endswith('l')
-
-    # the reduce file
-    rfilen = cl.get_value(
-        'rfile', 'reduce file', cline.Fname('reduce.red',hcam.RED))
-    rfile = Rfile.fromFile(rfilen)
-
-    if server_or_local:
-        run = cl.get_value('run', 'run name', 'run005')
-        first = cl.get_value('first', 'first frame to reduce', 1, 0)
-        twait = cl.get_value(
-            'twait', 'time to wait for a new frame [secs]', 1., 0.)
-        tmx = cl.get_value(
-            'tmax', 'maximum time to wait for a new frame [secs]',
-            10., 0.)
-
-    else:
-        run = cl.get_value(
-            'flist', 'file list', cline.Fname('files.lis',hcam.LIST)
+        # get inputs
+        source = cl.get_value(
+            'source', 'data source [hs, hl, us, ul, hf]',
+            'hl', lvals=('hs','hl','us','ul','hf')
         )
-        first = 1
 
-    log = cl.get_value(
-        'log', 'name of log file to store results',
-        cline.Fname('reduce.log',hcam.LOG,cline.Fname.NEW)
-    )
+        # set some flags
+        server_or_local = source.endswith('s') or source.endswith('l')
 
-    # save all inputs
-    cl.save()
+        # the reduce file
+        rfilen = cl.get_value(
+            'rfile', 'reduce file', cline.Fname('reduce.red',hcam.RED))
+        rfile = Rfile.fromFile(rfilen)
+
+        if server_or_local:
+            run = cl.get_value('run', 'run name', 'run005')
+            first = cl.get_value('first', 'first frame to reduce', 1, 0)
+            twait = cl.get_value(
+                'twait', 'time to wait for a new frame [secs]', 1., 0.)
+            tmx = cl.get_value(
+                'tmax', 'maximum time to wait for a new frame [secs]',
+                10., 0.)
+
+        else:
+            run = cl.get_value(
+                'flist', 'file list', cline.Fname('files.lis',hcam.LIST)
+            )
+            first = 1
+
+        log = cl.get_value(
+            'log', 'name of log file to store results',
+            cline.Fname('reduce.log',hcam.LOG,cline.Fname.NEW)
+        )
+
+        implot = cl.get_value(
+            'implot', 'do you want to plot images', True
+        )
+
+        if implot:
+
+            # define the panel grid. first get the labels and maximum
+            # dimensions
+            ccdinf = hcam.get_ccd_pars(source, run)
+
+            try:
+                nxdef = cl.get_default('nx')
+            except:
+                nxdef = 3
+
+            if len(ccdinf) > 1:
+                ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
+                if ccd == '0':
+                    ccds = list(ccdinf.keys())
+                else:
+                    ccds = ccd.split()
+
+                if len(ccds) > 1:
+                    nxdef = min(len(ccds), nxdef)
+                    cl.set_default('nx', nxdef)
+                    nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+                else:
+                    nx = 1
+            else:
+                nx = 1
+                ccds = list(ccdinf.keys())
+
+            # define the display intensities
+            msub = cl.get_value(
+                'msub', 'subtract median from each window?', True)
+
+            iset = cl.get_value(
+                'iset', 'set intensity a(utomatically),'
+                ' d(irectly) or with p(ercentiles)?',
+                'a', lvals=['a','d','p']
+            )
+
+            plo, phi = 5, 95
+            ilo, ihi = 0, 1000
+            if iset == 'd':
+                ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
+                ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
+            elif iset == 'p':
+                plo = cl.get_value(
+                    'plo', 'lower intensity limit percentile',
+                    5., 0., 100.)
+                phi = cl.get_value(
+                    'phi', 'upper intensity limit percentile',
+                    95., 0., 100.)
+
+            # region to plot
+            nxmax, nymax = 0, 0
+            for cnam in ccds:
+                nxtot, nytot = ccdinf[cnam]
+                nxmax = max(nxmax, nxtot)
+                nymax = max(nymax, nytot)
+
+            xlo = cl.get_value(
+                'xlo', 'left-hand X value', 0., 0., float(nxmax+1)
+            )
+            xhi = cl.get_value(
+                'xhi', 'right-hand X value', float(nxmax), 0., float(nxmax+1)
+            )
+            ylo = cl.get_value(
+                'ylo', 'lower Y value', 0., 0., float(nymax+1)
+            )
+            yhi = cl.get_value(
+                'yhi', 'upper Y value', float(nymax), 0., float(nymax+1)
+            )
+
+        # save list of parameter values for writing to the reduction file
+        plist = cl.list()
 
     ################################################################
     #
@@ -137,8 +268,32 @@ def reduce(args=None):
     # define the panel grid. first get the labels and maximum dimensions
     ccdinf = hcam.get_ccd_pars(source, run)
 
+    if implot:
+        # optional image plot
+        imdev = hcam.pgp.Device(rfile['general']['idevice'])
+        iwidth = float(rfile['general']['iwidth'])
+        iheight = float(rfile['general']['iheight'])
+
+        if iwidth > 0 and iheight > 0:
+            pgpap(iwidth,iheight/iwidth)
+
+        # set up panels and axes
+        nccd = len(ccds)
+        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+
+        # slice up viewport
+        pgsubp(nx,ny)
+
+        # plot axes, labels, titles. Happens once only
+        for cnam in ccds:
+            pgsci(hcam.pgp.Params['axis.ci'])
+            pgsch(hcam.pgp.Params['axis.number.ch'])
+            pgenv(xlo, xhi, ylo, yhi, 1, 0)
+            pglab('X','Y','CCD {:s}'.format(cnam))
+
+
     # open the light curve plot
-    lcdev = hcam.pgp.Device(rfile['lcplot']['device'])
+    lcdev = hcam.pgp.Device(rfile['general']['ldevice'])
     lwidth = rfile['lcplot']['width']
     lheight = rfile['lcplot']['height']
     if lwidth > 0 and lheight > 0:
@@ -210,7 +365,7 @@ def reduce(args=None):
         yv2 = yv1 + scale*pheight/2.
         ypanel = Panel(
             lcdev, xv1, xv2, yv1, yv2, xlabel, 'Y',
-            '', xopt+'a', 'bcnst', x1, x2,
+            '', xopt, 'bcnst', x1, x2,
             rfile['position']['y_min'], rfile['position']['y_max'],
         )
         ypanel.plot()
@@ -223,7 +378,7 @@ def reduce(args=None):
         yv2 = yv1 + scale*pheight/2.
         xpanel = Panel(
             lcdev, xv1, xv2, yv1, yv2, xlabel, 'X',
-            '', xopt+'a', 'bcnst', x1, x2,
+            '', xopt, 'bcnst', x1, x2,
             rfile['position']['x_min'], rfile['position']['x_max'],
         )
         xpanel.plot()
@@ -289,7 +444,8 @@ def reduce(args=None):
 #
 """)
         # second, list the command-line inputs to the logfile
-        cl.list(logfile)
+        for line in plist:
+            logfile.write('# {:s}\n'.format(line))
 
         # third, list the reduce file
         logfile.write("""#
@@ -376,6 +532,7 @@ def reduce(args=None):
                 # nothing will be written for CCDs without
                 # apertures
                 continue
+
             cnames = '# {:s} = CCD nframe MJD MJDok Exptim '.format(cnam)
             for apnam in ccdaper:
                 cnames += 'x_{0:s} xe_{0:s} y_{0:s} ye_{0:s} ' \
@@ -448,6 +605,7 @@ def reduce(args=None):
                     nframe, mccd.head['TIMSTAMP'])
                 )
 
+
                 if nf == 0 and rfile['calibration']['crop']:
                     # This is the very first data frame read in. We need to
                     # trim the calibrations, on the assumption that all data
@@ -456,6 +614,10 @@ def reduce(args=None):
 
                     # reference the times relative to the start frame.
                     tzero = mccd.head['MJDUTC']
+
+                if rfile.bias is not None:
+                    # subtract bias
+                    mccd -= rfile.bias
 
                 # container for the results from each CCD
                 results = {}
@@ -566,6 +728,48 @@ def reduce(args=None):
                 logfile.flush()
 
                 # now the plotting sections
+
+                if implot:
+                    # image plot
+                    # select the image device
+                    imdev.select()
+
+                    # display the CCDs chosen
+                    message = ''
+                    for nc, cnam in enumerate(ccds):
+                        ccd = mccd[cnam]
+
+                        if ccd.is_data():
+                            # this should be data as opposed to a blank frame
+                            # between data frames that occur with nskip > 0
+
+                            if msub:
+                                # subtract median from each window
+                                for wind in ccd.values():
+                                    wind -= wind.median()
+
+                            # set to the correct panel and then plot CCD
+                            ix = (nc % nx) + 1
+                            iy = nc // nx + 1
+                            pgpanl(ix,iy)
+                            vmin, vmax = hcam.pgp.pCcd(ccd,iset,plo,phi,ilo,ihi)
+
+                            # accumulate string of image scalings
+                            if nc:
+                                message += ', ccd {:s}: {:.2f} to {:.2f}'.format(
+                                    cnam,vmin,vmax
+                                )
+                            else:
+                                message += 'ccd {:s}: {:.2f} to {:.2f}'.format(
+                                    cnam,vmin,vmax
+                                )
+
+                            if cnam in rfile.aper:
+                                hcam.pgp.pCcdAper(rfile.aper[cnam])
+
+                    # end of CCD display loop
+                    print(message)
+
 
                 # time in minutes since start
                 t = hcam.DMINS*(mccd.head['MJDUTC']-tzero)
@@ -787,7 +991,8 @@ class Rfile(OrderedDict):
 
                     else:
                         raise hcam.HipercamError(
-                            'found entry line before any section = \n{:s}'.format(line)
+                            'found entry line before'
+                            ' any section = \n{:s}'.format(line)
                         )
 
         # process it. this is a matter of checking entries and
@@ -797,13 +1002,16 @@ class Rfile(OrderedDict):
         #
         # general section
         #
-
-        if rfile['general']['version'] != Rfile.VERSION:
+        sect = rfile['general']
+        if sect['version'] != Rfile.VERSION:
             # check the version
             raise ValueError(
                 'Version mismatch: file = {:s}, reduce = {:s}'.format(
-                    rfile['general']['version'], Rfile.VERSION)
+                    sect['version'], Rfile.VERSION)
             )
+
+        sect['iwidth'] = float(sect['iwidth'])
+        sect['iheight'] = float(sect['iheight'])
 
         #
         # apertures section
@@ -812,7 +1020,7 @@ class Rfile(OrderedDict):
 
         rfile.aper = hcam.MccdAper.fromFile(
             hcam.add_extension(apsec['aperfile'],hcam.APER)
-            )
+        )
         if apsec['fit_method'] == 'moffat':
             rfile.method = 'm'
         elif  apsec['fit_method'] == 'gaussian':
@@ -844,7 +1052,7 @@ class Rfile(OrderedDict):
         if calsec['bias'] != '':
             rfile.bias == hcam.MCCD.rfits(
                 hcam.add_extension(calsec['bias'],hcam.HCAM)
-                )
+            )
         else:
             rfile.bias = None
 
@@ -888,8 +1096,9 @@ class Rfile(OrderedDict):
 
             if lst[0] != 'variable' and lst[0] != 'fixed':
                 raise ValueError(
-                    "first entry of extraction lines must either be 'variable' or 'fixed'"
-                    )
+                    "first entry of extraction lines must either"
+                    " be 'variable' or 'fixed'"
+                )
 
             if lst[1] != 'normal' and lst[1] != 'optimal':
                 raise ValueError(
@@ -1096,8 +1305,9 @@ class Rfile(OrderedDict):
         return rfile
 
     def crop(self, mccd):
-        """
-        This uses a template file 'mccd' to try to get the calibration files into the same format.
+        """This uses a template file 'mccd' to try to get the calibration files into
+        the same format.
+
         """
         if self.bias is not None:
             self.bias = self.bias.crop(mccd)
@@ -1115,7 +1325,8 @@ class Rfile(OrderedDict):
             self.gain = self.gain.crop(mccd)
 
 
-def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store):
+def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
+              mbeta, store):
     """Encapsulates aperture re-positioning and resizing. 'store' is a
     dictionary of results that will be used to start the fits from one frame
     to the next. It must start as {}.
@@ -1138,7 +1349,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
            the CCD
 
        ccdaper   : (CcdAper)
-           the Apertures
+           the Apertures. These are modified on exit.
 
        ccdwin    : 
            the Window label corresponding to each Aperture
@@ -1199,7 +1410,8 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
 
             # get sub-windat around start position
             shbox = apsec['search_half_width_ref']
-            swind = wind.window(aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox)
+            swind = wind.window(aper.x-shbox, aper.x+shbox,
+                                aper.y-shbox, aper.y+shbox)
 
             # carry out initial search
             x,y,peak = swind.find(apsec['search_smooth_fwhm'], False)
@@ -1269,7 +1481,8 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
                         wbsum += wb
 
                 else:
-                    print('CCD {:s}, reference aperture {:s}, peak = {:.1f} < {:s}'.format(
+                    print(
+                        'CCD {:s}, reference aperture {:s}, peak = {:.1f} < {:s}'.format(
                             cnam, apnam, height, apsec['fit_height_min']),
                           file=sys.stderr)
 
@@ -1303,7 +1516,10 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm, mbeta, store
             )
 
         else:
-            raise hcam.HipercamError('reference aperture fit(s) failed; giving up.')
+            raise hcam.HipercamError(
+                'reference aperture fit(s)'
+                ' failed; giving up.'
+            )
 
     else:
         # no reference apertures. All individual
@@ -1632,7 +1848,8 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
                 serror = np.sqrt((rd**2 + np.max(0, dsky[ok])/gn).sum()/nsky**2)
 
         else:
-            # no sky. still return the flux in the aperture but set bit 2 in flag
+            # no sky. still return the flux in the aperture but set bit 2 in
+            # flag
             flag |= (1 << 2)
             slevel = 0
             serror = -1

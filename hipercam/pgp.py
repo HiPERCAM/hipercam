@@ -11,6 +11,7 @@ from trm.pgplot import *
 from .core import *
 from .window import *
 from .ccd import *
+from . import utils
 
 __all__ = (
     'Params', 'Device',
@@ -44,11 +45,29 @@ Params = {
 
     # window box colour index
     'win.box.ci'   : 7,
+
+    # aperture target colour
+    'aper.target.ci' : 1,
+
+    # aperture reference target colour
+    'aper.reference.ci' : 3,
+
+    # aperture sky colour
+    'aper.sky.ci' : 2,
+
+    # aperture label colour
+    'aper.label.ci' : 6,
+
+    # aperture link colour
+    'aper.link.ci' : 5,
+
+    # aperture mask colour
+    'aper.mask.ci' : 5,
 }
 
 class Device(PGdevice):
-    """Sub-class of PGdevice that after opening the plot device, re-defines colour indices
-    according to a standardised set in core.CIS
+    """Sub-class of PGdevice that after opening the plot device, re-defines colour
+    indices according to a standardised set in core.CIS
 
     """
 
@@ -166,3 +185,86 @@ def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
     pgrect(0.5,ccd.nxtot+0.5,0.5,ccd.nytot+0.5)
 
     return (vmin,vmax)
+
+def pAper(aper, label='', ccdAper=None):
+    """
+    Plots an :class:`Aperture` object to the current PGPLOT device
+
+    Arguments::
+
+      aper    : (Aperture)
+           the :class:`Aperture` to plot
+
+      label   : (string)
+           a string label to add
+
+      ccdAper : (CcdAper)
+           needed if plotting multiple apertures with links
+
+    """
+
+    # draw circles to represent the aperture. 'objs' is a list of the
+    # objects that we keep to return for possible later deletion.
+    pgsfs(2)
+    if aper.ref:
+        pgsci(Params['aper.reference.ci'])
+    else:
+        pgsci(Params['aper.target.ci'])
+    pgcirc(aper.x,aper.y,aper.rtarg)
+
+    pgsci(Params['aper.sky.ci'])
+    pgcirc(aper.x,aper.y,aper.rsky1)
+    pgcirc(aper.x,aper.y,aper.rsky2)
+
+    if aper.link != '':
+        # indicate a link with an arrow
+        if ccdAper is None:
+            raise ValueError(
+                'to plot a linked aperture, need to pass through an CcdAper')
+        else:
+            laper = ccdAper[aper.link]
+
+            # draw arrow starting at target aperture of one
+            # aperture to the other.
+            p1 = utils.Vec2D(aper.x, aper.y)
+            p2 = utils.Vec2D(laper.x, laper.y)
+            v  = p2-p1
+            uv = v.unit()
+            r1 = aper.rtarg*uv
+            r2 = laper.rtarg*uv
+            v -= r1+r2
+            p1 += r1
+            pgsci(Params['aper.link.ci'])
+            pgarro(p1.x, p1.y, p1.x+v.x, p1.y+v.y)
+
+    # draw dashed lines connecting the aperture to the centres of mask
+    # indicated with circles.
+    for xoff,yoff,r in aper.mask:
+        # draw the line
+        pgsci(Params['aper.mask.ci'])
+        pgsls(2)
+        pgline([aper.x,aper.x+xoff],[aper.y+yoff])
+
+        # and now the circle
+        pgcirc(aper.x+xoff,aper.y+yoff,r)
+
+    if label != '':
+        pgsci(Params['aper.label.ci'])
+        pgptxt(
+            aper.x-aper.rsky2, aper.y-aper.rsky2,
+            0., 1., label
+        )
+
+def pCcdAper(ccdaper):
+    """
+    Plots a :class:`CcdAper` object
+
+    Arguments::
+
+      ccdaper : (CcdAper)
+           the :class:`CcdAper` to plot
+
+    """
+    for key, aper in ccdaper.items():
+        pAper(aper, key, ccdaper)
+
