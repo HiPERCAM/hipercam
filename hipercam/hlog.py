@@ -156,7 +156,8 @@ class Tseries:
         self.ye = ye
         self.mask = mask
 
-    def mplot(self, axes, colour='b', fmt='.', mask=ANY, capsize=0):
+    def mplot(self, axes, colour='b', fmt='.', mask=ANY, capsize=0,
+              **kwargs):
         """
         Plots a Tseries to a matplotlib Axes instance, only
         plotting points without any of the same bits set as
@@ -164,12 +165,13 @@ class Tseries:
         without error bars.
         """
         ok = np.bitwise_and(self.mask, mask) == 0
-        err = ok & (self.ye > 0.)
-        nerr = ok & (self.ye <= 0.)
 
+        err = ok & (self.ye > 0.)
         axes.errorbar(self.t[err],self.y[err],self.ye[err],
-                      fmt=fmt, color=colour, capsize=capsize)
-        axes.plot(self.t[nerr], self.y[nerr], fmt, color=colour)
+                      fmt=fmt, color=colour, capsize=capsize, kwargs)
+
+        nerr = ok & (self.ye <= 0.)
+        axes.plot(self.t[nerr], self.y[nerr], fmt, color=colour, kwargs)
 
     def __repr__(self):
         return 'Tseries(t={!r}, y={!r}, ye={!r}, mask={!r}'.format(
