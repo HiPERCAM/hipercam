@@ -1112,8 +1112,8 @@ class Rfile(OrderedDict):
 
             if lst[1] != 'normal' and lst[1] != 'optimal':
                 raise ValueError(
-                    "second entry of extraction lines'
-                    ' must either be 'normal' or 'optimal'"
+                    "second entry of extraction lines"
+                    " must either be 'normal' or 'optimal'"
                 )
 
             # type conversions
