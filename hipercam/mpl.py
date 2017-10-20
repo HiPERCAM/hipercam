@@ -60,6 +60,9 @@ Params = {
 
     # aperture mask colour
     'aper.mask.col' : CIS[5],
+
+    # aperture extra colour
+    'aper.extra.col' : CIS[14],
 }
 
 def pWin(axes, win, label=''):
@@ -229,7 +232,9 @@ def pAper(axes, aper, label='', ccdAper=None):
     if aper.link != '':
         # indicate a link with an arrow
         if ccdAper is None:
-            raise ValueError('to plot a linked aperture, need to pass through an CcdAper')
+            raise ValueError(
+                'to plot a linked aperture, need to pass through an CcdAper'
+            )
         else:
             laper = ccdAper[aper.link]
 
@@ -244,23 +249,44 @@ def pAper(axes, aper, label='', ccdAper=None):
             v -= (aper.rtarg+laper.rtarg)*uv
             p1 += r1
             objs.append(
-                axes.arrow(p1.x, p1.y, v.x, v.y,
-                           width=0.5, length_includes_head=True, overhang=0.8, lw=2, color=Params['aper.link.col'])
+                axes.arrow(
+                    p1.x, p1.y, v.x, v.y, width=0.5, length_includes_head=True,
+                    overhang=0.8, lw=2, color=Params['aper.link.col']
+                )
             )
 
-    # draw dashed lines connecting the aperture to the centres of mask indicated with circles. NB
-    # plot returns a list of the lines added, only one in this case, so we extract it rather than
-    # storing a list
+    # draw dashed lines connecting the aperture to the centres of mask
+    # indicated with circles. NB plot returns a list of the lines added, only
+    # one in this case, so we extract it rather than storing a list
     for xoff,yoff,r in aper.mask:
         # draw the line
         objs.append(
-            axes.plot([aper.x, aper.x+xoff], [aper.y, aper.y+yoff], '--', color=Params['aper.mask.col'])[0]
+            axes.plot([aper.x, aper.x+xoff], [aper.y, aper.y+yoff], '--',
+                      color=Params['aper.mask.col'])[0]
             )
 
         # and now the circle
         objs.append(
             axes.add_patch(Circle((aper.x+xoff,aper.y+yoff),r,fill=False,ls='dashed',
-                                  color=Params['aper.sky.col']))
+                                  color=Params['aper.mask.col']))
+            )
+
+    # draw dashed lines connecting the aperture to the centres of mask
+    # indicated with circles. NB plot returns a list of the lines added, only
+    # one in this case, so we extract it rather than storing a list
+    for xoff,yoff in aper.extra:
+        # draw the line
+        objs.append(
+            axes.plot(
+                [aper.x, aper.x+xoff], [aper.y, aper.y+yoff], '--',
+                color=Params['aper.extra.col'])[0]
+            )
+
+        # and now the circle
+        objs.append(
+            axes.add_patch(
+                Circle((aper.x+xoff,aper.y+yoff),aper.rtarg,fill=False,ls='dashed',
+                       color=Params['aper.extra.col']))
             )
 
     if label != '':

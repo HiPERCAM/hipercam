@@ -40,8 +40,7 @@ class Aperture(object):
     """
 
     def __init__(self, x, y, rtarg, rsky1, rsky2, ref, mask=[], extra=[], link=''):
-        """
-        Constructor. Arguments::
+        """Constructor. Arguments::
 
         x     : (float)
             X position of centre of aperture, or the X offset to apply
@@ -70,21 +69,22 @@ class Aperture(object):
             unbinned pixels. These are used to mask nearby areas when
             determining the sky value (e.g. to exclude stars)
 
-        extra : (list of 3 element tuples)
-            Similar to `mask`, each tuple in the list consists of an x,y
-            offset and a radius in unbinned pixels. These however are used
-            when summing the total flux and allow one to add in extra regions,
-            typically blended stars that cannot be allowed to straddle the
-            edge of the inner target aperture.
+        extra : (list of 2 element tuples)
+            Similar to `mask`, but each tuple in the list consists only of an
+            x,y offset. These however are used as centres of additional target
+            apertures to allow blended stars to be include in the total flux.
+            They are given the same radius as the target aperture.
 
         link  : (string)
-            If != '', this is a string label for another :class:Aperture that *this* 
-            :class:Aperture is linked from. The idea is that this label can be used
-            to lookup the :class:Aperture.
+            If != '', this is a string label for another :class:Aperture that
+            *this* :class:Aperture is linked from. The idea is that this label
+            can be used to lookup the :class:Aperture.
 
-        Notes: normal practice would be to set link, mask, extra later, having created
-        the Aperture. Attributes of the same name as all the arguments are defined.
-        We copy the mask and extra apertures to avoid propagating references.
+        Notes: normal practice would be to set link, mask, extra later, having
+        created the Aperture. Attributes of the same name as all the arguments
+        are defined.  We copy the mask and extra apertures to avoid
+        propagating references.
+
         """
 
         self.x = x
@@ -115,9 +115,9 @@ class Aperture(object):
         """Adds a mask to the :class:Aperture"""
         self.mask.append((xoff,yoff,radius))
 
-    def add_extra(self, xoff, yoff, radius):
+    def add_extra(self, xoff, yoff):
         """Adds a mask to the :class:Aperture"""
-        self.extra.append((xoff,yoff,radius))
+        self.extra.append((xoff,yoff))
 
     def set_link(self, aplabel):
         """Links this :class:Aperture to a lookup label for another"""
@@ -132,20 +132,30 @@ class Aperture(object):
         return self.link != ''
 
     def check(self):
-        """Run a few checks on an :class:Aperture. Raises a ValueError if there are problems."""
+        """Run a few checks on an :class:Aperture. Raises a ValueError if there are
+        problems.
+
+        """
 
         if self.rtarg <= 0:
             raise ValueError(
-                'Aperture = {!r}\nTarget aperture radius = {:.2f} <= 0'.format(self, self.rtarg))
+                'Aperture = {!r}\nTarget aperture radius = '
+                '{:.2f} <= 0'.format(self, self.rtarg)
+            )
 
         elif self.rsky1 > self.rsky2:
             raise ValueError(
-                'Aperture = {!r}\nInner sky aperture radius (={:.2f}) > outer radius (={:.2f})'.format(
-                    self, self.rsky1,self.rsky2))
+                'Aperture = {!r}\nInner sky aperture radius '
+                '(={:.2f}) > outer radius (={:.2f})'.format(
+                    self, self.rsky1,self.rsky2)
+            )
 
-        elif not isinstance(self.link,str) or not isinstance(self.mask,list) or not isinstance(self.ref,bool):
+        elif not isinstance(self.link,str) or not isinstance(self.mask,list) \
+             or not isinstance(self.ref,bool):
             raise ValueError(
-                'Aperture = {!r}\nOne or more of link, mask, extra has the wrong type'.format(self))
+                'Aperture = {!r}\nOne or more of link, mask, extra '
+                'has the wrong type'.format(self)
+            )
 
     def toFile(self, fname):
         """Dumps Aperture in JSON format to a file called fname"""

@@ -63,6 +63,9 @@ Params = {
 
     # aperture mask colour
     'aper.mask.ci' : 5,
+
+    # aperture extra colour
+    'aper.extra.ci' : 14,
 }
 
 class Device(PGdevice):
@@ -247,6 +250,17 @@ def pAper(aper, label='', ccdAper=None):
 
         # and now the circle
         pgcirc(aper.x+xoff,aper.y+yoff,r)
+
+    # draw dashed lines connecting the aperture to the centres of extra
+    # indicated with circles.
+    for xoff,yoff in aper.extra:
+        # draw the line
+        pgsci(Params['aper.extra.ci'])
+        pgsls(2)
+        pgline([aper.x,aper.x+xoff],[aper.y+yoff])
+
+        # and now the circle
+        pgcirc(aper.x+xoff,aper.y+yoff,aper.rtarg)
 
     if label != '':
         pgsci(Params['aper.label.ci'])
