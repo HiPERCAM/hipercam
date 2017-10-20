@@ -324,7 +324,7 @@ def reduce(args=None):
               hcam.pgp.Params['axis.number.ch']))
     pgvstd()
     xv1, xv2, yv1, yv2 = pgqvp()
-    x1, x2 = 0, rfile['lcplot']['extend_xrange']
+    x1, x2 = 0, rfile['lcplot']['extend_x']
 
     # scale = vertical height of LC panel in device coordinates
     scale = (yv2-yv1) / total
@@ -807,10 +807,10 @@ def reduce(args=None):
 
                 # check the time
                 if tmax is not None and tmax > lpanel.x2:
-                    # extend range by multiple of extend_xrange
+                    # extend range by multiple of extend_x
                     x2 = lpanel.x2
                     while tmax > x2:
-                        x2 += rfile['lcplot']['extend_xrange']
+                        x2 += rfile['lcplot']['extend_x']
 
                     # need to re-plot
                     replot = True
@@ -896,23 +896,25 @@ def reduce(args=None):
                         tpanel.plot()
 
                         for trans in tbuffer:
-                            # convert the buffered data into float32 ndarrays
-                            t = np.array(trans.t, dtype=np.float32)
-                            f = np.array(trans.f, dtype=np.float32)
-                            fe = np.array(trans.fe, dtype=np.float32)
-                            scale = np.float32(100./trans.fmax)
-                            f *= scale
-                            fe *= scale
+                            if trans.fmax:
+                                # convert the buffered data into float32
+                                # ndarrays
+                                t = np.array(trans.t, dtype=np.float32)
+                                f = np.array(trans.f, dtype=np.float32)
+                                fe = np.array(trans.fe, dtype=np.float32)
+                                scale = np.float32(100./trans.fmax)
+                                f *= scale
+                                fe *= scale
 
-                            # Plot the error bars
-                            if trans.ecol is not None:
-                                pgsci(trans.ecol)
-                                pgerry(t, f-fe, f+fe, 0)
+                                # Plot the error bars
+                                if trans.ecol is not None:
+                                    pgsci(trans.ecol)
+                                    pgerry(t, f-fe, f+fe, 0)
 
-                            # Plot the data
-                            pgsci(trans.dcol)
-                            pgsch(0.5)
-                            pgpt(t, f, 17)
+                                # Plot the data
+                                pgsci(trans.dcol)
+                                pgsch(0.5)
+                                pgpt(t, f, 17)
 
                     if rfile.seeing:
                         # re-draw the seeing panel
@@ -950,7 +952,7 @@ class Rfile(OrderedDict):
     """
 
     # Data
-    VERSION = '2017-10-20'
+    VERSION = '2017-10-21'
 
     @classmethod
     def fromFile(cls, filename):
@@ -1061,21 +1063,21 @@ class Rfile(OrderedDict):
         toBool(rfile,'calibration','crop')
 
         if calsec['bias'] != '':
-            rfile.bias == hcam.MCCD.rfits(
+            rfile.bias = hcam.MCCD.rfits(
                 hcam.add_extension(calsec['bias'],hcam.HCAM)
             )
         else:
             rfile.bias = None
 
         if calsec['dark'] != '':
-            rfile.dark == hcam.MCCD.rfits(
+            rfile.dark = hcam.MCCD.rfits(
                 hcam.add_extension(calsec['dark'],hcam.HCAM)
                 )
         else:
             rfile.dark = None
 
         if calsec['flat'] != '':
-            rfile.flat == hcam.MCCD.rfits(
+            rfile.flat = hcam.MCCD.rfits(
                 hcam.add_extension(calsec['flat'],hcam.HCAM)
                 )
         else:
@@ -1150,9 +1152,9 @@ class Rfile(OrderedDict):
         sect = rfile['lcplot']
 
         sect['xrange'] = float(sect['xrange'])
-        sect['extend_xrange'] = float(sect['extend_xrange'])
-        if sect['extend_xrange'] <= 0:
-            raise ValueError('lcplot.extend_xrange must be > 0')
+        sect['extend_x'] = float(sect['extend_x'])
+        if sect['extend_x'] <= 0:
+            raise ValueError('lcplot.extend_x must be > 0')
 
         #
         # light curve panel section
@@ -1181,12 +1183,12 @@ class Rfile(OrderedDict):
         sect['plot'] = plot
 
         toBool(rfile, 'light', 'linear')
-        toBool(rfile, 'light', 'yrange_fixed')
+        toBool(rfile, 'light', 'y_fixed')
         sect['y1'] = float(sect['y1'])
         sect['y2'] = float(sect['y2'])
-        sect['extend_yrange'] = float(sect['extend_yrange'])
-        if sect['extend_yrange'] <= 0:
-            raise ValueError('light.extend_yrange must be > 0')
+        sect['extend_y'] = float(sect['extend_y'])
+        if sect['extend_y'] <= 0:
+            raise ValueError('light.extend_y must be > 0')
 
         #
         # position panel section
@@ -1228,9 +1230,9 @@ class Rfile(OrderedDict):
             if sect['y_max'] <= sect['y_min']:
                 raise ValueError('position.y_min must be < position.y_max')
 
-            sect['extend_yrange'] = float(sect['extend_yrange'])
-            if sect['extend_yrange'] <= 0:
-                raise ValueError('seeing.extend_yrange must be > 0')
+            sect['extend_y'] = float(sect['extend_y'])
+            if sect['extend_y'] <= 0:
+                raise ValueError('position.extend_y must be > 0')
 
         #
         # transmission panel section
@@ -1288,6 +1290,8 @@ class Rfile(OrderedDict):
                     }
             sect['plot'] = plot
 
+            toBool(rfile, 'seeing', 'y_fixed')
+
             sect['height'] = float(sect['height'])
             if sect['height'] <= 0:
                 raise ValueError('seeing.height must be > 0')
@@ -1300,9 +1304,9 @@ class Rfile(OrderedDict):
             if sect['scale'] <= 0:
                 raise ValueError('seeing.scale must be > 0')
 
-            sect['extend_yrange'] = float(sect['extend_yrange'])
-            if sect['extend_yrange'] <= 0:
-                raise ValueError('seeing.extend_yrange must be > 0')
+            sect['extend_y'] = float(sect['extend_y'])
+            if sect['extend_y'] <= 0:
+                raise ValueError('seeing.extend_y must be > 0')
 
         # We are finally done reading and checking the reduce script.
         # rfile[section][param] should from now on return something
@@ -2072,18 +2076,26 @@ def plotLight(panel, t, results, rfile, lbuffer):
             fmax = f if fmax is None else max(fmax, f)
             tmax = t if tmax is None else max(tmax, t)
 
-    if not sect['yrange_fixed'] and fmin is not None and \
+    if not sect['y_fixed'] and fmin is not None and \
        (fmin < ymin or fmax > ymax):
         # we are going to have to replot because we have moved
         # outside the y-limits of the panel. We extend a little bit
-        # more than necessary according to extend_yrange in order to
+        # more than necessary according to extend_y in order to
         # reduce the amount of such re-plotting
         replot = True
-        extend = sect['extend_yrange']*(ymax-ymin)
-        if fmin < ymin:
+
+        if ymin == ymax:
+            # First time through just use data
+            extend = sect['extend_y']*(fmax-fmin)
             ymin = fmin - extend
-        if fmax > ymax:
             ymax = fmax + extend
+        else:
+            # subsequently use the plot range
+            extend = sect['extend_y']*(ymax-ymin)
+            if fmin < ymin:
+                ymin = fmin - extend
+            if fmax > ymax:
+                ymax = fmax + extend
 
         if sect['linear']:
             panel.y1, panel.y2 = ymin, ymax
@@ -2122,7 +2134,7 @@ def plotPosition(xpanel, ypanel, t, results, rfile, xbuffer, ybuffer):
     if xmin is not None and (xmin < xpanel.y1 or xmax > xpanel.y2) and \
        not sect['x_fixed']:
         replot = True
-        extend = sect['extend_yrange']*(xpanel.y2-xpanel.y1)
+        extend = sect['extend_y']*(xpanel.y2-xpanel.y1)
         if xmin < xpanel.y1:
             xpanel.y1 = xmin - extend
 
@@ -2144,7 +2156,7 @@ def plotPosition(xpanel, ypanel, t, results, rfile, xbuffer, ybuffer):
     if ymin is not None and (ymin < ypanel.y1 or ymax > ypanel.y2) and \
        not sect['y_fixed']:
         replot = True
-        extend = sect['extend_yrange']*(ypanel.y2-ypanel.y1)
+        extend = sect['extend_y']*(ypanel.y2-ypanel.y1)
         if ymin < ypanel.y1:
             ypanel.y1 = ymin - extend
 
@@ -2211,9 +2223,9 @@ def plotSeeing(panel, t, results, rfile, sbuffer):
             tmax = t if tmax is None else max(t, tmax)
             fmax = f if fmax is None else max(f, fmax)
 
-    if fmax is not None and fmax > panel.y2:
+    if fmax is not None and fmax > panel.y2 and not sect['y_fixed']:
         replot = True
-        panel.y2 = (1+sect['extend_yrange'])*fmax
+        panel.y2 = (1+sect['extend_y'])*fmax
 
     return (replot, tmax)
 

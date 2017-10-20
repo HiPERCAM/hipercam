@@ -29,7 +29,7 @@ search_half_width_ref  = 11   # for initial search around reference aperture, un
 search_half_width_non  = 5    # for initial search around non-reference aperture, unbinned pixels
 search_smooth_fwhm     = 4    # smoothing FWHM, binned pixels
 
-fit_method     = moffat     # gaussian or moffat
+fit_method     = gaussian   # gaussian or moffat
 fit_beta       = 4.         # Moffat exponent
 fit_fwhm       = 6.         # FWHM, unbinned pixels
 fit_fwhm_min   = 2.         # Minimum FWHM, unbinned pixels
@@ -84,8 +84,8 @@ gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 # the light curve plot (includes transmission & seeing as well)
 
 [lcplot]
-xrange  = 0         # maximum range in X to plot (minutes), <= 0 for everything
-extend_xrange = 10  # amount by which to extend xrange, minutes.
+xrange  = 0    # maximum range in X to plot (minutes), <= 0 for everything
+extend_x = 10  # amount by which to extend xrange, minutes.
 
 # light curve panel (must be present). Mostly obvious, then a series of lines,
 # each starting 'plot' which specify one light curve to be plotted giving CCD,
@@ -96,11 +96,11 @@ extend_xrange = 10  # amount by which to extend xrange, minutes.
 # unit height and all others are scaled relative to this.
 
 [light]
-linear  = yes       # linear vertical scale (else magnitudes): 'yes' or 'no'
-yrange_fixed = no   # keep a fixed vertical range or not: 'yes' or 'no'
-y1 = 0              # initial lower y value
-y2 = 0.2            # initial upper y value
-extend_yrange = 0.1 # fraction of plot height to extend beyond points when rescaling
+linear  = yes  # linear vertical scale (else magnitudes): 'yes' or 'no'
+y_fixed = no   # keep a fixed vertical range or not: 'yes' or 'no'
+y1 = 0         # initial lower y value
+y2 = 0         # initial upper y value. y1=y2 for auto scaling
+extend_y = 0.1 # fraction of plot height to extend when rescaling
 
 plot = 1 1 2 0 1 red red    # ccd, targ, comp, off, fac, dcol, ecol
 plot = 1 3 2 0 1 red red    # ccd, targ, comp, off, fac, dcol, ecol
@@ -119,7 +119,7 @@ x_max   = +5     # upper limit for X-position
 y_fixed = no     # keep Y-position vertical range fixed
 y_min   = -5     # lower limit for Y-position
 y_max   = +5     # upper limit for Y-position
-extend_yrange = 0.2  # Vertical extension fraction if limits exceeded
+extend_y = 0.2  # Vertical extension fraction if limits exceeded
 plot    = 1 1 green red
 
 # configures the transmission plot. Can be commented out if you don't want one
@@ -139,6 +139,7 @@ plot = 2 2 green red # CCD, target, data colour, error color
 [seeing]
 height = 0.5          # height relative to the light curve plot
 ymax = 1.999          # Initial maximum seeing
+y_fixed = yes         # fix the seeing scale (or not)
 scale = 0.3           # Arcsec per unbinned pixel
-extend_yrange = 0.2   # Y extension fraction if out of range
+extend_y = 0.2   # Y extension fraction if out of range and not fixed
 plot = 2 2 green red  # CCD, target, data colour, error colour
