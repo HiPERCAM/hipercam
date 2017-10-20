@@ -289,8 +289,9 @@ def reduce(args=None):
             pgsci(hcam.pgp.Params['axis.ci'])
             pgsch(hcam.pgp.Params['axis.number.ch'])
             pgenv(xlo, xhi, ylo, yhi, 1, 0)
+            pgsci(hcam.pgp.Params['axis.label.ci'])
+            pgsch(hcam.pgp.Params['axis.label.ch'])
             pglab('X','Y','CCD {:s}'.format(cnam))
-
 
     # open the light curve plot
     lcdev = hcam.pgp.Device(rfile['general']['ldevice'])
