@@ -1725,7 +1725,8 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         if mfwhm <= 0:
             # return early here as there is nothing much we can do.
             print(
-                '** CCD {:s}: no measured FWHM to re-size apertures; no extraction of any aperture'.format(cnam)
+                '** CCD {:s}: no measured FWHM to re-size'
+                ' apertures; no extraction of any aperture'.format(cnam)
             )
             flag = 1 << 0
             for apnam, aper in ccdaper.items():
@@ -1736,7 +1737,7 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
                     'y' : aper.y, 'ye' : info['ye'],
                     'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
                     'beta' : info['beta'], 'betae' : info['betae'],
-                    'counts' : 0., 'countse' : -1, 
+                    'counts' : 0., 'countse' : -1,
                     'sky' : 0., 'skye' : 0., 'nsky' : 0, 'nrej' : 0,
                     'flag' : flag
                     }
@@ -1753,8 +1754,11 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         # do nothing
         pass
     else:
-        raise ValueError("CCD {:s}: 'variable' and 'fixed' are the only aperture resizing options".format(
-            cnam))
+        raise ValueError(
+            "CCD {:s}: 'variable' and 'fixed' are the only"
+            " aperture resizing options".format(
+                cnam)
+        )
 
     # apertures are now positioned and re-sized. Finally extract something.
     for apnam, aper in ccdaper.items():
@@ -1766,9 +1770,17 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         wind = ccd[wnam]
 
         # extract sub-window that includes all of the pixels that could
-        # conceivably affect the aperture
-        x1,x2,y1,y2 = aper.x-aper.rsky2-wind.xbin, aper.x+aper.rsky2+wind.xbin, \
-                      aper.y-aper.rsky2-wind.ybin, aper.y+aper.rsky2+wind.ybin
+        # conceivably affect the aperture. We have to check that 'extra'
+        # apertures do not go beyond rsky2 which would normally be expected
+        # to be the default outer radius
+        rmax = aper.rsky2
+        for xoff, yoff in aper.extra:
+            rmax = max(rmax, np.sqrt(xoff**2+yoff**2) + aper.rtarg)
+
+        x1,x2,y1,y2 = aper.x-aper.rsky2-wind.xbin, \
+                      aper.x+aper.rsky2+wind.xbin, \
+                      aper.y-aper.rsky2-wind.ybin, \
+                      aper.y+aper.rsky2+wind.ybin
 
         swind = wind.window(x1,x2,y1,y2)
 
@@ -1782,6 +1794,14 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
            ylo > aper.y-aper.rtarg or yhi < aper.y+aper.rtarg:
             # the target aperture overlaps the edge of the window, set bit 4
             flag |= (1 << 4)
+
+        for xoff, yoff in aper.extra:
+            rout = np.sqrt(xoff**2+yoff**2) + aper.rtarg
+            if xlo > aper.x-rout or xhi < aper.x+rout or \
+               ylo > aper.y-rout or yhi < aper.y+rout:
+                # an extra target aperture overlaps the edge of the window:
+                # set bit 5
+                flag |= (1 << 5)
 
         if isinstance(read, hcam.CCD):
             sread = read[wnam].window(x1,x2,y1,y2).data
@@ -1809,7 +1829,7 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         dsky = swind.data[sok]
         if len(dsky):
 
-            # we have some sky
+            # we have some sky!
 
             if rfile['sky']['method'] == 'clipped':
 
@@ -1860,8 +1880,11 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
             nsky = 0
             nrej = 0
 
-        # target selection
+        # target selection, accounting for extra apertures
         dok = Rsq < R1sq
+        for xoff, yoff in aper.extra:
+            dok |= (X-xoff)**2 + (Y-yoff)**2 < R1sq
+
         dtarg = swind.data[dok]
 
         # override to indicate we want to override
