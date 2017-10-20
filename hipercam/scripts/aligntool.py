@@ -415,7 +415,7 @@ def main(args=None):
         )
         if bias is not None:
             # read the bias frame
-            bframe = hcam.MCCD.rfits(bias)
+            bias = hcam.MCCD.rfits(bias)
 
         msub = cl.get_value('msub', 'subtract median from each window?', True)
 
@@ -467,7 +467,7 @@ def main(args=None):
 
     with hcam.data_source(source, run, first) as spool:
         # 'spool' is an iterable source of MCCDs
-        for n, frame in enumerate(spool):
+        for n, mccd in enumerate(spool):
 
             if server_or_local:
                 # Handle the waiting game ...
@@ -487,11 +487,15 @@ def main(args=None):
                     mccd.head['NFRAME'], mccd.head['TIMSTAMP']), end=''
             )
 
-            ccd = frame[ccdnam]
+            if n == 0 and bias is not None:
+                # crop the bias on the first frame only
+                bias = bias.crop(mccd)
+
+            ccd = mccd[ccdnam]
             ref_ccd = ref_mccd[rccdnam]
 
             if bias is not None:
-                ccd -= bframe[ccdnam]
+                ccd -= bias[ccdnam]
 
             if msub:
                 for wind in ccd.values():
@@ -511,7 +515,7 @@ def main(args=None):
 
             # time for measurement of spots!
             try:
-                xpos, ypos, fwhm, flux = measureSpots(frame, ccdnam, thresh)
+                xpos, ypos, fwhm, flux = measureSpots(mccd, ccdnam, thresh)
                 lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(xpos, ypos, fwhm, flux)
                 if not small_spots:
                     # use big spots
