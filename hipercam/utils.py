@@ -60,3 +60,5 @@ class Vec2D:
         self.x /= const
         self.y /= const
 
+    def __repr__(self):
+        return 'Vec2D(x={:f}, y={:f})'.format(self.x, self.y)
