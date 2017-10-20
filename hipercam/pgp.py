@@ -47,7 +47,7 @@ Params = {
     'win.box.ci'   : 7,
 
     # aperture target colour
-    'aper.target.ci' : 1,
+    'aper.target.ci' : 15,
 
     # aperture reference target colour
     'aper.reference.ci' : 3,
@@ -209,6 +209,8 @@ def pAper(aper, label='', ccdAper=None):
     # draw circles to represent the aperture. 'objs' is a list of the
     # objects that we keep to return for possible later deletion.
     pgsfs(2)
+    pgsls(2)
+    pgsls(1)
     if aper.ref:
         pgsci(Params['aper.reference.ci'])
     else:
