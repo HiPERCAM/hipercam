@@ -689,9 +689,12 @@ class Rdata (Rhead):
             self._ws.send(data)
             raw_bytes = self._ws.recv()
             if len(raw_bytes) == 0:
-                raise hcam.HipercamError('failed to get total number of frames from server; 0 bytes returned')
-
-            raise NotImplementedError('needs to handle nframes return from server')
+                raise hcam.HipercamError(
+                    'failed to get total number of frames'
+                    ' from server; 0 bytes returned'
+                )
+            d = eval(raw_bytes)
+            ntot = d['nframes']
         else:
             # rather than read NAXIS3, this is designed to allow for the file
             # being incremented. First seek the end of file
