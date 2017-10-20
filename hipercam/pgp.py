@@ -246,7 +246,7 @@ def pAper(aper, label='', ccdAper=None):
         # draw the line
         pgsci(Params['aper.mask.ci'])
         pgsls(2)
-        pgline([aper.x,aper.x+xoff],[aper.y+yoff])
+        pgline([aper.x,aper.x+xoff],[aper.y,aper.y+yoff])
 
         # and now the circle
         pgcirc(aper.x+xoff,aper.y+yoff,r)
@@ -257,7 +257,7 @@ def pAper(aper, label='', ccdAper=None):
         # draw the line
         pgsci(Params['aper.extra.ci'])
         pgsls(2)
-        pgline([aper.x,aper.x+xoff],[aper.y+yoff])
+        pgline([aper.x,aper.x+xoff],[aper.y,aper.y+yoff])
 
         # and now the circle
         pgcirc(aper.x+xoff,aper.y+yoff,aper.rtarg)

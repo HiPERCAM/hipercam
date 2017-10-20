@@ -1747,9 +1747,9 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         else:
             # Re-size the apertures
             for aper in ccdaper.values():
-                aper.rtarg = min(r1min, max(r1max, r1fac*mfwhm))
-                aper.rsky1 = min(r2min, max(r2max, r2fac*mfwhm))
-                aper.rsky2 = min(r3min, max(r3max, r3fac*mfwhm))
+                aper.rtarg = max(r1min, min(r1max, r1fac*mfwhm))
+                aper.rsky1 = max(r2min, min(r2max, r2fac*mfwhm))
+                aper.rsky2 = max(r3min, min(r3max, r3fac*mfwhm))
 
     elif resize == 'fixed':
         # do nothing
