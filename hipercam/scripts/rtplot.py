@@ -302,8 +302,10 @@ def rtplot(args=None):
             ccds = list(ccdinf.keys())
 
         cl.set_default('pause', 0.)
-        pause = cl.get_value('pause', 'time delay to add between'
-                             ' frame plots [secs]', 0., 0.)
+        pause = cl.get_value(
+            'pause', 'time delay to add between'
+            ' frame plots [secs]', 0., 0.
+        )
 
         cl.set_default('plotall', False)
         plotall = cl.get_value('plotall', 'plot all frames,'
@@ -439,7 +441,8 @@ def rtplot(args=None):
     with hcam.data_source(source, run, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
-        for n, mccd in enumerate(spool):
+        n = 0
+        for mccd in spool:
 
             if server_or_local:
                 # Handle the waiting game ...
@@ -616,6 +619,13 @@ def rtplot(args=None):
                     except hcam.HipercamError:
                         print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
                         pgsci(2)
+
+            if pause > 0.:
+                # pause between frames
+                time.sleep(pause)
+
+            # update the frame number
+            n += 1
 
 # From here is support code not visible outside
 
