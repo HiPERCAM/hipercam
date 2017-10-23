@@ -122,13 +122,23 @@ class Hlog(dict):
         Returns with a Tseries corresponding to CCD cnam and
         aperture apnam. By default it accesses the 'counts',
         but 'x', 'y', 'fwhm', 'beta' and 'sky' are alternative
-        choices.
+        choices. 
+
+        Arguments:
+
+           cnam    : (string)
+              CCD label. 'str' will be used to make a string of non-string
+              entries.
+
+           apnam   : (string)
+              Aperture label. 'str' will be used to make a string of non-string
+              entries.
         """
-        ccd = self[cnam]
+        ccd = self[str(cnam)]
         return Tseries(
-            ccd['MJD'], ccd['{:s}_{:s}'.format(name,apnam)],
-            ccd['{:s}e_{:s}'.format(name,apnam)],
-            ccd['flag_{:s}'.format(apnam)]
+            ccd['MJD'], ccd['{:s}_{:s}'.format(name,str(apnam))],
+            ccd['{:s}e_{!s}'.format(name,apnam)],
+            ccd['flag_{!s}'.format(apnam)]
         )
 
 class Tseries:
@@ -157,7 +167,7 @@ class Tseries:
         self.mask = mask
 
     def mplot(self, axes, colour='b', fmt='.', mask=ANY, capsize=0,
-              **kwargs):
+              erry=True, **kwargs):
         """
         Plots a Tseries to a matplotlib Axes instance, only
         plotting points without any of the same bits set as
@@ -166,13 +176,17 @@ class Tseries:
         """
         ok = np.bitwise_and(self.mask, mask) == 0
 
-        err = ok & (self.ye > 0.)
-        axes.errorbar(
-            self.t[err],self.y[err],self.ye[err],
-            fmt=fmt, color=colour, capsize=capsize, **kwargs)
+        if erry:
+            err = ok & (self.ye > 0.)
+            axes.errorbar(
+                self.t[err],self.y[err],self.ye[err],
+                fmt=fmt, color=colour, capsize=capsize, **kwargs)
 
-        nerr = ok & (self.ye <= 0.)
-        axes.plot(self.t[nerr], self.y[nerr], fmt, color=colour, **kwargs)
+            nerr = ok & (self.ye <= 0.)
+            axes.plot(self.t[nerr], self.y[nerr], fmt, color=colour, **kwargs)
+
+        else:
+            axes.plot(self.t, self.y, fmt, color=colour, **kwargs)
 
     def __repr__(self):
         return 'Tseries(t={!r}, y={!r}, ye={!r}, mask={!r}'.format(
