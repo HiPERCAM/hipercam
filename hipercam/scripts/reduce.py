@@ -602,8 +602,10 @@ def reduce(args=None):
                 else:
                     nframe = nf + 1
 
-                print('Frame {:d}: {:s} '.format(
-                    nframe, mccd.head['TIMSTAMP'])
+                print(
+                    'Frame {:d}: {:s} '.format(
+                    nframe, mccd.head['TIMSTAMP']),
+                    end='' if implot else '\n'
                 )
 
 
@@ -736,7 +738,7 @@ def reduce(args=None):
                     imdev.select()
 
                     # display the CCDs chosen
-                    message = ''
+                    message = '; '
                     for nc, cnam in enumerate(ccds):
                         ccd = mccd[cnam]
 
