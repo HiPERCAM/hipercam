@@ -8,8 +8,8 @@ import numpy as np
 
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
-    'add_extension', 'HipercamError', 'HipercamWarning', 'CIS',
-    'DMINS', 'LOG', 'sub_extension', 'CNAMS',
+    'add_extension', 'HipercamError', 'HipercamWarning', 
+    'DMINS', 'LOG', 'sub_extension', 'CNAMS', 'CIS', 'rgb'
 )
 
 # Constants for general use
