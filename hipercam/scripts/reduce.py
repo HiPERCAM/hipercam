@@ -1891,12 +1891,41 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
             nsky = 0
             nrej = 0
 
-        # target selection, accounting for extra apertures
-        dok = Rsq < R1sq
-        for xoff, yoff in aper.extra:
-            dok |= (X-xoff)**2 + (Y-yoff)**2 < R1sq
+        # size of a pixel which is used to taper pixels as they approach
+        # the edge of the aperture to reduce pixellation noise
+        size = np.sqrt(wind.xbin*wind.ybin)
 
+        # target selection, accounting for extra apertures and allowing
+        # pixels to contribute if their centres are as far as size/2 beyond
+        # the edge of the circle (but with a tapered weight)
+        dok = Rsq < (aper.rtarg+size/2.)**2
+
+        # Pixellation amelioration
+        #
+        # The weight of a pixel is set to 1 at the most and then linearly
+        # declines as it approaches the edge of the aperture. The scale over
+        # which it declines is set by 'size', the geometric mean of the
+        # binning factors. A pixel with its centre exactly on the edge
+        # gets a weight of 0.5
+        wgt = np.minimum(
+            1, np.maximum(
+                0, (aper.rtarg+size/2.-np.sqrt(Rsq))/size
+                )
+            )
+        for xoff, yoff in aper.extra:
+            rsq = (X-xoff)**2 + (Y-yoff)**2
+            dok |= rsq < (aper.rtarg+size/2.)**2
+            wg = np.minimum(
+                1, np.maximum(
+                    0, (aper.rtarg+size/2.-np.sqrt(rsq))/size
+                    )
+                )
+
+            wgt = np.maximum(wgt, wg)
+
+        # extract just the data and weight values in the target region
         dtarg = swind.data[dok]
+        wtarg = wgt[dok]
 
         # override to indicate we want to override
         # the readout noise
@@ -1916,15 +1945,18 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
             gn = gain
 
         if extype == 'normal':
-            counts = (dtarg-slevel).sum()
+            diff = dtarg-slevel
+            counts = (wtarg*diff).sum()
+
             if override:
-                var = (rd**2 + np.maximum(0, dtarg-slevel)/gn).sum()
+                var = (wtarg**2*(rd**2 + np.maximum(0, diff/gn))).sum()
             else:
-                var = (rd**2 + np.maximum(0, dtarg)/gn).sum()
+                var = (wtarg**2*(rd**2 + np.maximum(0, dtarg)/gn)).sum()
 
             if serror > 0:
                 # add in factor due to uncertainty in sky estimate
-                var += (len(dtarg)*serror)**2
+                var += (wtarg.sum()*serror)**2
+
             ecounts = np.sqrt(var)
 
         elif extype == 'optimal':
