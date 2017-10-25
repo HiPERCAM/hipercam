@@ -1,5 +1,8 @@
 .. Installation guide, started 24/10/2017
 
+Getting the software
+********************
+
 Installation
 ============
 
@@ -28,7 +31,7 @@ Connecting to the server
 If using the pipeline in conjunction with the HiPERCAM instrument, you need to
 tell it where the server is which you do by setting an environment variable
 called HIPERCAM_DEFAULT_URL. Typically I do this in my .cshrc file (C-shell,
-use export with bash) with:
+use export with bash) with::
 
   setenv HIPERCAM_DEFAULT_URL 192.168.1.2:8007/
 
@@ -44,7 +47,7 @@ Matplotlib-based plots
 
 It seems hard to get set the fontsize of matplotlib plots consistently across
 devices. Therefore the following environment variable should allow the fonts
-to be scaled in size to your preference:
+to be scaled in size to your preference::
 
   setenv HIPERCAM_MPL_FSCALE 0.5
 

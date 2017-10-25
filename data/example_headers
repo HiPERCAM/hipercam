@@ -1,0 +1,434 @@
+# HDU 0 in run0068_005.hcm:
+SIMPLE  =                    T / conforms to FITS standard                      
+BITPIX  =                    8 / array data type                                
+NAXIS   =                    0 / number of array dimensions                     
+EXTEND  =                    T                                                  
+MODE    = 'OneWindow'          / HiPERCAM readout mode                          
+DATE    = '2017-10-19T20:29:07.4438' / Date the file was written                
+GPS     =                    T / GPS flag status                                
+EXPTIME =              0.66268 / Integration time                               
+XBIN    =                    1 / Bin factor in serial direction                 
+YBIN    =                    1 / Bin factor in parallel direction               
+SPEED   =                    0 / CCD Clock speed                                
+TIMSTAMP= '2017-10-19T19:46:32.804' / Raw frame timestamp, UTC                  
+MJDUTC  =    58045.82399078384 / MJD(UTC) equivalent                            
+GOODTIME=                    T / Is TIMSTAMP thought to be OK?                  
+NFRAME  =                    5 / Frame number                                   
+NUMCCD  =                    5 / Number of CCDs                                 
+HIPERCAM= 'MCCD    '           / Type of HiPERCAM data (CCD | MCCD)             
+COMMENT Data representing multiple CCDs written by hipercam.MCCD.write.         
+COMMENT Each window of each CCD is written in a series of HDUs following an     
+COMMENT HDU containing only the header. These follow an overall header for the  
+COMMENT MCCD containing top-level information. The headers of the data window   
+COMMENT HDUs have keywords LLX, LLY giving the pixel location in unbinned       
+COMMENT pixels and XBIN and YBIN for their binning factors. The total unbinned  
+COMMENT dimensions of each CCD are stored under keywords NXTOT and NYTOT for    
+COMMENT each CCD. Each HDU associated with a given CCD is labelled with a       
+COMMENT header keyword CCD.                                                     
+
+# HDU 1 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                    8 / array data type                                
+NAXIS   =                    0 / number of array dimensions                     
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+NCYCLE  =                    1 / readout cycle period (NSKIP+1)                 
+REFLECT =                    F / is image reflected                             
+RONOISE =                  0.0 / Read-out noise in e-                           
+GAIN    =                  1.0 / Gain in e-/ADU                                 
+DSTATUS =                    T / Data status when NCYCLE > 1                    
+MJDUTC  =    58045.82399078384 / MJD(UTC) at centre of exposure                 
+GOODTIME=                    T / Is MJDUTC reliable?                            
+CCD     = '1       '           / CCD label                                      
+NXTOT   =                 2148 / Total unbinned X dimension                     
+NYTOT   =                 1040 / Total unbinned Y dimension                     
+NUMWIN  =                    4 / Total number of windows                        
+EXTNAME = 'CCDH    '           / extension name                                 
+
+# HDU 2 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '1       '           / CCD label                                      
+WINDOW  = 'E1      '           / Window label                                   
+LLX     =                  470 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 3 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '1       '           / CCD label                                      
+WINDOW  = 'F1      '           / Window label                                   
+LLX     =                 1258 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 4 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '1       '           / CCD label                                      
+WINDOW  = 'G1      '           / Window label                                   
+LLX     =                 1075 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 5 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '1       '           / CCD label                                      
+WINDOW  = 'H1      '           / Window label                                   
+LLX     =                  522 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 6 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                    8 / array data type                                
+NAXIS   =                    0 / number of array dimensions                     
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+NCYCLE  =                    1 / readout cycle period (NSKIP+1)                 
+REFLECT =                    T / is image reflected                             
+DSTATUS =                    T / Data status when NCYCLE > 1                    
+MJDUTC  =    58045.82399078384 / MJD(UTC) at centre of exposure                 
+GOODTIME=                    T / Is MJDUTC reliable?                            
+CCD     = '2       '           / CCD label                                      
+NXTOT   =                 2148 / Total unbinned X dimension                     
+NYTOT   =                 1040 / Total unbinned Y dimension                     
+NUMWIN  =                    4 / Total number of windows                        
+EXTNAME = 'CCDH    '           / extension name                                 
+
+# HDU 7 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '2       '           / CCD label                                      
+WINDOW  = 'E1      '           / Window label                                   
+LLX     =                 1258 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 8 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '2       '           / CCD label                                      
+WINDOW  = 'F1      '           / Window label                                   
+LLX     =                  470 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 9 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '2       '           / CCD label                                      
+WINDOW  = 'G1      '           / Window label                                   
+LLX     =                  522 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 10 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '2       '           / CCD label                                      
+WINDOW  = 'H1      '           / Window label                                   
+LLX     =                 1075 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 11 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                    8 / array data type                                
+NAXIS   =                    0 / number of array dimensions                     
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+NCYCLE  =                    1 / readout cycle period (NSKIP+1)                 
+REFLECT =                    F / is image reflected                             
+DSTATUS =                    T / Data status when NCYCLE > 1                    
+MJDUTC  =    58045.82399078384 / MJD(UTC) at centre of exposure                 
+GOODTIME=                    T / Is MJDUTC reliable?                            
+CCD     = '3       '           / CCD label                                      
+NXTOT   =                 2148 / Total unbinned X dimension                     
+NYTOT   =                 1040 / Total unbinned Y dimension                     
+NUMWIN  =                    4 / Total number of windows                        
+EXTNAME = 'CCDH    '           / extension name                                 
+
+# HDU 12 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '3       '           / CCD label                                      
+WINDOW  = 'E1      '           / Window label                                   
+LLX     =                  470 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 13 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '3       '           / CCD label                                      
+WINDOW  = 'F1      '           / Window label                                   
+LLX     =                 1258 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 14 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '3       '           / CCD label                                      
+WINDOW  = 'G1      '           / Window label                                   
+LLX     =                 1075 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 15 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '3       '           / CCD label                                      
+WINDOW  = 'H1      '           / Window label                                   
+LLX     =                  522 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 16 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                    8 / array data type                                
+NAXIS   =                    0 / number of array dimensions                     
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+NCYCLE  =                    1 / readout cycle period (NSKIP+1)                 
+REFLECT =                    F / is image reflected                             
+DSTATUS =                    T / Data status when NCYCLE > 1                    
+MJDUTC  =    58045.82399078384 / MJD(UTC) at centre of exposure                 
+GOODTIME=                    T / Is MJDUTC reliable?                            
+CCD     = '4       '           / CCD label                                      
+NXTOT   =                 2148 / Total unbinned X dimension                     
+NYTOT   =                 1040 / Total unbinned Y dimension                     
+NUMWIN  =                    4 / Total number of windows                        
+EXTNAME = 'CCDH    '           / extension name                                 
+
+# HDU 17 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '4       '           / CCD label                                      
+WINDOW  = 'E1      '           / Window label                                   
+LLX     =                  470 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 18 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '4       '           / CCD label                                      
+WINDOW  = 'F1      '           / Window label                                   
+LLX     =                 1258 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 19 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '4       '           / CCD label                                      
+WINDOW  = 'G1      '           / Window label                                   
+LLX     =                 1075 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 20 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '4       '           / CCD label                                      
+WINDOW  = 'H1      '           / Window label                                   
+LLX     =                  522 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 21 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                    8 / array data type                                
+NAXIS   =                    0 / number of array dimensions                     
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+NCYCLE  =                    1 / readout cycle period (NSKIP+1)                 
+REFLECT =                    T / is image reflected                             
+DSTATUS =                    T / Data status when NCYCLE > 1                    
+MJDUTC  =    58045.82399078384 / MJD(UTC) at centre of exposure                 
+GOODTIME=                    T / Is MJDUTC reliable?                            
+CCD     = '5       '           / CCD label                                      
+NXTOT   =                 2148 / Total unbinned X dimension                     
+NYTOT   =                 1040 / Total unbinned Y dimension                     
+NUMWIN  =                    4 / Total number of windows                        
+EXTNAME = 'CCDH    '           / extension name                                 
+
+# HDU 22 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '5       '           / CCD label                                      
+WINDOW  = 'E1      '           / Window label                                   
+LLX     =                 1258 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 23 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '5       '           / CCD label                                      
+WINDOW  = 'F1      '           / Window label                                   
+LLX     =                  470 / X-coordinate of lower-left pixel               
+LLY     =                  180 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 24 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '5       '           / CCD label                                      
+WINDOW  = 'G1      '           / Window label                                   
+LLX     =                  522 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
+
+# HDU 25 in run0068_005.hcm:
+XTENSION= 'IMAGE   '           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                  200                                                  
+NAXIS2  =                  250                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = '5       '           / CCD label                                      
+WINDOW  = 'H1      '           / Window label                                   
+LLX     =                 1075 / X-coordinate of lower-left pixel               
+LLY     =                  596 / Y-coordinate of lower-left pixel               
+XBIN    =                    1 / Binning factor in X                            
+YBIN    =                    1 / Binning factor in Y                            
+EXTNAME = 'WIND    '           / extension name                                 
