@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Core classes and functions for the hipercam package
+Core data and a few classes for the hipercam package
 """
 
 from astropy.utils.exceptions import AstropyUserWarning
@@ -8,8 +8,8 @@ import numpy as np
 
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
-    'add_extension', 'HipercamError', 'HipercamWarning', 
-    'DMINS', 'LOG', 'sub_extension', 'CNAMS', 'CIS', 'rgb'
+    'HipercamError', 'HipercamWarning', 'DMINS',
+    'LOG', 'CNAMS', 'CIS',
 )
 
 # Constants for general use
@@ -65,37 +65,6 @@ CNAMS = {
     'darkred' : 13,
     'mud' : 14,
 }
-
-def add_extension(fname, ext):
-    """Add extension ext to a file name if it is not already there, and returns
-    the revised name
-
-    """
-    if len(ext) and not fname.endswith(ext):
-        return '{}{}'.format(fname, ext)
-    else:
-        return fname
-
-def sub_extension(fname, ext):
-    """Subtracts extension ext from a file name if it is present, and returns
-    the revised name
-
-    """
-    if fname.endswith(ext):
-        return fname[:-len(ext)]
-    else:
-        return fname
-
-def rgb(cname):
-    """Returns the RGB tuple associated with colour name 'cname', following
-    the colour definitions used by 'reduce'.
-
-    Returns a ValueError if cname is not recognised.
-    """
-    if cname not in CNAMS:
-        raise ValueError('colour = {:s} not recognised'.format(cname))
-    else:
-        return CIS[CNAMS[cnam]]
 
 class HipercamError (Exception):
     """

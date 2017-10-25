@@ -14,6 +14,7 @@ from . import ccd
 from . import ucam
 from . import hcam
 from . import core
+from . import utils
 
 __all__ = (
     'SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
@@ -191,10 +192,10 @@ class HcamListSpool(SpoolerBase):
             raise StopIteration
 
         if self.cnam is None:
-            return ccd.MCCD.read(core.add_extension(fname.strip(), core.HCAM))
+            return ccd.MCCD.read(utils.add_extension(fname.strip(), core.HCAM))
         else:
             return ccd.CCD.read(
-                core.add_extension(fname.strip(), core.HCAM), self.cnam
+                utils.add_extension(fname.strip(), core.HCAM), self.cnam
             )
 
 class HcamServSpool(SpoolerBase):
@@ -328,7 +329,8 @@ def get_ccd_pars(source, resource):
                     raise ValueError(
                         'failed to find any file names in {:s}'.format(resource)
                         )
-            return ccd.get_ccd_info(core.add_extension(fname.strip(), core.HCAM))
+            return ccd.get_ccd_info(
+                utils.add_extension(fname.strip(), core.HCAM))
 
         else:
             # HiPERCAM raw data file: fixed data

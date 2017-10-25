@@ -79,7 +79,8 @@ from collections import OrderedDict
 import readline
 readline.parse_and_bind("tab: complete")
 
-from .core import HipercamError, HipercamWarning, add_extension
+from .core import HipercamError, HipercamWarning
+from .utils import add_extension
 
 #def complete(text,state):
 #    results = ["example",None]
