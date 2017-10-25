@@ -126,7 +126,7 @@ data. Another useful one is :class:`HcamListSpool` which can be attached to a
 file list to return each file as an :class:`MCCD`. Others source data from
 servers for both HiPERCAM and ULTRA(CAM|SPEC). Several of the standard
 HiPERCAM scripts (rtplot, reduce, grab for example) use a special method
-'data_source' to return any one of these 5 types. For instance these lines
+:func:`data_source` to return any one of these 5 types. For instance these lines
 are extracted from 'rtplot'::
 
     with hcam.data_source(source, run, first) as spool:
@@ -146,8 +146,8 @@ Command line inputs
 The pipeline uses a style of command-line inputs derived from STARLINK
 routines that is distinct from the usual UNIX-style command-line options. The
 first key difference is that if you don't enter values on the command-line
-itself, you will be prompted for most of them, although a '\' during prompted
-input or '\\' on the command-line will curtail such prompting.  The second is
+itself, you will be prompted for most of them, although a '\\\\' during prompted
+input or '\\\\\\\\' on the command-line will curtail such prompting.  The second is
 that commands have a memory: your entries are written to disk files to act as
 defaults the next time round. This has great benefits in reducing the amount
 of typing. If you want to write scripts that follow the same convention then

@@ -6,7 +6,7 @@
 Welcome to the HiPERCAM pipeline manual
 ***************************************
 
-The HiPERCAM pipline serves two purposes. First, it provides a means of
+The HiPERCAM pipeline serves two purposes. First, it provides a means of
 displaying, analysing and reducing HiPERCAM data (and it can be adapted
 to work with multi-CCD imaging data in general. Second, it provides an
 "Application  Programmers Interface" (API) to allow you to access and
@@ -21,6 +21,11 @@ This manual covers both aspects.
    observers
    installation
    api
+
+.. automodule:: hipercam
+ 
+.. autoclass:: MCCD
+    :members:
 
 Indices and tables
 ==================
