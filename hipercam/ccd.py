@@ -633,15 +633,17 @@ class MCCD(Agroup):
 
     @classmethod
     def rhdul(cls, hdul):
-        """Builds an :class:`MCCD` from an :class:`HDUList`. This will usually be
-        passed the :class:`HDUList` from a file. The header from the first
-        (primary) HDU will be used to create the header for the
-        :class:`MCCD`. It is then assumed that the data for each :class:`CCD`
-        is contained in the succeeding HDUs, i.e. that there is no data in the
-        primary HDU. The data from all HDUs will be read into the
-        :class:`Windat`s that make up the CCD. Each HDU will be searched for a
-        header parameter WINDOW to label the :class:`Windat`s, but will
-        attempt to generate a sequential label if WINDOW is not found.
+        """Builds an :class:`MCCD` from an :class:`HDUList`.
+
+        This will usually be passed the :class:`HDUList` from a file. The
+        header from the first (primary) HDU will be used to create the header
+        for the :class:`MCCD`. It is then assumed that the data for each
+        :class:`CCD` is contained in the succeeding HDUs, i.e. that there is
+        no data in the primary HDU. The data from all HDUs will be read into
+        the :class:`Windat` objects that make up the CCD. Each HDU will be
+        searched for a header parameter WINDOW to label the :class:`Windat`,
+        but the code will attempt to generate a sequential label if WINDOW is
+        not found.
 
         Arguments::
 
@@ -649,6 +651,7 @@ class MCCD(Agroup):
                each ImageHDU will be read as sub-window of the :class:`CCD`
 
         Data are converted to float32 unless they are read in as float64.
+
         """
         # Get the main header from the first hdu, but otherwise ignore it
         head = hdul[0].header
@@ -759,4 +762,3 @@ def get_ccd_info(fname):
                 first = False
 
     return info
-
