@@ -2,10 +2,15 @@
 Classes and functions of general use
 """
 
+import os
+import sys
 import math
 from .core import *
 
-__all__ = ('Vec2D', 'add_extension', 'sub_extension', 'rgb')
+__all__ = (
+    'Vec2D', 'add_extension', 'sub_extension',
+    'script_args', 'rgb'
+)
 
 class Vec2D:
     """Simple 2D vector class."""

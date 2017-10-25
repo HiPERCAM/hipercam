@@ -19,8 +19,8 @@ from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
 from astropy.time import Time
 
-from hipercam import (CCD, Group, MCCD, Windat, Window)
-from hipercam import (HRAW, add_extension)
+from hipercam import (CCD, Group, MCCD, Windat, Window, HRAW)
+from hipercam.utils import add_extension
 from .herrors import *
 
 __all__ = ['Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT']

@@ -15,12 +15,12 @@ import sep
 from astropy.stats import gaussian_fwhm_to_sigma, sigma_clip
 from astropy.convolution import Gaussian2DKernel
 
-import hipercam as hcam
 from trm.pgplot import *
-import hipercam.cline as cline
+
+import hipercam as hcam
+from hipercam import cline, utils
 from hipercam.cline import Cline
 from hipercam.extraction import findStars
-
 
 def findBestRigidTransform(x, y, xref, yref):
     """
@@ -322,7 +322,7 @@ def main(args=None):
             use the small spots for alignment instead of the big spots
     """
 
-    command, args = hcam.script_args(args)
+    command, args = utils.script_args(args)
 
     with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
         # register parameters

@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 import hipercam as hcam
-import hipercam.cline as cline
+from hipercam import cline, utils
 from hipercam.cline import Cline
 
 __all__ = ['averun',]
@@ -72,7 +72,7 @@ def averun(args=None):
 
     """
 
-    command, args = hcam.script_args(args)
+    command, args = utils.script_args(args)
 
     # get the inputs
     with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:

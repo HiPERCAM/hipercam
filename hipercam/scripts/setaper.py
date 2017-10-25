@@ -28,8 +28,9 @@ if curs is not None:
         pass
 
 import matplotlib.pyplot as plt
+
 import hipercam as hcam
-import hipercam.cline as cline
+from hipercam import cline, utils
 from hipercam.cline import Cline
 
 __all__ = ['setaper',]
@@ -195,7 +196,7 @@ def setaper(args=None):
 
     """
 
-    command, args = hcam.script_args(args)
+    command, args = utils.script_args(args)
 
     # get input section
     with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:

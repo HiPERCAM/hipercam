@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 import hipercam as hcam
-import hipercam.cline as cline
+from hipercam import cline, utils
 from hipercam.cline import Cline
 
 __all__ = ['cadd', 'csub', 'cdiv', 'cmul']
@@ -48,7 +48,7 @@ def carith(args=None):
 
     """
 
-    command, args = hcam.script_args(args)
+    command, args = utils.script_args(args)
 
     # get inputs
     with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
@@ -139,13 +139,12 @@ def carith(args=None):
                     tccd[wnam] /= constant
 
     # Add a history line
-    mccd.head.add_history(
+    mccd.head.adtilsd_history(
         '{:s} {:s} {:f} {:s} {:s} {:s}'.format(
-            command, hcam.sub_extension(infile, hcam.HCAM),
-            constant, ccd, win,
-            hcam.sub_extension(outfile, hcam.HCAM)
-        )
+            command, utils.sub_extension(infile, hcam.HCAM),
+            constant, ccd, win, hcam.sub_extension(outfile, hcam.HCAM) )
     )
+
 
     # save result
     mccd.write(outfile, True)

@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 import hipercam as hcam
-import hipercam.cline as cline
+from hipercam import cline, utils
 from hipercam.cline import Cline
 
 __all__ = ['combine',]
@@ -47,7 +47,7 @@ def combine(args=None):
     fail if it cannot find a valid frame for any CCD
     """
 
-    command, args = hcam.script_args(args)
+    command, args = utils.script_args(args)
 
     # get the inputs
     with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
@@ -107,7 +107,7 @@ def combine(args=None):
             )
 
     template = hcam.MCCD.read(
-        hcam.add_extension(template_name,hcam.HCAM)
+        utils.add_extension(template_name,hcam.HCAM)
     )
 
     if bias is not None:

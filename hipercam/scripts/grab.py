@@ -7,7 +7,7 @@ import time
 import numpy as np
 
 import hipercam as hcam
-import hipercam.cline as cline
+from hipercam import cline, utils
 from hipercam.cline import Cline
 
 __all__ =  ['grab',]
@@ -69,7 +69,7 @@ def grab(args=None):
                     be raised if the data are outside the range 0 to 65535.
     """
 
-    command, args = hcam.script_args(args)
+    command, args = utils.script_args(args)
 
     # get inputs
     with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
