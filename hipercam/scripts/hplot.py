@@ -100,11 +100,11 @@ def hplot(args=None):
 
     global fig, mccd, caxes, hsbox
 
-    if args is None:
-        args = sys.argv[1:]
+
+    command, args = hcam.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', 'hplot', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
         # register parameters
         cl.register('input', Cline.LOCAL, Cline.PROMPT)
@@ -226,7 +226,7 @@ def hplot(args=None):
                 axes = ax = fig.add_subplot(ny, nx, n+1)
                 axes.set_aspect('equal', adjustable='box')
             else:
-                axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
+                axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ay)
                 axes.set_aspect('equal', adjustable='datalim')
 
             # store the CCD associated with these axes for the cursor callback
