@@ -120,7 +120,7 @@ def averun(args=None):
         )
         if bias is not None:
             # read the bias frame
-            bias = hcam.MCCD.rfits(bias)
+            bias = hcam.MCCD.read(bias)
 
         clobber = cl.get_value(
             'clobber', 'clobber any pre-existing files on output',
@@ -209,5 +209,5 @@ def averun(args=None):
             wind.data = np.median(arr3d,axis=0)
 
     # write out
-    template.wfits(outfile, clobber)
+    template.write(outfile, clobber)
     print('\nFinal average written to {:s}'.format(outfile))

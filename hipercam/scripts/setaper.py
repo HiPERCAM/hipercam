@@ -236,14 +236,14 @@ def setaper(args=None):
         # get inputs
         mccd = cl.get_value('mccd', 'frame to plot',
                             cline.Fname('hcam', hcam.HCAM))
-        mccd = hcam.MCCD.rfits(mccd)
+        mccd = hcam.MCCD.read(mccd)
 
         aper = cl.get_value('aper', 'frame to plot',
                             cline.Fname('hcam', hcam.APER, exist=False))
 
         if os.path.exists(aper):
             # read in old apertures
-            mccdaper = hcam.MccdAper.fromFile(aper)
+            mccdaper = hcam.MccdAper.read(aper)
             print('Loaded existing file = {:s}'.format(aper))
         else:
             # create empty container
@@ -725,7 +725,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 plt.close()
 
                 # old files are over-written at this point
-                self.mccdaper.toFile(self.apernam)
+                self.mccdaper.write(self.apernam)
                 print('\nApertures saved to {:s}.\nBye'.format(self.apernam))
 
             elif key == 'r':

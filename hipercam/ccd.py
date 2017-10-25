@@ -320,7 +320,7 @@ class CCD(Agroup):
         # when we get here, we have data still to be returned
         yield (ccd_label, cls(winds, nxtot, nytot, main_head))
 
-    def wfits(self, fname, label=None, overwrite=False):
+    def write(self, fname, label=None, overwrite=False):
         """Writes out the CCD to a FITS file.
 
         Arguments::
@@ -344,7 +344,7 @@ class CCD(Agroup):
         phead['HIPERCAM'] = ('CCD', 'Type of HiPERCAM data (CCD | MCCD)')
 
         # Add comments if not already present.
-        comm1 = 'Data representing a single CCD frame written by hipercam.CCD.wfits.'
+        comm1 = 'Data representing a single CCD frame written by hipercam.CCD.write.'
         if 'COMMENT' not in phead or phead['COMMENT'].find(comm1) == -1:
             phead.add_comment(comm1)
             phead.add_comment('Multiple sub-windows are written as a series of HDUs. LLX and LLY give')
@@ -356,7 +356,7 @@ class CCD(Agroup):
         hdul.writeto(fname,overwrite=overwrite)
 
     @classmethod
-    def rfits(cls, fname, cnam=None):
+    def read(cls, fname, cnam=None):
         """Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
         containing no data, followed by a series of HDUs each containing data
         for a series of non-overlapping windows.
@@ -573,6 +573,10 @@ class MCCD(Agroup):
         return (self.__class__, (list(self.items()), self.head))
 
     def wfits(self, fname, overwrite=False):
+        warnings.warn('MCCD.wfits has been re-named MCCD.write and will be removed in the future; please update your code')
+        return read(cls, fname)
+
+    def write(self, fname, overwrite=False):
         """Writes out the MCCD to a FITS file.
 
         Arguments::
@@ -589,7 +593,7 @@ class MCCD(Agroup):
         phead['HIPERCAM'] = ('MCCD', 'Type of HiPERCAM data (CCD | MCCD)')
 
         # Add comments if not already present.
-        comm1 = 'Data representing multiple CCDs written by hipercam.MCCD.wfits.'
+        comm1 = 'Data representing multiple CCDs written by hipercam.MCCD.write.'
         if 'COMMENT' not in phead or str(phead['COMMENT']).find(comm1) == -1:
             phead.add_comment(comm1)
             phead.add_comment('Each window of each CCD is written in a series of HDUs following an') 
@@ -613,6 +617,11 @@ class MCCD(Agroup):
 
     @classmethod
     def rfits(cls, fname):
+        warnings.warn('MCCD.rfits has been re-named MCCD.read and will be removed in the future; please update your code')
+        return read(cls, fname)
+
+    @classmethod
+    def read(cls, fname):
         """Builds an :class:`MCCD` from a FITS file. Expects a primary HDU,
         containing no data, followed by a series of HDU blocks consisting
         of the header for each CCD followed by data HDUs.

@@ -208,7 +208,7 @@ def makedata(args=None):
 
         flat.head['DATATYPE'] = ('Flat field','Artificially generated')
         fname = hcam.add_extension(conf['flat']['flat'],hcam.HCAM)
-        flat.wfits(fname, overwrite)
+        flat.write(fname, overwrite)
         print('Saved flat field to ',fname)
     else:
         # Set the flat to unity
@@ -226,7 +226,7 @@ def makedata(args=None):
 
         bias.head['DATATYPE'] = ('Bias frame','Artificially generated')
         fname = hcam.add_extension(conf['bias']['bias'],hcam.HCAM)
-        bias.wfits(fname, overwrite)
+        bias.write(fname, overwrite)
         print('Saved bias frame to ',fname)
     else:
         # Set the bias to zero
@@ -238,7 +238,7 @@ def makedata(args=None):
     if nfiles == 0:
         out = mccd*flat + bias
         fname = hcam.add_extension(conf['files']['root'],hcam.HCAM)
-        out.wfits(fname, overwrite)
+        out.write(fname, overwrite)
         print('Written data to',fname)
     else:
         # file naming info
@@ -319,7 +319,7 @@ def makedata(args=None):
             fname = '{0:s}{1:0{2:d}d}{3:s}'.format(
                 root,nfile+1,ndigit,hcam.HCAM
             )
-            _gframe.wfits(fname, overwrite)
+            _gframe.write(fname, overwrite)
             print('Written file {0:d} to {1:s}'.format(nfile+1,fname))
 
             # update times in template

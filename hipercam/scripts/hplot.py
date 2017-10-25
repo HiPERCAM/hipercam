@@ -128,7 +128,7 @@ def hplot(args=None):
         # get inputs
         frame = cl.get_value('input', 'frame to plot',
                              cline.Fname('hcam', hcam.HCAM))
-        mccd = hcam.MCCD.rfits(frame)
+        mccd = hcam.MCCD.read(frame)
 
         device = cl.get_value('device', 'plot device name', 'term')
 

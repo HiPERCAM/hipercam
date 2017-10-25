@@ -67,7 +67,7 @@ def carith(args=None):
 
         infile = cl.get_value('input', 'input file',
                               cline.Fname('hcam', hcam.HCAM))
-        mccd = hcam.MCCD.rfits(infile)
+        mccd = hcam.MCCD.read(infile)
 
         constant = cl.get_value('const', 'constant to ' + prompts[command], 0.)
 
@@ -150,7 +150,7 @@ def carith(args=None):
     )
 
     # save result
-    mccd.wfits(outfile, True)
+    mccd.write(outfile, True)
 
 def cadd(args=None):
     """cadd input const [ccd] [win] output

@@ -73,7 +73,7 @@ def combine(args=None):
         )
         if bias is not None:
             # read the bias frame
-            bias = hcam.MCCD.rfits(bias)
+            bias = hcam.MCCD.read(bias)
 
         adjust = cl.get_value(
             'adjust', 'i(gnore), n(ormalise) b(ias offsets)',
@@ -107,7 +107,7 @@ def combine(args=None):
                 'List = {:s} is empty'.format(flist)
             )
 
-    template = hcam.MCCD.rfits(
+    template = hcam.MCCD.read(
         hcam.add_extension(template_name,hcam.HCAM)
     )
 
@@ -178,5 +178,5 @@ def combine(args=None):
             wind.data = np.median(arr3d,axis=0)
 
     # write out
-    template.wfits(outfile, clobber)
+    template.write(outfile, clobber)
     print('\nFinal result written to {:s}'.format(outfile))

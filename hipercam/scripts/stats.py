@@ -46,7 +46,7 @@ def stats(args=None):
         # get inputs
         frame = cl.get_value('input', 'frame to lists stats of',
                              cline.Fname('hcam', hcam.HCAM))
-        mccd = hcam.MCCD.rfits(frame)
+        mccd = hcam.MCCD.read(frame)
 
         cl.set_default('format','9.3f')
         format = cl.get_value('format', 'output format for numbers', '9.3f')

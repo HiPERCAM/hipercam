@@ -161,7 +161,7 @@ class Aperture(object):
                 'has the wrong type'.format(self)
             )
 
-    def toFile(self, fname):
+    def write(self, fname):
         """Dumps Aperture in JSON format to a file called fname"""
         with open(fname,'w') as fp:
             json.dump(self, cls=_Encoder, indent=2)
@@ -171,7 +171,7 @@ class Aperture(object):
         return json.dumps(self, fp, cls=_Encoder, indent=2)
 
     @classmethod
-    def fromFile(cls, fname):
+    def read(cls, fname):
         """Read from JSON-format file fname"""
         with open(fname) as fp:
             aper = json.load(fp, cls=_Decoder)
@@ -209,7 +209,7 @@ class CcdAper(Group):
                 elif self[aper.link].is_linked():
                     raise ValueError('Aperture = {!r} is linked to an aperture which is itself linked'.format(self))
 
-    def toFile(self, fname):
+    def write(self, fname):
         """Dumps ccdAper in JSON format to a file called fname"""
 
         # dumps as list to retain order through default iterator encoding
@@ -251,7 +251,7 @@ class MccdAper(Group):
             self.__class__.__name__, super().__repr__()
             )
 
-    def toFile(self, fname):
+    def write(self, fname):
         """Dumps MccdAper in JSON format to a file called fname"""
 
         # dumps as list to retain order through default iterator encoding
@@ -275,7 +275,7 @@ class MccdAper(Group):
         return json.dumps(listify, cls=_Encoder, indent=2)
 
     @classmethod
-    def fromFile(cls, fname):
+    def read(cls, fname):
         """Read from JSON-format file fname. Since such files can fairly easily be
         corrupted by injudicious editing, some consistency checks are
         run. File loading does not happen often, so this should not be a

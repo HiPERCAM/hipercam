@@ -152,7 +152,7 @@ def grab(args=None):
                 if bframe is not None:
 
                     # read the bias frame
-                    bframe = hcam.MCCD.rfits(bias)
+                    bframe = hcam.MCCD.read(bias)
 
                     # reformat
                     bframe = bframe.chop(mccd)
@@ -168,7 +168,7 @@ def grab(args=None):
 
             # write to disk
             fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
-            mccd.wfits(fname,True)
+            mccd.write(fname,True)
 
             print('Written frame {:d} to {:s}'.format(nframe,fname))
             nframe += 1

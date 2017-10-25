@@ -30,13 +30,13 @@ thin disguise of a changed extension and you may be able to do your own stuff
 with standard tools for FITS files). Example code:
 
   >> import hipercam as hcam
-  >> mccd = hcam.MCCD.rfits('myfile.hcm')
+  >> mccd = hcam.MCCD.read('myfile.hcm')
   >> print(mccd)
   >> print(mccd['1'])
   >> print(mccd['1']['E1'])
   >> print(mccd['1']['E1'][123,45])
   >> mccd['1']['E1'][123,45] = 0
-  >> mccd.wfits('mynewfile.hcm')
+  >> mccd.write('mynewfile.hcm')
 
 which reads an hcm file in, then prints it, the CCD it contains labelled '1'
 (a :class:`CCD` object), then the window data from this CCD labelled 'E1' (a

@@ -357,7 +357,7 @@ def main(args=None):
         reference = cl.get_value('ref', 'reference frame to align to',
                                  cline.Fname('hcam', hcam.HCAM))
 
-        ref_mccd = hcam.MCCD.rfits(reference)
+        ref_mccd = hcam.MCCD.read(reference)
 
         thresh = cl.get_value('thresh', 'detection threshold (sigma)', 5.0)
         small_spots = cl.get_value('small_spots', 'use small spots for alignment', False)
@@ -415,7 +415,7 @@ def main(args=None):
         )
         if bias is not None:
             # read the bias frame
-            bias = hcam.MCCD.rfits(bias)
+            bias = hcam.MCCD.read(bias)
 
         msub = cl.get_value('msub', 'subtract median from each window?', True)
 

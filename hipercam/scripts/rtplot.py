@@ -318,7 +318,7 @@ def rtplot(args=None):
         )
         if bias is not None:
             # read the bias frame
-            bias = hcam.MCCD.rfits(bias)
+            bias = hcam.MCCD.read(bias)
 
         # define the display intensities
         msub = cl.get_value('msub', 'subtract median from each window?', True)

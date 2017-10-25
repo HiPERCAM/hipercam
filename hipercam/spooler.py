@@ -18,7 +18,7 @@ from . import core
 __all__ = (
     'SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
     'UcamDiskSpool', 'HcamListSpool', 'get_ccd_pars',
-    'hang_about', 'HcamServSpool'
+    'hang_about', 'HcamServSpool', 'HcamDiskSpool',
 )
 
 def rhcam(fname):
@@ -191,9 +191,9 @@ class HcamListSpool(SpoolerBase):
             raise StopIteration
 
         if self.cnam is None:
-            return ccd.MCCD.rfits(core.add_extension(fname.strip(), core.HCAM))
+            return ccd.MCCD.read(core.add_extension(fname.strip(), core.HCAM))
         else:
-            return ccd.CCD.rfits(
+            return ccd.CCD.read(
                 core.add_extension(fname.strip(), core.HCAM), self.cnam
             )
 

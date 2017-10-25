@@ -66,11 +66,11 @@ def arith(args=None):
 
         infile1 = cl.get_value('input1', 'first input file',
                                cline.Fname('hcam', hcam.HCAM))
-        mccd1 = hcam.MCCD.rfits(infile1)
+        mccd1 = hcam.MCCD.read(infile1)
 
         infile2 = cl.get_value('input2', 'second input file',
                                cline.Fname('hcam', hcam.HCAM))
-        mccd2 = hcam.MCCD.rfits(infile2)
+        mccd2 = hcam.MCCD.read(infile2)
 
         if len(mccd1) > 1:
             cl.set_default('ccd', 'all')
@@ -154,7 +154,7 @@ def arith(args=None):
     )
 
     # save result
-    mccd1.wfits(outfile, True)
+    mccd1.write(outfile, True)
 
 def add(args=None):
     """add input1 input2 [ccd] [win] output

@@ -161,7 +161,7 @@ def reduce(args=None):
         # the reduce file
         rfilen = cl.get_value(
             'rfile', 'reduce file', cline.Fname('reduce.red',hcam.RED))
-        rfile = Rfile.fromFile(rfilen)
+        rfile = Rfile.read(rfilen)
 
         if server_or_local:
             run = cl.get_value('run', 'run name', 'run005')
@@ -957,7 +957,7 @@ class Rfile(OrderedDict):
     VERSION = '2017-10-21'
 
     @classmethod
-    def fromFile(cls, filename):
+    def read(cls, filename):
         """
         Builds an Rfile from a reduce file
         """
@@ -1033,7 +1033,7 @@ class Rfile(OrderedDict):
         #
         apsec = rfile['apertures']
 
-        rfile.aper = hcam.MccdAper.fromFile(
+        rfile.aper = hcam.MccdAper.read(
             hcam.add_extension(apsec['aperfile'],hcam.APER)
         )
         if apsec['fit_method'] == 'moffat':
@@ -1065,21 +1065,21 @@ class Rfile(OrderedDict):
         toBool(rfile,'calibration','crop')
 
         if calsec['bias'] != '':
-            rfile.bias = hcam.MCCD.rfits(
+            rfile.bias = hcam.MCCD.read(
                 hcam.add_extension(calsec['bias'],hcam.HCAM)
             )
         else:
             rfile.bias = None
 
         if calsec['dark'] != '':
-            rfile.dark = hcam.MCCD.rfits(
+            rfile.dark = hcam.MCCD.read(
                 hcam.add_extension(calsec['dark'],hcam.HCAM)
                 )
         else:
             rfile.dark = None
 
         if calsec['flat'] != '':
-            rfile.flat = hcam.MCCD.rfits(
+            rfile.flat = hcam.MCCD.read(
                 hcam.add_extension(calsec['flat'],hcam.HCAM)
                 )
         else:
@@ -1088,14 +1088,14 @@ class Rfile(OrderedDict):
         try:
             rfile.readout = float(calsec['readout'])
         except TypeError:
-            rfile.readout = hcam.MCCD.rfits(
+            rfile.readout = hcam.MCCD.read(
                 hcam.add_extension(calsec['readout'],hcam.HCAM)
                 )
 
         try:
             rfile.gain = float(calsec['gain'])
         except TypeError:
-            rfile.gain = hcam.MCCD.rfits(
+            rfile.gain = hcam.MCCD.read(
                 hcam.add_extension(calsec['gain'],hcam.HCAM)
                 )
 
