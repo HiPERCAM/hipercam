@@ -700,7 +700,7 @@ def reduce(args=None):
 
                     # get time and flag
                     mjd = mccd[cnam].head['MJDUTC']
-                    mjdok = mccd[cnam].head['GOODTIM']
+                    mjdok = mccd[cnam].head['GOODTIME']
                     if 'EXPTIME' in mccd[cnam].head:
                         exptim = mccd[cnam].head['EXPTIME']
                     else:

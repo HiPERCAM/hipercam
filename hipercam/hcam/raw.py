@@ -584,9 +584,9 @@ class Rdata (Rhead):
         thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
         thead['MJDUTC'] = (tstamp.mjd, 'MJD(UTC) equivalent')
         if (nsats == -1 and synced == -1) or synced == 0:
-            thead['GOODTIM'] = (False, 'Is TIMSTAMP thought to be OK?')
+            thead['GOODTIME'] = (False, 'Is TIMSTAMP thought to be OK?')
         else:
-            thead['GOODTIM'] = (True, 'Is TIMSTAMP thought to be OK?')
+            thead['GOODTIME'] = (True, 'Is TIMSTAMP thought to be OK?')
         thead['NFRAME'] = (frameCount, 'Frame number')
 
         # second, the data bytes
@@ -612,7 +612,7 @@ class Rdata (Rhead):
             # exact timing, so for now just copy over the top level value.
             ch['MJDUTC'] = (
                 thead['MJDUTC'], 'MJD(UTC) at centre of exposure')
-            ch['GOODTIM'] = (thead['GOODTIM'], 'Is MJDUTC reliable?')
+            ch['GOODTIME'] = (thead['GOODTIME'], 'Is MJDUTC reliable?')
 
             # finally create the CCD
             ccds[cnam] = CCD(Group(Windat), HCM_NXTOT, HCM_NYTOT, ch)
