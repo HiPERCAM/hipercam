@@ -14,5 +14,4 @@ allow you to do so.
    :caption: Contents:
 
    quickapi
-   setup
    hcmformat
