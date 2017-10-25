@@ -47,11 +47,10 @@ def combine(args=None):
     fail if it cannot find a valid frame for any CCD
     """
 
-    if args is None:
-        args = sys.argv[1:]
+    command, args = hcam.script_args(args)
 
     # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', 'combine', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
         # register parameters
         cl.register('list', Cline.GLOBAL, Cline.PROMPT)

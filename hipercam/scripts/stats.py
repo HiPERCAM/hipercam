@@ -33,11 +33,10 @@ def stats(args=None):
 
     """
 
-    if args is None:
-        args = sys.argv[1:]
+    command, args = hcam.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', 'stats', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
         # register parameters
         cl.register('input', Cline.LOCAL, Cline.PROMPT)
@@ -49,13 +48,13 @@ def stats(args=None):
         mccd = hcam.MCCD.read(frame)
 
         cl.set_default('format','9.3f')
-        format = cl.get_value('format', 'output format for numbers', '9.3f')
+        form = cl.get_value('format', 'output format for numbers', '9.3f')
 
     for cnam, ccd in mccd.items():
         for wnam, wind in ccd.items():
             print(
                 'CCD {0:s}, window {1:s}: min = {3:{2:s}}, max = {4:{2:s}}, mean = {5:{2:s}}, median = {6:{2:s}}, std = {7:{2:s}}'.format(
-                    cnam, wnam, format, wind.min(), wind.max(), wind.mean(), wind.median(), wind.std()
+                    cnam, wnam, form, wind.min(), wind.max(), wind.mean(), wind.median(), wind.std()
                     )
                 )
 

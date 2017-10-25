@@ -65,11 +65,10 @@ def plog(args=None):
     errors since they are not fitted.
     """
 
-    if args is None:
-        args = sys.argv[1:]
+    command, args = hcam.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', 'plog', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
         # register parameters
         cl.register('log', Cline.LOCAL, Cline.PROMPT)

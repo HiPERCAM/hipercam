@@ -121,10 +121,9 @@ def reduce(args=None):
 
     """
 
-    if args is None:
-        args = sys.argv[1:]
+    command, args = hcam.script_args(args)
 
-    with Cline('HIPERCAM_ENV', '.hipercam', 'rtplot', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
         # register parameters
         cl.register('source', Cline.GLOBAL, Cline.HIDE)

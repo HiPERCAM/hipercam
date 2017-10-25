@@ -195,11 +195,10 @@ def setaper(args=None):
 
     """
 
-    if args is None:
-        args = sys.argv[1:]
+    command, args = hcam.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', 'setaper', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
         # register parameters
         cl.register('mccd', Cline.LOCAL, Cline.PROMPT)

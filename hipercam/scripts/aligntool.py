@@ -321,10 +321,10 @@ def main(args=None):
         small_spots : (bool) [hidden]
             use the small spots for alignment instead of the big spots
     """
-    if args is None:
-        args = sys.argv[1:]
 
-    with Cline('HIPERCAM_ENV', '.hipercam', 'aligntool', args) as cl:
+    command, args = hcam.script_args(args)
+
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
         # register parameters
         cl.register('ref', Cline.LOCAL, Cline.PROMPT)
         cl.register('thresh', Cline.LOCAL, Cline.PROMPT)

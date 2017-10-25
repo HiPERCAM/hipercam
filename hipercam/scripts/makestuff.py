@@ -59,11 +59,10 @@ def makedata(args=None):
     import configparser
     global _gframe, _gfield
 
-    if args is None:
-        args = sys.argv[1:]
+    command, args = hcam.script_args(args)
 
     # get inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', 'makedata', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
         # Register parameters
         cl.register('config', Cline.LOCAL, Cline.PROMPT)
@@ -390,11 +389,11 @@ def makefield(args=None):
           Moffat function exponent
 
     """
-    if args is None:
-        args = sys.argv[1:]
+
+   command, args = hcam.script_args(args)
 
     # create Cline object
-    with Cline('HIPERCAM_ENV', '.hipercam', 'makefield', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
         # register parameters
         cl.register('fname', Cline.LOCAL, Cline.PROMPT)

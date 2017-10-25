@@ -69,11 +69,10 @@ def grab(args=None):
                     be raised if the data are outside the range 0 to 65535.
     """
 
-    if args is None:
-        args = sys.argv[1:]
+    command, args = hcam.script_args(args)
 
     # get inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', 'grab', args) as cl:
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
 
         # register parameters
         cl.register('source', Cline.GLOBAL, Cline.HIDE)
