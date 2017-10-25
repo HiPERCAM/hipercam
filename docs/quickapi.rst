@@ -3,6 +3,10 @@
 API quick start
 ***************
 
+Your best start for developing scripts which use HiPERCAM data is probably to
+look at whichever one of the existing scripts seems closest to your task.
+But to give a bit more backgrounds, here are a few basics to start off.
+
 .. contents:: :local:
 
 HiPERCAM hcm files and MCCD objects
@@ -140,6 +144,6 @@ first key difference is that if you don't enter values on the command-line
 itself, you will be prompted for most of them, although a '\' during prompted
 input or '\\' on the command-line will curtail such prompting.  The second is
 that commands have a memory: your entries are written to disk files to act as
-defaults the next time round. This has great benefits in practice in reducing
-the amount of typing. If you want to write scripts that follow the same
-convention then you should look at ``hipercam.cline``.
+defaults the next time round. This has great benefits in reducing the amount
+of typing. If you want to write scripts that follow the same convention then
+you should look at ``hipercam.cline``.
