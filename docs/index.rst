@@ -18,8 +18,8 @@ This manual covers both aspects.
    :maxdepth: 2
    :caption: Contents:
 
+   observers
    installation
-   pipeline
    api
 
 Indices and tables

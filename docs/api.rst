@@ -1,7 +1,7 @@
 .. Installation guide, started 24/10/2017
 
 The Application Programmer's Interface (API)
-============================================
+********************************************
 
 A large part of the motivation behind the choice of Python for the HiPERCAM
 pipeline was to make it straightforward for observers to write their own
