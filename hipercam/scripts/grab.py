@@ -3,6 +3,7 @@
 import sys
 import os
 import time
+import tempfile
 
 import numpy as np
 
@@ -24,7 +25,7 @@ def grab(args=None):
 
     Arguments::
 
-        source  : (string) [hidden]
+        source  : string [hidden]
            Data source, four options::
 
                'hs' : HiPERCAM server
@@ -32,32 +33,38 @@ def grab(args=None):
                'us' : ULTRACAM server
                'ul' : local ULTRACAM .xml/.dat files
 
-           'hf' useful when looking at a set of frames generated
-           by 'grab' or converted from some foreign data format.
-
-      run    : (string)
+      run    : string
          run name to access
 
-      ndigit : (int)
-         Files created will be written as 'run005_0013.fits' etc. `ndigit` is
-         the number of digits used for the frame number (4 in this case)
+     temp    : bool [hidden, defaults to False]
 
-      first  : (int)
+        True to indicate that the frames should be written to temporary files
+        with automatically-generated names in the expectation of deleting them
+        later.  The aim of this is to allow grab to be used as a feeder for
+        other routines in larger scripts.  If temp == True, grab will return
+        with the list of file names.
+
+      ndigit : int [if not temp]
+         Files created will be written as 'run005_0013.fits' etc. `ndigit` is
+         the number of digits used for the frame number (4 in this case). Any pre-existing
+         files of the same name will be over-written.
+
+      first  : int
          First frame to access
 
-      last   : (int)
+      last   : int
          Last frame to access, 0 for the lot
 
-      twait  : (float) [hidden]
+      twait  : float [hidden]
          time to wait between attempts to find a new exposure, seconds.
 
-      tmax  : (float) [hidden]
+      tmax  : float [hidden]
          maximum time to wait between attempts to find a new exposure, seconds.
 
-      bias   : (string)
+      bias   : string
          Name of bias frame to subtract, 'none' to ignore.
 
-      dtype  : (string) [hidden, defaults to 'f32']
+      dtype  : string [hidden, defaults to 'f32']
          Data type on output. Options::
 
             'f32' : output as 32-bit floats (default)
@@ -67,6 +74,8 @@ def grab(args=None):
             'u16' : output as 16-bit unsigned integers. A warning will be
                     issued if loss of precision occurs; an exception will
                     be raised if the data are outside the range 0 to 65535.
+
+
     """
 
     command, args = utils.script_args(args)
@@ -77,6 +86,7 @@ def grab(args=None):
         # register parameters
         cl.register('source', Cline.GLOBAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('temp', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
@@ -92,8 +102,12 @@ def grab(args=None):
         # OK, more inputs
         run = cl.get_value('run', 'run name', 'run005')
 
-        ndigit = cl.get_value(
-            'ndigit', 'number of digits in frame identifier', 3, 0)
+        cl.set_default('temp', False)
+        temp = cl.get_value('temp', 'save to temporary automatically-generated file names?', True)
+
+        if not temp:
+            ndigit = cl.get_value(
+                'ndigit', 'number of digits in frame identifier', 3, 0)
 
         first = cl.get_value('first', 'first frame to grab', 1, 0)
         last = cl.get_value('last', 'last frame to grab', 0)
@@ -130,6 +144,8 @@ def grab(args=None):
     bframe = None
 
     # Finally, we can go
+    if temp:
+        fnames = []
     with hcam.data_source(source, run, first) as spool:
 
         for mccd in spool:
@@ -148,13 +164,13 @@ def grab(args=None):
             if bias is not None:
                 # read bias after first frame so we can
                 # chop the format
-                if bframe is not None:
+                if bframe is None:
 
                     # read the bias frame
                     bframe = hcam.MCCD.read(bias)
 
                     # reformat
-                    bframe = bframe.chop(mccd)
+                    bframe = bframe.crop(mccd)
 
                 mccd -= bframe
 
@@ -166,12 +182,25 @@ def grab(args=None):
                 mccd.float64()
 
             # write to disk
-            fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
-            mccd.write(fname,True)
+            if temp:
+                # generate name automatically
+                fd, fname = tempfile.mkstemp(suffix=hcam.HCAM)
+                mccd.write(fname,True)
+                os.close(fd)
+                fnames.append(fname)
+            else:
+                fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
+                mccd.write(fname,True)
 
             print('Written frame {:d} to {:s}'.format(nframe,fname))
+
+
+            # update the frame number
             nframe += 1
             if last and nframe > last:
-                print('grab stopped')
                 break
+
+    if temp:
+        # return the file names
+        return fnames
 
