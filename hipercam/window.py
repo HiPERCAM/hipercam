@@ -614,6 +614,10 @@ class Windat(Window):
         """
         return self.data.shape[0]
 
+    def flatten(self):
+        """Return data onf the :class:`Windat` as a 1D array"""
+        return self.data.flatten()
+
     @ny.setter
     def ny(self, ny):
         raise NotImplementedError(

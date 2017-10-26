@@ -130,6 +130,7 @@ setup(
             'csub=hipercam.scripts.carith:csub',
             'combine=hipercam.scripts.combine:combine',
             'grab=hipercam.scripts.grab:grab',
+            'hist=hipercam.scripts.hist:hist',
             'hls=hipercam.scripts.hls:hls',
             'hplot=hipercam.scripts.hplot:hplot',
             'makedata=hipercam.scripts.makestuff:makedata',

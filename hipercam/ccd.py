@@ -78,6 +78,13 @@ class CCD(Agroup):
         the second element of the tuple"""
         return (self.__class__, (list(self.items()), self.nxtot, self.nytot, self.head))
 
+    def flatten(self):
+        """Returns all data of a CCD as a single 1D array, analagous to numpy.flatten"""
+        arrs = []
+        for wind in self.values():
+            arrs.append(wind.flatten())
+        return np.concatenate(arrs)
+
     def min(self):
         """
         Returns the minimum value of the :class:`CCD`, i.e. the
