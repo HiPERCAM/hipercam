@@ -112,13 +112,18 @@ def script_args(args):
     This is a small helper method that is used at the start of most
     of the HiPERCAM entry point scripts such as 'reduce' and 'grab'.
 
-    Generally these are called with one argument 'args' set to None, in which
-    case this takes the arguments from the system (which start with the
-    command name), extract the root of the command name, and then return with
-    that and the rest of the arguments. If args is not None, then it is
-    expected that the first argument is the command name. 
+    If 'args' is None on entry, it is replaced by 'sys.argv'. It is then
+    assumed that the first argument is the command name or else None. The
+    command name argument is removed from args, and if not None, converted to just the
+    file part of the path. It is then returned along with the remaining list
+    of arguments in a two element tuple, i.e. (commands, args).
     """
     if args is None:
         args = sys.argv
-    command = os.path.split(args.pop(0))[1]
+
+    command = args.pop(0)
+    if command is not None:
+        # just keep filename part, not any path
+        command = os.path.split(command)[1]
+
     return (command, args)
