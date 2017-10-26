@@ -581,10 +581,11 @@ class MCCD(Agroup):
 
         Arguments::
 
-            fname : (string)
-                 Name of file to write to.
+            fname : string or file-like object
+                 Name of file to write to. Can also be a file, opened in writeable
+                 binary mode.
 
-            overwrite : (bool)
+            overwrite : bool
                  True to overwrite pre-existing files
         """
 
