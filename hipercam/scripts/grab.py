@@ -37,12 +37,12 @@ def grab(args=None):
          run name to access
 
      temp    : bool [hidden, defaults to False]
-
         True to indicate that the frames should be written to temporary files
         with automatically-generated names in the expectation of deleting them
-        later.  The aim of this is to allow grab to be used as a feeder for
-        other routines in larger scripts.  If temp == True, grab will return
-        with the list of file names.
+        later. This also writes out a file listing the names.  The aim of this
+        is to allow grab to be used as a feeder for other routines in larger
+        scripts.  If temp == True, grab will return with the name of the list of
+        hcm files. Look at 'makebias' for an example that uses this feature.
 
       ndigit : int [if not temp]
          Files created will be written as 'run005_0013.fits' etc. `ndigit` is
@@ -86,7 +86,7 @@ def grab(args=None):
         # register parameters
         cl.register('source', Cline.GLOBAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('temp', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('temp', Cline.GLOBAL, Cline.HIDE)
         cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
@@ -201,6 +201,13 @@ def grab(args=None):
                 break
 
     if temp:
-        # return the file names
-        return fnames
+        # write the file names to a list
+        fd, fname = tempfile.mkstemp(suffix=hcam.LIST)
+        with open(fname,'w') as fout:
+            for fname in fnames:
+                fout.write(fname + '\n')
+        os.close(fd)
+
+        # return the name of the file list
+        return fname
 
