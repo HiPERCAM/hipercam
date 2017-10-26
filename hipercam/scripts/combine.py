@@ -2,6 +2,7 @@ import sys
 import os
 
 import numpy as np
+from astropy.stats import sigma_clip
 
 import hipercam as hcam
 from hipercam import cline, utils
@@ -16,25 +17,32 @@ __all__ = ['combine',]
 ############################
 
 def combine(args=None):
-    """Combines a series of images defined by a list using median
-    combination. Only combines those CCDs for which is_data() is true (i.e. it
-    skips blank frames caused by NSKIP / NBLUE options)
+    """Combines a series of images defined by a list using median or clipped
+    mean combination. Only combines those CCDs for which is_data() is true
+    (i.e. it skips blank frames caused by NSKIP / NBLUE options)
 
     Arguments::
 
-        list   : (string)
+        list   : string
            list of hcm files with images to combine. The formats of the
            images should all match
 
-        bias    : (string)
+        bias    : string
            Name of bias frame to subtract, 'none' to ignore.
 
+        method  : string
+           'm' for median, 'c' for clipped mean. See below for pros and cons.
+
+        sigma   : float [if method == 'c']
+           With clipped mean combination, pixels that deviate by more than
+           sigma RMS from the mean are kicked out. This is carried out in an
+           iterative manner.
+
         adjust  : (string)
-           adjustments to make: 'i' = ignore; 'n' = normalise the mean
-           of all frames to match the first; 'b' = add offsets so that
-           the mean of all frames is the same as the first.
-           Option 'n' is useful for twilight flats; 'b' for combining
-           biases.
+           adjustments to make: 'i' = ignore; 'n' = normalise the mean of all
+           frames to match the first; 'b' = add offsets so that the mean of
+           all frames is the same as the first.  Option 'n' is useful for
+           twilight flats; 'b' for combining biases.
 
         clobber : (bool) [hidden]
            clobber any pre-existing output files
@@ -42,9 +50,23 @@ def combine(args=None):
         output  : (string)
            output file
 
-    Notes: this routine reads all inputs into memory, so can be a bit of
-    a hog. However, it does so one CCD at a time to alleviate this. It will
-    fail if it cannot find a valid frame for any CCD
+    .. notes::
+
+       This routine reads all inputs into memory, so can be a bit of a
+       hog. However, it does so one CCD at a time to alleviate this. It will
+       fail if it cannot find a valid frame for any CCD.
+
+       Clipped mean can work well for large numbers of frames but gets worse
+       for small numbers as the RMS can be heavily influenced by a single bad
+       value. The median can be better in such cases, but it has the downside of
+       digitisation noise. For instance, the average of 100 bias frames could
+       have a noise level significantly below 1 count, depending upon the readout
+       noise, and the +/- 0.5 count uncertainty of median combination may be worse
+       than this.
+
+       The sigma clipping uses astropy.stats.sigma_clip which seems slow to me and
+       I intend look into whether this can be improved.
+
     """
 
     command, args = utils.script_args(args)
@@ -55,6 +77,8 @@ def combine(args=None):
         # register parameters
         cl.register('list', Cline.GLOBAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
+        cl.register('method', Cline.LOCAL, Cline.PROMPT)
+        cl.register('sigma', Cline.LOCAL, Cline.PROMPT)
         cl.register('adjust', Cline.LOCAL, Cline.PROMPT)
         cl.register('clobber', Cline.LOCAL, Cline.HIDE)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
@@ -73,6 +97,15 @@ def combine(args=None):
         if bias is not None:
             # read the bias frame
             bias = hcam.MCCD.read(bias)
+
+        method = cl.get_value(
+            'method', 'c(lipped mean), m(edian)', 'c', lvals=('c','m')
+        )
+
+        if method == 'c':
+            sigma = cl.get_value(
+                'sigma', 'number of RMS deviations to clip', 3., 1.
+                )
 
         adjust = cl.get_value(
             'adjust', 'i(gnore), n(ormalise) b(ias offsets)',
@@ -168,13 +201,41 @@ def combine(args=None):
                     ccd *= mean / ccd.mean()
 
         # Finally, combine
-        print('Combining them and storing the result')
+        if method == 'm':
+            print('Combining them (median) and storing the result')
+        elif method == 'c':
+            print('Combining them (clipped mean) and storing the result')
+        else:
+            raise NotImplementedError('method = {:s} not implemented'.format(method))
 
         for wnam, wind in template[cnam].items():
+
             # build list of all data arrays
             arrs = [ccd[wnam].data for ccd in ccds]
             arr3d = np.stack(arrs)
-            wind.data = np.median(arr3d,axis=0)
+
+            # at this point, arr3d is a 3D array, with the first dimension
+            # (axis=0) running over the images. We want to average / median
+            # over this axis.
+
+            if method == 'm':
+                wind.data = np.median(arr3d,axis=0)
+            elif method == 'c':
+                # clip. The space needed will double in size here
+                clipped = sigma_clip(
+                    arr3d, sigma, iters=None, cenfunc=np.mean, axis=0
+                    )
+                wind.data = np.mean(arr3d, axis=0)
+
+        # Add history 
+        if method == 'm':
+            template[cnam].head.add_history(
+                'Median combine of {:d} images'.format(len(ccds))
+                )
+        elif method == 'c':
+            template[cnam].head.add_history(
+                'Clipped mean combine of {:d} images, sigma = {:.1f}'.format(len(ccds), sigma)
+                )
 
     # write out
     template.write(outfile, clobber)
