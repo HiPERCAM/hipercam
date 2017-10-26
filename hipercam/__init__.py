@@ -49,18 +49,18 @@ out the result to a new file.
 """
 
 from .core import *
-from . import cline
 from .group import *
 from .window import *
 from .ccd import *
 from .aperture import *
 from .target import *
+from .spooler import *
+from . import cline
 from . import mpl
 from . import pgp
 from . import ucam
 from . import utils
 from . import hcam
-from .spooler import *
 from . import hlog
 
 __all__ = core.__all__ + group.__all__ + window.__all__ + ccd.__all__ + \
