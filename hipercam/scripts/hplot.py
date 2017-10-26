@@ -227,7 +227,7 @@ def hplot(args=None):
                 axes = ax = fig.add_subplot(ny, nx, n+1)
                 axes.set_aspect('equal', adjustable='box')
             else:
-                axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ay)
+                axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
                 axes.set_aspect('equal', adjustable='datalim')
 
             # store the CCD associated with these axes for the cursor callback
