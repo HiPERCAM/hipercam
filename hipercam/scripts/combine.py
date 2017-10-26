@@ -119,7 +119,7 @@ def combine(args=None):
 
         if adjust == 'n' or adjust == 'b':
             plot = cl.get_value(
-                'plot', 'plot mean leavels versus frame number?',
+                'plot', 'plot mean levels versus frame number?',
                 False
                 )
 

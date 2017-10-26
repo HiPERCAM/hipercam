@@ -4,6 +4,7 @@ import sys
 import os
 import time
 import tempfile
+import getpass
 
 import numpy as np
 
@@ -145,7 +146,12 @@ def grab(args=None):
 
     # Finally, we can go
     if temp:
+        # create a directory on temp for the temporary file to avoid polluting
+        # it too much
         fnames = []
+        tdir = os.path.join(tempfile.gettempdir(), 'hipercam-{:s}'.format(getpass.getuser()))
+        os.makedirs(tdir,exist_ok=True)
+
     with hcam.data_source(source, run, first) as spool:
 
         for mccd in spool:
@@ -184,7 +190,7 @@ def grab(args=None):
             # write to disk
             if temp:
                 # generate name automatically
-                fd, fname = tempfile.mkstemp(suffix=hcam.HCAM)
+                fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
                 mccd.write(fname,True)
                 os.close(fd)
                 fnames.append(fname)
@@ -202,11 +208,12 @@ def grab(args=None):
 
     if temp:
         # write the file names to a list
-        fd, fname = tempfile.mkstemp(suffix=hcam.LIST)
+        fd, fname = tempfile.mkstemp(suffix=hcam.LIST,dir=tdir)
         with open(fname,'w') as fout:
-            for fname in fnames:
-                fout.write(fname + '\n')
+            for fnam in fnames:
+                fout.write(fnam + '\n')
         os.close(fd)
+        print('temporary file names written to {:s}'.format(fname))
 
         # return the name of the file list
         return fname
