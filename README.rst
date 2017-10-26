@@ -10,10 +10,14 @@ Installation
 
 hipercam is written in Python3; it does not support Python2.x It relies on the
 following third-party packages. At the moment I suggest you get these
-installed first; in the future I might make it more automatic::
+installed first (you may well have several of them already); in the future I
+might make it more automatic::
 
   astropy    : widely used astronomical Python package with lots of useful
                stuff.
+
+  cython     : C-extensions for Python. Widely used package used to interface
+               to C-libraries and to enable faster code when critical.
 
   matplotlib : plotting package
 
@@ -27,7 +31,7 @@ installed first; in the future I might make it more automatic::
                get trm.pgplot from my github site at
                https://github.com/trmrsh/trm-pgplot
                It's not to be confused with "ppgplot" which is a more
-               hand-crafted version with some slight differences in the calls.
+               hand-crafted version with some differences in the calls.
 
   websocket  : for talking to the hipercam server. You want the Websocket
                client library which you can get from:
