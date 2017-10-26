@@ -139,7 +139,7 @@ def carith(args=None):
                     tccd[wnam] /= constant
 
     # Add a history line
-    mccd.head.adtilsd_history(
+    mccd.head.add_history(
         '{:s} {:s} {:f} {:s} {:s} {:s}'.format(
             command, utils.sub_extension(infile, hcam.HCAM),
             constant, ccd, win, hcam.sub_extension(outfile, hcam.HCAM) )
