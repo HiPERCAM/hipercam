@@ -217,6 +217,7 @@ def combine(args=None):
             if plot:
                 plt.plot(means)
                 plt.plot(means,'.k')
+                plt.text(len(means)+1,means[-1],cnam,va='center',ha='left')
 
         # Finally, combine
         if method == 'm':
@@ -265,4 +266,6 @@ def combine(args=None):
 
     # finally
     if plot:
+        plt.xlabel('Frame number')
+        plt.ylabel('Mean counts')
         plt.show()
