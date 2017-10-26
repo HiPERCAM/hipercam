@@ -2,10 +2,10 @@ import sys
 import os
 
 import numpy as np
-from astropy.stats import sigma_clip
+import matplotlib.pyplot as plt
 
 import hipercam as hcam
-from hipercam import cline, utils
+from hipercam import cline, utils, support
 from hipercam.cline import Cline
 
 __all__ = ['combine',]
@@ -44,6 +44,10 @@ def combine(args=None):
            all frames is the same as the first.  Option 'n' is useful for
            twilight flats; 'b' for combining biases.
 
+        plot    : (bool) [hidden, if adjust == 'n' or 'b'; defaults to False]
+           make a plot of the mean versus frame number. This can provide a
+           quick check that the frames are not too different.
+
         clobber : (bool) [hidden]
            clobber any pre-existing output files
 
@@ -80,6 +84,7 @@ def combine(args=None):
         cl.register('method', Cline.LOCAL, Cline.PROMPT)
         cl.register('sigma', Cline.LOCAL, Cline.PROMPT)
         cl.register('adjust', Cline.LOCAL, Cline.PROMPT)
+        cl.register('plot', Cline.LOCAL, Cline.HIDE)
         cl.register('clobber', Cline.LOCAL, Cline.HIDE)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
 
@@ -111,6 +116,12 @@ def combine(args=None):
             'adjust', 'i(gnore), n(ormalise) b(ias offsets)',
             'i', lvals=('i','n','b')
         )
+
+        if adjust == 'n' or adjust == 'b':
+            plot = cl.get_value(
+                'plot', 'plot mean leavels versus frame number?',
+                False
+                )
 
         clobber = cl.get_value(
             'clobber', 'clobber any pre-existing files on output',
@@ -157,7 +168,8 @@ def combine(args=None):
             "\nLoading all CCDs labelled '{:s}' from {:s}".format(cnam, flist)
         )
 
-        ccds = []
+        ccds, means = [], []
+        nrej, ntot = 0, 0
         with hcam.HcamListSpool(flist, cnam) as spool:
 
             if bias is not None:
@@ -195,10 +207,16 @@ def combine(args=None):
 
             # now carry out the adjustments
             for ccd in ccds:
+                cmean = ccd.mean()
+                means.append(cmean)
                 if adjust == 'b':
-                    ccd += mean - ccd.mean()
+                    ccd += mean - cmean
                 elif adjust == 'n':
-                    ccd *= mean / ccd.mean()
+                    ccd *= mean / cmean
+
+            if plot:
+                plt.plot(means)
+                plt.plot(means,'.k')
 
         # Finally, combine
         if method == 'm':
@@ -219,20 +237,24 @@ def combine(args=None):
             # over this axis.
 
             if method == 'm':
+                # median
                 wind.data = np.median(arr3d,axis=0)
-            elif method == 'c':
-                # clip. The space needed will double in size here
-                clipped = sigma_clip(
-                    arr3d, sigma, iters=None, cenfunc=np.mean, axis=0
-                    )
-                wind.data = np.mean(arr3d, axis=0)
 
-        # Add history 
+            elif method == 'c':
+                # Cython routine avgstd requires np.float32 input
+                arr3d = arr3d.astype(np.float32)
+                avg, std, num = support.avgstd(arr3d, sigma)
+                wind.data = avg
+                nrej += len(ccds)*num.size-num.sum()
+                ntot += len(ccds)*num.size
+
+        # Add history
         if method == 'm':
             template[cnam].head.add_history(
                 'Median combine of {:d} images'.format(len(ccds))
                 )
         elif method == 'c':
+            print('Rejected {:d} pixels = {:.3f}% of the total'.format(nrej,100*nrej/ntot))
             template[cnam].head.add_history(
                 'Clipped mean combine of {:d} images, sigma = {:.1f}'.format(len(ccds), sigma)
                 )
@@ -240,3 +262,7 @@ def combine(args=None):
     # write out
     template.write(outfile, clobber)
     print('\nFinal result written to {:s}'.format(outfile))
+
+    # finally
+    if plot:
+        plt.show()

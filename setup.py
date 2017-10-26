@@ -2,17 +2,31 @@
 hipercam setup file
 """
 
+import os
 from setuptools import setup, find_packages
+from setuptools.extension import Extension
 
 # To use a consistent encoding
 from codecs import open
-from os import path
 
-here = path.abspath(path.dirname(__file__))
+# need for Cython
+import numpy as np
+from Cython.Build import cythonize
+
+here = os.path.abspath(os.path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
+
+# cython support routine
+extension = [
+    Extension("hipercam.support",
+              [os.path.join('hipercam','support.pyx')],
+              libraries=["m"],
+              include_dirs=[np.get_include()],
+              extra_compile_args=["-fno-strict-aliasing"],),
+]
 
 setup(
     name='hipercam',
@@ -60,6 +74,9 @@ setup(
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+
+    # extension modules
+    ext_modules = cythonize(extension),
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
@@ -116,6 +133,7 @@ setup(
             'hls=hipercam.scripts.hls:hls',
             'hplot=hipercam.scripts.hplot:hplot',
             'makedata=hipercam.scripts.makestuff:makedata',
+            'makebias=hipercam.scripts.makebias:makebias',
             'makefield=hipercam.scripts.makestuff:makefield',
             'plog=hipercam.scripts.plog:plog',
             'reduce=hipercam.scripts.reduce:reduce',

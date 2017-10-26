@@ -62,6 +62,7 @@ from . import ucam
 from . import utils
 from . import hcam
 from . import hlog
+from . import support
 
 __all__ = core.__all__ + group.__all__ + window.__all__ + ccd.__all__ + \
     aperture.__all__ + target.__all__ + spooler.__all__
