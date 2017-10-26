@@ -182,7 +182,7 @@ class Cline:
 
            cname : (string)
               the command name, which is used to generate the local defaults
-              file name
+              file name. If None, no attempt to read or save defaults will be made.
 
            args : (list of strings)
               command-line arguments. The first one must be the command name.
@@ -214,7 +214,7 @@ class Cline:
         if self._list:
             print ('\n' + self._cname)
 
-        if not self._nodefs:
+        if not self._nodefs and self._cname is not None:
 
             if direnv is None and defdir is None:
                 raise ClineError(
@@ -310,7 +310,7 @@ class Cline:
 
         """
 
-        if not self._nodefs:
+        if not self._nodefs and self._cname is not None:
 
             # make the default directory if need be
             try:
