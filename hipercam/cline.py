@@ -216,7 +216,10 @@ class Cline:
         # Store the command name
         self._cname = cname
         if self._list:
-            print ('\n' + self._cname)
+            if self._cname is not None:
+                print ('\n' + self._cname)
+            else:
+                print ('\nNone')
 
         if not self._nodefs and self._cname is not None:
 
