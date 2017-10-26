@@ -47,7 +47,7 @@ def arith(args=None):
 
     """
 
-    command, args = util.script_args(args)
+    command, args = utils.script_args(args)
 
     # get inputs
     with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
