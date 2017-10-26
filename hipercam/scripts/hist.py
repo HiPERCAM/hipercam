@@ -33,14 +33,18 @@ def hist(args=None):
       window : string
          the window label to show. '0' will merge all windows on each CCD.
 
-      nbins  : int
-         number of bins to use for the histogram
-
       x1     : float
          lower end of histoigram range
 
       x2     : float
          upper end of histoigram range. Set == x1 to get automatic min to max.
+
+      nbins  : int
+         number of bins to use for the histogram
+
+      gplot  : bool
+         plot a gaussian of the same mean and RMS as the data. Note
+         this is not a fit.
 
       nx     : int
          number of panels across to display, prompted if more than one CCD is
@@ -78,6 +82,7 @@ def hist(args=None):
         cl.register('x1', Cline.LOCAL, Cline.PROMPT)
         cl.register('x2', Cline.LOCAL, Cline.PROMPT)
         cl.register('nbins', Cline.LOCAL, Cline.PROMPT)
+        cl.register('gplot', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('nint', Cline.GLOBAL, Cline.PROMPT)
@@ -116,6 +121,7 @@ def hist(args=None):
         else:
             range = None
         nbins = cl.get_value('nbins', 'number of bins for the histogram', 100, 2)
+        gplot = cl.get_value('gplot', 'overplot gaussians?', True)
 
         if len(ccds) > 1:
             nxdef = min(len(ccds), nxdef)
@@ -162,15 +168,33 @@ def hist(args=None):
                 wind -= wmed
 
         if wnam == '0':
-            plt.hist(ccd.flatten(),bins=nbins,range=range)
+            arr = ccd.flatten()
         else:
-            plt.hist(ccd[wnam].flatten(),bins=nbins,range=range)
+            arr = ccd[wnam].flatten()
+
+        n, bins, ps = plt.hist(arr,bins=nbins,range=range)
+
+        num = len(arr)
+        mean = arr.mean()
+        std = arr.std()
+        if wnam == '0':
+            plt.title('CCD = {:s}, $\sigma = {:.2f}$'.format(cnam,std))
+        else:
+            plt.title('CCD = {:s}, window = {:s}, $\sigma = {:.2f}$'.format(
+                cnam,wnam,std)
+            )
+
+        if gplot:
+            x1, x2 = bins.min(), bins.max()
+            x = np.linspace(x1, x2, 500)
+            y = abs(x2-x1)/nbins*num*np.exp(
+                -((x-mean)/std)**2/2.)/np.sqrt(2.*np.pi)/std
+            plt.plot(x,y,'r--',lw=0.5)
 
     plt.ylabel('Number of pixels')
     plt.xlabel('Counts')
     plt.tight_layout()
     if device == 'term':
-        plt.subplots_adjust(wspace=0.15, hspace=0.15)
         plt.show()
     else:
         plt.savefig(device)
