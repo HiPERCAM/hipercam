@@ -60,8 +60,8 @@ in capital letters. They are::
   NODEFS : bypasses any attempt to read or write the default files.  It is
            provided as a way to avoid clashes between multiple processes.
 
-  PROMPT : forces prompting for all variables, in particular any hidden
-           parameters.
+  PROMPT : forces prompting for all variables not supplied via the argument list
+           passed on creation of Cline objects.
 
 When you get prompting, <tab> allows you to complete filenames. Entering '?'
 gives the parameter range if any has been supplied.
@@ -172,40 +172,44 @@ class Cline:
 
         Arguments::
 
-           direnv : (string)
+           direnv : string
               environment variable pointing at a directory where default
               files will be stored.
 
-           defdir : (string)
+           defdir : string
               default directory (sub-directory of HOME) if the enviroment
               variable 'direnv' is not defined
 
-           cname : (string)
+           cname : string
               the command name, which is used to generate the local defaults
-              file name. If None, no attempt to read or save defaults will be made.
+              file name. If cname=None, no attempt to read or save defaults
+              will be made. This allows the programmatic equivalent of entering
+              'NODEFS' on the command line.
 
-           args : (list of strings)
-              command-line arguments. The first one must be the command name.
+           args : list of strings
+              command-line arguments. The first one must be the command name. Their
+              order must match the order in which the parameters are prompted.
 
         """
 
-        # Extract special keywords NODEFS, PROMPT and LIST from argument list
+        # Extract special keywords NODEFS, PROMPT and LIST from argument list,
+        # and set flags.
 
         if 'NODEFS' in args:
             self._nodefs = True
-            args = filter(lambda a: a != 'NODEFS', args)
+            args = [arg for arg in args if arg != 'NODEFS']
         else:
             self._nodefs = False
 
         if 'PROMPT' in args:
             self._prompt = True
-            args = filter(lambda a: a != 'PROMPT', args)
+            args = [arg for arg in args if arg != 'PROMPT']
         else:
             self._prompt = False
 
         if 'LIST' in args:
             self._list = True
-            args = filter(lambda a: a != 'LIST', args)
+            args = [arg for arg in args if arg != 'LIST']
         else:
             self._list = False
 
@@ -260,7 +264,10 @@ class Cline:
         # command line arguments
         self._pbynam = {}
         self._pbypos = []
-        checker = re.compile('[a-zA-Z0-9]+=')
+
+        # defines allowable parameter names
+        checker = re.compile('^[a-zA-Z0-9]+=')
+
         for arg in args:
             if checker.match(arg):
                 p,v = arg.split('=',1)
@@ -421,8 +428,7 @@ class Cline:
 
     def get_default(self, param):
         """
-        Gets the current default value of a parameter. Could well raise an Exception
-        if the default cannot be found.
+        Gets the current default value of a parameter called 'param'
         """
         if param not in self._rpars:
             raise ClineError('set_default: parameter = "' + param + '" has not been registered.')
@@ -496,12 +502,13 @@ class Cline:
             )
 
         # Now get the parameter value by one of three methods
+
         if param in self._pbynam:
             # get value from name/value pairs read from command line arguments
             # of the form param=value
             value = self._pbynam[param]
 
-        elif self.narg < len(self._pbypos) and self._rpars[param]['p_or_h'] == Cline.PROMPT:
+        elif self.narg < len(self._pbypos) and (self._prompt or self._rpars[param]['p_or_h'] == Cline.PROMPT):
             # get value from bare values in the command line such as '23' '\\'
             # indicates use the default value and also to use defaults for any
             # other unspecified parameters that come later (_usedef set to
