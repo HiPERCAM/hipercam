@@ -36,7 +36,8 @@ def combine(args=None):
         sigma   : float [if method == 'c']
            With clipped mean combination, pixels that deviate by more than
            sigma RMS from the mean are kicked out. This is carried out in an
-           iterative manner.
+           iterative manner. sigma <= 0 implies no rejection, just a straight
+           average. sigma=3 is typical.
 
         adjust  : (string)
            adjustments to make: 'i' = ignore; 'n' = normalise the mean of all
@@ -108,9 +109,7 @@ def combine(args=None):
         )
 
         if method == 'c':
-            sigma = cl.get_value(
-                'sigma', 'number of RMS deviations to clip', 3., 1.
-                )
+            sigma = cl.get_value('sigma', 'number of RMS deviations to clip', 3.)
 
         adjust = cl.get_value(
             'adjust', 'i(gnore), n(ormalise) b(ias offsets)',
@@ -246,10 +245,13 @@ def combine(args=None):
             elif method == 'c':
                 # Cython routine avgstd requires np.float32 input
                 arr3d = arr3d.astype(np.float32)
-                avg, std, num = support.avgstd(arr3d, sigma)
+                if sigma > 0.:
+                    avg, std, num = support.avgstd(arr3d, sigma)
+                    nrej += len(ccds)*num.size-num.sum()
+                    ntot += len(ccds)*num.size
+                else:
+                    avg = np.mean(arr3d,axis=0)
                 wind.data = avg
-                nrej += len(ccds)*num.size-num.sum()
-                ntot += len(ccds)*num.size
 
         # Add history
         if method == 'm':
