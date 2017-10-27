@@ -136,6 +136,7 @@ setup(
             'makedata=hipercam.scripts.makestuff:makedata',
             'makebias=hipercam.scripts.makebias:makebias',
             'makefield=hipercam.scripts.makestuff:makefield',
+            'makeflat=hipercam.scripts.makeflat:makeflat',
             'plog=hipercam.scripts.plog:plog',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
