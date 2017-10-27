@@ -172,7 +172,21 @@ class HcamDiskSpool(SpoolerBase):
 class HcamListSpool(SpoolerBase):
 
     """Provides an iterable context manager to loop through frames within
-    a list of HiPERCAM .hcm files.
+    a list of HiPERCAM .hcm files, either a file listing the files, or a Python
+    list. Use as::
+
+        with spooler.HcamListSpool(flist) as spool:
+            for mccd in spool:
+                ...
+
+    to get :class:`MCCD`  objects or::
+
+
+        with spooler.HcamListSpool(flist,cnam) as spool:
+            for ccd in spool:
+                ...
+
+    to get :class:`CCD` objects.
     """
 
     def __init__(self, lname, cnam=None):
@@ -180,19 +194,28 @@ class HcamListSpool(SpoolerBase):
 
         Arguments::
 
-           lname : (string)
-              Name of a list of HiPERCAM files. # at the start of a line is
-              recognized as a comment flag.
+           lname : string or list
+              Name of a file list of HiPERCAM files, or a Python list of file
+              names (more generally any iterable array of names). Blank
+              entries or any starting with '#' are ignored.
 
-           cnam  : (string | None)
+           cnam  : string or None
               CCD label if you want to return individual CCDs rather than
               MCCDs. This is used in 'combine' to save memory.
         """
-        self._iter = open(lname)
+        if isinstance(lname, string):
+            self._iter = open(lname)
+            self._close_at_end = True
+        else:
+            self._iter = lname
+            self._close_at_end = False
+
         self.cnam = cnam
 
     def __exit__(self, *args):
-        self._iter.close()
+        if self._close_at_end:
+            # close in the case of file lists
+            self._iter.close()
 
     def __next__(self):
         # returns next image from a list. adds in the file name
