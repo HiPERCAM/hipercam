@@ -154,57 +154,71 @@ def grab(args=None):
 
     with hcam.data_source(source, run, first) as spool:
 
-        for mccd in spool:
+        try:
 
-            # Handle the waiting game ...
-            give_up, try_again, total_time = hcam.hang_about(
-                mccd, twait, tmax, total_time
-            )
+            for mccd in spool:
 
-            if give_up:
-                print('grab stopped')
-                break
-            elif try_again:
-                continue
+                # Handle the waiting game ...
+                give_up, try_again, total_time = hcam.hang_about(
+                    mccd, twait, tmax, total_time
+                    )
 
-            if bias is not None:
-                # read bias after first frame so we can
-                # chop the format
-                if bframe is None:
+                if give_up:
+                    print('grab stopped')
+                    break
+                elif try_again:
+                    continue
 
-                    # read the bias frame
-                    bframe = hcam.MCCD.read(bias)
+                if bias is not None:
+                    # read bias after first frame so we can
+                    # chop the format
+                    if bframe is None:
 
-                    # reformat
-                    bframe = bframe.crop(mccd)
+                        # read the bias frame
+                        bframe = hcam.MCCD.read(bias)
 
-                mccd -= bframe
+                        # reformat
+                        bframe = bframe.crop(mccd)
 
-            if dtype == 'u16':
-                mccd.uint16()
-            elif dtype == 'f32':
-                mccd.float32()
-            elif dtype == 'f64':
-                mccd.float64()
+                    mccd -= bframe
 
-            # write to disk
+                if dtype == 'u16':
+                    mccd.uint16()
+                elif dtype == 'f32':
+                    mccd.float32()
+                elif dtype == 'f64':
+                    mccd.float64()
+
+                # write to disk
+                if temp:
+                    # generate name automatically
+                    fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
+                    mccd.write(fname,True)
+                    os.close(fd)
+                    fnames.append(fname)
+                else:
+                    fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
+                    mccd.write(fname,True)
+
+                print('Written frame {:d} to {:s}'.format(nframe,fname))
+
+
+                # update the frame number
+                nframe += 1
+                if last and nframe > last:
+                    break
+
+        except KeyboardInterrupt:
+            # trap ctrl-C so we can delete temporary files if temp
             if temp:
-                # generate name automatically
-                fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
-                mccd.write(fname,True)
-                os.close(fd)
-                fnames.append(fname)
+                for fname in fnames:
+                    os.remove(fname)
+                print('\ntemporary files deleted')
+                print('grab aborted')
             else:
-                fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
-                mccd.write(fname,True)
+                print('\ngrab aborted')
+            sys.exit(1)
 
-            print('Written frame {:d} to {:s}'.format(nframe,fname))
-
-
-            # update the frame number
-            nframe += 1
-            if last and nframe > last:
-                break
 
     if temp:
         # write the file names to a list

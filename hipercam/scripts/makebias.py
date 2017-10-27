@@ -124,9 +124,6 @@ def makebias(args=None):
     # to get this right. The keyword 'LIST' can be helpful in case of difficulty. i.e.
     # rather than just 'PROMPT' you would use 'PROMPT','LIST'
 
-    print('\n*** Please try not to terminate makebias early to avoid the accumulation of temporary files ***')
-    time.sleep(1)
-
     print("\nCalling 'grab' ...")
     args = [None,'PROMPT',source,run,'yes',str(first),str(last),str(twait),str(tmax),'none','f32']
     flist = hcam.scripts.grab(args)
