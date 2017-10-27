@@ -64,12 +64,6 @@ def averun(args=None):
         output  : (string)
            output file
 
-    Notes: this routine reads all inputs into memory (40MB per frame for full
-    5 CCD HiPERCAM frames for instance), so it can be a bit of a
-    hog. 'combine' has a smaller footprint; 'averun' is meant for quick
-    generation of averages from the first few files of a run rather than
-    something more sophisticated.
-
     """
 
     command, args = utils.script_args(args)
@@ -117,16 +111,13 @@ def averun(args=None):
             'bias', "bias frame ['none' to ignore]",
             cline.Fname('bias', hcam.HCAM), ignore='none'
         )
-        if bias is not None:
-            # read the bias frame
-            bias = hcam.MCCD.read(bias)
 
         clobber = cl.get_value(
             'clobber', 'clobber any pre-existing files on output',
             False
         )
 
-        outfile = cl.get_value(
+        output = cl.get_value(
             'output', 'output average',
             cline.Fname(
                 'hcam', hcam.HCAM,
@@ -134,79 +125,25 @@ def averun(args=None):
             )
         )
 
-    # inputs done with
+    # inputs done with. Now do the work with 'grab' and 'combine'
 
-    # read and store the data
-    mccds = []
-    nframe = first
-    total_time = 0
-    print('Reading frames')
-    with hcam.data_source(source, run, first) as spool:
+    if server_or_local:
+        print("\nCalling 'grab' ...")
+        args = [None,'PROMPT',source,run,'yes',str(first),str(last),str(twait),str(tmax),'none','f32']
+        flist = hcam.scripts.grab(args)
 
-        # 'spool' is an iterable source of MCCDs
-        for mccd in spool:
+    print("\nCalling 'combine' ...")
+    args = [None, 'PROMPT', flist,
+            'none' if bias is None else bias, 'm', 'i',
+            'yes' if clobber else 'no', output]
+    hcam.scripts.combine(args)
 
-            if server_or_local:
-                # Handle the waiting game ...
-                give_up, try_again, total_time = hcam.hang_about(
-                    mccd, twait, tmax, total_time
-                )
+    # remove temporary files
+    with open(flist) as fin:
+        for fname in fin:
+            fname = fname.strip()
+            os.remove(fname)
+    os.remove(flist)
+    print('\ntemporary files have been deleted')
+    print('averun finished')
 
-                if give_up:
-                    print('rtplot stopped')
-                    break
-                elif try_again:
-                    continue
-
-            mccds.append(mccd)
-            print(' read frame {:d}'.format(nframe))
-
-            if nframe >= last:
-                break
-            nframe += 1
-
-    if len(mccds) == 0:
-        raise hcam.HipercamError('no frames read')
-    else:
-        print('{:d} frames read'.format(len(mccds)))
-
-    # set up some buffers to hold the OK CCDs only
-    template = mccd.copy()
-
-    if bias is not None:
-        # crop the bias
-        bias = bias.crop(template)
-
-    ccds = dict([(cnam,[]) for cnam in template])
-
-    for mccd in mccds:
-        for cnam, ccd in mccd.items():
-            if ccd.is_data():
-                if bias is not None:
-                    ccd -= bias[cnam]
-                ccds[cnam].append(ccd)
-
-    # check that we have some frames in all CCDs
-    for cnam in template:
-        if len(ccds[cnam]) == 0:
-            raise hcam.HipercamError(
-                'found no valid frames for CCD {:s}'.format(cnam)
-            )
-
-    for cnam in template:
-
-        # loop through CCD by CCD
-        print(
-            "Averaging {:d} CCDs labelled '{:s}'".format(
-                len(ccds[cnam]),cnam)
-        )
-
-        for wnam, wind in template[cnam].items():
-            # build list of all data arrays
-            arrs = [ccd[wnam].data for ccd in ccds[cnam]]
-            arr3d = np.stack(arrs)
-            wind.data = np.median(arr3d,axis=0)
-
-    # write out
-    template.write(outfile, clobber)
-    print('\nFinal average written to {:s}'.format(outfile))

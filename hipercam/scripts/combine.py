@@ -122,6 +122,8 @@ def combine(args=None):
                 'plot', 'plot mean levels versus frame number?',
                 False
                 )
+        else:
+            plot = False
 
         clobber = cl.get_value(
             'clobber', 'clobber any pre-existing files on output',
