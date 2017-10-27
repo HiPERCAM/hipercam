@@ -128,15 +128,27 @@ def makebias(args=None):
     args = [None,'PROMPT',source,run,'yes',str(first),str(last),str(twait),str(tmax),'none','f32']
     flist = hcam.scripts.grab(args)
 
-    print("\nCalling 'combine' ...")
-    args = [None,'PROMPT',flist,'none','c',str(sigma),'b','yes' if plot else 'no', 'yes', output]
-    hcam.scripts.combine(args)
+    try:
 
-    # remove temporary files
-    with open(flist) as fin:
-        for fname in fin:
-            fname = fname.strip()
-            os.remove(fname)
-    os.remove(flist)
-    print('temporary files have been deleted')
-    print('makebias finished')
+        print("\nCalling 'combine' ...")
+        args = [None,'PROMPT',flist,'none','c',str(sigma),'b','yes' if plot else 'no', 'yes', output]
+        hcam.scripts.combine(args)
+
+        # remove temporary files
+        with open(flist) as fin:
+            for fname in fin:
+                fname = fname.strip()
+                os.remove(fname)
+        os.remove(flist)
+        print('temporary files have been deleted')
+        print('makebias finished')
+
+    except KeyboardInterrupt:
+        # this to ensure we delete the temporary files
+        with open(flist) as fin:
+            for fname in fin:
+                fname = fname.strip()
+                os.remove(fname)
+        os.remove(flist)
+        print('\ntemporary files have been deleted')
+        print('makebias aborted')
