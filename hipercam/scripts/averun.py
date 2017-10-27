@@ -133,17 +133,30 @@ def averun(args=None):
         args = [None,'PROMPT',source,run,'yes',str(first),str(last),str(twait),str(tmax),'none','f32']
         flist = hcam.scripts.grab(args)
 
-    print("\nCalling 'combine' ...")
-    args = [None, 'PROMPT', flist,
-            'none' if bias is None else bias, 'm', 'i',
-            'yes' if clobber else 'no', output]
-    hcam.scripts.combine(args)
+    try:
+        print("\nCalling 'combine' ...")
+        args = [None, 'PROMPT', flist,
+                'none' if bias is None else bias, 'm', 'i',
+                'yes' if clobber else 'no', output]
+        hcam.scripts.combine(args)
 
-    # remove temporary files
-    with open(flist) as fin:
-        for fname in fin:
-            fname = fname.strip()
-            os.remove(fname)
-    os.remove(flist)
-    print('\ntemporary files have been deleted')
-    print('averun finished')
+        # remove temporary files
+        with open(flist) as fin:
+            for fname in fin:
+                fname = fname.strip()
+                os.remove(fname)
+        os.remove(flist)
+        print('\ntemporary files have been deleted')
+        print('averun finished')
+
+    except KeyboardInterrupt:
+        # this to ensure we delete the temporary files
+        with open(flist) as fin:
+            for fname in fin:
+                fname = fname.strip()
+                os.remove(fname)
+        os.remove(flist)
+        print('\ntemporary files have been deleted')
+        print('averun aborted')
+
+
