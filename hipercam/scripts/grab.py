@@ -9,7 +9,7 @@ import getpass
 import numpy as np
 
 import hipercam as hcam
-from hipercam import cline, utils
+from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
 __all__ =  ['grab',]
@@ -101,7 +101,7 @@ def grab(args=None):
                               'hl', lvals=('hs','hl','us','ul'))
 
         # OK, more inputs
-        run = cl.get_value('run', 'run name', 'run005')
+        resource = cl.get_value('run', 'run name', 'run005')
 
         cl.set_default('temp', False)
         temp = cl.get_value('temp', 'save to temporary automatically-generated file names?', True)
@@ -135,13 +135,13 @@ def grab(args=None):
     # Now the actual work.
 
     # strip off extensions
-    if run.endswith(hcam.HRAW):
-        run = run[:run.find(hcam.HRAW)]
+    if resource.endswith(hcam.HRAW):
+        resource = resource[:resource.find(hcam.HRAW)]
 
     # initialisations
     total_time = 0 # time waiting for new frame
     nframe = first
-    root = os.path.basename(run)
+    root = os.path.basename(resource)
     bframe = None
 
     # Finally, we can go
@@ -152,14 +152,14 @@ def grab(args=None):
         tdir = os.path.join(tempfile.gettempdir(), 'hipercam-{:s}'.format(getpass.getuser()))
         os.makedirs(tdir,exist_ok=True)
 
-    with hcam.data_source(source, run, first) as spool:
+    with spooler.data_source(source, resource, first) as spool:
 
         try:
 
             for mccd in spool:
 
                 # Handle the waiting game ...
-                give_up, try_again, total_time = hcam.hang_about(
+                give_up, try_again, total_time = spooler.hang_about(
                     mccd, twait, tmax, total_time
                     )
 
@@ -197,7 +197,7 @@ def grab(args=None):
                     os.close(fd)
                     fnames.append(fname)
                 else:
-                    fname = '{:s}_{:0{:d}}{:s}'.format(run,nframe,ndigit,hcam.HCAM)
+                    fname = '{:s}_{:0{:d}}{:s}'.format(resource,nframe,ndigit,hcam.HCAM)
                     mccd.write(fname,True)
 
                 print('Written frame {:d} to {:s}'.format(nframe,fname))

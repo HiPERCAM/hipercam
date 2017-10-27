@@ -18,7 +18,7 @@ from astropy.convolution import Gaussian2DKernel
 from trm.pgplot import *
 
 import hipercam as hcam
-from hipercam import cline, utils
+from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 from hipercam.extraction import findStars
 
@@ -377,7 +377,7 @@ def main(args=None):
         height = cl.get_value('height', 'plot height (inches)', 0.)
 
         if source == 's' or source == 'l':
-            run = cl.get_value('run', 'run name', 'run005')
+            resource = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to plot', 1, 1)
 
             if source == 's':
@@ -387,7 +387,7 @@ def main(args=None):
         else:
             # set inst = 'h' as only lists of HiPERCAM files are supported
             inst = 'h'
-            run = cl.get_value('flist', 'file list', cline.Fname('files.lis',hcam.LIST))
+            resource = cl.get_value('flist', 'file list', cline.Fname('files.lis',hcam.LIST))
             first = 1
 
         flist = source == 'f'
@@ -398,7 +398,7 @@ def main(args=None):
             instrument = 'HIPER'
 
         # get the labels and maximum dimensions
-        ccdinf = hcam.get_ccd_pars(source, run)
+        ccdinf = spooler.get_ccd_pars(source, resource)
         if len(ccdinf) > 1:
             ccdnam = cl.get_value('ccd', 'CCD to plot alignment of', '1')
             rccdnam = cl.get_value('rccd', 'CCD to use as reference', '5')
@@ -465,13 +465,13 @@ def main(args=None):
 
     total_time = 0  # time waiting for new frame
 
-    with hcam.data_source(source, run, first) as spool:
+    with spooler.data_source(source, resource, first) as spool:
         # 'spool' is an iterable source of MCCDs
         for n, mccd in enumerate(spool):
 
             if server_or_local:
                 # Handle the waiting game ...
-                give_up, try_again, total_time = hcam.hang_about(
+                give_up, try_again, total_time = spooler.hang_about(
                     mccd, twait, tmax, total_time
                 )
 

@@ -54,7 +54,7 @@ from .window import *
 from .ccd import *
 from .aperture import *
 from .target import *
-from .spooler import *
+from . import spooler
 from . import cline
 from . import mpl
 from . import pgp

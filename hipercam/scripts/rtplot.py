@@ -8,7 +8,7 @@ from astropy.time import Time, TimeDelta
 
 from trm.pgplot import *
 import hipercam as hcam
-from hipercam import cline, utils
+from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
 __all__ = ['rtplot',]
@@ -262,7 +262,7 @@ def rtplot(args=None):
         height = cl.get_value('height', 'plot height (inches)', 0.)
 
         if server_or_local:
-            run = cl.get_value('run', 'run name', 'run005')
+            resource = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to plot', 1, 0)
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
@@ -270,13 +270,13 @@ def rtplot(args=None):
                 'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
 
         else:
-            run = cl.get_value(
+            resource = cl.get_value(
                 'flist', 'file list', cline.Fname('files.lis',hcam.LIST)
             )
             first = 1
 
         # define the panel grid. first get the labels and maximum dimensions
-        ccdinf = hcam.get_ccd_pars(source, run)
+        ccdinf = spooler.get_ccd_pars(source, resource)
 
         try:
             nxdef = cl.get_default('nx')
@@ -437,7 +437,7 @@ def rtplot(args=None):
     fframe = True   # waiting for first valid frame with profit
 
     # plot images
-    with hcam.data_source(source, run, first) as spool:
+    with spooler.data_source(source, resource, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
         n = 0
@@ -445,7 +445,7 @@ def rtplot(args=None):
 
             if server_or_local:
                 # Handle the waiting game ...
-                give_up, try_again, total_time = hcam.hang_about(
+                give_up, try_again, total_time = spooler.hang_about(
                     mccd, twait, tmax, total_time
                 )
 

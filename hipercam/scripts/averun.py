@@ -9,18 +9,19 @@ from hipercam.cline import Cline
 
 __all__ = ['averun',]
 
-############################
+#################################
 #
-# combine -- combines images
+# averun -- median average images
 #
-############################
+#################################
 
 def averun(args=None):
-    """Averages images from a run using median combination. Only combines those
-    CCDs for which is_data() is true (i.e. it skips blank frames caused by
-    NSKIP / NBLUE options). The intention is to provide a simple routine to
-    create median frames suitable for aperture selection with 'setaper'. See
-    'combine' if you want more fine-grained control for frame averaging.
+    """Averages images from a run using median combination, skipping the junk
+    frames that result from NSKIP / NBLUE options in HiPERCAM and ULTRACAM
+    data. 'averun' is meant to be a simple tool to create median frames
+    suitable prior to aperture selection with 'setaper'. See 'combine' if you
+    want more fine-grained control over frame averaging. ('averun' uses a
+    combination of 'grab' [if needed] and 'combine').
 
     Arguments::
 
@@ -146,4 +147,3 @@ def averun(args=None):
     os.remove(flist)
     print('\ntemporary files have been deleted')
     print('averun finished')
-

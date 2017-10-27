@@ -1,8 +1,18 @@
-"""Defines classes and methods for reading data of varying formats and
-for iterating through multiple images from a variety of sources in a
-standardised manner.
+"""Classes and methods to support reading data in multiple formats and for iterating
+through multiple images from a variety of sources in a standardised manner.
 
+For instance this piece of code::
 
+   with spooler.data_source(source, resource, first) as spool:
+       for mccd in spool:
+           ...
+
+creates an object 'spool' that then acts a source of :class:`MCCD` objects. The
+:meth:`data_source` method returns this for a variety of possible sources of data
+such as raw HiPERCAM and ULTRACAM files and a list of hcm files. Important methods
+are :meth:`data_source` and :meth:`get_ccd_pars`. You may also want to look at
+classes such as :class:`HcamListSpool` if you are interested in accessing data in a
+specific manner.
 """
 
 import time

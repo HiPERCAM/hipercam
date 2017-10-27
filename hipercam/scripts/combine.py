@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import hipercam as hcam
-from hipercam import cline, utils, support
+from hipercam import cline, utils, support, spooler
 from hipercam.cline import Cline
 
 __all__ = ['combine',]
@@ -172,7 +172,7 @@ def combine(args=None):
 
         ccds, means = [], []
         nrej, ntot = 0, 0
-        with hcam.HcamListSpool(flist, cnam) as spool:
+        with spooler.HcamListSpool(flist, cnam) as spool:
 
             if bias is not None:
                 # extract relevant CCD from the bias
