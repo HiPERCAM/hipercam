@@ -195,6 +195,8 @@ class HcamListSpool(SpoolerBase):
         self._iter.close()
 
     def __next__(self):
+        # returns next image from a list. adds in the file name
+        # as a header parameter
         for fname in self._iter:
             if not fname.startswith('#') and not fname.isspace():
                 break
@@ -202,11 +204,15 @@ class HcamListSpool(SpoolerBase):
             raise StopIteration
 
         if self.cnam is None:
-            return ccd.MCCD.read(utils.add_extension(fname.strip(), core.HCAM))
+            mccd = ccd.MCCD.read(utils.add_extension(fname.strip(), core.HCAM))
+            mccd.head['FILENAME'] = fname
+            return mccd
         else:
-            return ccd.CCD.read(
+            ccd = ccd.CCD.read(
                 utils.add_extension(fname.strip(), core.HCAM), self.cnam
             )
+            ccd.head['FILENAME'] = fname
+            return ccd
 
 class HcamServSpool(SpoolerBase):
 
