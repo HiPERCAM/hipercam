@@ -14,7 +14,7 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
-__all__ = ['digest',]
+__all__ = []
 
 #######################################################
 #
@@ -48,7 +48,11 @@ def digest(args=None):
     and tries to report in enough detail to help them to get fixed.
     """
 
-username = getpass. getuser() 
+    username = getpass. getuser() 
+    if username != 'phsaap':
+        print('digest is for archiving HiPERCAM runs and not meant for general use')
+        return
+
     RAW = 'raw_data'
     DERIVED = 'derived_data'
     LOGS = 'logs'
@@ -234,49 +238,49 @@ username = getpass. getuser()
                                  nnight)
 
             # move the data directory up a level _ to -
-#            os.rename(ndir, nndir)
+            os.rename(ndir, nndir)
             print('\nmv {:s} {:s}'.format(ndir, nndir))
 
             # link back into the run directory
-#            os.symlink(nndir,lndir)
-            print('ln -s {:s} {:s}'.format(nndir, lndir))
+            file = os.path.join('..',nnight)
+            os.symlink(file,lndir)
+            print('ln -s {:s} {:s}'.format(file, lndir))
 
             # copy the hand-written log file to a new version without
             # underscores or 'log' in the name
             oldlog = os.path.join(nndir, '{:s}_log.dat'.format(night))
             newlog = os.path.join(nndir, '{:s}.dat'.format(nnight))
-#            shutil.copyfile(oldlog, newlog)
+            shutil.copyfile(oldlog, newlog)
             print('cp {:s} {:s}'.format(oldlog, newlog))
 
             # make a directory for log stuff
             logndir = os.path.join(LOGS, nnight)
-#            os.mkdir(logndir)
+            os.mkdir(logndir)
             print('mkdir {:s}'.format(logndir))
 
             # create a link to the hand-written log in the log directory
             lname = '{:s}.dat'.format(nnight)
             file = os.path.join('..','..',nndir,lname)
             link = os.path.join(logndir,lname)
-#            os.symlink(file,link)
+            os.symlink(file,link)
             print('ln -s {:s} {:s}'.format(file, link))
 
             # create a link to the data directory in the log directory
             file = os.path.join('..','..',nndir)
             link = os.path.join(logndir,'data')
-#            os.symlink(file,link)
+            os.symlink(file,link)
             print('ln -s {:s} {:s}'.format(file, link))
 
 
             # make a directory for derived data
             derndir = os.path.join(DERIVED, nnight)
-#            os.mkdir(derndir)
+            os.mkdir(derndir)
             print('mkdir {:s}'.format(derndir))
 
             # create a link to the data directory in the derived directory
             file = os.path.join('..','..',nndir)
             link = os.path.join(derndir,'data')
-#            os.symlink(file,link)
+            os.symlink(file,link)
             print('ln -s {:s} {:s}'.format(file, link))
 
 
-            
