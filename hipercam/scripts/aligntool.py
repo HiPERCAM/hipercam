@@ -22,6 +22,8 @@ from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 from hipercam.extraction import findStars
 
+__all__ = ['aligntool',]
+
 def findBestRigidTransform(x, y, xref, yref):
     """
     Given a set of points and *matching* reference points, find the optimal Rigid transform.
@@ -229,7 +231,7 @@ def separateBigSmallSpots(xpos, ypos, fwhm, flux):
             xpos[big_spot_mask], ypos[big_spot_mask], fwhm[big_spot_mask], flux[big_spot_mask])
 
 
-def main(args=None):
+def aligntool(args=None):
     """
     Measures alignment of HiperCAM CCDs w.r.t a reference image of the blue CCD.
 

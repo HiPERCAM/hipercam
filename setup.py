@@ -122,7 +122,7 @@ setup(
             'div=hipercam.scripts.arith:div',
             'mul=hipercam.scripts.arith:mul',
             'sub=hipercam.scripts.arith:sub',
-            'aligntool=hipercam.scripts.aligntool:main',
+            'aligntool=hipercam.scripts.aligntool:aligntool',
             'averun=hipercam.scripts.averun:averun',
             'cadd=hipercam.scripts.carith:cadd',
             'cdiv=hipercam.scripts.carith:cdiv',

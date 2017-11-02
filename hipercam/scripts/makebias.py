@@ -11,7 +11,7 @@ import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
-__all__ =  ['grab',]
+__all__ =  ['makebias',]
 
 #########################################################
 #

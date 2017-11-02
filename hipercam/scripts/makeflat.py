@@ -8,7 +8,7 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
-__all__ = ['averun',]
+__all__ = ['makeflat',]
 
 ####################################################
 #
