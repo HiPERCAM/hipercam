@@ -76,7 +76,9 @@ def digest(args=None):
 
     # get the run directories
     rdirs = [os.path.join(RAW, rdir) for rdir in os .listdir(RAW) if \
-                 os.path.isdir(os.path.join(RAW, rdir))]
+                 os.path.isdir(os.path.join(RAW, rdir)) and \
+                 rdre.match(rdir)
+             ]
     rdirs.sort()
 
     if len(rdirs):
@@ -91,6 +93,15 @@ def digest(args=None):
     for rdir in rdirs:
         print('Run directory = {:s}'.format(rdir))
 
+        # test whether we might have done this already
+        rd = os.path.basename(rdir)
+        lrdir = os.path.join(LOGS, rd)
+        drdir = os.path.join(DERIVED, rd)
+        if os.path.exist(lrdir) or os.path.exist(drdir):
+            print('** one or both of {:s} and {:s} already exists'.format(lrdir, drdir))
+            print('digest aborted',file=sys.stderr)
+            return
+
         # loop through the run directories
 
         # look for a file called 'telescope'. They should all have one.
@@ -102,7 +113,6 @@ def digest(args=None):
             print('This should have the name of the telescope inside it',file=sys.stderr)
             print('digest aborted',file=sys.stderr)
             return
-
 
         # look for the night-by-night directories. If not present in matching form,
         # skip to the next on the basis that it has been done already
@@ -127,6 +137,15 @@ def digest(args=None):
 
             print('Night directory = {:s}'.format(ndir))
             night = os.path.basename(ndir)
+
+            # test whether the night directory already exists in the log or derived directories
+            lndir = os.path.join(lrdir, night)
+            dndir = os.path.join(drdir, night)
+            if os.path.exist(lndir) or os.path.exist(dndir):
+                print('** one or both of {:s} and {:s} already exists'.format(lndir, dndir))
+                print('digest aborted',file=sys.stderr)
+                return
+
             log = os.path.join(ndir, '{:s}_log.dat'.format(night))
             if os.path.isfile(log):
                 print('... found the log file = {:s}'.format(log))
@@ -195,7 +214,6 @@ def digest(args=None):
             print('Night directory = {:s}'.format(ndir))
             night = os.path.basename(ndir)
 
-            """
             md5 = os.path.join(ndir, 'MD5SUM_{:s}'.format(night))
             with open(md5) as fin:
                 for line in fin:
@@ -211,7 +229,7 @@ def digest(args=None):
                         print('** md5sum of {:s} is NOT OK!'.format(fname),file=sys.stderr)
                         print('digest aborted')
                         return
-            """
+
 
     # Now change the data structure into my standard form:
     #
@@ -230,12 +248,22 @@ def digest(args=None):
                      os.path.isdir(os.path.join(rdir, ndir))]
         ndirs.sort()
 
+        # create an equivalent run directory in the log directory
+        rd = os.path.basename(rdir)
+        lrdir = os.path.join(LOGS, rd)
+        os.mkdir(lrdir)
+
+        # make a link to the telescope file
+        file = os.path.join('..','..',RAW,rd,'telescope')
+        link = os.path.join(lrdir, 'telescope')
+        os.symlink(file,link)
+        print('ln -s {:s} {:s}'.format(file, link))
+
         for ndir in ndirs:
             night = os.path.basename(ndir)
             nnight = night.replace('_','-')
             nndir = os.path.join(RAW, nnight)
-            lndir = os.path.join(os.path.dirname(ndir),
-                                 nnight)
+            lndir = os.path.join(os.path.dirname(ndir), nnight)
 
             # move the data directory up a level _ to -
             os.rename(ndir, nndir)
@@ -253,10 +281,16 @@ def digest(args=None):
             shutil.copyfile(oldlog, newlog)
             print('cp {:s} {:s}'.format(oldlog, newlog))
 
-            # make a directory for log stuff
+            # make an equivalent night directory for log stuff
             logndir = os.path.join(LOGS, nnight)
             os.mkdir(logndir)
             print('mkdir {:s}'.format(logndir))
+
+            # create a link to the log night directory in the log run directory
+            file = os.path.join('..',nnight)
+            link = os.path.join(lrdir, nnight)
+            os.symlink(file,link)
+            print('ln -s {:s} {:s}'.format(file, link))
 
             # create a link to the hand-written log in the log directory
             lname = '{:s}.dat'.format(nnight)
