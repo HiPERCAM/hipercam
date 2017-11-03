@@ -1,23 +1,70 @@
 """
-Section for handling the raw ULTRACAM data and xml files
+Module for handling raw ULTRA(CAM|SPEC) data.
+
+The main class is :class:`Rdata`
 """
 
+import os
 import struct
 import warnings
 import xml.dom.minidom
 import numpy as np
 import urllib.request
+import datetime
 
 from astropy.io import fits
 from astropy.time import Time
 
 from hipercam import (CCD, Group, MCCD, Windat, Window)
 
-from .constants import *
-from .uerrors import *
-from .server import get_nframe_from_server, URL
+__all__ = ['Rhead', 'Rdata', 'Rtime']
 
-__all__ = ['Rhead', 'Rdata']
+# First come a set of constants to do with timing and various changes that
+# occurred to ULTRACAM over time.
+
+# Some fixed dates needed by utimer. Put them here so that they are only
+# computed once.
+DSEC            = 86400
+MJD0            = datetime.date(1858,11,17).toordinal()
+UNIX            = datetime.date(1970,1,1).toordinal()  - MJD0
+DEFDAT          = datetime.date(2000,1,1).toordinal()  - MJD0
+FIRST           = datetime.date(2002,5,16).toordinal() - MJD0
+MAY2002         = datetime.date(2002,5,12).toordinal() - MJD0
+SEP2002         = datetime.date(2002,9,8).toordinal()  - MJD0
+TSTAMP_CHANGE1  = datetime.date(2003,8,1).toordinal()  - MJD0
+TSTAMP_CHANGE2  = datetime.date(2005,1,1).toordinal()  - MJD0
+TSTAMP_CHANGE3  = datetime.date(2010,3,1).toordinal()  - MJD0
+USPEC_CHANGE    = datetime.date(2011,9,21).toordinal() - MJD0
+
+# ULTRACAM timing parameters from Vik, all in microseconds
+INVERSION_DELAY = 110.
+HCLOCK          = 0.48
+CDS_TIME_FDD    = 2.2
+CDS_TIME_FBB    = 4.4
+CDS_TIME_CDD    = 10.
+SWITCH_TIME     = 1.2
+
+# ULTRASPEC timing parameters, now in seconds
+USPEC_FT_ROW    = 14.4e-6
+USPEC_FT_OFF    = 49.e-6
+USPEC_CLR_TIME  = 0.0309516
+
+# Bit masks needed for Meinberg GPS data.  See description in read_header.cc
+# in the ULTRACAM pipeline for more
+PCPS_FREER            = 0x01   # DCF77 clock running on xtal, GPS receiver has not verified its position
+PCPS_DL_ENB           = 0x02   # daylight saving enabled
+PCPS_SYNCD            = 0x04   # clock has sync'ed at least once after pwr up
+PCPS_DL_ANN           = 0x08   # a change in daylight saving is announced
+PCPS_UTC              = 0x10   # a special UTC firmware is installed
+PCPS_LS_ANN           = 0x20   # leap second announced, (requires firmware rev. REV_PCPS_LS_ANN_...)
+PCPS_IFTM             = 0x40   # the current time was set via PC, (requires firmware rev. REV_PCPS_IFTM_...)
+PCPS_INVT             = 0x80   # invalid time because battery was disconn'd
+PCPS_LS_ENB           = 0x0100 # current second is leap second
+PCPS_ANT_FAIL         = 0x0200 # antenna failure
+PCPS_UCAP_OVERRUN     = 0x2000 # events interval too short
+PCPS_UCAP_BUFFER_FULL = 0x4000 # events read too slow
+PCPS_IO_BLOCKED       = 0x8000 # access to microprocessor blocked
+
 
 class Rhead(fits.Header):
     """Stores the essential header info of an ULTRACAM/SPEC run as read from a
@@ -78,8 +125,9 @@ class Rhead(fits.Header):
               run name e.g. 'run002'. Can include path to disk file.
 
            server : (bool)
-              True to attempt to access the ATC FileServer. It uses a URL set in an
-              environment variable "ULTRACAM_DEFAULT_URL" in this instance.
+              True to attempt to access the ATC FileServer. It uses a URL set
+              in an environment variable "ULTRACAM_DEFAULT_URL" in this
+              instance.
 
         """
 
@@ -116,7 +164,7 @@ class Rhead(fits.Header):
             self.nxmax, self.nymax = 1056, 1072
         else:
             raise ValueError(
-                'Rhead.__init__: run = {:s}, failed to identify instrument.'.format(self.run)
+                'run = {:s}, failed to identify instrument.'.format(self.run)
             )
 
         application = [nd for nd in node.getElementsByTagName('application_status') \
@@ -159,9 +207,11 @@ class Rhead(fits.Header):
                 if 'Dec' in user:
                     self['DEC'] = (user['Dec'], 'Telescope Declination')
                 if 'Tracking' in user:
-                    self['TRACKING'] = (user['Tracking'], 'usdriver telescope tracking flag')
+                    self['TRACKING'] = (user['Tracking'],
+                                        'usdriver telescope tracking flag')
                 if 'TTflag' in user:
-                    self['TTFLAG'] = (user['TTflag'],'TNT telescope tracking flag')
+                    self['TTFLAG'] = (user['TTflag'],
+                                      'TNT telescope tracking flag')
                 if 'Focus' in user:
                     self['FOCUS'] = (user['Focus'],'Telescope focus')
                 if 'PA' in user:
@@ -169,11 +219,14 @@ class Rhead(fits.Header):
                 if 'Eng_PA' in user:
                     self['ENGPA'] = (user['Eng_PA'],'Engineering PA (deg)')
                 if 'ccd_temp' in user:
-                    self['CCDTEMP'] = (user['ccd_temp'], 'CCD temperature(s) [K]')
+                    self['CCDTEMP'] = (user['ccd_temp'],
+                                       'CCD temperature(s) [K]')
                 if 'finger_temp' in user:
-                    self['FINGTEMP'] = (user['finger_temp'],'Cold finger temperature [K]')
+                    self['FINGTEMP'] = (user['finger_temp'],
+                                        'Cold finger temperature [K]')
                 if 'finger_pcent' in user:
-                    self['FINGPCNT'] = (user['finger_pcent'],'Percentage power of finger')
+                    self['FINGPCNT'] = (user['finger_pcent'],
+                                        'Percentage power of finger')
             else:
                 user = None
         except Exception as err:
@@ -181,16 +234,18 @@ class Rhead(fits.Header):
 
         # Translate applications into meaningful mode names
         app = application
-        if app == 'ap8_250_driftscan' or app == 'ap8_driftscan' or app == 'ap_drift_bin2' \
-           or app == 'appl8_driftscan_cfg':
+        if app == 'ap8_250_driftscan' or app == 'ap8_driftscan' or \
+                app == 'ap_drift_bin2' or app == 'appl8_driftscan_cfg':
             mode = 'DRIFT'
         elif app == 'ap5_250_window1pair' or app == 'ap5_window1pair' or \
-             app == 'ap_win2_bin8' or app == 'ap_win2_bin2' or app == 'appl5_window1pair_cfg':
+             app == 'ap_win2_bin8' or app == 'ap_win2_bin2' or \
+             app == 'appl5_window1pair_cfg':
             mode    = '1-PAIR'
         elif app == 'ap5b_250_window1pair' or app == 'appl5b_window1pair_cfg':
             mode    = '1-PCLR'
         elif app == 'ap6_250_window2pair' or app == 'ap6_window2pair' or \
-             app == 'ap_win4_bin1' or app == 'ap_win4_bin8' or app == 'appl6_window2pair_cfg':
+             app == 'ap_win4_bin1' or app == 'ap_win4_bin8' or \
+             app == 'appl6_window2pair_cfg':
             mode    = '2-PAIR'
         elif app == 'ap7_250_window3pair' or app == 'ap7_window3pair' or \
              app == 'appl7_window3pair_cfg':
@@ -202,8 +257,9 @@ class Rhead(fits.Header):
             mode    = 'FFOVER'
         elif app == 'appl10_frameover_mindead_cfg':
             mode    = 'FFOVNC'
-        elif app == 'ap9_250_fullframe_mindead' or app == 'ap9_fullframe_mindead' or \
-             app == 'appl9_fullframe_mindead_cfg':
+        elif app == 'ap9_250_fullframe_mindead' or \
+                app == 'ap9_fullframe_mindead' or \
+                app == 'appl9_fullframe_mindead_cfg':
             mode    = 'FFNCLR'
         elif app == 'ccd201_winbin_con' or app == 'ccd201_winbin_cfg':
             if int(param['X2_SIZE']) == 0:
@@ -222,7 +278,7 @@ class Rhead(fits.Header):
             mode = 'PONOFF'
         else:
             raise ValueError(
-                'Rhead.__init__: file = {:s} failed to identify application = {:s}'.format(
+                'file = {:s} failed to identify application = {:s}'.format(
                     self.run,app)
             )
 
@@ -295,20 +351,26 @@ class Rhead(fits.Header):
 
                 # first set the physical data windows
                 nx, ny = 512, 1024
-                self.win.append(Window(1, 1, nx // xbin, ny // ybin, xbin, ybin))
-                self.win.append(Window(513, 1, nx // xbin, ny // ybin, xbin, ybin))
+                self.win.append(
+                    Window(1, 1, nx // xbin, ny // ybin, xbin, ybin))
+                self.win.append(
+                    Window(513, 1, nx // xbin, ny // ybin, xbin, ybin))
                 fsize += 12*nx*ny
 
                 # left & right overscans (both placed on the right)
                 nx,ny = 28, 1032
-                self.win.append(Window(1025, 1, nx // xbin, ny // ybin, xbin, ybin))
-                self.win.append(Window(1053, 1, nx // xbin, ny // ybin, xbin, ybin))
+                self.win.append(
+                    Window(1025, 1, nx // xbin, ny // ybin, xbin, ybin))
+                self.win.append(
+                    Window(1053, 1, nx // xbin, ny // ybin, xbin, ybin))
                 fsize += 12*nx*ny
 
                 # top overscans
                 nx,ny = 512, 8
-                self.win.append(Window(1, 1025, nx // xbin, ny // ybin, xbin, ybin))
-                self.win.append(Window(513, 1025, nx // xbin, ny // ybin, xbin, ybin))
+                self.win.append(
+                    Window(1, 1025, nx // xbin, ny // ybin, xbin, ybin))
+                self.win.append(
+                    Window(513, 1025, nx // xbin, ny // ybin, xbin, ybin))
                 fsize += 12*nx*ny
 
             else:
@@ -397,7 +459,7 @@ class Rhead(fits.Header):
 
         if fsize != self.framesize:
             raise ValueError(
-                'Rhead.__init__: file = {:s}. Framesize = {:s} clashes with calculated value = {:s}'.format(self.run,self.framesize,fsize)
+                'file = {:s}. Framesize = {:s} clashes with calculated value = {:s}'.format(self.run,self.framesize,fsize)
             )
 
         # nasty stuff coming up ...
@@ -414,7 +476,7 @@ class Rhead(fits.Header):
                      int(param['VERSION'])
             if vcheck != version:
                 raise ValueError(
-                    'Rhead.__init__: clashing version numbers: {:s} vs {:s}'.format(
+                    'clashing version numbers: {:s} vs {:s}'.format(
                         version,vcheck)
                 )
 
@@ -422,7 +484,7 @@ class Rhead(fits.Header):
             VERSIONS = [100222, 111205, 120716, 120813, 130307, 130317, 140331]
             if version not in VERSIONS:
                 raise ValueError(
-                    'Rhead.__init__: could not recognise version = {:s}'.format(version)
+                    'could not recognise version = {:s}'.format(version)
                 )
 
         self.whichRun = ''
@@ -553,7 +615,7 @@ class Rdata (Rhead):
         Rhead.__init__(self, run, server)
         if self.isPonoff():
             raise PowerOnOffError(
-                'Rdata.__init__: attempted to read a power on/off')
+                'attempted to read a power on/off')
 
         self.nframe = nframe
         self._ccd = ccd
@@ -601,7 +663,7 @@ class Rdata (Rhead):
         # position read pointer
         if nframe is not None:
             if nframe < 0:
-                raise UltracamError('ucam.Rdata.set: nframe < 0')
+                raise UltracamError('nframe < 0')
             elif nframe == 0:
                 if self.server:
                     self.nframe = get_nframe_from_server(self.run)
@@ -660,7 +722,7 @@ class Rdata (Rhead):
             if len(buff) != self.framesize:
                 self.nframe = 1
                 raise UltracamError(
-                    'Rdata.time: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} bytes'.format(self.nframe, len(buff), self.framesize)
+                    'failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} bytes'.format(self.nframe, len(buff), self.framesize)
                 )
             tbytes = buff[:2*self.headerwords]
         else:
@@ -669,7 +731,7 @@ class Rdata (Rhead):
             if len(tbytes) != 2*self.headerwords:
                 self.fp.seek(0)
                 self.nframe = 1
-                raise UendError('Rdata.time: failed to read timing bytes')
+                raise UendError('failed to read timing bytes')
 
         tinfo = utimer(tbytes, self, self.nframe)
 
@@ -739,7 +801,7 @@ class Rdata (Rhead):
             if len(tbytes) != 2*self.headerwords:
                 self.fp.seek(0)
                 self.nframe = 1
-                raise UendError('Rdata.__call__: failed to read timing bytes')
+                raise UendError('failed to read timing bytes')
 
             # read data as unsigned 2-byte integers
             buff = np.fromfile(
@@ -750,7 +812,7 @@ class Rdata (Rhead):
                 self.fp.seek(0)
                 self.nframe = 1
                 raise UltracamError(
-                    'Rdata.__call__: failed to read frame {:d}. Buffer length vs attempted = {:d} vs {:d}'.format(self.nframe, len(buff), self.framesize/2-self.headerwords))
+                    'failed to read frame {:d}. Buffer length vs attempted = {:d} vs {:d}'.format(self.nframe, len(buff), self.framesize/2-self.headerwords))
 
         # From this point, both server and local disk methods are the same
         if self.instrument == 'ULTRACAM':
@@ -1064,8 +1126,7 @@ class Rdata (Rhead):
 
         else:
             raise UltracamError(
-                'Rdata.__init__: have not'
-                ' implemented anything for ' + self.instrument)
+                ' have not implemented anything for ' + self.instrument)
 
 
 class Rtime (Rhead):
@@ -1090,7 +1151,7 @@ class Rtime (Rhead):
         """
         super().__init__(self, run, server)
         if self.isPonoff():
-            raise PowerOnOffError('Rtime.__init__: attempted to read a power on/off')
+            raise PowerOnOffError('attempted to read a power on/off')
 
         # Attributes set are:
         #
@@ -1121,7 +1182,7 @@ class Rtime (Rhead):
         # position read pointer
         if nframe is not None:
             if nframe < 0:
-                raise UltracamError('Rtime.set: nframe < 0')
+                raise UltracamError('nframe < 0')
             elif nframe == 0:
                 if self.server:
                     self.nframe = get_nframe_from_server(self.run)
@@ -1176,7 +1237,7 @@ class Rtime (Rhead):
             if len(buff) != self.framesize:
                 self.nframe = 1
                 raise UltracamError(
-                    'Rtime.__call__: failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} byes'.format(self.nframe, len(buff), self.framesize)
+                    'failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} byes'.format(self.nframe, len(buff), self.framesize)
                 )
 
             # have data. Re-format into the timing bytes and unsigned 2 byte int data buffer
@@ -1187,7 +1248,7 @@ class Rtime (Rhead):
             if len(tbytes) != 2*self.headerwords:
                 self.fp.seek(0)
                 self.nframe = 1
-                raise UendError('Data.get: failed to read timing bytes')
+                raise UendError('failed to read timing bytes')
 
             # step to start of next frame
             self.fp.seek(self.framesize-2*self.headerwords,1)
@@ -1260,7 +1321,7 @@ def utimer(tbytes, rhead, fnum):
             rhead.version == 130317 or rhead.version == 140331:
         format = 2
     else:
-        raise UltracamError('Rdata._timing: version = ' + str(rhead.version) + ' unrecognised.')
+        raise UltracamError('version = ' + str(rhead.version) + ' unrecognised.')
 
     frameNumber = struct.unpack('<I', tbytes[4:8])[0]
     if frameNumber != fnum:
@@ -1326,7 +1387,7 @@ def utimer(tbytes, rhead, fnum):
             reason = 'GPS receiver has not verified its position'
 
     else:
-        raise UltracamError('Rdata.time: format = ' + str(format) + ' not recognised.')
+        raise UltracamError('format = ' + str(format) + ' not recognised.')
 
     def tcon1(offset, nsec, nnsec):
         """
@@ -1450,7 +1511,7 @@ def utimer(tbytes, rhead, fnum):
             cds_time = CDS_TIME_FDD
         else:
             raise UltracamError(
-                'ultracam.utimer: did not recognize gain speed setting = {:s}'.format(rhead.gainSpeed))
+                'did not recognize gain speed setting = {:s}'.format(rhead.gainSpeed))
         VIDEO = SWITCH_TIME + cds_time
 
     elif rhead.instrument == 'ULTRASPEC':
@@ -1928,5 +1989,85 @@ def utimer(tbytes, rhead, fnum):
 
     else:
         raise UltracamError(
-            'ultracam.utimer: did not recognize instrument = {:s}'.format(rhead.instrument)
+            'did not recognize instrument = {:s}'.format(rhead.instrument)
         )
+
+
+# The ATC FileServer recognises various GET requests (look for 'action=' in
+# the code) which are accessed using urllib. The following code is to allow
+# urllib to connect to a local version of the FileServer which does not work
+# without this code.
+
+# prevent auto-detection of proxy settings
+proxy_support = urllib.request.ProxyHandler({})
+opener = urllib.request.build_opener(proxy_support)
+urllib.request.install_opener(opener)
+
+# Set the URL of the FileServer from the environment or default to localhost.
+URL = os.environ['ULTRACAM_DEFAULT_URL'] if \
+    'ULTRACAM_DEFAULT_URL' in os.environ else 'http://localhost:8007/'
+
+def get_nframe_from_server(run):
+    """
+    Returns the number of frames in the run via the FileServer
+
+    Argument::
+
+       run : (string)
+          ULTRACAM run name as in 'run003'
+    """
+
+    # Get from FileServer
+    full_url = URL + run + '?action=get_num_frames'
+    resp = urllib.request.urlopen(full_url).read()
+
+    # Parse the response
+    loc = resp.find('nframes="')
+    if loc > -1:
+        end = resp[loc+9:].find('"')
+        return int(resp[loc+9:loc+9+end])
+    else:
+        raise ValueError('failed to parse server response to ' + full_url)
+
+def get_runs_from_server(dir=None):
+    """
+    Returns with a list of runs from the server
+
+    Argument::
+
+       dir : (string)
+          name of sub-directory on server
+    """
+
+    # get from FileServer
+    if dir is None:
+        full_url = URL + '?action=dir'
+    else:
+        full_url = URL + dir + '?action=dir'
+    resp = urllib.request.urlopen(full_url).read()
+
+    # parse response from server
+    ldir = resp.split('<li>')
+    runs = [entry[entry.find('>run')+1:entry.find('>run')+7] for entry in ldir
+            if entry.find('getdata">run') > -1]
+    runs.sort()
+    return runs
+
+class UltracamError(Exception):
+    """For throwing exceptions from the ultracam module"""
+    pass
+
+class UendError(UltracamError):
+    """
+    Exception for the standard way to reach the end of a data
+    file (failure to read the timing bytes). This allows the
+    iterator to die silently in this case while  raising
+    exceptions for less anticipated cases.
+    """
+    pass
+
+class PowerOnOffError(UltracamError):
+    """
+    Exception for trying to read a power on/off
+    """
+    pass
