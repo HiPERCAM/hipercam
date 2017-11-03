@@ -19,9 +19,8 @@ from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
 from astropy.time import Time
 
-from hipercam import (CCD, Group, MCCD, Windat, Window, HRAW)
+from hipercam import (CCD, Group, MCCD, Windat, Window, HRAW, HipercamError)
 from hipercam.utils import add_extension
-from .herrors import *
 
 __all__ = ['Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT']
 
@@ -920,6 +919,15 @@ def decode_timing_bytes(tbytes):
 
     # format with 36 timing bytes (last two of which are ignored)
     buf = struct.pack('<HHHHHHHHHHHHHHHHH',
-                      *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
+                     *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
                                                              tbytes[:-2])))
     return struct.unpack('<IIIIIIIIbb', buf)
+
+
+class HendError(HipercamError):
+    """
+    Exception for the standard way to reach the end of a HiPERCAM raw data
+    file (attempt to read out-of-range frame). This allows the iterator to die
+    silently in this case while raising exceptions for less anticipated cases.
+    """
+    pass
