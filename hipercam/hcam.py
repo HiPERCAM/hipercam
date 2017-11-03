@@ -42,32 +42,36 @@ class Rhead:
 
     The following attributes are set::
 
-       cheads    : (list of astropy.io.fits.Header)
+       cheads    : list of astropy.io.fits.Header
            the headers for each CCD which contain any info needed per CCD, above
            all the 'skip' numbers, which are used when creating MCCD frames.
 
-       fname     : (string)
+       fname     : string
            the file name
 
-       header    : (astropy.io.fits.Header)
+       header    : astropy.io.fits.Header
            the header of the FITS file.
 
-       mode      : (string)
+       mode      : string
            the readout mode used, read from 'ESO DET READ CURNAME'
 
-       ntbytes   : (int)
+       ntbytes   : int
            number of timing bytes, deduced from the dimensions of the FITS cube
            (NAXIS1 contains all pixels and timing bytes) compared to the window
            dimensions.
 
-        nwins     : (tuple)
+        nwins     : tuple
            integer indices of the windows for any one quadrant. This is (0,) for
            one window modes, (0,1) for two window modes.
 
-        thead     : (astropy.io.fits.Header)
+        thead     : astropy.io.fits.Header
            the top-level header that will be used to create MCCDs.
 
-        windows   : (list of list of list of (Window, flip) tuples)
+        times     : Times
+           this object generates mid-exposure times for each CCD when fed the
+           timestamp and frame number.
+
+        windows   : list of list of list of (Window, flip) tuples
            windows[nccd][nquad][nwin] returns the Window and set of axes for
            window nwin of quadrant nquad of CCD nccd. nwin indexes the windows
            of a given quadrant (at most there are 2, so nwin = 0 or 1). nquad
@@ -139,6 +143,9 @@ class Rhead:
         # store the scaling and offset
         self._bscale = self.header['BSCALE']
         self._bzero = self.header['BZERO']
+
+        # this object is used to obtain mid-exposure times
+        self.times = Times(self.header)
 
         # create the top-level header
         self.thead = fits.Header()
@@ -326,6 +333,48 @@ class Rhead:
             self.cheads.append(chead)
 
         # end of constructor / initialiser
+
+    def ntotal(self):
+        """
+        Returns the total number of complete frames.
+        """
+        if self.server:
+            data = json.dumps(dict(action='get_nframes'))
+            self._ws.send(data)
+            raw_bytes = self._ws.recv()
+            if len(raw_bytes) == 0:
+                raise hcam.HipercamError(
+                    'failed to get total number of frames'
+                    ' from server; 0 bytes returned'
+                )
+            d = eval(raw_bytes)
+            ntot = d['nframes']
+        else:
+            """
+            # rather than read NAXIS3, this is designed to allow for the file
+            # being incremented. First record where we are so we can return
+            ctell = self._ffile.tell()
+
+            # seek the end of file
+            self._ffile.seek(0,2)
+
+            # compute byte offset at this point and thus the total number of
+            # complete frames (this is what we return)
+            ntot = (self._ffile.tell() - self._hbytes) // self._framesize
+
+            print( ctell, self._ffile.tell(), self._hbytes, self._framesize,
+                   (self._ffile.tell() - self._hbytes) / self._framesize)
+
+            # return pointer to starting position
+            self._ffile.seek(ctell)
+            """
+            # the commented out section was an attempt to work out the number
+            # of frames even when the file was growing. This fails owing the
+            # 2880-byte FITS standard when one has small framesizes, thus I am
+            # using NAXIS3 instead
+            ntot = self.header['NAXIS3']
+
+        return ntot
 
     def __del__(self):
         """Destructor closes the file or web socket"""
@@ -596,7 +645,7 @@ class Rdata (Rhead):
 
         # initialise CCDs with empty Groups. These will be added to later
         ccds = Group(CCD)
-        for cnam, chead in zip(CNAMS, self.cheads):
+        for nccd, (cnam, chead) in enumerate(zip(CNAMS, self.cheads)):
 
             # explicitly copy each header to avoid propagation of references
             ch = chead.copy()
@@ -607,11 +656,11 @@ class Rdata (Rhead):
                      if 'NCYCLE' in ch else True
             ch['DSTATUS'] = (isdata, 'Data status when NCYCLE > 1')
 
-            # this is a temporary measure. need more work to sort the
-            # exact timing, so for now just copy over the top level value.
-            ch['MJDUTC'] = (
-                thead['MJDUTC'], 'MJD(UTC) at centre of exposure')
-            ch['GOODTIME'] = (thead['GOODTIME'], 'Is MJDUTC reliable?')
+            # Get time at centre of exposure
+            tmid, texp, flag = self.times(tstamp.mjd, frameCount, nccd)
+            ch['MJDUTC'] = (tmid, 'MJD(UTC) at centre of exposure')
+            ch['GOODTIME'] = (flag and thead['GOODTIME'], 'Is MJDUTC reliable?')
+            ch['EXPTIME'] = (texp, 'Exposure time (secs)')
 
             # finally create the CCD
             ccds[cnam] = CCD(Group(Windat), HCM_NXTOT, HCM_NYTOT, ch)
@@ -678,35 +727,6 @@ class Rdata (Rhead):
         self.first = False
 
         return mccd
-
-    def ntotal(self):
-        """
-        Returns the total number of complete frames.
-        """
-        if self.server:
-            data = json.dumps(dict(action='get_nframes'))
-            self._ws.send(data)
-            raw_bytes = self._ws.recv()
-            if len(raw_bytes) == 0:
-                raise hcam.HipercamError(
-                    'failed to get total number of frames'
-                    ' from server; 0 bytes returned'
-                )
-            d = eval(raw_bytes)
-            ntot = d['nframes']
-        else:
-            # rather than read NAXIS3, this is designed to allow for the file
-            # being incremented. First seek the end of file
-            self._ffile.seek(0,2)
-
-            # compute byte offset at this point and thus the total number of
-            # complete frames (this is what we return)
-            ntot = (self._ffile.tell()-self._hbytes) // self._framesize
-
-            # return pointer to current frame
-            self._ffile.seek(self._hbytes+self._framesize*(self.nframe-1))
-
-        return ntot
 
     def seek_frame(self, n):
         """
@@ -829,11 +849,9 @@ class Rtime (Rhead):
             reset = self.nframe != nframe
             self.nframe = nframe
 
-        # ?? need a maximum frame number routine in the server
-        # at the moment just don't run ntotal if server
         if not self.server and self.nframe > self.ntotal():
             self.nframe = 1
-            raise HendError('Rdata.__call__: tried to access a frame exceeding the maximum')
+            raise HendError('tried to access a frame exceeding the maximum')
 
         if self.server:
             # define command to send to server
@@ -923,6 +941,99 @@ def decode_timing_bytes(tbytes):
                                                              tbytes[:-2])))
     return struct.unpack('<IIIIIIIIbb', buf)
 
+
+class Times:
+    """
+    This class is to determine the times at mid-exposure for each HiPERCAM CCD
+    given a time stamp. To initialise it one feeds it a header from which
+    particular parameters are used to set attributes which are then used on
+    subsequent calls. For details of how this works, please see the document
+    hipercam-timing.pdf
+    """
+    def __init__(self, head):
+
+        # Store the NSKIP for each CCD
+        self.nskips = (
+            head['ESO DET NSKIPS1'],
+            head['ESO DET NSKIPS2'],
+            head['ESO DET NSKIPS3'],
+            head['ESO DET NSKIPS4'],
+            head['ESO DET NSKIPS5']
+            )
+
+        # The corrections are of the form toff-tdelta*nskip/2
+        # in all cases, but toff can have two possible values
+        # depending on whether it is the first good frame or
+        # not. toff1 is for the first good frame, toff2 for all
+        # others. In the clear mode case, toff1=toff2.
+        #
+        # The exposure times are of the form tdelta*nskip+toff
+        # where again toff can have two values toff3 or toff4
+        # for the first frame case and all others
+
+        self.clear = (head['ESO DET CLRCCD'] == 'T')
+        # 1msec in days
+        SCALE = 1.e-3/3600/24
+
+        if self.clear:
+            # Clear mode. NB the parameter 'TREAD' is actually a combination
+            # of a frame-transfer and a read
+            self.tdelta = SCALE*(
+                head['ESO DET TREAD'] + head['ESO DET TDELAY'] + \
+                head['ESO DET TCLEAR'])
+
+            self.toff1 = self.toff2 = SCALE*head['ESO DET TEXPOSE']/2.
+
+            self.toff3 = self.toff4 = SCALE*head['ESO DET TEXPOSE']
+
+        else:
+            # No clear mode, there are zero sec dummy 'wipes' so no 'TCLEAR'
+            # here
+            self.tdelta = SCALE*(head['ESO DET TREAD'] + \
+                                 head['ESO DET TDELAY'])
+
+            self.toff1 = SCALE*head['ESO DET TEXPOSE']/2.
+
+            self.toff2 = SCALE*(
+                head['ESO DET TEXPOSE'] - head['ESO DET TREAD'] +
+                head['ESO DET TFT'] ) / 2.
+
+            self.toff3 = SCALE*head['ESO DET TEXPOSE']
+
+            self.toff4 = SCALE*(
+                head['ESO DET TEXPOSE'] + head['ESO DET TREAD'] - \
+                head['ESO DET TFT'])
+
+
+    def __call__(self, mjd, nframe, nccd):
+        """Returns the time at mid-exposure as an MJD, the exposure
+        time in seconds and a flag to indicate whether the time is
+        thought good.
+
+        Arguments::
+
+           mjd    : float
+              the MJD of the timestamp
+
+           nframe : int
+              the frame number starting at 1.
+
+           ncdd : int
+              the CCD number, starting at 0
+
+        Returns: (mjd, exptime, flag)
+        """
+
+        nskip = self.nskips[nccd]
+
+        flag = nframe % (nskip+1) == 0
+        if nframe == nskip + 1:
+            tmid = mjd + toff1 - tdelta*nskip/2
+            texp = tdelta*nskip + toff3
+        else:
+            tmid = mjd + toff2 - tdelta*nskip/2
+            texp = tdelta*nskip + toff4
+        return (tmid, texp, flag)
 
 class HendError(HipercamError):
     """
