@@ -45,6 +45,7 @@ INTRODUCTION_FOOTER = """
 
 NIGHT_HEADER = """<html>
 <head>
+<link rel="stylesheet" type="text/css" href="../hiper.css" />
 <title>HiPERCAM log {0:s}</title>
 </head>
 
@@ -52,7 +53,20 @@ NIGHT_HEADER = """<html>
 <h1>HiPERCAM log {0:s}</h1>
 
 <p>
+The table below lists information on runs from the night starting on {0:s}.
+
+<p>
 <table>
+<tr>
+<th class="left">Run<br>no.</th>
+<th class="left">Target<br>name</th>
+<th class="cen">RA (J2000)<br>telescope</th>
+<th class="cen">Dec (J2000)<br>telescope</th>
+<th class="right">Nframe</th>
+<th class="cen">Read<br>mode</th>
+<th class="left">Run<br>no.</th>
+<th class="left">Comment</th>
+</tr>
 """
 
 NIGHT_FOOTER = """
@@ -77,6 +91,193 @@ MONTHS = {
     '11' : 'November',
     '12' : 'December',
 }
+
+# HiPERCAM CSS to define the look of the log web pages
+# This is written to 'hiper.css' and referred to in the
+# html pages
+CSS = """
+
+body{
+    background-color: #000000;
+    font: 11pt sans-serif;
+    color: #FFFFFF;
+    margin: 10px;
+    border: 0px;
+    overflow: auto;
+    height: 100%;
+    max-height: 100%;
+}
+
+/* This for the left-hand side guide */
+
+#guidecontent{
+    position: absolute;
+    margin: 10px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 200px;
+    height: 100%;
+    overflow: auto;
+}
+
+#titlecontent{
+    position: fixed;
+    margin: 10px;
+    top: 0;
+    left: 200px;
+    right: 0;
+    bottom: 220px;
+    overflow: auto;
+}
+
+#logcontent{
+    position: fixed;
+    margin: 10px;
+    top: 220px;
+    left: 200px;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+}
+
+p {color: #ffffe0}
+
+h1 {color: #ffffff}
+
+input.text {margin-right: 20px; margin-left: 10px}
+
+spa {margin-right: 20px; margin-left: 20px}
+
+table {
+    font: 9pt sans-serif;
+    padding: 1px;
+    border-top:1px solid #655500;
+    border-right:1px solid #655500;
+    border-bottom:2px solid #655500;
+    border-left:1px solid #655500;
+}
+
+td {
+    vertical-align: top;
+    text-align: center;
+    white-space: nowrap;
+    padding-right: 10px;
+}
+
+td.left {
+    vertical-align: top;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 10px;
+}
+
+td.right {
+    vertical-align: top;
+    text-align: right;
+    white-space: nowrap;
+    padding-right: 10px;
+}
+
+td.cen {
+    vertical-align: top;
+    text-align: center;
+    white-space: nowrap;
+}
+
+td.undef {
+    background-color: #100000;
+}
+
+td.format {
+    vertical-align: top;
+    text-align: center;
+    white-space: nowrap;
+}
+
+td.long {
+    vertical-align: top;
+    text-align: left;
+    padding-right: 10px;
+    font: 12pt sans-serif;
+    white-space: normal;
+}
+
+td.bleft {
+    color: #ffffa0;
+    vertical-align: top;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 10px;
+    font: 12pt sans-serif;
+    font-weight: bold;
+}
+
+th {
+    vertical-align:top;
+    text-align: center;
+}
+
+th.left {
+    vertical-align: top;
+    text-align: left;
+}
+
+th.cen {
+    vertical-align: top;
+    text-align: center;
+}
+
+/* links */
+
+a:link {
+    color: #7070ff;
+    text-decoration:underline;
+    font-size: 11pt;
+}
+
+a:visited {
+    color: #e0b0e0;
+    text-decoration:underline;
+    font-size: 11pt;
+}
+
+a:hover {
+    color: red;
+    text-decoration:underline;
+    font-size: 11pt;
+}
+"""
+
+TRANSLATE_MODE = {
+    'FullFrame' : 'FULL',
+    'OneWindow' : '1-WIN',
+    'TwoWindows' : '2-WIN',
+    'DriftWindow' : 'DRIFT',
+}
+
+def correct_ra_dec(ra, dec):
+    """Fixes up RAs and Decs"""
+    if ra == 'UNDEF':
+        ra = ''
+    else:
+        rah,ram,ras = ra.split(':')
+        rah, ram, ras = int(rah), int(ram), float(ras)
+        ra = '{:02d}:{:02d}:{:05.2f}'.format(rah,ram,ras)
+
+    if dec == 'UNDEF':
+        dec = ''
+    else:
+        decd,decm,decs = dec.split(':')
+        if decd.find('-') > -1:
+            negative = True
+        else:
+            negative = False
+        decd, decm, decs = int(decd), int(decm), float(decs)
+        decd = -abs(decd) if negative else abs(decd)
+        dec = '{:+03d}:{:02d}:{:04.1f}'.format(decd,decm,decs)
+
+    return (ra, dec)
 
 def hlogger(args=None):
     """Generates html logs for hipercam runs.
@@ -142,7 +343,8 @@ def hlogger(args=None):
         rnames.sort()
 
         if len(rnames) == 0:
-            print("there were no run directories of the form YYYY-MM with a file called 'telescope' in them", file=sys.stderr)
+            print("there were no run directories of the form "
+                  "YYYY-MM with a file called 'telescope' in them", file=sys.stderr)
             print('hlogger aborted',file=sys.stderr)
             return
 
@@ -151,6 +353,8 @@ def hlogger(args=None):
             ihtml.write(INTRODUCTION_HEADER)
 
             for rname in rnames:
+                print('\nProcessing run {:s}'.format(rname))
+
                 # write in run date, start table of nights
                 rn = os.path.basename(rname)
                 year, month = rn.split('-')
@@ -169,13 +373,16 @@ def hlogger(args=None):
 
                 if len(nnames) == 0:
                     print(
-                        "found no night directories of the form YYYY-MM-DD with 'data' sub-directories in {:s}".format(rname),
+                        "found no night directories of the form YYYY-MM-DD with"
+                        " 'data' sub-directories in {:s}".format(rname),
                         file=sys.stderr
                         )
                     print('hlogger aborted',file=sys.stderr)
                     return
 
                 for nname in nnames:
+                    print('  night {:s}'.format(nname))
+
                     # Write an entry for each night linking to the log for that night.
                     night = os.path.basename(nname)
                     fname = '{0:s}/{0:s}.html'.format(night)
@@ -203,8 +410,44 @@ def hlogger(args=None):
                                     fre.match(run)]
                         runs.sort()
 
+                        # now wind through the runs getting basic info and writing a row
+                        # of info to the html file for the night in question 
                         for run in runs:
-                            nhtml.write('<tr><td>{:s}</td><td>{:s}</td></tr>\n'.format(run,hlog[run]))
+
+                            # open the run file as an Rtime
+                            rname = os.path.join(night,'data',run)
+                            rtime = hcam.hcam.Rtime(rname)
+                            hd = rtime.header
+
+                            # start the row
+                            nhtml.write('<tr>\n')
+
+                            # run number
+                            nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
+
+                            # object name
+                            nhtml.write('<td class="left">{:s}</td>'.format(hd['OBJECT']))
+
+                            # RA, Dec
+                            ra, dec = correct_ra_dec(hd['RA'], hd['Dec'])
+                            nhtml.write('<td class="cen">{:s}</td>'.format(ra))
+                            nhtml.write('<td class="cen">{:s}</td>'.format(dec))
+
+                            # number of frames
+                            nhtml.write('<td class="right">{:d}</td>'.format(rtime.ntotal()))
+
+                            # readout mode
+                            nhtml.write('<td class="cen">{:s}</td>'.format(
+                                    TRANSLATE_MODE[rtime.mode]))
+
+                            # run number again
+                            nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
+
+                            # hand log comment
+                            nhtml.write('<td class="left">{:s}</td>'.format(hlog[run]))
+
+                            # end the row
+                            nhtml.write('\n</tr>\n')
 
                         # finish off the night file
                         nhtml.write(NIGHT_FOOTER)
@@ -216,3 +459,6 @@ def hlogger(args=None):
             ihtml.write(INTRODUCTION_FOOTER)
 
 
+    # write out the css file
+    with open('hiper.css','w') as fout:
+        fout.write(CSS)
