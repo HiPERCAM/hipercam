@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 
 noclear = (
     ('C', True),
-    ('W', True),
     ('E', True),
     ('F', False),
     ('R', False),
@@ -56,13 +55,13 @@ for n, (letter, flag) in enumerate(noclear):
                      ha='center',va='center')
         nd += 1
 
-plt.plot([9.5,17.5,17.5,9.5,9.5],
+plt.plot([8.5,16.5,16.5,8.5,8.5],
          [-0.06,-0.06,0.08,0.08,-0.06],'--b')
 
-plt.plot([21.5,18.5,18.5,21.5],
+plt.plot([20.5,17.5,17.5,20.5],
          [-0.06,-0.06,0.08,0.08],'--b')
 
-plt.plot([1.5,8.5,8.5,1.5,1.5],
+plt.plot([0.5,7.5,7.5,0.5,0.5],
          [-0.06,-0.06,0.08,0.08,-0.06],'--r')
 
 plt.xlim(-0.5,len(noclear)-0.3)
@@ -73,7 +72,6 @@ plt.savefig('noclear.pdf')
 
 clear = (
     ('C', True),
-    ('W', True),
     ('E', True),
     ('F', False),
     ('R', False),
@@ -130,13 +128,13 @@ for n, (letter, flag) in enumerate(clear):
                      ha='center',va='center')
         nd += 1
 
-plt.plot([13.5,22.5,22.5,13.5,13.5],
+plt.plot([12.5,21.5,21.5,12.5,12.5],
          [-0.06,-0.06,0.08,0.08,-0.06],'--b')
 
-plt.plot([27.5,25.5,25.5,27.5],
+plt.plot([26.5,24.5,24.5,26.5],
          [-0.06,-0.06,0.08,0.08],'--b')
 
-plt.plot([1.5,10.5,10.5,1.5,1.5],
+plt.plot([0.5,9.5,9.5,0.5,0.5],
          [-0.06,-0.06,0.08,0.08,-0.06],'--r')
 
 plt.xlim(-0.5,len(clear)-0.3)
