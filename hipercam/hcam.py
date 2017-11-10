@@ -34,6 +34,9 @@ BZERO = (1 << 15)
 # Maximum dimensions of HiPERCAM CCDs
 HCM_NXTOT, HCM_NYTOT = 2148, 1040
 
+# number of seconds in a day
+DAYSEC = 86400.
+
 class Rhead:
     """Reads an interprets header information from a HiPERCAM run (3D FITS file)
     and generates the window formats needed to interpret the data. The file is
@@ -619,7 +622,7 @@ class Rdata (Rhead):
         if nsats == -1 and synced == -1:
             # invalid time; pretend we are in 2000-01-01 taking one frame per
             # second.  just so we can get something.
-            tstamp = Time(51544 + self.nframe/86400., format='mjd')
+            tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd')
         else:
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
                 years, day_of_year, hours, mins, seconds+nanoseconds/1e9
@@ -897,6 +900,29 @@ class Rtime (Rhead):
         # Return
         return tstamp
 
+    def tinfo(self):
+        """
+        Returns some timing info, namely the exposure times for each CCD
+        appropriate for a "standard" exposure (i.e. not the first), the
+        offsets to get to the mid-exposure from a timestamp, again for a
+        "standard" exposure, and the dead time between frames.
+
+        Returns (texps, toffs, tdead) where texps and toffs are
+        5-element tuples representing the "standard" exposure times
+        and offsets from the timestamp, and tdead is the deadtime,
+        all in seconds
+        """
+
+        # we just pretend we are on a suitable frame for each CCD
+        texps = []
+        toffs = []
+        for nccd, nskip in enumerate(self.times.skips):
+            toff, texp, flag = self.times(0, 2*(nskip+1, nccd))
+            toffs.append(DAYSEC*toff)
+            texps.append(texp)
+
+        return (tuple(texps), tuple(toffs), self.times.tdead())
+
 def decode_timing_bytes(tbytes):
     """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the
     3D FITS file.
@@ -973,7 +999,7 @@ class Times:
 
         self.clear = (head['ESO DET CLRCCD'] == 'T')
         # 1msec in days
-        SCALE = 1.e-3/3600/24
+        SCALE = 1.e-3/DAYSEC
 
         if self.clear:
             # Clear mode. NB the parameter 'TREAD' is actually a combination
@@ -982,9 +1008,9 @@ class Times:
                 head['ESO DET TREAD'] + head['ESO DET TDELAY'] + \
                 head['ESO DET TCLEAR'])
 
-            self.toff1 = self.toff2 = SCALE*head['ESO DET TEXPOSE']/2.
+            self.toff1 = self.toff2 = SCALE*head['ESO DET TDELAY']/2.
 
-            self.toff3 = self.toff4 = SCALE*head['ESO DET TEXPOSE']
+            self.toff3 = self.toff4 = SCALE*head['ESO DET TDELAY']
 
         else:
             # No clear mode, there are zero sec dummy 'wipes' so no 'TCLEAR'
@@ -992,23 +1018,36 @@ class Times:
             self.tdelta = SCALE*(head['ESO DET TREAD'] + \
                                  head['ESO DET TDELAY'])
 
-            self.toff1 = SCALE*head['ESO DET TEXPOSE']/2.
+            self.toff1 = SCALE*head['ESO DET TDELAY']/2.
 
             self.toff2 = SCALE*(
-                head['ESO DET TEXPOSE'] - head['ESO DET TREAD'] +
+                head['ESO DET TDELAY'] - head['ESO DET TREAD'] +
                 head['ESO DET TFT'] ) / 2.
 
-            self.toff3 = SCALE*head['ESO DET TEXPOSE']
+            self.toff3 = SCALE*head['ESO DET TDELAY']
 
             self.toff4 = SCALE*(
-                head['ESO DET TEXPOSE'] + head['ESO DET TREAD'] - \
+                head['ESO DET TDELAY'] + head['ESO DET TREAD'] - \
                 head['ESO DET TFT'])
 
+    def tdead(self):
+        """
+        The "dead time" between frames, in seconds, i.e. the time
+        that is lost as far as accumulating photons goes.
+
+        Note that in the timing doc diagram F+R corresponds to the
+        header parameter TREAD. E-mail from Stu, 03/11/17.
+        """
+
+        if self.clear:
+            return 1.e-3*(head['ESO DET TREAD']+head['ESO DET TCLEAR'])
+        else:
+            return 1.e-3*head['ESO DET TFT']
 
     def __call__(self, mjd, nframe, nccd):
         """Returns the time at mid-exposure as an MJD, the exposure
-        time in seconds and a flag to indicate whether the time is
-        thought good.
+        time in seconds, and a flag to indicate whether the time is
+        thought good
 
         Arguments::
 

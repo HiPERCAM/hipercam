@@ -17,7 +17,7 @@ __all__ = ['hlogger',]
 #
 # logger -- generates html logs for hipercam
 #
-###############################
+############################################
 
 ###########
 #
@@ -63,6 +63,7 @@ The table below lists information on runs from the night starting on {0:s}.
 <th class="cen">RA (J2000)<br>telescope</th>
 <th class="cen">Dec (J2000)<br>telescope</th>
 <th class="right">Nframe</th>
+<th class="cen">Start<br>time</th>
 <th class="cen">Read<br>mode</th>
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
@@ -410,8 +411,9 @@ def hlogger(args=None):
                                     fre.match(run)]
                         runs.sort()
 
-                        # now wind through the runs getting basic info and writing a row
-                        # of info to the html file for the night in question 
+                        # now wind through the runs getting basic info and
+                        # writing a row of info to the html file for the night
+                        # in question.
                         for run in runs:
 
                             # open the run file as an Rtime
@@ -434,7 +436,15 @@ def hlogger(args=None):
                             nhtml.write('<td class="cen">{:s}</td>'.format(dec))
 
                             # number of frames
-                            nhtml.write('<td class="right">{:d}</td>'.format(rtime.ntotal()))
+                            ntotal = rtime.ntotal()
+                            nhtml.write('<td class="right">{:d}</td>'.format(ntotal))
+
+                            # First timestamp
+                            try:
+                                tstamp = rtime(1).isot
+                                nhtml.write('<td class="cen">{:s}</td>'.format(tstamp[tstamp.find('T')+1:tstamp.rfind('.')]))
+                            except:
+                                nhtml.write('<td class="cen">--:--:--</td>')
 
                             # readout mode
                             nhtml.write('<td class="cen">{:s}</td>'.format(
