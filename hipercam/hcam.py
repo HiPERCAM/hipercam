@@ -40,8 +40,8 @@ DAYSEC = 86400.
 class Rhead:
     """Reads an interprets header information from a HiPERCAM run (3D FITS file)
     and generates the window formats needed to interpret the data. The file is
-    kept open while the Rhead exists. The file can be on the local disk or obtained
-    via the fileserver.
+    kept open while the Rhead exists. The file can be on the local disk or
+    obtained via the fileserver.
 
     The following attributes are set::
 
@@ -66,6 +66,12 @@ class Rhead:
         nwins     : tuple
            integer indices of the windows for any one quadrant. This is (0,) for
            one window modes, (0,1) for two window modes.
+
+        oscan     : bool
+           overscan set
+
+        pscan     : bool
+           prescan set
 
         thead     : astropy.io.fits.Header
            the top-level header that will be used to create MCCDs.
@@ -160,10 +166,10 @@ class Rhead:
 
         # Framesize parameters
         # check for overscan / prescan
-        oscan = self.header['ESO DET INCOVSCY']
-        pscan = self.header['ESO DET INCPRSCX']
-        yframe = 520 if oscan else 512
-        xframe = 1074 if pscan else 1024
+        self.oscan = self.header['ESO DET INCOVSCY']
+        self.pscan = self.header['ESO DET INCPRSCX']
+        yframe = 520 if self.oscan else 512
+        xframe = 1074 if self.pscan else 1024
 
         # binning factors
         xbin = self.header['ESO DET BINX1']
@@ -221,7 +227,7 @@ class Rhead:
                         winID = 'ESO DET WIN{} '.format(nwin+1)
                         nx = self.header[winID + 'NX'] // xbin
 
-                        if pscan:
+                        if self.pscan:
                             # pre-scan adds 50 columns to every window
                             # unbinned with some slightly tricky details
                             # when binned
@@ -245,7 +251,7 @@ class Rhead:
                         nx = self.header['ESO DET DRWIN NX'] // xbin
                         ny = self.header['ESO DET DRWIN NY'] // ybin
 
-                        if pscan:
+                        if self.pscan:
                             # pre-scan adds 50 columns to every window
                             # unbinned with some slightly tricky details
                             # when binned

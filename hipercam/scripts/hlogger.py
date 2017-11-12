@@ -66,6 +66,8 @@ The table below lists information on runs from the night starting on {0:s}.
 <th class="right">Nframe</th>
 <th class="left">Ncycle</th>
 <th class="cen">Read<br>mode</th>
+<th class="cen">O</th>
+<th class="cen">P</th>
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
 </tr>
@@ -73,6 +75,10 @@ The table below lists information on runs from the night starting on {0:s}.
 
 NIGHT_FOOTER = """
 </table>
+
+<p>
+'O' and 'P' indicate the presence or absence of overscans and prescans.
+</p>
 
 <address>Tom Marsh, Warwick</address>
 </body>
@@ -429,17 +435,25 @@ def hlogger(args=None):
                             nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
 
                             # object name
-                            nhtml.write('<td class="left">{:s}</td>'.format(hd['OBJECT']))
+                            nhtml.write(
+                                '<td class="left">{:s}</td>'.format(
+                                    hd['OBJECT'])
+                            )
 
                             # RA, Dec
                             ra, dec = correct_ra_dec(hd['RA'], hd['Dec'])
-                            nhtml.write('<td class="left">{:s}<br>{:s}</td>'.format(ra, dec))
+                            nhtml.write(
+                                '<td class="left">{:s}<br>{:s}</td>'.format(
+                                    ra, dec)
+                            )
 
                             # First timestamp
                             try:
                                 tstamp = rtime(1).isot
-                                nhtml.write('<td class="cen">{:s}</td>'.format(
-                                    tstamp[tstamp.find('T')+1:tstamp.rfind('.')])
+                                nhtml.write(
+                                    '<td class="cen">{:s}</td>'.format(
+                                        tstamp[tstamp.find('T')+1:tstamp.rfind(
+                                            '.')])
                                 )
                             except:
                                 nhtml.write('<td class="cen">--:--:--</td>')
@@ -447,10 +461,11 @@ def hlogger(args=None):
                             # timing info
                             texps, toffs, ncycs, tdead = rtime.tinfo()
                             ttotal = 0.
-                            print(nname,run,texps)
                             ntotal = rtime.ntotal()
                             for texp, ncyc in zip(texps, ncycs):
-                                ttotal = max(ttotal, (texp+tdead)*(ntotal // ncyc))
+                                ttotal = max(
+                                    ttotal, (texp+tdead)*(ntotal // ncyc)
+                                )
 
                             # total exposure time
                             nhtml.write('<td class="right">{:d}</td>'.format(
@@ -458,21 +473,41 @@ def hlogger(args=None):
                             )
 
                             # number of frames
-                            nhtml.write('<td class="right">{:d}</td>'.format(ntotal))
+                            nhtml.write(
+                                '<td class="right">{:d}</td>'.format(ntotal)
+                            )
 
                             # cycle nums
                             nhtml.write('<td class="left">{:s}</td>'.format(
-                                '|'.join([str(ncyc) for ncyc in ncycs])))
+                                '|'.join([str(ncyc) for ncyc in ncycs]))
+                            )
 
                             # readout mode
                             nhtml.write('<td class="cen">{:s}</td>'.format(
-                                    TRANSLATE_MODE[rtime.mode]))
+                                    TRANSLATE_MODE[rtime.mode])
+                            )
+
+                            # overscan
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(
+                                    'Y' if rtime.oscan else 'N')
+                            )
+
+                            # prescan
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(
+                                    'Y' if rtime.pscan else 'N')
+                            )
 
                             # run number again
-                            nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
+                            nhtml.write(
+                                '<td class="left">{:s}</td>'.format(run[3:])
+                            )
 
                             # hand log comment
-                            nhtml.write('<td class="left">{:s}</td>'.format(hlog[run]))
+                            nhtml.write(
+                                '<td class="left">{:s}</td>'.format(hlog[run])
+                            )
 
                             # end the row
                             nhtml.write('\n</tr>\n')
