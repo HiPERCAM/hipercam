@@ -379,6 +379,33 @@ class Rhead:
 
         return ntot
 
+    def tinfo(self):
+        """Returns with timing info for the run used to create the Rhead, namely the
+        exposure times for each CCD appropriate for a "standard" exposure
+        (i.e. not the first), the offsets to get to the mid-exposure from a
+        timestamp, again for a "standard" exposure, the cycle length for each
+        CCD (NSUB+1) and the dead time between frames.
+
+        Returns (texps, toffs, ncycs, tdead) where texps, toffs and ncycs are
+        5-element tuples representing the "standard" exposure times, the
+        offsets from the timestamp, and the integer cycle lengths for each,
+        and tdead is the deadtime. The times are all in seconds. For standard
+        exposure in which a CCD is read out every time it can be, NCYC=1.
+
+        """
+
+        # we just pretend we are on a suitable frame for each CCD
+        texps = []
+        toffs = []
+        ncycs = []
+        for nccd, nskip in enumerate(self.times.nskips):
+            toff, texp, flag = self.times(0, 2*(nskip+1), nccd)
+            toffs.append(DAYSEC*toff)
+            texps.append(texp)
+            ncycs.append(nskip+1)
+
+        return (tuple(texps), tuple(toffs), tuple(ncycs), self.times.tdead)
+
     def __del__(self):
         """Destructor closes the file or web socket"""
         if self.server:
@@ -900,29 +927,6 @@ class Rtime (Rhead):
         # Return
         return tstamp
 
-    def tinfo(self):
-        """
-        Returns some timing info, namely the exposure times for each CCD
-        appropriate for a "standard" exposure (i.e. not the first), the
-        offsets to get to the mid-exposure from a timestamp, again for a
-        "standard" exposure, and the dead time between frames.
-
-        Returns (texps, toffs, tdead) where texps and toffs are
-        5-element tuples representing the "standard" exposure times
-        and offsets from the timestamp, and tdead is the deadtime,
-        all in seconds
-        """
-
-        # we just pretend we are on a suitable frame for each CCD
-        texps = []
-        toffs = []
-        for nccd, nskip in enumerate(self.times.skips):
-            toff, texp, flag = self.times(0, 2*(nskip+1, nccd))
-            toffs.append(DAYSEC*toff)
-            texps.append(texp)
-
-        return (tuple(texps), tuple(toffs), self.times.tdead())
-
 def decode_timing_bytes(tbytes):
     """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the
     3D FITS file.
@@ -998,51 +1002,42 @@ class Times:
         # for the first frame case and all others
 
         self.clear = (head['ESO DET CLRCCD'] == 'T')
-        # 1msec in days
-        SCALE = 1.e-3/DAYSEC
 
         if self.clear:
             # Clear mode. NB the parameter 'TREAD' is actually a combination
             # of a frame-transfer and a read
-            self.tdelta = SCALE*(
+            self.tdelta = 1e-3*(
                 head['ESO DET TREAD'] + head['ESO DET TDELAY'] + \
-                head['ESO DET TCLEAR'])
+                head['ESO DET TCLEAR']
+            )
 
-            self.toff1 = self.toff2 = SCALE*head['ESO DET TDELAY']/2.
+            self.toff1 = self.toff2 = 1.e-3*head['ESO DET TDELAY']/2.
 
-            self.toff3 = self.toff4 = SCALE*head['ESO DET TDELAY']
+            self.toff3 = self.toff4 = 1.e-3*head['ESO DET TDELAY']
+
+            self.tdead = 1.e-3*(head['ESO DET TREAD']+head['ESO DET TCLEAR'])
 
         else:
             # No clear mode, there are zero sec dummy 'wipes' so no 'TCLEAR'
             # here
-            self.tdelta = SCALE*(head['ESO DET TREAD'] + \
-                                 head['ESO DET TDELAY'])
+            self.tdelta = 1.e-3*(
+                head['ESO DET TREAD'] + head['ESO DET TDELAY']
+            )
 
-            self.toff1 = SCALE*head['ESO DET TDELAY']/2.
+            self.toff1 = 1.e-3*head['ESO DET TDELAY']/2.
 
-            self.toff2 = SCALE*(
+            self.toff2 = 1.e-3*(
                 head['ESO DET TDELAY'] - head['ESO DET TREAD'] +
                 head['ESO DET TFT'] ) / 2.
 
-            self.toff3 = SCALE*head['ESO DET TDELAY']
+            self.toff3 = 1.e-3*head['ESO DET TDELAY']
 
-            self.toff4 = SCALE*(
+            self.toff4 = 1.e-3*(
                 head['ESO DET TDELAY'] + head['ESO DET TREAD'] - \
-                head['ESO DET TFT'])
+                head['ESO DET TFT']
+            )
 
-    def tdead(self):
-        """
-        The "dead time" between frames, in seconds, i.e. the time
-        that is lost as far as accumulating photons goes.
-
-        Note that in the timing doc diagram F+R corresponds to the
-        header parameter TREAD. E-mail from Stu, 03/11/17.
-        """
-
-        if self.clear:
-            return 1.e-3*(head['ESO DET TREAD']+head['ESO DET TCLEAR'])
-        else:
-            return 1.e-3*head['ESO DET TFT']
+            self.tdead = 1.e-3*head['ESO DET TFT']
 
     def __call__(self, mjd, nframe, nccd):
         """Returns the time at mid-exposure as an MJD, the exposure
@@ -1067,11 +1062,11 @@ class Times:
 
         flag = nframe % (nskip+1) == 0
         if nframe == nskip + 1:
-            tmid = mjd + toff1 - tdelta*nskip/2
-            texp = tdelta*nskip + toff3
+            tmid = mjd + (self.toff1 - self.tdelta*nskip/2)/DAYSEC
+            texp = self.tdelta*nskip + self.toff3
         else:
-            tmid = mjd + toff2 - tdelta*nskip/2
-            texp = tdelta*nskip + toff4
+            tmid = mjd + (self.toff2 - self.tdelta*nskip/2)/DAYSEC
+            texp = self.tdelta*nskip + self.toff4
         return (tmid, texp, flag)
 
 class HendError(HipercamError):

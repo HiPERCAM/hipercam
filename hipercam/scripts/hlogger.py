@@ -60,10 +60,11 @@ The table below lists information on runs from the night starting on {0:s}.
 <tr>
 <th class="left">Run<br>no.</th>
 <th class="left">Target<br>name</th>
-<th class="cen">RA (J2000)<br>telescope</th>
-<th class="cen">Dec (J2000)<br>telescope</th>
-<th class="right">Nframe</th>
+<th class="left">RA (J2000)<br>Dec (J2000)<br>(telescope)</th>
 <th class="cen">Start<br>time</th>
+<th class="right">Dwell<br>(sec)</th>
+<th class="right">Nframe</th>
+<th class="left">Ncycle</th>
 <th class="cen">Read<br>mode</th>
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
@@ -432,19 +433,36 @@ def hlogger(args=None):
 
                             # RA, Dec
                             ra, dec = correct_ra_dec(hd['RA'], hd['Dec'])
-                            nhtml.write('<td class="cen">{:s}</td>'.format(ra))
-                            nhtml.write('<td class="cen">{:s}</td>'.format(dec))
-
-                            # number of frames
-                            ntotal = rtime.ntotal()
-                            nhtml.write('<td class="right">{:d}</td>'.format(ntotal))
+                            nhtml.write('<td class="left">{:s}<br>{:s}</td>'.format(ra, dec))
 
                             # First timestamp
                             try:
                                 tstamp = rtime(1).isot
-                                nhtml.write('<td class="cen">{:s}</td>'.format(tstamp[tstamp.find('T')+1:tstamp.rfind('.')]))
+                                nhtml.write('<td class="cen">{:s}</td>'.format(
+                                    tstamp[tstamp.find('T')+1:tstamp.rfind('.')])
+                                )
                             except:
                                 nhtml.write('<td class="cen">--:--:--</td>')
+
+                            # timing info
+                            texps, toffs, ncycs, tdead = rtime.tinfo()
+                            ttotal = 0.
+                            print(nname,run,texps)
+                            ntotal = rtime.ntotal()
+                            for texp, ncyc in zip(texps, ncycs):
+                                ttotal = max(ttotal, (texp+tdead)*(ntotal // ncyc))
+
+                            # total exposure time
+                            nhtml.write('<td class="right">{:d}</td>'.format(
+                                int(round(ttotal)))
+                            )
+
+                            # number of frames
+                            nhtml.write('<td class="right">{:d}</td>'.format(ntotal))
+
+                            # cycle nums
+                            nhtml.write('<td class="left">{:s}</td>'.format(
+                                '|'.join([str(ncyc) for ncyc in ncycs])))
 
                             # readout mode
                             nhtml.write('<td class="cen">{:s}</td>'.format(
