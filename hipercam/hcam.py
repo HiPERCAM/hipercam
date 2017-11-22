@@ -49,6 +49,13 @@ class Rhead:
            the headers for each CCD which contain any info needed per CCD, above
            all the 'skip' numbers, which are used when creating MCCD frames.
 
+       clear, dummy, oscan, prescan  : bool
+           flags to say whether or not the following were enabled:
+               clears between exposures
+               dummy output
+               overscan (extra pixels in Y)
+               prescan (extra pixels in X)
+
        fname     : string
            the file name
 
@@ -58,35 +65,45 @@ class Rhead:
        mode      : string
            the readout mode used, read from 'ESO DET READ CURNAME'
 
+       nskips    : tuple
+           the NSKIP parameters for each CCD (5 of them)
+
        ntbytes   : int
            number of timing bytes, deduced from the dimensions of the FITS cube
            (NAXIS1 contains all pixels and timing bytes) compared to the window
            dimensions.
 
-        nwins     : tuple
+       nwins     : tuple
            integer indices of the windows for any one quadrant. This is (0,) for
            one window modes, (0,1) for two window modes.
 
-        oscan     : bool
-           overscan set
+       tdead, tdelta, toff1, toff2, toff3, toff4 : float
+           set of parameters used to calculate exact times. tdead is the
+           dead time between exposures; tdelta is used to multiply NSKIP
+           for each CCD; toff1 etc are offsets and lengths used to get the
+           mid-exposure times and exposure durations.
 
-        pscan     : bool
-           prescan set
-
-        thead     : astropy.io.fits.Header
+       thead     : astropy.io.fits.Header
            the top-level header that will be used to create MCCDs.
 
-        times     : Times
-           this object generates mid-exposure times for each CCD when fed the
-           timestamp and frame number.
-
-        windows   : list of list of list of (Window, flip) tuples
+       windows   : list of list of list of (Window, flip) tuples
            windows[nccd][nquad][nwin] returns the Window and set of axes for
            window nwin of quadrant nquad of CCD nccd. nwin indexes the windows
            of a given quadrant (at most there are 2, so nwin = 0 or 1). nquad
            indexes the quadrants in EFGH order. nccd index the 5 CCDs. 'flip'
            is a tuple of axes to be flipped using numpy.flip to account for
            where the CCD is read and reflections.
+
+       wforms    : tuple of strings
+           formats of each set of windows as strings designed to match the input
+           expectd for hdriver.
+
+       xbin      : int
+           X-binning factor
+
+       ybin      : int
+           Y-binning factor
+
     """
 
     def __init__(self, fname, server=False, full=True):
@@ -153,27 +170,75 @@ class Rhead:
         self._bscale = self.header['BSCALE']
         self._bzero = self.header['BZERO']
 
-        # this object is used to obtain mid-exposure times
-        self.times = Times(self.header)
-
         # create the top-level header
         self.thead = fits.Header()
 
-        # set the mode, one or two windows per quadrant, drift etc.
-        # This is essential.
+        # set the mode, one or two windows per quadrant, drift etc.  This is
+        # essential.
         self.mode = self.header['ESO DET READ CURNAME']
         self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
 
-        # Framesize parameters
-        # check for overscan / prescan
+        # check for overscan / prescan / clear
+        self.clear = self.header['ESO DET CLRCCD']
+        self.dummy = self.header['ESO DET DUMMY']
         self.oscan = self.header['ESO DET INCOVSCY']
         self.pscan = self.header['ESO DET INCPRSCX']
+
+        # framesize parameters
         yframe = 520 if self.oscan else 512
         xframe = 1074 if self.pscan else 1024
 
+        # store the NSKIP values for each CCD. These are needed for exact
+        # timing for each CCD.
+        self.nskips = (
+            self.header['ESO DET NSKIPS1'],
+            self.header['ESO DET NSKIPS2'],
+            self.header['ESO DET NSKIPS3'],
+            self.header['ESO DET NSKIPS4'],
+            self.header['ESO DET NSKIPS5']
+            )
+
+        # set timing parameters toff1, toff2, toff3, toff4, tdelta, tdead
+        # which are also needed for exact timing
+        if self.clear:
+            # Clear mode. NB the parameter 'TREAD' is actually a combination
+            # of a frame-transfer and a read
+            self.tdelta = 1e-3*(
+                self.header['ESO DET TREAD'] + self.header['ESO DET TDELAY'] + \
+                self.header['ESO DET TCLEAR']
+            )
+
+            self.toff1 = self.toff2 = 1.e-3*self.header['ESO DET TDELAY']/2.
+
+            self.toff3 = self.toff4 = 1.e-3*self.header['ESO DET TDELAY']
+
+            self.tdead = 1.e-3*(self.header['ESO DET TREAD']+self.header['ESO DET TCLEAR'])
+
+        else:
+            # No clear mode, there are zero sec dummy 'wipes' so no 'TCLEAR'
+            # here
+            self.tdelta = 1.e-3*(
+                self.header['ESO DET TREAD'] + self.header['ESO DET TDELAY']
+            )
+
+            self.toff1 = 1.e-3*self.header['ESO DET TDELAY']/2.
+
+            self.toff2 = 1.e-3*(
+                self.header['ESO DET TDELAY'] - self.header['ESO DET TREAD'] +
+                self.header['ESO DET TFT'] ) / 2.
+
+            self.toff3 = 1.e-3*self.header['ESO DET TDELAY']
+
+            self.toff4 = 1.e-3*(
+                self.header['ESO DET TDELAY'] + self.header['ESO DET TREAD'] - \
+                self.header['ESO DET TFT']
+            )
+
+            self.tdead = 1.e-3*self.header['ESO DET TFT']
+
         # binning factors
-        xbin = self.header['ESO DET BINX1']
-        ybin = self.header['ESO DET BINY1']
+        self.xbin = self.header['ESO DET BINX1']
+        self.ybin = self.header['ESO DET BINY1']
 
         # This mapping is needed for the g and z channels due to reflections.
         # They need to be flipped around x=0 and be rotated 180 degrees so that
@@ -207,8 +272,11 @@ class Rhead:
 
         # build windows for each window of each quadrant of each CCDs
         self.windows = []
+        self.wforms = []
         for nwin in self.nwins:
             self.windows.append([])
+
+            # first set the windows of each CCD
             for nccd in range(5):
                 self.windows[-1].append([])
                 for quad in QUAD:
@@ -217,23 +285,23 @@ class Rhead:
                         quad = QUAD_MAPPING[quad]
 
                     if self.mode.startswith('FullFrame'):
-                        nx = xframe // xbin
-                        ny = yframe // xbin
+                        nx = xframe // self.xbin
+                        ny = yframe // self.ybin
                         llx = LLX[quad]
                         lly = LLY[quad]
 
                     elif self.mode.startswith('OneWindow') or \
                          self.mode.startswith('TwoWindow'):
                         winID = 'ESO DET WIN{} '.format(nwin+1)
-                        nx = self.header[winID + 'NX'] // xbin
+                        nx = self.header[winID + 'NX'] // self.xbin
 
                         if self.pscan:
                             # pre-scan adds 50 columns to every window
                             # unbinned with some slightly tricky details
                             # when binned
-                            nx += int(np.ceil(50 / xbin))
+                            nx += int(np.ceil(50 / self.xbin))
 
-                        ny = self.header[winID + 'NY'] // ybin
+                        ny = self.header[winID + 'NY'] // self.ybin
                         win_xs = self.header[winID + 'XS{}'.format(quad)]
                         win_nx = self.header[winID + 'NX']
                         win_ys = self.header[winID + 'YS']
@@ -248,14 +316,14 @@ class Rhead:
                         )
 
                     elif self.mode.startswith('Drift'):
-                        nx = self.header['ESO DET DRWIN NX'] // xbin
-                        ny = self.header['ESO DET DRWIN NY'] // ybin
+                        nx = self.header['ESO DET DRWIN NX'] // self.xbin
+                        ny = self.header['ESO DET DRWIN NY'] // self.ybin
 
                         if self.pscan:
                             # pre-scan adds 50 columns to every window
                             # unbinned with some slightly tricky details
                             # when binned
-                            nx += int(np.ceil(50 / xbin))
+                            nx += int(np.ceil(50 / self.xbin))
 
                         win_xs = self.header['ESO DET DRWIN XS{}'.format(quad)]
                         win_nx = self.header['ESO DET DRWIN NX']
@@ -276,8 +344,36 @@ class Rhead:
 
                     # store the window and the axes to flip
                     self.windows[-1][-1].append(
-                        (Window(llx, lly, nx, ny, xbin, ybin), FLIP_AXES[quad])
+                        (Window(llx, lly, nx, ny, self.xbin, self.ybin), FLIP_AXES[quad])
                     )
+
+
+            # then set strings for logging purposes giving the settings used in hdriver
+            if self.mode.startswith('FullFrame'):
+                self.wforms.append('1|1|{:d}|{:d}'.format(xframe, yframe))
+
+            elif self.mode.startswith('OneWindow') or self.mode.startswith('TwoWindow'):
+                winID = 'ESO DET WIN1 '
+                xs = self.header[winID + 'XSE']
+                ys = self.header[winID + 'YS']
+                nx = self.header[winID + 'NX']
+                ny = self.header[winID + 'NY']
+                self.wforms.append('{:d}|{:d}|{:d}|{:d}'.format(xs, ys, nx, ny))
+
+                if self.mode.startswith('TwoWindow'):
+                    winID = 'ESO DET WIN2 '
+                    xs = self.header[winID + 'XSE']
+                    ys = self.header[winID + 'YS']
+                    nx = self.header[winID + 'NX']
+                    ny = self.header[winID + 'NY']
+                    self.wforms.append('{:d}|{:d}|{:d}|{:d}'.format(xs, ys, nx, ny))
+
+            elif self.mode.startswith('Drift'):
+                xs = self.header['ESO DET DRWIN XSE']
+                ys = self.header['ESO DET DRWIN YS']
+                nx = self.header['ESO DET DRWIN NX']
+                ny = self.header['ESO DET DRWIN NY']
+                self.wforms.append('{:d}|{:d}|{:d}|{:d}'.format(xs, ys, nx, ny))
 
         # compute the total number of pixels (making use of symmetry between
         # quadrants and CCDs, hence factor 20)
@@ -304,8 +400,8 @@ class Rhead:
                 self.thead['EXPTIME'] = (
                     self.header['EXPTIME'], self.header.comments['EXPTIME']
                 )
-            self.thead['XBIN'] = (xbin, self.header.comments['ESO DET BINX1'])
-            self.thead['YBIN'] = (ybin, self.header.comments['ESO DET BINY1'])
+            self.thead['XBIN'] = (self.xbin, self.header.comments['ESO DET BINX1'])
+            self.thead['YBIN'] = (self.ybin, self.header.comments['ESO DET BINY1'])
             self.thead['SPEED'] = (self.header['ESO DET SPEED'],
                                    self.header.comments['ESO DET SPEED'])
 
@@ -390,7 +486,8 @@ class Rhead:
         exposure times for each CCD appropriate for a "standard" exposure
         (i.e. not the first), the offsets to get to the mid-exposure from a
         timestamp, again for a "standard" exposure, the cycle length for each
-        CCD (NSUB+1) and the dead time between frames.
+        CCD (NSUB+1) and the dead time between frames. This is intended for use
+        in generating logs.
 
         Returns (texps, toffs, ncycs, tdead) where texps, toffs and ncycs are
         5-element tuples representing the "standard" exposure times, the
@@ -404,13 +501,43 @@ class Rhead:
         texps = []
         toffs = []
         ncycs = []
-        for nccd, nskip in enumerate(self.times.nskips):
-            toff, texp, flag = self.times(0, 2*(nskip+1), nccd)
+        for nccd, nskip in enumerate(self.nskips):
+            toff, texp, flag = self.timing(0, 2*(nskip+1), nccd)
             toffs.append(DAYSEC*toff)
             texps.append(texp)
             ncycs.append(nskip+1)
 
-        return (tuple(texps), tuple(toffs), tuple(ncycs), self.times.tdead)
+        return (tuple(texps), tuple(toffs), tuple(ncycs), self.tdead)
+
+    def timing(self, mjd, nframe, nccd):
+        """Returns timing data for a particular CCD and frame.
+
+        Arguments::
+
+           mjd    : float
+              the MJD of the timestamp
+
+           nframe : int
+              the frame number starting at 1.
+
+           nccd : int
+              the CCD number, starting at 0
+
+        Returns: (mjd, exptime, flag) where 'mjd' is the MJD at mid-exposure for the CCD, 'exptime'
+        is the exposure time in seconds, and 'flag' is a bool to indicate whether the time is thought
+        good or not.
+        """
+
+        nskip = self.nskips[nccd]
+
+        flag = nframe % (nskip+1) == 0
+        if nframe == nskip + 1:
+            tmid = mjd + (self.toff1 - self.tdelta*nskip/2)/DAYSEC
+            texp = self.tdelta*nskip + self.toff3
+        else:
+            tmid = mjd + (self.toff2 - self.tdelta*nskip/2)/DAYSEC
+            texp = self.tdelta*nskip + self.toff4
+        return (tmid, texp, flag)
 
     def __del__(self):
         """Destructor closes the file or web socket"""
@@ -654,13 +781,13 @@ class Rdata (Rhead):
 
         if nsats == -1 and synced == -1:
             # invalid time; pretend we are in 2000-01-01 taking one frame per
-            # second.  just so we can get something.
-            tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd')
+            # second, just so we can get something.
+            tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=9)
         else:
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
                 years, day_of_year, hours, mins, seconds+nanoseconds/1e9
                 )
-            tstamp = Time(time_string, format='yday')
+            tstamp = Time(time_string, format='yday', precision=9)
 
         # copy over the top-level header to avoid it becoming a reference
         # common to all MCCDs produced by the routine
@@ -802,17 +929,11 @@ class Rdata (Rhead):
         return ntot
 
 class Rtime (Rhead):
-    """Callable, iterable object to represent the timestamps only of HiPERCAM raw data files.
+    """Callable, iterable object to generate timing data only from HiPERCAM raw data files.
 
-    This is very nearly the same as Rdata except for speed it only reads the
-    timing data of each frame in the case of local disk files and it does no
-    processing of raw data other than the timing in any circumstance.  Each
-    call to it returns an astropy.time.Time object, thus
-
-       >> for time in Rtime('run045'):
-       >>     print(time.isot)
-
-    lists all the timestamps of the run.
+    This is similar to Rdata except it only reads the timing data of each
+    frame in the case of local disk files and it does no processing of raw
+    data other than the timing in any circumstance.
     """
 
     def __init__(self, fname, nframe=1, server=False):
@@ -860,21 +981,28 @@ class Rtime (Rhead):
         is attached to. If `nframe` is None, then it will read the frame it is
         positioned at. If nframe is an integer > 0, it will try to read that
         particular frame; if nframe == 0, it reads the last complete frame.
-        nframe == 1 gives the first frame. If all works, an astropy.time.Time
-        object is returned.
+        nframe == 1 gives the first frame.
 
         Arguments::
 
-           nframe : (int)
+           nframe : int | none
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted.
 
+        Returns:: (tstamp, tinfo) or None if you try to read a non-existent
+        frame (useful if you are waiting from frames to be added). Here
+        'tstamp' is an astropy.time.Time equivalent to the GPS timestamp
+        associated with the frame, with no correction, while 'tinfo' is a
+        5-elements tuple, one for each CCD listing for each one the MJD at
+        mid-exposure, an exposure time in seconds and a flag to indicate
+        whether the time is thought reliable, which is only the case if
+        real data comes with the frame.
         """
 
         # set the frame to be read and whether the file pointer needs to be
         # reset
         if nframe is None:
-            # just read whatever frane we are on
+            # just read whatever frame we are on
             reset = False
         else:
             if nframe == 0:
@@ -884,10 +1012,6 @@ class Rtime (Rhead):
             # update frame counter
             reset = self.nframe != nframe
             self.nframe = nframe
-
-        if not self.server and self.nframe > self.ntotal():
-            self.nframe = 1
-            raise HendError('tried to access a frame exceeding the maximum')
 
         if self.server:
             # define command to send to server
@@ -902,8 +1026,18 @@ class Rtime (Rhead):
             self._ws.send(data)
             raw_bytes = self._ws.recv()
 
+            if len(raw_bytes) == 0:
+                # if we are trying to access a file that has not yet been
+                # written, 0 bytes will be returned. In this case we return
+                # with None. NB we do not update self.nframe in this case.
+                return None
+
             # extract the timing data
             tbytes = raw_bytes[-self.ntbytes:]
+
+        elif self.nframe > self.ntotal():
+            # We have attempted to access a non-existent frame
+            return None
 
         else:
             # find the start of the timing data if necessary
@@ -914,24 +1048,28 @@ class Rtime (Rhead):
             tbytes = self._ffile.read(self.ntbytes)
             self._ffile.seek(self._framesize-self.ntbytes, 1)
 
-        # Now interpret them.
+        # Interpret the timing bytes
         frameCount, timeStampCount, years, day_of_year, \
             hours, mins, seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
 
         if nsats == -1 and synced == -1:
             # invalid time; pretend we are on 2000-01-01 taking one frame per second.
-            tstamp = Time(51544 + self.nframe/86400., format='MJD')
+            tstamp = Time(51544 + self.nframe/86400., format='MJD',precision=9)
         else:
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
                 years, day_of_year, hours, mins, seconds+nanoseconds/1e9
                 )
-            tstamp = Time(time_string, format='yday')
+            tstamp = Time(time_string, format='yday',precision=9)
 
-        # update the frame counter
+        tinfo = []
+        for nccd in range(5):
+            tinfo.append(self.timing(tstamp.mjd,self.nframe,nccd))
+
+        # update the internal frame counter
         self.nframe += 1
 
-        # Return
-        return tstamp
+        # Return timing data
+        return (tstamp, tuple(tinfo))
 
 def decode_timing_bytes(tbytes):
     """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the
@@ -976,104 +1114,6 @@ def decode_timing_bytes(tbytes):
                      *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
                                                              tbytes[:-2])))
     return struct.unpack('<IIIIIIIIbb', buf)
-
-
-class Times:
-    """
-    This class is to determine the times at mid-exposure for each HiPERCAM CCD
-    given a time stamp. To initialise it one feeds it a header from which
-    particular parameters are used to set attributes which are then used on
-    subsequent calls. For details of how this works, please see the document
-    hipercam-timing.pdf
-    """
-    def __init__(self, head):
-
-        # Store the NSKIP for each CCD
-        self.nskips = (
-            head['ESO DET NSKIPS1'],
-            head['ESO DET NSKIPS2'],
-            head['ESO DET NSKIPS3'],
-            head['ESO DET NSKIPS4'],
-            head['ESO DET NSKIPS5']
-            )
-
-        # The corrections are of the form toff-tdelta*nskip/2
-        # in all cases, but toff can have two possible values
-        # depending on whether it is the first good frame or
-        # not. toff1 is for the first good frame, toff2 for all
-        # others. In the clear mode case, toff1=toff2.
-        #
-        # The exposure times are of the form tdelta*nskip+toff
-        # where again toff can have two values toff3 or toff4
-        # for the first frame case and all others
-
-        self.clear = (head['ESO DET CLRCCD'] == 'T')
-
-        if self.clear:
-            # Clear mode. NB the parameter 'TREAD' is actually a combination
-            # of a frame-transfer and a read
-            self.tdelta = 1e-3*(
-                head['ESO DET TREAD'] + head['ESO DET TDELAY'] + \
-                head['ESO DET TCLEAR']
-            )
-
-            self.toff1 = self.toff2 = 1.e-3*head['ESO DET TDELAY']/2.
-
-            self.toff3 = self.toff4 = 1.e-3*head['ESO DET TDELAY']
-
-            self.tdead = 1.e-3*(head['ESO DET TREAD']+head['ESO DET TCLEAR'])
-
-        else:
-            # No clear mode, there are zero sec dummy 'wipes' so no 'TCLEAR'
-            # here
-            self.tdelta = 1.e-3*(
-                head['ESO DET TREAD'] + head['ESO DET TDELAY']
-            )
-
-            self.toff1 = 1.e-3*head['ESO DET TDELAY']/2.
-
-            self.toff2 = 1.e-3*(
-                head['ESO DET TDELAY'] - head['ESO DET TREAD'] +
-                head['ESO DET TFT'] ) / 2.
-
-            self.toff3 = 1.e-3*head['ESO DET TDELAY']
-
-            self.toff4 = 1.e-3*(
-                head['ESO DET TDELAY'] + head['ESO DET TREAD'] - \
-                head['ESO DET TFT']
-            )
-
-            self.tdead = 1.e-3*head['ESO DET TFT']
-
-    def __call__(self, mjd, nframe, nccd):
-        """Returns the time at mid-exposure as an MJD, the exposure
-        time in seconds, and a flag to indicate whether the time is
-        thought good
-
-        Arguments::
-
-           mjd    : float
-              the MJD of the timestamp
-
-           nframe : int
-              the frame number starting at 1.
-
-           ncdd : int
-              the CCD number, starting at 0
-
-        Returns: (mjd, exptime, flag)
-        """
-
-        nskip = self.nskips[nccd]
-
-        flag = nframe % (nskip+1) == 0
-        if nframe == nskip + 1:
-            tmid = mjd + (self.toff1 - self.tdelta*nskip/2)/DAYSEC
-            texp = self.tdelta*nskip + self.toff3
-        else:
-            tmid = mjd + (self.toff2 - self.tdelta*nskip/2)/DAYSEC
-            texp = self.tdelta*nskip + self.toff4
-        return (tmid, texp, flag)
 
 class HendError(HipercamError):
     """
