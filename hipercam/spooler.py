@@ -383,18 +383,18 @@ def get_ccd_pars(source, resource):
                     )
                 )
 
-def hang_about(mccd, twait, tmax, total_time):
+def hang_about(obj, twait, tmax, total_time):
     """
-    Carries out some standard actions when we loop through
-    frames which are common to rtplot, reduce and grab. This
-    is a case of seeing whether we want to try again for a
-    frame that may have arrived while we wait.
+    Carries out some standard actions when we loop through frames which are
+    common to rtplot, reduce and grab. This is a case of seeing whether we
+    want to try again for a frame or a time that may have arrived while we wait.
 
     Arguments::
 
-         mccd   : (MCCD | none)
-            the frame just read. If None, that is a trigger to wait
-            a bit before trying again
+         obj   : object or None
+            something, e.g. an MCCD or a Time, it does not matter what,
+            because the only thing that is tested is whether it is 'None'. If
+            it is, that is a trigger to wait a bit before trying again
 
          twait  : (float)
             how long to wait each time, seconds
@@ -413,14 +413,15 @@ def hang_about(mccd, twait, tmax, total_time):
     If both are False, that indicates success and we carry on.
     """
 
-    if mccd is None:
+    if obj is None:
 
         if tmax < total_time + twait:
-            print(
-                ' ** last frame unchanged for {:.1f} sec.'
-                ' cf tmax = {:.1f}; will wait no more'.format(
-                    total_time, tmax)
-            )
+            if tmax > 0.:
+                print(
+                    ' ** last frame unchanged for {:.1f} sec.'
+                    ' cf tmax = {:.1f}; will wait no more'.format(
+                        total_time, tmax)
+                    )
             give_up, try_again = True, False
 
         else:
