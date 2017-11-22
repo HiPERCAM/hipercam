@@ -33,7 +33,7 @@ INTRODUCTION_HEADER = """<html>
 <h1>HiPERCAM data logs</h1>
 
 <p>
-These online logs summarise HiPERCAM runs and were automatically generated from the data files and hand-written logs.
+These online logs summarise HiPERCAM runs and were automatically generated from the data files and hand-written logs. 
 
 """
 
@@ -53,7 +53,7 @@ NIGHT_HEADER = """<html>
 <h1>HiPERCAM log {0:s}</h1>
 
 <p>
-The table below lists information on runs from the night starting on {0:s}.
+The table below lists information on runs from the night starting on {0:s}. See the end of the table for some more details on the meanings of the various columns.
 
 <p>
 <table>
@@ -66,8 +66,8 @@ The table below lists information on runs from the night starting on {0:s}.
 <th class="right">Nframe</th>
 <th class="left">Ncycle</th>
 <th class="cen">Read<br>mode</th>
-<th class="cen">O</th>
-<th class="cen">P</th>
+<th class="cen">Format<br>Quad1<br>Quad2</th>
+<th class="cen">CDOP<br>flags</th>
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
 </tr>
@@ -76,9 +76,18 @@ The table below lists information on runs from the night starting on {0:s}.
 NIGHT_FOOTER = """
 </table>
 
-<p>
-'O' and 'P' indicate the presence or absence of overscans and prescans.
-</p>
+<p> Along with others of more obvious meaning, the columns 'Read', 'Format and
+'CDOP' specify the information needed to repeat the setup at the telescope
+using 'hdriver'. 'Read' is the readout mode which can be one of 4 options,
+namely 'FULL' for a full frame, 1-WIN or 2-WIN for standard windows mode, and
+'DRIFT' for drift-mode. 'Format' column gives the 7 parameters that appear at
+the bottom of the top-right window of hdriver. In hdriver these are called
+xsll, xslr, xsul, xsur, ys, nx and ny, and there are up to two sets of them.
+'CDOP' are four Y/N flags which say whether or not clears, the dummy output,
+overscans and prescans were enabled or not. If overscans were enabled, extra
+pixels are added in the Y direction. Prescans add extra pixels in X. 'Ncycle'
+refers to how often each CCD is read out. The numbers correspond to nu, ng,
+nr, ni, nz listed in hdriver.  </p>
 
 <address>Tom Marsh, Warwick</address>
 </body>
@@ -485,19 +494,22 @@ def hlogger(args=None):
                             # readout mode
                             nhtml.write('<td class="cen">{:s}</td>'.format(
                                     TRANSLATE_MODE[rtime.mode])
-                            )
+                                        )
 
-                            # overscan
+                            # Format
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
-                                    'Y' if rtime.oscan else 'N')
-                            )
+                                    '<br>'.join(rtime.wforms))
+                                )
 
-                            # prescan
+                            # flags
                             nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(
+                                '<td class="cen">{:s}{:s}{:s}{:s}</td>'.format(
+                                    'Y' if rtime.clear else 'N',
+                                    'Y' if rtime.dummy else 'N',
+                                    'Y' if rtime.oscan else 'N',
                                     'Y' if rtime.pscan else 'N')
-                            )
+                                )
 
                             # run number again
                             nhtml.write(
