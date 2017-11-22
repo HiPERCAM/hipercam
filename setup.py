@@ -144,6 +144,7 @@ setup(
             'rtplot=hipercam.scripts.rtplot:rtplot',
             'setaper=hipercam.scripts.setaper:setaper',
             'stats=hipercam.scripts.stats:stats',
+            'times=hipercam.scripts.times:times',
         ],
     },
 
