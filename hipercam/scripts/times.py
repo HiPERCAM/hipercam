@@ -52,7 +52,13 @@ def times(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds. Set to 0 to avoid waiting and extra output messages.
 
+        tdigit  : int
+           number of digits of precision for the seconds after the decimal point when
+           reporting the times.
 
+        edigit  : int
+           number of digits of precision after the decimal point when reporting the exposure
+           times
 
     """
 
@@ -68,6 +74,8 @@ def times(args=None):
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
+        cl.register('tdigit', Cline.LOCAL, Cline.HIDE)
+        cl.register('edigit', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         source = cl.get_value('source', 'data source [hs, hl]',
@@ -84,6 +92,9 @@ def times(args=None):
             'twait', 'time to wait for a new frame [secs]', 1., 0.)
         tmax = cl.get_value(
             'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+
+        tdigit = cl.get_value('tdigit', 'digits after decimal point for times', 6, 1, 9)
+        edigit = cl.get_value('edigit', 'digits after decimal point for exposure times', 3, 1, 9)
 
     ################################################################
     #
@@ -110,6 +121,7 @@ def times(args=None):
 
         # indicate progress
         tstamp, tinfo = tdata
+        tstamp.precision = tdigit
         print(
             'Frame {:d}, GPS = {:s}'.format(
                 nframe, tstamp.iso), end=''
@@ -118,8 +130,8 @@ def times(args=None):
 
         message = ''
         for nccd, (mjd, exptime, flag) in enumerate(tinfo):
-            ts = Time(mjd, format='mjd', precision=6)
-            message += ', ({:d}, {:s}, {:.4f}, {:s})'.format(nccd+1, ts.hms_custom, exptime, 'T' if flag else 'F')
+            ts = Time(mjd, format='mjd', precision=tdigit)
+            message += ', ({:d}, {:s}, {:.{:d}f}, {:s})'.format(nccd+1, ts.hms_custom, exptime, edigit, 'T' if flag else 'F')
         print(message)
 
         # increment the frame
