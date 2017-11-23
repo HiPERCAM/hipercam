@@ -820,7 +820,7 @@ class Rdata (Rhead):
             ch['DSTATUS'] = (isdata, 'Data status when NCYCLE > 1')
 
             # Get time at centre of exposure
-            tmid, texp, flag = self.times(tstamp.mjd, frameCount, nccd)
+            tmid, texp, flag = self.timing(tstamp.mjd, frameCount, nccd)
             ch['MJDUTC'] = (tmid, 'MJD(UTC) at centre of exposure')
             ch['GOODTIME'] = (flag and thead['GOODTIME'], 'Is MJDUTC reliable?')
             ch['EXPTIME'] = (texp, 'Exposure time (secs)')

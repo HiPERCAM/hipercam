@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 import matplotlib.pyplot as plt
+from astropy.time import Time
 
 from trm.pgplot import *
 import hipercam as hcam
@@ -455,9 +456,9 @@ def rtplot(args=None):
                     continue
 
             # indicate progress
+            tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
             print(
-                'Frame {:d}, time = {:s}; '.format(
-                    mccd.head['NFRAME'], mccd.head['TIMSTAMP']), end=''
+                'Frame {:d}, time = {:s}; '.format(mccd.head['NFRAME'], tstamp.iso), end=''
             )
 
             if n == 0 and bias is not None:
