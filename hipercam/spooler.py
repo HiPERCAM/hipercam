@@ -228,14 +228,14 @@ class HcamListSpool(SpoolerBase):
 
         if self.cnam is None:
             mccd = ccd.MCCD.read(utils.add_extension(fname.strip(), core.HCAM))
-            mccd.head['FILENAME'] = fname
+            mccd.head['FILENAME'] = fname.strip()
             return mccd
         else:
-            ccd = ccd.CCD.read(
+            ccd1 = ccd.CCD.read(
                 utils.add_extension(fname.strip(), core.HCAM), self.cnam
             )
-            ccd.head['FILENAME'] = fname
-            return ccd
+            ccd1.head['FILENAME'] = fname.strip()
+            return ccd1
 
 class HcamServSpool(SpoolerBase):
 
