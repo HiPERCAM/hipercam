@@ -97,7 +97,7 @@ class UcamDiskSpool(SpoolerBase):
 
            run : (string)
 
-              The run number, e.g. 'run003' or 'data/run004'. 
+              The run number, e.g. 'run003' or 'data/run004'.
 
            first : (int)
               The first frame to access.
@@ -124,7 +124,7 @@ class UcamServSpool(SpoolerBase):
 
            run : (string)
 
-              The run number, e.g. 'run003' or 'data/run004'. 
+              The run number, e.g. 'run003' or 'data/run004'.
 
            first : (int)
               The first frame to access.
@@ -155,7 +155,7 @@ class HcamDiskSpool(SpoolerBase):
 
            run : (string)
 
-              The run number, e.g. 'run003' or 'data/run004'. 
+              The run number, e.g. 'run003' or 'data/run004'.
 
            first : (int)
               The first frame to access.
@@ -203,7 +203,7 @@ class HcamListSpool(SpoolerBase):
               CCD label if you want to return individual CCDs rather than
               MCCDs. This is used in 'combine' to save memory.
         """
-        if isinstance(lname, string):
+        if isinstance(lname, str):
             self._iter = open(lname)
             self._close_at_end = True
         else:
@@ -299,7 +299,7 @@ def data_source(source, resource, first=1):
 
          >> with data_source('us', 'run003') as dsource:
          >>    for frame in dsource:
-         >>       ... do something with 'frame'  
+         >>       ... do something with 'frame'
     """
 
     if source == 'us':
