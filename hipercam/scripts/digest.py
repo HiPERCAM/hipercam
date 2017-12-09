@@ -5,7 +5,7 @@ import time
 import glob
 import re
 import subprocess
-import getpass 
+import getpass
 
 import numpy as np
 from astropy.time import Time, TimeDelta
@@ -14,7 +14,7 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
-__all__ = []
+__all__ = ['digest',]
 
 #######################################################
 #
@@ -23,34 +23,39 @@ __all__ = []
 #######################################################
 
 def digest(args=None):
-    """Ingests hipercam data from the telescope for archiving purposes.
+    """Ingests hipercam/ultra(cam|spec) data from the telescope for archiving
+purposes.
 
-    ThiIt should be of little interest to most users. It does what the scripts
-    checker, import_data, make_log_dirs and make_derived_dirs do for ULTRACAM
+    This should be of little interest to most users. It does what the scripts
+    checker, import_data, make_log_dirs and make_derived_dirs did for ULTRACAM
     data, but all in one go to reduce the need for thought.
 
     HiPERCAM run data from the telescope comes in a standarized form. The
     purpose of this script is run a few checks and set up a different
     standardised directory structure for it. It must be run inside a directory
-    'hipercam' which should contain a sub-directory 'raw_data' which contains
-    run directories of the form 2017-10 which themselves contain
-    night-by-night directories of the form YYYY_MM_DD. In these, it expects to
-    find files in these of the form 'run1234.fits', (always 4 digits), a file
-    called MD5SUM_YYYY_MM_DD (i.e. matching the directory date), and a file
-    called YYYY_MM_DD_log.dat. It will stop if any of these are not found and
-    it is then up to the user to do something about it. It will also check
-    that every run file appears in the MD5SUM file. Assuming these initial
-    checks are past, it will then run 'md5sum -c' to check that the file
-    md5sums match.
+    'hipercam', 'ultracam' or 'ultraspec' which should contain a sub-directory
+    'raw_data' which contains run directories of the form 2017-10 which
+    themselves contain night-by-night directories of the form YYYY_MM_DD. In
+    these, it expects to find files in these of the form 'run1234.fits',
+    (always 4 digits), a file called MD5SUM_YYYY_MM_DD (i.e. matching the
+    directory date), and a file called YYYY_MM_DD_log.dat. It will stop if any
+    of these are not found and it is then up to the user to do something about
+    it. It will also check that every run file appears in the MD5SUM
+    file. Assuming these initial checks are past, it will then run 'md5sum -c'
+    to check that the file md5sums match.
 
     The script has no arguments; its purpose is do a series of mundane and
     irritating tasks with minimal input from the user. It stops on problems
     and tries to report in enough detail to help them to get fixed.
+
     """
 
-    username = getpass. getuser() 
+    username = getpass.getuser()
     if username != 'phsaap':
-        print('digest is for archiving HiPERCAM runs and not meant for general use')
+        print(
+            'digest is for archiving HiPERCAM runs and not '
+            'meant for general use'
+        )
         return
 
     RAW = 'raw_data'
@@ -60,30 +65,33 @@ def digest(args=None):
     # check that we are in the right place
     subdirs = [sdir for sdir in os.listdir() if os.path.isdir(sdir)]
 
-    if os.path.basename(os.getcwd()) != 'hipercam' or RAW not in subdirs \
-            or DERIVED not in subdirs or LOGS not in subdirs:
-        print("""
-** digest must be run in a directory called 'hipercam' which has sub-directories
-'{:s}', '{:s}' and '{:s}'
-""".format(RAW,DERIVED,LOGS),file=sys.stderr)
+    basename = os.path.basename(os.getcwd())
+    if (basename != 'hipercam' and basename != 'ultracam' and \
+        basename != 'ultraspec') or RAW not in subdirs or \
+        DERIVED not in subdirs or LOGS not in subdirs:
+        print(
+            "** digest must be run in a directory called "
+            "'hipercam', 'ultracam' or 'ultraspec' which "
+            "has sub-directories '{:s}', '{:s}' and '{:s}'".format(
+                RAW,DERIVED,LOGS),file=sys.stderr
+        )
         print('digest aborted',file=sys.stderr)
         return
 
     # regular expressions to match runs, nights & files
     rdre = re.compile('^\d\d\d\d-\d\d$')
     ndre = re.compile('^\d\d\d\d_\d\d_\d\d$')
-    rre = re.compile('^run\d\d\d\d\.fits$')
+    rhre = re.compile('^run\d\d\d\d\.fits$')
+    rure = re.compile('^run\d\d\d\.dat$')
 
     # get the run directories
-    rdirs = [os.path.join(RAW, rdir) for rdir in os .listdir(RAW) if \
+    rdirs = [os.path.join(RAW, rdir) for rdir in os.listdir(RAW) if \
                  os.path.isdir(os.path.join(RAW, rdir)) and \
                  rdre.match(rdir)
              ]
     rdirs.sort()
 
-    if len(rdirs):
-        print('\nFound the following run directories: {!s}'.format(', '.join(rdirs)))
-    else:
+    if not len(rdirs):
         print('\n** Found no run directories',file=sys.stderr)
         print('digest aborted',file=sys.stderr)
         return
@@ -91,66 +99,42 @@ def digest(args=None):
     print('\nChecking run-by-run ...\n')
 
     for rdir in rdirs:
-        print('Run directory = {:s}'.format(rdir))
 
         # test whether we might have done this already
         rd = os.path.basename(rdir)
         lrdir = os.path.join(LOGS, rd)
         drdir = os.path.join(DERIVED, rd)
-        if os.path.exist(lrdir) or os.path.exist(drdir):
-            print('** one or both of {:s} and {:s} already exists'.format(lrdir, drdir))
-            print('digest aborted',file=sys.stderr)
-            return
+        if os.path.exists(lrdir) or os.path.exists(drdir):
+            continue
 
-        # loop through the run directories
+        print('Run directory = {:s}'.format(rdir))
 
-        # look for a file called 'telescope'. They should all have one.
-        telescope = os.path.join(rdir, 'telescope')
-        if os.path.isfile(telescope):
-            print('Found file = {:s}'.format(telescope))
-        else:
-            print('** Could not find file = {:s}'.format(telescope),file=sys.stderr)
-            print('This should have the name of the telescope inside it',file=sys.stderr)
-            print('digest aborted',file=sys.stderr)
-            return
-
-        # look for the night-by-night directories. If not present in matching form,
-        # skip to the next on the basis that it has been done already
+        # get the night-by-night directories
         ndirs = [os.path.join(rdir, ndir) for ndir in os.listdir(rdir) if \
-                     ndre.match(ndir) and \
-                     os.path.isdir(os.path.join(rdir, ndir))]
+                     os.path.isdir(os.path.join(rdir, ndir)) and \
+                     ndre.match(ndir)
+                 ]
         ndirs.sort()
+        nds = [os.path.basename(ndir) for ndir in ndirs]
 
         if len(ndirs):
-            tdirs = [os.path.basename(ndir) for ndir in ndirs]
-            print('\nFound night directories {:s} in {:s}'.format(', '.join(tdirs),rdir))
+            print('\nFound night directories: {!s}'.format(
+                ', '.join(nds)))
         else:
-            print('\nFound no night directories in '
-                  '{:s}; will assume it has already been processed'.format(rdir))
+            print('\n** No night directories in {:s}'.format(rdir))
+            continue
 
-
-        # match runs of specific form 'run1234.fits' (4 digits)
-        print('\nChecking night-by-night ...\n')
-
-        # initial checks
         for ndir in ndirs:
 
-            print('Night directory = {:s}'.format(ndir))
+            # run elementary checks that are fast
             night = os.path.basename(ndir)
-
-            # test whether the night directory already exists in the log or derived directories
-            lndir = os.path.join(lrdir, night)
-            dndir = os.path.join(drdir, night)
-            if os.path.exist(lndir) or os.path.exist(dndir):
-                print('** one or both of {:s} and {:s} already exists'.format(lndir, dndir))
-                print('digest aborted',file=sys.stderr)
-                return
 
             log = os.path.join(ndir, '{:s}_log.dat'.format(night))
             if os.path.isfile(log):
                 print('... found the log file = {:s}'.format(log))
             else:
-                print('** no log file called {:s} found'.format(log), file=sys.stderr)
+                print('** no log file called {:s} found'.format(log),
+                      file=sys.stderr)
                 print('digest aborted',file=sys.stderr)
                 return
 
@@ -158,57 +142,70 @@ def digest(args=None):
             if os.path.isfile(md5):
                 print('... found the md5sum file = {:s}'.format(md5))
             else:
-                print('** no md5sum file called {:s} found'.format(md5), file=sys.stderr)
+                print('** no md5sum file called {:s} found'.format(md5),
+                      file=sys.stderr)
                 print('digest aborted',file=sys.stderr)
                 return
 
             # compile list of runs in the directory
-            runs = [run[:-5] for run in os.listdir(ndir) if \
-                        os.path.isfile(os.path.join(ndir, run)) and \
-                        rre.match(run)]
+            if basename.startswith('hiper'):
+                # HiPERCAM
+                runs = [run[:-5] for run in os.listdir(ndir) if \
+                            os.path.isfile(os.path.join(ndir, run)) and \
+                            rhre.match(run)
+                        ]
+            else:
+                # ULTRACAM / ULTRASPEC
+                runs = [run[:-4] for run in os.listdir(ndir) if \
+                            os.path.isfile(os.path.join(ndir, run)) and \
+                            rure.match(run) and \
+                            os.path.isfile(
+                                os.path.join(ndir, run[:-4] + '.xml'))
+                        ]
 
             # extract runs from the log file
             lruns = []
             with open(log) as fin:
                 for line in fin:
-                    name = line.split()[0]
-                    lruns.append(name)
+                    try:
+                        name = line.split()[0]
+                        lruns.append(name)
+                    except IndexError:
+                        pass
 
             if set(runs) != set(lruns):
-                print('** the runs in the log file do not match those in the directory',file=sys.stderr)
-                print('Runs not in common are: {!s}'.format(set(runs) ^ set(lruns)))
+                print(
+                    '** the runs in {:s} do not '
+                    'match those in the directory'.format(log),
+                    file=sys.stderr
+                )
+                print('Runs not in common are: {!s}'.format(
+                    set(runs) ^ set(lruns)))
                 print('digest aborted',file=sys.stderr)
                 return
-
-            print('... found all the runs listed in the log file')
 
             # extract runs from the MD5SUM file
             mruns = []
             with open(md5) as fin:
                 for line in fin:
                     hash, name = line.split()
-                    mruns.append(name[:-5])
+                    if basename.startswith('hiper'):
+                        mruns.append(name[:-5])
+                    else:
+                        mruns.append(name[:-4])
 
             if set(runs) != set(mruns):
-                print('The runs in the md5sum file do not match those in the directory',file=sys.stderr)
-                print('Runs not in common are: {!s}'.format(set(runs) ^ set(mruns)))
+                print('The runs in the md5sum file do not match '
+                      'those in the directory',file=sys.stderr)
+                print('Runs not in common are: {!s}'.format(
+                    set(runs) ^ set(mruns)))
                 print('digest aborted',file=sys.stderr)
                 return
 
             print('... found all the runs listed in the md5sum file')
 
-    # Now the md5sum checks
-    print('\nNow running md5sum checks; these might take a while.\n')
-
-    for rdir in rdirs:
-        print('Run directory = {:s}'.format(rdir))
-
-        # look for the night-by-night directories. If not present in matching form,
-        # skip to the next on the basis that it has been done already
-        ndirs = [os.path.join(rdir, ndir) for ndir in os.listdir(rdir) if \
-                     ndre.match(ndir) and \
-                     os.path.isdir(os.path.join(rdir, ndir))]
-        ndirs.sort()
+        # Now the md5sum checks
+        print('\nNow running md5sum checks; these might take a while.\n')
 
         for ndir in ndirs:
             print('Night directory = {:s}'.format(ndir))
@@ -226,32 +223,26 @@ def digest(args=None):
                     if hashc == hash:
                         print('md5sum of {:s} is OK'.format(fname))
                     else:
-                        print('** md5sum of {:s} is NOT OK!'.format(fname),file=sys.stderr)
+                        print(
+                            '** md5sum of {:s} is NOT OK!'.format(fname),
+                            file=sys.stderr)
                         print('digest aborted')
                         return
 
-
-    # Now change the data structure into my standard form:
-    #
-    # 1) Rename the night directories, replacing underscores in directory with '-' signs.
-    # 2) Move each one up one level
-    # 2) Create a soft-link to it in the night directory
-    # 4) Copy the hand log of form yyyy_mm_dd_log.dat to yyyy-mm-dd.dat
-
-    for rdir in rdirs:
-        print('\n\nRun directory = {:s}'.format(rdir))
-
-        # look for the night-by-night directories. If not present in matching form,
-        # skip to the next on the basis that it has been done already
-        ndirs = [os.path.join(rdir, ndir) for ndir in os.listdir(rdir) if \
-                     ndre.match(ndir) and \
-                     os.path.isdir(os.path.join(rdir, ndir))]
-        ndirs.sort()
+        # Now change the data structure into my standard form:
+        #
+        # 1) Rename the night directories, replacing underscores in
+        #    directory with '-' signs.
+        # 2) Move each one up one level
+        # 2) Create a soft-link to it in the night directory
+        # 4) Copy the hand log of form yyyy_mm_dd_log.dat to yyyy-mm-dd.dat
 
         # create an equivalent run directory in the log directory
         rd = os.path.basename(rdir)
         lrdir = os.path.join(LOGS, rd)
+
         os.mkdir(lrdir)
+        print('mkdir {:s}'.format(lrdir))
 
         # make a link to the telescope file
         file = os.path.join('..','..',RAW,rd,'telescope')
@@ -305,7 +296,6 @@ def digest(args=None):
             os.symlink(file,link)
             print('ln -s {:s} {:s}'.format(file, link))
 
-
             # make a directory for derived data
             derndir = os.path.join(DERIVED, nnight)
             os.mkdir(derndir)
@@ -316,5 +306,3 @@ def digest(args=None):
             link = os.path.join(derndir,'data')
             os.symlink(file,link)
             print('ln -s {:s} {:s}'.format(file, link))
-
-
