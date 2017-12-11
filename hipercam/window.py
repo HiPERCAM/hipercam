@@ -632,7 +632,7 @@ class Window(Winhead):
         """
         super().__init__(
             win.llx, win.lly, win.nx, win.ny,
-            win.xbin, win.ybin, win.head
+            win.xbin, win.ybin, win
         )
 
         if data is None:
@@ -714,26 +714,68 @@ class Window(Winhead):
 
         return cls(win, data)
 
-    def whdu(self):
-        """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU` with
-        extension name 'WIND'
+    def whdu(self, head=fits.Header(), xoff=0, extnam=None, size=None):
+        """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU`
 
+        Arguments::
+
+          head   : astropy.io.fits.Header
+              Extra header items to add at the start of header in addition to
+              those already contained in the :class:`Window`.
+
+          xoff   : int
+              Offset in X-direction to use for mosaicing.
+
+          extnam : None | string
+              Extension name, useful in 'fv'
+
+          size   : None | 2-element tuple (xsize,ysize)
+              Sizes to be used to set DETSIZE for ds9 mosaicing
+
+          ysize  : int
+              Size to be used to set DETSIZE for ds9 mosaicing
         Returns::
 
-           hdu : astropy.io.fits.ImageHDU
-               The HDU containing the data and the header. It will have
-               extension WIND.
+           hdu    : astropy.io.fits.ImageHDU
+              The HDU containing the data and the header.
 
         """
 
-        head = fits.Header()
+        # Add self's header to the extras
+        head.update(self)
+
+        # Now add the location parameters
         head['LLX'] = (self.llx, 'X-ordinate of lower-left pixel')
         head['LLY'] = (self.lly, 'Y-ordinate of lower-left pixel')
         head['XBIN'] = (self.xbin, 'X-binning factor')
         head['YBIN'] = (self.ybin, 'Y-binning factor')
-        head.update(self)
 
-        return fits.ImageHDU(self.data, head, name='WIND')
+        # Now a set of parameters to facilitate ds9 display
+        cards = []
+        cards.append(('WCSNAME', 'mosaic', 'HiPERCAM mosaic coordinates'))
+        cards.append(('CUNIT1', 'pixel', 'physical unit for WCS axis i'))
+        cards.append(('CUNIT2', 'pixel', 'physical unit for WCS axis i'))
+        cards.append(('CTYPE1', 'MOSAIC_X', 'coordinate/projection type for WCS axis i'))
+        cards.append(('CTYPE2', 'MOSIAC_Y', 'coordinate/projection type for WCS axis i'))
+        cards.append(('CRPIX1', 1, 'reference pixel along FITS axis j'))
+        cards.append(('CRPIX2', 1, 'reference pixel along FITS axis j'))
+        cards.append(('CRVAL1', xoff+self.llx, 'coordinate value for WCS axis i at refpix'))
+        cards.append(('CRVAL2', self.lly, 'coordinate value for WCS axis i at refpix'))
+        cards.append(('CD1_1', self.xbin, 'CTM i_j from pixel to WCS'))
+        cards.append(('CD2_2', self.ybin, 'CTM i_j from pixel to WCS'))
+        cards.append(('CD1_2', 0, 'CTM i_j from pixel to WCS'))
+        cards.append(('CD2_1', 0, 'CTM i_j from pixel to WCS'))
+        if extnam:
+            cards.append(('EXTNAME', extnam, 'name of this image extension'))
+        if size:
+            cards.append(
+                ('DETSIZE', '[1:{:d}, 1:{:d}]'.format(size[0],size[1]),
+                 'mosaic detector size for ds9')
+            )
+        head.update(cards)
+
+        # Return the HDU
+        return fits.ImageHDU(self.data, head)
 
     @property
     def size(self):
