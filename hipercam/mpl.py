@@ -67,19 +67,19 @@ Params = {
 
 def pWin(axes, win, label=''):
     """
-    Plots boundary of a :class:`Window` as a line. (matplotlib)
+    Plots boundary of a :class:`Winhead` as a line. (matplotlib)
     Arguments::
 
-      axes   : (:class:`matplotlib.axes.Axes`)
+      axes   : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
-      win    : (Window)
-           the :class:`Window` to plot
+      win    : :class:`Winhead`
+           the :class:`Winhead` to plot
 
-      label  : (string)
-           label to attach to the Window
+      label  : string
+           label to attach to the Winhead
 
-      kwargs : (keyword arguments)
+      kwargs : keyword arguments
            other arguments to feed to :func:`matplotlib.pyplot.plot`
     """
     left,right,bottom,top = win.extent()

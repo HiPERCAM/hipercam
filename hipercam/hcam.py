@@ -19,7 +19,7 @@ from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
 from astropy.time import Time
 
-from hipercam import (CCD, Group, MCCD, Windat, Window, HRAW, HipercamError)
+from hipercam import (CCD, Group, MCCD, Windat, Winhead, HRAW, HipercamError)
 from hipercam.utils import add_extension
 
 __all__ = ['Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT']
@@ -86,8 +86,8 @@ class Rhead:
        thead     : astropy.io.fits.Header
            the top-level header that will be used to create MCCDs.
 
-       windows   : list of list of list of (Window, flip) tuples
-           windows[nccd][nquad][nwin] returns the Window and set of axes for
+       windows   : list of list of list of (Winhead, flip) tuples
+           windows[nccd][nquad][nwin] returns the Winhead and set of axes for
            window nwin of quadrant nquad of CCD nccd. nwin indexes the windows
            of a given quadrant (at most there are 2, so nwin = 0 or 1). nquad
            indexes the quadrants in EFGH order. nccd index the 5 CCDs. 'flip'
@@ -344,7 +344,7 @@ class Rhead:
 
                     # store the window and the axes to flip
                     self.windows[-1][-1].append(
-                        (Window(llx, lly, nx, ny, self.xbin, self.ybin), FLIP_AXES[quad])
+                        (Winhead(llx, lly, nx, ny, self.xbin, self.ybin), FLIP_AXES[quad])
                     )
 
 

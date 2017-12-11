@@ -82,17 +82,17 @@ class Device(PGdevice):
 
 def pWin(win, label=''):
     """
-    Plots boundary of a :class:`Window` as a line. (PGPLOT)
+    Plots boundary of a :class:`Winhead` as a line. (PGPLOT)
     Plots to the current device with current line width, colour
     etc. This changes the fill-area style and the colour index.
 
     Arguments::
 
-      win : (Window)
-           the :class:`Window` to plot
+      win : :class:`Winhead`
+           the :class:`Winhead` to plot
 
-      label : (string)
-           label to plot at lower-left corner of Window
+      label : string
+           label to plot at lower-left corner of Winhead
     """
     left,right,bottom,top = win.extent()
 
@@ -110,17 +110,17 @@ def pWind(wind, vmin, vmax, label=''):
 
     Arguments::
 
-      wind : (Windata)
+      wind : Windata
            the :class:`Windata` to plot
 
-      vmin : (float)
+      vmin : float
            value at minimum of scale
 
-      vmax : (float)
+      vmax : float
            value at maximum of scale
 
-      label : (string)
-           label to plot at lower-left corner of Window
+      label : string
+           label to plot at lower-left corner of Winhead
     """
     tr = [wind.llx+(wind.xbin-1)/2,wind.xbin,0,
           wind.lly+(wind.ybin-1)/2,0,wind.ybin]

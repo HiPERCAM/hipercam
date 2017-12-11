@@ -21,47 +21,52 @@ from .core import *
 from .group import *
  
 __all__ = (
-    'Window', 'Windat',
+    'Winhead', 'Windat',
     'CcdWin', 'MccdWin',
     'fitGaussian', 'fitMoffat',
     'combFit', 'Moffat'
 )
 
-class Window:
-    """
-    Class representing a window of a CCD. This represents an arbitrary
-    rectangular region of binned pixels. The lower-left pixel of the CCD
-    is assumed to have coordinates (x,y) = (1,1). :class:`Window` dimensions are
-    in binned pixels.
+class Winhead(fits.Header):
+    """Class representing the header parts of a CCD window, i.e. everything
+    needed to represent a window other than its data. This represents an
+    arbitrary rectangular region of binned pixels. The lower-left pixel of the
+    CCD is assumed to have coordinates (x,y) = (1,1). :class:`Winhead`
+    dimensions are in binned pixels.
 
-        >>> from hipercam import Window
-        >>> win = Window(12, 6, 100, 150, 2, 3)
+        >>> from hipercam import Winhead
+        >>> win = Winhead(12, 6, 100, 150, 2, 3)
         >>> print(win)
-        Window(12, 6, 100, 150, 2, 3)
+
+    :class:`Winhead`s are inherited from :class:`astropy.io.fits.Header`
+    objects and thus represent data-less HDUs.
 
     """
 
-    def __init__(self, llx, lly, nx, ny, xbin, ybin):
+    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=None):
         """
         Constructor. Arguments::
 
-        llx : (int)
-            X position of lower-left pixel of window (unbinned pixels)
+          llx  : int
+              X position of lower-left pixel of window (unbinned pixels)
 
-        lly : (int)
-            Y position of lower-left pixel of window (unbinned pixels)
+          lly  : int
+              Y position of lower-left pixel of window (unbinned pixels)
 
-        nx : (int)
-            X dimension of window, binned pixels
+          nx   : int
+              X dimension of window, binned pixels
 
-        ny : (int)
-            Y dimension of window, binned pixels
+          ny   : int
+              Y dimension of window, binned pixels
 
-        xbin : (int)
-            Binning factor in X
+          xbin : int
+              Binning factor in X
 
-        ybin : (int)
-            Binning factor in Y
+          ybin : int
+              Binning factor in Y
+
+          head : astropy.io.fits.Header
+              Arbitrary header items
         """
 
         self.llx = llx
@@ -72,11 +77,12 @@ class Window:
         # Windat they are connected to the array size
         self._nx = nx
         self._ny = ny
+        self.head = head
 
     @property
     def nx(self):
         """
-        Returns binned X-dimension of the :class:`Window`. 
+        Returns binned X-dimension of the :class:`Winhead`.
         """
         return self._nx
 
@@ -90,7 +96,7 @@ class Window:
     @property
     def ny(self):
         """
-        Returns binned Y-dimension of the :class:`Window`.
+        Returns binned Y-dimension of the :class:`Winhead`.
         """
         return self._ny
 
@@ -102,26 +108,32 @@ class Window:
         self._ny = ny
 
     def __repr__(self):
-        return 'Window(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r})'.format(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
+        return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={!r})'.format(
+            self.llx, self.lly, self.nx, self.ny,
+            self.xbin, self.ybin, self.head
+        )
 
     def format(self):
-        """Used to ensure that only the Window format gets printed which is
+        """Used to ensure that only the Winhead format gets printed which is
         useful in some instances. Relying on __repr__ carries the risk of
         being overloaded."""
 
-        return 'Window(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r})'.format(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
+        return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={!r})'.format(
+            self.llx, self.lly, self.nx, self.ny,
+            self.xbin, self.ybin, self.head
+        )
 
     @property
     def urx(self):
         """
-        Returns (unbinned) X pixel at upper-right of :class:`Window`
+        Returns (unbinned) X pixel at upper-right of :class:`Winhead`
         """
         return self.llx-1+self.nx*self.xbin
 
     @property
     def ury(self):
         """
-        Returns (unbinned) Y pixel at upper-right of :class:`Window`
+        Returns (unbinned) Y pixel at upper-right of :class:`Winhead`
         """
         return self.lly-1+self.ny*self.ybin
 
@@ -216,24 +228,25 @@ class Window:
     def extent(self):
 
         """
-        Returns (left,right,bottom,top) boundaries of :class:`Window`
+        Returns (left,right,bottom,top) boundaries of :class:`Winhead`
         i.e. (xlo,xhi,ylo,yhi)
         """
         return (self.xlo,self.xhi,self.ylo,self.yhi)
 
     def outside(self, win):
-        """
-        Returns True if `self` contains the :class:Window `win` in such a way
-        that it could be cut down to it. This implies that even if binned, its
+        """Returns True if `self` contains the :class:Winhead `win` in such a way that
+        it could be cut down to it. This implies that even if binned, its
         pixels are "in step", aka "synchronised", and that its binning factors
         are integer divisors of those of `win`.
 
         Arguments::
 
-          win  : (:class:Window)
-             the :class:Window that we are testing against to see if `self` surrounds it.
+          win  : :class:Winhead
+             the :class:Winhead that we are testing against to see if `self`
+             surrounds it.
 
         See also :func:`inside`, :func:`window`
+
         """
         return win.xbin % self.xbin == 0 and win.ybin % self.ybin == 0 and \
             self.llx <= win.llx and self.urx >= win.urx and \
@@ -242,18 +255,19 @@ class Window:
             (win.lly-self.lly) % self.ybin == 0
 
     def inside(self, win):
-        """
-        Returns True if `win` contains `self` in such a way that it could be
-        cut down to it. This implies that even if binned, its pixels are "in
+        """Returns True if `win` contains `self` in such a way that it could be cut
+        down to it. This implies that even if binned, its pixels are "in
         step", aka "synchronised", and that its bin factors are integer
         divisors of those of `self`.
 
         Arguments::
 
-          win  : (:class:Window)
-             the :class:Window that we are testing against to see if `self` in inside it.
+          win  : :class:Winhead
+             the :class:Winhead that we are testing against to see if `self` in
+             inside it.
 
         See also :func:`outside`, :func:`window`
+
         """
         return self.xbin % win.xbin == 0 and self.ybin % win.ybin == 0 and \
             win.llx <= self.llx and win.urx >= self.urx and \
@@ -262,9 +276,10 @@ class Window:
             (self.lly-win.lly) % win.ybin == 0
 
     def xy(self):
-        """Returns two 2D arrays containing the x and y values at the centre
-        of each pixel defined by the :class:`Window`. See numpy.meshgrid to
-        see what this means.
+        """Returns two 2D arrays containing the x and y values at the centre of each
+        pixel defined by the :class:`Winhead`. See numpy.meshgrid to see what
+        this means.
+
         """
         # generate 1D x and y arrays along the edges
         x = np.linspace(self.x(0),self.x(self.nx-1),self.nx)
@@ -273,10 +288,15 @@ class Window:
         return np.meshgrid(x,y)
 
     def clash(self, win):
-        """Raises a ValueError if two :class: `Window`s are considered to 'clash'.  In
-        this case this means if they have any pixels in common.  This method
-        is used in the 'check' method of the :class:`Group` class to check
-        the mutual validity of a set of :class:`Window`.
+        """Raises a ValueError if two :class: `Winhead`s are considered to 'clash'.
+        In this case this means if they have any pixels in common.  This
+        method is used in the 'check' method of the :class:`Group` class to
+        check the mutual validity of a set of :class:`Winhead`.
+
+        Arguments::
+
+          win : :class:`Winhead`
+             the :class:Winhead that we are testing self against.
 
         """
         if self.llx <=  win.urx and self.urx >= win.llx and \
@@ -287,9 +307,14 @@ class Window:
             )
 
     def matches(self, win):
-        """Tests that the :class:`Window` matches another. If all OK, returns None,
-        otherwise raises a ValueError reporting the two :class:`Window`s. See
+        """Tests that the :class:`Winhead` matches another. If all OK, returns None,
+        otherwise raises a ValueError reporting the two :class:`Winhead`s. See
         also `__eq__`
+
+        Arguments::
+
+          win : :class:`Winhead`
+             the :class:Winhead that we are testing self against.
 
         """
         if self != win:
@@ -300,15 +325,18 @@ class Window:
             )
 
     def copy(self, memo=None):
-        """Returns a copy (deepcopy) of the :class:`Window`
+        """Returns a copy (deepcopy) of the :class:`Winhead`
 
-        copy.copy and copy.deepcopy of a `Window` use this method
+        copy.copy and copy.deepcopy of a `Winhead` use this method
         """
-        return Window(self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin)
+        return Winhead(
+            self.llx, self.lly, self.nx, self.ny,
+            self.xbin, self.ybin, self.head.copy()
+        )
 
     def distance(self, x, y):
-        """Calculates the minimum distance of a point from the edge of the Window. If
-        the point is outside the Window the distance will be negative; if
+        """Calculates the minimum distance of a point from the edge of the Winhead. If
+        the point is outside the Winhead the distance will be negative; if
         inside it will be positive. The edge is defined as the line running
         around the outside of the outer set of pixels. For a point outside the
         box in both x and y, the value returned is a lower limit to the
@@ -343,26 +371,27 @@ class Window:
         return dist
 
     def window(self, xlo, xhi, ylo, yhi):
-        """Generates a new Window by windowing it to match the
-        complete pixels visible within the range xlo to xhi, ylo to yhi.
+        """Generates a new Winhead by windowing it to match the complete pixels
+        visible within the range xlo to xhi, ylo to yhi.
 
         Arguments::
 
-           xlo : (float)
+           xlo : float
               minimum X, unbinned pixels (extreme left pixels of CCD centred
               on 1)
 
-           xhi : (float)
+           xhi : float
               maximum X, unbinned pixels
 
-           ylo : (float)
+           ylo : float
               minimum Y, unbinned pixels (bottom pixels of CCD centred on 1)
 
-           yhi : (float)
+           yhi : float
               maximum Y, unbinned pixels
 
-        Returns the windowed Window. Raises a ValueError if there are no
+        Returns the windowed Winhead. Raises a ValueError if there are no
         visible pixels.
+
         """
 
         llx = max(self.llx, self.llx +
@@ -376,11 +405,12 @@ class Window:
 
         if nx <= 0 or ny <= 0:
             raise ValueError(
-                '{!r} has no overlap with region = ({:.2f},{:.2f},{:.2f},{:.2f})'.format(
+                '{!r} has no overlap with region = '
+                '({:.2f},{:.2f},{:.2f},{:.2f})'.format(
                     self.format(), xlo, xhi, ylo, yhi)
                 )
 
-        return Window(llx, lly, nx, ny, self.xbin, self.ybin)
+        return Winhead(llx, lly, nx, ny, self.xbin, self.ybin, self.head)
 
     def __copy__(self):
         return self.copy()
@@ -389,43 +419,61 @@ class Window:
         return self.copy(memo)
 
     def __eq__(self, win):
-        """
-        Defines equality. Two :class:`Window`s are equal if they match exactly
+        """Defines equality. Two :class:`Winhead`s are equal if they match exactly
         (same lower left corner, dimensions and binning factors)
+
+        Arguments::
+
+          win : :class:`Winhead`
+             the :class:Winhead that we are testing self against.
         """
         return self.llx == win.llx and  self.lly == win.lly and \
             self.nx == win.nx and self.ny == win.ny and \
             self.xbin == win.xbin and self.ybin == win.ybin
 
     def __ne__(self, win):
-        """Defines equality. Two :class:`Window`s are equal if they match
-        exactly (same lower left corner, dimensions and binning factors)
+        """Defines equality. Two :class:`Winhead`s are equal if they match exactly
+        (same lower left corner, dimensions and binning factors)
 
+        Arguments::
+
+          win : :class:`Winhead`
+             the :class:Winhead that we are testing self against.
         """
         return not (self == win)
 
-    def toJson(self, fname):
-        """Dumps Window in JSON format to fp"""
-        with open(fname,'w') as fp:
-            json.dump(self, fp, cls=_Encoder, indent=2)
+    def toHeader(self):
+        """Returns the :class:`Winhead` as a plain astropy.io.fits.Header.  It does so
+        by writing the basic window parameters like llx, xbin, etc into a
+        Header, adding any arbitrary header items and then returning the
+        result.
 
-    @classmethod
-    def fromJson(cls, fname):
-        """Read from JSON-format file fname"""
-        with open(fname) as fp:
-            win = json.load(fp, cls=_Decoder)
-        return win
+        """
+        head = fits.Header()
+        head['LLX'] = (self.llx, 'X-ordinate of lower-left pixel')
+        head['LLY'] = (self.lly, 'Y-ordinate of lower-left pixel')
+        head['XBIN'] = (self.xbin, 'X-binning factor')
+        head['YBIN'] = (self.ybin, 'Y-binning factor')
+        head['NX'] = (self.nx, 'X-dimension, binned pixels')
+        head['NY'] = (self.ny, 'Y-dimension, binned pixels')
+        head.update(self.head)
+        return head
+
+    def totextfile(self, fileobj, overwrite=False):
+        """Writes the :class:`Winhead` to a text file."""
+        head = self.toHeader()
+        head.totextfile(fileobj, overwrite)
 
 class _Encoder (json.JSONEncoder):
     """
-    Provides a default that can be used to write Window
+    Provides a default that can be used to write Winhead
     objects to json files
     """
     def default(self, obj):
-        if isinstance(obj, Window):
+        if isinstance(obj, Winhead):
             return OrderedDict(
                 (
-                    ('Comment', 'hipercam.Window'),
+                    ('Comment', 'hipercam.Winhead'),
                     ('llx', obj.llx),
                     ('lly', obj.lly),
                     ('nx', obj.nx),
@@ -443,8 +491,8 @@ class _Decoder(json.JSONDecoder):
 
     def object_hook(self, obj):
         # looks out for Aperture objects. Everything else done by default
-        if 'Comment' in obj and r['Comment'] == 'hipercam.Window':
-            return Window(
+        if 'Comment' in obj and r['Comment'] == 'hipercam.Winhead':
+            return Winhead(
                 obj['llx'], obj['lly'], obj['nx'], obj['ny'],
                 obj['xbin'], obj['ybin']
             )
@@ -452,18 +500,18 @@ class _Decoder(json.JSONDecoder):
         return obj
 
 class CcdWin(Group):
-    """Class representing all the :class:`Window`s for a single CCD.
+    """Class representing all the :class:`Winhead`s for a single CCD.
     """
 
-    def __init__(self, wins=Group(Window)):
+    def __init__(self, wins=Group(Winhead)):
         """Constructs a :class:`CcdWin`.
 
         Arguments::
 
           wins : (Group)
-              Group of :class:`Window` objects
+              Group of :class:`Winhead` objects
         """
-        super().__init__(Window, wins)
+        super().__init__(Winhead, wins)
 
     def __repr__(self):
         return '{:s}(wins={:s})'.format(
@@ -486,7 +534,7 @@ class CcdWin(Group):
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
 class MccdWin(Group):
-    """Class representing all the :class:`Window`s for multiple CCDs.
+    """Class representing all the :class:`Winhead`s for multiple CCDs.
     """
 
     def __init__(self, wins=Group(CcdWin)):
@@ -542,14 +590,14 @@ class MccdWin(Group):
                 mccdwin[cnam][wnam] = wind.win
         return mccdwin
 
-class Windat(Window):
+class Windat(Winhead):
     """Class representing a CCD window with data. Constructed from
-    a :class:`Window` and a :class:`numpy.ndarray` which is stored
+    a :class:`Winhead` and a :class:`numpy.ndarray` which is stored
     in an attribute called `data`.
 
         >>> import numpy as np
-        >>> from hipercam import Window, Windat
-        >>> win = Window(12, 6, 100, 150, 2, 3)
+        >>> from hipercam import Winhead, Windat
+        >>> win = Winhead(12, 6, 100, 150, 2, 3)
         >>> data = np.ones((150,100))
         >>> wind = Windat(win,data)
         >>> wind += 0.5
@@ -572,8 +620,8 @@ class Windat(Window):
 
         Arguments::
 
-          win : (Window)
-              the Window
+          win : (Winhead)
+              the Winhead
 
           data : (numpy.ndarray)
               the data (2D). The dimension must match those in win unless
@@ -640,13 +688,13 @@ class Windat(Window):
         if data.dtype != np.float64:
             data = data.astype(np.float32)
 
-        # construct Window
+        # construct Winhead
         llx = head['LLX']
         lly = head['LLY']
         xbin = head['XBIN']
         ybin = head['YBIN']
         ny, nx = data.shape
-        win = Window(llx, lly, nx, ny, xbin, ybin)
+        win = Winhead(llx, lly, nx, ny, xbin, ybin)
 
         return cls(win, data)
 
@@ -659,7 +707,7 @@ class Windat(Window):
 
     @property
     def win(self):
-        """A copy of the :class:`Window` underlying the :class:`Windat`"""
+        """A copy of the :class:`Winhead` underlying the :class:`Windat`"""
         return super().copy()
 
     def set_const(self, val):
@@ -842,7 +890,7 @@ class Windat(Window):
         """
         win = super().window(xlo, xhi, ylo, yhi)
 
-        # we know the Window generated is in step with the current Window which saves
+        # we know the Winhead generated is in step with the current Winhead which saves
         # some checks that would be applied if 'crop' was used at this point
         x1 = (win.llx-self.llx)//self.xbin
         y1 = (win.lly-self.lly)//self.ybin
@@ -853,7 +901,7 @@ class Windat(Window):
 
     def crop(self, win):
         """Creates a new :class:Windat by cropping the current :class:Windat to the
-        format defined by :class:Window `win`. Will throw a ValueError if the
+        format defined by :class:Winhead `win`. Will throw a ValueError if the
         operation is impossible or results in no overlap. The current
         :class:Windat must lie outside `win` and must be synchronised (in
         step) if any binning is used. If binning is used then the binning
@@ -864,7 +912,7 @@ class Windat(Window):
 
         Arguments::
 
-           win : (:class:Window)
+           win : (:class:Winhead)
               the new format to apply.
 
         """

@@ -15,7 +15,7 @@ import datetime
 from astropy.io import fits
 from astropy.time import Time
 
-from hipercam import (CCD, Group, MCCD, Windat, Window)
+from hipercam import (CCD, Group, MCCD, Windat, Winhead)
 
 __all__ = ['Rhead', 'Rdata', 'Rtime']
 
@@ -108,7 +108,7 @@ class Rhead(fits.Header):
           to do with timing [ULTRACAM]
 
        win : (list)
-          A list of Window objects, one per window. ULTRACAM data is multi-CCD
+          A list of Winhead objects, one per window. ULTRACAM data is multi-CCD
           but the windows of each CCD are identical so the information is only
           stored once for all CCDs.
 
@@ -299,7 +299,7 @@ class Rhead(fits.Header):
         self.xbin = xbin
         self.ybin = ybin
 
-        # Build up list of Windows
+        # Build up list of Winheads
         self.win = []
         fsize = 2*self.headerwords
         if self.instrument == 'ULTRACAM':
@@ -329,10 +329,10 @@ class Rhead(fits.Header):
 
             if mode == 'FFCLR' or mode == 'FFNCLR':
                 self.win.append(
-                    Window(1, 1, 512//xbin, 1024//ybin, xbin, ybin)
+                    Winhead(1, 1, 512//xbin, 1024//ybin, xbin, ybin)
                 )
                 self.win.append(
-                    Window(513, 1, 512//xbin, 1024//ybin, xbin, ybin)
+                    Winhead(513, 1, 512//xbin, 1024//ybin, xbin, ybin)
                 )
                 fsize += 12*self.win[-1].nx*self.win[-1].ny
 
@@ -352,25 +352,25 @@ class Rhead(fits.Header):
                 # first set the physical data windows
                 nx, ny = 512, 1024
                 self.win.append(
-                    Window(1, 1, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(1, 1, nx // xbin, ny // ybin, xbin, ybin))
                 self.win.append(
-                    Window(513, 1, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(513, 1, nx // xbin, ny // ybin, xbin, ybin))
                 fsize += 12*nx*ny
 
                 # left & right overscans (both placed on the right)
                 nx,ny = 28, 1032
                 self.win.append(
-                    Window(1025, 1, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(1025, 1, nx // xbin, ny // ybin, xbin, ybin))
                 self.win.append(
-                    Window(1053, 1, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(1053, 1, nx // xbin, ny // ybin, xbin, ybin))
                 fsize += 12*nx*ny
 
                 # top overscans
                 nx,ny = 512, 8
                 self.win.append(
-                    Window(1, 1025, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(1, 1025, nx // xbin, ny // ybin, xbin, ybin))
                 self.win.append(
-                    Window(513, 1025, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(513, 1025, nx // xbin, ny // ybin, xbin, ybin))
                 fsize += 12*nx*ny
 
             else:
@@ -380,8 +380,8 @@ class Rhead(fits.Header):
                 xright = int(param['X1R_START'])
                 nx = int(param['X1_SIZE']) // xbin
                 ny = int(param['Y1_SIZE']) // ybin
-                self.win.append(Window(xleft, ystart, nx, ny, xbin, ybin))
-                self.win.append(Window(xright, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
                 fsize += 12*nx*ny
 
             if mode == '2-PAIR' or mode == '3-PAIR':
@@ -390,8 +390,8 @@ class Rhead(fits.Header):
                 xright = int(param['X2R_START'])
                 nx = int(param['X2_SIZE']) // xbin
                 ny = int(param['Y2_SIZE']) // ybin
-                self.win.append(Window(xleft, ystart, nx, ny, xbin, ybin))
-                self.win.append(Window(xright, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
                 fsize += 12*nx*ny
 
             if mode == '3-PAIR':
@@ -400,8 +400,8 @@ class Rhead(fits.Header):
                 xright = int(param['X3R_START'])
                 nx = int(param['X3_SIZE']) // xbin
                 ny = int(param['Y3_SIZE']) // ybin
-                self.win.append(Window(xleft, ystart, nx, ny, xbin, ybin))
-                self.win.append(Window(xright, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
                 fsize += 12*nx*ny
 
         elif self.instrument == 'ULTRASPEC':
@@ -428,7 +428,7 @@ class Rhead(fits.Header):
             ystart = int(param['Y1_START'])
             nx = int(param['X1_SIZE'])
             ny = int(param['Y1_SIZE'])
-            self.win.append(Window(xstart, ystart, nx, ny, xbin, ybin))
+            self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin))
             fsize += 2*nx*ny
 
             if mode == 'USPEC-2' or mode == 'USPEC-3' or \
@@ -438,7 +438,7 @@ class Rhead(fits.Header):
                          int(param['Y2_START'])
                 nx = int(param['X2_SIZE'])
                 ny = ny if mode == 'UDRIFT' else int(param['Y2_SIZE'])
-                self.win.append(Window(xstart, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin))
                 fsize += 2*nx*ny
 
             if mode == 'USPEC-3' or mode == 'USPEC-4':
@@ -446,7 +446,7 @@ class Rhead(fits.Header):
                 ystart = int(param['Y3_START'])
                 nx = int(param['X3_SIZE'])
                 ny = int(param['Y3_SIZE'])
-                self.win.append(Window(xstart, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin))
                 fsize += 2*nx*ny
 
             if mode == 'USPEC-4':
@@ -454,7 +454,7 @@ class Rhead(fits.Header):
                 ystart = int(param['Y4_START'])
                 nx = int(param['X4_SIZE'])
                 ny = int(param['Y4_SIZE'])
-                self.win.append(Window(xstart, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin))
                 fsize += 2*nx*ny
 
         if fsize != self.framesize:
@@ -1072,13 +1072,13 @@ class Rdata (Rhead):
                     if self.output == 'N':
                         # normal output, multi windows.
                         wins[str(nwin)] = \
-                            Window(np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop:],
+                            Winhead(np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop:],
                                    llx,w.lly,xbin,ybin)
 
                     elif self.output == 'A':
                         # avalanche output, multi windows.
                         wins[str(nwin)] = \
-                            Window(np.reshape(buff[noff:noff+npix],
+                            Winhead(np.reshape(buff[noff:noff+npix],
                                               (w.ny,w.nx))[:,nchop::-1],llx,w.lly,xbin,ybin)
                     nwin += 1
                     noff += npix
@@ -1109,9 +1109,9 @@ class Rdata (Rhead):
                     # avalanche output, drift
                     comb = np.reshape(buff[:npix],(wl.ny,wl.nx+wr.nx)[:,::-1])
 
-                wins[str(nwin)] = Window(comb[:,nchopl:wl.nx],llxl,wl.lly,xbin,ybin)
+                wins[str(nwin)] = Winhead(comb[:,nchopl:wl.nx],llxl,wl.lly,xbin,ybin)
                 nwin += 1
-                wins[str(nwin)] = Window(comb[:,wl.nx+nchopr:],llxr,wl.lly,xbin,ybin)
+                wins[str(nwin)] = Winhead(comb[:,wl.nx+nchopr:],llxr,wl.lly,xbin,ybin)
                 nwin += 1
 
             # data type conversions
