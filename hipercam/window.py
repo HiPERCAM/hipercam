@@ -454,45 +454,6 @@ class Winhead(fits.Header):
         """
         return not (self == win)
 
-    def toHeader(self):
-        """Returns the :class:`Winhead` as a plain astropy.io.fits.Header.  It does so
-        by writing the basic window parameters like llx, xbin, etc into a
-        Header, adding the arbitrary header items and then returning the
-        result.
-        """
-        head = fits.Header()
-        head['LLX'] = (self.llx, 'X-ordinate of lower-left pixel')
-        head['LLY'] = (self.lly, 'Y-ordinate of lower-left pixel')
-        head['XBIN'] = (self.xbin, 'X-binning factor')
-        head['YBIN'] = (self.ybin, 'Y-binning factor')
-        head['NX'] = (self.nx, 'X-dimension, binned pixels')
-        head['NY'] = (self.ny, 'Y-dimension, binned pixels')
-        head.update(self.head)
-        return head
-
-    @classmethod
-    def fromHeader(cls, head):
-        """Creates a :class:`Winhead` from an astropy.io.fits.Header
-
-        Arguments::
-
-           head : astropy.io.fits.Header
-              this has to contain the essential information needed
-              to construct the Winhead.
-
-        Returns equivalent :class:`Winhead`
-        """
-        hcopy = head.copy()
-        llx = int(hcopy['LLX'])
-        lly = int(hcopy['LLY'])
-        nx = int(hcopy['NX'])
-        ny = int(hcopy['NY'])
-        xbin = int(hcopy['XBIN'])
-        ybin = int(hcopy['YBIN'])
-        for key in ('LLX', 'LLY', 'NX', 'NY', 'XBIN', 'YBIN'):
-            del hcopy[key]
-        return Winhead(llx,lly,nx,ny,xbin,ybin,hcopy)
-
 class _Encoder (json.JSONEncoder):
     """
     Provides a default that can be used to write Winhead
@@ -632,9 +593,9 @@ class MccdWin(Group):
         return mccdwin
 
 class Window(Winhead):
-    """Class representing a CCD window with data. Constructed from
-    a :class:`Winhead` and a :class:`numpy.ndarray` which is stored
-    in an attribute called `data`.
+    """Class representing a CCD window, including its position, binning and data.
+    Constructed from a :class:`Winhead` and a :class:`numpy.ndarray` which is
+    stored in an attribute called `data`.
 
         >>> import numpy as np
         >>> from hipercam import Winhead, Window
@@ -656,19 +617,24 @@ class Window(Winhead):
     """
 
     def __init__(self, win, data=None):
-        """
-        Constructs a :class:`Window`
+        """Constructs a :class:`Window`
 
         Arguments::
 
-          win : (Winhead)
-              the Winhead
+          win : :class:`Winhead`
+              the :class:`Winhead` defining the position and, optionally, headers
 
-          data : (numpy.ndarray)
-              the data (2D). The dimension must match those in win unless
-              data is None in which case a zero array of the correct size
-              will be created. A ValueError will be raised if not.
+          data : 2D numpy.ndarray
+              the data (2D). The dimensions must match those in win unless
+              data is None in which case a zero array of the correct size will
+              be created. A ValueError will be raised if not.
+
         """
+        super().__init__(
+            win.llx, win.lly, win.nx, win.ny,
+            win.xbin, win.ybin, win.head
+        )
+
         if data is None:
             self.data = np.zeros((win.ny,win.nx))
         else:
@@ -683,41 +649,42 @@ class Window(Winhead):
 
             self.data = data
 
-        super().__init__(win.llx, win.lly, win.nx, win.ny, win.xbin, win.ybin)
-
     @property
     def nx(self):
         """
-        Returns binned X-dimension of the :class:`Window`. 
+        Returns binned X-dimension of the :class:`Window`.
         """
         return self.data.shape[1]
 
     @nx.setter
     def nx(self, nx):
-        raise NotImplementedError('cannot set nx directly; change data array instead')
+        raise NotImplementedError(
+            'cannot set nx directly; change data array instead'
+        )
 
     @property
     def ny(self):
         """
-        Returns binned Y-dimension of the :class:`Window`. 
+        Returns binned Y-dimension of the :class:`Window`.
         """
         return self.data.shape[0]
-
-    def flatten(self):
-        """Return data onf the :class:`Window` as a 1D array"""
-        return self.data.flatten()
 
     @ny.setter
     def ny(self, ny):
         raise NotImplementedError(
-            'cannot set ny directly; change data array instead')
+            'cannot set ny directly; change data array instead'
+        )
+
+    def flatten(self):
+        """Return data of the :class:`Window` as a 1D array"""
+        return self.data.flatten()
 
     @classmethod
     def rhdu(cls, hdu):
         """Constructs a :class:`Window` from an ImageHdu. Requires header parameters
         'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.  This converts the data
         to float32 internally, unless it is read in as float64 in the first
-        place conversion f which would lose precision.
+        place conversion which would lose precision.
 
         """
         head = hdu.header
@@ -731,13 +698,42 @@ class Window(Winhead):
 
         # construct Winhead
         llx = head['LLX']
+        del head['LLX']
+
         lly = head['LLY']
+        del head['LLY']
+
         xbin = head['XBIN']
+        del head['XBIN']
+
         ybin = head['YBIN']
+        del head['YBIN']
+
         ny, nx = data.shape
-        win = Winhead(llx, lly, nx, ny, xbin, ybin)
+        win = Winhead(llx, lly, nx, ny, xbin, ybin, head)
 
         return cls(win, data)
+
+    def whdu(self):
+        """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU` with
+        extension name 'WIND'
+
+        Returns::
+
+           hdu : astropy.io.fits.ImageHDU
+               The HDU containing the data and the header. It will have
+               extension WIND.
+
+        """
+
+        head = fits.Header()
+        head['LLX'] = (self.llx, 'X-ordinate of lower-left pixel')
+        head['LLY'] = (self.lly, 'Y-ordinate of lower-left pixel')
+        head['XBIN'] = (self.xbin, 'X-binning factor')
+        head['YBIN'] = (self.ybin, 'Y-binning factor')
+        head.update(self)
+
+        return fits.ImageHDU(self.data, head, name='WIND')
 
     @property
     def size(self):
@@ -747,7 +743,7 @@ class Window(Winhead):
         return self.data.size
 
     @property
-    def win(self):
+    def winhead(self):
         """A copy of the :class:`Winhead` underlying the :class:`Window`"""
         return super().copy()
 
@@ -816,35 +812,6 @@ class Window(Winhead):
         """
         return np.percentile(self.data, q)
 
-    def whdu(self, fhead=None):
-        """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU` with
-        extension name 'WIND'
-
-        Arguments::
-
-          fhead : (astropy.io.fits.Header)
-             A FITS header object for passing in meta data. The location of
-             the lower-left pixel and the binning factors will be added to it,
-             so it will be modified on exit. If None on entry, it will be
-             created.
-
-        Returns::
-
-          hdu : (astropy.io.fits.ImageHDU)
-             The HDU containg the data and the header. It will have extension WIND.
-
-        """
-
-        if fhead is None:
-            fhead = fits.Header()
-
-        fhead['LLX'] = (self.llx,  'X-coordinate of lower-left pixel')
-        fhead['LLY'] = (self.lly,  'Y-coordinate of lower-left pixel')
-        fhead['XBIN'] = (self.xbin, 'Binning factor in X')
-        fhead['YBIN'] = (self.ybin, 'Binning factor in Y')
-
-        return fits.ImageHDU(self.data, fhead, name='WIND')
-
     def add_fxy(self, funcs, ndiv=0):
         """Routine to add in the results of evaluating a function or a list of
         functions of x & y to the :class:`Window`.  Each function must take 2D
@@ -907,7 +874,7 @@ class Window(Winhead):
 
         copy.copy and copy.deepcopy of a `Window` use this method
         """
-        return Window(self.win, self.data.copy())
+        return Window(self.win.copy(), self.data.copy())
 
     def window(self, xlo, xhi, ylo, yhi):
         """Creates a new Window by windowing it down to whatever complete pixels are
@@ -1261,64 +1228,66 @@ class Window(Winhead):
 # have decided that these relatively specialised routines are better as
 # separate methods rather than class methods
 
-def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, read, gain):
-    """
-    Fits the profile of one target in a Window with a symmetric 2D
-    Gaussian profile given initial starting parameters. NB This will fit
-    the entire Window so normally one should window down to the object of
-    interest. It returns the fitted parameters, covariances and the fit itself.
-    The FWHM can be constrained to lie above a lower limit which can be useful.
+def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min,
+                fwhm_fix, read, gain):
+    """Fits the profile of one target in a Window with a symmetric 2D Gaussian
+    profile given initial starting parameters. NB This will fit the entire
+    Window so normally one should window down to the object of interest. It
+    returns the fitted parameters, covariances and the fit itself.  The FWHM
+    can be constrained to lie above a lower limit which can be useful.
 
     Arguments::
 
-        wind     : (float)
+        wind     : float
             the Window under consideration
 
-        sky      : (float)
+        sky      : float
             value of the (assumed constant) sky background
 
-        height   : (float)
+        height   : float
             peak height of profile
 
-        xcen     : (float)
+        xcen     : float
             initial X value at centre of profile, unbinned absolute coordinates
 
-        ycen     : (float)
+        ycen     : float
             initial Y value at centre of profile, unbinned absolute coordinates
 
-        fwhm     : (float)
+        fwhm     : float
             initial FWHM in unbinned pixels.
 
-        fwhm_min : (float)
-            minimum value to allow FWHM to go to. Useful for heavily binned data
-            especially where all signal might be in a single pixel to prevent going
-            to silly values.
+        fwhm_min : float
+            minimum value to allow FWHM to go to. Useful for heavily binned
+            data especially where all signal might be in a single pixel to
+            prevent going to silly values.
 
-        fwhm_fix : (bool)
+        fwhm_fix : bool
             whether to hold the FWHM fixed or not.
 
-        read     : (float)
+        read     : float
             readout noise, RMS ADU, from which weights are generated
 
-        gain     : (float)
+        gain     : float
             gain, e-/ADU, from which weights are generated
 
-    Returns:: (tuple of tuples)
+    Returns:: tuple of tuples
 
        (pars, sigs, extras) where::
 
-         pars : (tuple)
+         pars   : tuple
             parameters. unpacks to sky, height, xcen, yce, fwhm
 
-         sigs : (tuple)
-            standard deviations. unpacks in same order, (sky, height, xcen, yce, fwhm). Can come
-            back as 'None' if the fit fails so don't try to unpack on the fly.
+         sigs   : tuple
+            standard deviations. unpacks in same order, (sky, height, xcen,
+            yce, fwhm). Can come back as 'None' if the fit fails so don't try
+            to unpack on the fly.
 
-         extras : (tuple)
-            some extra stuff that might come in useful, namely (fit, X, Y, weights) where `fit`
-            is a :class:Window containing the best fit, X and Y are the X and Y positions of
-            all pixels (2D numpy arrays) and weights is the final set of weights, some of which
-            might = 0 indicating rejection.
+         extras : tuple
+            some extra stuff that might come in useful, namely (fit, X, Y,
+            weights) where `fit` is a :class:Window containing the best fit, X
+            and Y are the X and Y positions of all pixels (2D numpy arrays)
+            and weights is the final set of weights, some of which might = 0
+            indicating rejection.
 
     """
     global FFWHM
@@ -1475,61 +1444,63 @@ class GaussianFF(Fittable2DModel):
         return [d_constant, d_height, d_xcen, d_ycen]
 
 
-def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, read, gain):
+def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
+              beta, read, gain):
     """Fits the profile of one target in a Window with a 2D Moffat profile,
     h/(1+(r/a)**2)**beta where r is the distance from the centre of the
-    aperture. It returns the fitted parameters, covariances and the fit itself.
-    The FWHM can be constrained to lie above a lower limit which can be useful.
+    aperture. It returns the fitted parameters, covariances and the fit
+    itself.  The FWHM can be constrained to lie above a lower limit which can
+    be useful.
 
     Arguments::
 
-        sky      : (float)
+        sky      : float
             value of the (assumed constant) sky background
 
-        height   : (float)
+        height   : float
             peak height of profile
 
-        xcen     : (float)
+        xcen     : float
             initial X value at centre of profile, unbinned absolute coordinates
 
-        ycen     : (float)
+        ycen     : float
             initial Y value at centre of profile, unbinned absolute coordinates
 
-        fwhm     : (float)
+        fwhm     : float
             initial FWHM in unbinned pixels.
 
-        fwhm_min : (float)
+        fwhm_min : float
             minimum value to allow FWHM to go to. Useful for heavily binned
             data especially where all signal might be in a single pixel to
             prevent going to silly values.
 
-        fwhm_fix : (bool)
+        fwhm_fix : bool
             whether or not to vary the FWHM. In some cases one may not want to
             for safety or speed.
 
-        read     : (float)
+        read     : float
             readout noise, RMS ADU, from which weights are generated
 
-        gain     : (float)
+        gain     : float
             gain, e-/ADU, from which weights are generated
 
-        sigma   : (float)
+        sigma    : float
             for outlier rejection. The fit is re-run with outliers removed by
             setting their weight = 0.
 
-    Returns:: (tuple of tuples)
+    Returns:: tuple of tuples
 
         (pars, sigs, extras) where::
 
-           pars : (tuple)
+           pars   : tuple
                 parameters. unpacks to sky, height, xcen, yce, fwhm
 
-           sigs : (tuple)
+           sigs   : tuple
                 standard deviations. unpacks in same order, (sky, height,
                 xcen, yce, fwhm). Can come back as 'None' if the fit fails so
                 don't try to unpack on the fly.
 
-           extras : (tuple)
+           extras : tuple
                 some extra stuff that might come in useful, namely (fit, X, Y,
                 weights) where `fit` is a :class:Window containing the best
                 fit, X and Y are the X and Y positions of all pixels (2D numpy
@@ -1715,55 +1686,55 @@ def combFit(wind, method, sky, height, x, y,
 
     Arguments::
 
-        wind      : (:class:Window)
+        wind      : :class:`Window`
             the Window containing the stellar profile to fit
 
-        method    : (string)
+        method    : string
             fitting method 'g' for Gaussian, 'm' for Moffat
 
-        sky       : (float)
+        sky       : float
             initial sky level
 
-        height    : (float)
+        height    : float
             initial peak height
 
-        x         : (float)
+        x         : float
             initial central X value
 
-        y         : (float)
+        y         : float
             initial central Y value
 
-        fwhm      : (float)
+        fwhm      : float
             initial FWHM, unbinned pixels.
 
-        fwhm_min  : (float)
+        fwhm_min  : float
             minimum FWHM, unbinned pixels.
 
-        fwhm_fix  : (float)
+        fwhm_fix  : float
             fix the FWHM (i.e. don't fit it)
 
-        beta      : (float) [if method == 'm']
+        beta      : float [if method == 'm']
             exponent of Moffat function
 
-        read      : (float)
+        read      : float
             readout noise, RMS ADU
 
-        gain      : (float)
+        gain      : float
             gain, electrons per ADU
 
     Returns:: (pars, epars, extras)
 
     where::
 
-       pars    : (tuple)
+       pars    : tuple
           Fitted parameters: (sky, height, x, y, fwhm, beta)
           beta is None if method=='g'
 
-       epars   : (tuple)
+       epars   : tuple
           Fitted uncertainties: (esky, eheight, ex, ey, efwhm, ebeta)
           ebeta is None if method=='g'
 
-       extras  : (tuple)
+       extras  : tuple
           (X,Y,message) -- X and Y are the X and Y coordinates of
           the pixels. message summarises the fit values.
 
