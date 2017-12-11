@@ -207,6 +207,7 @@ def makedata(args=None):
 
         flat.head['DATATYPE'] = ('Flat field','Artificially generated')
         fname = utils.add_extension(conf['flat']['flat'],hcam.HCAM)
+
         flat.write(fname, overwrite)
         print('Saved flat field to ',fname)
     else:
@@ -318,6 +319,7 @@ def makedata(args=None):
             fname = '{0:s}{1:0{2:d}d}{3:s}'.format(
                 root,nfile+1,ndigit,hcam.HCAM
             )
+
             _gframe.write(fname, overwrite)
             print('Written file {0:d} to {1:s}'.format(nfile+1,fname))
 

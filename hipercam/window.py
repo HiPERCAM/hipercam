@@ -714,7 +714,7 @@ class Window(Winhead):
 
         return cls(win, data)
 
-    def whdu(self, head=fits.Header(), xoff=0, extnam=None, size=None):
+    def whdu(self, head=fits.Header(), xoff=0, extnam=None):
         """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU`
 
         Arguments::
@@ -729,11 +729,6 @@ class Window(Winhead):
           extnam : None | string
               Extension name, useful in 'fv'
 
-          size   : None | 2-element tuple (xsize,ysize)
-              Sizes to be used to set DETSIZE for ds9 mosaicing
-
-          ysize  : int
-              Size to be used to set DETSIZE for ds9 mosaicing
         Returns::
 
            hdu    : astropy.io.fits.ImageHDU
@@ -767,11 +762,6 @@ class Window(Winhead):
         cards.append(('CD2_1', 0, 'CTM i_j from pixel to WCS'))
         if extnam:
             cards.append(('EXTNAME', extnam, 'name of this image extension'))
-        if size:
-            cards.append(
-                ('DETSIZE', '[1:{:d}, 1:{:d}]'.format(size[0],size[1]),
-                 'mosaic detector size for ds9')
-            )
         head.update(cards)
 
         # Return the HDU
@@ -916,7 +906,7 @@ class Window(Winhead):
 
         copy.copy and copy.deepcopy of a `Window` use this method
         """
-        return Window(self.win.copy(), self.data.copy())
+        return Window(self.winhead.copy(), self.data.copy())
 
     def window(self, xlo, xhi, ylo, yhi):
         """Creates a new Window by windowing it down to whatever complete pixels are
@@ -989,7 +979,7 @@ class Window(Winhead):
         else:
             raise ValueError(
                 'Cannot crop {!r} to {!r}'.format(
-                    self.win.format(),win.win.format())
+                    self.winhead.format(),win.winhead.format())
             )
 
     def float32(self):

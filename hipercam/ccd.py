@@ -70,7 +70,7 @@ class CCD(Agroup):
 
     def flatten(self):
         """Returns all data of a CCD as a single 1D array, analogous to
-numpy.flatten
+        numpy.flatten
         """
         arrs = []
         for wind in self.values():
@@ -117,30 +117,30 @@ numpy.flatten
         # Then compute percentiles
         return np.percentile(arr, q)
 
-    def whdul(self, cnam=None, xoff=0):
-        """Write the :class:`CCD` as a series of HDUs, one per :class:`Window`,
-        returning an :class:`HDUList`. The general header will be written to
-        first HDU. Depending on the value of 'cnam' this will either be a PrimaryHDU
-        without data (cnam is None) or an ImageHDU with the first Window's data. Any
-        remaining Window's are written to ImageHDUs.
+    def whdul(self, hdul=fits.HDUList(), cnam=None, xoff=0):
+        """Write the :class:`CCD` as a series of HDUs, one per :class:`Window`, adding
+        to and returning an :class:`HDUList`. The general header will be
+        written to first HDU. Depending on the value of 'cnam' this will
+        either be a PrimaryHDU without data (cnam is None) or an ImageHDU with
+        the first Window's data. Any remaining Window's are written to
+        ImageHDUs.
 
         Arguments::
 
+            hdul : astropy.io.fits.HDUList
+                The HDUList to add to.
+
             cnam : string | None
-                 CCD name.
+                CCD name.
 
             xoff : int [if cname is not None]
-                 X-offset for mosaicing in ds9. Ignored in cnam is None.
+                X-offset for mosaicing in ds9. Ignored in cnam is None.
 
         Returns:: an :class:`HDUList`.
 
         """
 
-        # First create the header of the first HDU which includes the extra
-        # header items
-        hdul = fits.HDUList()
-
-        if cnam is None:
+        if cnam is None and len(hdul) == 0:
             # No CCD label indicates this is going to be written
             # as a single CCD.
             head = self.head.copy()
@@ -152,22 +152,25 @@ numpy.flatten
         # Now 1 HDU per Window
         for wnam, wind in self.items():
             if cnam is None:
-                head = fits.Header()
-                head['WINDOW'] = (wnam, 'Window label')
-                hdul.append(wind.whdu(extnam=wnam))
+                extnam = 'W:{:s}'.format(wnam)
             else:
-                extnam = '{:s}, {:s}'.format(cnam, wnam)
-                if len(hdul):
-                    head = fits.Header()
+                extnam = 'C:{:s}, W:{:s}'.format(cnam, wnam)
+
+            if len(hdul):
+                head = fits.Header()
+                if cnam:
                     head['CCD'] = (cnam, 'CCD label')
-                else:
-                    head = self.head.copy()
+            else:
+                # write in main header
+                head = self.head.copy()
+                if cnam:
                     head['CCD'] = (cnam, 'CCD label')
-                    head['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
-                    head['NYTOT'] = (self.nytot, 'Total unbinned Y dimension')
-                    head['NUMWIN'] = (len(self), 'Total number of windows')
-                head['WINDOW'] = (wnam, 'Window label')
-                hdul.append(wind.whdu(head, xoff, extnam))
+                head['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
+                head['NYTOT'] = (self.nytot, 'Total unbinned Y dimension')
+                head['NUMWIN'] = (len(self), 'Total number of windows')
+
+            head['WINDOW'] = (wnam, 'Window label')
+            hdul.append(wind.whdu(head, xoff, extnam))
 
         return hdul
 
@@ -488,55 +491,6 @@ class MCCD(Agroup):
     header. It supports arithematic operations and file I/O to/from FITS
     files.
 
-    FITS file structure: :class:`MCCD`s are saved to FITS as a series of
-    HDUs. The first HDU contains header information, but no data. The
-    succeeding HDUs comes in block representing each CCD. See the docs on
-    :class:`CCD` to understand their layout and important
-    keywords. :class:`MCCD` sets the keyword HIPERCAM in the primary HDU's
-    header to 'MCCD' to indicate the nature of the file. It also adds CCD to
-    the header of the first HDU (containing no data) of every CCD it
-    contains. CCD should be set to a unique integer label for each CCD.
-
-    Here is a schematic summary of the structure of a 3 CCD MCCD file (which
-    typically will contain other header data in addition):
-
-      Primary HDU [HDU 1] -- no data
-         HIPERCAM = 'MCCD'
-         NUMCCD = 3 [for convenience, number of CCDs]
-
-      HDU 2, extension CCDH (for CCD header) [no data]
-         CCD = 2 [any integer is OK]
-         NUMWIN = 2 [for convenience, number of windows]
-         NXTOT = 1024 [max X dimension]
-         NYTOT = 2048 [max Y dimension]
-
-      HDU 3, extension WIND for Window
-         CCD = 2 [the CCD it belongs to]
-         WINDOW = 3 [any integer is OK]
-         LLX = 11 [X of left-hand unbinned coords]
-         LLY = 21 [Y of lowest unbinned coords]
-         XBIN = 2 [X binning factor]
-         YBIN = 3 [Y binning factor]
-         + 2D data array contain the data.
-
-      HDU 4, extension WIND for Window
-         CCD = 2 [the CCD it belongs to]
-         WINDOW = 4 [any integer is OK]
-         LLX = 51 [X of left-hand unbinned coords]
-         LLY = 301 [Y of lowest unbinned coords]
-         XBIN = 2 [X binning factor]
-         YBIN = 1 [Y binning factor]
-         + 2D data array contain the data.
-
-      HDU 4, extension CCDH (for CCD header) [no data]
-         CCD = 5 [any integer is OK]
-         NUMWIN = 2 [for convenience, number of windows]
-         NXTOT = 824 [max X dimension]
-         NYTOT = 2048 [max Y dimension]
-
-      then two WIND HDUs etc. Note that the MCCD format is flexible
-      when it comes to different binning factors etc, although a given
-      instrument may well have its own restrictions on this.
     """
 
     def __init__(self, ccds, head=None, copy=False):
@@ -544,14 +498,14 @@ class MCCD(Agroup):
 
         Arguments::
 
-          ccds : (Group)
+          ccds : Group
               Group of CCD objects.
 
-          head : (astropy.io.fits.Header)
+          head : astropy.io.fits.Header
               a header which will be written as the primary header. If
-              head=None on input, and empty header will be created.
+              head=None on input, an empty header will be created.
 
-          copy : (bool)
+          copy : bool
               if True, copy all the data over, otherwise only references are
               held. Holding references is fine if the calling program keeps
               re-generating the data but could cause problems in some
@@ -574,21 +528,20 @@ class MCCD(Agroup):
         """
         return (self.__class__, (list(self.items()), self.head))
 
-    def wfits(self, fname, overwrite=False):
-        warnings.warn('MCCD.wfits has been re-named MCCD.write and will be removed in the future; please update your code')
-        return read(cls, fname)
-
-    def write(self, fname, overwrite=False):
+    def write(self, fname, overwrite=False, xgap=100):
         """Writes out the MCCD to a FITS file.
 
         Arguments::
 
             fname : string or file-like object
-                 Name of file to write to. Can also be a file, opened in writeable
-                 binary mode.
+                Name of file to write to. Can also be a file, opened in writeable
+                binary mode.
 
             overwrite : bool
-                 True to overwrite pre-existing files
+                True to overwrite pre-existing files
+
+            xgap  : int
+               X-gap used to space CCDs for ds9 mosaicing (unbinned pixels)
         """
 
         phead = self.head.copy()
@@ -609,14 +562,15 @@ class MCCD(Agroup):
             phead.add_comment('header keyword CCD.')
 
         # make the first HDU
-        phdu = fits.PrimaryHDU(header=phead)
-        hdul = [phdu,]
+        hdul = fits.HDUList()
+        hdul.append(fits.PrimaryHDU(header=phead))
 
         # add in the HDUs of all the CCDs
-        for key, ccd in self.items():
-            hdul = ccd.whdul(hdul, key)
-        hdulist = fits.HDUList(hdul)
-        hdulist.writeto(fname,overwrite=overwrite)
+        xoff = 0
+        for cnam, ccd in self.items():
+            ccd.whdul(hdul, cnam, xoff)
+            xoff += ccd.nxtot + xgap
+        hdul.writeto(fname,overwrite=overwrite)
 
     @classmethod
     def rfits(cls, fname):
