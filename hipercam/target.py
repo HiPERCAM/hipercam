@@ -159,10 +159,10 @@ class Target(object):
 
         Arguments::
 
-           dx : (float)
+           dx : float
              X offset to add to the positions of all targets [unbinned pixels]
 
-           dy : (float)
+           dy : float
              Y offset to add to the positions of all targets [unbinned pixels]
 
         Returns:: a shifted version of the :class:`Target`
@@ -174,16 +174,16 @@ class Target(object):
         return targ
 
     def add(self, wind, scale=1.):
-        """Adds the :class:`Target` to a :class:`Windat` with
+        """Adds the :class:`Target` to a :class:`Window` with
         an optional scaling factor. Returns 1 if anything added, 0
         if there was no overlap.
 
         Arguments::
 
-          wind : (Windat)
-            a Windat, i.e. an array that knows where it is located.
+          wind : Window
+            a Window, i.e. an array that knows where it is located.
 
-          scale : (float)
+          scale : float
             factor to scale how much is added in.
         """
 
@@ -314,14 +314,14 @@ class Field(list):
         return field
 
     def add(self, wind, ndiv=0):
-        """Adds all the targets of a Field to a Windat
+        """Adds all the targets of a Field to a Window
 
         Arguments::
 
-          wind : (Windat)
+          wind : Window
              targets will be added to it; modified on exit
 
-          ndiv : (int)
+          ndiv : int
              sub-division factor to account for pixellation
 
         """

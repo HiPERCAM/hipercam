@@ -145,8 +145,8 @@ def makedata(args=None):
     ccds = hcam.Group(hcam.CCD)
     rgs = {}
     for cnam, pars in ccd_pars.items():
-        # Generate the Windats
-        winds = hcam.Group(hcam.Windat)
+        # Generate the Windows
+        winds = hcam.Group(hcam.Window)
         rgs[cnam] = {}
         for key in conf:
             if key.startswith('window'):
@@ -158,9 +158,9 @@ def makedata(args=None):
                     ny = int(conf[key]['ny'])
                     xbin = int(conf[key]['xbin'])
                     ybin = int(conf[key]['ybin'])
-                    wind = hcam.Windat(hcam.Window(llx,lly,nx,ny,xbin,ybin))
+                    wind = hcam.Window(hcam.Winhead(llx,lly,nx,ny,xbin,ybin))
 
-                    # Accumulate Windats in the CCD
+                    # Accumulate Windows in the CCD
                     winds[wnam] = wind
 
                     # Store read / gain value
@@ -456,7 +456,7 @@ def makefield(args=None):
 
 class Dust:
     """This to generate gaussian dust specks on a flat field using
-    the add_fxy method of Windats"""
+    the add_fxy method of Windows"""
 
     def __init__(self, xcen, ycen, rms, depth):
         self.xcen = xcen

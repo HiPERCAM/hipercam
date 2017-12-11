@@ -3,20 +3,20 @@ import copy
 from astropy.io import fits
 
 import numpy as np
-from hipercam import Window, Windat, HipercamError
+from hipercam import Winhead, Window, HipercamError
 
-class TestWindat(unittest.TestCase):
-    """Provides simple tests of almost every Windat method and attribute. If any
+class TestWindow(unittest.TestCase):
+    """Provides simple tests of almost every Window method and attribute. If any
     of these fail, something is badly wrong.
 
     """
 
     def setUp(self):
 
-        # build some (small) Windats
-        self.win1 = Window(31,41,3,4,1,2)
+        # build some (small) Windows
+        self.win1 = Winhead(31,41,3,4,1,2)
         self.data1 = np.ones((self.win1.ny,self.win1.nx))
-        self.wind1 = Windat(self.win1, self.data1)
+        self.wind1 = Window(self.win1, self.data1)
 
         # should be compatible with win1
         self.wind2 = copy.deepcopy(self.wind1)
@@ -31,7 +31,7 @@ class TestWindat(unittest.TestCase):
 
     def test_windat_win(self):
         self.assertEqual(self.wind1.win, self.win1,
-                         'incorrect Window returned')
+                         'incorrect Winhead returned')
 
     def test_windat_set_const(self):
         self.wind3.set_const(10.)
@@ -53,9 +53,9 @@ class TestWindat(unittest.TestCase):
  
     def test_windat_add_noise(self):
         """Rather crude test this, but it should pick up disasters"""
-        win = Window(1,1,100,100,1,1)
+        win = Winhead(1,1,100,100,1,1)
         data = np.zeros((win.ny,win.nx))
-        wind = Windat(win, data)
+        wind = Window(win, data)
 
         wind.add_noise(1.,1.)
         mean = wind.mean()
@@ -79,11 +79,11 @@ class TestWindat(unittest.TestCase):
     def test_windat_rhdu(self):
         # writes to and then reads from an HDU
         hdu = self.wind1.whdu()
-        wind = Windat.rhdu(hdu)
+        wind = Window.rhdu(hdu)
         self.assertEqual(wind, self.wind1,
-                         'recovered Windat differs from original format')
+                         'recovered Window differs from original format')
         self.assertTrue((wind.data == self.wind1.data).all(),
-                         'recovered Windat differs from original data')
+                         'recovered Window differs from original data')
 
     def test_windat_min(self):
         self.wind3.set_const(0.)
@@ -105,16 +105,16 @@ class TestWindat(unittest.TestCase):
                          'incorrect mean returned')
 
     def test_windat_std(self):
-        win = Window(1,1,2,2,1,1)
+        win = Winhead(1,1,2,2,1,1)
         data = np.array([[-1.,-1.],[1.,1.]])
-        wind = Windat(win, data)
+        wind = Window(win, data)
         self.assertEqual(wind.std(), 1.,
                          'incorrect standard deviation returned')
 
     def test_windat_percentile(self):
-        win = Window(1,1,3,3,1,1)
+        win = Winhead(1,1,3,3,1,1)
         data = np.array([[-1.,-1.,-1.],[-1.,0.,1.],[1.,1.,1.]])
-        wind = Windat(win, data)
+        wind = Window(win, data)
         self.assertEqual(wind.percentile(50.), 0.,
                          'incorrect percentile value returned')
 
@@ -125,7 +125,7 @@ class TestWindat(unittest.TestCase):
                          'in place addition of constant failed')
         self.wind3 += self.wind3
         self.assertEqual(self.wind3.data[0,0],4.,
-                         'in place addition of Windat failed')
+                         'in place addition of Window failed')
 
     def test_windat_isub(self):
         self.wind3.set_const(10.)
@@ -134,7 +134,7 @@ class TestWindat(unittest.TestCase):
                          'in place subtraction of constant failed')
         self.wind3 -= self.wind3
         self.assertEqual(self.wind3.data[0,0],0.,
-                         'in place subtraction of Windat failed')
+                         'in place subtraction of Window failed')
 
     def test_windat_imul(self):
         self.wind3.set_const(10.)
@@ -143,7 +143,7 @@ class TestWindat(unittest.TestCase):
                          'in place multiplcation by constant failed')
         self.wind3 *= self.wind3
         self.assertEqual(self.wind3.data[0,0],400.,
-                         'in place multiplcation by Windat failed')
+                         'in place multiplcation by Window failed')
 
     def test_windat_itruediv(self):
         self.wind3.set_const(21.)
@@ -152,7 +152,7 @@ class TestWindat(unittest.TestCase):
                          'in place division by constant failed')
         self.wind3 /= self.wind3
         self.assertEqual(self.wind3.data[0,0],1.,
-                         'in place division by Windat failed')
+                         'in place division by Window failed')
 
     def test_windat_add(self):
         self.wind3.set_const(1.)
@@ -161,7 +161,7 @@ class TestWindat(unittest.TestCase):
                          'addition of constant failed')
         self.wind3 = self.wind3 + self.wind3
         self.assertEqual(self.wind3.data[0,0],4.,
-                         'addition of Windat failed')
+                         'addition of Window failed')
 
     def test_windat_sub(self):
         self.wind3.set_const(10.)
@@ -170,7 +170,7 @@ class TestWindat(unittest.TestCase):
                          'subtraction of constant failed')
         self.wind3 = self.wind3 - self.wind3
         self.assertEqual(self.wind3.data[0,0],0.,
-                         'subtraction of Windat failed')
+                         'subtraction of Window failed')
 
     def test_windat_mul(self):
         self.wind3.set_const(2.)
@@ -179,7 +179,7 @@ class TestWindat(unittest.TestCase):
                          'multiplication by constant failed')
         self.wind3 = self.wind3 * self.wind3
         self.assertEqual(self.wind3.data[0,0],16.,
-                         'multiplication by Windat failed')
+                         'multiplication by Window failed')
 
     def test_windat_truediv(self):
         self.wind3.set_const(6.)
@@ -188,7 +188,7 @@ class TestWindat(unittest.TestCase):
                          'division by constant failed')
         self.wind3 = self.wind3 / self.wind3
         self.assertEqual(self.wind3.data[0,0],1.,
-                         'division by Windat failed')
+                         'division by Window failed')
 
     def test_windat_radd(self):
         self.wind3.set_const(1.)

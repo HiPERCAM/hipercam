@@ -804,7 +804,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 PickStar.action_prompt(True)
                 return
 
-            # get Windat around the selected position
+            # get Window around the selected position
             wind = ccd[wnam].window(
                 self._x-self.shbox, self._x+self.shbox,
                 self._y-self.shbox, self._y+self.shbox
@@ -813,7 +813,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             # carry out initial search
             x,y,peak = wind.find(self.smooth, False)
 
-            # now for a more refined fit. First extract fit Windat
+            # now for a more refined fit. First extract fit Window
             fwind = ccd[wnam].window(x-self.fhbox, x+self.fhbox,
                                      y-self.fhbox, y+self.fhbox)
             sky = np.percentile(fwind.data, 25)
@@ -912,7 +912,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 print('  *** selected position ({:.1f},{:.1f}) not in a window;'
                       ' should not occur'.format(self._x,self._y), file=sys.stderr)
             else:
-                # get Windat around the selected position
+                # get Window around the selected position
                 wind = ccd[wnam].window(
                     self._x-self.shbox, self._x+self.shbox,
                     self._y-self.shbox, self._y+self.shbox)
@@ -920,7 +920,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 # carry out initial search
                 x,y,peak = wind.find(self.smooth, False)
 
-                # now for a more refined fit. First extract fit Windat
+                # now for a more refined fit. First extract fit Window
                 fwind = ccd[wnam].window(
                     x-self.fhbox, x+self.fhbox,
                     y-self.fhbox, y+self.fhbox)

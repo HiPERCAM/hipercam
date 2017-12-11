@@ -341,7 +341,7 @@ def makeflat(args=None):
                     # at this point, arr3d is a 3D array, with the first
                     # dimension (axis=0) running over the images. We take the
                     # median over this axis. The first time through we put
-                    # this straight into the output Windat.  afterwards we add
+                    # this straight into the output Window.  afterwards we add
                     # it in (with the appropriate weight)
                     if n == 0:
                         wind.data = weight*np.median(arr3d,axis=0)

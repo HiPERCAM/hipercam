@@ -4,7 +4,7 @@ import copy
 import numpy as np
 from astropy.io import fits
 
-from hipercam import Window, Windat, CCD, MCCD, HipercamError
+from hipercam import Winhead, Window, CCD, MCCD, HipercamError
 
 class TestMCCD(unittest.TestCase):
     """Provides simple tests of MCCD methods and attributes.
@@ -15,16 +15,16 @@ class TestMCCD(unittest.TestCase):
 
         # build an MCCD
         self.level1 = 10.
-        win1 = Window(31,41,5,5,1,2)
+        win1 = Winhead(31,41,5,5,1,2)
         data1 = np.empty((win1.ny,win1.nx))
         data1[:] = self.level1
-        wind1 = Windat(win1,data1)
+        wind1 = Window(win1,data1)
 
         self.level3 = 20.
-        win2 = Window(250,561,5,5,1,2)
+        win2 = Winhead(250,561,5,5,1,2)
         data2 = np.empty((win1.ny,win1.nx))
         data2[:] = self.level3
-        wind2 = Windat(win2,data2)
+        wind2 = Window(win2,data2)
 
         winds = ((1,wind1),(3,wind2))
 

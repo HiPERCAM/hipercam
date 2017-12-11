@@ -2,11 +2,11 @@ import unittest
 import copy
 
 import numpy as np
-from hipercam import Window
+from hipercam import Winhead
 
-class TestWindow(unittest.TestCase):
+class TestWinhead(unittest.TestCase):
     """
-    Provides simple tests of every Window method and attribute. If any of
+    Provides simple tests of every Winhead method and attribute. If any of
     these fail, something is badly wrong.
     """
 
@@ -19,7 +19,7 @@ class TestWindow(unittest.TestCase):
         self.ny = 200
         self.xbin = 1
         self.ybin = 2
-        self.win = Window(self.llx,self.lly,self.nx,self.ny,self.xbin,self.ybin)
+        self.win = Winhead(self.llx,self.lly,self.nx,self.ny,self.xbin,self.ybin)
 
     def test_window_llx(self):
         self.assertEqual(self.win.llx, self.llx,
@@ -96,7 +96,7 @@ class TestWindow(unittest.TestCase):
 
     def test_window_xy(self):
         # tiny window to test xy
-        win = Window(11,21,2,3,2,3)
+        win = Winhead(11,21,2,3,2,3)
         X = np.array([[11.5,13.5],[11.5,13.5],[11.5,13.5]])
         Y = np.array([[22.,22.],[25.,25.],[28.,28.]])
         x,y = win.xy()

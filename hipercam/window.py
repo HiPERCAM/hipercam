@@ -19,9 +19,9 @@ from astropy.modeling import models, fitting, Fittable2DModel, Parameter
 import matplotlib.pyplot as plt
 from .core import *
 from .group import *
- 
+
 __all__ = (
-    'Winhead', 'Windat',
+    'Winhead', 'Window',
     'CcdWin', 'MccdWin',
     'fitGaussian', 'fitMoffat',
     'combFit', 'Moffat'
@@ -43,7 +43,7 @@ class Winhead(fits.Header):
 
     """
 
-    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=None):
+    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=fits.Header()):
         """
         Constructor. Arguments::
 
@@ -66,18 +66,29 @@ class Winhead(fits.Header):
               Binning factor in Y
 
           head : astropy.io.fits.Header
-              Arbitrary header items
+              Arbitrary header items (excluding ones such as LLX reserved
+              for containing the above parameters when reading and writing
+              Winhead objects).
         """
 
+        # In order to convert to HDUs some keywords are protected
+        for key in ('LLX', 'LLY', 'NX', 'NY', 'XBIN', 'YBIN'):
+            if key in head:
+                raise ValueError(
+                    'Invalid key = {:s} in supplied header'.format(key)
+                )
+        # Store the header
+        super().__init__(head)
+
+        # And the window format attributes
         self.llx = llx
         self.lly = lly
         self.xbin = xbin
         self.ybin = ybin
         # Have to take care with the next two since in
-        # Windat they are connected to the array size
+        # Window they are connected to the array size
         self._nx = nx
         self._ny = ny
-        self.head = head
 
     @property
     def nx(self):
@@ -110,7 +121,7 @@ class Winhead(fits.Header):
     def __repr__(self):
         return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={!r})'.format(
             self.llx, self.lly, self.nx, self.ny,
-            self.xbin, self.ybin, self.head
+            self.xbin, self.ybin, super().__repr__()
         )
 
     def format(self):
@@ -120,7 +131,7 @@ class Winhead(fits.Header):
 
         return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={!r})'.format(
             self.llx, self.lly, self.nx, self.ny,
-            self.xbin, self.ybin, self.head
+            self.xbin, self.ybin, super().__repr__()
         )
 
     @property
@@ -296,7 +307,7 @@ class Winhead(fits.Header):
         Arguments::
 
           win : :class:`Winhead`
-             the :class:Winhead that we are testing self against.
+             the :class:`Winhead` that we are testing self against.
 
         """
         if self.llx <=  win.urx and self.urx >= win.llx and \
@@ -314,7 +325,7 @@ class Winhead(fits.Header):
         Arguments::
 
           win : :class:`Winhead`
-             the :class:Winhead that we are testing self against.
+             the :class:`Winhead` that we are testing self against.
 
         """
         if self != win:
@@ -331,7 +342,7 @@ class Winhead(fits.Header):
         """
         return Winhead(
             self.llx, self.lly, self.nx, self.ny,
-            self.xbin, self.ybin, self.head.copy()
+            self.xbin, self.ybin, super().copy()
         )
 
     def distance(self, x, y):
@@ -426,6 +437,7 @@ class Winhead(fits.Header):
 
           win : :class:`Winhead`
              the :class:Winhead that we are testing self against.
+
         """
         return self.llx == win.llx and  self.lly == win.lly and \
             self.nx == win.nx and self.ny == win.ny and \
@@ -445,9 +457,8 @@ class Winhead(fits.Header):
     def toHeader(self):
         """Returns the :class:`Winhead` as a plain astropy.io.fits.Header.  It does so
         by writing the basic window parameters like llx, xbin, etc into a
-        Header, adding any arbitrary header items and then returning the
+        Header, adding the arbitrary header items and then returning the
         result.
-
         """
         head = fits.Header()
         head['LLX'] = (self.llx, 'X-ordinate of lower-left pixel')
@@ -459,10 +470,28 @@ class Winhead(fits.Header):
         head.update(self.head)
         return head
 
-    def totextfile(self, fileobj, overwrite=False):
-        """Writes the :class:`Winhead` to a text file."""
-        head = self.toHeader()
-        head.totextfile(fileobj, overwrite)
+    @classmethod
+    def fromHeader(cls, head):
+        """Creates a :class:`Winhead` from an astropy.io.fits.Header
+
+        Arguments::
+
+           head : astropy.io.fits.Header
+              this has to contain the essential information needed
+              to construct the Winhead.
+
+        Returns equivalent :class:`Winhead`
+        """
+        hcopy = head.copy()
+        llx = int(hcopy['LLX'])
+        lly = int(hcopy['LLY'])
+        nx = int(hcopy['NX'])
+        ny = int(hcopy['NY'])
+        xbin = int(hcopy['XBIN'])
+        ybin = int(hcopy['YBIN'])
+        for key in ('LLX', 'LLY', 'NX', 'NY', 'XBIN', 'YBIN'):
+            del hcopy[key]
+        return Winhead(llx,lly,nx,ny,xbin,ybin,hcopy)
 
 class _Encoder (json.JSONEncoder):
     """
@@ -479,7 +508,8 @@ class _Encoder (json.JSONEncoder):
                     ('nx', obj.nx),
                     ('ny', obj.ny),
                     ('xbin', obj.xbin),
-                    ('ybin', obj.ybin)
+                    ('ybin', obj.ybin),
+                    ('head', obj.head.tostring('',False,False))
                 ))
 
         super().default(obj)
@@ -490,11 +520,12 @@ class _Decoder(json.JSONDecoder):
         super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
-        # looks out for Aperture objects. Everything else done by default
-        if 'Comment' in obj and r['Comment'] == 'hipercam.Winhead':
+        # looks out for Winhead objects. Everything else done by default
+        if 'Comment' in obj and obj['Comment'] == 'hipercam.Winhead':
             return Winhead(
                 obj['llx'], obj['lly'], obj['nx'], obj['ny'],
-                obj['xbin'], obj['ybin']
+                obj['xbin'], obj['ybin'],
+                fits.Header.fromstring(obj['head'])
             )
 
         return obj
@@ -529,9 +560,19 @@ class CcdWin(Group):
 
         # dumps as list to retain order through default iterator encoding that
         # buggers things otherwise
-        listify = ['hipercam.CcdWin'] + list(self.items)
+        listify = ['hipercam.CcdWin'] + list(self.items())
         with open(fname,'w') as fp:
             json.dump(listify, fp, cls=_Encoder, indent=2)
+
+    @classmethod
+    def fromJson(cls, fname):
+        """Read from JSON-format file fname
+
+        Returns a CcdWin object.
+        """
+        with open(fname) as fp:
+            obj = json.load(fp, cls=_Decoder)
+        return CcdWin(obj[1:])
 
 class MccdWin(Group):
     """Class representing all the :class:`Winhead`s for multiple CCDs.
@@ -590,23 +631,23 @@ class MccdWin(Group):
                 mccdwin[cnam][wnam] = wind.win
         return mccdwin
 
-class Windat(Winhead):
+class Window(Winhead):
     """Class representing a CCD window with data. Constructed from
     a :class:`Winhead` and a :class:`numpy.ndarray` which is stored
     in an attribute called `data`.
 
         >>> import numpy as np
-        >>> from hipercam import Winhead, Windat
+        >>> from hipercam import Winhead, Window
         >>> win = Winhead(12, 6, 100, 150, 2, 3)
         >>> data = np.ones((150,100))
-        >>> wind = Windat(win,data)
+        >>> wind = Window(win,data)
         >>> wind += 0.5
         >>> wind *= 2
 
-    You cannot directly change the nx, ny values of a Windat; you have
+    You cannot directly change the nx, ny values of a Window; you have
     to change its data array attribute and nx and ny will be taken from it.
 
-    :class:`Windat` objects support various arithematical operations such as
+    :class:`Window` objects support various arithematical operations such as
     subtraction or additoin of constants. The end result of these always has a
     float type for safety to avoid problems with e.g. trying to make the
     result of adding a float to an integer an integer or with the range of
@@ -616,7 +657,7 @@ class Windat(Winhead):
 
     def __init__(self, win, data=None):
         """
-        Constructs a :class:`Windat`
+        Constructs a :class:`Window`
 
         Arguments::
 
@@ -647,7 +688,7 @@ class Windat(Winhead):
     @property
     def nx(self):
         """
-        Returns binned X-dimension of the :class:`Windat`. 
+        Returns binned X-dimension of the :class:`Window`. 
         """
         return self.data.shape[1]
 
@@ -658,12 +699,12 @@ class Windat(Winhead):
     @property
     def ny(self):
         """
-        Returns binned Y-dimension of the :class:`Windat`. 
+        Returns binned Y-dimension of the :class:`Window`. 
         """
         return self.data.shape[0]
 
     def flatten(self):
-        """Return data onf the :class:`Windat` as a 1D array"""
+        """Return data onf the :class:`Window` as a 1D array"""
         return self.data.flatten()
 
     @ny.setter
@@ -673,7 +714,7 @@ class Windat(Winhead):
 
     @classmethod
     def rhdu(cls, hdu):
-        """Constructs a :class:`Windat` from an ImageHdu. Requires header parameters
+        """Constructs a :class:`Window` from an ImageHdu. Requires header parameters
         'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.  This converts the data
         to float32 internally, unless it is read in as float64 in the first
         place conversion f which would lose precision.
@@ -707,7 +748,7 @@ class Windat(Winhead):
 
     @property
     def win(self):
-        """A copy of the :class:`Winhead` underlying the :class:`Windat`"""
+        """A copy of the :class:`Winhead` underlying the :class:`Window`"""
         return super().copy()
 
     def set_const(self, val):
@@ -715,7 +756,7 @@ class Windat(Winhead):
         self.data[:] = val
 
     def add_noise(self, readout, gain):
-        """Adds noise to a :class:`Windat` according to a variance
+        """Adds noise to a :class:`Window` according to a variance
         calculated from V = readout**2 + counts/gain.
         Arguments::
 
@@ -730,43 +771,43 @@ class Windat(Winhead):
 
     def min(self):
         """
-        Returns the minimum value of the :class:`Windat`.
+        Returns the minimum value of the :class:`Window`.
         """
         return self.data.min()
 
     def max(self):
         """
-        Returns the maximum value of the :class:`Windat`.
+        Returns the maximum value of the :class:`Window`.
         """
         return self.data.max()
 
     def mean(self):
         """
-        Returns the mean value of the :class:`Windat`.
+        Returns the mean value of the :class:`Window`.
         """
         return self.data.mean()
 
     def median(self):
         """
-        Returns the median value of the :class:`Windat`.
+        Returns the median value of the :class:`Window`.
         """
         return np.median(self.data)
 
     def sum(self):
         """
-        Returns the sum of the :class:`Windat`.
+        Returns the sum of the :class:`Window`.
         """
         return self.data.sum()
 
     def std(self):
         """
-        Returns the standard deviation of the :class:`Windat`.
+        Returns the standard deviation of the :class:`Window`.
         """
         return self.data.std()
 
     def percentile(self, q):
         """
-        Computes percentile(s) of a :class:`Windat`.
+        Computes percentile(s) of a :class:`Window`.
 
         Arguments::
 
@@ -776,7 +817,7 @@ class Windat(Winhead):
         return np.percentile(self.data, q)
 
     def whdu(self, fhead=None):
-        """Writes the :class:`Windat` to an :class:`astropy.io.fits.ImageHDU` with
+        """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU` with
         extension name 'WIND'
 
         Arguments::
@@ -806,8 +847,8 @@ class Windat(Winhead):
 
     def add_fxy(self, funcs, ndiv=0):
         """Routine to add in the results of evaluating a function or a list of
-        functions of x & y to the :class:`Windat`.  Each function must take 2D
-        arrays of x and y values for each pixel of the :class:`Windat` and
+        functions of x & y to the :class:`Window`.  Each function must take 2D
+        arrays of x and y values for each pixel of the :class:`Window` and
         return an array of values for each point. If you have lots of things
         to add, this routine saves some overhead by only generating the x,y
         pixel arrays once at the start. Pixels can be subdivided ndiv per
@@ -821,7 +862,7 @@ class Windat(Winhead):
                  arr = func(x,y)
 
               where x and y are 2D arrays containing the x and y values at the
-              centre of each pixel in the :class:`Windat`. Each func must have
+              centre of each pixel in the :class:`Window`. Each func must have
               a method 'offset(self, dx, dy)' which returns a copy of the
               function displaced in centre by dx, dy unbinned pixels.
 
@@ -862,14 +903,14 @@ class Windat(Winhead):
                 funcs(x,y,self.data)
 
     def copy(self, memo=None):
-        """Returns a copy (deepcopy) of the :class:`Windat`
+        """Returns a copy (deepcopy) of the :class:`Window`
 
-        copy.copy and copy.deepcopy of a `Windat` use this method
+        copy.copy and copy.deepcopy of a `Window` use this method
         """
-        return Windat(self.win, self.data.copy())
+        return Window(self.win, self.data.copy())
 
     def window(self, xlo, xhi, ylo, yhi):
-        """Creates a new Windat by windowing it down to whatever complete pixels are
+        """Creates a new Window by windowing it down to whatever complete pixels are
         visible in the region xlo to xhi, ylo to yhi.
 
         Arguments::
@@ -886,7 +927,7 @@ class Windat(Winhead):
            yhi : (float)
               maximum Y, unbinned pixels
 
-        Returns the windowed Windat.
+        Returns the windowed Window.
         """
         win = super().window(xlo, xhi, ylo, yhi)
 
@@ -895,17 +936,17 @@ class Windat(Winhead):
         x1 = (win.llx-self.llx)//self.xbin
         y1 = (win.lly-self.lly)//self.ybin
         if self.data is None:
-            return Windat(win)
+            return Window(win)
         else:
-            return Windat(win, self.data[y1:y1+win.ny, x1:x1+win.nx])
+            return Window(win, self.data[y1:y1+win.ny, x1:x1+win.nx])
 
     def crop(self, win):
-        """Creates a new :class:Windat by cropping the current :class:Windat to the
+        """Creates a new :class:Window by cropping the current :class:Window to the
         format defined by :class:Winhead `win`. Will throw a ValueError if the
         operation is impossible or results in no overlap. The current
-        :class:Windat must lie outside `win` and must be synchronised (in
+        :class:Window must lie outside `win` and must be synchronised (in
         step) if any binning is used. If binning is used then the binning
-        factors of the :class:Windat must be divisors of the binning factors
+        factors of the :class:Window must be divisors of the binning factors
         of those of `win`. If binning takes place it will be carried out by
         averaging, as appropriate for cropping flat-field frames (but not star
         fields).
@@ -934,7 +975,7 @@ class Windat(Winhead):
                 data = as_strided(data, shape, strides)
                 data = data.mean(-1).mean(-1)
 
-            return Windat(win, data)
+            return Window(win, data)
 
         else:
             raise ValueError(
@@ -974,7 +1015,7 @@ class Windat(Winhead):
 
     def find(self, fwhm, fft=True):
         """
-        Finds the position of one star in a :class:Windat. Works by convolving
+        Finds the position of one star in a :class:Window. Works by convolving
         the image with a gaussian of FWHM = fwhm, and returns the location of
         the brightest pixel of the result along with the value of that pixel
         in the uncolvolved image. The convolution improves the reliability of
@@ -982,7 +1023,7 @@ class Windat(Winhead):
         problems being caused by cosmic rays, although if there is more
         overall flux in a cosmic ray than the star, it will go wrong, so some
         form of prior cleaning is advisable in such cases. It is up to the
-        user to make the :class:Windat small enough the star of interest is the
+        user to make the :class:Window small enough the star of interest is the
         brightest object (see e.g. `window`).
 
         This routine is intended to provide a first cut in position for more
@@ -1033,18 +1074,18 @@ class Windat(Winhead):
         return self.copy(memo)
 
     def __repr__(self):
-        return 'Windat(win={:s}, data={!r})'.format(
+        return 'Window(win={:s}, data={!r})'.format(
             super().__repr__(), self.data
         )
 
     # lots of arithematic routines
 
     def __iadd__(self, other):
-        """Adds `other` to the :class:`Windat` as 'wind += other'. `other` can be
-        another :class:`Windat`, or any object that can be added to a
+        """Adds `other` to the :class:`Window` as 'wind += other'. `other` can be
+        another :class:`Window`, or any object that can be added to a
         :class:`numpy.ndarray`.
         """
-        if isinstance(other, Windat):
+        if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
             self.matches(other)
             num = other.data
@@ -1056,11 +1097,11 @@ class Windat(Winhead):
         return self
 
     def __isub__(self, other):
-        """Subtracts `other` from the :class:`Windat` as 'wind -= other`. `other` can
-        be another Windat, or any object that can be subtracted from a
+        """Subtracts `other` from the :class:`Window` as 'wind -= other`. `other` can
+        be another Window, or any object that can be subtracted from a
         :class:`numpy.ndarray`.
         """
-        if isinstance(other, Windat):
+        if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
             self.matches(other)
             num = other.data
@@ -1072,12 +1113,12 @@ class Windat(Winhead):
         return self
 
     def __imul__(self, other):
-        """Multiplies the :class:`Windat` by `other` as 'wind *= other'. `other` can
-        be another :class:`Windat`, or any object that can multiply a
+        """Multiplies the :class:`Window` by `other` as 'wind *= other'. `other` can
+        be another :class:`Window`, or any object that can multiply a
         :class:`numpy.ndarray`.
 
         """
-        if isinstance(other, Windat):
+        if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
             self.matches(other)
             num = other.data
@@ -1089,12 +1130,12 @@ class Windat(Winhead):
         return self
 
     def __itruediv__(self, other):
-        """Divides `other` into the :class:`Windat` as 'wind /= other`. `other` can be
-        another Windat, or any object that can be divided into a
+        """Divides `other` into the :class:`Window` as 'wind /= other`. `other` can be
+        another Window, or any object that can be divided into a
         :class:`numpy.ndarray`.
 
         """
-        if isinstance(other, Windat):
+        if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
             self.matches(other)
             num = other.data
@@ -1106,13 +1147,13 @@ class Windat(Winhead):
         return self
 
     def __add__(self, other):
-        """Adds `other` to a :class:`Windat` as `wind + other`.  Here `other` can be a
-        compatible :class:`Windat` (identical window) or any object that can
+        """Adds `other` to a :class:`Window` as `wind + other`.  Here `other` can be a
+        compatible :class:`Window` (identical window) or any object that can
         be added to a :class:`numpy.ndarray`, e.g. a float, another matching
         array, etc. 
 
         """
-        if isinstance(other, Windat):
+        if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
             self.matches(other)
             num = other.data
@@ -1122,26 +1163,26 @@ class Windat(Winhead):
         # carry out addition to a float type
         data = self.data + num
 
-        return Windat(self.win, data)
+        return Window(self.win, data)
 
 
     def __radd__(self, other):
-        """Adds `other` to a :class:`Windat` as `other + wind`.  Here `other` is any
+        """Adds `other` to a :class:`Window` as `other + wind`.  Here `other` is any
         object that can be added to a :class:`numpy.ndarray`, e.g. a float,
         another matching array, etc.
         """
 
         # carry out addition to a float type
         data = self.data + other
-        return Windat(self.win, data)
+        return Window(self.win, data)
 
     def __sub__(self, other):
-        """Subtracts `other` from a :class:`Windat` as `wind - other`.  Here `other`
-        can be a compatible :class:`Windat` (identical window) or any object
+        """Subtracts `other` from a :class:`Window` as `wind - other`.  Here `other`
+        can be a compatible :class:`Window` (identical window) or any object
         that can be subtracted from a :class:`numpy.ndarray`, e.g. a float,
         another matching array, etc.
         """
-        if isinstance(other, Windat):
+        if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
             self.matches(other)
             num = other.data
@@ -1150,25 +1191,25 @@ class Windat(Winhead):
 
         # carry out addition to a float type
         data = self.data - num
-        return Windat(self.win, data)
+        return Window(self.win, data)
 
     def __rsub__(self, other):
-        """Subtracts a :class:`Windat` from `other` as `other - wind`.  Here `other`
+        """Subtracts a :class:`Window` from `other` as `other - wind`.  Here `other`
         is any object that can have a :class:`numpy.ndarray` subtracted from it, e.g. a
         float, another matching array, etc.
         """
         # carry out subtraction to a float type
         data = other - self.data
-        return Windat(self.win, data)
+        return Window(self.win, data)
 
     def __mul__(self, other):
-        """Multiplies a :class:`Windat` by `other` as `wind * other`.  Here `other`
-        can be a compatible :class:`Windat` (identical window) or any object
+        """Multiplies a :class:`Window` by `other` as `wind * other`.  Here `other`
+        can be a compatible :class:`Window` (identical window) or any object
         that can multiply a :class:`numpy.ndarray`, e.g. a float, another
         matching array, etc.
 
         """
-        if isinstance(other, Windat):
+        if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
             self.matches(other)
             num = other.data
@@ -1177,27 +1218,27 @@ class Windat(Winhead):
 
         # carry out multiplication to a float type
         data = self.data*num
-        return Windat(self.win, data)
+        return Window(self.win, data)
 
     def __rmul__(self, other):
-        """Multiplies a :class:`Windat` by `other` as `other * wind`.  Here `other` is
+        """Multiplies a :class:`Window` by `other` as `other * wind`.  Here `other` is
         any object that can multiply a :class:`numpy.ndarray`, e.g. a float,
         another matching array, etc.
 
         """
         # carry out multiplication to a float type
         data = np.multiply(self.data, other, dtype=np.float)
-        return Windat(self.win, data)
+        return Window(self.win, data)
 
     def __truediv__(self, other):
-        """Divides a :class:`Windat` by `other` as `wind / other`.  Here `other`
-        can be a compatible :class:`Windat` (identical window) or any object
+        """Divides a :class:`Window` by `other` as `wind / other`.  Here `other`
+        can be a compatible :class:`Window` (identical window) or any object
         that can divide into a :class:`numpy.ndarray`, e.g. a float, another
         matching array, etc.
 
         For safety, the data array of the result will have a float type.
         """
-        if isinstance(other, Windat):
+        if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
             self.matches(other)
             num = other.data
@@ -1206,32 +1247,32 @@ class Windat(Winhead):
 
         # carry out multiplication to a float type
         data = np.true_divide(self.data, num, dtype=np.float)
-        return Windat(self.win, data)
+        return Window(self.win, data)
 
     def __rtruediv__(self, other):
-        """Divides `other` by a :class:`Windat` as `other / wind`.  Here `other` is
+        """Divides `other` by a :class:`Window` as `other / wind`.  Here `other` is
         any object that can be divided by a :class:`numpy.ndarray`, e.g. a
         float, another matching array, etc.
         """
         # carry out multiplication to a float type
         data = self.data*other
-        return Windat(self.win, data)
+        return Window(self.win, data)
 
 # have decided that these relatively specialised routines are better as
 # separate methods rather than class methods
 
 def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, read, gain):
     """
-    Fits the profile of one target in a Windat with a symmetric 2D
+    Fits the profile of one target in a Window with a symmetric 2D
     Gaussian profile given initial starting parameters. NB This will fit
-    the entire Windat so normally one should window down to the object of
+    the entire Window so normally one should window down to the object of
     interest. It returns the fitted parameters, covariances and the fit itself.
     The FWHM can be constrained to lie above a lower limit which can be useful.
 
     Arguments::
 
         wind     : (float)
-            the Windat under consideration
+            the Window under consideration
 
         sky      : (float)
             value of the (assumed constant) sky background
@@ -1275,7 +1316,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, read, g
 
          extras : (tuple)
             some extra stuff that might come in useful, namely (fit, X, Y, weights) where `fit`
-            is a :class:Windat containing the best fit, X and Y are the X and Y positions of
+            is a :class:Window containing the best fit, X and Y are the X and Y positions of
             all pixels (2D numpy arrays) and weights is the final set of weights, some of which
             might = 0 indicating rejection.
 
@@ -1311,8 +1352,8 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, read, g
     # extract the covariances
     cov = fitter.fit_info['param_cov']
 
-    # compute the fit & store in a Windat
-    fwind = Windat(wind, fit(X, Y))
+    # compute the fit & store in a Window
+    fwind = Window(wind, fit(X, Y))
 
     # extract parameters and return
     if fwhm_fix:
@@ -1435,7 +1476,7 @@ class GaussianFF(Fittable2DModel):
 
 
 def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, read, gain):
-    """Fits the profile of one target in a Windat with a 2D Moffat profile,
+    """Fits the profile of one target in a Window with a 2D Moffat profile,
     h/(1+(r/a)**2)**beta where r is the distance from the centre of the
     aperture. It returns the fitted parameters, covariances and the fit itself.
     The FWHM can be constrained to lie above a lower limit which can be useful.
@@ -1490,7 +1531,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, rea
 
            extras : (tuple)
                 some extra stuff that might come in useful, namely (fit, X, Y,
-                weights) where `fit` is a :class:Windat containing the best
+                weights) where `fit` is a :class:Window containing the best
                 fit, X and Y are the X and Y positions of all pixels (2D numpy
                 arrays) and weights is the final set of weights, some of which
                 might = 0 indicating rejection.
@@ -1534,8 +1575,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, rea
     # extract the covariances
     cov = fitter.fit_info['param_cov']
 
-    # compute the fit & store in a Windat
-    fwind = Windat(wind, fit(X, Y))
+    # compute the fit & store in a Window
+    fwind = Window(wind, fit(X, Y))
 
     # extract parameters and return
     if fwhm_fix:
@@ -1668,14 +1709,14 @@ class MoffatFF(Fittable2DModel):
 def combFit(wind, method, sky, height, x, y,
             fwhm, fwhm_min, fwhm_fix, beta, read, gain):
     """
-    Fits a stellar profile in a :class:Windat using either a 2D Gaussian
+    Fits a stellar profile in a :class:Window using either a 2D Gaussian
     or Moffat profile. This is a convenience routine because one practically
     always wants both options.
 
     Arguments::
 
-        wind      : (:class:Windat)
-            the Windat containing the stellar profile to fit
+        wind      : (:class:Window)
+            the Window containing the stellar profile to fit
 
         method    : (string)
             fitting method 'g' for Gaussian, 'm' for Moffat

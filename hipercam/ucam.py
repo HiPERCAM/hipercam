@@ -15,7 +15,7 @@ import datetime
 from astropy.io import fits
 from astropy.time import Time
 
-from hipercam import (CCD, Group, MCCD, Windat, Winhead)
+from hipercam import (CCD, Group, MCCD, Window, Winhead)
 
 __all__ = ['Rhead', 'Rdata', 'Rtime']
 
@@ -768,7 +768,7 @@ class Rdata (Rhead):
         the calling program to handle this.
 
         Apart from reading the raw bytes, the main job of this routine is to
-        divide up and re-package the bytes read into Windats suitable for
+        divide up and re-package the bytes read into Windows suitable for
         constructing CCD objects. It converts all incoming data into 32-bit
         floats.
 
@@ -839,7 +839,7 @@ class Rdata (Rhead):
             # 3 CCDs. Windows come in pairs. Data from equivalent windows come
             # out on a pitch of 6. Some further jiggery-pokery is involved to
             # get the orientation of the frames correct.
-            wins1, wins2, wins3 = Group(Windat), Group(Windat), Group(Windat)
+            wins1, wins2, wins3 = Group(Window), Group(Window), Group(Window)
 
             if self.mode != 'FFOVER' and self.mode != 'FFOVNC':
                 # Non-overscan modes: flag indicating that outer pixels will
@@ -856,57 +856,57 @@ class Rdata (Rhead):
 
                     # keep as 2-byte ints
                     if strip_outer:
-                        wins1[str(nwin+1)] = Windat(
+                        wins1[str(nwin+1)] = Window(
                             wl, np.reshape(
                                 buff[noff:noff+npix:6],shape)[:,1:]
                         )
-                        wins1[str(nwin+2)] = Windat(
+                        wins1[str(nwin+2)] = Window(
                             wr, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,-2::-1]
                         )
 
-                        wins2[str(nwin+1)] = Windat(
+                        wins2[str(nwin+1)] = Window(
                             wl, np.reshape(
                                 buff[noff+2:noff+npix:6],shape)[:,1:]
                         )
-                        wins2[str(nwin+2)] = Windat(
+                        wins2[str(nwin+2)] = Window(
                             wr, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,-2::-1]
                         )
 
-                        wins3[str(nwin+1)] = Windat(
+                        wins3[str(nwin+1)] = Window(
                             wl, np.reshape(
                                 buff[noff+4:noff+npix:6],shape)[:,1:]
                         )
-                        wins3[str(nwin+2)] = Windat(
+                        wins3[str(nwin+2)] = Window(
                             wr, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,-2::-1]
                         )
 
                     else:
-                        wins1[str(nwin+1)] = Windat(
+                        wins1[str(nwin+1)] = Window(
                             wl, np.reshape(
                                 buff[noff:noff+npix:6],shape)
                         )
-                        wins1[str(nwin+2)] = Windat(
+                        wins1[str(nwin+2)] = Window(
                             wr, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,::-1]
                         )
 
-                        wins2[str(nwin+1)] = Windat(
+                        wins2[str(nwin+1)] = Window(
                             wl, np.reshape(
                                 buff[noff+2:noff+npix:6],shape)
                         )
-                        wins2[str(nwin+2)] = Windat(
+                        wins2[str(nwin+2)] = Window(
                             wr, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,::-1]
                         )
 
-                        wins3[str(nwin+1)] = Windat(
+                        wins3[str(nwin+1)] = Window(
                             wl, np.reshape(
                                 buff[noff+4:noff+npix:6],shape)
                         )
-                        wins3[str(nwin+2)] = Windat(
+                        wins3[str(nwin+2)] = Window(
                             wr, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,::-1]
                         )
@@ -947,17 +947,17 @@ class Rdata (Rhead):
                 w = self.win[0]
                 xoff = 24 // xbin
                 nwin = '1'
-                wins1[nwin] = Windat(w, winl1[:w.ny,xoff:xoff+w.nx])
-                wins2[nwin] = Windat(w, winl2[:w.ny,xoff:xoff+w.nx])
-                wins3[nwin] = Windat(w, winl3[:w.ny,xoff:xoff+w.nx])
+                wins1[nwin] = Window(w, winl1[:w.ny,xoff:xoff+w.nx])
+                wins2[nwin] = Window(w, winl2[:w.ny,xoff:xoff+w.nx])
+                wins3[nwin] = Window(w, winl3[:w.ny,xoff:xoff+w.nx])
 
                 # Window 2 comes from lower-right of right-hand data window
                 nwin = '2'
                 w = self.win[1]
                 xoff = 4 // xbin
-                wins1[nwin] = Windat(w, winr1[:w.ny,xoff:xoff+w.nx])
-                wins2[nwin] = Windat(w, winr2[:w.ny,xoff:xoff+w.nx])
-                wins3[nwin] = Windat(w, winr3[:w.ny,xoff:xoff+w.nx])
+                wins1[nwin] = Window(w, winr1[:w.ny,xoff:xoff+w.nx])
+                wins2[nwin] = Window(w, winr2[:w.ny,xoff:xoff+w.nx])
+                wins3[nwin] = Window(w, winr3[:w.ny,xoff:xoff+w.nx])
 
                 # Window 3 is bias associated with left-hand data window
                 # (leftmost 24 and rightmost 4)
@@ -965,11 +965,11 @@ class Rdata (Rhead):
                 w = self.win[2]
                 lh = 24 // xbin
                 rh = 4 // xbin
-                wins1[nwin] = Windat(w, np.concatenate(
+                wins1[nwin] = Window(w, np.concatenate(
                     (winl1[:w.ny,:lh], winl1[:w.ny,-rh:]),axis=1))
-                wins2[nwin] = Windat(w, np.concatenate(
+                wins2[nwin] = Window(w, np.concatenate(
                     (winl2[:w.ny,:lh], winl2[:w.ny,-rh:]),axis=1))
-                wins3[nwin] = Windat(w, np.concatenate(
+                wins3[nwin] = Window(w, np.concatenate(
                     (winl3[:w.ny,:lh], winl3[:w.ny,-rh:]),axis=1))
 
                 # Window 4 is bias associated with right-hand data window
@@ -978,11 +978,11 @@ class Rdata (Rhead):
                 w = self.win[3]
                 lh = 4 // xbin
                 rh = 24 // xbin
-                wins1[nwin] = Windat(w, np.concatenate(
+                wins1[nwin] = Window(w, np.concatenate(
                     (winr1[:w.ny,:lh], winr1[:w.ny,-rh:]),axis=1))
-                wins2[nwin] = Windat(w, np.concatenate(
+                wins2[nwin] = Window(w, np.concatenate(
                     (winr2[:w.ny,:lh], winr2[:w.ny,-rh:]),axis=1))
-                wins3[nwin] = Windat(w, np.concatenate(
+                wins3[nwin] = Window(w, np.concatenate(
                     (winr3[:w.ny,:lh], winr3[:w.ny,-rh:]),axis=1))
 
                 # Window 5 comes from top strip of left-hand data window
@@ -990,18 +990,18 @@ class Rdata (Rhead):
                 w = self.win[4]
                 xoff = 24 // xbin
                 yoff = 1024 // ybin
-                wins1[nwin] = Windat(w, winl1[yoff:yoff+w.ny,xoff:xoff+w.nx])
-                wins2[nwin] = Windat(w, winl2[yoff:yoff+w.ny,xoff:xoff+w.nx])
-                wins3[nwin] = Windat(w, winl3[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins1[nwin] = Window(w, winl1[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins2[nwin] = Window(w, winl2[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins3[nwin] = Window(w, winl3[yoff:yoff+w.ny,xoff:xoff+w.nx])
 
                 # Window 6 comes from top of right-hand data window
                 nwin = '6'
                 w = self.win[5]
                 xoff = 4 // xbin
                 yoff = 1024 // ybin
-                wins1[nwin] = Windat(w, winr1[yoff:yoff+w.ny,xoff:xoff+w.nx])
-                wins2[nwin] = Windat(w, winr2[yoff:yoff+w.ny,xoff:xoff+w.nx])
-                wins3[nwin] = Windat(w, winr3[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins1[nwin] = Window(w, winr1[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins2[nwin] = Window(w, winr2[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins3[nwin] = Window(w, winr3[yoff:yoff+w.ny,xoff:xoff+w.nx])
 
             # data type conversions
             for win1, win2, win3 in zip(wins1, wins2, win3):
@@ -1054,7 +1054,7 @@ class Rdata (Rhead):
 
         elif self.instrument == 'ULTRASPEC':
 
-            wins = Group(Windat)
+            wins = Group(Window)
             nwin = 1
             noff = 0
             if self.mode.startswith('USPEC'):

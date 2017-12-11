@@ -41,7 +41,7 @@ with standard tools for FITS files). Example code::
 
 which reads an hcm file in, then prints it, the CCD it contains labelled '1'
 (a :class:`CCD` object), then the window data from this CCD labelled 'E1' (a
-:class:`Windata` object) and finally the pixel value at iy=123, ix=45 (C-like
+:class:`Window` object) and finally the pixel value at iy=123, ix=45 (C-like
 starting from 0). This shows the dictionary-like interface used for
 :class:`MCCD` and :class:`CCD` objects alike (they are both sub-classes of a
 container class :class:`Group`). It then sets this pixel to zero and writes

@@ -3,7 +3,7 @@ import copy
 from astropy.io import fits
 
 import numpy as np
-from hipercam import Window, Windat, Group, Agroup, HipercamError
+from hipercam import Winhead, Window, Group, Agroup, HipercamError
 
 class TestGroup(unittest.TestCase):
     """Provides simple tests of Group methods
@@ -12,13 +12,13 @@ class TestGroup(unittest.TestCase):
 
     def setUp(self):
         self.agroup = Agroup()
-        win = Window(1,1,10,10,1,1)
+        win = Winhead(1,1,10,10,1,1)
         self.val1 = 1.
-        wind = Windat(win, self.val1*np.ones((win.ny,win.nx)))
+        wind = Window(win, self.val1*np.ones((win.ny,win.nx)))
         self.agroup[1] = wind
-        win = Window(100,200,10,10,1,1)
+        win = Winhead(100,200,10,10,1,1)
         self.val2 = 10.
-        wind = Windat(win, self.val2*np.ones((win.ny,win.nx)))
+        wind = Window(win, self.val2*np.ones((win.ny,win.nx)))
         self.agroup[2] = wind
 
     def test_group_copy(self):
@@ -28,8 +28,8 @@ class TestGroup(unittest.TestCase):
                          'Agroup copy failed')
 
     def test_group_setitem(self):
-        group = Group(Window)
-        window = Window(1,1,100,100,1,1)
+        group = Group(Winhead)
+        window = Winhead(1,1,100,100,1,1)
         self.assertRaises(KeyError, group.__setitem__, 'a', window)
         group[1] = window
         self.assertRaises(ValueError, group.__setitem__, 2, window)

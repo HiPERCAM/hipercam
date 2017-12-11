@@ -106,12 +106,12 @@ def pWin(win, label=''):
         pgptxt(left,bottom,0,1.3,label)
 
 def pWind(wind, vmin, vmax, label=''):
-    """Plots :class:`Windata` as an image with a line border. (PGPLOT).
+    """Plots :class:`Window` as an image with a line border. (PGPLOT).
 
     Arguments::
 
-      wind : Windata
-           the :class:`Windata` to plot
+      wind : Window
+           the :class:`Window` to plot
 
       vmin : float
            value at minimum of scale
@@ -128,7 +128,7 @@ def pWind(wind, vmin, vmax, label=''):
     pWin(wind, label)
 
 def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
-    """Plots :class:`CCD` as a set of :class:`Windata` objects correctly
+    """Plots :class:`CCD` as a set of :class:`Window` objects correctly
     positioned with respect to each other.
 
     Arguments::

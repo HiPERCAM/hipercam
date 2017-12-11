@@ -17,14 +17,14 @@ class Group(OrderedDict):
     method to return a deepcopy for use in the :class:`Group`s copy operation.
 
     :class:`Group` is designed to amalgamate several of the classes used for
-    objects associated with CCDs such as :class:`Windat` (see :class:`CCD`),
+    objects associated with CCDs such as :class:`Window` (see :class:`CCD`),
     and :class:`Aperture` (see :class:`CcdAper`)
     """
 
     def __init__(self, ftype, *args, **kwargs):
         """Group constructor; see :class:`OrderedDict` for possible values of
         args and kwargs. The first argument, `ftype`, is the fixed type that
-        will be enforced. e.g. it could be Windat, Window, CCD etc. An attribute
+        will be enforced. e.g. it could be Window, Winhead, CCD etc. An attribute
         of the same name will be stored.
 
         Arguments::
@@ -82,7 +82,7 @@ class Group(OrderedDict):
         """Checks validity of a Group if its objects have a method
         'clash' defined to check that they are compatible. This should
         have signature 'clash(self, other)', but does not have to be
-        defined for all objects storable in Groups. See :class:Window for
+        defined for all objects storable in Groups. See :class:`Winhead` for
         an example of an object for which this makes sense.
 
         If the Group fails this check, a ValueError is raised.

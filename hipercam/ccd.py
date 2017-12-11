@@ -15,19 +15,19 @@ from .window import *
 __all__ = ('CCD', 'MCCD', 'get_ccd_info')
 
 class CCD(Agroup):
-    """Class representing a single CCD as a :class:`Group` of :class:`Windat`
+    """Class representing a single CCD as a :class:`Group` of :class:`Window`
     objects plus a FITS header. It supports a few operations such as returning
     the mean value, arithematic operations, and file I/O to/from FITS files.
 
     FITS file structure: CCD objects are saved to FITS as a series of
     HDUs. The first HDU contains header information, but no data, while the
-    Windats are stored in the suceeding HDUs. The first HDU's header should
+    Windows are stored in the suceeding HDUs. The first HDU's header should
     contain keywords NXTOT and NYTOT defining the total unbinned dimensions of
     the CCD and HIPERCAM, which should be set to 'CCD' to distinguish the file
     from the similar :class:`MCCD` objects. The headers of the following HDUs
     should each contain keywords WINDOW, LLX, LLY, XBIN and YBIN. WINDOW
-    should be a unique integer label to attach to the Windat. LLX and LLY are
-    the coordinates of the lower-left unbinned pixel in the Windat (starting
+    should be a unique integer label to attach to the Window. LLX and LLY are
+    the coordinates of the lower-left unbinned pixel in the Window (starting
     at (1,1) for the bottom left of the entire chip). XBIN and YBIN are
     integer binning factors.
 
@@ -38,7 +38,7 @@ class CCD(Agroup):
         Arguments::
 
           winds : (Group)
-              Group of :class:`Windat` objects
+              Group of :class:`Window` objects
 
           nxtot : (int)
               Unbinned X-dimension of CCD
@@ -48,7 +48,7 @@ class CCD(Agroup):
 
           head : (astropy.io.fits.Header)
               a header which will be written along with the first of the
-              Windat sub-images if writing to a file. If head=None on input,
+              Window sub-images if writing to a file. If head=None on input,
               an empty header will be created.
 
           copy : (bool)
@@ -60,7 +60,7 @@ class CCD(Agroup):
         nxtot, nytot and head are stored as identically-named attributes of the CCD.
 
         """
-        super().__init__(Windat, winds)
+        super().__init__(Window, winds)
 
         self.nxtot = nxtot
         self.nytot = nytot
@@ -88,7 +88,7 @@ class CCD(Agroup):
     def min(self):
         """
         Returns the minimum value of the :class:`CCD`, i.e. the
-        minimum of all the minimum values of all :class:`Windat`s
+        minimum of all the minimum values of all :class:`Window`s
         """
         return min(v.min() for v in self.values())
 
@@ -132,7 +132,7 @@ class CCD(Agroup):
         for the total dimensions (NXTOT, NYTOT) and the numbers of windows
         (NUMWIN) added in. If it is the first HDU added, it will be made a
         PrimaryHDU, otherwise it will be an ImageHDU of extension type
-        CCDH. The :class:`Windat`s then follow as ImageHDUs of type
+        CCDH. The :class:`Window`s then follow as ImageHDUs of type
         'WIND'. This makes the HDUs associated with a give CCD stand out in
         e.g. 'fv'.
 
@@ -162,7 +162,7 @@ class CCD(Agroup):
         else:
             hdul.append(fits.PrimaryHDU(header=head))
 
-        # Now the Windats
+        # Now the Windows
         for key, wind in self.items():
             whead = fits.Header()
             if label is not None:
@@ -178,8 +178,8 @@ class CCD(Agroup):
         None, given an :class:`HDUList` representing a single CCD, the header
         from the first HDU will be used to create the header for the
         :class:`CCD`. The data from the remaining HDUs will be read into the
-        :class:`Windat`s that make up the CCD. Each data HDU will be searched
-        for a header parameter WINDOW to label the :class:`Windat`s, but the
+        :class:`Window`s that make up the CCD. Each data HDU will be searched
+        for a header parameter WINDOW to label the :class:`Window`s, but the
         routine will attempt to generate a sequential label if WINDOW is not
         found. If the auto-generated label conflicts with one already found,
         then a KeyError will be raised.
@@ -205,7 +205,7 @@ class CCD(Agroup):
 
         """
 
-        winds = Group(Windat)
+        winds = Group(Window)
         nwin = 1
         first = True
 
@@ -237,7 +237,7 @@ class CCD(Agroup):
                     raise KeyError('window label conflict')
                 else:
                     label = str(nwin)
-                winds[label] = Windat.rhdu(hdu)
+                winds[label] = Window.rhdu(hdu)
 
                 # step the window counter
                 nwin += 1
@@ -275,7 +275,7 @@ class CCD(Agroup):
         """
 
         # initialise for the first CCD
-        winds = Group(Windat)
+        winds = Group(Window)
         nwin = 1
         first = True
 
@@ -293,7 +293,7 @@ class CCD(Agroup):
                     ccd = cls(winds, nxtot, nytot, main_head)
 
                     # re-initialise for the next
-                    winds = Group(Windat)
+                    winds = Group(Window)
                     first = True
                     nwin = 1
 
@@ -308,7 +308,7 @@ class CCD(Agroup):
                         raise KeyError('window label conflict')
                     else:
                         label = str(nwin)
-                    winds[label] = Windat.rhdu(hdu)
+                    winds[label] = Window.rhdu(hdu)
 
                     # step the window counter
                     nwin += 1
@@ -421,24 +421,24 @@ class CCD(Agroup):
         )
 
     def float32(self):
-        """Applies :class:Windat.float32 to all Windats of a CCD"""
+        """Applies :class:Window.float32 to all Windows of a CCD"""
         for wind in self.values():
             wind.float32()
 
     def float64(self):
-        """Applies :class:Windat.float64 to all Windats of a CCD"""
+        """Applies :class:Window.float64 to all Windows of a CCD"""
         for wind in self.values():
             wind.float64()
 
     def uint16(self):
-        """Applies :class:Windat.uint16 to all Windats of a CCD"""
+        """Applies :class:Window.uint16 to all Windows of a CCD"""
         for wind in self.values():
             wind.uint16()
 
     def inside(self, x, y, dmin):
-        """Tests whether a point x,y lies within any Windat of a CCD, at
-        least dmin from its outer edge. It returns with the Windat label
-        or None if the point is not inside any Windat"""
+        """Tests whether a point x,y lies within any Window of a CCD, at
+        least dmin from its outer edge. It returns with the Window label
+        or None if the point is not inside any Window"""
 
         for wnam, wind in self.items():
             if wind.distance(x,y) > dmin:
@@ -450,17 +450,17 @@ class CCD(Agroup):
         """Given a template :class:CCD called `ccd`, this tries to modify the format
         of the :class:CCD, returning a new :class:CCD. This is often needed
         e.g. prior to applying a full frame flat field. In general this
-        operation requires re-labelling of the :class:`Windat`s composing the
+        operation requires re-labelling of the :class:`Window`s composing the
         CCD. It raises a HipercamError if it fails.
 
         """
         # build an empty CCD to get the headers. this will be added to
-        tccd = CCD(Group(Windat), self.nxtot, self.nytot, self.head)
+        tccd = CCD(Group(Window), self.nxtot, self.nytot, self.head)
 
-        # wind through the Windats of the template CCD
+        # wind through the Windows of the template CCD
         for twnam, twind in ccd.items():
 
-            # for each one, search for a surrounding Windat in
+            # for each one, search for a surrounding Window in
             # the CCD we are chopping down to. if it succeeds,
             # we break out of the loop to avoid the exception
             for wind in self.values():
@@ -515,7 +515,7 @@ class MCCD(Agroup):
          NXTOT = 1024 [max X dimension]
          NYTOT = 2048 [max Y dimension]
 
-      HDU 3, extension WIND for Windat
+      HDU 3, extension WIND for Window
          CCD = 2 [the CCD it belongs to]
          WINDOW = 3 [any integer is OK]
          LLX = 11 [X of left-hand unbinned coords]
@@ -524,7 +524,7 @@ class MCCD(Agroup):
          YBIN = 3 [Y binning factor]
          + 2D data array contain the data.
 
-      HDU 4, extension WIND for Windat
+      HDU 4, extension WIND for Window
          CCD = 2 [the CCD it belongs to]
          WINDOW = 4 [any integer is OK]
          LLX = 51 [X of left-hand unbinned coords]
@@ -648,8 +648,8 @@ class MCCD(Agroup):
         for the :class:`MCCD`. It is then assumed that the data for each
         :class:`CCD` is contained in the succeeding HDUs, i.e. that there is
         no data in the primary HDU. The data from all HDUs will be read into
-        the :class:`Windat` objects that make up the CCD. Each HDU will be
-        searched for a header parameter WINDOW to label the :class:`Windat`,
+        the :class:`Window` objects that make up the CCD. Each HDU will be
+        searched for a header parameter WINDOW to label the :class:`Window`,
         but the code will attempt to generate a sequential label if WINDOW is
         not found.
 
@@ -711,7 +711,7 @@ class MCCD(Agroup):
         # build an empty CCD to get the headers. this will be added to
         tmccd = MCCD(Group(CCD), self.head)
 
-        # wind through the Windats of the template CCD
+        # wind through the Windows of the template CCD
         for cnam, ccd in mccd.items():
             tmccd[cnam] = self[cnam].crop(ccd)
 
@@ -722,17 +722,17 @@ class MCCD(Agroup):
             self.__class__.__name__, super().__repr__(), self.head)
 
     def float32(self):
-        """Applies :class:Windat.float32 to all Windats of an MCCD"""
+        """Applies :class:Window.float32 to all Windows of an MCCD"""
         for ccd in self.values():
             ccd.float32()
 
     def float64(self):
-        """Applies :class:Windat.float64 to all Windats of an MCCD"""
+        """Applies :class:Window.float64 to all Windows of an MCCD"""
         for ccd in self.values():
             ccd.float64()
 
     def uint16(self):
-        """Applies :class:Windat.uint16 to all Windats of an MCCD"""
+        """Applies :class:Window.uint16 to all Windows of an MCCD"""
         for ccd in self.values():
             ccd.uint16()
 

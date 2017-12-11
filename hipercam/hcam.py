@@ -19,7 +19,7 @@ from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
 from astropy.time import Time
 
-from hipercam import (CCD, Group, MCCD, Windat, Winhead, HRAW, HipercamError)
+from hipercam import (CCD, Group, MCCD, Window, Winhead, HRAW, HipercamError)
 from hipercam.utils import add_extension
 
 __all__ = ['Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT']
@@ -658,7 +658,7 @@ class Rdata (Rhead):
               frame, whatever that is.
 
         Apart from reading the raw bytes, the main job of this routine is to
-        divide up and re-package the bytes read into Windats suitable for
+        divide up and re-package the bytes read into Windows suitable for
         constructing CCD objects.
 
         If access via a server is requested, it is assumed that the file being
@@ -802,7 +802,7 @@ class Rdata (Rhead):
 
         # second, the data bytes
 
-        # build Windats-->CCDs-->MCCD
+        # build Windows-->CCDs-->MCCD
         CNAMS = ('1', '2', '3', '4', '5')
         QNAMS = ('E', 'F', 'G', 'H')
 
@@ -826,7 +826,7 @@ class Rdata (Rhead):
             ch['EXPTIME'] = (texp, 'Exposure time (secs)')
 
             # finally create the CCD
-            ccds[cnam] = CCD(Group(Windat), HCM_NXTOT, HCM_NYTOT, ch)
+            ccds[cnam] = CCD(Group(Window), HCM_NXTOT, HCM_NYTOT, ch)
 
         # npixel points to the start pixel of the set of windows under
         # consideration
@@ -846,7 +846,7 @@ class Rdata (Rhead):
                 shape=(5, 4, win.ny, win.nx)
             )
 
-            # now build the Windats
+            # now build the Windows
             for nccd, cnam in enumerate(CNAMS):
                 for nquad, qnam in enumerate(QNAMS):
                     wnam = '{:s}{:d}'.format(qnam,nwin+1)
@@ -871,9 +871,9 @@ class Rdata (Rhead):
                                 'can only flip on axis 0 or 1, but got = {:d}'.format(ax)
                             )
 
-                    # finally store as a Windat, converting to 32-bit
+                    # finally store as a Window, converting to 32-bit
                     # floats to avoid problems down the line.
-                    ccds[cnam][wnam] = Windat(
+                    ccds[cnam][wnam] = Window(
                         win, windata.astype(np.float32)
                     )
 

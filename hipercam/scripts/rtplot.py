@@ -521,7 +521,7 @@ def rtplot(args=None):
                         wnam = ccd.inside(x, y, 2)
 
                         if wnam is not None:
-                            # store the position, Windat label, target number, box size
+                            # store the position, Window label, target number, box size
                             # fwhm, beta
                             ntarg += 1
                             fpos.append(Fpar(x,y,wnam,ntarg,shbox,fwhm,beta))
@@ -556,7 +556,7 @@ def rtplot(args=None):
                     # carry out initial search
                     x,y,peak = swind.find(smooth, False)
 
-                    # now for a more refined fit. First extract fit Windat
+                    # now for a more refined fit. First extract fit Window
                     fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
                     # crude estimate of sky background
@@ -630,7 +630,7 @@ def rtplot(args=None):
 
 class Fpar:
     """Class for profile fits. Able to plot the search box around an x,y
-    position and come up with a Windat representing that region."""
+    position and come up with a Window representing that region."""
 
     def __init__(self, x, y, wnam, ntarg, shbox, fwhm, beta):
         self.x = x
@@ -652,6 +652,6 @@ class Fpar:
         pgptxt(xlo, ylo, 0, 1.3, str(self.ntarg))
 
     def swind(self, ccd):
-        """Returns with search Windat"""
+        """Returns with search Window"""
         xlo, xhi, ylo, yhi = self.region()
         return ccd[self.wnam].window(xlo, xhi, ylo, yhi)

@@ -401,7 +401,7 @@ def reduce(args=None):
     fpos = [] # list of target positions to fit
 
     # dictionary of dictionaries for looking up the window associated with a
-    # given aperture, i.e.  mccdwins[cnam][apnam] give the name of the Windat.
+    # given aperture, i.e.  mccdwins[cnam][apnam] give the name of the Window.
     mccdwins = {}
 
     # create buffers to store the points plotted in each panel
@@ -665,9 +665,9 @@ def reduce(args=None):
                     else:
                         gain = rfile.gain
 
-                    # at this point 'ccd' contains all the Windats of a CCD,
+                    # at this point 'ccd' contains all the Windows of a CCD,
                     # 'ccdaper' all of its apertures, 'ccdwins' the label of
-                    # the Windat enclosing each aperture, 'rfile' contains
+                    # the Window enclosing each aperture, 'rfile' contains
                     # control parameters, 'read' contains the readout noise,
                     # either as a float or a CCD, 'gain' contains the gain,
                     # either a float or a CCD.
@@ -1404,7 +1404,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
         if aper.ref:
             ref = True
 
-            # extract Windat for this reference aperture
+            # extract Window for this reference aperture
             wind = ccd[ccdwin[apnam]]
 
             if isinstance(read, hcam.CCD):
@@ -1425,7 +1425,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
             # carry out initial search
             x,y,peak = swind.find(apsec['search_smooth_fwhm'], False)
 
-            # now for a more refined fit. First extract fit Windat
+            # now for a more refined fit. First extract fit Window
             fhbox = apsec['fit_half_width']
             fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
@@ -1548,7 +1548,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
 
         elif not aper.is_linked():
 
-            # extract Windat for this reference aperture
+            # extract Window for this reference aperture
             wind = ccd[ccdwin[apnam]]
 
             if isinstance(read, hcam.CCD):
@@ -1571,7 +1571,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
             # carry out initial search
             x,y,peak = swind.find(apsec['search_smooth_fwhm'], False)
 
-            # now for a more refined fit. First extract fit Windat
+            # now for a more refined fit. First extract fit Window
             fhbox = apsec['fit_half_width']
             fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
