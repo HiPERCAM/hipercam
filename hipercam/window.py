@@ -752,6 +752,8 @@ class Window(Winhead):
         )
 
         # transforms
+
+        # amplifier coords
         cards.append(('ATM1_1', 1.))
         cards.append(('ATM2_2', 1.))
         cards.append(('ATV1', 0.))
@@ -760,14 +762,24 @@ class Window(Winhead):
         # image coords
         cards.append(('LTM1_1', 1./self.xbin))
         cards.append(('LTM2_2', 1./self.ybin))
-        cards.append(('LTV1', -float(self.llx)/self.xbin))
-        cards.append(('LTV2', -float(self.lly)/self.ybin))
+        cards.append(('LTV1', 1-(self.llx+(self.xbin-1)/2)/self.xbin))
+        cards.append(('LTV2', 1-(self.lly+(self.ybin-1)/2)/self.ybin))
 
         # detector coords
         cards.append(('DTM1_1', 1.))
         cards.append(('DTM2_2', 1.))
         cards.append(('DTV1', float(xoff)))
         cards.append(('DTV2', 0.))
+
+        cards.append(('WCSNAMEP', 'PHYSICAL'))
+        cards.append(('CTYPE1', 'PIXEL'))
+        cards.append(('CTYPE2', 'PIXEL'))
+        cards.append(('CRPIX1', 1.))
+        cards.append(('CRPIX2', 1.))
+        cards.append(('CRVAL1', float(xoff+self.llx)))
+        cards.append(('CRVAL2', float(self.lly)))
+        cards.append(('CD1_1', float(self.xbin)))
+        cards.append(('CD2_2', float(self.ybin)))
 
         # WCS mosaic
         #        cards.append(('WCSNAME', 'mosaic', 'HiPERCAM mosaic coordinates'))
