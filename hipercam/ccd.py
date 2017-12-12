@@ -14,13 +14,22 @@ from .window import *
 
 __all__ = ('CCD', 'MCCD', 'get_ccd_info')
 
+# Special keywords that will be stripped from FITS headers
+# on input as they are added on output. This is to make
+# to make diagnostic print statements easier to follow.
+KEYWORDS = (
+    'NXTOT', 'NYTOT', 'NUMWIN', 'CCD', 'WINDOW',
+)
+
 class CCD(Agroup):
     """Class representing a single CCD as a :class:`Group` of :class:`Window`. It
     supports a few operations such as returning the mean value, arithematic
-    operations, and file I/O to/from FITS files.
-
+    operations, and file I/O to/from FITS files. Header information is passed
+    via the Windows. The first of these is assumed to be the location for any
+    data pertaining to the CCD as a whole.
     """
-    def __init__(self, winds, nxtot, nytot, head=fits.Header(), copy=False):
+
+    def __init__(self, winds, nxtot, nytot, copy=False):
         """Constructs a :class:`CCD`.
 
         Arguments::
@@ -33,10 +42,6 @@ class CCD(Agroup):
 
           nytot : int
               Unbinned Y-dimension of CCD
-
-          head : astropy.io.fits.Header
-              a header which will be added into the first :class:`Window` on output to
-              allow general header information pertaining to the whole CCD to be saved.
 
           copy : bool
               if True, copy all the data over, otherwise only references are
@@ -52,7 +57,6 @@ class CCD(Agroup):
 
         self.nxtot = nxtot
         self.nytot = nytot
-        self.head = head
 
         if copy:
             self = self.copy()
@@ -65,7 +69,7 @@ class CCD(Agroup):
         """
         return (
             self.__class__, (list(self.items()),
-                             self.nxtot, self.nytot, self.head)
+                             self.nxtot, self.nytot)
         )
 
     def flatten(self):
@@ -119,11 +123,7 @@ class CCD(Agroup):
 
     def whdul(self, hdul=fits.HDUList(), cnam=None, xoff=0):
         """Write the :class:`CCD` as a series of HDUs, one per :class:`Window`, adding
-        to and returning an :class:`HDUList`. The general header will be
-        written to first HDU. Depending on the value of 'cnam' this will
-        either be a PrimaryHDU without data (cnam is None) or an ImageHDU with
-        the first Window's data. Any remaining Window's are written to
-        ImageHDUs.
+        to and returning an :class:`HDUList`.
 
         Arguments::
 
@@ -140,31 +140,22 @@ class CCD(Agroup):
 
         """
 
-        if cnam is None and len(hdul) == 0:
-            # No CCD label indicates this is going to be written
-            # as a single CCD.
-            head = self.head.copy()
-            head['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
-            head['NYTOT'] = (self.nytot, 'Total unbinned Y dimension')
-            head['NUMWIN'] = (len(self), 'Total number of windows')
-            hdul.append(fits.PrimaryHDU(None,head))
-
         # Now 1 HDU per Window
-        for wnam, wind in self.items():
+        for n, (wnam, wind) in enumerate(self.items()):
+
             if cnam is None:
                 extnam = 'W:{:s}'.format(wnam)
             else:
                 extnam = 'C:{:s}, W:{:s}'.format(cnam, wnam)
 
-            if len(hdul):
-                head = fits.Header()
-                if cnam:
-                    head['CCD'] = (cnam, 'CCD label')
-            else:
-                # write in main header
-                head = self.head.copy()
-                if cnam:
-                    head['CCD'] = (cnam, 'CCD label')
+            # Generate a few extra items to add to the header
+            head = fits.Header()
+            if cnam:
+                head['CCD'] = (cnam, 'CCD label')
+
+            if n == 0:
+                # Tack a few general items into the first Window
+                # to be written for a given CCD.
                 head['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
                 head['NYTOT'] = (self.nytot, 'Total unbinned Y dimension')
                 head['NUMWIN'] = (len(self), 'Total number of windows')
@@ -176,15 +167,13 @@ class CCD(Agroup):
 
     @classmethod
     def rhdul(cls, hdul, cnam=None):
-        """Builds a single :class:`CCD` from an :class:`HDUList`. If cnam is
-        None, given an :class:`HDUList` representing a single CCD, the header
-        from the first HDU will be used to create the header for the
-        :class:`CCD`. The data from the remaining HDUs will be read into the
-        :class:`Window`s that make up the CCD. Each data HDU will be searched
-        for a header parameter WINDOW to label the :class:`Window`s, but the
-        routine will attempt to generate a sequential label if WINDOW is not
-        found. If the auto-generated label conflicts with one already found,
-        then a KeyError will be raised.
+        """Builds a single :class:`CCD` from an :class:`HDUList`.
+
+        If cnam is None, it is assumed that each HDU represents a Window.
+        Each data HDU will be searched for a header parameter 'WINDOW' to label
+        the :class:`Window`s, but the routine will attempt to generate a
+        sequential label if WINDOW is not found. If the auto-generated label
+        conflicts with one already found, then a KeyError will be raised.
 
         If cnam is not None, cnam is taken to be the label of a CCD to be
         extracted from the :class:`HDUList` which may contain multiple
@@ -195,74 +184,76 @@ class CCD(Agroup):
         Arguments::
 
           hdul  : :class:`HDUList`
-               each ImageHDU will be read as sub-window of the :class:`CCD`
+               each HDU will be read as sub-window of the :class:`CCD`
 
           cnam  : (None | string)
-               if multi=False and cnam is not None, the routine will try to
-               find and return a :class:CCD built from a subset of HDUs that
-               matches cnam (the keyword CCD is used)
+               if cnam is not None, the routine will try to find and return a
+               :class:CCD built from a contiguous subset of HDUs that matches
+               cnam (the keyword CCD is used)
 
         Returns a :class:`CCD`. Data are converted to float32 unless they are
         read in as float64.
 
         """
 
+        # Group of Windows
         winds = Group(Window)
         nwin = 1
         first = True
 
-        for n, hdu in enumerate(hdul):
+        for hdu in hdul:
+
             # The header of the HDU
             head = hdu.header
 
-            if first and \
-               (cnam is None or ('CCD' in head and cnam == head['CCD'])):
-                # Extract header from first HDU (any data it might contain are
-                # ignored)
-                nxtot = head['NXTOT']
-                nytot = head['NYTOT']
+            if cnam is None or ('CCD' in head and cnam == head['CCD']):
+                if first:
+                    # Extract maximum dimensions from first HDU of a CCD
+                    nxtot = head['NXTOT']
+                    nytot = head['NYTOT']
+                    first = False
 
-                del head['NXTOT']
-                del head['NYTOT']
-                if 'NUMWIN' in head: del head['NUMWIN']
-                main_head = head
-                first = False
-
-            elif not first and \
-                 (cnam is None or ('CCD' in head and cnam == head['CCD'])):
-
-                # Except for the first HDU of a CCD, all should contain data,
-                # and for a single CCD, we assume all are part of the CCD.
+                # attempt auto-generation of window labels as an aid
+                # to ingesting foreign-format data
                 if 'WINDOW' in head:
                     label = head['WINDOW']
                 elif str(nwin) in winds:
                     raise KeyError('window label conflict')
                 else:
                     label = str(nwin)
-                winds[label] = Window.rhdu(hdu)
+
+                # create the Window
+                wind = Window.rhdu(hdu)
+
+                # clean its header
+                for key in KEYWORDS:
+                    if key in wind: del wind[key]
+
+                # store it
+                winds[label] = wind
 
                 # step the window counter
                 nwin += 1
 
-            elif not first and cnam is not None:
+            else:
                 # have encountered an HDU with a mis-matching label and since
                 # we assume each CCD is a continguous block, we stop
                 break
 
-        return cls(winds, nxtot, nytot, main_head)
+        return cls(winds, nxtot, nytot)
 
     @classmethod
     def rmhdul(cls, hdul):
         """Builds a :class:`CCD` from an :class:`HDUList` potentially containing
         multiple CCDs, i.e. an MCCD object. This function acts as a generator
         to allow the CCDs to be returned in successive calls. It is assumed
-        that hdul is positioned at the start of the CCDs, with the first HDU
-        the header of the first CCD.
+        that hdul is positioned at the start of the CCDs (i.e. with the
+        initial data-less primary HDU removed).
 
         Arguments::
 
           hdul  : :class:`HDUList`
-               each ImageHDU will be read as sub-window of the :class:`CCD`
+               each ImageHDU will be read as a sub-window of the :class:`CCD`
 
         Returns::
 
@@ -276,7 +267,7 @@ class CCD(Agroup):
 
         """
 
-        # initialise for the first CCD
+        # Group on Windows
         winds = Group(Window)
         nwin = 1
         first = True
@@ -286,48 +277,46 @@ class CCD(Agroup):
             # The header of the HDU
             head = hdu.header
 
-            if not first:
-                # we have passed the first HDU already
+            if not first and ccd_label != head['CCD']:
+                # we have found a new CCD. Create and return the old CCD
+                ccd = cls(winds, nxtot, nytot)
+                yield (ccd_label, ccd)
 
-                if ccd_label != head['CCD']:
-                    # we have found a new CCD. Store the old CCD with what we
-                    # have so far
-                    ccd = cls(winds, nxtot, nytot, main_head)
-
-                    # re-initialise for the next
-                    winds = Group(Window)
-                    first = True
-                    nwin = 1
-
-                    # return the label and the old CCD
-                    yield (ccd_label,ccd)
-
-                else:
-                    # we should on an HDU with data if we get here. store it.
-                    if 'WINDOW' in head:
-                        label = head['WINDOW']
-                    elif str(nwin) in winds:
-                        raise KeyError('window label conflict')
-                    else:
-                        label = str(nwin)
-                    winds[label] = Window.rhdu(hdu)
-
-                    # step the window counter
-                    nwin += 1
+                # re-initialise for the next CCD
+                winds = Group(Window)
+                first = True
+                nwin = 1
 
             if first:
-                # we are on an initial header-only HDU
+                # we are on the first HDU of a CCD, get some essentials
                 nxtot = head['NXTOT']
                 nytot = head['NYTOT']
                 ccd_label = head['CCD']
-                del head['NXTOT']
-                del head['NYTOT']
-                if 'NUMWIN' in head: del head['NUMWIN']
-                main_head = head
                 first = False
 
-        # when we get here, we have data still to be returned
-        yield (ccd_label, cls(winds, nxtot, nytot, main_head))
+            # store the HDU as a Window
+            if 'WINDOW' in head:
+                label = head['WINDOW']
+            elif str(nwin) in winds:
+                raise KeyError('window label conflict')
+            else:
+                label = str(nwin)
+
+            # create the Window
+            wind = Window.rhdu(hdu)
+
+            # clean its header
+            for key in KEYWORDS:
+                if key in wind: del wind[key]
+
+            # store it
+            winds[label] = wind
+
+            # step the window counter
+            nwin += 1
+
+        # when we get here, we should have data still to be returned
+        yield (ccd_label, cls(winds, nxtot, nytot))
 
     def write(self, fname, overwrite=False):
         """Writes out the CCD to a FITS file.
@@ -483,8 +472,9 @@ class CCD(Agroup):
 
     def __repr__(self):
         return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(
-            self.__class__.__name__,super().__repr__(),self.nxtot,self.nytot,self.head
-            )
+            self.__class__.__name__, super().__repr__(),
+            self.nxtot, self.nytot, self.head
+        )
 
 class MCCD(Agroup):
     """Class representing a multi-CCD as a Group of CCD objects plus a FITS
@@ -493,7 +483,7 @@ class MCCD(Agroup):
 
     """
 
-    def __init__(self, ccds, head=None, copy=False):
+    def __init__(self, ccds, head=fits.Header(), copy=False):
         """Constructs a :class:`MCCD`
 
         Arguments::
@@ -514,10 +504,7 @@ class MCCD(Agroup):
         """
         super().__init__(CCD, ccds)
 
-        if head is None:
-            self.head = fits.Header()
-        else:
-            self.head = head
+        self.head = head
         if copy:
             self = self.copy()
 
@@ -534,14 +521,15 @@ class MCCD(Agroup):
         Arguments::
 
             fname : string or file-like object
-                Name of file to write to. Can also be a file, opened in writeable
-                binary mode.
+                Name of file to write to. Can also be a file, opened in
+                writeable binary mode.
 
             overwrite : bool
                 True to overwrite pre-existing files
 
             xgap  : int
                X-gap used to space CCDs for ds9 mosaicing (unbinned pixels)
+
         """
 
         phead = self.head.copy()
@@ -573,17 +561,14 @@ class MCCD(Agroup):
         hdul.writeto(fname,overwrite=overwrite)
 
     @classmethod
-    def rfits(cls, fname):
-        warnings.warn('MCCD.rfits has been re-named MCCD.read and will be removed in the future; please update your code')
-        return read(cls, fname)
-
-    @classmethod
     def read(cls, fname):
-        """Builds an :class:`MCCD` from a FITS file. Expects a primary HDU,
-        containing no data, followed by a series of HDU blocks consisting
-        of the header for each CCD followed by data HDUs.
+        """Builds an :class:`MCCD` from a FITS file. Expects a primary HDU, containing
+        no data, but some general headers, followed by a series of HDU blocks
+        for each CCD with the first one of each containing some general
+        per-CCD header items.
 
         Data are converted to float32 unless they are read in as float64.
+
         """
         with fits.open(fname) as hdul:
             return cls.rhdul(hdul)
@@ -613,6 +598,7 @@ class MCCD(Agroup):
         # Get the main header from the first hdu, but otherwise ignore it
         head = hdul[0].header
         if 'NUMCCD' in head: del head['NUMCCD']
+        if 'HIPERCAM' in head: del head['HIPERCAM']
 
         # Attempt to read the rest of HDUs into a series of CCDs
         ccds = Group(CCD)

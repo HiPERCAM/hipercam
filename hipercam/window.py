@@ -27,6 +27,16 @@ __all__ = (
     'combFit', 'Moffat'
 )
 
+# Special keywords that will be stripped from FITS headers on input as they
+# are added on output and not required by the pipeline. This is to make to
+# make diagnostic print statements easier to follow.
+KEYWORDS = (
+    'LLX', 'LLY', 'XBIN', 'YBIN', 'WCSNAME', 'CUNIT1',
+    'CUNIT2', 'CTYPE1', 'CTYPE2', 'CRPIX1', 'CRPIX2',
+    'CRVAL1', 'CRVAL2', 'CD1_1', 'CD2_2', 'CD1_2', 'CD2_1',
+    'EXTNAME',
+)
+
 class Winhead(fits.Header):
     """Class representing the header parts of a CCD window, i.e. everything
     needed to represent a window other than its data. This represents an
@@ -696,20 +706,17 @@ class Window(Winhead):
         if data.dtype != np.float64:
             data = data.astype(np.float32)
 
-        # construct Winhead
+        # extract important keywords Winhead
         llx = head['LLX']
-        del head['LLX']
-
         lly = head['LLY']
-        del head['LLY']
-
         xbin = head['XBIN']
-        del head['XBIN']
-
         ybin = head['YBIN']
-        del head['YBIN']
-
         ny, nx = data.shape
+
+        # clean up header
+        for key in KEYWORDS:
+            if key in head: del head[key]
+
         win = Winhead(llx, lly, nx, ny, xbin, ybin, head)
 
         return cls(win, data)
