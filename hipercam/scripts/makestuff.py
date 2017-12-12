@@ -145,6 +145,16 @@ def makedata(args=None):
     ccds = hcam.Group(hcam.CCD)
     rgs = {}
     for cnam, pars in ccd_pars.items():
+
+        # Generate header with timing data
+        head = fits.Header()
+        td = TimeDelta(pars['toff'], format='sec')
+        utc = utc_start + td
+        head['UTC'] = (utc.isot, 'UTC at mid exposure')
+        head['MJD'] = (utc.mjd, 'MJD at mid exposure')
+        head['EXPOSE'] = (exposure, 'Exposure time, seconds')
+        head['TIMEOK'] = (True, 'Time status flag')
+
         # Generate the Windows
         winds = hcam.Group(hcam.Window)
         rgs[cnam] = {}
@@ -158,9 +168,17 @@ def makedata(args=None):
                     ny = int(conf[key]['ny'])
                     xbin = int(conf[key]['xbin'])
                     ybin = int(conf[key]['ybin'])
-                    wind = hcam.Window(hcam.Winhead(llx,lly,nx,ny,xbin,ybin))
+                    if len(winds):
+                        wind = hcam.Window(
+                            hcam.Winhead(llx,lly,nx,ny,xbin,ybin)
+                        )
+                    else:
+                        # store the header in the first Window
+                        wind = hcam.Window(
+                            hcam.Winhead(llx,lly,nx,ny,xbin,ybin,head)
+                        )
 
-                    # Accumulate Windows in the CCD
+                    # Store the Window
                     winds[wnam] = wind
 
                     # Store read / gain value
@@ -168,17 +186,8 @@ def makedata(args=None):
                         float(conf[key]['read']), float(conf[key]['gain'])
                     )
 
-        # Generate header with timing data
-        head = fits.Header()
-        td = TimeDelta(pars['toff'], format='sec')
-        utc = utc_start + td
-        head['UTC'] = (utc.isot, 'UTC at mid exposure')
-        head['MJD'] = (utc.mjd, 'MJD at mid exposure')
-        head['EXPOSE'] = (exposure, 'Exposure time, seconds')
-        head['TIMEOK'] = (True, 'Time status flag')
-
         # Accumulate CCDs
-        ccds[cnam] = hcam.CCD(winds,pars['nxtot'],pars['nytot'],head)
+        ccds[cnam] = hcam.CCD(winds,pars['nxtot'],pars['nytot'])
 
     # Make the template MCCD
     mccd = hcam.MCCD(ccds, thead)

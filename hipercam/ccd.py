@@ -49,7 +49,7 @@ class CCD(Agroup):
               re-generating the data but could cause problems in some
               circumstances.
 
-        nxtot, nytot and head are stored as identically-named attributes of
+        nxtot are nytot are stored as identically-named attributes of
         the CCD.
 
         """
@@ -404,7 +404,7 @@ class CCD(Agroup):
         copy.copy and copy.deepcopy of a `CCD` use this method
         """
         return CCD(
-            super().copy(memo), self.nxtot, self.nytot, self.head.copy()
+            super().copy(memo), self.nxtot, self.nytot,
         )
 
     def float32(self):
@@ -442,7 +442,7 @@ class CCD(Agroup):
 
         """
         # build an empty CCD to get the headers. this will be added to
-        tccd = CCD(Group(Window), self.nxtot, self.nytot, self.head)
+        tccd = CCD(Group(Window), self.nxtot, self.nytot)
 
         # wind through the Windows of the template CCD
         for twnam, twind in ccd.items():
@@ -464,16 +464,36 @@ class CCD(Agroup):
 
         return tccd
 
+    @property
+    def head(self):
+        """Returns the first Window or an empty fits.Header if there is
+        no first Window. The headerof the first Window is where general
+        header items of the CCD are stored."""
+        return next(iter(self.values()), fits.Header())
+
+    @head.setter
+    def head(self, key, value):
+        """Use to set general header items which will be stored in the
+        first Window. If there is no first Window, a ValueError will be
+        raised."""
+        try:
+            next(iter(self.values()))[key] = value
+        except StopIteration:
+            raise ValueError(
+                'there is no first Window to store any CCD header'
+            )
+
     def is_data(self):
         """Returns True / False according to whether the frame is thought
         to contain data. Uses DSTATUS keyword if present, else returns True
         """
-        return self.head['DSTATUS'] if 'DSTATUS' in self.head else True
+        return len(self) and \
+            (self.head['DSTATUS'] if 'DSTATUS' in self.head else True)
 
     def __repr__(self):
-        return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, head={!r})'.format(
+        return '{:s}(winds={:s}, nxtot={!r}, nytot={!r})'.format(
             self.__class__.__name__, super().__repr__(),
-            self.nxtot, self.nytot, self.head
+            self.nxtot, self.nytot
         )
 
 class MCCD(Agroup):

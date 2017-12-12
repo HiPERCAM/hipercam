@@ -806,7 +806,9 @@ class Rdata (Rhead):
         CNAMS = ('1', '2', '3', '4', '5')
         QNAMS = ('E', 'F', 'G', 'H')
 
-        # initialise CCDs with empty Groups. These will be added to later
+
+        # update the headers, initialise the CCDs
+        cheads = {}
         ccds = Group(CCD)
         for nccd, (cnam, chead) in enumerate(zip(CNAMS, self.cheads)):
 
@@ -825,8 +827,11 @@ class Rdata (Rhead):
             ch['GOODTIME'] = (flag and thead['GOODTIME'], 'Is MJDUTC reliable?')
             ch['EXPTIME'] = (texp, 'Exposure time (secs)')
 
-            # finally create the CCD
-            ccds[cnam] = CCD(Group(Window), HCM_NXTOT, HCM_NYTOT, ch)
+            # store for later recovery when creating the Windows
+            cheads[cnam] = ch
+
+            # Create the CCDs
+            ccds[cnam] = CCD(Group(Window), HCM_NXTOT, HCM_NYTOT)
 
         # npixel points to the start pixel of the set of windows under
         # consideration
@@ -873,9 +878,17 @@ class Rdata (Rhead):
 
                     # finally store as a Window, converting to 32-bit
                     # floats to avoid problems down the line.
-                    ccds[cnam][wnam] = Window(
-                        win, windata.astype(np.float32)
-                    )
+                    if nwin == 0 and nccd == 0 and nquad == 0:
+                        # store CCD header in the first Window
+                        ccds[cnam][wnam] = Window(
+                            win, windata.astype(np.float32), cheads[cnam]
+                        )
+
+                    else:
+                        # remaining Windows
+                        ccds[cnam][wnam] = Window(
+                            win, windata.astype(np.float32)
+                        )
 
             # move pointer on for next set of windows
             npixel += nchunk

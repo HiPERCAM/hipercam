@@ -81,12 +81,6 @@ class Winhead(fits.Header):
               Winhead objects).
         """
 
-        # In order to convert to HDUs some keywords are protected
-        for key in ('LLX', 'LLY', 'NX', 'NY', 'XBIN', 'YBIN'):
-            if key in head:
-                raise ValueError(
-                    'Invalid key = {:s} in supplied header'.format(key)
-                )
         # Store the header
         super().__init__(head)
 
@@ -755,14 +749,14 @@ class Window(Winhead):
         # Now a set of parameters to facilitate ds9 display
         cards = []
         cards.append(('WCSNAME', 'mosaic', 'HiPERCAM mosaic coordinates'))
-        cards.append(('CUNIT1', 'pixel', 'physical unit for WCS axis i'))
-        cards.append(('CUNIT2', 'pixel', 'physical unit for WCS axis i'))
-        cards.append(('CTYPE1', 'MOSAIC_X', 'coordinate/projection type for WCS axis i'))
-        cards.append(('CTYPE2', 'MOSIAC_Y', 'coordinate/projection type for WCS axis i'))
-        cards.append(('CRPIX1', 1, 'reference pixel along FITS axis j'))
-        cards.append(('CRPIX2', 1, 'reference pixel along FITS axis j'))
-        cards.append(('CRVAL1', xoff+self.llx, 'coordinate value for WCS axis i at refpix'))
-        cards.append(('CRVAL2', self.lly, 'coordinate value for WCS axis i at refpix'))
+        cards.append(('CUNIT1', 'pixel', 'physical unit for WCS axis 1'))
+        cards.append(('CUNIT2', 'pixel', 'physical unit for WCS axis 2'))
+        cards.append(('CTYPE1', 'MOSAIC_X', 'coordinate/projection type for WCS axis 1'))
+        cards.append(('CTYPE2', 'MOSAIC_Y', 'coordinate/projection type for WCS axis 2'))
+        cards.append(('CRPIX1', 1, 'reference pixel along FITS axis 1'))
+        cards.append(('CRPIX2', 1, 'reference pixel along FITS axis 2'))
+        cards.append(('CRVAL1', xoff+self.llx, 'coordinate value for WCS axis 1 at refpix'))
+        cards.append(('CRVAL2', self.lly, 'coordinate value for WCS axis 2 at refpix'))
         cards.append(('CD1_1', self.xbin, 'CTM i_j from pixel to WCS'))
         cards.append(('CD2_2', self.ybin, 'CTM i_j from pixel to WCS'))
         cards.append(('CD1_2', 0, 'CTM i_j from pixel to WCS'))
