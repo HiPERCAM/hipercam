@@ -27,16 +27,6 @@ __all__ = (
     'combFit', 'Moffat'
 )
 
-# Special keywords that will be stripped from FITS headers on input as they
-# are added on output and not required by the pipeline. This is to make to
-# make diagnostic print statements easier to follow.
-KEYWORDS = (
-    'LLX', 'LLY', 'XBIN', 'YBIN', 'WCSNAME', 'CUNIT1',
-    'CUNIT2', 'CTYPE1', 'CTYPE2', 'CRPIX1', 'CRPIX2',
-    'CRVAL1', 'CRVAL2', 'CD1_1', 'CD2_2', 'CD1_2', 'CD2_1',
-    'EXTNAME',
-)
-
 class Winhead(fits.Header):
     """Class representing the header parts of a CCD window, i.e. everything
     needed to represent a window other than its data. This represents an
@@ -707,10 +697,6 @@ class Window(Winhead):
         ybin = head['YBIN']
         ny, nx = data.shape
 
-        # clean up header
-        for key in KEYWORDS:
-            if key in head: del head[key]
-
         win = Winhead(llx, lly, nx, ny, xbin, ybin, head)
 
         return cls(win, data)
@@ -747,20 +733,56 @@ class Window(Winhead):
         head['YBIN'] = (self.ybin, 'Y-binning factor')
 
         # Now a set of parameters to facilitate ds9 display
+        # using the IRAF mosaic option
         cards = []
-        cards.append(('WCSNAME', 'mosaic', 'HiPERCAM mosaic coordinates'))
-        cards.append(('CUNIT1', 'pixel', 'axis 1 unit'))
-        cards.append(('CUNIT2', 'pixel', 'axis 2 unit'))
-        cards.append(('CTYPE1', 'MOSAIC_X', 'axis 1 projection'))
-        cards.append(('CTYPE2', 'MOSAIC_Y', 'axis 2 projection'))
-        cards.append(('CRPIX1', 1, 'reference pixel, axis 1'))
-        cards.append(('CRPIX2', 1, 'reference pixel, axis 2'))
-        cards.append(('CRVAL1', xoff+self.llx, 'ordinate of axis 1 refpix'))
-        cards.append(('CRVAL2', self.lly, 'ordinate of axis 2 refpix'))
-        cards.append(('CD1_1', self.xbin, 'x/x scale'))
-        cards.append(('CD2_2', self.ybin, 'y/y scale'))
-        cards.append(('CD1_2', 0, 'no rotation or shear'))
-        cards.append(('CD2_1', 0, 'no rotation or shear'))
+
+        cards.append(('CCDSUM','{:d} {:d}'.format(self.xbin,self.ybin)))
+
+        # sections
+        nx,ny = self.nx, self.ny
+        cards.append(('CCDSEC','[1:{:d},1:{:d}]'.format(nx,ny)))
+        cards.append(('AMPSEC','[1:{:d},1:{:d}]'.format(nx,ny)))
+        cards.append(
+            ('DATASEC','[{:d}:{:d},{:d}:{:d}]'.format(
+                self.llx,self.urx,self.lly,self.ury))
+        )
+        cards.append(
+            ('DETSEC','[{:d}:{:d},{:d}:{:d}]'.format(
+                xoff+self.llx,xoff+self.urx,self.lly,self.ury))
+        )
+
+        # transforms
+        cards.append(('ATM1_1', 1.))
+        cards.append(('ATM2_2', 1.))
+        cards.append(('ATV1', 0.))
+        cards.append(('ATV2', 0.))
+
+        # image coords
+        cards.append(('LTM1_1', 1./self.xbin))
+        cards.append(('LTM2_2', 1./self.ybin))
+        cards.append(('LTV1', -float(self.llx)/self.xbin))
+        cards.append(('LTV2', -float(self.lly)/self.ybin))
+
+        # detector coords
+        cards.append(('DTM1_1', 1.))
+        cards.append(('DTM2_2', 1.))
+        cards.append(('DTV1', float(xoff)))
+        cards.append(('DTV2', 0.))
+
+        # WCS mosaic
+        #        cards.append(('WCSNAME', 'mosaic', 'HiPERCAM mosaic coordinates'))
+        #        cards.append(('CUNIT1', 'pixel', 'axis 1 unit'))
+        #        cards.append(('CUNIT2', 'pixel', 'axis 2 unit'))
+        #        cards.append(('CTYPE1', 'MOSAIC_X', 'axis 1 projection'))
+        #        cards.append(('CTYPE2', 'MOSAIC_Y', 'axis 2 projection'))
+        #        cards.append(('CRPIX1', 1., 'reference pixel, axis 1'))
+        #        cards.append(('CRPIX2', 1., 'reference pixel, axis 2'))
+        #        cards.append(('CRVAL1', float(xoff+self.llx), 'ordinate of axis 1 at refpix'))
+        #        cards.append(('CRVAL2', float(self.lly), 'ordinate of axis 2 at refpix'))
+        #        cards.append(('CD1_1', float(self.xbin), 'x/x scale'))
+        #        cards.append(('CD2_2', float(self.ybin), 'y/y scale'))
+        #        cards.append(('CD1_2', 0., 'no rotation or shear'))
+        #        cards.append(('CD2_1', 0., 'no rotation or shear'))
         if extnam:
             cards.append(('EXTNAME', extnam, 'name of this image extension'))
         head.update(cards)
