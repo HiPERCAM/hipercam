@@ -354,13 +354,27 @@ class Rhead:
 
             elif self.mode.startswith('OneWindow') or self.mode.startswith('TwoWindow'):
                 winID = 'ESO DET WIN1 '
-                xsll = self.header[winID + 'XSLL']
-                xslr = self.header[winID + 'XSLR']
-                xsul = self.header[winID + 'XSUL']
-                xsur = self.header[winID + 'XSUR']
                 ys = self.header[winID + 'YS']
                 nx = self.header[winID + 'NX']
                 ny = self.header[winID + 'NY']
+
+                xsll_init = self.header[winID + 'XSE'] + 1
+                xsul_init = self.header[winID + 'XSH'] + 1
+                xslr_init = self.header[winID + 'XSF'] + nx + 1
+                xsur_init = self.header[winID + 'XSG'] + nx + 1
+                try:
+                    xsll = self.header[winID + 'XSLL']
+                    xslr = self.header[winID + 'XSLR']
+                    xsul = self.header[winID + 'XSUL']
+                    xsur = self.header[winID + 'XSUR']
+                    if xsll != xsll_init or xsul != xsul_init or \
+                            xslr != xslr_init or xsur != xsur_init:
+                        print('Q1',xsll,xslr,xsul,xsur,'cf',
+                              xsll_init,xslr_init,xsul_init,xsur_init)
+                except:
+                    xsll, xslr = xsll_init, xslr_init
+                    xsul, xsur = xsul_init, xsur_init
+
                 self.wforms.append(
                     '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
                         xsll, xslr, xsul, xsur, ys, nx, ny)
@@ -368,13 +382,27 @@ class Rhead:
 
                 if self.mode.startswith('TwoWindow'):
                     winID = 'ESO DET WIN2 '
-                    xsll = self.header[winID + 'XSLL']
-                    xslr = self.header[winID + 'XSLR']
-                    xsul = self.header[winID + 'XSUL']
-                    xsur = self.header[winID + 'XSUR']
                     ys = self.header[winID + 'YS']
                     nx = self.header[winID + 'NX']
                     ny = self.header[winID + 'NY']
+
+                    xsll_init = self.header[winID + 'XSE'] + 1
+                    xsul_init = self.header[winID + 'XSH'] + 1
+                    xslr_init = self.header[winID + 'XSF'] + nx + 1
+                    xsur_init = self.header[winID + 'XSG'] + nx + 1
+                    try:
+                        xsll = self.header[winID + 'XSLL']
+                        xslr = self.header[winID + 'XSLR']
+                        xsul = self.header[winID + 'XSUL']
+                        xsur = self.header[winID + 'XSUR']
+                        if xsll != xsll_init or xsul != xsul_init or \
+                                xslr != xslr_init or xsur != xsur_init:
+                            print('Q2',xsll,xslr,xsul,xsur,'cf',
+                                  xsll_init,xslr_init,xsul_init,xsur_init)
+                    except:
+                        xsll, xslr = xsll_init, xslr_init
+                        xsul, xsur = xsul_init, xsur_init
+
                     self.wforms.append(
                         '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
                             xsll, xslr, xsul, xsur, ys, nx, ny)
@@ -382,13 +410,27 @@ class Rhead:
 
             elif self.mode.startswith('Drift'):
                 winID = 'ESO DET DRWIN '
-                xsll = self.header[winID + 'XSLL']
-                xslr = self.header[winID + 'XSLR']
-                xsul = self.header[winID + 'XSUL']
-                xsur = self.header[winID + 'XSUR']
                 ys = self.header[winID + 'YS']
                 nx = self.header[winID + 'NX']
                 ny = self.header[winID + 'NY']
+
+                xsll_init = self.header[winID + 'XSE'] + 1
+                xsul_init = self.header[winID + 'XSH'] + 1
+                xslr_init = self.header[winID + 'XSF'] + nx + 1
+                xsur_init = self.header[winID + 'XSG'] + nx + 1
+                try:
+                    xsll = self.header[winID + 'XSLL']
+                    xslr = self.header[winID + 'XSLR']
+                    xsul = self.header[winID + 'XSUL']
+                    xsur = self.header[winID + 'XSUR']
+                    if xsll != xsll_init or xsul != xsul_init or \
+                            xslr != xslr_init or xsur != xsur_init:
+                        print('DRIFT',xsll,xslr,xsul,xsur,'cf',
+                              xsll_init,xslr_init,xsul_init,xsur_init)
+                except:
+                    xsll, xslr = xsll_init, xslr_init
+                    xsul, xsur = xsul_init, xsur_init
+
                 self.wforms.append(
                     '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
                         xsll, xslr, xsul, xsur, ys, nx, ny)

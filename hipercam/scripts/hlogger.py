@@ -436,7 +436,11 @@ def hlogger(args=None):
 
                             # open the run file as an Rtime
                             rname = os.path.join(night,'data',run)
-                            rtime = hcam.hcam.Rtime(rname)
+                            try:
+                                rtime = hcam.hcam.Rtime(rname)
+                            except:
+                                print('Run = ',rname)
+                                raise
                             hd = rtime.header
 
                             # start the row
