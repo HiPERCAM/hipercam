@@ -350,30 +350,49 @@ class Rhead:
 
             # then set strings for logging purposes giving the settings used in hdriver
             if self.mode.startswith('FullFrame'):
-                self.wforms.append('1|1|{:d}|{:d}'.format(xframe, yframe))
+                self.wforms.append('Full&nbsp;Frame')
 
             elif self.mode.startswith('OneWindow') or self.mode.startswith('TwoWindow'):
                 winID = 'ESO DET WIN1 '
-                xs = self.header[winID + 'XSE']
+                xsll = self.header[winID + 'XSLL']
+                xslr = self.header[winID + 'XSLR']
+                xsul = self.header[winID + 'XSUL']
+                xsur = self.header[winID + 'XSUR']
                 ys = self.header[winID + 'YS']
                 nx = self.header[winID + 'NX']
                 ny = self.header[winID + 'NY']
-                self.wforms.append('{:d}|{:d}|{:d}|{:d}'.format(xs, ys, nx, ny))
+                self.wforms.append(
+                    '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
+                        xsll, xslr, xsul, xsur, ys, nx, ny)
+                    )
 
                 if self.mode.startswith('TwoWindow'):
                     winID = 'ESO DET WIN2 '
-                    xs = self.header[winID + 'XSE']
+                    xsll = self.header[winID + 'XSLL']
+                    xslr = self.header[winID + 'XSLR']
+                    xsul = self.header[winID + 'XSUL']
+                    xsur = self.header[winID + 'XSUR']
                     ys = self.header[winID + 'YS']
                     nx = self.header[winID + 'NX']
                     ny = self.header[winID + 'NY']
-                    self.wforms.append('{:d}|{:d}|{:d}|{:d}'.format(xs, ys, nx, ny))
+                    self.wforms.append(
+                        '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
+                            xsll, xslr, xsul, xsur, ys, nx, ny)
+                        )
 
             elif self.mode.startswith('Drift'):
-                xs = self.header['ESO DET DRWIN XSE']
-                ys = self.header['ESO DET DRWIN YS']
-                nx = self.header['ESO DET DRWIN NX']
-                ny = self.header['ESO DET DRWIN NY']
-                self.wforms.append('{:d}|{:d}|{:d}|{:d}'.format(xs, ys, nx, ny))
+                winID = 'ESO DET DRWIN '
+                xsll = self.header[winID + 'XSLL']
+                xslr = self.header[winID + 'XSLR']
+                xsul = self.header[winID + 'XSUL']
+                xsur = self.header[winID + 'XSUR']
+                ys = self.header[winID + 'YS']
+                nx = self.header[winID + 'NX']
+                ny = self.header[winID + 'NY']
+                self.wforms.append(
+                    '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
+                        xsll, xslr, xsul, xsur, ys, nx, ny)
+                    )
 
         # compute the total number of pixels (making use of symmetry between
         # quadrants and CCDs, hence factor 20)

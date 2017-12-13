@@ -66,7 +66,7 @@ The table below lists information on runs from the night starting on {0:s}. See 
 <th class="right">Nframe</th>
 <th class="left">Ncycle</th>
 <th class="cen">Read<br>mode</th>
-<th class="cen">Format<br>Quad1<br>Quad2</th>
+<th class="cen">xsll,xslr,xsul,xsur,ys,nx,ny<br>Quad1<br>Quad2</th>
 <th class="cen">CDOP<br>flags</th>
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
@@ -299,8 +299,9 @@ def correct_ra_dec(ra, dec):
 def hlogger(args=None):
     """Generates html logs for hipercam runs.
 
-    hlogger expects to work on directories containing the runs for each night.
-    It then extract information from each run file which it writes to a file
+    hlogger expects to work on directories containing the runs for each
+    night. It should be run from the top-level of the hipercam/logs directory.
+    It extracts information from each run file which it writes to a file
     in JSON format and also as an html file. The JSON file acts as a short-cut
     for any re-run.
 
@@ -311,16 +312,17 @@ def hlogger(args=None):
            might be useful during observing. If server is True, the JSON and
            html files will be written in the current working directory.
 
-        dirnam : string [if not server] Directory name to work on. This is run
-           through 'glob' which gives UNIX-style name matching, so
-           e.g. '2017*' will match 2017_10_17, 2017_10_18 etc. The JSON and
-           html files will be written into the directory or directories. In
-           this case this expects the data to be available as a link called
-           'data' within the night directory. This is the standard
-           configuration of my 'logs' directory as created by 'digest'. This
-           script should be run from the log directory. To run it on the command
-           line, to prevent the shell from globbing, you must escape or quote the
-           glob as in "hlogger no '*'" or "hlogger no \*".
+        dirnam : string [if not server]
+           Directory name to work on. This is run through 'glob' which gives
+           UNIX-style name matching, so e.g. '2017*' will match 2017_10_17,
+           2017_10_18 etc. The JSON and html files will be written into the
+           directory or directories. In this case this expects the data to be
+           available as a link called 'data' within the night directory. This
+           is the standard configuration of my 'logs' directory as created by
+           'digest'. This script should be run from the log directory. To run
+           it on the command line, to prevent the shell from globbing, you
+           must escape or quote the glob as in "hlogger no '*'" or "hlogger no
+           \*".
 
     """
 
