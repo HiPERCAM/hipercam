@@ -919,18 +919,14 @@ class Rdata (Rhead):
                                 'can only flip on axis 0 or 1, but got = {:d}'.format(ax)
                             )
 
+                    if nwin == 0 and nccd == 0 and nquad == 0:
+                        # store CCD header in the first Winhead
+                        win.update(cheads[cnam])
+
                     # finally store as a Window, converting to 32-bit
                     # floats to avoid problems down the line.
-                    if nwin == 0 and nccd == 0 and nquad == 0:
-                        # store CCD header in the first Window
-                        ccds[cnam][wnam] = Window(
-                            win, windata.astype(np.float32), cheads[cnam]
-                        )
-
-                    else:
-                        # remaining Windows
-                        ccds[cnam][wnam] = Window(
-                            win, windata.astype(np.float32)
+                    ccds[cnam][wnam] = Window(
+                        win, windata.astype(np.float32)
                         )
 
             # move pointer on for next set of windows
