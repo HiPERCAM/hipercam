@@ -1,4 +1,5 @@
 import sys
+import traceback
 import os
 import time
 import glob
@@ -53,21 +54,33 @@ NIGHT_HEADER = """<html>
 <h1>HiPERCAM log {0:s}</h1>
 
 <p>
-The table below lists information on runs from the night starting on {0:s}. See the end of the table for some more details on the meanings of the various columns.
+The table below lists information on runs from the night starting on {0:s}. See the end of the table for some more details on the
+meanings of the various columns.
 
 <p>
-<table>
+<table>"""
+
+TABLE_HEADER = """
 <tr>
 <th class="left">Run<br>no.</th>
+<th class="left">Type</th>
 <th class="left">Target<br>name</th>
-<th class="left">RA (J2000)<br>Dec (J2000)<br>(telescope)</th>
-<th class="cen">Start<br>time</th>
-<th class="right">Dwell<br>(sec)</th>
+<th class="left">RA (J2000)<br>Dec&nbsp;(J2000)<br>(telescope)</th>
+<th class="cen">Start<br>End</th>
+<th class="right">Cadence<br>(sec)</th>
+<th class="right">Duty<br>cycle, %</th>
 <th class="right">Nframe</th>
-<th class="left">Ncycle</th>
+<th class="right">Dwell<br>(sec)</th>
+<th class="cen">Ncycle</th>
 <th class="cen">Read<br>mode</th>
-<th class="cen">xsll,xslr,xsul,xsur,ys,nx,ny<br>Quad1<br>Quad2</th>
+<th class="cen">
+xll,xlr,xul,xur,ys,nx,ny<br>
+xsl,xsr,ys,nx,ny [DRIFT]<br>
+Quad1, Quad2</th>
+<th class="cen">XxY<br>bin</th>
 <th class="cen">CDOP<br>flags</th>
+<th class="left">PI</th>
+<th class="left">PID</th>
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
 </tr>
@@ -76,18 +89,23 @@ The table below lists information on runs from the night starting on {0:s}. See 
 NIGHT_FOOTER = """
 </table>
 
-<p> Along with others of more obvious meaning, the columns 'Read', 'Format and
-'CDOP' specify the information needed to repeat the setup at the telescope
+<p> Along with others of more obvious meaning, the columns 'Read', 'xsll, ..',
+and 'CDOP' specify the information needed to repeat the setup at the telescope
 using 'hdriver'. 'Read' is the readout mode which can be one of 4 options,
 namely 'FULL' for a full frame, 1-WIN or 2-WIN for standard windows mode, and
-'DRIFT' for drift-mode. 'Format' column gives the 7 parameters that appear at
-the bottom of the top-right window of hdriver. In hdriver these are called
-xsll, xslr, xsul, xsur, ys, nx and ny, and there are up to two sets of them.
-'CDOP' are four Y/N flags which say whether or not clears, the dummy output,
+'DRIFT' for drift-mode. The 'xsll,xslr,..' column gives the 7 parameters that appear at
+the bottom of the top-right window of hdriver (or 5 parameters in DRIFT mode).
+In hdriver these are called xsll, xslr, xsul, xsur, ys, nx and ny (or xsl, xsr, ys, nx, ny
+in drift mode), and there are up to two sets of them. In fullframe mode, these parameters
+do not need to be specified. 'CDOP' are four Y/N flags which say whether or not clears, the dummy output,
 overscans and prescans were enabled or not. If overscans were enabled, extra
 pixels are added in the Y direction. Prescans add extra pixels in X. 'Ncycle'
 refers to how often each CCD is read out. The numbers correspond to nu, ng,
-nr, ni, nz listed in hdriver.  </p>
+nr, ni, nz listed in hdriver.</p>
+
+<p> 'Duty cycle' shows the fractional time collecting photons; the 'cadence'
+is the (minimum) time between exposures, minimised over the different arms.
+</p>
 
 <address>Tom Marsh, Warwick</address>
 </body>
@@ -296,6 +314,14 @@ def correct_ra_dec(ra, dec):
 
     return (ra, dec)
 
+def gethead(head, key, default=''):
+    """Extracts the value corresponding to key from head, returning default
+    if the key is not present"""
+    if key in head:
+        return head[key]
+    else:
+        return default
+
 def hlogger(args=None):
     """Generates html logs for hipercam runs.
 
@@ -432,7 +458,11 @@ def hlogger(args=None):
                         # now wind through the runs getting basic info and
                         # writing a row of info to the html file for the night
                         # in question.
-                        for run in runs:
+                        for nrun, run in enumerate(runs):
+
+                            if nrun % 20 == 0:
+                                # write table header
+                                nhtml.write(TABLE_HEADER)
 
                             # open the run file as an Rtime
                             rname = os.path.join(night,'data',run)
@@ -455,6 +485,12 @@ def hlogger(args=None):
                                     hd['OBJECT'])
                             )
 
+                            # run type
+                            nhtml.write(
+                                '<td class="left">{:s}</td>'.format(
+                                    gethead(hd, 'IMAGETYP', '---'))
+                            )
+
                             # RA, Dec
                             ra, dec = correct_ra_dec(hd['RA'], hd['Dec'])
                             nhtml.write(
@@ -462,38 +498,56 @@ def hlogger(args=None):
                                     ra, dec)
                             )
 
-                            # First timestamp
-                            try:
-                                tstamp = rtime(1).isot
-                                nhtml.write(
-                                    '<td class="cen">{:s}</td>'.format(
-                                        tstamp[tstamp.find('T')+1:tstamp.rfind(
-                                            '.')])
-                                )
-                            except:
-                                nhtml.write('<td class="cen">--:--:--</td>')
 
                             # timing info
-                            texps, toffs, ncycs, tdead = rtime.tinfo()
-                            ttotal = 0.
                             ntotal = rtime.ntotal()
+                            texps, toffs, ncycs, tdead = rtime.tinfo()
+                            # total = total time on target
+                            # duty = worst duty cycle, percent
+                            # tsamp = shortest sample time
+                            ttotal = 0.
+                            duty = 100
+                            tsamp = 99000.
                             for texp, ncyc in zip(texps, ncycs):
-                                ttotal = max(
-                                    ttotal, (texp+tdead)*(ntotal // ncyc)
-                                )
+                                ttotal = max(ttotal, (texp+tdead)*(ntotal // ncyc))
+                                duty = min(duty, 100.*texp/(texp+tdead))
+                                tsamp = min(tsamp, texp+tdead)
 
-                            # total exposure time
-                            nhtml.write('<td class="right">{:d}</td>'.format(
-                                int(round(ttotal)))
-                            )
+                            # First & last timestamp
+                            try:
+                                tstart = rtime(1)[0].isot
+                                tend = rtime(ntotal)[0].isot
+                                nhtml.write(
+                                    '<td class="cen">{:s}<br>{:s}</td>'.format(
+                                        tstart[tstart.find('T')+1:tstart.rfind('.')],
+                                        tend[tend.find('T')+1:tend.rfind('.')]
+                                        )
+                                    )
+                            except:
+                                exc_type, exc_value, exc_traceback = sys.exc_info()
+                                traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+                                traceback.print_exc(file=sys.stdout)
+                                print('Run =',rname)
+                                nhtml.write('<td class="cen">--:--:--</td>')
+
+                            # sample time
+                            nhtml.write('<td class="right">{:.3f}</td>'.format(tsamp))
+
+                            # duty cycle
+                            nhtml.write('<td class="right">{:.1f}</td>'.format(duty))
 
                             # number of frames
                             nhtml.write(
                                 '<td class="right">{:d}</td>'.format(ntotal)
                             )
 
+                            # total exposure time
+                            nhtml.write('<td class="right">{:d}</td>'.format(
+                                int(round(ttotal)))
+                            )
+
                             # cycle nums
-                            nhtml.write('<td class="left">{:s}</td>'.format(
+                            nhtml.write('<td class="cen">{:s}</td>'.format(
                                 '|'.join([str(ncyc) for ncyc in ncycs]))
                             )
 
@@ -502,10 +556,16 @@ def hlogger(args=None):
                                     TRANSLATE_MODE[rtime.mode])
                                         )
 
-                            # Format
+                            # format
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
                                     '<br>'.join(rtime.wforms))
+                                )
+
+                            # binning
+                            nhtml.write(
+                                '<td class="cen">{:d}x{:d}</td>'.format(
+                                    rtime.xbin,rtime.ybin)
                                 )
 
                             # flags
@@ -517,14 +577,34 @@ def hlogger(args=None):
                                     'Y' if rtime.pscan else 'N')
                                 )
 
+                            # PI
+                            nhtml.write(
+                                '<td class="left">{:s}</td>'.format(
+                                    gethead(hd, 'PI', '---'))
+                            )
+
+                            # Program ID
+                            nhtml.write(
+                                '<td class="left">{:s}</td>'.format(
+                                    gethead(hd, 'PROGRM', '---'))
+                            )
+
                             # run number again
                             nhtml.write(
                                 '<td class="left">{:s}</td>'.format(run[3:])
                             )
 
-                            # hand log comment
+                            # comments
+                            pcomm = gethead(hd, 'RUNCOM', '').strip()
+                            if pcomm == 'None':
+                                pcomm = ''
+                            if pcomm != '':
+                                if not pcomm.endswith('.'):
+                                    pcomm += '. '
+                                else:
+                                    pcomm += '.'
                             nhtml.write(
-                                '<td class="left">{:s}</td>'.format(hlog[run])
+                                '<td class="left">{:s}{:s}</td>'.format(pcomm,hlog[run])
                             )
 
                             # end the row

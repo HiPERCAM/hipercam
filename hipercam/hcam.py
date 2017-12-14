@@ -272,7 +272,6 @@ class Rhead:
 
         # build windows for each window of each quadrant of each CCDs
         self.windows = []
-        self.wforms = []
         for nwin in self.nwins:
             self.windows.append([])
 
@@ -348,93 +347,75 @@ class Rhead:
                     )
 
 
-            # then set strings for logging purposes giving the settings used in hdriver
-            if self.mode.startswith('FullFrame'):
-                self.wforms.append('Full&nbsp;Frame')
+        # set strings for logging purposes giving the settings used in hdriver
+        self.wforms = []
 
-            elif self.mode.startswith('OneWindow') or self.mode.startswith('TwoWindow'):
-                winID = 'ESO DET WIN1 '
-                ys = self.header[winID + 'YS']
+        if self.mode.startswith('FullFrame'):
+            self.wforms.append('Full&nbsp;Frame')
+
+        elif self.mode.startswith('OneWindow') or self.mode.startswith('TwoWindow'):
+            winID = 'ESO DET WIN1 '
+            ys = self.header[winID + 'YS'] + 1
+            nx = self.header[winID + 'NX']
+            ny = self.header[winID + 'NY']
+
+            try:
+                xsll = self.header[winID + 'XSLL']
+                xslr = self.header[winID + 'XSLR']
+                xsul = self.header[winID + 'XSUL']
+                xsur = self.header[winID + 'XSUR']
+            except:
+                # Fallback
+                xsll = self.header[winID + 'XSE'] + 1
+                xsul = self.header[winID + 'XSH'] + 1
+                xslr = 2049 - self.header[winID + 'XSF'] - nx
+                xsur = 2049 - self.header[winID + 'XSG'] - nx
+
+            self.wforms.append(
+                '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
+                    xsll, xslr, xsul, xsur, ys, nx, ny)
+                )
+
+            if self.mode.startswith('TwoWindow'):
+                winID = 'ESO DET WIN2 '
+                ys = self.header[winID + 'YS'] + 1
                 nx = self.header[winID + 'NX']
                 ny = self.header[winID + 'NY']
 
-                xsll_init = self.header[winID + 'XSE'] + 1
-                xsul_init = self.header[winID + 'XSH'] + 1
-                xslr_init = self.header[winID + 'XSF'] + nx + 1
-                xsur_init = self.header[winID + 'XSG'] + nx + 1
                 try:
                     xsll = self.header[winID + 'XSLL']
                     xslr = self.header[winID + 'XSLR']
                     xsul = self.header[winID + 'XSUL']
                     xsur = self.header[winID + 'XSUR']
-                    if xsll != xsll_init or xsul != xsul_init or \
-                            xslr != xslr_init or xsur != xsur_init:
-                        print('Q1',xsll,xslr,xsul,xsur,'cf',
-                              xsll_init,xslr_init,xsul_init,xsur_init)
                 except:
-                    xsll, xslr = xsll_init, xslr_init
-                    xsul, xsur = xsul_init, xsur_init
+                    # fallback option
+                    xsll = self.header[winID + 'XSE'] + 1
+                    xsul = self.header[winID + 'XSH'] + 1
+                    xslr = 2049 - self.header[winID + 'XSF'] - nx
+                    xsur = 2049 - self.header[winID + 'XSG'] - nx
 
                 self.wforms.append(
                     '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
                         xsll, xslr, xsul, xsur, ys, nx, ny)
                     )
 
-                if self.mode.startswith('TwoWindow'):
-                    winID = 'ESO DET WIN2 '
-                    ys = self.header[winID + 'YS']
-                    nx = self.header[winID + 'NX']
-                    ny = self.header[winID + 'NY']
+        elif self.mode.startswith('Drift'):
+            winID = 'ESO DET DRWIN '
+            ys = self.header[winID + 'YS'] + 1
+            nx = self.header[winID + 'NX']
+            ny = self.header[winID + 'NY']
 
-                    xsll_init = self.header[winID + 'XSE'] + 1
-                    xsul_init = self.header[winID + 'XSH'] + 1
-                    xslr_init = self.header[winID + 'XSF'] + nx + 1
-                    xsur_init = self.header[winID + 'XSG'] + nx + 1
-                    try:
-                        xsll = self.header[winID + 'XSLL']
-                        xslr = self.header[winID + 'XSLR']
-                        xsul = self.header[winID + 'XSUL']
-                        xsur = self.header[winID + 'XSUR']
-                        if xsll != xsll_init or xsul != xsul_init or \
-                                xslr != xslr_init or xsur != xsur_init:
-                            print('Q2',xsll,xslr,xsul,xsur,'cf',
-                                  xsll_init,xslr_init,xsul_init,xsur_init)
-                    except:
-                        xsll, xslr = xsll_init, xslr_init
-                        xsul, xsur = xsul_init, xsur_init
+            try:
+                xsl = self.header[winID + 'XSL']
+                xsr = self.header[winID + 'XSR']
+            except:
+                # Fallback option
+                xsl = self.header[winID + 'XSE'] + 1
+                xsr = 2049 - self.header[winID + 'XSF'] - nx
 
-                    self.wforms.append(
-                        '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
-                            xsll, xslr, xsul, xsur, ys, nx, ny)
-                        )
-
-            elif self.mode.startswith('Drift'):
-                winID = 'ESO DET DRWIN '
-                ys = self.header[winID + 'YS']
-                nx = self.header[winID + 'NX']
-                ny = self.header[winID + 'NY']
-
-                xsll_init = self.header[winID + 'XSE'] + 1
-                xsul_init = self.header[winID + 'XSH'] + 1
-                xslr_init = self.header[winID + 'XSF'] + nx + 1
-                xsur_init = self.header[winID + 'XSG'] + nx + 1
-                try:
-                    xsll = self.header[winID + 'XSLL']
-                    xslr = self.header[winID + 'XSLR']
-                    xsul = self.header[winID + 'XSUL']
-                    xsur = self.header[winID + 'XSUR']
-                    if xsll != xsll_init or xsul != xsul_init or \
-                            xslr != xslr_init or xsur != xsur_init:
-                        print('DRIFT',xsll,xslr,xsul,xsur,'cf',
-                              xsll_init,xslr_init,xsul_init,xsur_init)
-                except:
-                    xsll, xslr = xsll_init, xslr_init
-                    xsul, xsur = xsul_init, xsur_init
-
-                self.wforms.append(
-                    '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
-                        xsll, xslr, xsul, xsur, ys, nx, ny)
-                    )
+            self.wforms.append(
+                '{:d}|{:d}|{:d}|{:d}|{:d}'.format(xsl, xsr, ys, nx, ny)
+                )
 
         # compute the total number of pixels (making use of symmetry between
         # quadrants and CCDs, hence factor 20)
@@ -481,6 +462,7 @@ class Rhead:
 
             # Nice-if-you-can-get-them items
             if full:
+
                 # whether this CCD has gone through a reflection
                 hnam = 'ESO DET REFLECT{:d}'.format(n+1)
                 if hnam in self.header:
@@ -1183,10 +1165,11 @@ def decode_timing_bytes(tbytes):
 
     """
 
-    # format with 36 timing bytes (last two of which are ignored)
+    # format with 36 timing bytes (last two of which are ignored).
+    # The -36 is to try to cope with cases where more than 36 bytes come through.
     buf = struct.pack('<HHHHHHHHHHHHHHHHH',
                      *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
-                                                             tbytes[:-2])))
+                                                             tbytes[-36:-2])))
     return struct.unpack('<IIIIIIIIbb', buf)
 
 class HendError(HipercamError):
