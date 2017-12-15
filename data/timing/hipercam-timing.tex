@@ -6,7 +6,7 @@
 \usepackage[pdftex]{graphicx}
 \DeclareGraphicsExtensions{.pdf,.png,.jpg}
 
-\title{HiPERCAM timing, version 2}
+\title{HiPERCAM timing, version 3}
 \author{T.R. Marsh}
 \date{\today}
 
@@ -127,5 +127,35 @@ Finally, the exposure time in clear mode is given by
 
 The Python class {\tt Times} within {\tt hcam.py} implements these relations.
 
+\subsection{Drift mode}
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.95\textwidth]{drift}
+\end{center}
+\caption{\label{clear} The sequence for drift mode. 'LS' and 'LD' stand for
+line-shift and line-dump.}
+\end{figure}
+
+In drift mode the windows are partially shifted into the masked area so that
+there are one or more of them in the masked area as windows are being read
+out. The smaller shifts allow the deadtime between exposures to be reduced.
+
+% t1 = ts - R - LD
+% t2 = ts + E
+%
+% R = ESO DET TREAD
+% LD = ESO DRIFT TLINEDUMP
+% E = ESO DET TDELAY
+
+The mid-exposure time is given by 
+\begin{equation}
+t_{\mathrm{mid}} = t_S + t_E + t_{\mathrm{LS}}
++\frac{1}{2} (t_{\mathrm{LD}} + t_R)
+\end{equation}
+\emph{Not sure about this; it needs checking. It differs
+from an e-mail from Stu. Does the photon accumulation really start between
+LS and LD as indicated and stop at the start of LS? Don't we need to account
+for the number of windows in the masked area?}
 
 \end{document}
