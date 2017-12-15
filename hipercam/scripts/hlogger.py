@@ -63,8 +63,8 @@ meanings of the various columns.
 TABLE_HEADER = """
 <tr>
 <th class="left">Run<br>no.</th>
-<th class="left">Type</th>
 <th class="left">Target<br>name</th>
+<th class="left">Type</th>
 <th class="left">RA (J2000)<br>Dec&nbsp;(J2000)<br>(telescope)</th>
 <th class="cen">Start<br>End</th>
 <th class="right">Cadence<br>(sec)</th>
@@ -79,6 +79,7 @@ xsl,xsr,ys,nx,ny [DRIFT]<br>
 Quad1, Quad2</th>
 <th class="cen">XxY<br>bin</th>
 <th class="cen">CDOP<br>flags</th>
+<th class="cen">Tbytes</th>
 <th class="left">PI</th>
 <th class="left">PID</th>
 <th class="left">Run<br>no.</th>
@@ -575,6 +576,13 @@ def hlogger(args=None):
                                     'Y' if rtime.dummy else 'N',
                                     'Y' if rtime.oscan else 'N',
                                     'Y' if rtime.pscan else 'N')
+                                )
+
+                            # tbytes problem
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(
+                                    'OK' if rtime.ntbytes == 36 else 'BAD'
+                                    )
                                 )
 
                             # PI
