@@ -259,6 +259,10 @@ class Rhead:
         ADD_YSIZES = {'E': 0, 'F': 0, 'G': 1, 'H': 1}
         ADD_XSIZES = {'E': 0, 'F': 1, 'G': 1, 'H': 0}
 
+        # whether to offset llx for prescan pixels (basically
+        # inverse of ADD_XSIZES)
+        OFF_PRESCAN = {'E': 1, 'F': 0, 'G': 0, 'H': 1}
+
         # some axes need flipping, since the data is read out such that the
         # bottom-left is not always the first pixel which axes need flipping
         # to get data in correct orientation using numpy C-convention, 1=y,
@@ -286,7 +290,16 @@ class Rhead:
                     if self.mode.startswith('FullFrame'):
                         nx = xframe // self.xbin
                         ny = yframe // self.ybin
-                        llx = LLX[quad]
+
+                        if self.pscan:
+                            # pre-scan adds 50 columns to every window
+                            # unbinned with some slightly tricky details
+                            # when binned
+                            ipoff = int(np.ceil(50 / self.xbin))
+                        else:
+                            ipoff = 0
+
+                        llx = LLX[quad] - OFF_PRESCAN[quad]*ipoff
                         lly = LLY[quad]
 
                     elif self.mode.startswith('OneWindow') or \
@@ -298,7 +311,10 @@ class Rhead:
                             # pre-scan adds 50 columns to every window
                             # unbinned with some slightly tricky details
                             # when binned
-                            nx += int(np.ceil(50 / self.xbin))
+                            ipoff = int(np.ceil(50 / self.xbin))
+                            nx += ipoff
+                        else:
+                            ipoff = 0
 
                         ny = self.header[winID + 'NY'] // self.ybin
                         win_xs = self.header[winID + 'XS{}'.format(quad)]
@@ -307,7 +323,8 @@ class Rhead:
                         win_ny = self.header[winID + 'NY']
                         llx = (
                             LLX[quad] + X_DIRN[quad] * win_xs +
-                            ADD_XSIZES[quad] * (xframe - win_nx)
+                            ADD_XSIZES[quad] * (xframe - win_nx) -
+                            OFF_PRESCAN[quad]*ipoff
                         )
                         lly = (
                             LLY[quad] + Y_DIRN[quad] * win_ys +
@@ -322,7 +339,10 @@ class Rhead:
                             # pre-scan adds 50 columns to every window
                             # unbinned with some slightly tricky details
                             # when binned
-                            nx += int(np.ceil(50 / self.xbin))
+                            ipoff = int(np.ceil(50 / self.xbin))
+                            nx += ipoff
+                        else:
+                            ipoff = 0
 
                         win_xs = self.header['ESO DET DRWIN XS{}'.format(quad)]
                         win_nx = self.header['ESO DET DRWIN NX']
@@ -330,7 +350,8 @@ class Rhead:
                         win_ny = self.header['ESO DET DRWIN NY']
                         llx = (
                             LLX[quad] + X_DIRN[quad] * win_xs +
-                            ADD_XSIZES[quad] * (xframe - win_nx)
+                            ADD_XSIZES[quad] * (xframe - win_nx) -
+                            OFF_PRESCAN[quad]*ipoff
                         )
                         lly = (
                             LLY[quad] + Y_DIRN[quad] * win_ys +
@@ -343,7 +364,8 @@ class Rhead:
 
                     # store the window and the axes to flip
                     self.windows[-1][-1].append(
-                        (Winhead(llx, lly, nx, ny, self.xbin, self.ybin), FLIP_AXES[quad])
+                        (Winhead(llx, lly, nx, ny, self.xbin, self.ybin),
+                         FLIP_AXES[quad])
                     )
 
 
@@ -353,7 +375,8 @@ class Rhead:
         if self.mode.startswith('FullFrame'):
             self.wforms.append('Full&nbsp;Frame')
 
-        elif self.mode.startswith('OneWindow') or self.mode.startswith('TwoWindow'):
+        elif self.mode.startswith('OneWindow') or \
+             self.mode.startswith('TwoWindow'):
             winID = 'ESO DET WIN1 '
             ys = self.header[winID + 'YS'] + 1
             nx = self.header[winID + 'NX']
@@ -442,8 +465,10 @@ class Rhead:
                 self.thead['EXPTIME'] = (
                     self.header['EXPTIME'], self.header.comments['EXPTIME']
                 )
-            self.thead['XBIN'] = (self.xbin, self.header.comments['ESO DET BINX1'])
-            self.thead['YBIN'] = (self.ybin, self.header.comments['ESO DET BINY1'])
+            self.thead['XBIN'] = (self.xbin,
+                                  self.header.comments['ESO DET BINX1'])
+            self.thead['YBIN'] = (self.ybin,
+                                  self.header.comments['ESO DET BINY1'])
             self.thead['SPEED'] = (self.header['ESO DET SPEED'],
                                    self.header.comments['ESO DET SPEED'])
 
@@ -471,12 +496,14 @@ class Rhead:
                 # readout noise
                 hnam = 'ESO DET CHIP{:d} RON'.format(n+1)
                 if hnam in self.header:
-                    chead['RONOISE'] = (self.header[hnam], self.header.comments[hnam])
+                    chead['RONOISE'] = (self.header[hnam],
+                                        self.header.comments[hnam])
 
                 # gain
                 hnam = 'ESO DET CHIP{:d} GAIN'.format(n+1)
                 if hnam in self.header:
-                    chead['GAIN'] = (self.header[hnam], self.header.comments[hnam])
+                    chead['GAIN'] = (self.header[hnam],
+                                     self.header.comments[hnam])
 
             self.cheads.append(chead)
 
@@ -499,8 +526,9 @@ class Rhead:
             ntot = d['nframes']
         else:
             """
-            # rather than read NAXIS3, this is designed to allow for the file
-            # being incremented. First record where we are so we can return
+            # rather than read NAXIS3, this is designed to allow for the
+            # file being incremented. First record where we are so we can
+            # return
             ctell = self._ffile.tell()
 
             # seek the end of file
@@ -515,6 +543,7 @@ class Rhead:
 
             # return pointer to starting position
             self._ffile.seek(ctell)
+
             """
             # the commented out section was an attempt to work out the number
             # of frames even when the file was growing. This fails owing the
