@@ -917,11 +917,25 @@ class Rdata (Rhead):
             # allwins contains data of all windows 1 or 2
             allwins = frame[npixel:npixel+nchunk]
 
-            # re-view the data as a 4D array indexed by (ccd,window,y,x)
-            data = as_strided(
-                allwins, strides=(8, 2, 40*win.nx, 40),
-                shape=(5, 4, win.ny, win.nx)
-            )
+            # re-format the data as a 4D array indexed by (ccd,window,y,x)
+
+            # get number of samples per pixel, with a default of 4
+            # pixel data order depends on number of samples, and
+            # the data prior to implementing sampling is the same as
+            # nsamps = 4
+            nsamps = self.header.get('ESO DET NSAMP', 4)
+            if nsamps == 4:
+                data = as_strided(
+                    allwins, strides=(8, 2, 40*win.nx, 40),
+                    shape=(5, 4, win.ny, win.nx)
+                )
+            else:
+                # with 1 sample per pixel the data cannot be simply
+                # re-viewed but a copy must be made
+                data = as_strided(
+                    allwins, strides=(32, 2, 160, 8),
+                    shape=(5, 4, len(frame)//80, 4)
+                ).reshape(5, 4, 512, 1024)
 
             # now build the Windows
             for nccd, cnam in enumerate(CNAMS):
