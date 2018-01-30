@@ -153,8 +153,8 @@ class Rhead:
 
             # get number of samples per pixel, defaulting to 1 for old format
             nsamps = self.header.get('ESO DET NSAMP', 1)
-            self._framesize = (self.header['ESO DET ACQ1 WIN NX'] *
-                               self.header['ESO DET ACQ1 WIN NY'] // nsamps)
+            self._framesize = 36 + (self.header['ESO DET ACQ1 WIN NX'] *
+                                    self.header['ESO DET ACQ1 WIN NY'] // nsamps)
         else:
             # open the file
             self._ffile = open(add_extension(fname, HRAW),'rb')
