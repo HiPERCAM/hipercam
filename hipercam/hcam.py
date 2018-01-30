@@ -151,6 +151,9 @@ class Rhead:
             self._ws.send(data)
             self.header = fits.Header.fromstring(self._ws.recv())
 
+            # get number of samples per pixel, defaulting to 1 for old format
+            nsamps = self.header.get('ESO DET NSAMP', 1)
+            self._framesize = self.hdr['ESO DET ACQ1 WIN NX'] * self.hdr['ESO DET ACQ1 WIN NY'] // nsamps
         else:
             # open the file
             self._ffile = open(add_extension(fname, HRAW),'rb')
@@ -161,10 +164,11 @@ class Rhead:
             # store number of bytes read from header. used to offset later
             # requests for data
             self._hbytes = self._ffile.tell()
+            self._framesize = self.header['NAXIS1']
 
         # calculate the framesize in bytes
         bitpix = abs(self.header['BITPIX'])
-        self._framesize = (bitpix*self.header['NAXIS1']) // 8
+        self._framesize = bitpix * self._framesize // 8
 
         # store the scaling and offset
         self._bscale = self.header['BSCALE']
@@ -859,7 +863,12 @@ class Rdata (Rhead):
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
                 years, day_of_year, hours, mins, seconds+nanoseconds/1e9
                 )
-            tstamp = Time(time_string, format='yday', precision=9)
+            try:
+                tstamp = Time(time_string, format='yday', precision=9)
+            except ValueError:
+                warnings.warn('Malformed timestamp: ' + time_string)
+                tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=9)
+                synced = 0
 
         # copy over the top-level header to avoid it becoming a reference
         # common to all MCCDs produced by the routine
