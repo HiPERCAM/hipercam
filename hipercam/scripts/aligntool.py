@@ -169,7 +169,7 @@ def displayFWHM(xpos, ypos, xref, yref, fwhm, peak, fix_fwhm_scale=False, bins=2
         axX.set_ylim(1.9, 2.8)
     theta, offset = matchSpots(xpos, ypos, xref, yref)
     xoff, yoff = offset
-    textstr = r'$\theta = %.1f$; $\mathrm{xoff}=%.1f$, $\mathrm{yoff}=%.1f$' % (theta, xoff, yoff)
+    textstr = r'$\theta = %.2f$; $\mathrm{xoff}=%.1f$, $\mathrm{yoff}=%.1f$' % (theta, xoff, yoff)
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
     axPos.text(left, 1.02, textstr, horizontalalignment='left',
                verticalalignment='bottom', bbox=props, fontsize=10,
@@ -189,6 +189,7 @@ def measureSpots(mccd, ccdname, thresh, use_hfd=True):
 
     if use_hfd:
         mask = np.logical_and(np.isfinite(hfd).data, objects['peak'] < 20000)
+        mask = mask & (fwhm <= 20)
         return xpos[mask], ypos[mask], hfd[mask], objects['cflux'][mask]
     else:
         mask = fwhm <= 20
@@ -372,28 +373,28 @@ def aligntool(args=None):
 
         # set some flags
         server_or_local = source.endswith('s') or source.endswith('l')
-
+        inst = source[0]
+        
         # plot device stuff
         device = cl.get_value('device', 'plot device', '1/xs')
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
 
-        if source == 's' or source == 'l':
+        if server_or_local:
             resource = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to plot', 1, 1)
 
-            if source == 's':
+            if source.endswith('s'):
                 twait = cl.get_value('twait', 'time to wait for a new frame [secs]', 1., 0.)
                 tmax = cl.get_value('tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
-
         else:
             # set inst = 'h' as only lists of HiPERCAM files are supported
             inst = 'h'
             resource = cl.get_value('flist', 'file list', cline.Fname('files.lis',hcam.LIST))
             first = 1
 
-        flist = source == 'f'
-        server = source == 's'
+        flist = source.endswith('f')
+        server = source.endswith('s')
         if inst == 'u':
             instrument = 'ULTRA'
         elif inst == 'h':
@@ -531,7 +532,7 @@ def aligntool(args=None):
 
             # also measure spots in reference image
             try:
-                xpos, ypos, fwhm, rflux = measureSpots(ref_mccd, ccdnam, thresh)
+                xpos, ypos, fwhm, rflux = measureSpots(ref_mccd, rccdnam, thresh)
                 lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(xpos, ypos, fwhm, rflux)
                 if not small_spots:
                     # use big spots
