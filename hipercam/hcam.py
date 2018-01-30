@@ -151,6 +151,10 @@ class Rhead:
             self._ws.send(data)
             self.header = fits.Header.fromstring(self._ws.recv())
 
+            # get number of samples per pixel, defaulting to 1 for old format
+            nsamps = self.header.get('ESO DET NSAMP', 1)
+            self._framesize = 36 + (self.header['ESO DET ACQ1 WIN NX'] *
+                                    self.header['ESO DET ACQ1 WIN NY'] // nsamps)
         else:
             # open the file
             self._ffile = open(add_extension(fname, HRAW),'rb')
@@ -161,10 +165,11 @@ class Rhead:
             # store number of bytes read from header. used to offset later
             # requests for data
             self._hbytes = self._ffile.tell()
+            self._framesize = self.header['NAXIS1']
 
         # calculate the framesize in bytes
         bitpix = abs(self.header['BITPIX'])
-        self._framesize = (bitpix*self.header['NAXIS1']) // 8
+        self._framesize = bitpix * self._framesize // 8
 
         # store the scaling and offset
         self._bscale = self.header['BSCALE']
@@ -859,7 +864,12 @@ class Rdata (Rhead):
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
                 years, day_of_year, hours, mins, seconds+nanoseconds/1e9
                 )
-            tstamp = Time(time_string, format='yday', precision=9)
+            try:
+                tstamp = Time(time_string, format='yday', precision=9)
+            except ValueError:
+                warnings.warn('Malformed timestamp: ' + time_string)
+                tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=9)
+                synced = 0
 
         # copy over the top-level header to avoid it becoming a reference
         # common to all MCCDs produced by the routine
@@ -917,11 +927,25 @@ class Rdata (Rhead):
             # allwins contains data of all windows 1 or 2
             allwins = frame[npixel:npixel+nchunk]
 
-            # re-view the data as a 4D array indexed by (ccd,window,y,x)
-            data = as_strided(
-                allwins, strides=(8, 2, 40*win.nx, 40),
-                shape=(5, 4, win.ny, win.nx)
-            )
+            # re-format the data as a 4D array indexed by (ccd,window,y,x)
+
+            # get number of samples per pixel, with a default of 4
+            # pixel data order depends on number of samples, and
+            # the data prior to implementing sampling is the same as
+            # nsamps = 4
+            nsamps = self.header.get('ESO DET NSAMP', 4)
+            if nsamps == 4:
+                data = as_strided(
+                    allwins, strides=(8, 2, 40*win.nx, 40),
+                    shape=(5, 4, win.ny, win.nx)
+                )
+            else:
+                # with 1 sample per pixel the data cannot be simply
+                # re-viewed but a copy must be made
+                data = as_strided(
+                    allwins, strides=(32, 2, 160, 8),
+                    shape=(5, 4, len(frame)//80, 4)
+                ).reshape(5, 4, 512, 1024)
 
             # now build the Windows
             for nccd, cnam in enumerate(CNAMS):
