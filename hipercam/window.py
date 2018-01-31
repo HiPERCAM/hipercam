@@ -118,6 +118,9 @@ class Winhead(fits.Header):
             self.xbin, self.ybin, super().__repr__()
         )
 
+    def __str__(self):
+        return self.__repr__()
+
     def format(self):
         """Used to ensure that only the Winhead format gets printed which is
         useful in some instances. Relying on __repr__ carries the risk of
@@ -971,8 +974,7 @@ class Window(Winhead):
 
         """
         # construct a chopped down Winhead
-        winh = self.winhead
-        winh.window(xlo, xhi, ylo, yhi)
+        winh = self.winhead.window(xlo, xhi, ylo, yhi)
 
         # we know the Winhead generated is in step with the current Winhead
         # which saves some checks that would be applied if 'crop' was used at
@@ -1207,7 +1209,7 @@ class Window(Winhead):
         # carry out addition to a float type
         data = self.data + num
 
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
 
     def __radd__(self, other):
@@ -1218,7 +1220,7 @@ class Window(Winhead):
 
         # carry out addition to a float type
         data = self.data + other
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __sub__(self, other):
         """Subtracts `other` from a :class:`Window` as `wind - other`.  Here `other`
@@ -1235,7 +1237,7 @@ class Window(Winhead):
 
         # carry out addition to a float type
         data = self.data - num
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __rsub__(self, other):
         """Subtracts a :class:`Window` from `other` as `other - wind`.  Here `other`
@@ -1244,7 +1246,7 @@ class Window(Winhead):
         """
         # carry out subtraction to a float type
         data = other - self.data
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __mul__(self, other):
         """Multiplies a :class:`Window` by `other` as `wind * other`.  Here `other`
@@ -1262,7 +1264,7 @@ class Window(Winhead):
 
         # carry out multiplication to a float type
         data = self.data*num
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __rmul__(self, other):
         """Multiplies a :class:`Window` by `other` as `other * wind`.  Here `other` is
@@ -1272,7 +1274,7 @@ class Window(Winhead):
         """
         # carry out multiplication to a float type
         data = np.multiply(self.data, other, dtype=np.float)
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __truediv__(self, other):
         """Divides a :class:`Window` by `other` as `wind / other`.  Here `other`
@@ -1291,7 +1293,7 @@ class Window(Winhead):
 
         # carry out multiplication to a float type
         data = np.true_divide(self.data, num, dtype=np.float)
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __rtruediv__(self, other):
         """Divides `other` by a :class:`Window` as `other / wind`.  Here `other` is
@@ -1300,7 +1302,7 @@ class Window(Winhead):
         """
         # carry out multiplication to a float type
         data = self.data*other
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
 # have decided that these relatively specialised routines are better as
 # separate methods rather than class methods
