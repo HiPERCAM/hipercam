@@ -968,17 +968,21 @@ class Window(Winhead):
               maximum Y, unbinned pixels
 
         Returns the windowed Window.
-        """
-        win = super().window(xlo, xhi, ylo, yhi)
 
-        # we know the Winhead generated is in step with the current Winhead which saves
-        # some checks that would be applied if 'crop' was used at this point
-        x1 = (win.llx-self.llx)//self.xbin
-        y1 = (win.lly-self.lly)//self.ybin
+        """
+        # construct a chopped down Winhead
+        winh = self.winhead
+        winh.window(xlo, xhi, ylo, yhi)
+
+        # we know the Winhead generated is in step with the current Winhead
+        # which saves some checks that would be applied if 'crop' was used at
+        # this point
+        x1 = (winh.llx-self.llx)//self.xbin
+        y1 = (winh.lly-self.lly)//self.ybin
         if self.data is None:
-            return Window(win)
+            return Window(winh)
         else:
-            return Window(win, self.data[y1:y1+win.ny, x1:x1+win.nx])
+            return Window(winh, self.data[y1:y1+winh.ny, x1:x1+winh.nx])
 
     def crop(self, win):
         """Creates a new :class:Window by cropping the current :class:Window to the
