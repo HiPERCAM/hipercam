@@ -415,7 +415,13 @@ class Winhead(fits.Header):
                     self.format(), xlo, xhi, ylo, yhi)
                 )
 
-        return Winhead(llx, lly, nx, ny, self.xbin, self.ybin, self.head)
+        winhc = self.copy()
+        winhc.llx = llx
+        winhc.lly = lly
+        winhc.nx = nx
+        winhc.ny = ny
+
+        return winhc
 
     def __copy__(self):
         return self.copy()
