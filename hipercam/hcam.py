@@ -856,20 +856,16 @@ class Rdata (Rhead):
         # set the internal frame pointer to the frame just read
         self.nframe = frameCount
 
-        if nsats == -1 and synced == -1:
-            # invalid time; pretend we are in 2000-01-01 taking one frame per
-            # second, just so we can get something.
+        time_string = '{}:{}:{}:{}:{:.7f}'.format(
+            years, day_of_year, hours, mins, seconds+nanoseconds/1e9
+        )
+        try:
+            tstamp = Time(time_string, format='yday', precision=9)
+        except ValueError:
+            warnings.warn('Bad timestamp: ' + time_string)
             tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=9)
-        else:
-            time_string = '{}:{}:{}:{}:{:.7f}'.format(
-                years, day_of_year, hours, mins, seconds+nanoseconds/1e9
-                )
-            try:
-                tstamp = Time(time_string, format='yday', precision=9)
-            except ValueError:
-                warnings.warn('Malformed timestamp: ' + time_string)
-                tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=9)
-                synced = 0
+            # this will mark it as unrealiable down below
+            synced = 0
 
         # copy over the top-level header to avoid it becoming a reference
         # common to all MCCDs produced by the routine
