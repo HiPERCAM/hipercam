@@ -653,7 +653,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
     return (
         (skyf,heightf,xf,yf,fwhmf),
         (skyfe,heightfe,xfe,yfe,fwhmfe),
-        (fit,mfit1.xy[0],mfit1.xy[1],mfit1.sigma)
+        (fit,gfit1.xy[0],gfit1.xy[1],gfit1.sigma)
     )
 
 def gaussian(xy, sky, height, xcen, ycen, fwhm):
@@ -826,7 +826,7 @@ class Dgfit1:
 
         """
         sky, height, xcen, ycen, fwhm = param
-        derivs = dgaussian(self.xy, sky, height, xcen, ycen, fwhm, beta)
+        derivs = dgaussian(self.xy, sky, height, xcen, ycen, fwhm)
         return [(-deriv/self.sigma).ravel() for deriv in derivs]
 
 class Gfit2:
