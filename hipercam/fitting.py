@@ -6,7 +6,6 @@ Moffat profiles plus constants.
 
 import numpy as np
 from scipy.optimize import leastsq
-import matplotlib.pyplot as plt
 from .core import *
 from .window import *
 
@@ -15,11 +14,10 @@ __all__ = (
 )
 
 def combFit(wind, method, sky, height, x, y,
-            fwhm, fwhm_min, fwhm_fix, beta, read, gain):
-    """
-    Fits a stellar profile in a :class:Window using either a 2D Gaussian
-    or Moffat profile. This is a convenience routine because one practically
-    always wants both options.
+            fwhm, fwhm_min, fwhm_fix, beta, read, gain, thresh):
+    """Fits a stellar profile in a :class:Window using either a 2D Gaussian
+    or Moffat profile. This is a convenient wrapper of fitMoffat and 
+    fitGaussian because one often wants both options.
 
     Arguments::
 
@@ -59,42 +57,54 @@ def combFit(wind, method, sky, height, x, y,
         gain      : float
             gain, electrons per ADU
 
+        thresh    : float
+            threshold in terms of RMS for rejection. The RMS is obtained from
+            read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
+            = 4
+
     Returns:: (pars, epars, extras)
 
     where::
 
        pars    : tuple
-          Fitted parameters: (sky, height, x, y, fwhm, beta)
-          beta is None if method=='g'
+          (sky, height, x, y, fwhm, beta), the fitted parameters
+          (`beta` is None if `method`=='g')
 
        epars   : tuple
-          Fitted uncertainties: (esky, eheight, ex, ey, efwhm, ebeta)
-          ebeta is None if method=='g'
+          (esky, eheight, ex, ey, efwhm, ebeta), fitted standard errors.
+          `ebeta` is None if `method`=='g'; `efwhm` == -1 if the FWHM was fixed
+          or it hit the minimum value. 
 
-       extras  : tuple
-          (fit,X,Y,message) -- `fit` is a Window containg the best fit, `X` 
-          and `Y` are the X and Y coordinates of the pixels. `message` summarises
-          the fit values.
+       extras : tuple 
+          (fit,x,y,sigma,chisq,nok,nrej,npar,message) -- `fit` is a Window
+          containing the best fit; `x` and `x` are the X and Y coordinates of
+          the pixels, sigma are the final uncertainties used for each pixel,
+          any negative were rejected; `chisq` is the chi**2 of the fit; `nok`
+          is the number of points fitted; `nrej` is the number rejected;
+          `npar` is the number of parameters fitted; `message` summarises the
+          fit values. `x`, `y` and `sigma` are all 2D numpy arrays matching
+          the dimensions of the data.
 
     Raises a HipercamError if the fit fails.
+
     """
 
     if method == 'g':
         # gaussian fit
         (sky, height, x, y, fwhm), \
             (esky, eheight, ex, ey, efwhm), \
-            (fit, X, Y, sigma) = fitGaussian(
+            (fit, X, Y, sigma, chisq, nok, nrej, npar) = fitGaussian(
                 wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-                read, gain
+                read, gain, thresh
             )
 
     elif method == 'm':
         # moffat fit
         (sky, height, x, y, fwhm, beta), \
             (esky, eheight, ex, ey, efwhm, ebeta), \
-            (fit, X, Y, weights) = fitMoffat(
+            (fit, X, Y, sigma, chisq, nok, nrej, npar) = fitMoffat(
                 wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-                beta, read, gain
+                beta, read, gain, thresh
             )
 
     else:
@@ -103,17 +113,24 @@ def combFit(wind, method, sky, height, x, y,
         )
 
     if method == 'g':
-        message = 'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
-            x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky)
+        message = (
+            'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),'
+            ' FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),'
+            ' sky = {:.1f}({:.1f}), chi**2 = {:.1f}, nok = {:d}, nrej = {:d}'
+        ).format(x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,chisq,nok,nrej)
         beta, ebeta = None, None
     elif method == 'm':
-        message = 'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f}), beta = {:.2f}({:.2f})'.format(
-            x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,beta,ebeta)
+        message = (
+            'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),'
+            ' FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),'
+            ' sky = {:.1f}({:.1f}), beta = {:.2f}({:.2f}), chi**2 = {:.1f},'
+            ' nok = {:d}, nrej = {:d}'
+        ).format(x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,beta,ebeta,chisq,nok,nrej)
 
     return (
         (sky, height, x, y, fwhm, beta),
         (esky, eheight, ex, ey, efwhm, ebeta),
-        (fit, X, Y, message)
+        (fit, X, Y, sigma, chisq, nok, nrej, npar, message)
     )
 
 ##########################################
@@ -123,7 +140,7 @@ def combFit(wind, method, sky, height, x, y,
 ##########################################
 
 def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-              beta, read, gain):
+              beta, read, gain, thresh):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
     from the centre of the aperture. The constant alpha is determined by the
@@ -193,62 +210,111 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 `fwhm_fix` == True, then `fwhme` will come back as -1.
 
            extras : tuple
-                (fit, x, y, sigma) where `fit` is a :class:Window containing
-                the best fit, `x` and `y` are the x and y positions of all
-                pixels (2D numpy arrays) and `sigma` is the final set of RMS
-                uncertainties on each pixel [option for future: some may
-                come back < 0 indicating rejection].
+                (fit, x, y, sigma, chisq, nok, nrej, npar) where: `fit` is a
+                :class:Window containing the best fit; `x` and `y` are the x
+                and y positions of all pixels (2D numpy arrays); `sigma` is
+                the final set of RMS uncertainties on each pixel (2D numpy
+                array); `chisq` is the raw chi**2; `nok` is the number of
+                points fitted; `nrej` is the number rejected; `npar` is the
+                number of parameters fitted (5 or 6).
+
+    The program re-scales the uncertainties on the fit parameters by
+    sqrt(chi**2/ndof) where ndof is the number of degrees of freedom = number
+    of points - 5 or 6, depending on the fit. This allows for poor values
+    of `read` and `gain` to a certain extent, which happen especially if a
+    sky background has been removed at the start. The value of `sigma` on any
+    rejected pixel is < 0.
 
     """
 
-    # Two pass strategy: fit with a free FWHM, and if it is
-    # below fwhm_min, re-fit with the fwhm set = fwhm_min
+    # construct function objects of both types from the first because during
+    # rejection, we assume both exist. sigma arrays are constructed here all > 0
+    mfit1 = Mfit1(wind, read, gain)
+    dmfit1 = Dmfit1(mfit1)
+    mfit2 = Mfit2(wind, read, gain, fwhm)
+    dmfit2 = Dmfit2(mfit2)
 
-    if fwhm_fix:
-        # construct fixed FWHM function objects
-        mfit2 = Mfit2(wind, read, gain, fwhm)
-        dmfit2 = Dmfit2(mfit2)
-        param = (sky, height, xcen, ycen, beta)
-        res = leastsq(mfit2, param, Dfun=dmfit2, col_deriv=True,
-                      full_output=True)
-        fit = Window(wind.winhead, mfit1.model(res[0]))
-        skyf, heightf, xf, yf, betaf = res[0]
-        skyfe, heightfe, xfe, yfe, \
-            betafe = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
-        fwhmf, fwhmfe = fwhm_min, -1
+    while True:
+        # Rejection loop. There is a break statement at the end of the loop
+        # if no pixels have been rejected.
 
-    else:
-        # construct free FWHM function objects
-        mfit1 = Mfit1(wind, read, gain)
-        dmfit1 = Dmfit1(mfit1)
+        # Two pass strategy: fit with a free FWHM, and if it is
+        # below fwhm_min, re-fit with the fwhm set = fwhm_min
 
-        param = (sky, height, xcen, ycen, fwhm, beta)
-        res = leastsq(mfit1, param, Dfun=dmfit1, col_deriv=True,
-                      full_output=True)
-        skyf, heightf, xf, yf, fwhmf, betaf = res[0]
-        if fwhmf > fwhm_min:
-            # Free fit is OK
-            skyfe, heightfe, xfe, yfe, fwhmfe, \
-                betafe = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
-            fit = Window(wind.winhead, mfit1.model(res[0]))
-        else:
-            # construct the fixed FWHM objects
-            mfit2 = Mfit2(wind, read, gain, fwhm_min)
-            dmfit2 = Dmfit2(mfit2)
+        if fwhm_fix:
+            # FWHM held fixed
+            mfit2.fwhm = fwhm
+            dmfit2.fwhm = fwhm
             param = (sky, height, xcen, ycen, beta)
             res = leastsq(mfit2, param, Dfun=dmfit2, col_deriv=True,
                           full_output=True)
-            fit = Window(wind.winhead, mfit1.model(res[0]))
+            fit = Window(wind.winhead, mfit2.model(res[0]))
             skyf, heightf, xf, yf, betaf = res[0]
             skyfe, heightfe, xfe, yfe, \
                 betafe = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
-            fwhmf, fwhmfe = fwhm_min, -1
+            fwhmf, fwhmfe = fwhm, -1
+
+        else:
+            # FWHM free to vary
+            param = (sky, height, xcen, ycen, fwhm, beta)
+            res = leastsq(mfit1, param, Dfun=dmfit1, col_deriv=True,
+                          full_output=True)
+            skyf, heightf, xf, yf, fwhmf, betaf = res[0]
+            if fwhmf > fwhm_min:
+                # Free fit is OK
+                skyfe, heightfe, xfe, yfe, fwhmfe, \
+                    betafe = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
+                fit = Window(wind.winhead, mfit1.model(res[0]))
+
+            else:
+                # fall back to fixed FWHM
+                mfit2.fwhm = fwhm_min
+                dmfit2.fwhm = fwhm_min
+                param = (sky, height, xcen, ycen, beta)
+                res = leastsq(mfit2, param, Dfun=dmfit2, col_deriv=True,
+                              full_output=True)
+                fit = Window(wind.winhead, mfit2.model(res[0]))
+                skyf, heightf, xf, yf, betaf = res[0]
+                skyfe, heightfe, xfe, yfe, \
+                    betafe = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
+                fwhmf, fwhmfe = fwhm_min, -1
+
+        # now look for bad outliers
+        ok = mfit1.sigma > 0
+        resid = (wind.data - fit.data) / mfit1.sigma
+        chisq = (resid[ok]**2).sum()
+        nok1 = len(resid[ok])
+        sfac = np.sqrt(chisq/(nok1-len(res[0])))
+
+        # reject any above the defined threshold
+        mfit1.sigma[ok & (np.abs(resid)> sfac*thresh)] *= -1
+
+        # check whether any have been rejected
+        ok = mfit1.sigma > 0
+        nok = len(mfit1.sigma[ok])
+        if nok < nok1:
+            # some more pixels have been rejected
+            mfit2.sigma = mfit1.sigma
+            dmfit1.sigma = mfit1.sigma
+            dmfit2.sigma = mfit1.sigma
+        else:
+            # no more pixels have been rejected.  calculate how many have
+            # been, re-scale the uncertainties to reflect the actual chi**2
+            nrej = mfit1.sigma.size - nok
+            skyfe *= sfac
+            heightfe *= sfac
+            xfe *= sfac
+            yfe *= sfac
+            if fwhmfe > 0:
+                fwhmfe *= sfac
+            betafe *= sfac
+            break
 
     # OK we are done.
     return (
         (skyf,heightf,xf,yf,fwhmf,betaf),
         (skyfe,heightfe,xfe,yfe,fwhmfe,betafe),
-        (fit,mfit1.xy[0],mfit1.xy[1],mfit1.sigma)
+        (fit,mfit1.xy[0],mfit1.xy[1],mfit1.sigma,chisq,nok,nrej,len(res[0]))
     )
 
 def moffat(xy, sky, height, xcen, ycen, fwhm, beta):
@@ -394,7 +460,8 @@ class Mfit1:
         """
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        return diff.ravel()
+        ok = self.sigma > 0
+        return diff[ok].ravel()
 
     def model(self, param):
         """
@@ -437,7 +504,8 @@ class Dmfit1:
         """
         sky, height, xcen, ycen, fwhm, beta = param
         derivs = dmoffat(self.xy, sky, height, xcen, ycen, fwhm, beta)
-        return [(-deriv/self.sigma).ravel() for deriv in derivs]
+        ok = self.sigma > 0
+        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
 class Mfit2:
     """
@@ -476,7 +544,8 @@ class Mfit2:
         """
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        return diff.ravel()
+        ok = self.sigma > 0
+        return diff[ok].ravel()
 
     def model(self, param):
         """
@@ -519,7 +588,8 @@ class Dmfit2:
         """
         sky, height, xcen, ycen, beta = param
         derivs = dmoffat(self.xy, sky, height, xcen, ycen, self.fwhm, beta, True)
-        return [(-deriv/self.sigma).ravel() for deriv in derivs]
+        ok = self.sigma > 0
+        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
 ##########################################
 #
@@ -528,7 +598,7 @@ class Dmfit2:
 ##########################################
 
 def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-                read, gain):
+                read, gain, thresh):
     """Fits the profile of one target in a Window with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
     of the aperture. The constant alpha is fixed by the FWHM. The function
@@ -582,6 +652,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             gain, from which weights are generated. If an array it
             must match the dimensions of the Window (e- per count)
 
+ 
     Returns:: tuple of tuples
 
         (pars, sigs, extras) where::
@@ -605,55 +676,93 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
     """
 
-    # Two pass strategy: fit with a free FWHM, and if it is
-    # below fwhm_min, re-fit with the fwhm set = fwhm_min
+    # construct function objects of both types from the first because during
+    # rejection, we assume both exist. sigma arrays are constructed here all > 0
+    gfit1 = Gfit1(wind, read, gain)
+    dgfit1 = Dgfit1(gfit1)
+    gfit2 = Gfit2(wind, read, gain, fwhm)
+    dgfit2 = Dgfit2(gfit2)
 
-    if fwhm_fix:
-        # construct fixed FWHM function objects
-        gfit2 = Gfit2(wind, read, gain, fwhm)
-        dgfit2 = Gmfit2(gfit2)
-        param = (sky, height, xcen, ycen)
-        res = leastsq(gfit2, param, Dfun=dgfit2, col_deriv=True,
-                      full_output=True)
-        fit = Window(wind.winhead, gfit1.model(res[0]))
-        skyf, heightf, xf, yf = res[0]
-        skyfe, heightfe, xfe, yfe = [np.sqrt(row[i]) \
-                                     for i,row in enumerate(res[1])]
-        fwhmf, fwhmfe = fwhm_min, -1
+    while True:
+        # Rejection loop. There is a break statement at the end of the loop
+        # if no pixels have been rejected.
 
-    else:
-        # construct free FWHM function objects
-        gfit1 = Gfit1(wind, read, gain)
-        dgfit1 = Dgfit1(gfit1)
+        # Two pass strategy: fit with a free FWHM, and if it is
+        # below fwhm_min, re-fit with the fwhm set = fwhm_min
 
-        param = (sky, height, xcen, ycen, fwhm)
-
-        res = leastsq(gfit1, param, Dfun=dgfit1, col_deriv=True,
-                      full_output=True)
-        skyf, heightf, xf, yf, fwhmf = res[0]
-        if fwhmf > fwhm_min:
-            # Free fit is OK
-            skyfe, heightfe, xfe, yfe, fwhmfe \
-                = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
-            fit = Window(wind.winhead, gfit1.model(res[0]))
-        else:
-            # construct the fixed FWHM objects
-            gfit2 = Mfit2(wind, read, gain, fwhm_min)
-            dgfit2 = Dmfit2(gfit2)
-            param = (sky, height, xcen, ycen, beta)
+        if fwhm_fix:
+            # FWHM held fixed
+            gfit2.fwhm = fwhm
+            dgfit2.fwhm = fwhm
+            param = (sky, height, xcen, ycen)
             res = leastsq(gfit2, param, Dfun=dgfit2, col_deriv=True,
                           full_output=True)
-            fit = Window(wind.winhead, gfit1.model(res[0]))
+            fit = Window(wind.winhead, gfit2.model(res[0]))
             skyf, heightf, xf, yf = res[0]
-            skyfe, heightfe, xfe, yfe \
-                = [np.sqrt(row[i]) for i, row in enumerate(res[1])]
-            fwhmf, fwhmfe = fwhm_min, -1
+            skyfe, heightfe, xfe, yfe = [np.sqrt(row[i]) \
+                                         for i,row in enumerate(res[1])]
+            fwhmf, fwhmfe = fwhm, -1
+
+        else:
+            # FWHM free to vary
+            param = (sky, height, xcen, ycen, fwhm)
+            res = leastsq(gfit1, param, Dfun=dgfit1, col_deriv=True,
+                          full_output=True)
+            skyf, heightf, xf, yf, fwhmf = res[0]
+            if fwhmf > fwhm_min:
+                # Free fit is OK
+                skyfe, heightfe, xfe, yfe, fwhmfe \
+                    = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
+                fit = Window(wind.winhead, gfit1.model(res[0]))
+
+            else:
+                # fall back to fixed FWHM
+                gfit2.fwhm = fwhm_min
+                dgfit2.fwhm = fwhm_min
+                param = (sky, height, xcen, ycen, beta)
+                res = leastsq(gfit2, param, Dfun=dgfit2, col_deriv=True,
+                              full_output=True)
+                fit = Window(wind.winhead, gfit2.model(res[0]))
+                skyf, heightf, xf, yf = res[0]
+                skyfe, heightfe, xfe, yfe \
+                    = [np.sqrt(row[i]) for i, row in enumerate(res[1])]
+                fwhmf, fwhmfe = fwhm_min, -1
+
+        # now look for bad outliers
+        ok = gfit1.sigma > 0
+        resid = (wind.data - fit.data) / gfit1.sigma
+        chisq = (resid[ok]**2).sum()
+        nok1 = len(resid[ok])
+        sfac = np.sqrt(chisq/(nok1-len(res[0])))
+
+        # reject any above the defined threshold
+        gfit1.sigma[ok & (np.abs(resid)> sfac*thresh)] *= -1
+
+        # check whether any have been rejected
+        ok = gfit1.sigma > 0
+        nok = len(gfit1.sigma[ok])
+        if nok < nok1:
+            # some more pixels have been rejected
+            gfit2.sigma = gfit1.sigma
+            dgfit1.sigma = gfit1.sigma
+            dgfit2.sigma = gfit1.sigma
+        else:
+            # no more pixels have been rejected.  calculate how many have
+            # been, re-scale the uncertainties to reflect the actual chi**2
+            nrej = gfit1.sigma.size - nok
+            skyfe *= sfac
+            heightfe *= sfac
+            xfe *= sfac
+            yfe *= sfac
+            if fwhmfe > 0:
+                fwhmfe *= sfac
+            break
 
     # OK we are done.
     return (
         (skyf,heightf,xf,yf,fwhmf),
         (skyfe,heightfe,xfe,yfe,fwhmfe),
-        (fit,gfit1.xy[0],gfit1.xy[1],gfit1.sigma)
+        (fit,gfit1.xy[0],gfit1.xy[1],gfit1.sigma,chisq,nok,nrej,len(res[0]))
     )
 
 def gaussian(xy, sky, height, xcen, ycen, fwhm):
@@ -786,7 +895,8 @@ class Gfit1:
         """
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        return diff.ravel()
+        ok = self.sigma > 0
+        return diff[ok].ravel()
 
     def model(self, param):
         """Returns Window with model given a parameter vector.
@@ -827,7 +937,8 @@ class Dgfit1:
         """
         sky, height, xcen, ycen, fwhm = param
         derivs = dgaussian(self.xy, sky, height, xcen, ycen, fwhm)
-        return [(-deriv/self.sigma).ravel() for deriv in derivs]
+        ok = self.sigma > 0
+        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
 class Gfit2:
     """
@@ -866,7 +977,8 @@ class Gfit2:
         """
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        return diff.ravel()
+        ok = self.sigma > 0
+        return diff[ok].ravel()
 
     def model(self, param):
         """Returns Window with model given a parameter vector.
@@ -909,4 +1021,5 @@ class Dgfit2:
         """
         sky, height, xcen, ycen = param
         derivs = dgaussian(self.xy, sky, height, xcen, ycen, self.fwhm, True)
-        return [(-deriv/self.sigma).ravel() for deriv in derivs]
+        ok = self.sigma > 0
+        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]

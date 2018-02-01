@@ -187,7 +187,7 @@ def rtplot(args=None):
            on the position located by the initial search. It should normally be
            > ~2x the expected FWHM.
 
-        thresh : (float) [if profit; hidden]
+        hmin   : (float) [if profit; hidden]
            height threshold to accept a fit. If the height is below this value, the
            position will not be updated. This is to help in cloudy conditions.
 
@@ -197,8 +197,8 @@ def rtplot(args=None):
         gain   : (float) [if profit; hidden]
            gain, ADU/count, for assigning uncertainties
 
-        sigma  : (float) [if profit; hidden]
-           sigma rejection threshold
+        thresh : (float) [if profit; hidden]
+           sigma rejection threshold for fits
 
     """
 
@@ -244,10 +244,10 @@ def rtplot(args=None):
         cl.register('smooth', Cline.LOCAL, Cline.HIDE)
         cl.register('splot', Cline.LOCAL, Cline.HIDE)
         cl.register('fhbox', Cline.LOCAL, Cline.HIDE)
-        cl.register('thresh', Cline.LOCAL, Cline.HIDE)
+        cl.register('hmin', Cline.LOCAL, Cline.HIDE)
         cl.register('read', Cline.LOCAL, Cline.HIDE)
         cl.register('gain', Cline.LOCAL, Cline.HIDE)
-        cl.register('sigma', Cline.LOCAL, Cline.HIDE)
+        cl.register('thresh', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         source = cl.get_value('source', 'data source [hs, hl, us, ul, hf]',
@@ -394,12 +394,11 @@ def rtplot(args=None):
                 fhbox = cl.get_value(
                     'fhbox', 'half width of box for profile fit'
                     ' [unbinned pixels]', 21., 3.)
-                thresh = cl.get_value(
-                    'thresh', 'peak height threshold'
-                    ' to counts as OK', 50.)
+                hmin = cl.get_value(
+                    'hmin', 'minimum peak height to accept the fit', 50.)
                 read = cl.get_value('read', 'readout noise, RMS ADU', 3.)
                 gain = cl.get_value('gain', 'gain, ADU/e-', 1.)
-                sigma = cl.get_value('sigma', 'readout noise, RMS ADU', 3.)
+                thresh = cl.get_value('thresh', 'number of RMS to reject at', 4.)
 
         else:
             profit = False
@@ -565,15 +564,16 @@ def rtplot(args=None):
                     # refine the Aperture position by fitting the profile
                     try:
                         (sky, height, x, y, fwhm, beta), epars, \
-                            (wfit, X, Y, message) = hcam.fitting.combFit(
+                            (wfit, X, Y, sigma, chisq, nok,
+                             nrej, npar, message) = hcam.fitting.combFit(
                                 fwind, method, sky, peak-sky,
                                 x, y, fpar.fwhm, fwhm_min, False,
-                                fpar.beta, read, gain
+                                fpar.beta, read, gain, thresh
                             )
 
                         print('Targ {:d}: {:s}'.format(fpar.ntarg,message))
 
-                        if peak > thresh:
+                        if peak > hmin:
                             # update some initial parameters for next time
                             if method == 'g':
                                 fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
@@ -581,6 +581,7 @@ def rtplot(args=None):
                                 fpar.x, fpar.y, fpar.fwhm, fpar.beta = x, y, fwhm, beta
 
                             # plot values versus radial distance
+                            ok = sigma > 0
                             R = np.sqrt((X-x)**2+(Y-y)**2)
                             fdev.select()
                             vmin = min(sky, sky+height, fwind.min())
@@ -591,8 +592,13 @@ def rtplot(args=None):
                             pgswin( 0, R.max(), vmin-0.05*extent, vmax+0.05*extent)
                             pgsci(4)
                             pgbox('bcnst',0,0,'bcnst',0,0)
+                            pgsci(2)
+                            pglab('Radial distance [unbinned pixels]','Counts','')
                             pgsci(1)
-                            pgpt(R.flat, fwind.data.flat, 1)
+                            pgpt(R[ok].flat, fwind.data[ok].flat, 1)
+                            if nrej:
+                                pgsci(2)
+                                pgpt(R[~ok].flat, fwind.data[~ok].flat, 5)
 
                             # line fit
                             pgsci(3)
@@ -605,7 +611,7 @@ def rtplot(args=None):
                                 f = sky+height/(1+alpha*r**2)**beta
                             pgline(r,f)
 
-                            # back to the image to plot circle of radius FWHM
+                            # back to the image to plot a circle of radius FWHM
                             imdev.select()
                             pgsci(3)
                             pgcirc(x,y,fwhm)
