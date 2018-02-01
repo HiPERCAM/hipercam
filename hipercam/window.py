@@ -14,7 +14,6 @@ from numpy.lib.stride_tricks import as_strided
 
 from astropy.io import fits
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
-from astropy.modeling import models, fitting, Fittable2DModel, Parameter
 
 import matplotlib.pyplot as plt
 from .core import *
@@ -23,8 +22,6 @@ from .group import *
 __all__ = (
     'Winhead', 'Window',
     'CcdWin', 'MccdWin',
-    'fitGaussian', 'fitMoffat',
-    'combFit', 'Moffat'
 )
 
 class Winhead(fits.Header):
@@ -117,6 +114,9 @@ class Winhead(fits.Header):
             self.llx, self.lly, self.nx, self.ny,
             self.xbin, self.ybin, super().__repr__()
         )
+
+    def __str__(self):
+        return self.__repr__()
 
     def format(self):
         """Used to ensure that only the Winhead format gets printed which is
@@ -415,7 +415,13 @@ class Winhead(fits.Header):
                     self.format(), xlo, xhi, ylo, yhi)
                 )
 
-        return Winhead(llx, lly, nx, ny, self.xbin, self.ybin, self.head)
+        winhc = self.copy()
+        winhc.llx = llx
+        winhc.lly = lly
+        winhc.nx = nx
+        winhc.ny = ny
+
+        return winhc
 
     def __copy__(self):
         return self.copy()
@@ -962,17 +968,20 @@ class Window(Winhead):
               maximum Y, unbinned pixels
 
         Returns the windowed Window.
-        """
-        win = super().window(xlo, xhi, ylo, yhi)
 
-        # we know the Winhead generated is in step with the current Winhead which saves
-        # some checks that would be applied if 'crop' was used at this point
-        x1 = (win.llx-self.llx)//self.xbin
-        y1 = (win.lly-self.lly)//self.ybin
+        """
+        # construct a chopped down Winhead
+        winh = self.winhead.window(xlo, xhi, ylo, yhi)
+
+        # we know the Winhead generated is in step with the current Winhead
+        # which saves some checks that would be applied if 'crop' was used at
+        # this point
+        x1 = (winh.llx-self.llx)//self.xbin
+        y1 = (winh.lly-self.lly)//self.ybin
         if self.data is None:
-            return Window(win)
+            return Window(winh)
         else:
-            return Window(win, self.data[y1:y1+win.ny, x1:x1+win.nx])
+            return Window(winh, self.data[y1:y1+winh.ny, x1:x1+winh.nx])
 
     def crop(self, win):
         """Creates a new :class:Window by cropping the current :class:Window to the
@@ -1197,7 +1206,7 @@ class Window(Winhead):
         # carry out addition to a float type
         data = self.data + num
 
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
 
     def __radd__(self, other):
@@ -1208,7 +1217,7 @@ class Window(Winhead):
 
         # carry out addition to a float type
         data = self.data + other
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __sub__(self, other):
         """Subtracts `other` from a :class:`Window` as `wind - other`.  Here `other`
@@ -1225,7 +1234,7 @@ class Window(Winhead):
 
         # carry out addition to a float type
         data = self.data - num
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __rsub__(self, other):
         """Subtracts a :class:`Window` from `other` as `other - wind`.  Here `other`
@@ -1234,7 +1243,7 @@ class Window(Winhead):
         """
         # carry out subtraction to a float type
         data = other - self.data
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __mul__(self, other):
         """Multiplies a :class:`Window` by `other` as `wind * other`.  Here `other`
@@ -1252,7 +1261,7 @@ class Window(Winhead):
 
         # carry out multiplication to a float type
         data = self.data*num
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __rmul__(self, other):
         """Multiplies a :class:`Window` by `other` as `other * wind`.  Here `other` is
@@ -1262,7 +1271,7 @@ class Window(Winhead):
         """
         # carry out multiplication to a float type
         data = np.multiply(self.data, other, dtype=np.float)
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __truediv__(self, other):
         """Divides a :class:`Window` by `other` as `wind / other`.  Here `other`
@@ -1281,7 +1290,7 @@ class Window(Winhead):
 
         # carry out multiplication to a float type
         data = np.true_divide(self.data, num, dtype=np.float)
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
     def __rtruediv__(self, other):
         """Divides `other` by a :class:`Window` as `other / wind`.  Here `other` is
@@ -1290,558 +1299,6 @@ class Window(Winhead):
         """
         # carry out multiplication to a float type
         data = self.data*other
-        return Window(self.win, data)
+        return Window(self.winhead, data)
 
-# have decided that these relatively specialised routines are better as
-# separate methods rather than class methods
 
-def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min,
-                fwhm_fix, read, gain):
-    """Fits the profile of one target in a Window with a symmetric 2D Gaussian
-    profile given initial starting parameters. NB This will fit the entire
-    Window so normally one should window down to the object of interest. It
-    returns the fitted parameters, covariances and the fit itself.  The FWHM
-    can be constrained to lie above a lower limit which can be useful.
-
-    Arguments::
-
-        wind     : float
-            the Window under consideration
-
-        sky      : float
-            value of the (assumed constant) sky background
-
-        height   : float
-            peak height of profile
-
-        xcen     : float
-            initial X value at centre of profile, unbinned absolute coordinates
-
-        ycen     : float
-            initial Y value at centre of profile, unbinned absolute coordinates
-
-        fwhm     : float
-            initial FWHM in unbinned pixels.
-
-        fwhm_min : float
-            minimum value to allow FWHM to go to. Useful for heavily binned
-            data especially where all signal might be in a single pixel to
-            prevent going to silly values.
-
-        fwhm_fix : bool
-            whether to hold the FWHM fixed or not.
-
-        read     : float
-            readout noise, RMS ADU, from which weights are generated
-
-        gain     : float
-            gain, e-/ADU, from which weights are generated
-
-    Returns:: tuple of tuples
-
-       (pars, sigs, extras) where::
-
-         pars   : tuple
-            parameters. unpacks to sky, height, xcen, yce, fwhm
-
-         sigs   : tuple
-            standard deviations. unpacks in same order, (sky, height, xcen,
-            yce, fwhm). Can come back as 'None' if the fit fails so don't try
-            to unpack on the fly.
-
-         extras : tuple
-            some extra stuff that might come in useful, namely (fit, X, Y,
-            weights) where `fit` is a :class:Window containing the best fit, X
-            and Y are the X and Y positions of all pixels (2D numpy arrays)
-            and weights is the final set of weights, some of which might = 0
-            indicating rejection.
-
-    """
-    global FFWHM
-
-    # generate 2D arrays of x and y values
-    x = wind.x(np.arange(wind.nx))
-    y = wind.y(np.arange(wind.ny))
-    X, Y = np.meshgrid(x, y)
-
-    # generate weights
-    weights = 1./np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-
-    # create symmetric 2D Gaussian model (two versions: one with
-    # a fixed FWHM, the other not)
-    if fwhm_fix:
-        FFWHM = fwhm
-        gauss = GaussianFF(sky, height, xcen, ycen)
-
-    else:
-        gauss = Gaussian(sky, height, xcen, ycen, fwhm)
-
-        # set a minimum for fwhm
-        gauss.fwhm.min = fwhm_min
-
-    # Lev-Marq fitting
-    fitter = fitting.LevMarLSQFitter()
-
-    # run the fit
-    fit = fitter(gauss, X, Y, wind.data, weights=weights)
-
-    # extract the covariances
-    cov = fitter.fit_info['param_cov']
-
-    # compute the fit & store in a Window
-    fwind = Window(wind, fit(X, Y))
-
-    # extract parameters and return
-    if fwhm_fix:
-        pars = (fit.constant.value, fit.height.value,
-                fit.xcen.value, fit.ycen.value,
-                FFWHM)
-    else:
-        pars = (fit.constant.value, fit.height.value,
-                fit.xcen.value, fit.ycen.value,
-                fit.fwhm.value)
-
-    # extract diagonal elements of covariances
-    if cov is None:
-        sigs = None
-    else:
-        if fwhm_fix:
-            sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
-                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
-                    -1]
-        else:
-            sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
-                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
-                    np.sqrt(cov[4,4])]
-
-            # set the errors if at the limit to -1
-            if fit.fwhm.value == gauss.fwhm.min:
-                sigs[4] = -1
-        sigs = tuple(sigs)
-
-    extras = (fwind, X, Y, weights)
-    return (pars, sigs, extras)
-
-class Gaussian(Fittable2DModel):
-    """Model of a Gaussian plus a constant, with the width specified in terms
-    of the FWHM rather than the standard deviation
-
-    I did try out the compound model option of the astropy.modeling stuff but
-    it did not seem to work reliably and a be-spoke model like this seems a
-    fair bit easier to manage.
-    """
-
-    constant = Parameter()
-    height = Parameter()
-    xcen = Parameter()
-    ycen = Parameter()
-    fwhm = Parameter()
-
-    EFAC = np.sqrt(8.*np.log(2.))
-
-    @staticmethod
-    def evaluate(x, y, constant, height, xcen, ycen, fwhm):
-        rsq = (x-xcen)**2+(y-ycen)**2
-        return constant+height*np.exp(-rsq/(2.*(fwhm/Gaussian.EFAC)**2))
-
-    @staticmethod
-    def fit_deriv(x, y, constant, height, xcen, ycen, fwhm):
-
-        # intermediate time savers (but each the same dimension as x and y)
-        xoff = x-xcen
-        yoff = y-ycen
-        rsq = xoff**2 + yoff**2
-        alpha = 1/(2.*(fwhm/Gaussian.EFAC)**2)
-
-        # derivatives
-        d_constant = np.ones_like(x)
-
-        d_height = np.exp(-alpha*rsq)
-
-        d_xcen = (2*alpha*height)*d_height*xoff
-
-        d_ycen = (2*alpha*height)*d_height*yoff
-
-        d_fwhm = (2*alpha*height/fwhm)*d_height*rsq
-
-        return [d_constant, d_height, d_xcen, d_ycen, d_fwhm]
-
-class GaussianFF(Fittable2DModel):
-    """Model of a Gaussian plus a constant, with the width specified in terms
-    of the FWHM rather than the standard deviation. cf Gaussian this one has
-    a fixed FWHM using a global value 'FFWHM'
-
-    I did try out the compound model option of the astropy.modeling stuff but
-    it did not seem to work reliably and a be-spoke model like this seems a
-    fair bit easier to manage.
-    """
-
-    constant = Parameter()
-    height = Parameter()
-    xcen = Parameter()
-    ycen = Parameter()
-
-    EFAC = np.sqrt(8.*np.log(2.))
-
-    @staticmethod
-    def evaluate(x, y, constant, height, xcen, ycen):
-        global FFWHM
-        rsq = (x-xcen)**2+(y-ycen)**2
-        return constant+height*np.exp(-rsq/(2.*(FFWHM/Gaussian.EFAC)**2))
-
-    @staticmethod
-    def fit_deriv(x, y, constant, height, xcen, ycen):
-        global FFWHM
-
-        # intermediate time savers (but each the same dimension as x and y)
-        xoff = x-xcen
-        yoff = y-ycen
-        rsq = xoff**2 + yoff**2
-        alpha = 1/(2.*(FFWHM/Gaussian.EFAC)**2)
-
-        # derivatives
-        d_constant = np.ones_like(x)
-
-        d_height = np.exp(-alpha*rsq)
-
-        d_xcen = (2*alpha*height)*d_height*xoff
-
-        d_ycen = (2*alpha*height)*d_height*yoff
-
-        return [d_constant, d_height, d_xcen, d_ycen]
-
-
-def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-              beta, read, gain):
-    """Fits the profile of one target in a Window with a 2D Moffat profile,
-    h/(1+(r/a)**2)**beta where r is the distance from the centre of the
-    aperture. It returns the fitted parameters, covariances and the fit
-    itself.  The FWHM can be constrained to lie above a lower limit which can
-    be useful.
-
-    Arguments::
-
-        sky      : float
-            value of the (assumed constant) sky background
-
-        height   : float
-            peak height of profile
-
-        xcen     : float
-            initial X value at centre of profile, unbinned absolute coordinates
-
-        ycen     : float
-            initial Y value at centre of profile, unbinned absolute coordinates
-
-        fwhm     : float
-            initial FWHM in unbinned pixels.
-
-        fwhm_min : float
-            minimum value to allow FWHM to go to. Useful for heavily binned
-            data especially where all signal might be in a single pixel to
-            prevent going to silly values.
-
-        fwhm_fix : bool
-            whether or not to vary the FWHM. In some cases one may not want to
-            for safety or speed.
-
-        read     : float
-            readout noise, RMS ADU, from which weights are generated
-
-        gain     : float
-            gain, e-/ADU, from which weights are generated
-
-        sigma    : float
-            for outlier rejection. The fit is re-run with outliers removed by
-            setting their weight = 0.
-
-    Returns:: tuple of tuples
-
-        (pars, sigs, extras) where::
-
-           pars   : tuple
-                parameters. unpacks to sky, height, xcen, yce, fwhm
-
-           sigs   : tuple
-                standard deviations. unpacks in same order, (sky, height,
-                xcen, yce, fwhm). Can come back as 'None' if the fit fails so
-                don't try to unpack on the fly.
-
-           extras : tuple
-                some extra stuff that might come in useful, namely (fit, X, Y,
-                weights) where `fit` is a :class:Window containing the best
-                fit, X and Y are the X and Y positions of all pixels (2D numpy
-                arrays) and weights is the final set of weights, some of which
-                might = 0 indicating rejection.
-
-    """
-
-    global FFWHM
-
-    # generate 2D arrays of x and y values
-    x = wind.x(np.arange(wind.nx))
-    y = wind.y(np.arange(wind.ny))
-    X, Y = np.meshgrid(x, y)
-
-    # generate weights
-    weights = 1./np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-
-    if fwhm_fix:
-        FFWHM = fwhm
-
-        # create a Moffat model
-        moffat = MoffatFF(sky, height, xcen, ycen, beta)
-
-    else:
-
-        # create a Moffat model
-        moffat = Moffat(sky, height, xcen, ycen, fwhm, beta)
-
-        # set a minimum for the FWHM to prevent peaking up on single pixels
-        moffat.fwhm.min = fwhm_min
-
-    # limit the range of beta
-    moffat.beta.min = 1.
-    moffat.beta.max = 100.
-
-    # Lev-Marq fitting
-    fitter = fitting.LevMarLSQFitter()
-
-    # run the fit
-    fit = fitter(moffat, X, Y, wind.data, weights=weights)
-
-    # extract the covariances
-    cov = fitter.fit_info['param_cov']
-
-    # compute the fit & store in a Window
-    fwind = Window(wind, fit(X, Y))
-
-    # extract parameters and return
-    if fwhm_fix:
-        pars = (fit.constant.value, fit.height.value,
-                fit.xcen.value,fit.ycen.value,
-                FFWHM,fit.beta.value)
-    else:
-        pars = (fit.constant.value, fit.height.value,
-                fit.xcen.value,fit.ycen.value,
-                fit.fwhm.value,fit.beta.value)
-
-    # extract diagonal elements of covariances
-    if cov is None:
-        sigs = None
-    else:
-        if fwhm_fix:
-            sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
-                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
-                    -1, np.sqrt(cov[4,4])]
-
-        else:
-            sigs = [np.sqrt(cov[0,0]), np.sqrt(cov[1,1]),
-                    np.sqrt(cov[2,2]), np.sqrt(cov[3,3]),
-                    np.sqrt(cov[4,4]), np.sqrt(cov[5,5])]
-
-            # set the errors on ones that are at the limit to -1
-            if fit.fwhm.value == moffat.fwhm.min:
-                sigs[4] = -1
-
-        if fit.beta.value == moffat.beta.min or \
-           fit.beta.value == moffat.beta.max:
-            sigs[5] = -1
-
-        sigs = tuple(sigs)
-
-    extras = (fwind, X, Y, weights)
-    return (pars, sigs, extras)
-
-class Moffat(Fittable2DModel):
-
-    constant = Parameter()
-    height = Parameter()
-    xcen = Parameter()
-    ycen = Parameter()
-    fwhm = Parameter()
-    beta = Parameter()
-
-    # In code below, Moffat written as c + h/(1+alpha*r**2)**beta where alpha
-    # = 4*(2**(1/beta)-1)/fwhm**2 and r**2 = (x-x0)**2+(y-y0)**2
-
-    @staticmethod
-    def evaluate(x, y, constant, height, xcen, ycen, fwhm, beta):
-        rsq = (x-xcen)**2+(y-ycen)**2
-        alpha = 4*(2**(1/beta)-1)/fwhm**2
-        return constant+height/(1+alpha*rsq)**beta
-
-    @staticmethod
-    def fit_deriv(x, y, constant, height, xcen, ycen, fwhm, beta):
-
-        # intermediate time savers (but each the same dimension as x and y)
-        xoff = x-xcen
-        yoff = y-ycen
-        rsq = xoff**2 + yoff**2
-        alpha = 4*(2**(1/beta)-1)/fwhm**2
-        denom = 1+alpha*rsq
-        save1 = height/denom**(beta+1)
-        save2 = save1*rsq
-
-        # derivatives. beta is a bit complicated because it appears directly
-        # through the exponent but also indirectly through alpha
-        d_constant = np.ones_like(x)
-
-        d_height = 1/denom**beta
-
-        d_xcen = (2*alpha*beta)*xoff*save1
-
-        d_ycen = (2*alpha*beta)*yoff*save1
-
-        d_fwhm = (2*alpha*beta/fwhm)*save2
-
-        d_beta = -np.log(denom)*height*d_height + (4.*np.log(2)*2**(1/beta)/beta/fwhm**2)*save2
-
-        return [d_constant, d_height, d_xcen, d_ycen, d_fwhm, d_beta]
-
-class MoffatFF(Fittable2DModel):
-
-    constant = Parameter()
-    height = Parameter()
-    xcen = Parameter()
-    ycen = Parameter()
-    beta = Parameter()
-
-    # In code below, Moffat written as c + h/(1+alpha*r**2)**beta where alpha
-    # = 4*(2**(1/beta)-1)/fwhm**2 and r**2 = (x-x0)**2+(y-y0)**2
-
-    @staticmethod
-    def evaluate(x, y, constant, height, xcen, ycen, beta):
-        global FFWHM
-        rsq = (x-xcen)**2+(y-ycen)**2
-        alpha = 4*(2**(1/beta)-1)/FFWHM**2
-        return constant+height/(1+alpha*rsq)**beta
-
-    @staticmethod
-    def fit_deriv(x, y, constant, height, xcen, ycen, beta):
-        global FFWHM
-
-        # intermediate time savers (but each the same dimension as x and y)
-        xoff = x-xcen
-        yoff = y-ycen
-        rsq = xoff**2 + yoff**2
-        alpha = 4*(2**(1/beta)-1)/FFWHM**2
-        denom = 1+alpha*rsq
-        save1 = height/denom**(beta+1)
-        save2 = save1*rsq
-
-        # derivatives. beta is a bit complicated because it appears directly
-        # through the exponent but also indirectly through alpha
-        d_constant = np.ones_like(x)
-
-        d_height = 1/denom**beta
-
-        d_xcen = (2*alpha*beta)*xoff*save1
-
-        d_ycen = (2*alpha*beta)*yoff*save1
-
-        d_beta = -np.log(denom)*height*d_height + (4.*np.log(2)*2**(1/beta)/beta/FFWHM**2)*save2
-
-        return [d_constant, d_height, d_xcen, d_ycen, d_beta]
-
-def combFit(wind, method, sky, height, x, y,
-            fwhm, fwhm_min, fwhm_fix, beta, read, gain):
-    """
-    Fits a stellar profile in a :class:Window using either a 2D Gaussian
-    or Moffat profile. This is a convenience routine because one practically
-    always wants both options.
-
-    Arguments::
-
-        wind      : :class:`Window`
-            the Window containing the stellar profile to fit
-
-        method    : string
-            fitting method 'g' for Gaussian, 'm' for Moffat
-
-        sky       : float
-            initial sky level
-
-        height    : float
-            initial peak height
-
-        x         : float
-            initial central X value
-
-        y         : float
-            initial central Y value
-
-        fwhm      : float
-            initial FWHM, unbinned pixels.
-
-        fwhm_min  : float
-            minimum FWHM, unbinned pixels.
-
-        fwhm_fix  : float
-            fix the FWHM (i.e. don't fit it)
-
-        beta      : float [if method == 'm']
-            exponent of Moffat function
-
-        read      : float
-            readout noise, RMS ADU
-
-        gain      : float
-            gain, electrons per ADU
-
-    Returns:: (pars, epars, extras)
-
-    where::
-
-       pars    : tuple
-          Fitted parameters: (sky, height, x, y, fwhm, beta)
-          beta is None if method=='g'
-
-       epars   : tuple
-          Fitted uncertainties: (esky, eheight, ex, ey, efwhm, ebeta)
-          ebeta is None if method=='g'
-
-       extras  : tuple
-          (X,Y,message) -- X and Y are the X and Y coordinates of
-          the pixels. message summarises the fit values.
-
-    Raises a HipercamError if the fit fails.
-    """
-
-    if method == 'g':
-        # gaussian fit
-        (sky, height, x, y, fwhm), sigs, \
-            (fit, X, Y, weights) = fitGaussian(
-                wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, read, gain
-            )
-
-    elif method == 'm':
-        # moffat fit
-        (sky, height, x, y, fwhm, beta), sigs, \
-            (fit, X, Y, weights) = fitMoffat(
-                wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta, read, gain
-            )
-
-    else:
-        raise NotImplementedError(
-            '{:s} fitting method not implemented'.format(method)
-        )
-
-    if sigs is None:
-        raise HipercamError('fit failed')
-
-    if method == 'g':
-        esky, eheight, ex, ey, efwhm = sigs
-        message = 'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f})'.format(
-            x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky)
-        beta, ebeta = None, None
-    elif method == 'm':
-        esky, eheight, ex, ey, efwhm, ebeta = sigs
-        message = 'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f}), beta = {:.2f}({:.2f})'.format(
-            x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,beta,ebeta)
-
-    return (
-        (sky, height, x, y, fwhm, beta),
-        (esky, eheight, ex, ey, efwhm, ebeta),
-        (X, Y, message)
-    )
