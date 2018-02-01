@@ -63,6 +63,7 @@ from . import utils
 from . import hcam
 from . import hlog
 from . import support
+from . import fitting
 
 __all__ = core.__all__ + group.__all__ + window.__all__ + ccd.__all__ + \
     aperture.__all__ + target.__all__
