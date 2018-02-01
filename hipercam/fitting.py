@@ -72,8 +72,9 @@ def combFit(wind, method, sky, height, x, y,
           ebeta is None if method=='g'
 
        extras  : tuple
-          (X,Y,message) -- X and Y are the X and Y coordinates of
-          the pixels. message summarises the fit values.
+          (fit,X,Y,message) -- `fit` is a Window containg the best fit, `X` 
+          and `Y` are the X and Y coordinates of the pixels. `message` summarises
+          the fit values.
 
     Raises a HipercamError if the fit fails.
     """
@@ -106,14 +107,13 @@ def combFit(wind, method, sky, height, x, y,
             x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky)
         beta, ebeta = None, None
     elif method == 'm':
-        esky, eheight, ex, ey, efwhm, ebeta = sigs
         message = 'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}), FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}), sky = {:.1f}({:.1f}), beta = {:.2f}({:.2f})'.format(
             x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,beta,ebeta)
 
     return (
         (sky, height, x, y, fwhm, beta),
         (esky, eheight, ex, ey, efwhm, ebeta),
-        (X, Y, message)
+        (fit, X, Y, message)
     )
 
 ##########################################
@@ -223,7 +223,6 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
         dmfit1 = Dmfit1(mfit1)
 
         param = (sky, height, xcen, ycen, fwhm, beta)
-
         res = leastsq(mfit1, param, Dfun=dmfit1, col_deriv=True,
                       full_output=True)
         skyf, heightf, xf, yf, fwhmf, betaf = res[0]
@@ -330,8 +329,8 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, skip_dfwhm=False):
       skip_fwhm : bool
          skips computation of derivative wrt FWHM and returns onby 5 derivs 
 
-    Returns:: a list of six 2D numpy arrays containing the partial derivatives of a Moffat profile 
-    plus constant evaluated on the ordinate grids in xy.
+    Returns:: a list of six 2D numpy arrays containing the partial derivatives
+    of a Moffat profile plus constant evaluated on the ordinate grids in xy.
 
     """
     x,y = xy
@@ -382,7 +381,7 @@ class Mfit1:
              gain in electrons / count. Can be a 2D array if dimensions
              same as the data in wind
         """
-        self.sigma = np.sqrt(read**2+wind.data/gain)
+        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.xy = np.meshgrid(x, y)
@@ -464,7 +463,7 @@ class Mfit2:
           fwhm  : float
              the fixed FWHM to use
         """
-        self.sigma = np.sqrt(read**2+wind.data/gain)
+        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.xy = np.meshgrid(x, y)
@@ -690,7 +689,7 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm):
     """
     x,y = xy
     rsq = (x-xcen)**2+(y-ycen)**2
-    alpha = 8.*np.log(2.)/fwhm**2
+    alpha = 4.*np.log(2.)/fwhm**2
     return sky+height*np.exp(-alpha*rsq)
 
 def dgaussian(xy, sky, height, xcen, ycen, fwhm, skip_dfwhm=False):
@@ -731,7 +730,7 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, skip_dfwhm=False):
 
     """
     x,y = xy
-    alpha = 8.*np.log(2.)/fwhm**2
+    alpha = 4.*np.log(2.)/fwhm**2
 
     # intermediate time savers (but each the same dimension as x and y)
     xoff = x-xcen
@@ -774,7 +773,7 @@ class Gfit1:
              gain in electrons / count. Can be a 2D array if dimensions
              same as the data in wind
         """
-        self.sigma = np.sqrt(read**2+wind.data/gain)
+        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.xy = np.meshgrid(x, y)
@@ -854,7 +853,7 @@ class Gfit2:
           fwhm  : float
              the fixed FWHM to use
         """
-        self.sigma = np.sqrt(read**2+wind.data/gain)
+        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.xy = np.meshgrid(x, y)

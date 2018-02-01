@@ -560,12 +560,12 @@ def rtplot(args=None):
                     fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
                     # crude estimate of sky background
-                    sky = np.percentile(fwind.data, 25)
+                    sky = np.percentile(fwind.data, 50)
 
                     # refine the Aperture position by fitting the profile
                     try:
                         (sky, height, x, y, fwhm, beta), epars, \
-                            (X, Y, message) = hcam.combFit(
+                            (wfit, X, Y, message) = hcam.fitting.combFit(
                                 fwind, method, sky, peak-sky,
                                 x, y, fpar.fwhm, fwhm_min, False,
                                 fpar.beta, read, gain
@@ -583,11 +583,12 @@ def rtplot(args=None):
                             # plot values versus radial distance
                             R = np.sqrt((X-x)**2+(Y-y)**2)
                             fdev.select()
-                            vmin, vmax = fwind.min(), fwind.max()
-                            range = vmax-vmin
+                            vmin = min(sky, sky+height, fwind.min())
+                            vmax = max(sky, sky+height, fwind.max())
+                            extent = vmax-vmin
                             pgeras()
                             pgvstd()
-                            pgswin( 0, R.max(), vmin-0.05*range, vmax+0.05*range)
+                            pgswin( 0, R.max(), vmin-0.05*extent, vmax+0.05*extent)
                             pgsci(4)
                             pgbox('bcnst',0,0,'bcnst',0,0)
                             pgsci(1)
@@ -595,12 +596,13 @@ def rtplot(args=None):
 
                             # line fit
                             pgsci(3)
-                            r = np.linspace(0,R.max(),200)
+                            r = np.linspace(0,R.max(),400)
                             if method == 'g':
-                                f = sky+peak*np.exp(-4*np.log(2)*(r/fwhm)**2)
+                                alpha = 4*np.log(2.)/fwhm**2
+                                f = sky+height*np.exp(-alpha*r**2)
                             elif method == 'm':
                                 alpha = 4*(2**(1/beta)-1)/fwhm**2
-                                f = sky+peak/(1+alpha*r**2)**beta
+                                f = sky+height/(1+alpha*r**2)**beta
                             pgline(r,f)
 
                             # back to the image to plot circle of radius FWHM
