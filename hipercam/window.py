@@ -110,7 +110,7 @@ class Winhead(fits.Header):
         self._ny = ny
 
     def __repr__(self):
-        return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={!r})'.format(
+        return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={:s})'.format(
             self.llx, self.lly, self.nx, self.ny,
             self.xbin, self.ybin, super().__repr__()
         )
