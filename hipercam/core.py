@@ -11,7 +11,7 @@ __all__ = (
     'HipercamError', 'HipercamWarning', 'DMINS',
     'LOG', 'CNAMS', 'CIS', 'ALL_OK', 'NO_FWHM',
     'NO_SKY', 'SKY_OFF_EDGE', 'TARGET_OFF_EDGE',
-    'EXTRA_OFF_EDGE', 'DATA_SATURATED', 'ANY'
+    'DATA_SATURATED', 'ANY'
 )
 
 # Constants for general use
@@ -74,11 +74,9 @@ NO_FWHM         = 1 << 0  # even though variable apertures are being used
 NO_SKY          = 1 << 1  # no sky pixels
 SKY_OFF_EDGE    = 1 << 2  # sky aperture off edge of window
 TARGET_OFF_EDGE = 1 << 3  # target aperture off edge of window
-EXTRA_OFF_EDGE  = 1 << 4  # extra target aperture off edge of window
-DATA_SATURATED  = 1 << 5  # At least one pixel in target aperture
+DATA_SATURATED  = 1 << 4  # At least one pixel in target aperture saturated
 
-ANY = NO_FWHM | NO_SKY | SKY_OFF_EDGE | TARGET_OFF_EDGE | \
-      EXTRA_OFF_EDGE | DATA_SATURATED
+ANY = NO_FWHM | NO_SKY | SKY_OFF_EDGE | TARGET_OFF_EDGE | DATA_SATURATED
 
 class HipercamError (Exception):
     """

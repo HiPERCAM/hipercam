@@ -570,6 +570,9 @@ def reduce(args=None):
 
         # that's it for the headers!
 
+        # short-hand for the monitor parameters which will
+        # be consulted often
+        monitor = rfile['monitor']
 
         ##############################################
         #
@@ -604,7 +607,6 @@ def reduce(args=None):
                     nframe, mccd.head['TIMSTAMP']),
                     end='' if implot else '\n'
                 )
-
 
                 if nf == 0 and rfile['calibration']['crop']:
                     # This is the very first data frame read in. We need to
@@ -730,6 +732,23 @@ def reduce(args=None):
                                 r['nsky'], r['nrej'], r['flag']
                             )
                         )
+
+                        if apnam in monitor:
+                            # report any problems with particular targets
+                            bitmasks = monitor[apnam]
+                            flag = r['flag']
+                            messages = []
+                            for bitmask in bitmasks:
+                                if (flag & bitmask) and bitmask in FLAG_MESSAGES:
+                                    messages.append(FLAG_MESSAGES[bitmask])
+
+                            if len(messages):
+                                print(
+                                    ' *** WARNING: CCD {:s}, aperture {:s}: {:s}'.format(
+                                        cnam,apnam,', '.join(messages)
+                                    )
+                                )
+
                     logfile.write('\n')
 
                 # make sure we have complete lines
@@ -1342,6 +1361,15 @@ class Rfile(OrderedDict):
             if sect['extend_y'] <= 0:
                 raise ValueError('seeing.extend_y must be > 0')
 
+        # Monitor section
+
+        monsec = rfile['monitor']
+
+        for apnam in monsec:
+
+            # interpret the bitmasks.
+            monsec[apnam] = [eval('hcam.'+entry) for entry in monsec[apnam].split()]
+
         # We are finally done reading and checking the reduce script.
         # rfile[section][param] should from now on return something
         # useful and somewhat reliable.
@@ -1792,8 +1820,8 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
         if mfwhm <= 0:
             # return early here as there is nothing much we can do.
             print(
-                '** CCD {:s}: no measured FWHM to re-size'
-                ' apertures; no extraction of any aperture'.format(cnam)
+                (' *** WARNING: CCD {:s}: no measured FWHM to re-size'
+                ' apertures; no extraction of any aperture').format(cnam)
             )
             # set flag to indicate no FWHM
             flag |= hcam.NO_FWHM
@@ -1867,7 +1895,7 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
             if xlo > aper.x-rout or xhi < aper.x+rout or \
                ylo > aper.y-rout or yhi < aper.y+rout:
                 # an extra target aperture overlaps the edge of the window
-                flag |= hcam.EXTRA_OFF_EDGE
+                flag |= hcam.TARGET_OFF_EDGE
 
         if isinstance(read, hcam.CCD):
             sread = read[wnam].window(x1,x2,y1,y2).data
@@ -2743,3 +2771,12 @@ def toBool(rfile, section, param):
             "{:s}.{:s}: 'yes' or 'no' are the only supported values".format(
                 section,param)
             )
+
+# messages if various bitflags are set
+FLAG_MESSAGES = {
+    hcam.NO_FWHM         : 'no FWHM could be measured',
+    hcam.NO_SKY          : 'zero sky pixels',
+    hcam.SKY_OFF_EDGE    : 'sky aperture off edge of window',
+    hcam.TARGET_OFF_EDGE : 'target aperture off edge of window',
+    hcam.DATA_SATURATED  : 'target aperture has saturated pixels',
+}
