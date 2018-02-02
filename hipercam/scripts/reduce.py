@@ -1445,14 +1445,14 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
             # refine the Aperture position by fitting the profile
             try:
                 (sky, height, x, y, fwhm, beta), \
-                    (esky, eheight, ex, ey, efwhm, ebeta), extras = \
-                    hcam.combFit(
-                    fwind, rfile.method, sky, peak-sky,
-                    x, y, fit_fwhm, apsec['fit_fwhm_min'],
-                    apsec['fit_fwhm_fixed'], fit_beta, rd, gn
-                    )
-                if beta is None or ebeta is None:
-                    beta, ebeta = 0., -1
+                    (esky, eheight, ex, ey, efwhm, ebeta), \
+                    extras = \
+                             hcam.fitting.combFit(
+                                 fwind, rfile.method, sky, peak-sky,
+                                 x, y, fit_fwhm, apsec['fit_fwhm_min'],
+                                 apsec['fit_fwhm_fixed'], fit_beta,
+                                 rd, gn, apsec['fit_thresh']
+                             )
 
                 if height > apsec['fit_height_min']:
                     dx = x - aper.x
@@ -1491,9 +1491,11 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
 
                 else:
                     print(
-                        'CCD {:s}, reference aperture {:s}, peak = {:.1f} < {:s}'.format(
-                            cnam, apnam, height, apsec['fit_height_min']),
-                          file=sys.stderr)
+                        ('CCD {:s}, reference aperture {:s}'
+                         ', peak = {:.1f} < {:s}').format(
+                             cnam, apnam, height, apsec['fit_height_min']),
+                        file=sys.stderr
+                    )
 
                     store[apnam] = {
                         'xe' : -1, 'ye' : -1,
@@ -1591,15 +1593,14 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
             # refine the Aperture position by fitting the profile
             try:
                 (sky, height, x, y, fwhm, beta), \
-                    (esky, eheight, ex, ey, efwhm, ebeta), extras = \
-                    hcam.combFit(
-                        fwind, rfile.method, sky, peak-sky,
-                        x, y, fit_fwhm, apsec['fit_fwhm_min'],
-                        apsec['fit_fwhm_fixed'], fit_beta, rd, gn
-                    )
-
-                if beta is None or ebeta is None:
-                    beta, ebeta = 0., -1
+                    (esky, eheight, ex, ey, efwhm, ebeta), \
+                    extras = \
+                             hcam.fitting.combFit(
+                                 fwind, rfile.method, sky, peak-sky,
+                                 x, y, fit_fwhm, apsec['fit_fwhm_min'],
+                                 apsec['fit_fwhm_fixed'], fit_beta,
+                                 rd, gn, apsec['fit_thresh'],
+                             )
 
                 if height > apsec['fit_height_min']:
                     # store some stuff for next time and for passing onto

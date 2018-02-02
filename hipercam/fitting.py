@@ -68,11 +68,11 @@ def combFit(wind, method, sky, height, x, y,
 
        pars    : tuple
           (sky, height, x, y, fwhm, beta), the fitted parameters
-          (`beta` is None if `method`=='g')
+          (`beta` == 0 if `method`=='g')
 
        epars   : tuple
           (esky, eheight, ex, ey, efwhm, ebeta), fitted standard errors.
-          `ebeta` is None if `method`=='g'; `efwhm` == -1 if the FWHM was fixed
+          `ebeta` == -1 if `method`=='g'; `efwhm` == -1 if the FWHM was fixed
           or it hit the minimum value. 
 
        extras : tuple 
@@ -118,7 +118,7 @@ def combFit(wind, method, sky, height, x, y,
             ' FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),'
             ' sky = {:.1f}({:.1f}), chi**2 = {:.1f}, nok = {:d}, nrej = {:d}'
         ).format(x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,chisq,nok,nrej)
-        beta, ebeta = None, None
+        beta, ebeta = 0., -1.
     elif method == 'm':
         message = (
             'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),'

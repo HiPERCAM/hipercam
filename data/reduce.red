@@ -29,14 +29,14 @@ search_half_width_ref  = 11   # for initial search around reference aperture, un
 search_half_width_non  = 5    # for initial search around non-reference aperture, unbinned pixels
 search_smooth_fwhm     = 4    # smoothing FWHM, binned pixels
 
-fit_method     = gaussian   # gaussian or moffat
-fit_beta       = 4.         # Moffat exponent
-fit_fwhm       = 6.         # FWHM, unbinned pixels
-fit_fwhm_min   = 2.         # Minimum FWHM, unbinned pixels
-fit_fwhm_fixed = no         # Slightly faster not to fit the FWHM.
-fit_half_width = 21         # for fit, unbinned pixels
-fit_sigma      = 4          # rejection threshold for fits
-fit_height_min = 50         # minimum height to accept a fit
+fit_method     = moffat    # gaussian or moffat
+fit_beta       = 4.        # Moffat exponent
+fit_fwhm       = 6.        # FWHM, unbinned pixels
+fit_fwhm_min   = 1.7       # Minimum FWHM, unbinned pixels
+fit_fwhm_fixed = no        # Slightly faster not to fit the FWHM.
+fit_half_width = 21        # for fit, unbinned pixels
+fit_thresh     = 4         # rejection threshold for fits
+fit_height_min = 50        # minimum height to accept a fit
 
 # The next lines define how the apertures will be re-sized and how the flux
 # will be extracted from the aperture. There is one line per CCD which starts
