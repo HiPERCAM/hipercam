@@ -85,7 +85,7 @@ def combFit(wind, method, sky, height, x, y,
           fit values. `x`, `y` and `sigma` are all 2D numpy arrays matching
           the dimensions of the data.
 
-    Raises a HipercamError if the fit fails.
+    Raises a HipercamError if the leastsq fails.
 
     """
 
@@ -225,6 +225,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
     sky background has been removed at the start. The value of `sigma` on any
     rejected pixel is < 0.
 
+    Raises a HipercamError if the leastsq fails.
+
     """
 
     # construct function objects of both types from the first because during
@@ -252,6 +254,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 mfit2, param, Dfun=dmfit2, col_deriv=True,
                 full_output=True
             )
+            if ier < 1 or ier > 4:
+                raise HipercamError(mesg)
 
             # process results
             fit = Window(wind.winhead, mfit2.model(soln))
@@ -268,6 +272,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 mfit1, param, Dfun=dmfit1, col_deriv=True,
                 full_output=True
             )
+            if ier < 1 or ier > 4:
+                raise HipercamError(mesg)
 
             # process results
             skyf, heightf, xf, yf, fwhmf, betaf = soln
@@ -288,6 +294,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                     mfit2, param, Dfun=dmfit2, col_deriv=True,
                     full_output=True
                 )
+                if ier < 1 or ier > 4:
+                    raise HipercamError(mesg)
 
                 # process results
                 fit = Window(wind.winhead, mfit2.model(soln))
@@ -690,6 +698,8 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 uncertainties on each pixels [option for future: some may come
                 back < 0 indicating rejection].
 
+    Raises a HipercamError if the leastsq fails.
+
     """
 
     # construct function objects of both types from the first because during
@@ -717,6 +727,8 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 gfit2, param, Dfun=dgfit2, col_deriv=True,
                 full_output=True
             )
+            if ier < 1 or ier > 4:
+                raise HipercamError(mesg)
 
             # process results
             fit = Window(wind.winhead, gfit2.model(soln))
@@ -733,6 +745,8 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 gfit1, param, Dfun=dgfit1, col_deriv=True,
                 full_output=True
             )
+            if ier < 1 or ier > 4:
+                raise HipercamError(mesg)
 
             # process results
             skyf, heightf, xf, yf, fwhmf = soln
@@ -752,6 +766,8 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                     gfit2, param, Dfun=dgfit2, col_deriv=True,
                     full_output=True
                 )
+                if ier < 1 or ier > 4:
+                    raise HipercamError(mesg)
 
                 # process results
                 fit = Window(wind.winhead, gfit2.model(soln))

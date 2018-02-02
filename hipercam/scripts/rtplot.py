@@ -556,7 +556,9 @@ def rtplot(args=None):
                     x,y,peak = swind.find(smooth, False)
 
                     # now for a more refined fit. First extract fit Window
-                    fwind = ccd[fpar.wnam].window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                    fwind = ccd[fpar.wnam].window(
+                        x-fhbox, x+fhbox, y-fhbox, y+fhbox
+                    )
 
                     # crude estimate of sky background
                     sky = np.percentile(fwind.data, 50)
@@ -578,7 +580,8 @@ def rtplot(args=None):
                             if method == 'g':
                                 fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
                             elif method == 'm':
-                                fpar.x, fpar.y, fpar.fwhm, fpar.beta = x, y, fwhm, beta
+                                fpar.x, fpar.y, fpar.fwhm, \
+                                    fpar.beta = x, y, fwhm, beta
 
                             # plot values versus radial distance
                             ok = sigma > 0
@@ -589,7 +592,7 @@ def rtplot(args=None):
                             extent = vmax-vmin
                             pgeras()
                             pgvstd()
-                            pgswin( 0, R.max(), vmin-0.05*extent, vmax+0.05*extent)
+                            pgswin(0,R.max(),vmin-0.05*extent,vmax+0.05*extent)
                             pgsci(4)
                             pgbox('bcnst',0,0,'bcnst',0,0)
                             pgsci(2)
@@ -623,8 +626,10 @@ def rtplot(args=None):
                         # plot location on image as a cross
                         pgpt1(x, y, 5)
 
-                    except hcam.HipercamError:
-                        print(' >> Targ {:d}: fit failed ***'.format(fpar.ntarg))
+                    except hcam.HipercamError as err:
+                        print(' >> Targ {:d}: fit failed ***: {!s}'.format(
+                            fpar.ntarg, err)
+                        )
                         pgsci(2)
 
             if pause > 0.:
