@@ -409,7 +409,7 @@ class Winhead(fits.Header):
              max(0,int(math.ceil((self.yhi-yhi)/self.ybin)))
 
         if nx <= 0 or ny <= 0:
-            raise ValueError(
+            raise HipercamError(
                 '{!r} has no overlap with region = '
                 '({:.2f},{:.2f},{:.2f},{:.2f})'.format(
                     self.format(), xlo, xhi, ylo, yhi)
