@@ -246,37 +246,53 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             mfit2.fwhm = fwhm
             dmfit2.fwhm = fwhm
             param = (sky, height, xcen, ycen, beta)
-            res = leastsq(mfit2, param, Dfun=dmfit2, col_deriv=True,
-                          full_output=True)
-            fit = Window(wind.winhead, mfit2.model(res[0]))
-            skyf, heightf, xf, yf, betaf = res[0]
-            skyfe, heightfe, xfe, yfe, \
-                betafe = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
+
+            # carry out fit
+            soln, covar, info, mesg, ier = leastsq(
+                mfit2, param, Dfun=dmfit2, col_deriv=True,
+                full_output=True
+            )
+
+            # process results
+            fit = Window(wind.winhead, mfit2.model(soln))
+            skyf, heightf, xf, yf, betaf = soln
+            skyfe, heightfe, xfe, yfe, betafe = np.sqrt(np.diag(covar))
             fwhmf, fwhmfe = fwhm, -1
 
         else:
             # FWHM free to vary
             param = (sky, height, xcen, ycen, fwhm, beta)
-            res = leastsq(mfit1, param, Dfun=dmfit1, col_deriv=True,
-                          full_output=True)
-            skyf, heightf, xf, yf, fwhmf, betaf = res[0]
+
+            # carry out fit
+            soln, covar, info, mesg, ier = leastsq(
+                mfit1, param, Dfun=dmfit1, col_deriv=True,
+                full_output=True
+            )
+
+            # process results
+            skyf, heightf, xf, yf, fwhmf, betaf = soln
             if fwhmf > fwhm_min:
                 # Free fit is OK
-                skyfe, heightfe, xfe, yfe, fwhmfe, \
-                    betafe = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
-                fit = Window(wind.winhead, mfit1.model(res[0]))
+                fit = Window(wind.winhead, mfit1.model(soln))
+                skyfe, heightfe, xfe, yfe, \
+                    fwhmfe, betafe = np.sqrt(np.diag(covar))
 
             else:
                 # fall back to fixed FWHM
                 mfit2.fwhm = fwhm_min
                 dmfit2.fwhm = fwhm_min
                 param = (sky, height, xcen, ycen, beta)
-                res = leastsq(mfit2, param, Dfun=dmfit2, col_deriv=True,
-                              full_output=True)
-                fit = Window(wind.winhead, mfit2.model(res[0]))
-                skyf, heightf, xf, yf, betaf = res[0]
-                skyfe, heightfe, xfe, yfe, \
-                    betafe = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
+
+                # carry out fit
+                soln, covar, info, mesg, ier = leastsq(
+                    mfit2, param, Dfun=dmfit2, col_deriv=True,
+                    full_output=True
+                )
+
+                # process results
+                fit = Window(wind.winhead, mfit2.model(soln))
+                skyf, heightf, xf, yf, betaf = soln
+                skyfe, heightfe, xfe, yfe, betafe = np.sqrt(np.diag(covar))
                 fwhmf, fwhmfe = fwhm_min, -1
 
         # now look for bad outliers
@@ -284,7 +300,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
         resid = (wind.data - fit.data) / mfit1.sigma
         chisq = (resid[ok]**2).sum()
         nok1 = len(resid[ok])
-        sfac = np.sqrt(chisq/(nok1-len(res[0])))
+        sfac = np.sqrt(chisq/(nok1-len(soln)))
 
         # reject any above the defined threshold
         mfit1.sigma[ok & (np.abs(resid)> sfac*thresh)] *= -1
@@ -314,7 +330,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
     return (
         (skyf,heightf,xf,yf,fwhmf,betaf),
         (skyfe,heightfe,xfe,yfe,fwhmfe,betafe),
-        (fit,mfit1.xy[0],mfit1.xy[1],mfit1.sigma,chisq,nok,nrej,len(res[0]))
+        (fit,mfit1.xy[0],mfit1.xy[1],mfit1.sigma,chisq,nok,nrej,len(soln))
     )
 
 def moffat(xy, sky, height, xcen, ycen, fwhm, beta):
@@ -695,37 +711,52 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             gfit2.fwhm = fwhm
             dgfit2.fwhm = fwhm
             param = (sky, height, xcen, ycen)
-            res = leastsq(gfit2, param, Dfun=dgfit2, col_deriv=True,
-                          full_output=True)
-            fit = Window(wind.winhead, gfit2.model(res[0]))
-            skyf, heightf, xf, yf = res[0]
-            skyfe, heightfe, xfe, yfe = [np.sqrt(row[i]) \
-                                         for i,row in enumerate(res[1])]
+
+            # carry out fit
+            soln, covar, info, mesg, ier = leastsq(
+                gfit2, param, Dfun=dgfit2, col_deriv=True,
+                full_output=True
+            )
+
+            # process results
+            fit = Window(wind.winhead, gfit2.model(soln))
+            skyf, heightf, xf, yf = soln
+            skyfe, heightfe, xfe, yfe = np.sqrt(np.diag(covar))
             fwhmf, fwhmfe = fwhm, -1
 
         else:
             # FWHM free to vary
             param = (sky, height, xcen, ycen, fwhm)
-            res = leastsq(gfit1, param, Dfun=dgfit1, col_deriv=True,
-                          full_output=True)
-            skyf, heightf, xf, yf, fwhmf = res[0]
+
+            # carry out fit
+            soln, covar, info, mesg, ier = leastsq(
+                gfit1, param, Dfun=dgfit1, col_deriv=True,
+                full_output=True
+            )
+
+            # process results
+            skyf, heightf, xf, yf, fwhmf = soln
             if fwhmf > fwhm_min:
                 # Free fit is OK
-                skyfe, heightfe, xfe, yfe, fwhmfe \
-                    = [np.sqrt(row[i]) for i,row in enumerate(res[1])]
-                fit = Window(wind.winhead, gfit1.model(res[0]))
+                skyfe, heightfe, xfe, yfe, fwhmfe = np.sqrt(np.diag(covar))
+                fit = Window(wind.winhead, gfit1.model(soln))
 
             else:
                 # fall back to fixed FWHM
                 gfit2.fwhm = fwhm_min
                 dgfit2.fwhm = fwhm_min
                 param = (sky, height, xcen, ycen, beta)
-                res = leastsq(gfit2, param, Dfun=dgfit2, col_deriv=True,
-                              full_output=True)
-                fit = Window(wind.winhead, gfit2.model(res[0]))
-                skyf, heightf, xf, yf = res[0]
-                skyfe, heightfe, xfe, yfe \
-                    = [np.sqrt(row[i]) for i, row in enumerate(res[1])]
+
+                # carry out fit
+                soln, covar, info, mesg, ier = leastsq(
+                    gfit2, param, Dfun=dgfit2, col_deriv=True,
+                    full_output=True
+                )
+
+                # process results
+                fit = Window(wind.winhead, gfit2.model(soln))
+                skyf, heightf, xf, yf = soln
+                skyfe, heightfe, xfe, yfe = np.sqrt(np.diag(covar))
                 fwhmf, fwhmfe = fwhm_min, -1
 
         # now look for bad outliers
@@ -733,7 +764,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
         resid = (wind.data - fit.data) / gfit1.sigma
         chisq = (resid[ok]**2).sum()
         nok1 = len(resid[ok])
-        sfac = np.sqrt(chisq/(nok1-len(res[0])))
+        sfac = np.sqrt(chisq/(nok1-len(soln)))
 
         # reject any above the defined threshold
         gfit1.sigma[ok & (np.abs(resid)> sfac*thresh)] *= -1
@@ -762,7 +793,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
     return (
         (skyf,heightf,xf,yf,fwhmf),
         (skyfe,heightfe,xfe,yfe,fwhmfe),
-        (fit,gfit1.xy[0],gfit1.xy[1],gfit1.sigma,chisq,nok,nrej,len(res[0]))
+        (fit,gfit1.xy[0],gfit1.xy[1],gfit1.sigma,chisq,nok,nrej,len(soln))
     )
 
 def gaussian(xy, sky, height, xcen, ycen, fwhm):
