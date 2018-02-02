@@ -151,10 +151,9 @@ class Rhead:
             self._ws.send(data)
             self.header = fits.Header.fromstring(self._ws.recv())
 
-            # get number of samples per pixel, defaulting to 1 for old format
             nsamps = self.header.get('ESO DET NSAMP', 1)
-            self._framesize = 36 + (self.header['ESO DET ACQ1 WIN NX'] *
-                                    self.header['ESO DET ACQ1 WIN NY'])
+            self._framesize = 18 + (self.header['ESO DET ACQ1 WIN NX'] *
+                                    self.header['ESO DET ACQ1 WIN NY']) // nsamps
         else:
             # open the file
             self._ffile = open(add_extension(fname, HRAW),'rb')
@@ -169,7 +168,7 @@ class Rhead:
 
         # calculate the framesize in bytes
         bitpix = abs(self.header['BITPIX'])
-        self._framesize = bitpix * self._framesize // 8
+        self._framesize *= (bitpix // 8)
 
         # store the scaling and offset
         self._bscale = self.header['BSCALE']
@@ -884,7 +883,6 @@ class Rdata (Rhead):
         CNAMS = ('1', '2', '3', '4', '5')
         QNAMS = ('E', 'F', 'G', 'H')
 
-
         # update the headers, initialise the CCDs
         cheads = {}
         ccds = Group(CCD)
@@ -925,10 +923,10 @@ class Rdata (Rhead):
 
             # re-format the data as a 4D array indexed by (ccd,window,y,x)
 
-            # get number of samples per pixel, with a default of 4
-            # pixel data order depends on number of samples, and
-            # the data prior to implementing sampling is the same as
-            # nsamps = 4
+            # Get number of samples per pixel, with a default of 4.  Pixel
+            # data order depends on the number of samples, and the data prior
+            # to implementing sampling (i.e. October 2017 WHT run) is the same
+            # as nsamps = 4
             nsamps = self.header.get('ESO DET NSAMP', 4)
             if nsamps == 4:
                 data = as_strided(
@@ -968,7 +966,7 @@ class Rdata (Rhead):
                                 'can only flip on axis 0 or 1, but got = {:d}'.format(ax)
                             )
 
-                    if nwin == 0 and nccd == 0 and nquad == 0:
+                    if nwin == 0 and nquad == 0:
                         # store CCD header in the first Winhead
                         win.update(cheads[cnam])
 
