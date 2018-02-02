@@ -951,7 +951,7 @@ class Rfile(OrderedDict):
     """
 
     # Data
-    VERSION = '2017-10-21'
+    VERSION = '2018-02-02'
 
     @classmethod
     def read(cls, filename):

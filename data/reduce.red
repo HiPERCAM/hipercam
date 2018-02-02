@@ -5,7 +5,7 @@
 # to be prompted every time for them.
 
 [general]
-version = 2017-10-20 # must match date in reduce itself.
+version = 2018-02-02 # must match date in reduce itself.
 
 ldevice  = 1/xs  # PGPLOT plot device for light curve plots
 lwidth   = 0     # light curve plot width, inches, 0 to let program choose
