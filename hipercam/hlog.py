@@ -28,13 +28,6 @@ from . import utils
 
 __all__ = ('Hlog', 'Tseries')
 
-# Bit masks
-NO_FWHM         = 0b1     # even though variable apertures are being used
-NO_SKY          = 0b10    # no sky pixels
-SKY_OFF_EDGE    = 0b100   # sky aperture off edge of window
-TARGET_OFF_EDGE = 0b1000  # target aperture off edge of window
-ANY = NO_FWHM | NO_SKY | SKY_OFF_EDGE | TARGET_OFF_EDGE
-
 class Hlog(dict):
     """
     Class to represent a HiPERCAM log as produced by reduce.
@@ -166,13 +159,13 @@ class Tseries:
         self.ye = ye
         self.mask = mask
 
-    def mplot(self, axes, colour='b', fmt='.', mask=ANY, capsize=0,
-              erry=True, **kwargs):
+    def mplot(self, axes, colour='b', fmt='.', mask=ANY,
+              capsize=0, erry=True, **kwargs):
         """
         Plots a Tseries to a matplotlib Axes instance, only
         plotting points without any of the same bits set as
-        'mask'. Points with negative errors are plotted
-        without error bars.
+        `mask` (see hipercam.core for a full list). Points
+        with negative errors are plotted without error bars.
         """
         ok = np.bitwise_and(self.mask, mask) == 0
 

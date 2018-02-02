@@ -9,7 +9,9 @@ import numpy as np
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
     'HipercamError', 'HipercamWarning', 'DMINS',
-    'LOG', 'CNAMS', 'CIS',
+    'LOG', 'CNAMS', 'CIS', 'ALL_OK', 'NO_FWHM',
+    'NO_SKY', 'SKY_OFF_EDGE', 'TARGET_OFF_EDGE',
+    'EXTRA_OFF_EDGE', 'DATA_SATURATED', 'ANY'
 )
 
 # Constants for general use
@@ -65,6 +67,18 @@ CNAMS = {
     'darkred' : 13,
     'mud' : 14,
 }
+
+# Bit masks (used in reduce.py and hlog.py)
+ALL_OK          = 0       # no bits set
+NO_FWHM         = 1 << 0  # even though variable apertures are being used
+NO_SKY          = 1 << 1  # no sky pixels
+SKY_OFF_EDGE    = 1 << 2  # sky aperture off edge of window
+TARGET_OFF_EDGE = 1 << 3  # target aperture off edge of window
+EXTRA_OFF_EDGE  = 1 << 4  # extra target aperture off edge of window
+DATA_SATURATED  = 1 << 5  # At least one pixel in target aperture
+
+ANY = NO_FWHM | NO_SKY | SKY_OFF_EDGE | TARGET_OFF_EDGE | \
+      EXTRA_OFF_EDGE | DATA_SATURATED
 
 class HipercamError (Exception):
     """
