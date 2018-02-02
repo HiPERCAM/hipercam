@@ -520,13 +520,16 @@ def rtplot(args=None):
                         wnam = ccd.inside(x, y, 2)
 
                         if wnam is not None:
-                            # store the position, Window label, target number, box size
-                            # fwhm, beta
+                            # store the position, Window label, target number,
+                            # box size fwhm, beta
                             ntarg += 1
                             fpos.append(Fpar(x,y,wnam,ntarg,shbox,fwhm,beta))
 
                             # report information, overplot search box
-                            print('Target {:d} selected at {:.1f},{:.1f} in window {:s}'.format(ntarg,x,y,wnam))
+                            print(
+                                ('Target {:d} selected at {:.1f},'
+                                 '{:.1f} in window {:s}').format(ntarg,x,y,wnam)
+                            )
                             if splot:
                                 fpos[-1].plot()
 
@@ -547,24 +550,24 @@ def rtplot(args=None):
                     # plot search box
                     if splot:
                         fpar.plot()
-
-                    # extract search box from the CCD. 'fpar' is updated later
-                    # if the fit is successful to reflect the new position
-                    swind = fpar.swind(ccd)
-
-                    # carry out initial search
-                    x,y,peak = swind.find(smooth, False)
-
-                    # now for a more refined fit. First extract fit Window
-                    fwind = ccd[fpar.wnam].window(
-                        x-fhbox, x+fhbox, y-fhbox, y+fhbox
-                    )
-
-                    # crude estimate of sky background
-                    sky = np.percentile(fwind.data, 50)
-
-                    # refine the Aperture position by fitting the profile
+ 
                     try:
+                        # extract search box from the CCD. 'fpar' is updated later
+                        # if the fit is successful to reflect the new position
+                        swind = fpar.swind(ccd)
+
+                        # carry out initial search
+                        x,y,peak = swind.find(smooth, False)
+
+                        # now for a more refined fit. First extract fit Window
+                        fwind = ccd[fpar.wnam].window(
+                            x-fhbox, x+fhbox, y-fhbox, y+fhbox
+                        )
+
+                        # crude estimate of sky background
+                        sky = np.percentile(fwind.data, 50)
+
+                        # refine the Aperture position by fitting the profile
                         (sky, height, x, y, fwhm, beta), epars, \
                             (wfit, X, Y, sigma, chisq, nok,
                              nrej, npar, message) = hcam.fitting.combFit(
@@ -575,7 +578,7 @@ def rtplot(args=None):
 
                         print('Targ {:d}: {:s}'.format(fpar.ntarg,message))
 
-                        if peak > hmin:
+                        if peak > hmin and ccd[fpar.wnam].distance(x,y) > 1:
                             # update some initial parameters for next time
                             if method == 'g':
                                 fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
@@ -655,7 +658,8 @@ class Fpar:
         self.beta = beta
 
     def region(self):
-        return (self.x-self.shbox, self.x+self.shbox, self.y-self.shbox, self.y+self.shbox)
+        return (self.x-self.shbox, self.x+self.shbox,
+                self.y-self.shbox, self.y+self.shbox)
 
     def plot(self):
         """Plots search region"""
