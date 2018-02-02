@@ -759,7 +759,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 # fall back to fixed FWHM
                 gfit2.fwhm = fwhm_min
                 dgfit2.fwhm = fwhm_min
-                param = (sky, height, xcen, ycen, beta)
+                param = (sky, height, xcen, ycen)
 
                 # carry out fit
                 soln, covar, info, mesg, ier = leastsq(
