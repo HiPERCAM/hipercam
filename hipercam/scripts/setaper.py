@@ -169,8 +169,8 @@ def setaper(args=None):
       gain   : (float) [hidden]
          gain, ADU/count, for assigning uncertainties
 
-      sigma  : (float) [hidden]
-         sigma rejection threshold
+      thresh  : (float) [hidden]
+         thresh rejection threshold
 
 
     Notes. There are a few conveniences to make setaper easier::
@@ -231,7 +231,7 @@ def setaper(args=None):
         cl.register('fhbox', Cline.LOCAL, Cline.HIDE)
         cl.register('read', Cline.LOCAL, Cline.HIDE)
         cl.register('gain', Cline.LOCAL, Cline.HIDE)
-        cl.register('sigma', Cline.LOCAL, Cline.HIDE)
+        cl.register('thresh', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         mccd = cl.get_value('mccd', 'frame to plot',
@@ -358,7 +358,8 @@ def setaper(args=None):
             ' [unbinned pixels]', 21., 3.)
         read = cl.get_value('read', 'readout noise, RMS ADU', 3.)
         gain = cl.get_value('gain', 'gain, ADU/e-', 1.)
-        sigma = cl.get_value('sigma', 'readout noise, RMS ADU', 3.)
+        thresh = cl.get_value('thresh',
+                              'RMS rejection threshold for fitting', 4.)
 
     # Inputs obtained.
 
@@ -448,7 +449,7 @@ def setaper(args=None):
         mccd, cnams, anams, toolbar, fig, mccdaper, linput,
         rtarg, rsky1, rsky2, profit, method, beta,
         fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
-        read, gain, sigma, aper, pobjs
+        read, gain, thresh, aper, pobjs
     )
 
     plt.tight_layout()
@@ -475,7 +476,7 @@ class PickStar:
     def __init__(
             self, mccd, cnams, anams, toolbar, fig, mccdaper, linput,
             rtarg, rsky1, rsky2, profit, method, beta, fwhm, fwhm_min,
-            fwhm_fix, shbox, smooth, fhbox, read, gain, sigma, apernam,
+            fwhm_fix, shbox, smooth, fhbox, read, gain, thresh, apernam,
             pobjs):
 
         # save the inputs, tack on event handlers.
@@ -502,7 +503,7 @@ class PickStar:
         self.fhbox = fhbox
         self.read = read
         self.gain = gain
-        self.sigma = sigma
+        self.thresh = thresh
         self.apernam = apernam
         self.pobjs = pobjs
 
@@ -821,11 +822,12 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             # refine the Aperture position by fitting the profile
             try:
                 (sky, height, x, y, fwhm, beta), epars, \
-                    (X, Y, message) = hcam.combFit(
-                        fwind, self.method, sky, peak-sky,
-                        x, y, self.fwhm, self.fwhm_min, self.fwhm_fix,
-                        self.beta, self.read, self.gain
-                    )
+                    (wfit, X, Y, sigma, chisq, nok, nrej,
+                     npar, message) = hcam.fitting.combFit(
+                         fwind, self.method, sky, peak-sky,
+                         x, y, self.fwhm, self.fwhm_min, self.fwhm_fix,
+                         self.beta, self.read, self.gain, self.thresh
+                     )
 
                 print('Aperture {:s}: {:s}'.format(self._buffer,message))
                 self._x = x
