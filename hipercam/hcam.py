@@ -939,7 +939,7 @@ class Rdata (Rhead):
                 data = as_strided(
                     allwins, strides=(32, 2, 160, 8),
                     shape=(5, 4, len(frame)//80, 4)
-                ).reshape(5, 4, 512, 1024)
+                ).reshape(5, 4, win.ny, win.nx)
 
             # now build the Windows
             for nccd, cnam in enumerate(CNAMS):
