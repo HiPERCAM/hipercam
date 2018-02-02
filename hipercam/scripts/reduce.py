@@ -615,24 +615,31 @@ def reduce(args=None):
                     # reference the times relative to the start frame.
                     tzero = mccd.head['MJDUTC']
 
+                # start processing here. Retain a copy of the
+                # raw data as 'mccd' in order to judge saturation.
+                # processed data called 'pccd'
                 if rfile.bias is not None:
                     # subtract bias
-                    mccd -= rfile.bias
+                    pccd -= rfile.bias
+                else:
+                    # no bias subtraction
+                    pccd = mccd
 
                 # container for the results from each CCD
                 results = {}
-                for cnam in mccd:
+                for cnam in pccd:
 
                     # get the apertures
                     if cnam not in rfile.aper or \
+                       cnam not in rfile['extraction'] or \
                        len(rfile.aper[cnam]) == 0 or \
-                       not mccd[cnam].is_data():
+                       not pccd[cnam].is_data():
                         continue
 
                     ccdaper = rfile.aper[cnam]
 
                     # get the CCD and the apertures
-                    ccd = mccd[cnam]
+                    ccd = pccd[cnam]
 
                     if cnam not in mccdwins:
                         # first time through, work out an array of which
@@ -680,26 +687,27 @@ def reduce(args=None):
 
                     # extract flux from all apertures of each CCD
                     results[cnam] = extractFlux(
-                        cnam, ccd, ccdaper, ccdwins, rfile,
-                        read, gain, store, mfwhm
+                        cnam, ccd, mccd[cnam], ccdaper, ccdwins,
+                        rfile, read, gain, store, mfwhm
                     )
 
                 # write out results to the log file
                 logfile.write('#\n')
-                for cnam in mccd:
+                for cnam in pccd:
                     # get the apertures
                     if cnam not in rfile.aper or \
+                       cnam not in rfile['extraction'] or \
                        len(rfile.aper[cnam]) == 0 or \
-                       not mccd[cnam].is_data():
+                       not pccd[cnam].is_data():
                         continue
 
                     ccdaper = rfile.aper[cnam]
 
                     # get time and flag
-                    mjd = mccd[cnam].head['MJDUTC']
-                    mjdok = mccd[cnam].head['GOODTIME']
-                    if 'EXPTIME' in mccd[cnam].head:
-                        exptim = mccd[cnam].head['EXPTIME']
+                    mjd = pccd[cnam].head['MJDUTC']
+                    mjdok = pccd[cnam].head['GOODTIME']
+                    if 'EXPTIME' in pccd[cnam].head:
+                        exptim = pccd[cnam].head['EXPTIME']
                     else:
                         exptim = 1.0
                     # write generic data
@@ -737,7 +745,7 @@ def reduce(args=None):
                     # display the CCDs chosen
                     message = '; '
                     for nc, cnam in enumerate(ccds):
-                        ccd = mccd[cnam]
+                        ccd = pccd[cnam]
 
                         if ccd.is_data():
                             # this should be data as opposed to a blank frame
@@ -772,7 +780,7 @@ def reduce(args=None):
 
 
                 # time in minutes since start
-                t = hcam.DMINS*(mccd.head['MJDUTC']-tzero)
+                t = hcam.DMINS*(pccd.head['MJDUTC']-tzero)
 
                 # track the maximum time
                 tmax = None
@@ -842,6 +850,8 @@ def reduce(args=None):
                         t = np.array(lc.t, dtype=np.float32)
                         f = np.array(lc.f, dtype=np.float32)
                         fe = np.array(lc.fe, dtype=np.float32)
+                        symbs = np.array(lc.symb, dtype=np.int)
+                        asymbs = set(symbs)
 
                         # Plot the error bars
                         if lc.ecol is not None:
@@ -851,7 +861,9 @@ def reduce(args=None):
                         # Plot the data
                         pgsci(lc.dcol)
                         pgsch(0.5)
-                        pgpt(t, f, 17)
+                        for symb in asymbs:
+                            ok = symbs == symb
+                            pgpt(t[ok], f[ok], symb)
 
                     if rfile.position:
                         # re-draw the position panels
@@ -862,6 +874,8 @@ def reduce(args=None):
                             t = np.array(xpos.t, dtype=np.float32)
                             f = np.array(xpos.f, dtype=np.float32)
                             fe = np.array(xpos.fe, dtype=np.float32)
+                            symbs = np.array(xpos.symb, dtype=np.int)
+                            asymbs = set(symbs)
 
                             # Plot the error bars
                             if xpos.ecol is not None:
@@ -871,7 +885,9 @@ def reduce(args=None):
                             # Plot the data
                             pgsci(xpos.dcol)
                             pgsch(0.5)
-                            pgpt(t, f, 17)
+                            for symb in asymbs:
+                                ok = symbs == symb
+                                pgpt(t[ok], f[ok], symb)
 
                         ypanel.plot()
                         for ypos in xbuffer:
@@ -879,6 +895,8 @@ def reduce(args=None):
                             t = np.array(ypos.t, dtype=np.float32)
                             f = np.array(ypos.f, dtype=np.float32)
                             fe = np.array(ypos.fe, dtype=np.float32)
+                            symbs = np.array(ypos.symb, dtype=np.int)
+                            asymbs = set(symbs)
 
                             # Plot the error bars
                             if ypos.ecol is not None:
@@ -888,7 +906,9 @@ def reduce(args=None):
                             # Plot the data
                             pgsci(ypos.dcol)
                             pgsch(0.5)
-                            pgpt(t, f, 17)
+                            for symb in asymbs:
+                                ok = symbs == symb
+                                pgpt(t[ok], f[ok], symb)
 
                     if rfile.transmission:
                         # re-draw the transmission panel
@@ -904,6 +924,8 @@ def reduce(args=None):
                                 scale = np.float32(100./trans.fmax)
                                 f *= scale
                                 fe *= scale
+                                symbs = np.array(trans.symb, dtype=np.int)
+                                asymbs = set(symbs)
 
                                 # Plot the error bars
                                 if trans.ecol is not None:
@@ -913,7 +935,9 @@ def reduce(args=None):
                                 # Plot the data
                                 pgsci(trans.dcol)
                                 pgsch(0.5)
-                                pgpt(t, f, 17)
+                                for symb in asymbs:
+                                    ok = symbs == symb
+                                    pgpt(t[ok], f[ok], symb)
 
                     if rfile.seeing:
                         # re-draw the seeing panel
@@ -924,6 +948,8 @@ def reduce(args=None):
                             t = np.array(see.t, dtype=np.float32)
                             f = np.array(see.f, dtype=np.float32)
                             fe = np.array(see.fe, dtype=np.float32)
+                            symbs = np.array(see.symb, dtype=np.int)
+                            asymbs = set(symbs)
 
                             # Plot the error bars
                             if see.ecol is not None:
@@ -933,7 +959,9 @@ def reduce(args=None):
                             # Plot the data
                             pgsci(see.dcol)
                             pgsch(0.5)
-                            pgpt(t, f, 17)
+                            for symb in asymbs:
+                                ok = symbs == symb
+                                pgpt(t[ok], f[ok], symb)
 
                     # end buffering
                     pgebuf()
@@ -1015,15 +1043,22 @@ class Rfile(OrderedDict):
         sect['lwidth'] = float(sect['lwidth'])
         if sect['lwidth'] < 0:
             raise ValueError('general.lwidth must be >= 0')
+
         sect['lheight'] = float(sect['lheight'])
         if sect['lheight'] < 0:
             raise ValueError('general.lheight must be >= 0')
+
         sect['iwidth'] = float(sect['iwidth'])
         if sect['iwidth'] < 0:
             raise ValueError('general.iwidth must be >= 0')
+
         sect['iheight'] = float(sect['iheight'])
         if sect['iheight'] < 0:
             raise ValueError('general.iheight must be >= 0')
+
+        sect['satval'] = float(sect['satval'])
+        if sect['satval'] < 1000:
+            raise ValueError('general.satval must be >= 1000')
 
         #
         # apertures section
@@ -1051,7 +1086,7 @@ class Rfile(OrderedDict):
         apsec['fit_fwhm_min'] = float(apsec['fit_fwhm_min'])
         apsec['fit_beta'] = float(apsec['fit_beta'])
         apsec['fit_half_width'] = int(apsec['fit_half_width'])
-        apsec['fit_sigma'] = float(apsec['fit_sigma'])
+        apsec['fit_thresh'] = float(apsec['fit_thresh'])
         apsec['fit_height_min'] = float(apsec['fit_height_min'])
 
         #
@@ -1336,47 +1371,44 @@ class Rfile(OrderedDict):
 
 def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
               mbeta, store):
-    """Encapsulates aperture re-positioning and resizing. 'store' is a
-    dictionary of results that will be used to start the fits from one frame
-    to the next. It must start as {}.
+    """Encapsulates aperture re-positioning. 'store' is a dictionary of results
+    that will be used to start the fits from one frame to the next. It must
+    start as {}.
 
     It operates by first shifting any reference apertures, then non-linked
     apertures, and finally linked apertures.
-
-    Finally it applies a resizing strategy deduced from the 'extraction'
-    section of rfile.
 
     It returns a weighted mean FWHM suitable for re-sizing the apertures. This
     is only meaningful if the profile is fitted. It is returned as -1 if not.
 
     Arguments::
 
-       cnam      : (string)
+       cnam      : string
            CCD label
 
-       ccd       : (CCD)
+       ccd       : CCD
            the CCD
 
-       ccdaper   : (CcdAper)
+       ccdaper   : CcdAper
            the Apertures. These are modified on exit.
 
-       ccdwin    : 
+       ccdwin    : dictionary
            the Window label corresponding to each Aperture
 
-       rfile     : (Rfile)
+       rfile     : Rfile
            reduce file configuration parameters
 
-       read      : (float | CCD)
+       read      : float | CCD
            readout noise
 
-       gain      : (float | CCD)
+       gain      : float | CCD
            readout noise
 
-       mfwhm     : (float)
+       mfwhm     : float
            mean FWHM used as a starter for fits. Start at -1 and the reduce
            file starter value will be used.
 
-       mbeta     : (float)
+       mbeta     : float
            mean beat used as a starter for future fits. Start at -1 and the reduce
            file starter value will be used.
 
@@ -1690,7 +1722,8 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
 
     return (mfwhm, mbeta)
 
-def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
+def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
+                store, mfwhm):
     """This extracts the flux of all apertures of a given CCD.
 
     The steps are (1) aperture resizing, (2) sky background estimation, (3)
@@ -1702,24 +1735,52 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
     [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, ecounts, sky, esky,
     nsky, nrej, flag]
 
-    flag = bitmask. If flag = 0, all is OK.
-
-       bit 1  : no FWHM fitted for variable extraction
-       bit 2  : no sky pixels
-       bit 3  : sky aperture goes off edge of window
-       bit 4  : target aperture goes off edge of window
+    flag = bitmask. See hipercam.core to see all the options which are
+    referred to by name in the code e.g. ALL_OK. The various flags can
+    signal that there no sky pixels (NO_SKY), the sky aperture was off
+    the edge of the window (SKY_OFF_EDGE), etc.
 
     This code::
 
-       >> bset = flag & (1 << n)
+       >> bset = flag & DATA_SATURATED
 
-    determines whether bit 'n' is set or not. See also the hlog sub-module
-    which sets explicit constants so that
+    determines whether the data saturation flag is set for example.
 
-       >> bset = flag & hlog.NO_SKY
+    Input arguments:
 
-    determines whether the no sky flag has been set.
+       cnam     : string
+          CCD identifier label
+
+       ccd      : CCD
+          corresponding CCD after debiassing and any other processing
+
+       rccd     : CCD
+          corresponding raw CCD, used to work out whether data are
+          saturated in target aperture.
+
+       ccdaper  : CcdAper
+          CCD's-worth of Apertures
+
+       ccdwin   : dictionary of strings 
+           the Window label corresponding to each Aperture
+
+       rfile     : Rfile
+           reduce file configuration parameters
+
+       read      : float | CCD
+           readout noise
+
+       gain      : float | CCD
+           readout noise
+
+       mfwhm     : float
+           mean FWHM used as a starter for fits. Start at -1 and the reduce
+           file starter value will be used.
+
     """
+
+    # initialise flag
+    flag = hcam.ALL_OK
 
     # get the control parameters
     resize, extype, r1fac, r1min, r1max, r2fac, r2min, r2max, \
@@ -1734,11 +1795,12 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
                 '** CCD {:s}: no measured FWHM to re-size'
                 ' apertures; no extraction of any aperture'.format(cnam)
             )
-            flag = 1 << 0
+            # set flag to indicate no FWHM
+            flag |= hcam.NO_FWHM
+
             for apnam, aper in ccdaper.items():
                 info = store[apnam]
-                results[apnam] = \
-                    {
+                results[apnam] = {
                     'x' : aper.x, 'xe' : info['xe'],
                     'y' : aper.y, 'ye' : info['ye'],
                     'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
@@ -1746,7 +1808,7 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
                     'counts' : 0., 'countse' : -1,
                     'sky' : 0., 'skye' : 0., 'nsky' : 0, 'nrej' : 0,
                     'flag' : flag
-                    }
+                }
             return results
 
         else:
@@ -1769,16 +1831,14 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
     # apertures are now positioned and re-sized. Finally extract something.
     for apnam, aper in ccdaper.items():
 
-        # initialise flag
-        flag = 0
-
         wnam = ccdwin[apnam]
         wind = ccd[wnam]
+        rwind = rccd[wnam]
 
         # extract sub-window that includes all of the pixels that could
         # conceivably affect the aperture. We have to check that 'extra'
-        # apertures do not go beyond rsky2 which would normally be expected
-        # to be the default outer radius
+        # apertures do not go beyond rsky2 which would normally be expected to
+        # be the default outer radius
         rmax = aper.rsky2
         for xoff, yoff in aper.extra:
             rmax = max(rmax, np.sqrt(xoff**2+yoff**2) + aper.rtarg)
@@ -1789,25 +1849,25 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
                       aper.y+aper.rsky2+wind.ybin
 
         swind = wind.window(x1,x2,y1,y2)
+        srwind = rwind.window(x1,x2,y1,y2)
 
         xlo,xhi,ylo,yhi = swind.extent()
         if xlo > aper.x-aper.rsky2 or xhi < aper.x+aper.rsky2 or \
            ylo > aper.y-aper.rsky2 or yhi < aper.y+aper.rsky2:
-            # the sky aperture overlaps the edge of the window, set bit 3
-            flag |= (1 << 3)
+            # the sky aperture overlaps the edge of the window
+            flag |= hcam.SKY_OFF_EDGE
 
         if xlo > aper.x-aper.rtarg or xhi < aper.x+aper.rtarg or \
            ylo > aper.y-aper.rtarg or yhi < aper.y+aper.rtarg:
-            # the target aperture overlaps the edge of the window, set bit 4
-            flag |= (1 << 4)
+            # the target aperture overlaps the edge of the window
+            flag |= hcam.TARGET_OFF_EDGE
 
         for xoff, yoff in aper.extra:
             rout = np.sqrt(xoff**2+yoff**2) + aper.rtarg
             if xlo > aper.x-rout or xhi < aper.x+rout or \
                ylo > aper.y-rout or yhi < aper.y+rout:
-                # an extra target aperture overlaps the edge of the window:
-                # set bit 5
-                flag |= (1 << 5)
+                # an extra target aperture overlaps the edge of the window
+                flag |= hcam.EXTRA_OFF_EDGE
 
         if isinstance(read, hcam.CCD):
             sread = read[wnam].window(x1,x2,y1,y2).data
@@ -1881,9 +1941,8 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
                 serror = np.sqrt((rd**2 + np.max(0, dsky[ok])/gn).sum()/nsky**2)
 
         else:
-            # no sky. still return the flux in the aperture but set bit 2 in
-            # flag
-            flag |= (1 << 2)
+            # no sky. still return the flux in the aperture but set flag
+            flag |= hcam.NO_SKY
             slevel = 0
             serror = -1
             nsky = 0
@@ -1897,6 +1956,10 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
         # pixels to contribute if their centres are as far as size/2 beyond
         # the edge of the circle (but with a tapered weight)
         dok = Rsq < (aper.rtarg+size/2.)**2
+
+        # finally check for saturation
+        if srwind.data[dok].max() >= rfile['general']['satval']:
+            flag |= hcam.DATA_SATURATED
 
         # Pixellation amelioration
         #
@@ -1964,16 +2027,15 @@ def extractFlux(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store, mfwhm):
 
         info = store[apnam]
 
-        results[apnam] = \
-                         {
-                             'x' : aper.x, 'xe' : info['xe'],
-                             'y' : aper.y, 'ye' : info['ye'],
-                             'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
-                             'beta' : info['beta'], 'betae' : info['betae'],
-                             'counts' : counts, 'countse' : ecounts,
-                             'sky' : slevel, 'skye' : serror, 'nsky' : nsky,
-                             'nrej' : nrej, 'flag' : flag
-                         }
+        results[apnam] = {
+            'x' : aper.x, 'xe' : info['xe'],
+            'y' : aper.y, 'ye' : info['ye'],
+            'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
+            'beta' : info['beta'], 'betae' : info['betae'],
+            'counts' : counts, 'countse' : ecounts,
+            'sky' : slevel, 'skye' : serror, 'nsky' : nsky,
+            'nrej' : nrej, 'flag' : flag
+        }
 
     # finally, we are done
     return results
@@ -2278,16 +2340,17 @@ class LightCurve:
         self.t  = []
         self.f  = []
         self.fe = []
+        self.symb = []
 
     def add_point(self, t, results):
-        """
-        Extracts the data to be plotted on the light curve plot for the given
-        the time and the results (for all CCDs, as returned by
+        """Extracts the data to be plotted on the light curve plot for the given the
+        time and the results (for all CCDs, as returned by
         extractFlux. Assuming all is OK (errors > 0 for both comparison and
         target), it stores (t, f, fe) for possible re-plotting, plots the
         point and returns the value of 'f' plotted to help with re-scaling or
         None if nothing was plotted.  't' is the time in minutes since the
         start of the run
+
         """
 
         if self.cnam not in results:
@@ -2298,6 +2361,7 @@ class LightCurve:
         targ = res[self.targ]
         ft = targ['counts']
         fte = targ['countse']
+        saturated = targ['flag'] & hcam.DATA_SATURATED
 
         if fte > 0:
 
@@ -2305,6 +2369,7 @@ class LightCurve:
                 comp = res[self.comp]
                 fc = comp['counts']
                 fce = comp['countse']
+                saturated |= comp['flag'] & hcam.DATA_SATURATED
 
                 if fc > 0:
                     if fce > 0.:
@@ -2336,6 +2401,12 @@ class LightCurve:
         self.t.append(t)
         self.f.append(f)
         self.fe.append(fe)
+        if saturated:
+            # mark saturated data with cross
+            self.symb.append(5)
+        else:
+            # blob if OK
+            self.symb.append(17)
 
         # Plot the point in minutes from start point
         pgsch(0.5)
@@ -2345,7 +2416,7 @@ class LightCurve:
             pgdraw(t, f+fe)
 
         pgsci(self.dcol)
-        pgpt1(t,f,17)
+        pgpt1(t,f,self.symb[-1])
 
         # return f up the line
         return f
@@ -2363,6 +2434,7 @@ class Xposition:
         self.t  = []
         self.f  = []
         self.fe = []
+        self.symb = []
         self.xzero = None
 
     def add_point(self, t, results):
@@ -2398,6 +2470,12 @@ class Xposition:
         self.t.append(t)
         self.f.append(x)
         self.fe.append(xe)
+        if targ['flag'] & hcam.DATA_SATURATED:
+            # mark saturated data with cross
+            self.symb.append(5)
+        else:
+            # blob if OK
+            self.symb.append(17)
 
         # Plot the point in minutes from start point
         pgsch(0.5)
@@ -2406,7 +2484,7 @@ class Xposition:
             pgmove(t, x-xe)
             pgdraw(t, x+xe)
         pgsci(self.dcol)
-        pgpt1(t,x,17)
+        pgpt1(t,x,self.symb[-1])
 
         # return x up the line
         return x
@@ -2424,6 +2502,7 @@ class Yposition:
         self.t  = []
         self.f  = []
         self.fe = []
+        self.symb = []
         self.yzero = None
 
     def add_point(self, t, results):
@@ -2459,6 +2538,12 @@ class Yposition:
         self.t.append(t)
         self.f.append(y)
         self.fe.append(ye)
+        if targ['flag'] & hcam.DATA_SATURATED:
+            # mark saturated data with cross
+            self.symb.append(5)
+        else:
+            # blob if OK
+            self.symb.append(17)
 
         # Plot the point in minutes from start point
         pgsch(0.5)
@@ -2467,7 +2552,7 @@ class Yposition:
             pgmove(t, y-ye)
             pgdraw(t, y+ye)
         pgsci(self.dcol)
-        pgpt1(t,y,17)
+        pgpt1(t,y,self.symb[-1])
 
         # return y up the line
         return y
@@ -2485,6 +2570,7 @@ class Transmission:
         self.t  = []
         self.f  = []
         self.fe = []
+        self.symb = []
         self.fmax = None # Maximum to scale the transmission
 
     def add_point(self, t, results):
@@ -2514,6 +2600,12 @@ class Transmission:
         self.t.append(t)
         self.f.append(f)
         self.fe.append(fe)
+        if targ['flag'] & hcam.DATA_SATURATED:
+            # mark saturated data with cross
+            self.symb.append(5)
+        else:
+            # blob if OK
+            self.symb.append(17)
 
         if self.fmax is None:
             # initialise the maximum flux
@@ -2529,7 +2621,7 @@ class Transmission:
             pgmove(t, f-fe)
             pgdraw(t, f+fe)
         pgsci(self.dcol)
-        pgpt1(t,f,17)
+        pgpt1(t,f,self.symb[-1])
 
         # return f up the line
         return f
@@ -2548,6 +2640,7 @@ class Seeing:
         self.t  = []
         self.f  = []
         self.fe = []
+        self.symb = []
 
     def add_point(self, t, results):
         """
@@ -2579,6 +2672,12 @@ class Seeing:
         self.t.append(t)
         self.f.append(f)
         self.fe.append(fe)
+        if targ['flag'] & hcam.DATA_SATURATED:
+            # mark saturated data with cross
+            self.symb.append(5)
+        else:
+            # blob if OK
+            self.symb.append(17)
 
         # Plot the point in minutes from start point
         pgsch(0.5)
@@ -2587,7 +2686,7 @@ class Seeing:
             pgmove(t, f-fe)
             pgdraw(t, f+fe)
         pgsci(self.dcol)
-        pgpt1(t,f,17)
+        pgpt1(t,f,self.symb[-1])
 
         # return f up the line
         return f
