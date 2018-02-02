@@ -844,7 +844,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             self._x, self._y, self.rtarg, self.rsky1, self.rsky2, False
         )
         self.mccdaper[self._cnam][self._buffer] = aper
-        print('added aperture=',aper)
 
         # add aperture to the plot, store plot objects
         self.pobjs[self._cnam][self._buffer] = hcam.mpl.pAper(
