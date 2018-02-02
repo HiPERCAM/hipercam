@@ -235,9 +235,9 @@ class CCD(Agroup):
                 # step the window counter
                 nwin += 1
 
-            else:
-                # have encountered an HDU with a mis-matching label and since
-                # we assume each CCD is a continguous block, we stop
+            elif not first:
+                # have encountered an HDU with a mis-matching label and
+                # since we assume each CCD is a continguous block, we stop
                 break
 
         return cls(winds, nxtot, nytot)
