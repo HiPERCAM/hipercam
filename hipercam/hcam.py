@@ -935,7 +935,7 @@ class Rdata (Rhead):
                 )
             else:
                 # with 1 sample per pixel the data cannot be simply
-                # re-viewed but a copy must be made
+                # re-viewed but a copy must be made.
                 data = as_strided(
                     allwins, strides=(32, 2, 160, 8),
                     shape=(5, 4, len(frame)//80, 4)
