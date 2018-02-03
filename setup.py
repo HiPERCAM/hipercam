@@ -131,6 +131,7 @@ setup(
             'combine=hipercam.scripts.combine:combine',
             'digest=hipercam.scripts.digest:digest',
             'grab=hipercam.scripts.grab:grab',
+            'genred=hipercam.scripts.genred:genred',
             'hist=hipercam.scripts.hist:hist',
             'hlogger=hipercam.scripts.hlogger:hlogger',
             'hls=hipercam.scripts.hls:hls',

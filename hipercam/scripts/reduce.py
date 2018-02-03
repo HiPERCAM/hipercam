@@ -997,9 +997,6 @@ class Rfile(OrderedDict):
     to configparser but a bit freer.
     """
 
-    # Data
-    VERSION = '2018-02-02'
-
     @classmethod
     def read(cls, filename):
         """
@@ -1052,11 +1049,11 @@ class Rfile(OrderedDict):
         # general section
         #
         sect = rfile['general']
-        if sect['version'] != Rfile.VERSION:
+        if sect['version'] != hcam.VERSION:
             # check the version
             raise ValueError(
                 'Version mismatch: file = {:s}, reduce = {:s}'.format(
-                    sect['version'], Rfile.VERSION)
+                    sect['version'], hcam.VERSION)
             )
 
         sect['lwidth'] = float(sect['lwidth'])

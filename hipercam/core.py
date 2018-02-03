@@ -11,10 +11,16 @@ __all__ = (
     'HipercamError', 'HipercamWarning', 'DMINS',
     'LOG', 'CNAMS', 'CIS', 'ALL_OK', 'NO_FWHM',
     'NO_SKY', 'SKY_OFF_EDGE', 'TARGET_OFF_EDGE',
-    'DATA_SATURATED', 'ANY'
+    'DATA_SATURATED', 'ANY', 'VERSION'
 )
 
 # Constants for general use
+
+# Version string for reduce and genred
+# Format: YYYYMMDD.# where # is an integer to allow for multiple
+# versions in a day, although that should be rare and it should
+# almost always be '1'
+VERSION = '20180203.1'
 
 # Standard file extensions
 FIELD = '.fld'

@@ -16,6 +16,7 @@ from .averun import averun
 from .carith import cadd, cdiv, cmul, csub
 from .combine import combine
 from .grab import grab
+from .genred import genred
 from .hist import hist
 from .hlogger import hlogger
 from .hls import hls
