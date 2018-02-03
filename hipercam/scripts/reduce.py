@@ -1049,11 +1049,11 @@ class Rfile(OrderedDict):
         # general section
         #
         sect = rfile['general']
-        if sect['version'] != hcam.VERSION:
+        if sect['version'] != hcam.REDUCE_FILE_VERSION:
             # check the version
             raise ValueError(
                 'Version mismatch: file = {:s}, reduce = {:s}'.format(
-                    sect['version'], hcam.VERSION)
+                    sect['version'], hcam.REDUCE_FILE_VERSION)
             )
 
         sect['lwidth'] = float(sect['lwidth'])

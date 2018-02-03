@@ -9,17 +9,11 @@ from setuptools.extension import Extension
 # To use a consistent encoding
 from codecs import open
 
-# for talking to git
-import subprocess
-
 # need for Cython
 import numpy as np
 from Cython.Build import cythonize
 
 here = os.path.abspath(os.path.dirname(__file__))
-
-# get last git commit
-lgcommit = subprocess.check_output(["git", "log", "--format=oneline", "-1"])
 
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
@@ -37,7 +31,9 @@ extension = [
 setup(
     name='hipercam',
 
-    # Versions should comply with PEP440.
+    # Versions should comply with PEP440. Here
+    # we use a version generated automatically
+    # from git.
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
 

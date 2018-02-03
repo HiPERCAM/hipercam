@@ -301,19 +301,19 @@ def genred(args=None):
     seeing_plot = ''
     for cnam in aper:
         ccdaper = aper[cnam]
-        if '1' in ccdaper:
+        if '1' in ccdaper and not ccdaper['1'].is_linked():
             seeing_plot += (
                 'plot = {:s} 2 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
                     cnam, CCD_COLS[cnam]
                 )
-        elif '2' in ccdaper:
+        elif '2' in ccdaper and not ccdaper['2'].is_linked():
             seeing_plot += (
                 'plot = {:s} 3 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
                     cnam, CCD_COLS[cnam]
                 )
-        elif '3' in ccdaper:
+        elif '3' in ccdaper  and not ccdaper['3'].is_linked():
             seeing_plot += (
                 'plot = {:s} 1 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
@@ -321,7 +321,7 @@ def genred(args=None):
                 )
         else:
             raise hcam.HipercamError(
-                'Targets 1, 2 and 3 not found; cannot make seeing plot'
+                'Targets 1, 2 and 3 not found (or they are linked); cannot make seeing plot'
             )
 
     # monitor targets (whole lot by default)
@@ -380,8 +380,16 @@ TEMPLATE = """#
 #
 {comment}
 
+
+# Start with some general items that tend not to change much. 'version' is the
+# version of the reduce file format. It automatically matches 'reduce' at the
+# time of creation, but old versions of the reduce file may become incompatible
+# with later versions of reduce. Either they will reauire updating to be used,
+# or the software version can be rolled back to give a compatible version of
+# reduce using 'git'.
+
 [general]
-version = {version} # must match date in reduce itself.
+version = {version}  # must be compatible with the version in reduce
 
 ldevice  = 1/xs  # PGPLOT plot device for light curve plots
 lwidth   = 0     # light curve plot width, inches, 0 to let program choose
@@ -393,7 +401,8 @@ iheight  = 0     # image curve plot height, inches
 
 satval   = 65000 # Level at which to flag saturated data.
 
-# the next section defines how the apertures are re-positioned from frame to
+
+# The next section defines how the apertures are re-positioned from frame to
 # frame. Apertures are re-positioned through a combination of a search near a
 # start location followed by a 2D fit. Several parameters below are associated
 # with this process. If there are reference apertures, they are located first
@@ -416,6 +425,7 @@ fit_half_width = 15        # for fit, unbinned pixels
 fit_thresh     = 4         # rejection threshold for fits
 fit_height_min = 50        # minimum height to accept a fit
 
+
 # The next lines define how the apertures will be re-sized and how the flux
 # will be extracted from the aperture. There is one line per CCD which starts
 # with "CCD label =" and then is followed by
@@ -437,7 +447,8 @@ fit_height_min = 50        # minimum height to accept a fit
 [extraction]
 {extraction}
 
-# next lines determine how the sky background level is calculated. Note
+
+# Next lines determine how the sky background level is calculated. Note
 # you can only set error = variance if method = clipped. 'median' should
 # usually be avoided as it can cause noticable steps in light curves. It's
 # here as a comparator.
@@ -445,6 +456,7 @@ fit_height_min = 50        # minimum height to accept a fit
 method = clipped    # 'clipped' | 'median'
 error  = variance   # 'variance' | 'photon': first uses actual variance of sky
 thresh = 3.5        # threshold in terms of RMS for 'clipped'
+
 
 # Calibration frames and constants
 [calibration]
@@ -455,7 +467,8 @@ dark = {dark}    # Dark frame, blank to ignore
 readout = 3.  # RMS ADU. Float or string name of a file
 gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 
-# the light curve plot (includes transmission & seeing as well)
+
+# The light curve plot (includes transmission & seeing as well)
 
 [lcplot]
 xrange  = 0    # maximum range in X to plot (minutes), <= 0 for everything
@@ -479,9 +492,10 @@ extend_y = 0.1 # fraction of plot height to extend when rescaling
 # line or lines defining the targets to plot
 {light_plot}
 
-# configures the position plot. Can be commented out if you don't want one
-# but make sure to comment it out completely, section name and all parameters
-# you can have multiple plot lines
+
+# Configures the position plot. Can be commented out if you don't want one
+# but make sure to comment it out completely, section name and all parameters.
+# You can have multiple plot lines
 
 [position]
 height  = 0.5    # height relative to light curve plot
@@ -496,9 +510,10 @@ extend_y = 0.2  # Vertical extension fraction if limits exceeded
 # line or lines defining the targets to plot
 {position_plot}
 
-# configures the transmission plot. Can be commented out if you don't want one
-# but make sure to comment it out completely, section name and all parameters
-# you can have multiple plot lines
+
+# Configures the transmission plot. Can be commented out if you don't want one
+# but make sure to comment it out completely, section name and all parameters.
+# You can have multiple plot lines
 
 [transmission]
 height = 0.5      # height relative to the light curve plot
@@ -507,7 +522,8 @@ ymax   = 110      # Maximum transmission to plot (>= 100 to slow replotting)
 # line or lines defining the targets to plot
 {transmission_plot}
 
-# configures the seeing plot. Can be commented out if you don't want one but
+
+# Configures the seeing plot. Can be commented out if you don't want one but
 # make sure to comment it out completely, section name and all parameters you
 # can have multiple plot lines. Don't choose linked targets as their FWHMs are
 # not measured.
@@ -522,15 +538,15 @@ extend_y = 0.2   # Y extension fraction if out of range and not fixed
 # line or lines defining the targets to plot
 {seeing_plot}
 
-# monitor section. This section allows you to monitor particular targets
+# Monitor section. This section allows you to monitor particular targets
 # for problems. If they occur, then messages will be printed to the terminal
 # during reduce. The messages are determined by the bitmask flag set during
 # the extraction of each target. Ones worth testing for are:
 #
-# NO_SKY          : no sky pixels at all
-# SKY_OFF_EDGE    : sky aperture off edge of window
-# TARGET_OFF_EDGE : target aperture off edge of window
-# DATA_SATURATED  : at least one pixel in target aperture saturated
+#  NO_SKY          : no sky pixels at all
+#  SKY_OFF_EDGE    : sky aperture off edge of window
+#  TARGET_OFF_EDGE : target aperture off edge of window
+#  DATA_SATURATED  : at least one pixel in target aperture saturated
 #
 # For a target you want to monitor, type its label, '=', then the bitmask
 # patterns you want to be flagged up if they are set. This is designed mainly
