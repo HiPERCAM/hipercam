@@ -6,6 +6,13 @@ import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
+# get hipercam version to write into the reduce file
+from pkg_resources import get_distribution, DistributionNotFound
+try:
+    hipercam_version = get_distribution('hipercam').version
+except DistributionNotFound:
+    hipercam_version = 'not found'
+
 __all__ = ['genred',]
 
 ################################################
@@ -39,9 +46,9 @@ def genred(args=None):
            assumed to have been called '1', the main comparison '2'. If there
            is a '3' it will be plotted relative to '2'; all others will be
            ignored for plotting purposes. Target '2' will be used to define
-           a the position and transmission plots for CCD 2 only. Target '1'
-           will be used for the seeing plot unless it is linked when target '2'
-           will be used instead.
+           the position and transmission plots for one CCD only [user
+           definable]. Target '1' will be used for the seeing plot unless it
+           is linked when target '2' will be used instead.
 
         rfile    : string
            the output reduce file created using `setaper`. This will be read
@@ -53,6 +60,10 @@ def genred(args=None):
         comment : string
            comment to add near the top of the reduce file. Obvious things to say
            are the target name and the name of the observer for instance.
+
+        ccd     : string
+           label of the (single) CCD used for the position plot
+
         bias    : string
            Name of bias frame; 'none' to ignore.
 
@@ -89,7 +100,10 @@ def genred(args=None):
 
         souter   : float (hidden)
            outer sky aperture radius [unbinned pixels]
+
     """
+
+#    print(my_version)
 
     command, args = utils.script_args(args)
 
@@ -103,6 +117,7 @@ def genred(args=None):
         cl.register('flat', Cline.LOCAL, Cline.PROMPT)
         cl.register('dark', Cline.LOCAL, Cline.PROMPT)
         cl.register('linear', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('smooth_fwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm_min', Cline.LOCAL, Cline.HIDE)
@@ -118,6 +133,8 @@ def genred(args=None):
         apfile = cl.get_value(
             'apfile', 'aperture input file', cline.Fname('aper.ape',hcam.APER)
         )
+        # Read the aperture file
+        aper = hcam.MccdAper.read(apfile)
 
         # the reduce file
         rfile = cl.get_value(
@@ -164,6 +181,11 @@ def genred(args=None):
         linear = 'yes' if linear else 'no'
 
         # hidden parameters
+        ccd = cl.get_value('ccd', 'label for the CCD used for the position plot','2')
+        if ccd not in aper:
+            raise HipercamError(
+                'CCD {:s} not found in aperture file {:s}'.format(ccd,apfile)
+            )
         smooth_fwhm = cl.get_value('smooth_fwhm','search smoothing FWHM [unbinned pixels]',6.,3.)
         fwhm = cl.get_value('fwhm','starting FWHM, unbinned pixels',5.,1.5)
         fwhm_min = cl.get_value('fwhm_min','minimum FWHM, unbinned pixels',1.5,0.)
@@ -176,9 +198,6 @@ def genred(args=None):
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
-
-    # Read the aperture file
-    aper = hcam.MccdAper.read(apfile)
 
     # Generate the extraction lines
     extraction = ''
@@ -227,30 +246,29 @@ def genred(args=None):
 
     # Generate the position plot lines
     position_plot = ''
-    for cnam in aper:
-        ccdaper = aper[cnam]
-        if '2' in ccdaper:
-            position_plot += (
-                'plot = {:s} 2 {:10s} !  '
-                ' # ccd, targ, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
-                )
-        if '3' in ccdaper:
-            position_plot += (
-                'plot = {:s} 3 {:10s} !  '
-                ' # ccd, targ, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
-                )
-        elif '1' in ccdaper:
-            position_plot += (
-                'plot = {:s} 1 {:10s} !  '
-                ' # ccd, targ, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
-                )
-        else:
-            raise hcam.HipercamError(
-                'Targets 1, 2 and 3 not found; cannot make position plot'
+    ccdaper = aper[ccd]
+    if '2' in ccdaper:
+        position_plot += (
+            'plot = {:s} 2 {:10s} !  '
+            ' # ccd, targ, dcol, ecol\n').format(
+                ccd, CCD_COLS[ccd]
             )
+    elif '3' in ccdaper:
+        position_plot += (
+            'plot = {:s} 3 {:10s} !  '
+            ' # ccd, targ, dcol, ecol\n').format(
+                ccd, CCD_COLS[ccd]
+            )
+    elif '1' in ccdaper:
+        position_plot += (
+            'plot = {:s} 1 {:10s} !  '
+            ' # ccd, targ, dcol, ecol\n').format(
+                ccd, CCD_COLS[ccd]
+            )
+    else:
+        raise hcam.HipercamError(
+            'Targets 1, 2 and 3 not found; cannot make position plot'
+        )
 
     # Generate the transmission plot lines
     transmission_plot = ''
@@ -326,13 +344,14 @@ def genred(args=None):
         # write out file
         fout.write(
             TEMPLATE.format(
-                version=hcam.VERSION, apfile=apfile,
+                version=hcam.REDUCE_FILE_VERSION, apfile=apfile,
                 fwhm=fwhm, fwhm_min=fwhm_min, extraction=extraction,
                 bias=bias, flat=flat, dark=dark,
                 smooth_fwhm=smooth_fwhm, linear=linear,
                 light_plot=light_plot, position_plot=position_plot,
                 transmission_plot=transmission_plot, seeing_plot=seeing_plot,
-                monitor=monitor, comment=comment, tstamp=tstamp
+                monitor=monitor, comment=comment, tstamp=tstamp,
+                hipercam_version=hipercam_version,
             )
         )
 
@@ -354,9 +373,11 @@ TEMPLATE = """#
 # parameters. This file explains the meaning of these parameters. The idea is
 # that these are to large extent unchanging and it would be annoying to be
 # prompted every time for them.
-
+#
 # File written on {tstamp}
-
+#
+# HiPERCAM pipeline version: {hipercam_version}
+#
 {comment}
 
 [general]
@@ -512,9 +533,8 @@ extend_y = 0.2   # Y extension fraction if out of range and not fixed
 # DATA_SATURATED  : at least one pixel in target aperture saturated
 #
 # For a target you want to monitor, type its label, '=', then the bitmask
-# patterns you want to be flagged up if they are set. This is designed to head
-# off problems during observing, as there is little you can do once the data
-# have been taken.
+# patterns you want to be flagged up if they are set. This is designed mainly
+# for observing, as there is less you can do once the data have been taken.
 
 [monitor]
 {monitor}
