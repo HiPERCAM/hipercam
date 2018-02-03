@@ -550,9 +550,11 @@ class Cline:
                     elif reply == '?':
                         print()
                         if minval is not None and maxval is not None:
-                            print('Parameter = "{:s}" must lie from {!s} to {!s}'.format(param,minval,maxval))
+                            print('Parameter = "{:s}" must lie from {!s} to {!s}'.format(
+                                param,minval,maxval))
                         elif minval is not None:
-                            print('Parameter = "{:s}" must be greater than {!s}'.format(param,minval))
+                            print('Parameter = "{:s}" must be greater than {!s}'.format(
+                                param,minval))
                         elif maxval is not None:
                             print('Parameter = "{:s}" must be less than {!s}'.format(param,maxval))
                         else:
@@ -566,8 +568,11 @@ class Cline:
                             print('You must enter exactly {:d} values'.format(len(defval)))
                         print()
                     elif reply != '':
-                        if  isinstance(defval, (list, tuple)) and fixlen and len(reply.split()) != len(defval):
-                            print ('You must enter exactly {:d} values. [You only entered {:d}]'.format(len(defval),len(reply.split())))
+                        if  isinstance(defval, (list, tuple)) and fixlen and \
+                            len(reply.split()) != len(defval):
+                            print (
+                                ('You must enter exactly {:d} values.'
+                                 ' [You only entered {:d}]').format(len(defval),len(reply.split())))
                             reply = '?'
                         else:
                             value = reply
@@ -583,6 +588,8 @@ class Cline:
 
             elif isinstance(defval, str):
                 value = str(value)
+                if value == "''":
+                    value = ''
 
             elif isinstance(defval, bool):
                 if isinstance(value, str):
