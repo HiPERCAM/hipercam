@@ -3,7 +3,7 @@
 Reducing your data
 ******************
 
-This guide assumes that you have got started with the pipeline amd gives
+This guide assumes that you have got started with the pipeline and gives
 a more detailed look at reducing data.
 
 

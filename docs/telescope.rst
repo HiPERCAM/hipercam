@@ -5,7 +5,8 @@ At the telescope
 
 Here it is assumed that you are observing with HiPERCAM for the first time and
 want to look at your data. It is written in tutorial style for someone
-starting afresh who just wants to get going.
+starting afresh who just wants to get going. The first thing to realise is
+that the pipeline is run from the command line entered in a terminal. 
 
 Plotting the data coming in
 ===========================
@@ -48,10 +49,10 @@ Returning to 'rtplot' we can enter more inputs::
   yhi - upper Y value [310.0]: max
 
 Each line consists of an input parameter name (e.g. 'bias', 'xlo'), followed
-by a dash, a prompt, a default in square brackets then a colon. In some lines
-the default has been accepted ('plo'), whereas in others, something new has
-been entered, e.g. 'ccd' where the default value '3' has been replaced with
-'2 3 4 5'.
+by a dash, a prompt, a default value in square brackets then a colon. In some
+lines the default has been accepted (e.g. 'plo') by hitting the <enter> key,
+whereas in others, something new has been entered, e.g. 'ccd' where the
+default value '3' has been replaced with '2 3 4 5'.
 
 If we wanted to change one parameter, say 'first', the first frame to plot,
 we can type::
@@ -61,14 +62,14 @@ we can type::
   first - first frame to plot [11]: 12
   ccd - CCD(s) to plot [0 for all] [3]: \
 
-The backslash '\\\\' means take the defaults for all remaining parameters.
-An alternative with the same effect is::
+The backslash '\\\\' means adopt the default values for all remaining
+parameters. An alternative with the same effect is::
 
   rtplot first=12 \\
 
 where the '\\\\\\\\' (double backslash) is needed because the shell will
 strip one off. A simple ``rtplot \\`` will repeat the command with
-no changes of any parameters. The ability to specify parameters on the 
+no changes of any parameters. The ability to specify parameters on the
 command line is particularly useful for the later ones e.g.::
 
   rtplot xlo=100 xhi=1100 \\
@@ -77,6 +78,8 @@ will reduce the X-range without the need to type through the initial
 parameters.
 
 
+
+.. autofunction:: hipercam.scripts.rtplot
 
 .. rubric:: Footnotes
 
