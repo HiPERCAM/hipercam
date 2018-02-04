@@ -1,4 +1,10 @@
+"""
+Scripts sub-module of HiPERCAM contains all the commands used from
+the terminal. They are all implemented as functions for automatic
+inclusion in the documentation and for portability
+"""
 
+from .aligntool import aligntool
 from .arith import add, div, mul, sub
 from .averun import averun
 from .carith import cadd, cdiv, cmul, csub
@@ -21,7 +27,7 @@ from .stats import stats
 # important to keep alphabetical ordering here for sphinx / autodoc
 
 __all__ = [ \
-            'add', 'averun',
+            'add', 'aligntool', 'averun',
             'cadd', 'cdiv', 'cmul', 'combine', 'csub',
             'div',
             'genred', 'grab',

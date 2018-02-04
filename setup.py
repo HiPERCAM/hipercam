@@ -89,7 +89,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['numpy','astropy','matplotlib'],
+    install_requires=['sep','numpy','astropy','matplotlib'],
 
     # need numpy version 1.10 for numpy.stack,
     # 1.12 for numpy.flip and num
