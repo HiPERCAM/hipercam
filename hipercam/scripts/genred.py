@@ -36,7 +36,7 @@ def genred(args=None):
 
     To avoid excessive prompting, `genred` has many hidden parameters
     that you might want to set up at the start of a run but leave fixed
-    thereafter. Specify 'PROMPT' on the command line to see all of these.
+    thereafter. Specify 'prompt' on the command line to see all of these.
     They are chosen to be the parameters most likely to vary with telescope
     or conditions; many others are left at default values and require
     editing to change.
