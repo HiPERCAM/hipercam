@@ -29,7 +29,7 @@ def rtplot(args=None):
     'rt'. Designed to be used to look at images coming in while at the
     telescope, 'rtplot' comes with many options, a large number of which are
     hidden by default, and many of which are only prompted if other arguments
-    are set correctly. If you want to see them all, invoke as 'rtplot PROMPT'.
+    are set correctly. If you want to see them all, invoke as 'rtplot prompt'.
 
     rtplot can source data from both the ULTRACAM and HiPERCAM servers, from
     local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
@@ -142,7 +142,7 @@ def rtplot(args=None):
            program will then attempt to track these from frame to frame, and
            fit their profile. You may need to adjust 'first' to see anything.
            The parameters used for profile fits are hidden and you may want to
-           invoke the command with 'PROMPT' the first time you try profile
+           invoke the command with 'prompt' the first time you try profile
            fitting.
 
         fdevice : string [if profit; hidden]
