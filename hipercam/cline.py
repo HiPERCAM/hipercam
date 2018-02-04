@@ -52,16 +52,16 @@ parameters can only set the values of parameters which are by default prompted
 for. Hidden parameters must always be explicitly named to specify them on the
 command line.
 
-There are a number of special 'KEYWORD' arguments, which must be specified
-in capital letters. They are::
+There are a number of special keyword arguments, that have a special meaning.
+They are:
 
-  LIST   : lists all the parameter values used
+  list    : lists all the parameter values used
 
-  NODEFS : bypasses any attempt to read or write the default files.  It is
-           provided as a way to avoid clashes between multiple processes.
+  nodefs  : bypasses any attempt to read or write the default files.  It is
+            provided as a way to avoid clashes between multiple processes.
 
-  PROMPT : forces prompting for all variables not supplied via the argument list
-           passed on creation of Cline objects.
+  prompt  : forces prompting for all variables not supplied via the argument
+            list passed on creation of Cline objects.
 
 When you get prompting, <tab> allows you to complete filenames. Entering '?'
 gives the parameter range if any has been supplied.
@@ -184,7 +184,7 @@ class Cline:
               the command name, which is used to generate the local defaults
               file name. If cname=None, no attempt to read or save defaults
               will be made. This allows the programmatic equivalent of entering
-              'NODEFS' on the command line.
+              'nodefs' on the command line.
 
            args : list of strings
               command-line arguments. The first one must be the command name. Their
@@ -192,24 +192,24 @@ class Cline:
 
         """
 
-        # Extract special keywords NODEFS, PROMPT and LIST from argument list,
-        # and set flags.
+        # Extract special keywords 'nodefs', 'prompt' and 'list' 
+        # from argument list, and set flags.
 
-        if 'NODEFS' in args:
+        if 'nodefs' in args:
             self._nodefs = True
-            args = [arg for arg in args if arg != 'NODEFS']
+            args = [arg for arg in args if arg != 'nodefs']
         else:
             self._nodefs = False
 
-        if 'PROMPT' in args:
+        if 'prompt' in args:
             self._prompt = True
-            args = [arg for arg in args if arg != 'PROMPT']
+            args = [arg for arg in args if arg != 'prompt']
         else:
             self._prompt = False
 
-        if 'LIST' in args:
+        if 'list' in args:
             self._list = True
-            args = [arg for arg in args if arg != 'LIST']
+            args = [arg for arg in args if arg != 'list']
         else:
             self._list = False
 
@@ -315,7 +315,7 @@ class Cline:
         return slist
 
     def save(self):
-        """Saves parameter values to disk (if NODEFS has not been
+        """Saves parameter values to disk (if 'nodefs' has not been
         specified). Call when the final parameter has been specified.
 
         """
@@ -376,21 +376,21 @@ class Cline:
         properties. You must call this once for every parameter that you might
         call 'get_value' for.
 
-        Arguments::
+        Arguments:
 
-          param : (string)
+          param : string
               parameter name. Must have no spaces, equal signs or quotes.
 
-          g_or_l : (int)
+          g_or_l : int
               defines whether the parameter should be global, i.e. stored
               in a file called GLOBAL to allow access from other commands,
               or just local to this command. Use the static variables GLOBAL
               and LOCAL to set this, e.g. hipercam.cline.Cline.GLOBAL
 
-          p_or_h : (int)
+          p_or_h : int
               defines whether the parameter is prompted for by default or
               hidden. Parameters that are rarely changed are better hidden to
-              reduce clutter. The PROMPT command-line keyword forces even
+              reduce clutter. The 'prompt' command-line keyword forces even
               hidden parameters to be prompted for in the rare cases that they
               need to be changed. Use the static variables PROMPT and HIDE to
               set this.
@@ -447,40 +447,40 @@ class Cline:
         """Gets the value of a parameter, either from the command arguments, or by
         retrieving default values or by prompting the user as required. This
         is the main function of Cline. The value obtained is used to update
-        the defaults which, if 'NODEFS' has not been defined, are written to
+        the defaults which, if 'nodefs' has not been defined, are written to
         disk at the end of the command.
 
-        Arguments::
+        Parameters:
 
-          param   : (string)
+          param   : string
              parameter name.
 
-          prompt  : (string)
+          prompt  : string
              the prompt string associated with the parameter
 
-          defval  : (various)
+          defval  : various
              default value if no other source can be found (e.g. at start).
              This also defines the data type of the parameter (see below for
              possibilities)
 
-          minval  : (same as defval's type)
+          minval  : same as defval's type
              the minimum value of the parameter to allow.
 
-          maxval  : (same ad defval's type)
+          maxval  : same as defval's type
              the maximum value of the parameter to allow.
 
-          lvals   : (list)
+          lvals   : list
              list of possible values (exact matching used)
 
-          fixlen  : (bool)
+          fixlen  : bool
              for lists or tuples, this insists that the user input has the
              same length
 
-          multipleof : (int)
+          multipleof : int
              specifies a number that the final value must be a multiple of
              (integers only)
 
-          ignore : (string)
+          ignore : string
              for Fname inputs, this is a value that will cause the checks on
              existence of files to be skipped.
 
@@ -511,15 +511,18 @@ class Cline:
             # of the form param=value
             value = self._pbynam[param]
 
-        elif self.narg < len(self._pbypos) and (self._prompt or self._rpars[param]['p_or_h'] == Cline.PROMPT):
+        elif self.narg < len(self._pbypos) and \
+             (self._prompt or self._rpars[param]['p_or_h'] == Cline.PROMPT):
             # get value from bare values in the command line such as '23' '\\'
             # indicates use the default value and also to use defaults for any
             # other unspecified parameters that come later (_usedef set to
             # True)
             if self._pbypos[self.narg] == '\\':
-                if self._rpars[param]['g_or_l'] == Cline.GLOBAL and param in self._gpars:
+                if self._rpars[param]['g_or_l'] == Cline.GLOBAL and \
+                   param in self._gpars:
                     value = self._gpars[param]
-                elif self._rpars[param]['g_or_l'] == Cline.LOCAL and param in self._lpars:
+                elif self._rpars[param]['g_or_l'] == Cline.LOCAL and \
+                     param in self._lpars:
                     value = self._lpars[param]
                 else:
                     value = defval
