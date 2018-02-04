@@ -21,55 +21,59 @@ __all__ =  ['makebias',]
 #########################################################
 
 def makebias(args=None):
-    """Combines the frames of a single run into a single frame using clipped-mean
-    averaging appropriate for biases. This uses 'grab' to get the frames and
-    'combine' to combine them. If you already have the frames separately, then
-    just use 'combine'.
+    """``makebias [source] run first last sigma plot [twait tmax output]``
 
-    Arguments::
+    Combines the frames of a single run into a single frame using clipped-mean
+    averaging appropriate for biases. This uses ``grab`` to get the frames and
+    ``combine`` to combine them. If you already have the frames separately, then
+    just use ``combine``.
 
-        source  : string [hidden]
-           Data source, four options::
+    Parameters:
 
-               'hs' : HiPERCAM server
-               'hl' : local HiPERCAM FITS file
-               'us' : ULTRACAM server
-               'ul' : local ULTRACAM .xml/.dat files
+       source  : string [hidden]
+           Data source, four options:
 
-      run    : string
-         run name to access
+             |   'hs' : HiPERCAM server
+             |   'hl' : local HiPERCAM FITS file
+             |   'us' : ULTRACAM server
+             |   'ul' : local ULTRACAM .xml/.dat files
 
-      first  : int
-         First frame to access
+       run     : string
+           run name to access
 
-      last   : int
-         Last frame to access, 0 for the lot
+       first   : int
+           First frame to access
 
-      sigma  : float
-         The value of 'sigma' to pass to the clipped mean combination in
-         'combine'
+       last    : int
+           Last frame to access, 0 for the lot
 
-      plot   : bool
-         make a plot of the mean level versus frame number for each CCD. This
-         can provide a quick check that the frames are not too different. You
-         will need explicitly to close the plot generated at the end of the
-         script
+       sigma   : float
+           The value of 'sigma' to pass to the clipped mean combination in
+           'combine'
 
-      twait  : float [hidden]
-         time to wait between attempts to find a new exposure, seconds.
+       plot    : bool
+           make a plot of the mean level versus frame number for each
+           CCD. This can provide a quick check that the frames are not too
+           different. You will need explicitly to close the plot generated at
+           the end of the script
 
-      tmax   : float [hidden]
-         maximum time to wait between attempts to find a new exposure, seconds.
+       twait   : float [hidden]
+           time to wait between attempts to find a new exposure, seconds.
 
-      output : string
-         name of final combined file
+       tmax    : float [hidden]
+           maximum time to wait between attempts to find a new exposure,
+           seconds.
+
+       output  : string
+           name of final combined file
 
       .. Note:: 
 
          This routine writes the files returned by 'grab' to automatically
-         generated files, typically in /tmp. These are removed at the end, but
-         won't be if you ctrl-C. You might to check your /tmp disk for
-         redundant files.
+         generated files, typically in /tmp, to avoid polluting the working
+         directory. These are removed at the end, but won't be if you
+         ctrl-C. You should check your /tmp disk for redundant files in this
+         case.
 
     """
 

@@ -57,12 +57,6 @@ def combine(args=None):
         output  : string
            output file
 
-    .. Note::
-
-       This routine reads all inputs into memory, so can be a bit of a
-       hog. However, it does so one CCD at a time to alleviate this. It will
-       fail if it cannot find a valid frame for any CCD.
-
        Clipped mean can work well for large numbers of frames but gets worse
        for small numbers as the RMS can be heavily influenced by a single bad
        value. The median can be better in such cases, but has the downside of
@@ -70,6 +64,13 @@ def combine(args=None):
        have a noise level significantly below 1 count, depending upon the
        readout noise, and the +/- 0.5 count uncertainty of median combination
        may be worse than this.
+
+    .. Note::
+
+       This routine reads all inputs into memory, so can be a bit of a
+       hog. However, it does so one CCD at a time to alleviate this. It will
+       fail if it cannot find a valid frame for any CCD.
+
     """
 
     command, args = utils.script_args(args)

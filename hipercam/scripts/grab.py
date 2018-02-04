@@ -29,57 +29,58 @@ def grab(args=None):
 
     Parameters:
 
-        source  : string [hidden]
+       source  : string [hidden]
            Data source, four options:
 
-               'hs' : HiPERCAM server
-               'hl' : local HiPERCAM FITS file
-               'us' : ULTRACAM server
-               'ul' : local ULTRACAM .xml/.dat files
+              | 'hs' : HiPERCAM server
+              | 'hl' : local HiPERCAM FITS file
+              | 'us' : ULTRACAM server
+              | 'ul' : local ULTRACAM .xml/.dat files
 
-      run    : string
-         run name to access
+       run     : string
+           run name to access
 
-      temp   : bool [hidden, defaults to False]
-         True to indicate that the frames should be written to temporary files
-         with automatically-generated names in the expectation of deleting
-         them later. This also writes out a file listing the names.  The aim
-         of this is to allow grab to be used as a feeder for other routines in
-         larger scripts.  If temp == True, grab will return with the name of
-         the list of hcm files. Look at 'makebias' for an example that uses
-         this feature.
+       temp    : bool [hidden, defaults to False]
+           True to indicate that the frames should be written to temporary
+           files with automatically-generated names in the expectation of
+           deleting them later. This also writes out a file listing the names.
+           The aim of this is to allow grab to be used as a feeder for other
+           routines in larger scripts.  If temp == True, grab will return with
+           the name of the list of hcm files. Look at 'makebias' for an
+           example that uses this feature.
 
-      ndigit : int [if not temp]
-         Files created will be written as 'run005_0013.fits' etc. `ndigit` is
-         the number of digits used for the frame number (4 in this case). Any
-         pre-existing files of the same name will be over-written.
+       ndigit  : int [if not temp]
+           Files created will be written as 'run005_0013.fits' etc. `ndigit`
+           is the number of digits used for the frame number (4 in this
+           case). Any pre-existing files of the same name will be
+           over-written.
 
-      first  : int
-         First frame to access
+       first   : int
+           First frame to access
 
-      last   : int
-         Last frame to access, 0 for the lot
+       last    : int
+           Last frame to access, 0 for the lot
 
-      twait  : float [hidden]
-         time to wait between attempts to find a new exposure, seconds.
+       twait   : float [hidden]
+           time to wait between attempts to find a new exposure, seconds.
 
-      tmax  : float [hidden]
-         maximum time to wait between attempts to find a new exposure, seconds.
+       tmax    : float [hidden]
+           maximum time to wait between attempts to find a new exposure,
+           seconds.
 
-      bias   : string
-         Name of bias frame to subtract, 'none' to ignore.
+       bias    : string
+           Name of bias frame to subtract, 'none' to ignore.
 
-      dtype  : string [hidden, defaults to 'f32']
-         Data type on output. Options::
+       dtype   : string [hidden, defaults to 'f32']
+           Data type on output. Options:
 
-            'f32' : output as 32-bit floats (default)
+            | 'f32' : output as 32-bit floats (default)
 
-            'f64' : output as 64-bit floats.
+            | 'f64' : output as 64-bit floats.
 
-            'u16' : output as 16-bit unsigned integers. A warning will be
-                    issued if loss of precision occurs; an exception will
-                    be raised if the data are outside the range 0 to 65535.
-
+            | 'u16' : output as 16-bit unsigned integers. A warning will be
+                      issued if loss of precision occurs; an exception will
+                      be raised if the data are outside the range 0 to 65535.
 
     """
 

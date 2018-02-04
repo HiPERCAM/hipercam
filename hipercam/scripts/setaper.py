@@ -42,29 +42,33 @@ __all__ = ['setaper',]
 #############################################
 
 def setaper(args=None):
-    """Interactive definition of photometric extraction apertures. This is
+    """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 nx
+    msub iset (ilo ihi | plo phi) [profit method beta fwmin fwhm fwfix
+    shbox smooth splot fhbox read gain thresh]``
+
+    Interactive definition of photometric extraction apertures. This is
     a matplotlib-based routine allowing you to place apertures on targets
     using the cursor.
 
-    Arguments::
+    Parameters:
 
-      mccd   : (string)
+      mccd   : string
          name of an MCCD file, as produced by e.g. 'grab'
 
-      aper   : (string)
+      aper   : string
          the name of an aperture file. If it exists it will be read so that
          apertures can be added to it. If it does not exist, it will be
          created on exiting the routine. The aperture files are is a fairly
          readable / editiable text format
 
-      ccd    : (string)
+      ccd    : string
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
          are possible inputs (without the quotes). '3 4' will plot CCD '3' and
          CCD '4'. If you want to plot more than one CCD, then you will be
          prompted for the number of panels in the X direction. This parameter
          will not be prompted if there is only one CCD in the file.
 
-      linput  : (string) [hidden]
+      linput  : string [hidden]
          sets the way in which the apertures are labelled. 'n' = numerical
          input, with the program just incrementing by 1 for each successive
          aperture; 's' = single character (without requiring the user to hit
@@ -72,73 +76,73 @@ def setaper(args=None):
          Allowed characters are 0-9, a-z, A-Z, no spaces or punctuation, but a
          single '0' on its own is not permitted.
 
-      width  : (float) [hidden]
+      width  : float [hidden]
          plot width (inches). Set = 0 to let the program choose.
 
-      height : (float) [hidden]
+      height : float [hidden]
          plot height (inches). Set = 0 to let the program choose. BOTH width
          AND height must be non-zero to have any effect
 
-      rtarg  : (float) [unbinned pixels]
+      rtarg  : float [unbinned pixels]
          radius of target aperture. The exact value of this does not matter
          too much since it is normally overridden in 'reduce', but typically
          one aims for 1.5 to 2.5 x FWHM, seeing, depending upon the target
          brightness.
 
-      rsky1  : (float) [unbinned pixels]
+      rsky1  : float [unbinned pixels]
          inner radius of sky aperture.
 
-      rsky2  : (float) [unbinned pixels]
+      rsky2  : float [unbinned pixels]
          radius of target aperture
 
-      nx     : (int)
+      nx     : int
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
 
-      msub   : (bool)
+      msub   : bool
          True/False to subtract median from each window before scaling
 
-      iset   : (string) [single character]
+      iset   : string [single character]
          determines how the intensities are determined. There are three
          options: 'a' for automatic simply scales from the minimum to the
          maximum value found on a per CCD basis. 'd' for direct just takes two
          numbers from the user. 'p' for percentile dtermines levels based upon
          percentiles determined from the entire CCD on a per CCD bais.
 
-      ilo    : (float) [if iset=='d']
+      ilo    : float [if iset=='d']
          lower intensity level
 
-      ihi    : (float) [if iset=='d']
+      ihi    : float [if iset=='d']
          upper intensity level
 
-      plo    : (float) [if iset=='p']
+      plo    : float [if iset=='p']
          lower percentile level
 
-      phi    : (float) [if iset=='p']
+      phi    : float [if iset=='p']
          upper percentile level
 
-      profit : (bool) [hidden]
+      profit : bool [hidden]
          start aperture selection with profile fitting-based position
          refinement (or not). Can be toggled at any point.
 
-      method : (string) [hidden]
+      method : string [hidden]
          this defines the profile fitting method, if profile fitting is used
          to refine the aperture position. Either a gaussian or a moffat
          profile, 'g' or 'm'.  The latter should usually be best.
 
-      beta   : (float) [if method == 'm'; hidden]
+      beta   : float [if method == 'm'; hidden]
          default Moffat exponent
 
-      fwmin  : (float) [hidden]
+      fwmin  : float [hidden]
          minimum FWHM to allow, unbinned pixels.
 
-      fwhm   : (float) [hidden]
+      fwhm   : float [hidden]
          default FWHM, unbinned pixels.
 
-      fwfix  : (bool) [hidden]
+      fwfix  : bool [hidden]
          don't fit the FWHM. Can be more robust; the position is still fitted.
 
-      shbox  : (float) [hidden]
+      shbox  : float [hidden]
          half width of box for searching for a star, unbinned pixels. The
          brightest target in a region +/- shbox around an intial position will
          be found. 'shbox' should be large enough to allow for likely changes
@@ -146,7 +150,7 @@ def setaper(args=None):
          can to avoid jumping to different targets and to reduce the chances
          of interference by cosmic rays.
 
-      smooth : (float) [hidden]
+      smooth : float [hidden]
          FWHM for gaussian smoothing, binned pixels. The initial position for
          fitting is determined by finding the maximum flux in a smoothed
          version of the image in a box of width +/- shbox around the starter
@@ -154,26 +158,26 @@ def setaper(args=None):
          main purpose is to combat cosmic rays which tend only to occupy a
          single pixel.
 
-      splot  : (bool) [hidden]
+      splot  : bool [hidden]
          Controls whether an outline of the search box and a target number
          is plotted (in red) or not.
 
-      fhbox  : (float) [hidden]
+      fhbox  : float [hidden]
          half width of box for profile fit, unbinned pixels. The fit box is
          centred on the position located by the initial search. It should
          normally be > ~2x the expected FWHM.
 
-      read   : (float) [hidden]
+      read   : float [hidden]
          readout noise, RMS ADU, for assigning uncertainties
 
-      gain   : (float) [hidden]
+      gain   : float [hidden]
          gain, ADU/count, for assigning uncertainties
 
-      thresh  : (float) [hidden]
+      thresh  : float [hidden]
          thresh rejection threshold
 
 
-    Notes. There are a few conveniences to make setaper easier::
+    There are a few conveniences to make setaper easier::
 
       1. The plot is initialised in pan mode whereby you can move around and
          scale using the left and right mouse buttons.
@@ -181,7 +185,7 @@ def setaper(args=None):
       2. All input is accomplished with the keyboard; the mouse buttons are
          only for navigating the image.
 
-      3. The label input can be switched between sequential numerical, 
+      3. The label input can be switched between sequential numerical,
          single- and multi-character input ('linput').
 
     Various standard keyboard shortcuts (e.g. 's' to save) are disabled as

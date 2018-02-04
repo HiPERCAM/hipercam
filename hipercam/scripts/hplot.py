@@ -18,82 +18,85 @@ from hipercam.cline import Cline
 ###################################
 
 def hplot(args=None):
-    """Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
+    """``hplot input [device] ccd nx msub hsbox iset (ilo ihi | plo phi)
+    (xlo xhi ylo yhi) [width height]``
+
+    Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
     version is slightly clunky in its choice of the viewing area but has some
     features that could be useful, in particular, the interactive plot
     (device='/mpl') allows one to pan and zoom and to compare the same part of
     multiple CCDs easily.
 
-    Arguments::
+    Parameters:
 
-      input  : (string)
+      input  : string
          name of MCCD file
 
-      device : (string) [hidden]
+      device : string [hidden]
          Plot device name. Uses characters after a final trailing '/' to
-         identify the type in PGPLOT style. Thus::
+         identify the type in PGPLOT style. Thus:
 
-                   /xs : PGPLOT xserver interactive plot
-                  1/xs : PGPLOT xserver interactive plot called '1'
-           plot.ps/cps : PGPLOT colour postscript called 'plot.ps'
-           plot.ps/vps : PGPLOT B&W portrait oriented plot
-                  /mpl : matplotlib interactive plot
-          plot.pdf/mpl : matplotlib PDF plot
+          |  /xs          : PGPLOT xserver interactive plot
+          |  1/xs         : PGPLOT xserver interactive plot called '1'
+          |  plot.ps/cps  : PGPLOT colour postscript called 'plot.ps'
+          |  plot.ps/vps  : PGPLOT B&W portrait oriented plot
+          |  /mpl         : matplotlib interactive plot
+          |  plot.pdf/mpl : matplotlib PDF plot
 
-      ccd    : (string)
+      ccd    : string
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
          are possible inputs (without the quotes). '3 4' will plot CCD '3' and
          CCD '4'. If you want to plot more than one CCD, then you will be
          prompted for the number of panels in the X direction. This parameter
          will not be prompted if there is only one CCD in the file.
 
-      nx     : (int)
+      nx     : int
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
 
-      msub   : (bool)
+      msub   : bool
          True/False to subtract median from each window before scaling
 
-      hsbox  : (int) [if device = '/mpl'; hidden]
+      hsbox  : int [if device = '/mpl'; hidden]
          half-width in binned pixels of stats box as offset from central pixel
          hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc.
 
-      iset   : (string) [single character]
+      iset   : string [single character]
          determines how the intensities are determined. There are three
          options: 'a' for automatic simply scales from the minimum to the
          maximum value found on a per CCD basis. 'd' for direct just takes two
          numbers from the user. 'p' for percentile dtermines levels based upon
          percentiles determined from the entire CCD on a per CCD bais.
 
-      ilo    : (float) [if iset=='d']
+      ilo    : float [if iset=='d']
          lower intensity level
 
-      ihi    : (float) [if iset=='d']
+      ihi    : float [if iset=='d']
          upper intensity level
 
-      plo    : (float) [if iset=='p']
+      plo    : float [if iset=='p']
          lower percentile level
 
-      phi    : (float) [if iset=='p']
+      phi    : float [if iset=='p']
          upper percentile level
 
-      xlo    : (float)
+      xlo    : float
          left X-limit, for PGPLOT and matplotlib harcopy plots only as the
          matplotlib interactive plot is zoomable
 
-      xhi    : (float)
+      xhi    : float
          right X-limit
 
-      ylo    : (float)
+      ylo    : float
          bottom Y-limit
 
-      yhi    : (float)
+      yhi    : float
          top Y-limit
 
-      width  : (float) [hidden]
+      width  : float [hidden]
          plot width (inches). Set = 0 to let the program choose.
 
-      height : (float) [hidden]
+      height : float [hidden]
          plot height (inches). Set = 0 to let the program choose. BOTH width
          AND height must be non-zero to have any effect
 

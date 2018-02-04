@@ -324,15 +324,17 @@ def gethead(head, key, default=''):
         return default
 
 def hlogger(args=None):
-    """Generates html logs for hipercam runs.
+    """``hlogger server (dirnam)``
+
+    Generates html logs for hipercam runs.
 
     hlogger expects to work on directories containing the runs for each
     night. It should be run from the top-level of the hipercam/logs directory.
-    It extracts information from each run file which it writes to a file
-    in JSON format and also as an html file. The JSON file acts as a short-cut
+    It extracts information from each run file which it writes to a file in
+    JSON format and also as an html file. The JSON file acts as a short-cut
     for any re-run.
 
-    Arguments::
+    Parameters:
 
         server   : bool
            True if the log is to be compiled from the server data. This option
@@ -341,8 +343,8 @@ def hlogger(args=None):
 
         dirnam : string [if not server]
            Directory name to work on. This is run through 'glob' which gives
-           UNIX-style name matching, so e.g. '2017*' will match 2017_10_17,
-           2017_10_18 etc. The JSON and html files will be written into the
+           UNIX-style name matching, so e.g. '2017*' will match 2017-10-17,
+           2017-10-18 etc. The JSON and html files will be written into the
            directory or directories. In this case this expects the data to be
            available as a link called 'data' within the night directory. This
            is the standard configuration of my 'logs' directory as created by
@@ -374,7 +376,8 @@ def hlogger(args=None):
             print('hlogger aborted',file=sys.stderr)
             return
 
-        # next are regular expressions to match run directories, nights, and run files
+        # next are regular expressions to match run directories, nights, and
+        # run files
         rre = re.compile('^\d\d\d\d-\d\d$')
         nre = re.compile('^\d\d\d\d-\d\d-\d\d$')
         fre = re.compile('^run\d\d\d\d\.fits$')
