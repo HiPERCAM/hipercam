@@ -1,5 +1,7 @@
-HiPERCAM's hcm file format
-==========================
+.. include:: globals.rst
+
+|hiper|'s hcm file format
+=========================
 
 Individual multi-CCD exposures are stored in files with extension
 '.hcm'. These are FITS files that can be examined with e.g. 'fv'.  In order
@@ -20,7 +22,7 @@ in turn has the structure::
 
 in 5 HDUs, the first being header specific to the CCD, the rest being data
 with one HDU per window. The labels (1 to 5, E1 to G1) are specific to
-HiPERCAM in one window mode, and could differ in general. In this example
+|hiper| in one window mode, and could differ in general. In this example
 there would be a total of 1+(5x5) = 26 HDUs, from HDU0 to HDU25.
 
 HDU structure and keywords
@@ -36,7 +38,7 @@ I now expand on this, detailing the header keywords expected.
          specifies the number of CCDs.
 
       DATE     : (string)
-         date the run file was written if from HiPERCAM
+         date the run file was written if from |hiper|
 
       GPS      : (bool)
          GPS status
@@ -74,7 +76,7 @@ I now expand on this, detailing the header keywords expected.
 
    It can also contain a keyword 'DSTATUS' giving a boolean that indicates
    whether the frame contains data or not (True means yes). This is needed
-   because ULTRACAM and HiPERCAM have options to suspend readout ('NBLUE',
+   because ULTRACAM and |hiper| have options to suspend readout ('NBLUE',
    'NSKIP') which lead to blank dummy frames in between the real data
    frames. If 'DSTATUS' is not found, the CCD will be assumed to be OK.
 

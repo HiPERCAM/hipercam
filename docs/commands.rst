@@ -1,9 +1,11 @@
-.. Scripts docs created on 03/02/2018
+.. command details doc created on 03/02/2018
+
+.. include:: globals.rst
 
 .. highlightlang:: rest
 
-HiPERCAM commands
-*****************
+|hiper| commands
+****************
 
 This page documents the pipeline commands which are all part of the
 `hipercam.scripts` sub-module. Help on any given command can be obtained at
@@ -12,7 +14,8 @@ hipercam.scripts.rtplot``. If you are new to the pipeline, it would be worth
 reading the :ref:`command-calling` section on how to call the pipeline
 commands and specify parameters.
 
-.. contents::
+.. contents:: Contents
+   :local:
 
 .. _command-definitions:
 
@@ -32,8 +35,92 @@ revealed by typing e.g. ``rtplot prompt``. These are usually parameters that
 rarely need changing, but you are sure sometimes to need to alter them.
 See the :ref:`command-calling` section for details on how to specify command parameters.
 
-.. automodule:: hipercam.scripts
-   :members:
+:func:`add`
+-----------
+.. autofunction:: hipercam.scripts.add
+
+:func:`averun`
+--------------
+.. autofunction:: hipercam.scripts.averun
+
+:func:`cadd`
+------------
+.. autofunction:: hipercam.scripts.cadd
+
+:func:`cdiv`
+------------
+.. autofunction:: hipercam.scripts.cdiv
+
+:func:`csub`
+------------
+.. autofunction:: hipercam.scripts.csub
+
+:func:`div`
+-----------
+.. autofunction:: hipercam.scripts.div
+
+:func:`genred`
+--------------
+.. autofunction:: hipercam.scripts.genred
+
+:func:`grab`
+------------
+.. autofunction:: hipercam.scripts.grab
+
+:func:`hist`
+------------
+.. autofunction:: hipercam.scripts.hist
+
+:func:`hls`
+-----------
+.. autofunction:: hipercam.scripts.hls
+
+:func:`hplot`
+-------------
+.. autofunction:: hipercam.scripts.hplot
+
+:func:`makebias`
+----------------
+.. autofunction:: hipercam.scripts.makebias
+
+:func:`makeflat`
+----------------
+.. autofunction:: hipercam.scripts.makeflat
+
+:func:`mul`
+-----------
+.. autofunction:: hipercam.scripts.mul
+
+:func:`plog`
+------------
+.. autofunction:: hipercam.scripts.plog
+
+:func:`reduce`
+--------------
+.. autofunction:: hipercam.scripts.reduce
+
+:func:`rtplot`
+--------------
+.. autofunction:: hipercam.scripts.rtplot
+
+:func:`setaper`
+---------------
+.. autofunction:: hipercam.scripts.setaper
+
+:func:`stats`
+-------------
+.. autofunction:: hipercam.scripts.stats
+
+:func:`sub`
+-----------
+.. autofunction:: hipercam.scripts.sub
+
+.. Note::
+
+  Four other commands, :func:`aligntool`, :func:`hlogger`,
+  :func:`makefield` and :func:`makedata` are not documented
+  here as they are of specialist usage. Information on these
+  is available via ``pydoc``.
 
 .. _command-calling:
 
@@ -52,47 +139,53 @@ you get up to speed.
 Basic parameter input
 ---------------------
 
-The command ``rtplot`` has more parameters than any other and is a good to
-start with. Suppose we have a raw HiPERCAM file, :file:`run0076.fits`, that
-we want to plot, then::
+The command ``rtplot`` has more parameters than most others and is a good one
+to start with. Suppose then that we have a raw |hiper| file,
+:file:`run0076.fits`, that we want to plot. If we type 'rtplot' and follow
+the prompts, the first few lines might be::
 
   rtplot
   run - run name [run0064]: run0076
-  first - first frame to plot [1]:
+  first - first frame to plot [10]: 1
 
-would be the first few lines we might see if we entered ``rtplot`` and
-followed the prompts. Alternatively::
+This shows that the last time ``rtplot`` was invoked, it was used to look
+as :file:`run0064.fits` starting with frame 10. Note that the extension
+'.fits' is not needed: |hiper| makes significant use of extensions to
+differentiate between different forms of file, all of which could be
+associated with the same run and therefore start with the 'run0064' or whatever.
+Alternatively we could have typed::
 
   rtplot run0076
-  first - first frame to plot [1]:
+  first - first frame to plot [10]: 1
 
-would accomplish the same, setting the run according to its position in
-the command-line arguments. For this to work, you need to be certain of
-the ordering. If you are not sure of the order, but you are sure that 
-the parameter is called ``run``, then::
+which would accomplish the same, setting the run name according to its
+position in the command-line arguments. For this to work, you need to be
+certain of the ordering. If you are not sure of the order, but you are sure
+that the parameter is called ``run``, then::
 
   rtplot run=run0076
-  first - first frame to plot [1]:
+  first - first frame to plot [10]: 1
 
 will do, and the first two parameters could be similarly specified::
 
   rtplot first=1 run=run0076
 
-Note that by naming the parameters, the order becomes immaterial. Now let's
-go a bit further with ``rtplot``::
+Note that by naming the parameters, the order becomes immaterial. Now,
+assuming that the command was completed, if you run ``rtplot`` again you
+might get::
 
   rtplot
-  run - run name [run0076]: run0076
-  first - first frame to plot [1]: 
+  run - run name [run0076]:
+  first - first frame to plot [1]:
   ccd - CCD(s) to plot [0 for all] [3]: 3 4
   nx - number of panels in X [2]: 
   bias - bias frame ['none' to ignore] [none]: 
   msub - subtract median from each window? [False]: True
 
-You will see that the default for ``run`` has been updated by the previous 
-invocations of the command. This the parameter "memory" referred to earlier.
-Now suppose that we wish to repeat the command without changing any parameter.
-Then a simple::
+You will see that the defaults for ``run`` and ``first`` have been updated by
+the previous invocations of the command. This the parameter "memory" referred
+to earlier.  Now suppose that we wish to repeat the command without changing
+any parameter.  Then a simple::
 
   rtplot \\
 
@@ -120,7 +213,7 @@ Hidden parameters and special keywords
 A look through the :ref:`command-definitions` will reveal that many commands
 have "hidden" parameters that are not usually prompted for. The idea behind
 this is to reduce the level of prompting, particularly for those parameters
-that hardly ever change. The values of all parameters can be revealed through 
+that hardly ever change. The values of all parameters can be revealed through
 the use of a special keyword ``list``::
 
   rtplot list \\
@@ -200,4 +293,10 @@ Tab completion
 File name input is helped by tab completion: start typing, hit <tab>
 and if the file exists, the name might be completed.
 
+Global vs local parameters
+--------------------------
 
+All |hiper| pipeline parameters fall into one of two classes, either being
+'local' to a command or 'global' to multiple commands. The ``run`` parameter
+of ``rtplot`` for instance also appears in ``grab`` and if you change it in
+``rtplot``, it will be changed in ``grab``.

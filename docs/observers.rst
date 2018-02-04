@@ -1,9 +1,11 @@
 .. Observer's guide created on 24/10/2017
 
+.. include:: globals.rst
+
 Observer's guide
 ================
 
-The HiPERCAM pipeline allows observers to look at their data as it comes in
+The |hiper| pipeline allows observers to look at their data as it comes in
 and to reduce it in near "real time". It is downstream of the data acquisition
 system and has no direct effect upon it. At the telescope its most important
 role is to allow you to assess the data as it comes in.
@@ -14,4 +16,3 @@ role is to allow you to assess the data as it comes in.
 
    telescope
    reduction
-
