@@ -134,12 +134,16 @@ def averun(args=None):
 
     if server_or_local:
         print("\nCalling 'grab' ...")
-        args = [None,'PROMPT',source,run,'yes',str(first),str(last),str(twait),str(tmax),'none','f32']
+        args = [
+            None,'prompt',source,run,'yes',
+            str(first),str(last),str(twait),
+            str(tmax),'none','f32'
+        ]
         flist = hcam.scripts.grab(args)
 
     try:
         print("\nCalling 'combine' ...")
-        args = [None, 'PROMPT', flist,
+        args = [None, 'prompt', flist,
                 'none' if bias is None else bias, 'm', 'i',
                 'yes' if clobber else 'no', output]
         hcam.scripts.combine(args)

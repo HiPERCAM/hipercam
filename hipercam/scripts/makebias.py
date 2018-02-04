@@ -124,21 +124,29 @@ def makebias(args=None):
     # Now the actual work. 
 
     # We pass full argument lists to grab and combine because with None as the
-    # command name, the default file mechanism is by-passed. 'PROMPT' is used
+    # command name, the default file mechanism is by-passed. 'prompt' is used
     # to expose the hidden parameters. Every argument needed is passed to
-    # avoid any interactive prompting. Note that because of the Cline mechanisms,
-    # in particular prompting of one parameter depending on another, it can be tricky
-    # to get this right. The keyword 'LIST' can be helpful in case of difficulty. i.e.
-    # rather than just 'PROMPT' you would use 'PROMPT','LIST'
+    # avoid any interactive prompting. Note that because of the Cline
+    # mechanisms, in particular prompting of one parameter depending on
+    # another, it can be tricky to get this right. The keyword 'list' can be
+    # helpful in case of difficulty. i.e.  rather than just 'prompt' you would
+    # use 'prompt', 'list'
 
     print("\nCalling 'grab' ...")
-    args = [None,'PROMPT',source,run,'yes',str(first),str(last),str(twait),str(tmax),'none','f32']
+    args = [
+        None, 'prompt', source, run, 'yes',
+        str(first), str(last), str(twait), str(tmax),
+        'none', 'f32'
+    ]
     flist = hcam.scripts.grab(args)
 
     try:
 
         print("\nCalling 'combine' ...")
-        args = [None,'PROMPT',flist,'none','c',str(sigma),'b','yes' if plot else 'no', 'yes', output]
+        args = [
+            None, 'prompt', flist, 'none', 'c', str(sigma),
+            'b', 'yes' if plot else 'no', 'yes', output
+        ]
         hcam.scripts.combine(args)
 
         # remove temporary files

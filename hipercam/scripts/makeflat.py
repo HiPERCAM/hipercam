@@ -214,7 +214,11 @@ def makeflat(args=None):
         if server_or_local:
             # save ourselves a bit of effort by using grab to get the files if from a local file or server
             print("\nCalling 'grab' ...")
-            args = [None,'PROMPT',source,resource,'yes',str(first),str(last),str(twait),str(tmax),'none','f32']
+            args = [
+                None, 'prompt', source, resource, 'yes',
+                str(first), str(last), str(twait), str(tmax),
+                'none', 'f32'
+            ]
             resource = hcam.scripts.grab(args)
 
         # at this point 'resource' is a list of files, no matter the input method.
