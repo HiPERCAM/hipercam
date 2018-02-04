@@ -18,7 +18,6 @@ from .rtplot import rtplot
 from .setaper import setaper
 from .stats import stats
 
-
 # important to keep alphabetical ordering here for sphinx / autodoc
 
 __all__ = [ \

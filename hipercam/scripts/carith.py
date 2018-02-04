@@ -22,7 +22,7 @@ def carith(args=None):
     within a program, then the first argument should be 'cadd', 'csub', 'cmul'
     or 'cdiv' to define the default parameter file name.
 
-    Arguments::
+    Parameters:
 
        input   : string
           input hcm file name
@@ -150,12 +150,12 @@ def carith(args=None):
     mccd.write(outfile, True)
 
 def cadd(args=None):
-    """cadd input const [ccd] [win] output
+    """``cadd input const [ccd win] output``
 
     Adds a constant to a HiPERCAM hcm frame. Can be applied only to particular
     CCDs and windows if wanted.
 
-    Arguments::
+    Parameters:
 
        input  : string
           input hcm file name
@@ -185,12 +185,12 @@ def cadd(args=None):
     carith(args)
 
 def csub(args=None):
-    """csub input const [ccd] [win] output
+    """``csub input const [ccd win] output``
 
     Subtracts a constant from a HiPERCAM hcm frame. Can be applied only to
     particular CCDs and windows if wanted.
 
-    Arguments::
+    Parameters:
 
        input  : string
           input hcm file name
@@ -220,12 +220,12 @@ def csub(args=None):
     carith(args)
 
 def cdiv(args=None):
-    """cdiv input const [ccd] [win] output
+    """``cdiv input const [ccd win] output``
 
     Divides a HiPERCAM hcm frame by a constant. Can be applied only to
     particular CCDs and windows if wanted.
 
-    Arguments::
+    Parameters:
 
        input  : string
           input hcm file name
@@ -255,12 +255,12 @@ def cdiv(args=None):
     carith(args)
 
 def cmul(args=None):
-    """cmul input const [ccd] [win] output
+    """``cmul input const [ccd win] output``
 
     Multiplies a HiPERCAM hcm frame by a constant. Can be applied only to
     particular CCDs and windows if wanted.
 
-    Arguments::
+    Parameters:
 
        input  : string
           input hcm file name

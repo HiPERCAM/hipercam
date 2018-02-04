@@ -17,13 +17,13 @@ __all__ = ['combine',]
 ############################
 
 def combine(args=None):
-    """combine list bias method (sigma) adjust [plot] [clobber] output
+    """``combine list bias method (sigma) adjust [plot clobber] output``
 
     Combines a series of images defined by a list using median or clipped
     mean combination. Only combines those CCDs for which is_data() is true
     (i.e. it skips blank frames caused by NSKIP / NBLUE options)
 
-    Arguments::
+    Parameters:
 
         list   : string
            list of hcm files with images to combine. The formats of the
@@ -65,15 +65,11 @@ def combine(args=None):
 
        Clipped mean can work well for large numbers of frames but gets worse
        for small numbers as the RMS can be heavily influenced by a single bad
-       value. The median can be better in such cases, but it has the downside of
+       value. The median can be better in such cases, but has the downside of
        digitisation noise. For instance, the average of 100 bias frames could
-       have a noise level significantly below 1 count, depending upon the readout
-       noise, and the +/- 0.5 count uncertainty of median combination may be worse
-       than this.
-
-       The sigma clipping uses astropy.stats.sigma_clip which seems slow to me and
-       I intend look into whether this can be improved.
-
+       have a noise level significantly below 1 count, depending upon the
+       readout noise, and the +/- 0.5 count uncertainty of median combination
+       may be worse than this.
     """
 
     command, args = utils.script_args(args)

@@ -22,7 +22,10 @@ __all__ = ['genred',]
 ################################################
 
 def genred(args=None):
-    """Generates a reduce file as needed by `reduce`. You give it the
+    """``genred apfile rfile comment bias flat dark linear [ccd
+    smooth_fwhm fwhm fwhm_min rfac rmin rmax sinner souter]``
+
+    Generates a reduce file as needed by `reduce`. You give it the
     name of an aperture file and a few other parameters and it will
     write out a reduce file which you can then refine by hand. A few
     simplifying assumptions are made, e.g. that the target is called '1',
@@ -38,7 +41,7 @@ def genred(args=None):
     or conditions; many others are left at default values and require
     editing to change.
 
-    Arguments::
+    Parameters:
 
         apfile   : string
            the input aperture file created using `setaper` (default extension
@@ -61,9 +64,6 @@ def genred(args=None):
            comment to add near the top of the reduce file. Obvious things to say
            are the target name and the name of the observer for instance.
 
-        ccd     : string
-           label of the (single) CCD used for the position plot
-
         bias    : string
            Name of bias frame; 'none' to ignore.
 
@@ -76,29 +76,32 @@ def genred(args=None):
         linear : string
            light curve plot linear (else magnitudes)
 
-        smooth_fwhm : float (hidden)
+        ccd     : string [hidden]
+           label of the (single) CCD used for the position plot
+
+        smooth_fwhm : float [hidden]
            FWHM to use for smoothing during initial search
 
-        fwhm     : float (hidden)
+        fwhm     : float [hidden]
            the default FWHM to use when fitting, unbinned pixels.
 
-        fwhm_min : float (hidden)
+        fwhm_min : float [hidden]
            the default FWHM to use when fitting, unbinned pixels.
 
-        rfac     : float (hidden)
+        rfac     : float [hidden]
            target aperture radius relative to the FWHM for 'variable' aperture
            photometry. Usual values 1.5 to 2.5.
 
-        rmin     : float (hidden)
+        rmin     : float [hidden]
            minimum target aperture radius [unbinned pixels]
 
-        rmax     : float (hidden)
+        rmax     : float [hidden]
            maximum target aperture radius [unbinned pixels]
 
-        sinner   : float (hidden)
+        sinner   : float [hidden]
            inner sky aperture radius [unbinned pixels]
 
-        souter   : float (hidden)
+        souter   : float [hidden]
            outer sky aperture radius [unbinned pixels]
 
     """
@@ -117,7 +120,7 @@ def genred(args=None):
         cl.register('flat', Cline.LOCAL, Cline.PROMPT)
         cl.register('dark', Cline.LOCAL, Cline.PROMPT)
         cl.register('linear', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ccd', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('smooth_fwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm_min', Cline.LOCAL, Cline.HIDE)

@@ -155,7 +155,7 @@ def arith(args=None):
     mccd1.write(outfile, True)
 
 def add(args=None):
-    """``add input1 input2 [ccd] [win] output``
+    """``add input1 input2 [ccd win] output``
 
     Adds two hcm frames and outputs the result. Can be applied only to
     particular CCDs and windows if wanted.
@@ -187,7 +187,7 @@ def add(args=None):
     arith(args)
 
 def sub(args=None):
-    """``sub input1 input2 [ccd] [win] output``
+    """``sub input1 input2 [ccd win] output``
 
     Subtracts two hcm frames and outputs the result. Can be applied only to
     particular CCDs and windows if wanted.
@@ -220,7 +220,7 @@ def sub(args=None):
     arith(args)
 
 def div(args=None):
-    """``div input1 input2 [ccd] [win] output``
+    """``div input1 input2 [ccd win] output``
 
     Divides two hcm frames and outputs the result. Can be applied only to
     particular CCDs and windows if wanted.
@@ -253,7 +253,7 @@ def div(args=None):
     arith(args)
 
 def mul(args=None):
-    """``mul input1 input2 [ccd] [win] output``
+    """``mul input1 input2 [ccd win] output``
 
     Multiplies two hcm frames and outputs the result. Can be applied only to
     particular CCDs and windows if wanted.

@@ -18,10 +18,13 @@ __all__ = ['hist',]
 ##########################################
 
 def hist(args=None):
-    """Plots histograms of :class:`MCCD` objects. Histograms can be powerful
+    """``hist ccd window x1 x2 nbins gplot (nx) msub (nint) [device width
+    height]``
+
+    Plots histograms of :class:`MCCD` objects. Histograms can be powerful
     diagnostics of CCD problems.
 
-    Arguments::
+    Parameters:
 
       input  : string
          name of the MCCD file
@@ -34,7 +37,7 @@ def hist(args=None):
          the window label to show. '0' will merge all windows on each CCD.
 
       x1     : float
-         lower end of histoigram range
+         lower end of histogram range
 
       x2     : float
          upper end of histoigram range. Set == x1 to get automatic min to max.

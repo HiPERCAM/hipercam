@@ -21,13 +21,16 @@ __all__ =  ['grab',]
 ###########################################################
 
 def grab(args=None):
-    """This downloads a sequence of images from a raw data file and writes them
+    """``grab [source] run [temp] (ndigit) first last [twait tmax] bias
+    [dtype]``
+
+    This downloads a sequence of images from a raw data file and writes them
     out to a series CCD / MCCD files.
 
-    Arguments::
+    Parameters:
 
         source  : string [hidden]
-           Data source, four options::
+           Data source, four options:
 
                'hs' : HiPERCAM server
                'hl' : local HiPERCAM FITS file
@@ -37,18 +40,19 @@ def grab(args=None):
       run    : string
          run name to access
 
-     temp    : bool [hidden, defaults to False]
-        True to indicate that the frames should be written to temporary files
-        with automatically-generated names in the expectation of deleting them
-        later. This also writes out a file listing the names.  The aim of this
-        is to allow grab to be used as a feeder for other routines in larger
-        scripts.  If temp == True, grab will return with the name of the list of
-        hcm files. Look at 'makebias' for an example that uses this feature.
+      temp   : bool [hidden, defaults to False]
+         True to indicate that the frames should be written to temporary files
+         with automatically-generated names in the expectation of deleting
+         them later. This also writes out a file listing the names.  The aim
+         of this is to allow grab to be used as a feeder for other routines in
+         larger scripts.  If temp == True, grab will return with the name of
+         the list of hcm files. Look at 'makebias' for an example that uses
+         this feature.
 
       ndigit : int [if not temp]
          Files created will be written as 'run005_0013.fits' etc. `ndigit` is
-         the number of digits used for the frame number (4 in this case). Any pre-existing
-         files of the same name will be over-written.
+         the number of digits used for the frame number (4 in this case). Any
+         pre-existing files of the same name will be over-written.
 
       first  : int
          First frame to access
@@ -231,4 +235,3 @@ def grab(args=None):
 
         # return the name of the file list
         return fname
-

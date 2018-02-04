@@ -1,5 +1,7 @@
 .. Observer's guide created on 25/10/2017
 
+.. highlightlang:: rest
+
 At the telescope
 ****************
 
