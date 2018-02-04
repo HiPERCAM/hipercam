@@ -21,10 +21,10 @@ __all__ =  ['makebias',]
 #########################################################
 
 def makebias(args=None):
-    """Combines the frames of a single run into a single frame using
-    clipped-mean averaging appropriate for biases. This uses 'grab' to get the
-    frames and 'combine' to combine them. If you already have the frames
-    separately, then just use 'combine'.
+    """Combines the frames of a single run into a single frame using clipped-mean
+    averaging appropriate for biases. This uses 'grab' to get the frames and
+    'combine' to combine them. If you already have the frames separately, then
+    just use 'combine'.
 
     Arguments::
 
@@ -51,8 +51,9 @@ def makebias(args=None):
 
       plot   : bool
          make a plot of the mean level versus frame number for each CCD. This
-         can provide a quick check that the frames are not too different. You will
-         need explicitly to close the plot generated at the end of the script
+         can provide a quick check that the frames are not too different. You
+         will need explicitly to close the plot generated at the end of the
+         script
 
       twait  : float [hidden]
          time to wait between attempts to find a new exposure, seconds.
@@ -63,11 +64,13 @@ def makebias(args=None):
       output : string
          name of final combined file
 
-    .. notes::
+      .. Note:: 
 
-       This routine writes the files returned by 'grab' to automatically generated
-       files, typically in /tmp. These are removed at the end, but won't be if you
-       ctrl-C. You might to check your /tmp disk for redundant files.
+         This routine writes the files returned by 'grab' to automatically
+         generated files, typically in /tmp. These are removed at the end, but
+         won't be if you ctrl-C. You might to check your /tmp disk for
+         redundant files.
+
     """
 
     command, args = utils.script_args(args)

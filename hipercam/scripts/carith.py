@@ -24,25 +24,25 @@ def carith(args=None):
 
     Arguments::
 
-       input   : (string)
+       input   : string
           input hcm file name
 
-       const   : (float)
+       const   : float
           constant number to apply
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output  : string
           output hcm file name. Can be same as input in which case
           the file will be over-written.
 
@@ -157,25 +157,25 @@ def cadd(args=None):
 
     Arguments::
 
-       input  : (string)
+       input  : string
           input hcm file name
 
-       const  : (float)
+       const  : float
           constant to add
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd    : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win    : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output : string
           output hcm file name. Can be same as input in which case
           the file will be over-written.
 
@@ -192,25 +192,25 @@ def csub(args=None):
 
     Arguments::
 
-       input  : (string)
+       input  : string
           input hcm file name
 
-       const  : (float)
+       const  : float
           constant to subtract
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd    : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win    : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output : string
           output hcm file name. Can be same as input in which case
           the file will be over-written.
 
@@ -227,25 +227,25 @@ def cdiv(args=None):
 
     Arguments::
 
-       input  : (string)
+       input  : string
           input hcm file name
 
-       const  : (float)
+       const  : float
           constant to divide by
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd    : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win    : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output : string
           output hcm file name. Can be same as input in which case
           the file will be over-written.
 
@@ -262,25 +262,25 @@ def cmul(args=None):
 
     Arguments::
 
-       input  : (string)
+       input  : string
           input hcm file name
 
-       const  : (float)
+       const  : float
           constant to multiply by
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd    : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win    : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output : string
           output hcm file name. Can be same as input in which case
           the file will be over-written.
 
@@ -288,4 +288,3 @@ def cmul(args=None):
 
     # send to carith
     carith(args)
-

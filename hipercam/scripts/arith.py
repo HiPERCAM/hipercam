@@ -21,27 +21,27 @@ def arith(args=None):
     is '+', '-', '*' or '/' referred to by 'add', 'sub', 'mul' and
     'div'.
 
-    Arguments::
+    Parameters:
 
-       input1  : (string)
+       input1  : string
           first input hcm file
 
-       input2  : (string)
+       input2  : string
           second input hcm file
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output  : string
           output hcm file name. Can be same as either input1 or input2
           in which case the input file will be over-written.
 
@@ -155,65 +155,64 @@ def arith(args=None):
     mccd1.write(outfile, True)
 
 def add(args=None):
-    """add input1 input2 [ccd] [win] output
+    """``add input1 input2 [ccd] [win] output``
 
     Adds two hcm frames and outputs the result. Can be applied only to
     particular CCDs and windows if wanted.
 
-    Arguments::
+    Parameters:
 
-       input1  : (string)
+       input1  : string
           first input hcm file
 
-       input2  : (string)
+       input2  : string
           second input hcm file to add to the first.
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output  : string
           output hcm file name. Can be same as either input1 or input2
           in which case the input file will be over-written.
-
     """
     arith(args)
 
 def sub(args=None):
-    """sub input1 input2 [ccd] [win] output
+    """``sub input1 input2 [ccd] [win] output``
 
     Subtracts two hcm frames and outputs the result. Can be applied only to
     particular CCDs and windows if wanted.
 
-    Arguments::
+    Parameters:
 
-       input1  : (string)
+       input1  : string
           first input hcm file
 
-       input2  : (string)
+       input2  : string
           second input hcm file to subtract from the first.
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output  : string
           output hcm file name. Can be same as either input1 or input2
           in which case the input file will be over-written.
 
@@ -221,32 +220,32 @@ def sub(args=None):
     arith(args)
 
 def div(args=None):
-    """div input1 input2 [ccd] [win] output
+    """``div input1 input2 [ccd] [win] output``
 
     Divides two hcm frames and outputs the result. Can be applied only to
     particular CCDs and windows if wanted.
 
-    Arguments::
+    Parameters:
 
-       input1  : (string)
+       input1  : string
           first input hcm file
 
-       input2  : (string)
+       input2  : string
           second input hcm file to divide into the first.
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output  : string
           output hcm file name. Can be same as either input1 or input2
           in which case the input file will be over-written.
 
@@ -254,32 +253,32 @@ def div(args=None):
     arith(args)
 
 def mul(args=None):
-    """mul input1 input2 [ccd] [win] output
+    """``mul input1 input2 [ccd] [win] output``
 
     Multiplies two hcm frames and outputs the result. Can be applied only to
     particular CCDs and windows if wanted.
 
-    Arguments::
+    Parameters:
 
-       input1  : (string)
+       input1  : string
           first input hcm file
 
-       input2  : (string)
+       input2  : string
           second input hcm file to multiply into the first.
 
-       ccd     : (string) [hidden, defaults to 'all']
+       ccd     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : (string) [hidden, defaults to 'all']
+       win     : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : (string)
+       output  : string
           output hcm file name. Can be same as either input1 or input2
           in which case the input file will be over-written.
 

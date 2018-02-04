@@ -15,14 +15,14 @@ The first command to try is 'rtplot'. Try typing in a terminal as follows::
 
   rtplot
 
-You should see something like::
+You should see something like [#f1]_ ::
 
   rtplot
   run - run name [run0068]:
 
 which is prompting you to supply a name for the run. If this is your first
 time, the suggested value 'run0068', which remains from the last time the
-command was run, is likely to be of little use [#f1]_ . So you need to type the
+command was run, is likely to be of little use [#f2]_ . So you need to type the
 name of your run, which might be 'run0002'. If you don't know it, either look
 at the 'hdriver' observing GUI to see the run number, or ctrl-C out of
 'rtplot' (a safe option to quit any pipeline command) and type instead::
@@ -77,11 +77,21 @@ command line is particularly useful for the later ones e.g.::
 will reduce the X-range without the need to type through the initial
 parameters.
 
+Looking in more detail
+======================
+
+You can grab individual images using `grab`::
+
+  grab
+  run -
 
 
-.. autofunction:: hipercam.scripts.rtplot
 
 .. rubric:: Footnotes
 
-.. [#f1] All raw HiPERCAM file names take the form 'run####.fits' but
+.. [#f1] This may fail if the data source is set incorrectly. If so, re-type
+         as "rtplot PROMPT" to see all the options, many of which are hidden
+         by default. 
+
+.. [#f2] All raw HiPERCAM file names take the form 'run####.fits' but
          the extension '.fits' can be omitted.

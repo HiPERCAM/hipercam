@@ -1,15 +1,3 @@
-"""
-command line scripts
-
-All the command line scripts in hipercam are accessed through entry points as
-function. This allows them to be included more naturally within the overall
-package. Note that the commands 'cadd', 'csub', 'cmul' and 'cdiv' are all
-carried out by 'carith'.
-
-The list of functions is a complete list of available scripts. See the
-documentation on hipercam.cline for how to supply the arguments on the command
-line.
-"""
 
 from .arith import add, div, mul, sub
 from .averun import averun
@@ -31,9 +19,16 @@ from .setaper import setaper
 from .stats import stats
 
 
+# important to keep alphabetical ordering here for sphinx / autodoc
+
 __all__ = [ \
-    'add','div','mul','sub', 'averun', 'cadd', 'cdiv', 'cmul', 'csub',
-    'combine', 'grab', 'hist', 'hlogger', 'hls', 'hplot', 'makebias',
-    'makeflat', 'makedata', 'makefield', 'plog', 'reduce', 'rtplot',
-    'setaper', 'stats'
-    ]
+            'add', 'averun',
+            'cadd', 'cdiv', 'cmul', 'combine', 'csub',
+            'div',
+            'genred', 'grab',
+            'hist', 'hlogger', 'hls', 'hplot',
+            'makebias', 'makedata', 'makefield', 'makeflat', 'mul',
+            'plog',
+            'reduce', 'rtplot',
+            'setaper', 'stats', 'sub',
+        ]

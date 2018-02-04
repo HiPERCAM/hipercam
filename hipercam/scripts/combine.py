@@ -17,7 +17,9 @@ __all__ = ['combine',]
 ############################
 
 def combine(args=None):
-    """Combines a series of images defined by a list using median or clipped
+    """combine list bias method (sigma) adjust [plot] [clobber] output
+
+    Combines a series of images defined by a list using median or clipped
     mean combination. Only combines those CCDs for which is_data() is true
     (i.e. it skips blank frames caused by NSKIP / NBLUE options)
 
@@ -39,23 +41,23 @@ def combine(args=None):
            iterative manner. sigma <= 0 implies no rejection, just a straight
            average. sigma=3 is typical.
 
-        adjust  : (string)
+        adjust  : string
            adjustments to make: 'i' = ignore; 'n' = normalise the mean of all
            frames to match the first; 'b' = add offsets so that the mean of
            all frames is the same as the first.  Option 'n' is useful for
            twilight flats; 'b' for combining biases.
 
-        plot    : (bool) [hidden, if adjust == 'n' or 'b'; defaults to False]
+        plot    : bool [hidden, if adjust == 'n' or 'b'; defaults to False]
            make a plot of the mean versus frame number. This can provide a
            quick check that the frames are not too different.
 
-        clobber : (bool) [hidden]
+        clobber : bool [hidden]
            clobber any pre-existing output files
 
-        output  : (string)
+        output  : string
            output file
 
-    .. notes::
+    .. Note::
 
        This routine reads all inputs into memory, so can be a bit of a
        hog. However, it does so one CCD at a time to alleviate this. It will

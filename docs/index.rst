@@ -6,6 +6,8 @@
 The HiPERCAM pipeline manual
 ****************************
 
+:Author: Tom Marsh
+
 The HiPERCAM pipeline serves two purposes. First, it provides a means of
 displaying, analysing and reducing HiPERCAM data. Second, it provides an
 "Application Programmers Interface" (API) to allow you to access and
@@ -19,6 +21,7 @@ manual covers both aspects.
 
    observers
    installation
+   commands
    api
 
 Indices and tables
