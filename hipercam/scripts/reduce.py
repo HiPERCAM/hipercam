@@ -28,7 +28,8 @@ def reduce(args=None):
     nx msub xlo xhi ylo yhi iset (ilo ihi | plo phi))``
 
     Reduces a sequence of multi-CCD images, plotting lightcurves as images
-    come in.
+    come in. It uses simple aperture photometry on specific targets defined
+    in an aperture file.
 
     reduce can source data from both the ULTRACAM and HiPERCAM servers, from
     local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
@@ -36,9 +37,14 @@ def reduce(args=None):
     have data from a different instrument you should convert into the
     FITS-based hcm format.
 
-    reduce is primarily configured from a file, typically "reduce.red". This
-    is closely related to the format of the ULTRACAM files except it uses
-    ConfigParser which allows sections
+    reduce is primarily configured from a file with extension ".red". This
+    contains a series of directives, e.g. to say how to re-position and
+    re-size the apertures. An initial reduce file is best generated with
+    |genred| after you have created an aperture file.
+
+    A reduce run can be terminated at any point with ctrl-C without doing
+    any harm. You may often want to do this at the start in order to adjust
+    parameters of the reduce file.
 
     Parameters:
 
