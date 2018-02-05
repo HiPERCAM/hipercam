@@ -96,12 +96,25 @@ works, and you are referred to this mor more information.
 Aperture files
 ==============
 
-TBD |setaper|
+The pipeline photometry is straightforward aperture photometry. Many of the
+details can be defined when setting the apertures using |setaper|. A key
+decision to be made at this stage is whether you think your target will
+remain detectable on each frame throughout the run. Detectable means that
+it's position can be measured and thus the relevant aperture re-positioned.
+If not, then |setaper| gives you the option of ``linking`` any target to
+another, with the idea that a brighter target can define the position shifts
+which are applied to the fainter target.
+
 
 Reduction files
 ===============
 
-TBD |genred|, |reduce|
+Once you have defined the apertures for all CCDs that you can, you can create
+a reduction file using |genred|. This reads which CCDs and apertures have been
+set and tries to create a file that at will work with |reduce|, even if it may
+well not be ideal. Once you have this file, then you should expect to go
+through a sequence of running |reduce|, adjusting the reduce file, re-running
+|reduce| until you have a useful plot going.
 
 Plotting results
 ================
