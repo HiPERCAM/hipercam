@@ -29,27 +29,38 @@ class CCD(Agroup):
     data pertaining to the CCD as a whole.
     """
 
-    def __init__(self, winds, nxtot, nytot, copy=False):
+    def __init__(self, winds, nxtot, nytot, nxpad=0, nypad=0, copy=False):
         """Constructs a :class:`CCD`.
 
-        Arguments::
+        Parameters:
 
           winds : :class:`Group`
               Group of :class:`Window` objects
 
           nxtot : int
-              Unbinned X-dimension of CCD
+              Unbinned X-dimension of imaging area of CCD
 
           nytot : int
-              Unbinned Y-dimension of CCD
+              Unbinned Y-dimension of imaging area of CCD
 
-          copy : bool
+          nxpad : int
+              extra padding in the X-direction to define plot limits (accounts
+              for possible prescans / overscans that have to be displayed outside
+              the imaging area)
+
+          nypad : int
+              extra padding in the Y-direction to define plot limits (accounts
+              for possible prescans / overscans that have to be displayed outside
+              the imaging area)
+
+          copy  : bool
               if True, copy all the data over, otherwise only references are
               held. Holding references is fine if the calling program keeps
               re-generating the data but could cause problems in some
               circumstances.
 
-        nxtot are nytot are stored as identically-named attributes of
+
+        nxtot, nytot, nxpad, nypad are stored as identically-named attributes of
         the CCD.
 
         """
@@ -57,6 +68,8 @@ class CCD(Agroup):
 
         self.nxtot = nxtot
         self.nytot = nytot
+        self.nxpad = nxpad
+        self.nypad = nypad
 
         if copy:
             self = self.copy()
@@ -69,7 +82,8 @@ class CCD(Agroup):
         """
         return (
             self.__class__, (list(self.items()),
-                             self.nxtot, self.nytot)
+                             self.nxtot, self.nytot,
+                             self.nxpad, self.nypad)
         )
 
     def flatten(self):
@@ -158,6 +172,8 @@ class CCD(Agroup):
                 # to be written for a given CCD.
                 head['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
                 head['NYTOT'] = (self.nytot, 'Total unbinned Y dimension')
+                head['NXPAD'] = (self.nxpad, 'X-padding for display purposes')
+                head['NYPAD'] = (self.nypad, 'Y-padding for display purposes')
                 head['NUMWIN'] = (len(self), 'Total number of windows')
 
             head['WINDOW'] = (wnam, 'Window label')
@@ -208,9 +224,12 @@ class CCD(Agroup):
 
             if cnam is None or ('CCD' in head and cnam == head['CCD']):
                 if first:
-                    # Extract maximum dimensions from first HDU of a CCD
+                    # Extract maximum dimensions and padding from first
+                    # HDU of a CCD
                     nxtot = head['NXTOT']
                     nytot = head['NYTOT']
+                    nxpad = head.get('NXPAD',0)
+                    nypad = head.get('NYPAD',0)
                     first = False
 
                 # attempt auto-generation of window labels as an aid
@@ -240,7 +259,7 @@ class CCD(Agroup):
                 # since we assume each CCD is a continguous block, we stop
                 break
 
-        return cls(winds, nxtot, nytot)
+        return cls(winds, nxtot, nytot, nxpad, nypad)
 
     @classmethod
     def rmhdul(cls, hdul):
@@ -279,7 +298,7 @@ class CCD(Agroup):
 
             if not first and ccd_label != head['CCD']:
                 # we have found a new CCD. Create and return the old CCD
-                ccd = cls(winds, nxtot, nytot)
+                ccd = cls(winds, nxtot, nytot, nxpad, nypad)
                 yield (ccd_label, ccd)
 
                 # re-initialise for the next CCD
@@ -291,6 +310,8 @@ class CCD(Agroup):
                 # we are on the first HDU of a CCD, get some essentials
                 nxtot = head['NXTOT']
                 nytot = head['NYTOT']
+                nxpad = head.get('NXPAD',0)
+                nypad = head.get('NYPAD',0)
                 ccd_label = head['CCD']
                 first = False
 
@@ -316,7 +337,7 @@ class CCD(Agroup):
             nwin += 1
 
         # when we get here, we should have data still to be returned
-        yield (ccd_label, cls(winds, nxtot, nytot))
+        yield (ccd_label, cls(winds, nxtot, nytot, nxpad, nypad))
 
     def write(self, fname, overwrite=False):
         """Writes out the CCD to a FITS file.
@@ -344,8 +365,10 @@ class CCD(Agroup):
             phead.add_comment('Multiple sub-windows are written as a series of HDUs. LLX and LLY give')
             phead.add_comment('the pixel location in unbinned pixels of their lower-left corners. XBIN')
             phead.add_comment('and YBIN are the binning factors. The first HDU contains the main header')
-            phead.add_comment('along with NXTOT and NYTOT, the total unbinned and NUMWIN the number of')
-            phead.add_comment('windows which should match the number of HDUs following the first.')
+            phead.add_comment('along with NXTOT and NYTOT, the total unbinned dimensions of the imaging')
+            phead.add_comment('area of the CCD, NXPAD and NYPAD to account for pre- and over-scans for')
+            phead.add_comment('display purposes, and NUMWIN the number of windows which should match')
+            phead.add_comment('the number of HDUs following the first.')
 
         hdul.writeto(fname,overwrite=overwrite)
 
@@ -404,7 +427,7 @@ class CCD(Agroup):
         copy.copy and copy.deepcopy of a `CCD` use this method
         """
         return CCD(
-            super().copy(memo), self.nxtot, self.nytot,
+            super().copy(memo), self.nxtot, self.nytot, self.nxpad, self.nypad
         )
 
     def float32(self):
@@ -491,9 +514,9 @@ class CCD(Agroup):
             (self.head['DSTATUS'] if 'DSTATUS' in self.head else True)
 
     def __repr__(self):
-        return '{:s}(winds={:s}, nxtot={!r}, nytot={!r})'.format(
+        return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, nxpad={!r}, nypad={!r})'.format(
             self.__class__.__name__, super().__repr__(),
-            self.nxtot, self.nytot
+            self.nxtot, self.nytot, self.nxpad, self.nypad
         )
 
 class MCCD(Agroup):
@@ -692,12 +715,13 @@ class MCCD(Agroup):
             ccd.uint16()
 
 def get_ccd_info(fname):
-    """Routine to return some useful basic information from an MCCD file
-    without reading the whole thing in. It returns an OrderedDict keyed on the
-    CCD label which returns the maximum X and Y dimensions of the CCD as a
-    2-element tuple. If no CCD label [header parameter 'CCD'] is found, the
-    rourins assigns a label of '1' on the assumption that the file cotains a
-    single CCD.
+    """Routine to return some useful basic information from an MCCD file without
+    reading the whole thing in. It returns an OrderedDict keyed on the CCD
+    label which returns the maximum X and Y dimensions of the CCD and X and Y
+    padding as a 4-element tuple. If no CCD label [header parameter 'CCD'] is
+    found, the routine assigns a label of '1' on the assumption that the file
+    cotains a single CCD.
+
     """
     info = OrderedDict()
 
@@ -721,7 +745,9 @@ def get_ccd_info(fname):
                     ccd_label = '1'
                 nxtot = head['NXTOT']
                 nytot = head['NYTOT']
-                info[ccd_label] = (nxtot,nytot)
+                nxpad = head.get('NXPAD',0)
+                nypad = head.get('NYPAD',0)
+                info[ccd_label] = (nxtot,nytot,nxpad,nypad)
                 first = False
 
     return info

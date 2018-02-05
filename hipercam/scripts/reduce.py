@@ -248,24 +248,21 @@ def reduce(args=None):
                     95., 0., 100.)
 
             # region to plot
-            nxmax, nymax = 0, 0
-            for cnam in ccds:
-                nxtot, nytot = ccdinf[cnam]
-                nxmax = max(nxmax, nxtot)
-                nymax = max(nymax, nytot)
+            for i, cnam in enumerate(ccds):
+                nxtot, nytot, nxpad, nypad = ccdinf[cnam]
+                if i == 0:
+                    xmin, xmax = float(-nxpad), float(nxtot + nxpad + 1)
+                    ymin, ymax = float(-nypad), float(nytot + nypad + 1)
+                else:
+                    xmin = min(xmin, float(-nxpad))
+                    xmax = max(xmax, float(nxtot + nxpad + 1))
+                    ymin = min(ymin, float(-nypad))
+                    ymax = max(ymax, float(nytot + nypad + 1))
 
-            xlo = cl.get_value(
-                'xlo', 'left-hand X value', 0., 0., float(nxmax+1)
-            )
-            xhi = cl.get_value(
-                'xhi', 'right-hand X value', float(nxmax), 0., float(nxmax+1)
-            )
-            ylo = cl.get_value(
-                'ylo', 'lower Y value', 0., 0., float(nymax+1)
-            )
-            yhi = cl.get_value(
-                'yhi', 'upper Y value', float(nymax), 0., float(nymax+1)
-            )
+            xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
+            xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
+            ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
+            yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
 
         # save list of parameter values for writing to the reduction file
         plist = cl.list()

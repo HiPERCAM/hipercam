@@ -400,7 +400,7 @@ def aligntool(args=None):
         elif inst == 'h':
             instrument = 'HIPER'
 
-        # get the labels and maximum dimensions
+        # get the labels and maximum dimensions and padding factors
         ccdinf = spooler.get_ccd_pars(source, resource)
         if len(ccdinf) > 1:
             ccdnam = cl.get_value('ccd', 'CCD to plot alignment of', '1')
@@ -441,17 +441,14 @@ def aligntool(args=None):
                 'phi', 'upper intensity limit percentile', 95., 0., 100.)
 
         # region to plot
-        nxmax, nymax = 0, 0
-        nxtot, nytot = ccdinf[ccdnam]
-        nxmax = max(nxmax, nxtot)
-        nymax = max(nymax, nytot)
+        nxtot, nytot, nxpad, nypad = ccdinf[ccdnam]
+        xmin, xmax = float(-nxpad), float(nxtot + nxpad + 1)
+        ymin, ymax = float(-nypad), float(nytot + nypad + 1)
 
-        xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., float(nxmax+1))
-        xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax),
-                           0., float(nxmax+1))
-        ylo = cl.get_value('ylo', 'lower Y value', 0., 0., float(nymax+1))
-        yhi = cl.get_value('yhi', 'upper Y value', float(nymax),
-                           0., float(nymax+1))
+        xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
+        xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
+        ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
+        yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
 
     # arguments defined, let's do something!
     # open image plot device

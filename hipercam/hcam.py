@@ -1,11 +1,12 @@
 """
-Section for handling the raw HiPERCAM data files. These are FITS files with a
-single HDU containing header information on the window format amonst other
-things with the data in a "FITS cube" of unusual nature in that it has
+Section for handling the raw HiPERCAM data files. These are FITS files
+with a single HDU containing header information on the window format amonst
+other things with the data in a "FITS cube" of unusual nature in that it has
 dimensions of nframe x 1 x lots, where "lots" contains all pixels of all
 windows of all CCDs plus timing bytes at the end. The pixels come in an odd
-order (pixel 1 of each window and then the same for each CCD etc), and the main
-work of the code is in disentangling them to produce :class:MCCD objects.
+order (pixel 1 of each window and then the same for each CCD etc), and the
+main work of the code is in disentangling them to produce :class:MCCD objects.
+
 """
 
 import os
@@ -22,7 +23,10 @@ from astropy.time import Time
 from hipercam import (CCD, Group, MCCD, Window, Winhead, HRAW, HipercamError)
 from hipercam.utils import add_extension
 
-__all__ = ['Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT']
+__all__ = [
+    'Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT',
+    'HCM_NPSCAN', 'HCM_NOSCAN'
+]
 
 # Set the URL of the FileServer from the environment or default to localhost.
 URL = 'ws://{:s}'.format(os.environ['HIPERCAM_DEFAULT_URL']) \
@@ -31,11 +35,19 @@ URL = 'ws://{:s}'.format(os.environ['HIPERCAM_DEFAULT_URL']) \
 # FITS offset to convert from signed to unsigned 16-bit ints and vice versa
 BZERO = (1 << 15)
 
-# Maximum dimensions of HiPERCAM CCDs
-HCM_NXTOT, HCM_NYTOT = 2148, 1040
-
 # number of seconds in a day
 DAYSEC = 86400.
+
+# Maximum dimensions of HiPERCAM CCDs, imaging area
+HCM_NXTOT, HCM_NYTOT = 2048, 1024
+
+# Number of unbinned columns added to each window
+# when a prescan is present
+HCM_NPSCAN = 50
+
+# Number of unbinned rows added to each window
+# when an overscan is present
+HCM_NOSCAN = 8
 
 class Rhead:
     """Reads an interprets header information from a HiPERCAM run (3D FITS file)
@@ -92,7 +104,9 @@ class Rhead:
            of a given quadrant (at most there are 2, so nwin = 0 or 1). nquad
            indexes the quadrants in EFGH order. nccd index the 5 CCDs. 'flip'
            is a tuple of axes to be flipped using numpy.flip to account for
-           where the CCD is read and reflections.
+           where the CCD is read and reflections. These are not in the end the
+           final windows that will end in the MCCD because if there are pre-scan
+           or over-scan present, we need to split them off making more windows.
 
        wforms    : tuple of strings
            formats of each set of windows as strings designed to match the input
@@ -190,7 +204,7 @@ class Rhead:
 
         # framesize parameters
         yframe = 520 if self.oscan else 512
-        xframe = 1074 if self.pscan else 1024
+        xframe = 1024+HCM_NPSCAN if self.pscan else 1024
 
         # store the NSKIP values for each CCD. These are needed for exact
         # timing for each CCD.
@@ -213,9 +227,7 @@ class Rhead:
             )
 
             self.toff1 = self.toff2 = 1.e-3*self.header['ESO DET TDELAY']/2.
-
             self.toff3 = self.toff4 = 1.e-3*self.header['ESO DET TDELAY']
-
             self.tdead = 1.e-3*(self.header['ESO DET TREAD']+self.header['ESO DET TCLEAR'])
 
         else:
@@ -244,6 +256,16 @@ class Rhead:
         self.xbin = self.header['ESO DET BINX1']
         self.ybin = self.header['ESO DET BINY1']
 
+        if self.pscan and HCM_NPSCAN % self.xbin == 0:
+            # number of binned prescan pixels
+            self.nxpscan = HCM_NPSCAN // self.xbin
+
+        elif self.pscan:
+            raise HipercamError(
+                'X-binning factor not a divisor of {:d} with prescan is undefined'.format(
+                    HCM_NPSCAN)
+            )
+
         # This mapping is needed for the g and z channels due to reflections.
         # They need to be flipped around x=0 and be rotated 180 degrees so that
         # whatever falls on E in the other CCDs falls on F
@@ -251,7 +273,7 @@ class Rhead:
         QUAD = ('E', 'F', 'G', 'H')
 
         # bottom-left coordinate of quadrant
-        LLX = {'E': 1, 'F': xframe+1, 'G': xframe+1, 'H': 1}
+        LLX = {'E': 1, 'F': 1025, 'G': 1025, 'H': 1}
         LLY = {'E': 1, 'F': 1, 'G': yframe+1, 'H': yframe+1}
 
         # direction increasing X- or Y-start moves window in quad
@@ -294,16 +316,7 @@ class Rhead:
                     if self.mode.startswith('FullFrame'):
                         nx = xframe // self.xbin
                         ny = yframe // self.ybin
-
-                        if self.pscan:
-                            # pre-scan adds 50 columns to every window
-                            # unbinned with some slightly tricky details
-                            # when binned
-                            ipoff = int(np.ceil(50 / self.xbin))
-                        else:
-                            ipoff = 0
-
-                        llx = LLX[quad] - OFF_PRESCAN[quad]*ipoff
+                        llx = LLX[quad]
                         lly = LLY[quad]
 
                     elif self.mode.startswith('OneWindow') or \
@@ -312,13 +325,8 @@ class Rhead:
                         nx = self.header[winID + 'NX'] // self.xbin
 
                         if self.pscan:
-                            # pre-scan adds 50 columns to every window
-                            # unbinned with some slightly tricky details
-                            # when binned
-                            ipoff = int(np.ceil(50 / self.xbin))
-                            nx += ipoff
-                        else:
-                            ipoff = 0
+                            # account for extra columns when a pre-scan is present
+                            nx += self.nxpscan
 
                         ny = self.header[winID + 'NY'] // self.ybin
                         win_xs = self.header[winID + 'XS{}'.format(quad)]
@@ -327,8 +335,7 @@ class Rhead:
                         win_ny = self.header[winID + 'NY']
                         llx = (
                             LLX[quad] + X_DIRN[quad] * win_xs +
-                            ADD_XSIZES[quad] * (xframe - win_nx) -
-                            OFF_PRESCAN[quad]*ipoff
+                            ADD_XSIZES[quad] * (xframe - win_nx)
                         )
                         lly = (
                             LLY[quad] + Y_DIRN[quad] * win_ys +
@@ -340,13 +347,7 @@ class Rhead:
                         ny = self.header['ESO DET DRWIN NY'] // self.ybin
 
                         if self.pscan:
-                            # pre-scan adds 50 columns to every window
-                            # unbinned with some slightly tricky details
-                            # when binned
-                            ipoff = int(np.ceil(50 / self.xbin))
-                            nx += ipoff
-                        else:
-                            ipoff = 0
+                            raise HipercamError('prescans with drift mode undefined')
 
                         win_xs = self.header['ESO DET DRWIN XS{}'.format(quad)]
                         win_nx = self.header['ESO DET DRWIN NX']
@@ -354,8 +355,7 @@ class Rhead:
                         win_ny = self.header['ESO DET DRWIN NY']
                         llx = (
                             LLX[quad] + X_DIRN[quad] * win_xs +
-                            ADD_XSIZES[quad] * (xframe - win_nx) -
-                            OFF_PRESCAN[quad]*ipoff
+                            ADD_XSIZES[quad] * (xframe - win_nx)
                         )
                         lly = (
                             LLY[quad] + Y_DIRN[quad] * win_ys +
@@ -395,8 +395,8 @@ class Rhead:
                 # Fallback
                 xsll = self.header[winID + 'XSE'] + 1
                 xsul = self.header[winID + 'XSH'] + 1
-                xslr = 2049 - self.header[winID + 'XSF'] - nx
-                xsur = 2049 - self.header[winID + 'XSG'] - nx
+                xslr = HCM_NXTOT + 1 - self.header[winID + 'XSF'] - nx
+                xsur = HCM_NXTOT + 1 - self.header[winID + 'XSG'] - nx
 
             self.wforms.append(
                 '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
@@ -418,8 +418,8 @@ class Rhead:
                     # fallback option
                     xsll = self.header[winID + 'XSE'] + 1
                     xsul = self.header[winID + 'XSH'] + 1
-                    xslr = 2049 - self.header[winID + 'XSF'] - nx
-                    xsur = 2049 - self.header[winID + 'XSG'] - nx
+                    xslr = HCM_NXTOT + 1 - self.header[winID + 'XSF'] - nx
+                    xsur = HCM_NXTOT + 1 - self.header[winID + 'XSG'] - nx
 
                 self.wforms.append(
                     '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
@@ -438,7 +438,7 @@ class Rhead:
             except:
                 # Fallback option
                 xsl = self.header[winID + 'XSE'] + 1
-                xsr = 2049 - self.header[winID + 'XSF'] - nx
+                xsr = HCM_NXTOT + 1 - self.header[winID + 'XSF'] - nx
 
             self.wforms.append(
                 '{:d}|{:d}|{:d}|{:d}|{:d}'.format(xsl, xsr, ys, nx, ny)
@@ -966,14 +966,83 @@ class Rdata (Rhead):
                                 'can only flip on axis 0 or 1, but got = {:d}'.format(ax)
                             )
 
-                    if nwin == 0 and nquad == 0:
-                        # store CCD header in the first Winhead
-                        win.update(cheads[cnam])
+                    # finally store as Window(s), converting to 32-bit
+                    # floats to avoid problems down the line and chopping
+                    # off pre-scans into separate windows
+                    if self.pscan:
+                        # pre-scan present: split off the prescan into a
+                        # separate window.
 
-                    # finally store as a Window, converting to 32-bit
-                    # floats to avoid problems down the line.
-                    ccds[cnam][wnam] = Window(
-                        win, windata.astype(np.float32)
+                        if qnam == 'E' or qnam == 'H':
+                            # Prescan on the left. The llx from Rhead is correct
+                            # for the imaging area window so we leave it untouched
+                            # and just reduce the nx size.
+                            wind = Winhead(
+                                win.llx, win.lly, win.nx-self.nxpscan, win.ny,
+                                win.xbin, win.ybin, win
+                            )
+                            if nwin == 0 and nquad == 0:
+                                # store CCD header in the first Winhead
+                                wind.update(cheads[cnam])
+
+                            # Create the Window with the data, stripping off
+                            # the prescan from the left
+                            ccds[cnam][wnam] = Window(
+                                wind, windata[:,self.nxpscan:].astype(np.float32)
+                            )
+
+                            # Now the prescan which is moved to the left of the
+                            # imaging area.
+                            winp = Winhead(
+                                1-HCM_NPSCAN, win.lly, self.nxpscan, win.ny,
+                                win.xbin, win.ybin, win
+                            )
+                            # Generate name for the Window
+                            wpnam = '{:s}{:d}P'.format(qnam,nwin+1)
+
+                            # Create the Window with the pre-scan
+                            ccds[cnam][wpnam] = Window(
+                                winp, windata[:,:self.nxpscan].astype(np.float32)
+                            )
+
+                        else:
+                            # Prescan on the right. The llx from Rhead is correct
+                            # for the imaging area window so we leave it untouched
+                            # and just reduce the nx size.
+                            wind = Winhead(
+                                win.llx, win.lly, win.nx-self.nxpscan, win.ny,
+                                win.xbin, win.ybin, win
+                            )
+
+                            # Create the Window with the data, stripping off
+                            # the prescan from the right
+                            ccds[cnam][wnam] = Window(
+                                wind, windata[:,:-self.nxpscan].astype(np.float32)
+                            )
+
+                            # Now the prescan which is moved to the right of the
+                            # imaging area.
+                            winp = Winhead(
+                                HCM_NXTOT+1, win.lly, self.nxpscan, win.ny,
+                                win.xbin, win.ybin, win
+                            )
+                            # Generate name for the Window
+                            wpnam = '{:s}{:d}P'.format(qnam,nwin+1)
+
+                            # Create the Window with the pre-scan
+                            ccds[cnam][wpnam] = Window(
+                                winp, windata[:,-self.nxpscan:].astype(np.float32)
+                            )
+
+                    else:
+                        # No prescan is easy. Don't need to monkey with the 
+                        # windows, just store
+                        if nwin == 0 and nquad == 0:
+                            # store CCD header in the first Winhead
+                            win.update(cheads[cnam])
+
+                        ccds[cnam][wnam] = Window(
+                            win, windata.astype(np.float32)
                         )
 
             # move pointer on for next set of windows

@@ -318,16 +318,16 @@ def data_source(source, resource, first=1):
         )
 
 def get_ccd_pars(source, resource):
-    """Returns a list of tuples of CCD labels, and maximum dimensions,
-    i.e. (label, nxmax, nymax) for each CCD pointed at by the input
-    parameters.
+    """Returns a list of tuples of CCD labels, maximum dimensions, and padding
+    factors (label, nxmax, nymax, nxpad, nypad) for each CCD pointed at by the
+    input parameters.
 
-    Arguments::
+    Parameters:
 
-        source   : (string)
+        source  : string
            Data source. See 'data_source' for details.
 
-       resource : (string)
+       resource : string
           File name. Either a run number or a file list. Again, see
           'data_source' for details.
 
@@ -369,17 +369,18 @@ def get_ccd_pars(source, resource):
                         'failed to find any file names in {:s}'.format(resource)
                         )
             return ccd.get_ccd_info(
-                utils.add_extension(fname.strip(), core.HCAM))
+                utils.add_extension(fname.strip(), core.HCAM)
+            )
 
         else:
             # HiPERCAM raw data file: fixed data
             return OrderedDict(
                 (
-                    ('1',(hcam.HCM_NXTOT, hcam.HCM_NYTOT)),
-                    ('2',(hcam.HCM_NXTOT, hcam.HCM_NYTOT)),
-                    ('3',(hcam.HCM_NXTOT, hcam.HCM_NYTOT)),
-                    ('4',(hcam.HCM_NXTOT, hcam.HCM_NYTOT)),
-                    ('5',(hcam.HCM_NXTOT, hcam.HCM_NYTOT))
+                    ('1',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
+                    ('2',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
+                    ('3',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
+                    ('4',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
+                    ('5',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
                     )
                 )
 

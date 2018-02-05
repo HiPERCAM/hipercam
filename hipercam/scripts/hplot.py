@@ -194,18 +194,26 @@ def hplot(args=None):
             plo = cl.get_value('plo', 'lower intensity limit percentile', 5., 0., 100.)
             phi = cl.get_value('phi', 'upper intensity limit percentile', 95., 0., 100.)
 
-        nxmax, nymax = 0, 0
-        for cnam in ccds:
-            nxmax = max(nxmax, mccd[cnam].nxtot)
-            nymax = max(nymax, mccd[cnam].nytot)
+        # region to plot
+        for i, cnam in enumerate(ccds):
+            ccd = mccd[cnam]
+            nxtot, nytot, nxpad, nypad = ccd.nxtot, ccd.nytot, ccd.nxpad, ccd.nypad
+            if i == 0:
+                xmin, xmax = float(-nxpad), float(nxtot + nxpad + 1)
+                ymin, ymax = float(-nypad), float(nytot + nypad + 1)
+            else:
+                xmin = min(xmin, float(-nxpad))
+                xmax = max(xmax, float(nxtot + nxpad + 1))
+                ymin = min(ymin, float(-nypad))
+                ymax = max(ymax, float(nytot + nypad + 1))
 
         if ptype == 'PGP' or hard != '':
-            xlo = cl.get_value('xlo', 'left-hand X value', 0., 0., nxmax+1)
-            xhi = cl.get_value('xhi', 'right-hand X value', float(nxmax), 0., nxmax+1)
-            ylo = cl.get_value('ylo', 'lower Y value', 0., 0., nymax+1)
-            yhi = cl.get_value('yhi', 'upper Y value', float(nymax), 0., nymax+1)
+            xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
+            xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
+            ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
+            yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
         else:
-            xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
+            xlo, xhi, ylo, yhi = xmin, xmax, ymin, ymax
 
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
