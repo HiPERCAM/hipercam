@@ -376,11 +376,11 @@ def get_ccd_pars(source, resource):
             # HiPERCAM raw data file: fixed data
             return OrderedDict(
                 (
-                    ('1',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
-                    ('2',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
-                    ('3',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
-                    ('4',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
-                    ('5',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcan.HCM_NOSCAN)),
+                    ('1',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
+                    ('2',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
+                    ('3',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
+                    ('4',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
+                    ('5',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
                     )
                 )
 
