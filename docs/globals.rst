@@ -5,6 +5,9 @@
 
 .. Useful substitutions
 
+.. |nbsp| unicode:: 0xA0
+   :trim:
+
 .. |hiper|   replace:: HiPERCAM
 .. |averun|  replace:: :func:`hipercam.scripts.averun`
 .. |combine| replace:: :func:`hipercam.scripts.combine`
