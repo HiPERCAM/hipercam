@@ -218,19 +218,28 @@ class Rhead:
             )
 
         # set timing parameters toff1, toff2, toff3, toff4, tdelta, tdead
-        # which are also needed for exact timing
+        # which are also needed for exact timing. Meanings:
+        #
+        # toff1  -- constant offset from timestamp for first frame
+        # toff2  -- constant offset from timestamp for all other frames
+        # toff3  -- constant part of exposure time for first frame
+        # toff4  -- constant part of exposure time for all other frames
+        # tdelta -- multiplier of nskip (same for all frames)
+        # tdead  -- dead time between frames.
+
         E  = hd['ESO DET TDELAY']
-        R  = hd['ESO DET TREAD']
+        R = FR = hd['ESO DET TREAD']
 
         if self.clear:
             # Clear mode. NB the parameter 'TREAD' is actually a combination
-            # of a frame-transfer and a read
-            C = hd['ESO DET TCLEAR']
+            # of a frame-transfer and a read (F+R in the docs), hence it
+            # is called FR here
+            W = hd['ESO DET TCLEAR']
 
-            self.tdelta = 1e-3*(R+E+C)
+            self.tdelta = 1e-3*(FR+W+E)
             self.toff1 = self.toff2 = 1.e-3*E/2.
             self.toff3 = self.toff4 = 1.e-3*E
-            self.tdead = 1.e-3*(R+C)
+            self.tdead = 1.e-3*(FR+W)
 
         elif self.drift:
             # Drift mode
@@ -238,6 +247,8 @@ class Rhead:
             LS = hd['ESO DRIFT TLINESHIFT']
             ND = hd['DET DRIFT NWINS']
 
+            # no NSKIP here, so tdelta irrelevant. in drift
+            # mode, TREAD is the read time (no frame transfer)
             self.tdelta = 0.
             self.toff1 = self.toff2 = 1.e-3*(
                 E+LS+(E+LD+R)/2.-ND*(E+R+LS+LD)
@@ -247,15 +258,15 @@ class Rhead:
 
         else:
             # No clear mode, there are zero sec dummy
-            # 'wipes' so no 'TCLEAR' here
-            FT = hd['ESO DET TFT']
+            # 'wipes' so no 'W' appears here
+            F = hd['ESO DET TFT']
 
-            self.tdelta = 1.e-3*(R+E)
+            self.tdelta = 1.e-3*(FR+E)
             self.toff1 = 1.e-3*E/2.
-            self.toff2 = 1.e-3*(E-R+FT)/2.
+            self.toff2 = 1.e-3*(E-R)/2.
             self.toff3 = 1.e-3*E
-            self.toff4 = 1.e-3*(E+R-FT)
-            self.tdead = 1.e-3*FT
+            self.toff4 = 1.e-3*(FR-F+E)
+            self.tdead = 1.e-3*F
 
         # binning factors
         self.xbin = hd['ESO DET BINX1']
@@ -610,11 +621,14 @@ class Rhead:
 
         flag = nframe % (nskip+1) == 0
         if nframe == nskip + 1:
+            # special case for first frame of data
             tmid = mjd + (self.toff1 - self.tdelta*nskip/2)/DAYSEC
             texp = self.tdelta*nskip + self.toff3
         else:
+            # regular times
             tmid = mjd + (self.toff2 - self.tdelta*nskip/2)/DAYSEC
             texp = self.tdelta*nskip + self.toff4
+
         return (tmid, texp, flag)
 
     def __del__(self):

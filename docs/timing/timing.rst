@@ -63,51 +63,64 @@ tacked on to F6 and is the "per-frame" timing data referred to earlier.
 Adopting an obvious notation, the time of the end of the exposure,
 :math:`t_2`, is given by
 
-.. math:: t_2 = t_S + E,
+.. math:: t_2 = t_S + \text{E},
 
 while the start time is
 
-.. math:: t_1 = t_S - (F+R+E) * \mathrm{NSKIP} - R.
+.. math:: t_1 = t_S - (\text{F}+\text{R}+\text{E}) * \text{NSKIP} - \text{R}.
 
 The average of these is the mid-exposure time that we want, i.e.
 
 .. math::
   :label: tmid-norm
 
-  t_{\mathrm{mid}} = t_S + \left(\frac{E-R}{2}\right) -
-  \left(\frac{F + R + E}{2}\right) * \mathrm{NSKIP} ,
+  t_{\text{mid}} = t_S + \left(\frac{\text{E}-\text{R}}{2}\right) -
+  \left(\frac{\text{F} + \text{R} + \text{E}}{2}\right) * \text{NSKIP} ,
 
-Here :math:`t_S` is the timestamp of the frame in question, while :math:`F`,
-:math:`R` and :math:`E` are the times taken to frame transfer, readout, and
+Here :math:`t_S` is the timestamp of the frame in question, while F,
+R and E are the times taken to frame transfer, readout, and
 the exposure delay (user defined). |eq-tmid-norm| applies to frame
-number :math:`(\mathrm{NSKIP}+1) * m`, where :math:`m` is an integer,
-:math:`\forall m > 1`. e.g. in the example, :math:`\mathrm{NSKIP} = 2`,
+number :math:`(\text{NSKIP}+1) * m`, where :math:`m` is an integer,
+:math:`\forall m > 1`. e.g. in the example, :math:`\text{NSKIP} = 2`,
 :math:`m = 2` gives the time for F6. Times are meaningless for any of the
 dummy frames (F2, F5 etc) since they don't contain data, which leaves the
 :math:`m = 1` case, F3. The exposure for this is high-lighted in red in
 |fig-no-clear|. If it is compared to the blue box, it can be seen to lack
 the 'R' stage at the start relative to that, so we can take
-|eq-tmid-norm| and add :math:`R/2` to get the special case for the first
+|eq-tmid-norm| and add :math:`\text{R}/2` to get the special case for the first
 (non-junk) frame:
 
 .. math::
 
-  t_{\mathrm{mid}} = t_S + \frac{E}{2} - \left(\frac{F + R + E}{2}\right)
-  * \mathrm{NSKIP} .
+  t_{\text{mid}} = t_S + \frac{\text{E}}{2} - \left(\frac{\text{F} 
+  + \text{R} + \text{E}}{2}\right)
+  * \text{NSKIP} .
 
-Finally the exposure times are
+The exposure times are given by
 
 .. math::
 
- t_{\mathrm{exp}} &= (F + R + E) * \mathrm{NSKIP} + R + E,\\
- t_{\mathrm{exp}} &= (F + R + E) * \mathrm{NSKIP} + E,
+ t_{\text{exp}} &= (\text{F} + \text{R} + \text{E}) * \text{NSKIP}
+ + \text{R} + \text{E},\\
+ t_{\text{exp}} &= (\text{F} + \text{R} + \text{E}) * \text{NSKIP}
+ + \text{E},
 
-for the normal (:math:`m > 1`) and special (:math:`m = 1`) cases respectively.
+for the normal (:math:`m > 1`) and special (:math:`m = 1`) cases respectively,
+while the dead time between exposures is
+
+.. math::
+
+ t_{\text{dead}} = \text{F}.
+
+In the code, :mod:`hipercam.hcam` these are implemented by computing
+two offsets plus two multipliers for NSKIP with names like `toff1` etc,
+representing the constant offset and the pre-factor that multiplies NSKIP
+(called `tdelta` in :mod:`hipercam.hcam`).
 
 Clear mode
 ==========
 
-Although clear mode is less useful for precise timing work, I go
+Although clear mode is less useful that clear mode for timing work, I go
 through the same analysis here.
 
 .. _fig-clear:
@@ -127,24 +140,28 @@ accumulated in the imaging area during readout of the masked area are thrown
 away, and the exposure only starts once the wipe is completed. This allows
 shorter exposures which can be useful on bright objects, although at the cost
 of increased deadtime. It is however often useful for calibrations,
-e.g. bright flux standards. The mid-exposure time in this case is given by
+e.g. bright flux standards. The start and end times in this case are
 
 .. math::
 
-  t_{\mathrm{mid}} = t_S + \frac{E}{2} - \left(\frac{F + R + W + E}{2}\right)
-  * \mathrm{NSKIP} ,
+  t_1 &= t_S - (\text{F}+\text{R}+\text{W}+\text{E}) * \text{NSKIP},\\
+  t_2 &= t_S + \text{E}.
 
-which applies in all cases.  If we define :math:`W = 0` in the no clear case,
-then this equation also applies to the first good exposure of no clear mode,
-and we just need a :math:`-R/2` correction to get the other ones.
-
-Finally, the exposure time in clear mode is given by
+One finds the mid-exposure, exposure and dead times to be
 
 .. math::
 
- t_{\mathrm{exp}} = (F + R + W + E) * \mathrm{NSKIP} + E.
+  t_{\text{mid}} &= t_S + \frac{\text{E}}{2} - \left(\frac{\text{F} +
+  \text{R} + \text{W} + \text{E}}{2}\right)
+  * \text{NSKIP} ,\\
+ t_{\text{exp}} &= (\text{F} + \text{R} + \text{W} + \text{E}) *
+ \text{NSKIP} + \text{E},\\
+ t_{\text{dead}} &= \text{F} + \text{R} + \text{W},
 
-These relations are implemented within :mod:`hipercam.hcam`.
+there being no distinction in this case between the first fram and all
+the others.
+
+
 
 Drift mode
 ==========
@@ -164,42 +181,62 @@ Drift mode
 
 In drift mode the windows are partially shifted into the masked area so that
 there are one or more of them in the masked area as windows are being read
-out. The smaller shifts allow the deadtime between exposures to be reduced.
-Ignoring the drift window offset, the start and end times are given by
+out. The smaller shifts allow the deadtime between exposures to be reduced but
+create an offset between the timestamps and data.  Ignoring the drift window
+offset initially, the start and end times are given by
 
 .. math::
 
-  t_1 &= t_s + E + LS,\\
-  t_2 &= t_s + 2E + LS + LD + R,
+  t_1 &= t_S + \text{E} + \text{LS},\\
+  t_2 &= t_S + 2\text{E} + \text{LS} + \text{LD} + \text{R},
 
-where :math:`R` is given by the header parameter 'ESO DET READ',
-:math:`LD` by 'ESO DRIFT TLINEDUMP' and :math:`E` by
-'ESO DET TDELAY'. Accounting for the drift window offser,
-the mid-exposure time is therefore given by
+where R is given by the header parameter 'ESO DET READ', LD by 'ESO DRIFT
+TLINEDUMP' and E by 'ESO DET TDELAY' (see :ref:`summary` for a complete
+listing). Accounting for the drift window offser, the times of interest
+work out to be
 
 .. math::
 
-  t_{\mathrm{mid}} = t_S + E + LS + \frac{1}{2} (LD + R + E) - 
-  (LD + R + LS + E) * \mathrm{NDRIFT},
+  t_{\text{mid}} &= t_S + \text{E} + \text{LS} + \frac{1}{2} (\text{LD} +
+  \text{R} + \text{E}) - (\text{LD} + \text{R} + \text{LS} + \text{E}) * 
+  \text{NDRIFT},\\
+  t_\text{exp} &= \text{E} + \text{LD} + \text{R},\\
+  t_\text{dead} &= \text{LS},
 
 where NDRIFT is the number of drift windows, 'DET DRIFT NWINS' in the headers.
+All the relations above are implemented within :mod:`hipercam.hcam`.
+
+.. Note::
+
+   There is no NSUB option in drift mode, therefore `tdelta` in
+   :mod:`hipercam.hcam` is set = 0.
+
+
+.. _summary:
 
 Summary of symbols and corresponding header parameters
 ======================================================
  
 Here is a summary table of all the symbols used above with the corresponding
-mode and equivalent FITS header paranmeter:
+mode and equivalent FITS header parameter:
 
 ======= ========= =====================
 Symbol  Mode      FITS header parameter
 ======= ========= =====================
-C       NO CLEAR
-E       NO CLEAR
-F       NO CLEAR
-R       NO CLEAR
-E       DRIFT     ESO DET TDELAY
+E       ALL       ESO DET TDELAY
+R+F     CLEAR     ESO DET READ
+R+F     NO CLEAR  ESO DET READ
 R       DRIFT     ESO DET READ
+W       CLEAR     ESO DET TCLEAR
+F       NO CLEAR  ESO DET TFT
 LD      DRIFT     ESO DRIFT TLINEDUMP
 LS      DRIFT     ESO DRIFT TLINESHIFT
 NDRIFT  DRIFT     DET DRIFT NWINS
 ======= ========= =====================
+
+.. Note::
+
+   The header parameter 'ESO DET READ' corresponds to the sum of the
+   readout R and frame transfer F that occur in the clear and no-clear
+   modes (there is no frame transfer in drift mode).
+
