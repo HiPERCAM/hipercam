@@ -302,8 +302,8 @@ class Rhead:
         ADD_XSIZES = {'E': 0, 'F': 1, 'G': 1, 'H': 0}
 
         # some axes need flipping, since the data is read out such that the
-        # bottom-left is not always the first pixel which axes need flipping
-        # to get data in correct orientation using numpy C-convention, 1=y,
+        # bottom-left is not always the first pixel. Which axes need flipping
+        # to get data in correct orientation uses numpy C-convention, 1=y,
         # 0=x. These are fed to numpy.flip later
         FLIP_AXES = {'E': (), 'F': (1,), 'G': (1, 0), 'H': (0,)}
 
@@ -337,7 +337,8 @@ class Rhead:
                         nx = hd[winID + 'NX'] // self.xbin
 
                         if self.pscan:
-                            # account for extra columns when a pre-scan is present
+                            # account for extra columns when a pre-scan is
+                            # present
                             nx += self.nxpscan
 
                         ny = hd[winID + 'NY'] // self.ybin
@@ -359,7 +360,9 @@ class Rhead:
                         ny = hd['ESO DET DRWIN NY'] // self.ybin
 
                         if self.pscan:
-                            raise HipercamError('prescans with drift mode undefined')
+                            raise HipercamError(
+                                'prescans with drift mode undefined'
+                            )
 
                         win_xs = hd['ESO DET DRWIN XS{}'.format(quad)]
                         win_nx = hd['ESO DET DRWIN NX']
@@ -741,9 +744,9 @@ class Rdata (Rhead):
         local file). If it is set to read the last file and that file doesn't
         change it returns None as a sign of failure.
 
-        Arguments::
+        Parameters:
 
-           nframe : (int)
+           nframe : int
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted, unless
               self.nframe = 0 in which case it will try to get the most recent
@@ -754,7 +757,7 @@ class Rdata (Rhead):
         constructing CCD objects.
 
         If access via a server is requested, it is assumed that the file being
-        accessed could be being added to. In
+        accessed could be being added to.
         """
 
         if self.server:
@@ -879,7 +882,7 @@ class Rdata (Rhead):
         except ValueError:
             warnings.warn('Bad timestamp: ' + time_string)
             tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=9)
-            # this will mark it as unrealiable down below
+            # this will mark it as unreliable down below
             synced = 0
 
         # copy over the top-level header to avoid it becoming a reference
@@ -970,13 +973,19 @@ class Rdata (Rhead):
                     for ax in flip_axes:
                         windata = np.flip(windata, ax)
 
-                    # finally store as Window(s), converting to 32-bit
-                    # floats to avoid problems down the line and chopping
-                    # off pre-scans into separate windows
+                    # at this point the data array has the appropriate
+                    # orientation. Now finally store in a Window or
+                    # two Windows, splitting off the pre-scan section
+                    # in the latter case. We also convert to 32-bit
+                    # floats to avoid problems down the line.
                     if self.pscan:
                         # pre-scan present. Reduce the size of the data
                         # window in preparation for removal of prescan
-                        # data
+                        # data. We rely on the llx value being correct
+                        # for the imaging portion so that it requires
+                        # no updating. nx however needs trimming down
+                        # by the number of prescan pixels which are about
+                        # to be removed.
 
                         wind = Winhead(
                             win.llx, win.lly, win.nx-self.nxpscan, win.ny,
@@ -987,30 +996,34 @@ class Rdata (Rhead):
                             wind.update(cheads[cnam])
 
                         if qnam == 'E' or qnam == 'H':
-                            # Prescan on the left. Create the Window with the
-                            # image data, stripping off the prescan from the left
+                            # Prescans are on the left of quadrants E and H
+                            # (outputs are on the left). Create the Window
+                            # with the image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                wind, windata[:,self.nxpscan:].astype(np.float32)
+                                wind, windata[:,self.nxpscan:].astype(
+                                    np.float32)
                             )
 
-                            # Now save the prescan itself
+                            # Store the prescan itself
                             winp = Winhead(
                                 1-HCM_NPSCAN, win.lly, self.nxpscan, win.ny,
                                 win.xbin, win.ybin, win
                             )
-                            # Generate name for the Window
-                            wpnam = '{:s}{:d}P'.format(qnam,nwin+1)
+                            # Generate name for the prescan Window
+                            wpnam = '{:s}P'.format(wnam)
 
                             # Create the Window with the pre-scan
                             ccds[cnam][wpnam] = Window(
-                                winp, windata[:,:self.nxpscan].astype(np.float32)
+                                winp, windata[:,:self.nxpscan].astype(
+                                    np.float32)
                             )
 
                         else:
                             # Prescan on the right. Create the Window with the
-                            # image data, stripping off the prescan from the right
+                            # image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                wind, windata[:,:-self.nxpscan].astype(np.float32)
+                                wind, windata[:,:-self.nxpscan].astype(
+                                    np.float32)
                             )
 
                             # Now save the prescan itself
@@ -1018,16 +1031,17 @@ class Rdata (Rhead):
                                 HCM_NXTOT+1, win.lly, self.nxpscan, win.ny,
                                 win.xbin, win.ybin, win
                             )
-                            # Generate name for the Window
-                            wpnam = '{:s}{:d}P'.format(qnam,nwin+1)
+                            # Generate name for the prescan Window
+                            wpnam = '{:s}P'.format(wnam)
 
                             # Create the Window with the pre-scan
                             ccds[cnam][wpnam] = Window(
-                                winp, windata[:,-self.nxpscan:].astype(np.float32)
+                                winp, windata[:,-self.nxpscan:].astype(
+                                    np.float32)
                             )
 
                     else:
-                        # No prescan is easy.
+                        # No prescan: just store the Window
                         if nwin == 0 and nquad == 0:
                             # store CCD header in the first Winhead
                             win.update(cheads[cnam])
@@ -1048,6 +1062,7 @@ class Rdata (Rhead):
         # show that we have read something
         self.first = False
 
+        # at last, return with the MCCD
         return mccd
 
     def seek_frame(self, n):
