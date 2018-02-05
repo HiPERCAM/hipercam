@@ -273,7 +273,7 @@ class Rhead:
         QUAD = ('E', 'F', 'G', 'H')
 
         # bottom-left coordinate of quadrant
-        LLX = {'E': 1, 'F': 1025, 'G': 1025, 'H': 1}
+        LLX = {'E': 1, 'F': HCM_NXTOT//2+1, 'G': HCM_NXTOT//2+1, 'H': 1}
         LLY = {'E': 1, 'F': 1, 'G': yframe+1, 'H': yframe+1}
 
         # direction increasing X- or Y-start moves window in quad
@@ -284,10 +284,6 @@ class Rhead:
         # coordinate of window
         ADD_YSIZES = {'E': 0, 'F': 0, 'G': 1, 'H': 1}
         ADD_XSIZES = {'E': 0, 'F': 1, 'G': 1, 'H': 0}
-
-        # whether to offset llx for prescan pixels (basically
-        # inverse of ADD_XSIZES)
-        OFF_PRESCAN = {'E': 1, 'F': 0, 'G': 0, 'H': 1}
 
         # some axes need flipping, since the data is read out such that the
         # bottom-left is not always the first pixel which axes need flipping
@@ -949,50 +945,35 @@ class Rdata (Rhead):
                     # recover the window and flip parameters
                     win, flip_axes = self.windows[nwin][nccd][nquad]
 
-                    # get the window data and apply flips. using older
-                    # flipud and fliplr rather than more modern flip
-                    # to avoid a need to upgrade numpy as flip only
-                    # came in version 1.12 and many linux distros
-                    # are behind.
+                    # get the window data and apply flips.
                     windata = data[nccd, nquad]
                     for ax in flip_axes:
-                        # windata = np.flip(windata, ax)
-                        if ax == 0:
-                            windata = np.flipud(windata)
-                        elif ax == 1:
-                            windata = np.fliplr(windata)
-                        else:
-                            raise ValueError(
-                                'can only flip on axis 0 or 1, but got = {:d}'.format(ax)
-                            )
+                        windata = np.flip(windata, ax)
 
                     # finally store as Window(s), converting to 32-bit
                     # floats to avoid problems down the line and chopping
                     # off pre-scans into separate windows
                     if self.pscan:
-                        # pre-scan present: split off the prescan into a
-                        # separate window.
+                        # pre-scan present. Reduce the size of the data
+                        # window in preparation for removal of prescan
+                        # data
+
+                        wind = Winhead(
+                            win.llx, win.lly, win.nx-self.nxpscan, win.ny,
+                            win.xbin, win.ybin, win
+                        )
+                        if nwin == 0 and nquad == 0:
+                            # store CCD header in the first Winhead
+                            wind.update(cheads[cnam])
 
                         if qnam == 'E' or qnam == 'H':
-                            # Prescan on the left. The llx from Rhead is correct
-                            # for the imaging area window so we leave it untouched
-                            # and just reduce the nx size.
-                            wind = Winhead(
-                                win.llx, win.lly, win.nx-self.nxpscan, win.ny,
-                                win.xbin, win.ybin, win
-                            )
-                            if nwin == 0 and nquad == 0:
-                                # store CCD header in the first Winhead
-                                wind.update(cheads[cnam])
-
-                            # Create the Window with the data, stripping off
-                            # the prescan from the left
+                            # Prescan on the left. Create the Window with the
+                            # image data, stripping off the prescan from the left
                             ccds[cnam][wnam] = Window(
                                 wind, windata[:,self.nxpscan:].astype(np.float32)
                             )
 
-                            # Now the prescan which is moved to the left of the
-                            # imaging area.
+                            # Now save the prescan itself
                             winp = Winhead(
                                 1-HCM_NPSCAN, win.lly, self.nxpscan, win.ny,
                                 win.xbin, win.ybin, win
@@ -1006,22 +987,13 @@ class Rdata (Rhead):
                             )
 
                         else:
-                            # Prescan on the right. The llx from Rhead is correct
-                            # for the imaging area window so we leave it untouched
-                            # and just reduce the nx size.
-                            wind = Winhead(
-                                win.llx, win.lly, win.nx-self.nxpscan, win.ny,
-                                win.xbin, win.ybin, win
-                            )
-
-                            # Create the Window with the data, stripping off
-                            # the prescan from the right
+                            # Prescan on the right. Create the Window with the
+                            # image data, stripping off the prescan from the right
                             ccds[cnam][wnam] = Window(
                                 wind, windata[:,:-self.nxpscan].astype(np.float32)
                             )
 
-                            # Now the prescan which is moved to the right of the
-                            # imaging area.
+                            # Now save the prescan itself
                             winp = Winhead(
                                 HCM_NXTOT+1, win.lly, self.nxpscan, win.ny,
                                 win.xbin, win.ybin, win
@@ -1035,8 +1007,7 @@ class Rdata (Rhead):
                             )
 
                     else:
-                        # No prescan is easy. Don't need to monkey with the 
-                        # windows, just store
+                        # No prescan is easy.
                         if nwin == 0 and nquad == 0:
                             # store CCD header in the first Winhead
                             win.update(cheads[cnam])

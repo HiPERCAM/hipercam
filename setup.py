@@ -91,8 +91,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['sep','numpy','astropy','matplotlib'],
 
-    # need numpy version 1.10 for numpy.stack,
-    # 1.12 for numpy.flip and num
+    # need numpy version 1.12
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
