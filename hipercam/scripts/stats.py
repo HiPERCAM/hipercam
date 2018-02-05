@@ -16,20 +16,22 @@ __all__ = ['stats',]
 #################################################################
 
 def stats(args=None):
-    """Lists basic stats of a multi-CCD image, i.e. the minimum, maximum,
-    mean, median and standard deviation of each window of each CCD. The output
+    """``stats input [format]``
+
+    Lists basic stats of a multi-CCD image, i.e. the minimum, maximum, mean,
+    median and standard deviation of each window of each CCD. The output
     format can be altered to suit preference.
 
-    Arguments::
+    Parameters:
 
-      input  : (string)
+      input  : string
          name of the MCCD file
 
-      format : (string) [hidden, defaults to 9.3f]
+      format : string [hidden, defaults to 9.3f]
          C-style format code as used in Python format statements for output of
-         the numerical values. e.g. '300.00' is '6.2f' (6 characters toal, 2 after
-         the decimal point), '1.22e24' is '.2e' (as many characters as needed, 2
-         after the decimal point)
+         the numerical values. e.g. '300.00' is '6.2f' (6 characters toal, 2
+         after the decimal point), '1.22e24' is '.2e' (as many characters as
+         needed, 2 after the decimal point)
 
     """
 
@@ -57,5 +59,3 @@ def stats(args=None):
                     cnam, wnam, form, wind.min(), wind.max(), wind.mean(), wind.median(), wind.std()
                     )
                 )
-
-

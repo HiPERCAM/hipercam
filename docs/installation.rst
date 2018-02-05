@@ -1,12 +1,14 @@
 .. Installation guide, started 24/10/2017
 
+.. include:: globals.rst
+
 Getting the software
 ********************
 
 Installation
 ============
 
-The HiPERCAM pipeline is written in Python, specifically Python 3.X. The code
+The |hiper| pipeline is written in Python, specifically Python 3.X. The code
 is stored on github and can be downloaded with::
 
     git clone https://github.com/HiPERCAM/hipercam.git
@@ -17,6 +19,20 @@ with further instructions and repeated verbatim below:
 
 .. literalinclude:: ../README.rst
    :language: none
+
+Updating
+========
+
+You should keep the directory 'hipercam' created by the first ``git clone``
+command because then it makes updating simple. It becomes a matter of going
+to the hipercam directory, pulling the changes from github, and 
+re-installing::
+
+  cd XXX/YYY/hipercam
+  git pull
+  python setup.py install --user
+
+(the last line may vary according to how you install it).
 
 Setting up
 ==========

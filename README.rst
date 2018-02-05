@@ -11,7 +11,7 @@ Installation
 hipercam is written in Python3; it does not support Python2.x It relies on the
 following third-party packages. At the moment I suggest you get these
 installed first (you may well have several of them already); in the future I
-might make it more automatic::
+might make it more automatic:
 
   astropy    : widely used astronomical Python package with lots of useful
                stuff.
@@ -37,6 +37,8 @@ might make it more automatic::
                client library which you can get from:
                https://github.com/websocket-client/websocket-client
 
+  sep        : astronomical source extractor for the aligntool script
+
 Once you have all these, then its the usual installation:
 
   python setup.py install
@@ -49,12 +51,16 @@ or
 
   python setup.py --user
 
-depending on whether you have root priviledges and how you have set things up.
-If you have multiple versions of python, then you need to specify python3
+or
 
+  pip install . --user
+
+or
+
+  pip install . --user --upgrade
+
+depending on whether you have root priviledges and how you have set things up.
+If you have multiple versions of python, then you need to specify python3, and
+the last line should use pip3
 
 Tom Marsh
-
-
-
-

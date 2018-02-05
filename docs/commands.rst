@@ -32,88 +32,102 @@ depending upon earlier inputs. It is always safest when first running a
 command simply to type its name and hit enter and let the command itself
 prompt you for input. Many commands have hidden parameters that can only be
 revealed by typing e.g. ``rtplot prompt``. These are usually parameters that
-rarely need changing, but you are sure sometimes to need to alter them.
-See the :ref:`command-calling` section for details on how to specify command parameters.
+rarely need changing, but you are sure sometimes to need to alter them.  See
+the :ref:`command-calling` section for details on how to specify command
+parameters.
 
-:func:`add`
------------
+In the one-line descriptions below, ``run`` refers to a complete run,
+containing multiple images, stored in a .fits file. ``frame`` refers to a
+single image from a run as might be extracted using |grab|. These have file
+extension '.hcm'.
+
+:func:`add`: add two frames
+---------------------------
 .. autofunction:: hipercam.scripts.add
 
-:func:`averun`
---------------
+:func:`averun`: average a series of frames in a run
+---------------------------------------------------
 .. autofunction:: hipercam.scripts.averun
 
-:func:`cadd`
-------------
+:func:`cadd`: add a constant to a frame
+---------------------------------------
 .. autofunction:: hipercam.scripts.cadd
 
-:func:`cdiv`
-------------
+:func:`cdiv`: divide a frame by a constant
+------------------------------------------
 .. autofunction:: hipercam.scripts.cdiv
 
-:func:`csub`
-------------
+:func:`combine`: combine a list of frames
+-----------------------------------------
+.. autofunction:: hipercam.scripts.combine
+
+:func:`csub`: subtract a constant from a frame
+----------------------------------------------
 .. autofunction:: hipercam.scripts.csub
 
-:func:`div`
------------
+:func:`div`: divide one frame by another
+----------------------------------------
 .. autofunction:: hipercam.scripts.div
 
-:func:`genred`
---------------
+:func:`genred`: create a reduce file
+------------------------------------
 .. autofunction:: hipercam.scripts.genred
 
-:func:`grab`
-------------
+:func:`grab`: split frames out of a run
+---------------------------------------
 .. autofunction:: hipercam.scripts.grab
 
-:func:`hist`
-------------
+:func:`hist`: plot a histogram of a frame
+-----------------------------------------
 .. autofunction:: hipercam.scripts.hist
 
-:func:`hls`
------------
+:func:`hls`: list the runs on the server
+----------------------------------------
 .. autofunction:: hipercam.scripts.hls
 
-:func:`hplot`
--------------
+:func:`hplot`: plot a frame
+---------------------------
 .. autofunction:: hipercam.scripts.hplot
 
-:func:`makebias`
-----------------
+:func:`makebias`: combine a run to make a bias frame
+----------------------------------------------------
 .. autofunction:: hipercam.scripts.makebias
 
-:func:`makeflat`
-----------------
+:func:`makeflat`: combine a list of frames into a flat
+------------------------------------------------------
 .. autofunction:: hipercam.scripts.makeflat
 
-:func:`mul`
------------
+:func:`mul`: multiply two frames
+--------------------------------
 .. autofunction:: hipercam.scripts.mul
 
-:func:`plog`
-------------
+:func:`plog`: plot output log from :func:`reduce`
+-------------------------------------------------
 .. autofunction:: hipercam.scripts.plog
 
-:func:`reduce`
---------------
+:func:`reduce`: carry out photometric reduction
+-----------------------------------------------
 .. autofunction:: hipercam.scripts.reduce
 
-:func:`rtplot`
---------------
+:func:`rtplot`: plot frames as they come in
+-------------------------------------------
 .. autofunction:: hipercam.scripts.rtplot
 
-:func:`setaper`
----------------
+:func:`setaper`: define the photometric apertures
+-------------------------------------------------
 .. autofunction:: hipercam.scripts.setaper
 
-:func:`stats`
--------------
+:func:`stats`: report statistics of a frame
+-------------------------------------------
 .. autofunction:: hipercam.scripts.stats
 
-:func:`sub`
------------
+:func:`sub`: subtract two frames
+--------------------------------
 .. autofunction:: hipercam.scripts.sub
+
+:func:`times`: list times of a run
+----------------------------------
+.. autofunction:: hipercam.scripts.times
 
 .. Note::
 

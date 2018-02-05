@@ -16,53 +16,61 @@ from hipercam.cline import Cline
 ##########################################
 
 def plog(args=None):
-    """Provides quick-look plots of HiPERCAM reduce logs.
+    """``plog log [device width height] ccd1 aper1 param1 ccd2 (aper2 param2
+    scheme)``
 
-    Arguments::
+    Provides quick-look plots of HiPERCAM reduce logs.
 
-      log    : (string)
+    Parameters:
+
+      log    : string
           name of reduce log file (text file with loads of columns)
 
-      device : (string) [hidden, defaults to 'term']
+      device : string [hidden, defaults to 'term']
          'term' for interactive plot, file name such as 'plot.pdf'
          for a hardcopy.
 
-      width  : (float) [hidden]
+      width  : float [hidden]
          plot width (inches). Set = 0 to let the program choose.
 
-      height : (float) [hidden]
-         plot height (inches). Set = 0 to let the program choose. BOTH width
-         AND height must be non-zero to have any effect
+      height : float [hidden]
+         plot height (inches). Set = 0 to let the program choose. BOTH
+         width AND height must be non-zero to have any effect
 
-      ccd1   : (string)
+      ccd1   : string
          first CCD to consider, e.g. '1'
 
-      aper1   : (string)
+      aper1  : string
          first aperture to consider
 
-      param1   : (string)
+      param1 : string
          first parameter to consider. Choices are 'x' = X position,
          'y' = Y position, 'f' = FWHM, 'b' = Moffat beta, 's' = sky.
 
-      ccd2   : (string)
+      ccd2   : string
          second CCD to consider; '!' to ignore. Can be (and typically
          would be) the same as ccd1.
 
-      aper2   : (string) [if ccd2 != '!']
+      aper2  : string [if ccd2 != '!']
          second aperture to consider
 
-      param2   : (string) [if ccd2 != '!']
+      param2 : string [if ccd2 != '!']
          second parameter. See param1 for choices
 
-      scheme   : (string) [if ccd2 != '!']
+      scheme : string [if ccd2 != '!']
          how to plot if both apertures are chosen. Choices:
-         'd' = difference, i.e. plot 1-2; 'b' = both plotted on same
-         panel; 'r' = ratio, i.e. 1 / 2, good for relative photom;
-         's' = scatter plot, 2 vs 1.
 
-    NB Points with negative errors are ignored. Be careful with linked
-    apertures where all x, y, FWHM, beta automatically have negative
-    errors since they are not fitted.
+            | 'd' = difference, i.e. plot 1-2
+            | 'b' = both plotted on same panel
+            | 'r' = ratio, i.e. 1 / 2, good for relative photom
+            | 's' = scatter plot, 2 vs 1.
+
+    .. Note::
+
+       Points with negative errors are ignored. Be careful with linked
+       apertures where all x, y, FWHM, beta automatically have negative errors
+       since they are not fitted.
+
     """
 
     command, args = utils.script_args(args)

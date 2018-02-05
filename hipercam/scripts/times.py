@@ -20,20 +20,22 @@ __all__ = ['times',]
 ######################################
 
 def times(args=None):
-    """Lists timing information from a run. For each frame the associated GPS
+    """``times [source] run first last [twait tmax tdigit edigit]``
+
+    Lists timing information from a run. For each frame the associated GPS
     timestamp is listed (UTC, date then HMS), and then for each CCD the CCD
     number [1-5], the mid exposure time (UTC, HMS only), the exposure length
     (seconds) and a status flag are listed in parentheses (). The status flag
-    is set by the NSKIP parameters for each CCD. Only the valid frames will have
-    status = 'T'.
+    is set by the NSKIP parameters for each CCD. Only the valid frames will
+    have status = 'T'.
 
-    Arguments::
+    Parameters:
 
         source  : string [hidden]
-           Data source, two options::
+           Data source, two options:
 
-               'hs' : HiPERCAM server
-               'hl' : local HiPERCAM FITS file
+              | 'hs' : HiPERCAM server
+              | 'hl' : local HiPERCAM FITS file
 
         run     : string
            run number to access, e.g. 'run0034'
@@ -52,13 +54,13 @@ def times(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds. Set to 0 to avoid waiting and extra output messages.
 
-        tdigit  : int
-           number of digits of precision for the seconds after the decimal point when
-           reporting the times.
+        tdigit  : int [hidden]
+           number of digits of precision for the seconds after the decimal
+           point when reporting the times.
 
-        edigit  : int
-           number of digits of precision after the decimal point when reporting the exposure
-           times
+        edigit  : int [hidden]
+           number of digits of precision after the decimal point when
+           reporting the exposure times
 
     """
 
@@ -131,7 +133,9 @@ def times(args=None):
         message = ''
         for nccd, (mjd, exptime, flag) in enumerate(tinfo):
             ts = Time(mjd, format='mjd', precision=tdigit)
-            message += ', ({:d}, {:s}, {:.{:d}f}, {:s})'.format(nccd+1, ts.hms_custom, exptime, edigit, 'T' if flag else 'F')
+            message += ', ({:d}, {:s}, {:.{:d}f}, {:s})'.format(
+                nccd+1, ts.hms_custom, exptime, edigit, 'T' if flag else 'F'
+            )
         print(message)
 
         # increment the frame

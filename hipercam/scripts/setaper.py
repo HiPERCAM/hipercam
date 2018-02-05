@@ -177,7 +177,7 @@ def setaper(args=None):
          thresh rejection threshold
 
 
-    There are a few conveniences to make setaper easier::
+    There are a few conveniences to make setaper easier:
 
       1. The plot is initialised in pan mode whereby you can move around and
          scale using the left and right mouse buttons.
@@ -1380,5 +1380,3 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             else:
                 # multi character input. just accumulate characters
                 print(key, end='', flush=True)
-
-

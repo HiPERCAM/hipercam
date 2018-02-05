@@ -23,6 +23,7 @@ from .reduce import reduce
 from .rtplot import rtplot
 from .setaper import setaper
 from .stats import stats
+from .times import times
 
 # important to keep alphabetical ordering here for sphinx / autodoc
 
@@ -36,4 +37,5 @@ __all__ = [ \
             'plog',
             'reduce', 'rtplot',
             'setaper', 'stats', 'sub',
+            'times',
         ]
