@@ -9,7 +9,9 @@
    :trim:
 
 .. |hiper|   replace:: HiPERCAM
+.. |add|  replace:: :func:`hipercam.scripts.add`
 .. |averun|  replace:: :func:`hipercam.scripts.averun`
+.. |cmul|  replace:: :func:`hipercam.scripts.cmul`
 .. |combine| replace:: :func:`hipercam.scripts.combine`
 .. |genred|  replace:: :func:`hipercam.scripts.genred`
 .. |grab|    replace:: :func:`hipercam.scripts.grab`

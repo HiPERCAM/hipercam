@@ -14,6 +14,13 @@ detailed guide to reducing your data. It covers the following steps:
   3. Setting up aperture files,
   4. Defining the reduction file,
   5. Plotting the results.
+  6. Customising the pipeline
+
+.. Note::
+
+  I am aware that these pages need some illustrations and it is really a
+  matter of obtaining suitable data from which to compile a set of example
+  figures.
 
 Bias frames
 ===========
@@ -97,13 +104,17 @@ Aperture files
 ==============
 
 The pipeline photometry is straightforward aperture photometry. Many of the
-details can be defined when setting the apertures using |setaper|. A key
-decision to be made at this stage is whether you think your target will
-remain detectable on each frame throughout the run. Detectable means that
-it's position can be measured and thus the relevant aperture re-positioned.
-If not, then |setaper| gives you the option of ``linking`` any target to
-another, with the idea that a brighter target can define the position shifts
-which are applied to the fainter target.
+details can be defined when setting the apertures using |setaper|. Not only
+can you choose your targets, but you can mask nearby stars from the sky
+aperture, and you can to a certain extent sculpt your target apertures which
+can help with nearby interlopers.
+
+A key decision to be made at this stage is whether you think your target will
+remain detectable on each frame throughout the run. Detectable means that it's
+position can be measured and thus the relevant aperture re-positioned.  If
+not, then |setaper| gives you the option of ``linking`` any target to another,
+with the idea that a brighter target can define the position shifts which are
+applied to the fainter target.
 
 
 Reduction files
@@ -119,4 +130,28 @@ through a sequence of running |reduce|, adjusting the reduce file, re-running
 Plotting results
 ================
 
-TBD |plog|
+|reduce| delivers a basic view of your data as it comes in which is usually
+enough at the telescope. If you want to look at particular features, then you
+should investigate the command |plog|. This allows you to plot one parameter
+versus another, including division by comparison stars. The |plog| code is a
+good place to start from when analysing your data in more detail. In
+particular it shows you how to load in the rather human-unreadable |hiper| log
+files (huge numbers of columns and rows).
+
+Customisation
+=============
+
+You may well find that your data has particular features that the current
+pipeline does not allow for. An obvious one is with crowded fields, which
+can only roughly be accomodated with judicious application of the options
+within setaper. The pipeline does not aim to replicate packages designed to
+handle crowded fields, and you are best advised to port the data over into
+single frames using |grab|, remembering that the 'hcm' files are nothing more
+than a particular form of FITS. If your data requires only a small level of
+tweaking then there are a few simple aritematical commands such as |add| and
+|cmul| that might help, but it is not the intention to provide a full suite of
+tools that can deal with all cases. Instead, the recommended route is to code
+Python scripts to manipulate your data, and the :doc:`api` is designed to make
+it relatively easy to access |hiper| data. If you devise routines of generic
+interest, you are encouraged to submit them for possible inclusion within the
+main pipeline commands.
