@@ -163,7 +163,7 @@ class Rhead:
             # read the header from the server
             data = json.dumps(dict(action='get_hdr'))
             self._ws.send(data)
-            self.header = fits.Header.fromstring(self._ws.recv())
+            hd = self.header = fits.Header.fromstring(self._ws.recv())
 
             nsamps = self.header.get('ESO DET NSAMP', 1)
             self._framesize = 18 + (self.header['ESO DET ACQ1 WIN NX'] *
@@ -173,7 +173,7 @@ class Rhead:
             self._ffile = open(add_extension(fname, HRAW),'rb')
 
             # read the header
-            self.header = fits.Header.fromfile(self._ffile)
+            hd = self.header = fits.Header.fromfile(self._ffile)
 
             # store number of bytes read from header. used to offset later
             # requests for data
@@ -181,26 +181,27 @@ class Rhead:
             self._framesize = self.header['NAXIS1']
 
         # calculate the framesize in bytes
-        bitpix = abs(self.header['BITPIX'])
+        bitpix = abs(hd['BITPIX'])
         self._framesize *= (bitpix // 8)
 
         # store the scaling and offset
-        self._bscale = self.header['BSCALE']
-        self._bzero = self.header['BZERO']
+        self._bscale = hd['BSCALE']
+        self._bzero = hd['BZERO']
 
         # create the top-level header
         self.thead = fits.Header()
 
         # set the mode, one or two windows per quadrant, drift etc.  This is
         # essential.
-        self.mode = self.header['ESO DET READ CURNAME']
+        self.mode = hd['ESO DET READ CURNAME']
         self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
+        self.drift = self.mode.startswith('Drift')
 
         # check for overscan / prescan / clear
-        self.clear = self.header['ESO DET CLRCCD']
-        self.dummy = self.header['ESO DET DUMMY']
-        self.oscan = self.header['ESO DET INCOVSCY']
-        self.pscan = self.header['ESO DET INCPRSCX']
+        self.clear = hd['ESO DET CLRCCD']
+        self.dummy = hd['ESO DET DUMMY']
+        self.oscan = hd['ESO DET INCOVSCY']
+        self.pscan = hd['ESO DET INCPRSCX']
 
         # framesize parameters
         yframe = 520 if self.oscan else 512
@@ -209,52 +210,56 @@ class Rhead:
         # store the NSKIP values for each CCD. These are needed for exact
         # timing for each CCD.
         self.nskips = (
-            self.header['ESO DET NSKIPS1'],
-            self.header['ESO DET NSKIPS2'],
-            self.header['ESO DET NSKIPS3'],
-            self.header['ESO DET NSKIPS4'],
-            self.header['ESO DET NSKIPS5']
+            hd['ESO DET NSKIPS1'],
+            hd['ESO DET NSKIPS2'],
+            hd['ESO DET NSKIPS3'],
+            hd['ESO DET NSKIPS4'],
+            hd['ESO DET NSKIPS5']
             )
 
         # set timing parameters toff1, toff2, toff3, toff4, tdelta, tdead
         # which are also needed for exact timing
+        E  = hd['ESO DET TDELAY']
+        R  = hd['ESO DET TREAD']
+
         if self.clear:
             # Clear mode. NB the parameter 'TREAD' is actually a combination
             # of a frame-transfer and a read
-            self.tdelta = 1e-3*(
-                self.header['ESO DET TREAD'] + self.header['ESO DET TDELAY'] + \
-                self.header['ESO DET TCLEAR']
-            )
+            C = hd['ESO DET TCLEAR']
 
-            self.toff1 = self.toff2 = 1.e-3*self.header['ESO DET TDELAY']/2.
-            self.toff3 = self.toff4 = 1.e-3*self.header['ESO DET TDELAY']
-            self.tdead = 1.e-3*(self.header['ESO DET TREAD']+self.header['ESO DET TCLEAR'])
+            self.tdelta = 1e-3*(R+E+C)
+            self.toff1 = self.toff2 = 1.e-3*E/2.
+            self.toff3 = self.toff4 = 1.e-3*E
+            self.tdead = 1.e-3*(R+C)
+
+        elif self.drift:
+            # Drift mode
+            LD = hd['ESO DRIFT TLINEDUMP']
+            LS = hd['ESO DRIFT TLINESHIFT']
+            ND = hd['DET DRIFT NWINS']
+
+            self.tdelta = 0.
+            self.toff1 = self.toff2 = 1.e-3*(
+                E+LS+(E+LD+R)/2.-ND*(E+R+LS+LD)
+            )
+            self.toff3 = self.toff4 = 1.e-3*(E+R+LD)
+            self.tdead = 1.e-3*LS
 
         else:
-            # No clear mode, there are zero sec dummy 'wipes' so no 'TCLEAR'
-            # here
-            self.tdelta = 1.e-3*(
-                self.header['ESO DET TREAD'] + self.header['ESO DET TDELAY']
-            )
+            # No clear mode, there are zero sec dummy
+            # 'wipes' so no 'TCLEAR' here
+            FT = hd['ESO DET TFT']
 
-            self.toff1 = 1.e-3*self.header['ESO DET TDELAY']/2.
-
-            self.toff2 = 1.e-3*(
-                self.header['ESO DET TDELAY'] - self.header['ESO DET TREAD'] +
-                self.header['ESO DET TFT'] ) / 2.
-
-            self.toff3 = 1.e-3*self.header['ESO DET TDELAY']
-
-            self.toff4 = 1.e-3*(
-                self.header['ESO DET TDELAY'] + self.header['ESO DET TREAD'] - \
-                self.header['ESO DET TFT']
-            )
-
-            self.tdead = 1.e-3*self.header['ESO DET TFT']
+            self.tdelta = 1.e-3*(R+E)
+            self.toff1 = 1.e-3*E/2.
+            self.toff2 = 1.e-3*(E-R+FT)/2.
+            self.toff3 = 1.e-3*E
+            self.toff4 = 1.e-3*(E+R-FT)
+            self.tdead = 1.e-3*FT
 
         # binning factors
-        self.xbin = self.header['ESO DET BINX1']
-        self.ybin = self.header['ESO DET BINY1']
+        self.xbin = hd['ESO DET BINX1']
+        self.ybin = hd['ESO DET BINY1']
 
         if self.pscan and HCM_NPSCAN % self.xbin == 0:
             # number of binned prescan pixels
@@ -318,17 +323,17 @@ class Rhead:
                     elif self.mode.startswith('OneWindow') or \
                          self.mode.startswith('TwoWindow'):
                         winID = 'ESO DET WIN{} '.format(nwin+1)
-                        nx = self.header[winID + 'NX'] // self.xbin
+                        nx = hd[winID + 'NX'] // self.xbin
 
                         if self.pscan:
                             # account for extra columns when a pre-scan is present
                             nx += self.nxpscan
 
-                        ny = self.header[winID + 'NY'] // self.ybin
-                        win_xs = self.header[winID + 'XS{}'.format(quad)]
-                        win_nx = self.header[winID + 'NX']
-                        win_ys = self.header[winID + 'YS']
-                        win_ny = self.header[winID + 'NY']
+                        ny = hd[winID + 'NY'] // self.ybin
+                        win_xs = hd[winID + 'XS{}'.format(quad)]
+                        win_nx = hd[winID + 'NX']
+                        win_ys = hd[winID + 'YS']
+                        win_ny = hd[winID + 'NY']
                         llx = (
                             LLX[quad] + X_DIRN[quad] * win_xs +
                             ADD_XSIZES[quad] * (xframe - win_nx)
@@ -339,16 +344,16 @@ class Rhead:
                         )
 
                     elif self.mode.startswith('Drift'):
-                        nx = self.header['ESO DET DRWIN NX'] // self.xbin
-                        ny = self.header['ESO DET DRWIN NY'] // self.ybin
+                        nx = hd['ESO DET DRWIN NX'] // self.xbin
+                        ny = hd['ESO DET DRWIN NY'] // self.ybin
 
                         if self.pscan:
                             raise HipercamError('prescans with drift mode undefined')
 
-                        win_xs = self.header['ESO DET DRWIN XS{}'.format(quad)]
-                        win_nx = self.header['ESO DET DRWIN NX']
-                        win_ys = self.header['ESO DET DRWIN YS']
-                        win_ny = self.header['ESO DET DRWIN NY']
+                        win_xs = hd['ESO DET DRWIN XS{}'.format(quad)]
+                        win_nx = hd['ESO DET DRWIN NX']
+                        win_ys = hd['ESO DET DRWIN YS']
+                        win_ny = hd['ESO DET DRWIN NY']
                         llx = (
                             LLX[quad] + X_DIRN[quad] * win_xs +
                             ADD_XSIZES[quad] * (xframe - win_nx)
@@ -378,21 +383,21 @@ class Rhead:
         elif self.mode.startswith('OneWindow') or \
              self.mode.startswith('TwoWindow'):
             winID = 'ESO DET WIN1 '
-            ys = self.header[winID + 'YS'] + 1
-            nx = self.header[winID + 'NX']
-            ny = self.header[winID + 'NY']
+            ys = hd[winID + 'YS'] + 1
+            nx = hd[winID + 'NX']
+            ny = hd[winID + 'NY']
 
             try:
-                xsll = self.header[winID + 'XSLL']
-                xslr = self.header[winID + 'XSLR']
-                xsul = self.header[winID + 'XSUL']
-                xsur = self.header[winID + 'XSUR']
+                xsll = hd[winID + 'XSLL']
+                xslr = hd[winID + 'XSLR']
+                xsul = hd[winID + 'XSUL']
+                xsur = hd[winID + 'XSUR']
             except:
                 # Fallback
-                xsll = self.header[winID + 'XSE'] + 1
-                xsul = self.header[winID + 'XSH'] + 1
-                xslr = HCM_NXTOT + 1 - self.header[winID + 'XSF'] - nx
-                xsur = HCM_NXTOT + 1 - self.header[winID + 'XSG'] - nx
+                xsll = hd[winID + 'XSE'] + 1
+                xsul = hd[winID + 'XSH'] + 1
+                xslr = HCM_NXTOT + 1 - hd[winID + 'XSF'] - nx
+                xsur = HCM_NXTOT + 1 - hd[winID + 'XSG'] - nx
 
             self.wforms.append(
                 '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
@@ -401,21 +406,21 @@ class Rhead:
 
             if self.mode.startswith('TwoWindow'):
                 winID = 'ESO DET WIN2 '
-                ys = self.header[winID + 'YS'] + 1
-                nx = self.header[winID + 'NX']
-                ny = self.header[winID + 'NY']
+                ys = hd[winID + 'YS'] + 1
+                nx = hd[winID + 'NX']
+                ny = hd[winID + 'NY']
 
                 try:
-                    xsll = self.header[winID + 'XSLL']
-                    xslr = self.header[winID + 'XSLR']
-                    xsul = self.header[winID + 'XSUL']
-                    xsur = self.header[winID + 'XSUR']
+                    xsll = hd[winID + 'XSLL']
+                    xslr = hd[winID + 'XSLR']
+                    xsul = hd[winID + 'XSUL']
+                    xsur = hd[winID + 'XSUR']
                 except:
                     # fallback option
-                    xsll = self.header[winID + 'XSE'] + 1
-                    xsul = self.header[winID + 'XSH'] + 1
-                    xslr = HCM_NXTOT + 1 - self.header[winID + 'XSF'] - nx
-                    xsur = HCM_NXTOT + 1 - self.header[winID + 'XSG'] - nx
+                    xsll = hd[winID + 'XSE'] + 1
+                    xsul = hd[winID + 'XSH'] + 1
+                    xslr = HCM_NXTOT + 1 - hd[winID + 'XSF'] - nx
+                    xsur = HCM_NXTOT + 1 - hd[winID + 'XSG'] - nx
 
                 self.wforms.append(
                     '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
@@ -424,17 +429,17 @@ class Rhead:
 
         elif self.mode.startswith('Drift'):
             winID = 'ESO DET DRWIN '
-            ys = self.header[winID + 'YS'] + 1
-            nx = self.header[winID + 'NX']
-            ny = self.header[winID + 'NY']
+            ys = hd[winID + 'YS'] + 1
+            nx = hd[winID + 'NX']
+            ny = hd[winID + 'NY']
 
             try:
-                xsl = self.header[winID + 'XSL']
-                xsr = self.header[winID + 'XSR']
+                xsl = hd[winID + 'XSL']
+                xsr = hd[winID + 'XSR']
             except:
                 # Fallback option
-                xsl = self.header[winID + 'XSE'] + 1
-                xsr = HCM_NXTOT + 1 - self.header[winID + 'XSF'] - nx
+                xsl = hd[winID + 'XSE'] + 1
+                xsr = HCM_NXTOT + 1 - hd[winID + 'XSF'] - nx
 
             self.wforms.append(
                 '{:d}|{:d}|{:d}|{:d}|{:d}'.format(xsl, xsr, ys, nx, ny)
@@ -451,26 +456,26 @@ class Rhead:
         self.ntbytes = self._framesize - (bitpix*npixels) // 8
 
         # Build (more) header info
-        if 'DATE' in self.header:
+        if 'DATE' in hd:
             self.thead['DATE'] = (
-                self.header['DATE'], self.header.comments['DATE']
+                hd['DATE'], hd.comments['DATE']
             )
 
-        if full and 'ESO DET GPS' in self.header:
-            self.thead['GPS'] = (self.header['ESO DET GPS'],
-                                 self.header.comments['ESO DET GPS'])
+        if full and 'ESO DET GPS' in hd:
+            self.thead['GPS'] = (hd['ESO DET GPS'],
+                                 hd.comments['ESO DET GPS'])
 
         if full:
-            if 'EXPTIME' in self.header:
+            if 'EXPTIME' in hd:
                 self.thead['EXPTIME'] = (
-                    self.header['EXPTIME'], self.header.comments['EXPTIME']
+                    hd['EXPTIME'], hd.comments['EXPTIME']
                 )
             self.thead['XBIN'] = (self.xbin,
-                                  self.header.comments['ESO DET BINX1'])
+                                  hd.comments['ESO DET BINX1'])
             self.thead['YBIN'] = (self.ybin,
-                                  self.header.comments['ESO DET BINY1'])
-            self.thead['SPEED'] = (self.header['ESO DET SPEED'],
-                                   self.header.comments['ESO DET SPEED'])
+                                  hd.comments['ESO DET BINY1'])
+            self.thead['SPEED'] = (hd['ESO DET SPEED'],
+                                   hd.comments['ESO DET SPEED'])
 
         # Header per CCD. These are modified per CCD in Rdata
         self.cheads = []
@@ -479,10 +484,10 @@ class Rhead:
 
             # Essential items
             hnam = 'ESO DET NSKIPS{:d}'.format(n+1)
-            if hnam in self.header:
+            if hnam in hd:
                 # used to identify blank frames
                 chead['NCYCLE'] = (
-                    self.header[hnam]+1, 'readout cycle period (NSKIP+1)'
+                    hd[hnam]+1, 'readout cycle period (NSKIP+1)'
                 )
 
             # Nice-if-you-can-get-them items
@@ -490,12 +495,12 @@ class Rhead:
 
                 # whether this CCD has gone through a reflection
                 hnam = 'ESO DET REFLECT{:d}'.format(n+1)
-                if hnam in self.header:
-                    chead['REFLECT'] = (self.header[hnam], 'is image reflected')
+                if hnam in hd:
+                    chead['REFLECT'] = (hd[hnam], 'is image reflected')
 
                 # readout noise
                 hnam = 'ESO DET CHIP{:d} RON'.format(n+1)
-                if hnam in self.header:
+                if hnam in hd:
                     chead['RONOISE'] = (self.header[hnam],
                                         self.header.comments[hnam])
 
@@ -595,9 +600,10 @@ class Rhead:
            nccd : int
               the CCD number, starting at 0
 
-        Returns: (mjd, exptime, flag) where 'mjd' is the MJD at mid-exposure for the CCD, 'exptime'
-        is the exposure time in seconds, and 'flag' is a bool to indicate whether the time is thought
-        good or not.
+        Returns: (mjd, exptime, flag) where 'mjd' is the MJD at mid-exposure
+        for the CCD, 'exptime' is the exposure time in seconds, and 'flag' is
+        a bool to indicate whether the time is thought good or not.
+
         """
 
         nskip = self.nskips[nccd]
