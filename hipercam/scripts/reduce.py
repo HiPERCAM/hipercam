@@ -1090,6 +1090,12 @@ class Rfile(OrderedDict):
         rfile.aper = hcam.MccdAper.read(
             utils.add_extension(apsec['aperfile'],hcam.APER)
         )
+        if apsec['location'] != 'fixed' and \
+           apsec['location'] != 'variable':
+            raise ValueError(
+                "aperture location must either be 'fixed' or 'variable'"
+            )
+
         if apsec['fit_method'] == 'moffat':
             rfile.method = 'm'
         elif  apsec['fit_method'] == 'gaussian':
@@ -1440,9 +1446,12 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
            file starter value will be used.
 
        mbeta     : float
-           mean beat used as a starter for future fits. Start at -1 and the reduce
-           file starter value will be used.
+           mean beat used as a starter for future fits. Start at -1 and the
+           reduce file starter value will be used.
 
+       store     : dict of dicts
+           keyed on aperture label storing `xe`, `ye`, `fwhm`,
+           `fwhme`, `beta`, `betae`, `dx`, `dy`.
 
     Returns: (mfwhm, mbeta) for use next time around; these are set to -1 if
     things go wrong. When OK, they are also stored internally in
@@ -1453,6 +1462,16 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
 
     # short-hand that will used a lot
     apsec = rfile['apertures']
+
+    if apsec['location'] == 'fixed':
+        for apnam in ccdaper:
+            store[apnam] = {
+                'xe' : -1., 'ye' : -1.,
+                'fwhm' : 0., 'fwhme' : -1.,
+                'beta' : 0., 'betae' : -1.,
+                'dx' : 0., 'dy' : 0.
+            }
+        return (-1.,-1.)
 
     # first of all try to get a mean shift from the reference apertures.  we
     # move any of these apertures that are fitted OK
@@ -1492,7 +1511,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
             fhbox = apsec['fit_half_width']
             fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
-            sky = np.percentile(fwind.data, 25)
+            sky = np.percentile(fwind.data, 50)
 
             # get some parameters from previous run where possible
             if mfwhm > 0.:
@@ -1561,10 +1580,10 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
                     )
 
                     store[apnam] = {
-                        'xe' : -1, 'ye' : -1,
-                        'fwhm' : 0, 'fwhme' : -1,
-                        'beta' : 0, 'betae' : -1,
-                        'dx' : 0, 'dy' : 0
+                        'xe' : -1., 'ye' : -1.,
+                        'fwhm' : 0., 'fwhme' : -1.,
+                        'beta' : 0., 'betae' : -1.,
+                        'dx' : 0., 'dy' : 0.
                     }
 
             except hcam.HipercamError as err:
@@ -1574,14 +1593,14 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
                 )
 
                 store[apnam] = {
-                    'xe' : -1, 'ye' : -1,
-                    'fwhm' : 0, 'fwhme' : -1,
-                    'beta' : 0, 'betae' : -1,
-                    'dx' : 0, 'dy' : 0
+                    'xe' : -1., 'ye' : -1.,
+                    'fwhm' : 0., 'fwhme' : -1.,
+                    'beta' : 0., 'betae' : -1.,
+                    'dx' : 0., 'dy' : 0.
                 }
 
     if ref:
-        if wxsum > 0 and wysum > 0:
+        if wxsum > 0. and wysum > 0.:
             xshift = xsum / wxsum
             yshift = ysum / wysum
             print(
@@ -1640,7 +1659,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
             fhbox = apsec['fit_half_width']
             fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
-            sky = np.percentile(fwind.data, 25)
+            sky = np.percentile(fwind.data, 50)
 
             # get some parameters from previous run where possible
             if apnam in store and store[apnam]['fwhme'] > 0.:
@@ -1699,9 +1718,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
                     aper.y += yshift
 
                     store[apnam] = {
-                        'xe' : -1, 'ye' : -1,
-                        'fwhm' : 0, 'fwhme' : -1,
-                        'beta' : 0, 'betae' : -1,
+                        'xe' : -1., 'ye' : -1.,
+                        'fwhm' : 0., 'fwhme' : -1.,
+                        'beta' : 0., 'betae' : -1.,
                         'dx' : xshift, 'dy' : yshift
                     }
 
@@ -1714,9 +1733,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
                 aper.y += yshift
 
                 store[apnam] = {
-                    'xe' : -1, 'ye' : -1,
-                    'fwhm' : 0, 'fwhme' : -1,
-                    'beta' : 0, 'betae' : -1,
+                    'xe' : -1., 'ye' : -1.,
+                    'fwhm' : 0., 'fwhme' : -1.,
+                    'beta' : 0., 'betae' : -1.,
                     'dx' : xshift, 'dy' : yshift
                 }
 
@@ -1728,9 +1747,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
             aper.y += store[aper.link]['dy']
 
             store[apnam] = {
-                'xe' : -1, 'ye' : -1,
-                'fwhm' : 0, 'fwhme' : -1,
-                'beta' : 0, 'betae' : -1,
+                'xe' : -1., 'ye' : -1.,
+                'fwhm' : 0., 'fwhme' : -1.,
+                'beta' : 0., 'betae' : -1.,
                 'dx' : store[aper.link]['dx'],
                 'dy' : store[aper.link]['dy']
             }
@@ -1803,6 +1822,9 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
 
        gain      : float | CCD
            readout noise
+
+       store     : dict of dicts
+           see moveApers for what this contains.
 
        mfwhm     : float
            mean FWHM used as a starter for fits. Start at -1 and the reduce

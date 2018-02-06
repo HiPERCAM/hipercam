@@ -76,8 +76,14 @@ def genred(args=None):
         linear : string
            light curve plot linear (else magnitudes)
 
+        extendx : float [hidden]
+           how many minutes to extend light curve plot by at a time
+
         ccd     : string [hidden]
            label of the (single) CCD used for the position plot
+
+        location : string [hidden]
+           whether to reposition aperturs or leave them fixed.
 
         smooth_fwhm : float [hidden]
            FWHM to use for smoothing during initial search
@@ -120,7 +126,9 @@ def genred(args=None):
         cl.register('flat', Cline.LOCAL, Cline.PROMPT)
         cl.register('dark', Cline.LOCAL, Cline.PROMPT)
         cl.register('linear', Cline.LOCAL, Cline.PROMPT)
+        cl.register('extendx', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.HIDE)
+        cl.register('location', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('smooth_fwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm_min', Cline.LOCAL, Cline.HIDE)
@@ -184,33 +192,69 @@ def genred(args=None):
         linear = 'yes' if linear else 'no'
 
         # hidden parameters
-        ccd = cl.get_value('ccd', 'label for the CCD used for the position plot','2')
+
+        extendx = cl.get_value(
+            'extendx', 'how much to extend light curve plot [mins]',
+            10.,0.01
+        )
+
+        ccd = cl.get_value(
+            'ccd', 'label for the CCD used for the position plot','2'
+        )
         if ccd not in aper:
             raise HipercamError(
                 'CCD {:s} not found in aperture file {:s}'.format(ccd,apfile)
             )
-        smooth_fwhm = cl.get_value('smooth_fwhm','search smoothing FWHM [unbinned pixels]',6.,3.)
-        fwhm = cl.get_value('fwhm','starting FWHM, unbinned pixels',5.,1.5)
-        fwhm_min = cl.get_value('fwhm_min','minimum FWHM, unbinned pixels',1.5,0.)
-        rfac = cl.get_value('rfac','target aperture scale factor',1.8,1.0)
-        rmin = cl.get_value('rmin','minimum target aperture radius [unbinned pixels]',6.,1.)
-        rmax = cl.get_value('rmax','maximum target aperture radius [unbinned pixels]',30.,rmin)
-        sinner = cl.get_value('sinner','inner sky aperture radius [unbinned pixels]',30.,rmax)
-        souter = cl.get_value('souter','outer sky aperture radius [unbinned pixels]',50.,sinner+1)
+
+        # hidden parameters
+        location = cl.get_value(
+            'location', 'aperture location, f(ixed) or v(ariable)',
+            'v', lvals=['f','v']
+        )
+        location = 'variable' if location == 'v' else 'fixed'
+        comm_seeing = '#' if location == 'fixed' else ''
+        comm_position = '#' if location == 'fixed' else ''
+
+        smooth_fwhm = cl.get_value(
+            'smooth_fwhm','search smoothing FWHM [unbinned pixels]',6.,3.
+        )
+        fwhm = cl.get_value(
+            'fwhm','starting FWHM, unbinned pixels',5.,1.5
+        )
+        fwhm_min = cl.get_value(
+            'fwhm_min','minimum FWHM, unbinned pixels',1.5,0.
+        )
+        rfac = cl.get_value(
+            'rfac','target aperture scale factor',1.8,1.0
+        )
+        rmin = cl.get_value(
+            'rmin','minimum target aperture radius [unbinned pixels]',6.,1.
+        )
+        rmax = cl.get_value(
+            'rmax','maximum target aperture radius [unbinned pixels]',30.,rmin
+        )
+        sinner = cl.get_value(
+            'sinner','inner sky aperture radius [unbinned pixels]',30.,rmax
+        )
+        souter = cl.get_value(
+            'souter','outer sky aperture radius [unbinned pixels]',50.,sinner+1
+        )
 
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
 
-    # Generate the extraction lines
+    # Generate the extraction lines. Note that the aperture location
+    # parameter maps into the same names as the aperture re-size
+    # parameter
     extraction = ''
     for cnam in aper:
         extraction += (
-            '{:s} = variable normal'
+            '{:s} = {:s} normal'
             ' {:.2f} {:.1f} {:.1f}'
             ' 2.5 {:.1f} {:.1f}'
             ' 3.0 {:.1f} {:.1f}\n').format(
-                cnam, rfac, rmin, rmax,
+                cnam, location, rfac, rmin, rmax,
                 sinner, sinner, souter, souter
             )
 
@@ -252,21 +296,21 @@ def genred(args=None):
     ccdaper = aper[ccd]
     if '2' in ccdaper:
         position_plot += (
-            'plot = {:s} 2 {:10s} !  '
+            '{:s}plot = {:s} 2 {:10s} !  '
             ' # ccd, targ, dcol, ecol\n').format(
-                ccd, CCD_COLS[ccd]
+                comm_position, ccd, CCD_COLS[ccd]
             )
     elif '3' in ccdaper:
         position_plot += (
-            'plot = {:s} 3 {:10s} !  '
+            '{:s}plot = {:s} 3 {:10s} !  '
             ' # ccd, targ, dcol, ecol\n').format(
-                ccd, CCD_COLS[ccd]
+                comm_position, ccd, CCD_COLS[ccd]
             )
     elif '1' in ccdaper:
         position_plot += (
-            'plot = {:s} 1 {:10s} !  '
+            '{:s}plot = {:s} 1 {:10s} !  '
             ' # ccd, targ, dcol, ecol\n').format(
-                ccd, CCD_COLS[ccd]
+                comm_position, ccd, CCD_COLS[ccd]
             )
     else:
         raise hcam.HipercamError(
@@ -306,21 +350,21 @@ def genred(args=None):
         ccdaper = aper[cnam]
         if '1' in ccdaper and not ccdaper['1'].is_linked():
             seeing_plot += (
-                'plot = {:s} 2 {:10s} !  '
+                '{:s}plot = {:s} 2 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
+                    comm_seeing, cnam, CCD_COLS[cnam]
                 )
         elif '2' in ccdaper and not ccdaper['2'].is_linked():
             seeing_plot += (
-                'plot = {:s} 3 {:10s} !  '
+                '{:s}plot = {:s} 3 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
+                    comm_seeing, cnam, CCD_COLS[cnam]
                 )
         elif '3' in ccdaper  and not ccdaper['3'].is_linked():
             seeing_plot += (
-                'plot = {:s} 1 {:10s} !  '
+                '{:s}plot = {:s} 1 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
+                    comm_seeing, cnam, CCD_COLS[cnam]
                 )
         else:
             raise hcam.HipercamError(
@@ -354,7 +398,9 @@ def genred(args=None):
                 light_plot=light_plot, position_plot=position_plot,
                 transmission_plot=transmission_plot, seeing_plot=seeing_plot,
                 monitor=monitor, comment=comment, tstamp=tstamp,
-                hipercam_version=hipercam_version,
+                hipercam_version=hipercam_version, location=location,
+                comm_seeing=comm_seeing, extendx=extendx,
+                comm_position=comm_position
             )
         )
 
@@ -410,10 +456,13 @@ satval   = 65000 # Level at which to flag saturated data.
 # start location followed by a 2D fit. Several parameters below are associated
 # with this process. If there are reference apertures, they are located first
 # to give a mean shift. The search on non-reference apertures can then be
-# tightened.
+# tightened. If the aperture are chosen to be fixed, there will be no search
+# or fit carried out in which case you must choose 'fixed' as well when it
+# comes the extraction since otherwise it needs a FWHM.
 
 [apertures]
-aperfile   = {apfile}  # file of software apertures for each CCD
+aperfile   = {apfile}   # file of software apertures for each CCD
+location   = {location} # aperture locations: 'fixed' or 'variable'
 
 search_half_width_ref  = 15   # for initial search around reference aperture, unbinned pixels
 search_half_width_non  = 5    # for initial search around non-reference aperture, unbinned pixels
@@ -475,7 +524,7 @@ gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 
 [lcplot]
 xrange  = 0    # maximum range in X to plot (minutes), <= 0 for everything
-extend_x = 10  # amount by which to extend xrange, minutes.
+extend_x = {extendx:.2f}  # amount by which to extend xrange, minutes.
 
 # light curve panel (must be present). Mostly obvious, then a series of lines,
 # each starting 'plot' which specify one light curve to be plotted giving CCD,
@@ -500,15 +549,15 @@ extend_y = 0.1 # fraction of plot height to extend when rescaling
 # but make sure to comment it out completely, section name and all parameters.
 # You can have multiple plot lines
 
-[position]
-height  = 0.5    # height relative to light curve plot
-x_fixed = no     # keep X-position vertical range fixed
-x_min   = -5     # lower limit for X-position
-x_max   = +5     # upper limit for X-position
-y_fixed = no     # keep Y-position vertical range fixed
-y_min   = -5     # lower limit for Y-position
-y_max   = +5     # upper limit for Y-position
-extend_y = 0.2  # Vertical extension fraction if limits exceeded
+{comm_position}[position]
+{comm_position}height  = 0.5    # height relative to light curve plot
+{comm_position}x_fixed = no     # keep X-position vertical range fixed
+{comm_position}x_min   = -5     # lower limit for X-position
+{comm_position}x_max   = +5     # upper limit for X-position
+{comm_position}y_fixed = no     # keep Y-position vertical range fixed
+{comm_position}y_min   = -5     # lower limit for Y-position
+{comm_position}y_max   = +5     # upper limit for Y-position
+{comm_position}extend_y = 0.2  # Vertical extension fraction if limits exceeded
 
 # line or lines defining the targets to plot
 {position_plot}
@@ -527,16 +576,16 @@ ymax   = 110      # Maximum transmission to plot (>= 100 to slow replotting)
 
 
 # Configures the seeing plot. Can be commented out if you don't want one but
-# make sure to comment it out completely, section name and all parameters you
+# make sure to comment it out completely, section name and all parameters. You
 # can have multiple plot lines. Don't choose linked targets as their FWHMs are
 # not measured.
 
-[seeing]
-height = 0.5          # height relative to the light curve plot
-ymax = 1.999          # Initial maximum seeing
-y_fixed = yes         # fix the seeing scale (or not)
-scale = 0.3           # Arcsec per unbinned pixel
-extend_y = 0.2   # Y extension fraction if out of range and not fixed
+{comm_seeing}[seeing]
+{comm_seeing}height = 0.5   # height relative to the light curve plot
+{comm_seeing}ymax = 1.999   # Initial maximum seeing
+{comm_seeing}y_fixed = yes  # fix the seeing scale (or not)
+{comm_seeing}scale = 0.3    # Arcsec per unbinned pixel
+{comm_seeing}extend_y = 0.2 # Y extension fraction if out of range and not fixed
 
 # line or lines defining the targets to plot
 {seeing_plot}
