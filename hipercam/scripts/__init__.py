@@ -24,6 +24,7 @@ from .rtplot import rtplot
 from .setaper import setaper
 from .stats import stats
 from .times import times
+from .mstats import mstats
 
 # important to keep alphabetical ordering here for sphinx / autodoc
 
@@ -33,7 +34,7 @@ __all__ = [ \
             'div',
             'genred', 'grab',
             'hist', 'hlogger', 'hls', 'hplot',
-            'makebias', 'makedata', 'makefield', 'makeflat', 'mul',
+            'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'plog',
             'reduce', 'rtplot',
             'setaper', 'stats', 'sub',

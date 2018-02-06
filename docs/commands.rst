@@ -97,6 +97,10 @@ extension '.hcm'.
 ------------------------------------------------------
 .. autofunction:: hipercam.scripts.makeflat
 
+:func:`mstats`: list stats of multiple frames from a run
+--------------------------------------------------------
+.. autofunction:: hipercam.scripts.mstats
+
 :func:`mul`: multiply two frames
 --------------------------------
 .. autofunction:: hipercam.scripts.mul
