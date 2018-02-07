@@ -318,3 +318,16 @@ All |hiper| pipeline parameters fall into one of two classes, either being
 'local' to a command or 'global' to multiple commands. The ``run`` parameter
 of ``rtplot`` for instance also appears in ``grab`` and if you change it in
 ``rtplot``, it will be changed in ``grab``.
+
+Trouble-shooting parameter input
+--------------------------------
+
+It very rarely happens that the file I/O needed to read the default values
+can ge confused. This can happen e.g. if the data type of a parameter has
+changed. If very odd things seems to happen when you try to start a command,
+then you might want to track down where the default files are located. Usually
+this will be in `.hipercam` in your home directory, unless the environment
+variable `HIPERCAM_ENV` has been defined to re-direct where the default files
+are stored. Once you have located them it is always safe to delete one or more
+or all of the default files (end with .def). The worst that happens is that
+the commands have lost the default values.

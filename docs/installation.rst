@@ -73,3 +73,22 @@ to be scaled in size to your preference::
 
 which would make them all a factor of 2 smaller.
 
+Environment variables associated with |hiper|
+---------------------------------------------
+
+Here is a summary table of all environment variables associated with
+|hiper| and their purpose. Only the first is likely to be one that you
+will need for sure at the telescope. Back at place or work, none are
+essential for the software to run. If the second one is not set, the
+default files will be stored in a directory called `.hipercam` in your
+top-level directory.
+
+====================  ================================================
+Environment variable  Purpose
+====================  ================================================
+HIPERCAM_DEFAULT_URL  URL of the FileServer on the rack PC to access data
+HIPERCAM_ENV          Directory for storage of default parameter files
+                      (~/.hipercam by default) 
+HIPERCAM_MPL_FSCALE   Floating point scale factor for matplotlib plots
+====================  ================================================
+
