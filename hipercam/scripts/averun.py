@@ -17,7 +17,7 @@ __all__ = ['averun',]
 
 def averun(args=None):
     """``averun [source] (run first last twait tmax | flist) bias
-    [clobber] output``
+    [method sigma adjust clobber] output``
 
     Averages images from a run using median combination, skipping the junk
     frames that result from NSKIP / NBLUE options in HiPERCAM and ULTRACAM
@@ -63,6 +63,21 @@ def averun(args=None):
         bias    : string
            Name of bias frame to subtract, 'none' to ignore.
 
+        method  : string [hidden, defaults to 'm']
+           'm' for median, 'c' for clipped mean. See below for pros and cons.
+
+        sigma   : float [hidden; if method == 'c']
+           With clipped mean combination, pixels that deviate by more than
+           sigma RMS from the mean are kicked out. This is carried out in an
+           iterative manner. sigma <= 0 implies no rejection, just a straight
+           average. sigma=3 is typical.
+
+        adjust  : string [hidden; defaults to 'i']
+           adjustments to make: 'i' = ignore; 'n' = normalise the mean of all
+           frames to match the first; 'b' = add offsets so that the mean of
+           all frames is the same as the first.  Option 'n' is useful for
+           twilight flats; 'b' for combining biases.
+
         clobber : bool [hidden]
            clobber any pre-existing output files
 
@@ -85,6 +100,9 @@ def averun(args=None):
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
+        cl.register('method', Cline.LOCAL, Cline.HIDE)
+        cl.register('sigma', Cline.LOCAL, Cline.HIDE)
+        cl.register('adjust', Cline.LOCAL, Cline.HIDE)
         cl.register('clobber', Cline.LOCAL, Cline.HIDE)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
 
@@ -117,6 +135,20 @@ def averun(args=None):
             cline.Fname('bias', hcam.HCAM), ignore='none'
         )
 
+        cl.set_default('method','m')
+        method = cl.get_value(
+            'method', 'c(lipped mean), m(edian)', 'c', lvals=('c','m')
+        )
+
+        if method == 'c':
+            sigma = cl.get_value('sigma', 'number of RMS deviations to clip', 3.)
+
+        cl.set_default('adjust','i')
+        adjust = cl.get_value(
+            'adjust', 'i(gnore), n(ormalise) b(ias offsets)',
+            'i', lvals=('i','n','b')
+        )
+
         clobber = cl.get_value(
             'clobber', 'clobber any pre-existing files on output',
             False
@@ -143,9 +175,18 @@ def averun(args=None):
 
     try:
         print("\nCalling 'combine' ...")
-        args = [None, 'prompt', flist,
-                'none' if bias is None else bias, 'm', 'i',
-                'yes' if clobber else 'no', output]
+        if method == 'm':
+            args = [
+                None, 'prompt', flist,
+                'none' if bias is None else bias, method, adjust,
+                'yes' if clobber else 'no', output
+            ]
+        else:
+            args = [
+                None, 'prompt', flist,
+                'none' if bias is None else bias, method, str(sigma),
+                adjust, 'yes' if clobber else 'no', output
+            ]
         hcam.scripts.combine(args)
 
         # remove temporary files
