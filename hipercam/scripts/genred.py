@@ -269,6 +269,7 @@ def genred(args=None):
 
     # Generate the light curve plot lines
     light_plot = ''
+    no_light = True
     for cnam in aper:
         ccdaper = aper[cnam]
         if '1' in ccdaper and '2' in ccdaper:
@@ -277,12 +278,15 @@ def genred(args=None):
                 ' # ccd, targ, comp, off, fac, dcol, ecol\n').format(
                     cnam, CCD_COLS[cnam]
                 )
+            no_light = False
+
         elif '1' in ccdaper and '2' not in ccdaper:
             light_plot += (
                 'plot = {:s} 1 ! 0 1 {:10s} !  '
                 ' # ccd, targ, comp, off, fac, dcol, ecol\n').format(
                     cnam, CCD_COLS[cnam]
                 )
+            no_light = False
 
         if '2' in ccdaper and '3' in ccdaper:
             light_plot += (
@@ -290,35 +294,50 @@ def genred(args=None):
                 ' # ccd, targ, domp, off, fac, dcol, ecol\n').format(
                     cnam, CCD_COLS[cnam]
                 )
+            no_light = False
+
+    if no_light:
+        raise hcam.HipercamError(
+            'Found no targets for light curve plots in any CCD; cannot make light curve plot'
+        )
 
     # Generate the position plot lines
     position_plot = ''
     ccdaper = aper[ccd]
+    no_position = True
     if '2' in ccdaper:
         position_plot += (
             '{:s}plot = {:s} 2 {:10s} !  '
             ' # ccd, targ, dcol, ecol\n').format(
                 comm_position, ccd, CCD_COLS[ccd]
             )
+        no_position = False
+
     elif '3' in ccdaper:
         position_plot += (
             '{:s}plot = {:s} 3 {:10s} !  '
             ' # ccd, targ, dcol, ecol\n').format(
                 comm_position, ccd, CCD_COLS[ccd]
             )
+        no_position = False
+
     elif '1' in ccdaper:
         position_plot += (
             '{:s}plot = {:s} 1 {:10s} !  '
             ' # ccd, targ, dcol, ecol\n').format(
                 comm_position, ccd, CCD_COLS[ccd]
             )
-    else:
+        no_position = False
+
+    if no_position:
         raise hcam.HipercamError(
-            'Targets 1, 2 and 3 not found; cannot make position plot'
+            'Targets 1, 2 and 3 not found in '
+            'CCD = {:s}; cannot make position plot'.format(ccd)
         )
 
     # Generate the transmission plot lines
     transmission_plot = ''
+    no_transmission = True
     for cnam in aper:
         ccdaper = aper[cnam]
         if '2' in ccdaper:
@@ -327,25 +346,33 @@ def genred(args=None):
                 ' # ccd, targ, dcol, ecol\n').format(
                     cnam, CCD_COLS[cnam]
                 )
+            no_transmission = False
+
         elif '3' in ccdaper:
             transmission_plot += (
                 'plot = {:s} 3 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
                     cnam, CCD_COLS[cnam]
                 )
+            no_transmission = False
+
         elif '1' in ccdaper:
             transmission_plot += (
                 'plot = {:s} 1 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
                     cnam, CCD_COLS[cnam]
                 )
-        else:
-            raise hcam.HipercamError(
-                'Targets 1, 2 and 3 not found; cannot make transmission plot'
-            )
+            no_transmission = False
+
+    if no_transmission:
+        raise hcam.HipercamError(
+            'Targets 1, 2 and 3 not found in any CCDs;'
+            ' cannot make transmission plot'
+        )
 
     # Generate the seeing plot lines
     seeing_plot = ''
+    no_seeing = True 
     for cnam in aper:
         ccdaper = aper[cnam]
         if '1' in ccdaper and not ccdaper['1'].is_linked():
@@ -354,22 +381,29 @@ def genred(args=None):
                 ' # ccd, targ, dcol, ecol\n').format(
                     comm_seeing, cnam, CCD_COLS[cnam]
                 )
+            no_seeing = False
+
         elif '2' in ccdaper and not ccdaper['2'].is_linked():
             seeing_plot += (
                 '{:s}plot = {:s} 3 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
                     comm_seeing, cnam, CCD_COLS[cnam]
                 )
+            no_seeing = False
+
         elif '3' in ccdaper  and not ccdaper['3'].is_linked():
             seeing_plot += (
                 '{:s}plot = {:s} 1 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
                     comm_seeing, cnam, CCD_COLS[cnam]
                 )
-        else:
-            raise hcam.HipercamError(
-                'Targets 1, 2 and 3 not found (or they are linked); cannot make seeing plot'
-            )
+            no_seeing = False
+
+    if no_seeing:
+        raise hcam.HipercamError(
+            'Targets 1, 2 and 3 not found in any CCD'
+            ' (or they are linked); cannot make seeing plot'
+        )
 
     # monitor targets (whole lot by default)
     targs = set()
@@ -379,9 +413,8 @@ def genred(args=None):
             targs.add(targ)
     monitor = ''
     for targ in targs:
-        monitor += '{:s} = DATA_SATURATED TARGET_OFF_EDGE NO_SKY SKY_OFF_EDGE\n'.format(
-            targ
-        )
+        monitor += ('{:s} = DATA_SATURATED TARGET_OFF_EDGE'
+                    ' NO_SKY SKY_OFF_EDGE\n').format(targ)
 
     # time stamp
     tstamp = strftime("%d %b %Y %H:%M:%S (UTC)", gmtime())
