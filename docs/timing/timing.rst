@@ -31,7 +31,6 @@ sequence in no clear mode.
 
 .. figure:: noclear.png
    :scale: 100 %
-   :align: center
    :alt: the no clear mode read sequence
 
    The no-clear mode read sequence. 'C' stands for 'clear', 'E'
@@ -127,7 +126,6 @@ through the same analysis here.
 
 .. figure:: clear.png
    :scale: 100 %
-   :align: center
    :alt: the clear mode read sequence
 
    The clear mode read sequence. The keys are the same as before
@@ -170,7 +168,6 @@ Drift mode
 
 .. figure:: drift.png
    :scale: 100 %
-   :align: center
    :alt: the drift mode read sequence
 
    The drift mode read sequence. The key is the same as before
@@ -198,13 +195,16 @@ work out to be
 .. math::
 
   t_{\text{mid}} &= t_S + \text{E} + \text{LS} + \frac{1}{2} (\text{LD} +
-  \text{R} + \text{E}) - (\text{LD} + \text{R} + \text{LS} + \text{E}) * 
+  \text{R} + \text{E}) - (\text{LD} + \text{R} + \text{LS} + \text{E}) *
   \text{NDRIFT},\\
   t_\text{exp} &= \text{E} + \text{LD} + \text{R},\\
   t_\text{dead} &= \text{LS},
 
 where NDRIFT is the number of drift windows, 'DET DRIFT NWINS' in the headers.
-All the relations above are implemented within :mod:`hipercam.hcam`.
+All the relations above are implemented within :mod:`hipercam.hcam`. Results
+from tests with a precisely synchronised LED can be found in
+:doc:`timing_tests`.
+
 
 .. Note::
 
