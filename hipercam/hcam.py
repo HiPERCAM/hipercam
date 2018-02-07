@@ -142,11 +142,14 @@ class Rhead:
               True to access the data from a server. It uses a URL set in an
               environment variable "HIPERCAM_DEFAULT_URL" in this instance.
 
-           full   : (bool)
+           full   : bool
               Flag controlling the amount of header detail to gather (as a
               time saver) True for detail, False for the bare minimum, the
               latter might be useful for large numbers of very small format
-              images where you don't to waste effort.
+              images where you don't to waste effort. The full headers are
+              extensive (~2300 lines, mostly voltages == 184kB) and it's hard
+              to see why one would ever want them all.
+
         """
 
         # store the file name and whether server being used
@@ -166,8 +169,9 @@ class Rhead:
             hd = self.header = fits.Header.fromstring(self._ws.recv())
 
             nsamps = self.header.get('ESO DET NSAMP', 1)
-            self._framesize = 18 + (self.header['ESO DET ACQ1 WIN NX'] *
-                                    self.header['ESO DET ACQ1 WIN NY']) // nsamps
+            self._framesize = 18 + (
+                self.header['ESO DET ACQ1 WIN NX'] *
+                self.header['ESO DET ACQ1 WIN NY']) // nsamps
         else:
             # open the file
             self._ffile = open(add_extension(fname, HRAW),'rb')
@@ -228,13 +232,13 @@ class Rhead:
         # tdead  -- dead time between frames.
 
         E  = hd['ESO DET TDELAY']
-        R = FR = hd['ESO DET TREAD']
 
         if self.clear:
             # Clear mode. NB the parameter 'TREAD' is actually a combination
             # of a frame-transfer and a read (F+R in the docs), hence it
             # is called FR here
             W = hd['ESO DET TCLEAR']
+            FR = hd['ESO DET TREAD']
 
             self.tdelta = 1e-3*(FR+W+E)
             self.toff1 = self.toff2 = 1.e-3*E/2.
@@ -246,8 +250,9 @@ class Rhead:
             LD = hd['ESO DRIFT TLINEDUMP']
             LS = hd['ESO DRIFT TLINESHIFT']
             ND = hd['DET DRIFT NWINS']
+            F = hd['ESO DET TREAD']
 
-            # no NSKIP here, so tdelta irrelevant. in drift
+            # No NSKIP here, so tdelta irrelevant. in drift
             # mode, TREAD is the read time (no frame transfer)
             self.tdelta = 0.
             self.toff1 = self.toff2 = 1.e-3*(
@@ -258,14 +263,18 @@ class Rhead:
 
         else:
             # No clear mode, there are zero sec dummy
-            # 'wipes' so no 'W' appears here
+            # 'wipes' so no 'W' appears here. TREAD
+            # is back to being the sum of the read
+            # and frame transfer times
+            FR = hd['ESO DET TREAD']
             F = hd['ESO DET TFT']
+            R = FR-F
 
             self.tdelta = 1.e-3*(FR+E)
             self.toff1 = 1.e-3*E/2.
             self.toff2 = 1.e-3*(E-R)/2.
             self.toff3 = 1.e-3*E
-            self.toff4 = 1.e-3*(FR-F+E)
+            self.toff4 = 1.e-3*(R+E)
             self.tdead = 1.e-3*F
 
         # binning factors
