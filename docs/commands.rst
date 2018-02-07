@@ -135,10 +135,10 @@ extension '.hcm'.
 
 .. Note::
 
-  Four other commands, :func:`aligntool`, :func:`hlogger`,
-  :func:`makefield` and :func:`makedata` are not documented
-  here as they are of specialist usage. Information on these
-  is available via ``pydoc``.
+  Five other commands, :func:`aligntool`, :func:`hlogger`,
+  :func:`makefield`, :func:`makedata` and :func:`pfolder` are
+  not documented here as they are of specialist usage.
+  Information on these is however available via ``pydoc``.
 
 .. _command-calling:
 

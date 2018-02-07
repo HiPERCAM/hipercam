@@ -25,6 +25,7 @@ from .setaper import setaper
 from .stats import stats
 from .times import times
 from .mstats import mstats
+from .pfolder import pfolder
 
 # important to keep alphabetical ordering here for sphinx / autodoc
 
@@ -35,7 +36,7 @@ __all__ = [ \
             'genred', 'grab',
             'hist', 'hlogger', 'hls', 'hplot',
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
-            'plog',
+            'pfolder', 'plog',
             'reduce', 'rtplot',
             'setaper', 'stats', 'sub',
             'times',

@@ -143,6 +143,7 @@ setup(
             'makefield=hipercam.scripts.makestuff:makefield',
             'makeflat=hipercam.scripts.makeflat:makeflat',
             'mstats=hipercam.scripts.mstats:mstats',
+            'pfolder=hipercam.scripts.pfolder:pfolder',
             'plog=hipercam.scripts.plog:plog',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
