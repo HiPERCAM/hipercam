@@ -449,7 +449,7 @@ def reduce(args=None):
 """)
         # second, list the command-line inputs to the logfile
         for line in plist:
-            logfile.write('# {:s}\n'.format(line))
+            logfile.write('# {:s}'.format(line))
 
         # third, list the reduce file
         logfile.write("""#
@@ -721,7 +721,7 @@ def reduce(args=None):
                         exptim = 1.0
                     # write generic data
                     logfile.write(
-                        '{:s} {:d} {:13.7f} {:b} {:.5f} '.format(
+                        '{:s} {:d} {:17.11f} {:b} {:.5f} '.format(
                             cnam, nframe, mjd, mjdok, exptim)
                     )
 

@@ -878,10 +878,10 @@ class Rdata (Rhead):
             years, day_of_year, hours, mins, seconds+nanoseconds/1e9
         )
         try:
-            tstamp = Time(time_string, format='yday', precision=9)
+            tstamp = Time(time_string, format='yday', precision=7)
         except ValueError:
             warnings.warn('Bad timestamp: ' + time_string)
-            tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=9)
+            tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=7)
             # this will mark it as unreliable down below
             synced = 0
 
@@ -1228,12 +1228,12 @@ class Rtime (Rhead):
 
         if nsats == -1 and synced == -1:
             # invalid time; pretend we are on 2000-01-01 taking one frame per second.
-            tstamp = Time(51544 + self.nframe/86400., format='MJD',precision=9)
+            tstamp = Time(51544 + self.nframe/86400., format='MJD',precision=7)
         else:
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
                 years, day_of_year, hours, mins, seconds+nanoseconds/1e9
                 )
-            tstamp = Time(time_string, format='yday',precision=9)
+            tstamp = Time(time_string, format='yday',precision=7)
 
         tinfo = []
         for nccd in range(5):
