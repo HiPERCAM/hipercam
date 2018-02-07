@@ -60,6 +60,9 @@ upon the particular type of bias::
 
 for example, for a full frame bias in slow readout mode.
 
+Once you have a bias frame, then it can be used by editing in its name in the
+calibration section of the reduce file.
+
 .. Note::
    One should take bias calibration images in all the output formats used
    to guard against small changes that can occur as one changes output
@@ -89,25 +92,25 @@ weight to under-exposed images. This is tedious by hand, and therefore the
 command |makeflat| was written to carry out all the necessary tasks.
 
 As with the biases, it is strongly recommended that you inspect the frames to
-be combined using |rtplot| to avoid including any disastrous
-ones. Saturated frames are spotted using user-defined mean levels at which to
-reject frames. The documentation of |makeflat| has details of how it
-works, and you are referred to this mor more information.
+be combined using |rtplot| to avoid including any disastrous ones. Saturated
+frames are spotted using user-defined mean levels at which to reject
+frames. The documentation of |makeflat| has details of how it works, and you
+are referred to this for more information.
 
 .. Warning::
    It is highly advisable to compute multiple versions of the flat field
    using different values of the parameter ``ngroup`` which can have a
-   significant effect on the removal of stars from the final frame. See
-   |makeflat|.
+   significant effect on the removal of stars from the final frame and
+   to compare the results against each other. See |makeflat|.
 
 Aperture files
 ==============
 
-The pipeline photometry is straightforward aperture photometry. Many of the
-details can be defined when setting the apertures using |setaper|. Not only
-can you choose your targets, but you can mask nearby stars from the sky
+The pipeline photometry provides straightforward aperture photometry. Many of
+the details can be defined when setting the apertures using |setaper|. Not
+only can you choose your targets, but you can mask nearby stars from the sky
 aperture, and you can to a certain extent sculpt your target apertures which
-can help with nearby interlopers.
+can help with blended interlopers by including them in an over-sized aperure.
 
 A key decision to be made at this stage is whether you think your target will
 remain detectable on each frame throughout the run. Detectable means that it's
@@ -125,12 +128,16 @@ a reduction file using |genred|. This reads which CCDs and apertures have been
 set and tries to create a file that at will work with |reduce|, even if it may
 well not be ideal. Once you have this file, then you should expect to go
 through a sequence of running |reduce|, adjusting the reduce file, re-running
-|reduce| until you have a useful plot going.
+|reduce| until you have a useful plot going. As mentioned above, it is inside
+the reduce file that you can set the name of your bias, and also the flat
+field file. You should experiment with changing settings such as the
+extraction lines and aperture re-position section to get a feel for the
+different parameters.
 
 Plotting results
 ================
 
-|reduce| delivers a basic view of your data as it comes in which is usually
+|reduce| delivers a basic view of your data as it comes in, which is usually
 enough at the telescope. If you want to look at particular features, then you
 should investigate the command |plog|. This allows you to plot one parameter
 versus another, including division by comparison stars. The |plog| code is a
@@ -144,7 +151,7 @@ Customisation
 You may well find that your data has particular features that the current
 pipeline does not allow for. An obvious one is with crowded fields, which
 can only roughly be accomodated with judicious application of the options
-within setaper. The pipeline does not aim to replicate packages designed to
+within |setaper|. The pipeline does not aim to replicate packages designed to
 handle crowded fields, and you are best advised to port the data over into
 single frames using |grab|, remembering that the 'hcm' files are nothing more
 than a particular form of FITS. If your data requires only a small level of
@@ -154,4 +161,5 @@ tools that can deal with all cases. Instead, the recommended route is to code
 Python scripts to manipulate your data, and the :doc:`api` is designed to make
 it relatively easy to access |hiper| data. If you devise routines of generic
 interest, you are encouraged to submit them for possible inclusion within the
-main pipeline commands.
+main pipeline commands. The existing pipeline commands are a good place to
+start when looking for examples.

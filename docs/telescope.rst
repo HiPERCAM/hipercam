@@ -9,16 +9,17 @@ At the telescope
 
 Here it is assumed that you are observing with |hiper| for the first time and
 want to look at your data. It is written in tutorial style for someone
-starting afresh who just wants to get going, so it is as short as
-possible. The first thing to realise is that the pipeline is run entirely from
-command lines entered in a terminal, so first of all open a terminal on the
-"drpc" (data reduction PC).
+starting afresh who just wants to get going, so it is as short as possible,
+with details listed elsewhere. The first thing to realise is that the pipeline
+is run entirely from command lines entered in a terminal, so first of all open
+a terminal on the "drpc" (data reduction PC).
 
 Plotting the data coming in
 ===========================
 
-The first command to try is |rtplot| [#f0]_ . Try typing in a terminal as
-follows::
+Assuming you are observing and data are being acquired to the rack PC at the
+telescope, the first command to try is |rtplot| [#f0]_ . Try typing in a
+terminal as follows::
 
   rtplot
 
@@ -82,14 +83,20 @@ command line is particularly useful for the later ones e.g.::
   rtplot xlo=100 xhi=1100 \\
 
 will reduce the X-range without the need to type through the initial
-parameters. See the :ref:`command-calling` section for more details on the
-parameter input system. From now it will be assumed that you know the parameter
-input system.
+parameters. The one other thing to be aware of are hidden parameters. For
+instance::
 
-|rtplot| can also be used to examine the FWHM of images through a hidden
-parameter called ``profit`` (see :ref:`command-calling` for more on hidden
-parameters). This is useful also to see if your target has reasonable count
-levels.
+  rtplot source=hs
+
+ensures that |rtplot| tries to get the data from the server on the rack (which
+must itself be running of course). One very useful feature of |rtplot| is for
+quick examination of the FWHM of images through a parameter called ``profit``
+that will only be prompted if you display just a single CCD.  This is useful
+to see if your target has reasonable count levels, and as a quick check on
+focus, although focussing can only be done properly by looking at the FWHMs of
+all CCDs during reduction.  The section on :ref:`command-calling` has many
+further details on the parameter input system. From now it will be assumed that
+you know the parameter input system.
 
 Commands used in this section: |rtplot|, |hls|
 
@@ -123,7 +130,7 @@ frames can also be displayed with other packages such as
 `ds9 <http://ds9.si.edu/site/Home.html>`_ or 
 `gaia <http://star-www.dur.ac.uk/~pdraper/gaia/gaia.html>`_.
 
-Commands used in this section: |grab|, |hplot|
+Commands mentioned in this section: |grab|, |hplot|.
 
 Getting reduction going
 =======================
@@ -147,21 +154,25 @@ Setting the apertures
 ---------------------
 
 Beginning with |setaper|, one selects the targets to be extracted using a
-cursor over an image. You can simply select a single frame from the run using
-|grab|, but it is better practice to average a few frames which is easily 
-done with |averun|::
+cursor over an image. For the image, you can simply extract a single frame
+from the run using |grab|, but it is better practice to average a few frames
+which is easily done with |averun|::
 
   averun run0076 1 10 none run0076
 
-which averages the first 10 frames without bias subtraction, and stores the
-result in :file:`run0076.hcm`. Next run |averun| on this image. This should
-display the image and allow you to add apertures one by one. Standard |hiper|
-practice is to label the main target '1', the main comparison star '2', and
-then number them from then on in order of increasing faintness. See the docs
-on |averun| for the many features of the program. The end result of |averun|
-is an "aperture file", which it is recommended you call by the same name as
-the run itself, which in this case would produce a file called 
-:file:`run0076.ape`.
+which averages (actually take the median in this case) the first 10 frames
+without bias subtraction, and stores the result in :file:`run0076.hcm`. Next
+run |setaper| on this image. This should display the image and allow you to
+add apertures one by one. Standard |hiper| practice is to label the main
+target '1', the main comparison star '2', and then number them from then on in
+order of increasing faintness. See the docs on |setaper| for the many features
+of the program. The end result of |setaper| is an "aperture file" with
+extension `.ape`, which it is recommended you call by the same name as the run
+itself, and thus in this case you would end up with a file called
+:file:`run0076.ape`. This is a JSON-format text file, and can be edited
+directly, although it is safer to let |setaper| do the job for you.
+
+Commands mentioned in this section: |averun|, |grab|, |setaper|.
 
 Generating a reduce file
 ------------------------
@@ -169,33 +180,38 @@ Generating a reduce file
 Once you have defined the apertures, you are ready to create a "reduce file",
 which is a text file with a series of directives specifying how the reduction
 is to be carried out. The easiest way to do this is through the command
-|genred| which generate the file given the aperture file just created. In this
-case the command would be::
+|genred| which generates the file given the aperture file you just created. In
+this case the command would be::
 
   genred run0076 run0076 "A test" none none none false
 
 which generates a reduce file called :file:`run0076.red` with no bias, flat or
-dark frame ('none none none') and using a magnitude scale (linear='false')
-at the end. It is very likely, almost certain in fact, that the resultant
-reduce file will not be right, and you will want to adjust it. This is easy
-since it is just a text file and can easily be edited.
+dark frame ('none none none') and using a magnitude scale (linear='false') at
+the end. It is very likely, almost certain in fact, that the resultant reduce
+file will not be right for you, and you will want to adjust it, but this
+should be a start. The reduce file is just a text file and is easy to edit.
+
+Commands mentioned in this section: |genred|.
 
 Running |reduce|
 ----------------
 
 Finally you are ready to run the |reduce|. This should generate a plot in
-which you can see light curves, the object position, the transmission and the
-FWHM of the images. You will almost certainly need to adjust the plots,
-especially the light curve plots, by adding offsets to the ``plot`` lines in
-the ``[light]`` section of the reduce file. Apart from this, the first thing
-to do is to look at the FWHM plots and see whether the focus can be adjusted
-to improve them. It is also worth displaying images at least once in order to
-see that things are behaving as you expect.
+which you can see light curves, the object X and Y position, the transmission
+and the FWHM of the images. You will almost certainly need to adjust the
+plots, especially the light curve plots, by adding offsets to the ``plot``
+lines in the ``[light]`` section of the reduce file. Apart from this, the
+first thing to do is to look at the FWHM plots (at the bottom of the light
+curve plot panel) and see whether the focus can be adjusted to improve
+them. It is also worth displaying images at least once (parameter ``implot``)
+in order to see that things are doing what you expected.
 
 If you have got this far, well done. You will see some steps, such as bias
 subtraction have been skipped. This was in the spirit of getting going fast.
 Look at :doc:`reduction` for a longer and slower look at how to get more
-out of reduction.
+out of the reduction.
+
+Commands mentioned in this section: |reduce|.
 
 .. rubric:: Footnotes
 
@@ -203,11 +219,15 @@ out of reduction.
          all of which are part of the :mod:`hipercam.scripts` module, hence
          the slightly odd-looking command name. The same string, without the
          closing pair of braces, is needed when looking up help from the
-         terminal using ``pydoc``.
+         terminal using ``pydoc``. In all cases, at the terminal you simply
+         type the last part of the string to issue the command, i.e. to invoke
+         foe example |reduce|, you would simply type ``reduce`` in a terminal.
 
 .. [#f1] This may fail if the data source is set incorrectly. If so, re-type
          as "rtplot PROMPT" to see all the options, many of which are hidden
-         by default. 
+         by default. The one you might want to change is ``source`` which
+         should be ``hs` for data from the server at the telescope, or ``hl``
+         for data from a disk file local to your computer.
 
 .. [#f2] All raw |hiper| file names take the form 'run####.fits' but
          the extension '.fits' can be omitted.
