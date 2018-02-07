@@ -202,7 +202,7 @@ def grab(args=None):
                     os.close(fd)
                     fnames.append(fname)
                 else:
-                    fname = '{:s}_{:0{:d}}{:s}'.format(resource,nframe,ndigit,hcam.HCAM)
+                    fname = '{:s}_{:0{:d}}{:s}'.format(root,nframe,ndigit,hcam.HCAM)
                     mccd.write(fname,True)
 
                 print('Written frame {:d} to {:s}'.format(nframe,fname))
