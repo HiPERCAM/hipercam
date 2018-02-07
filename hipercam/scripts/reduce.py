@@ -701,6 +701,7 @@ def reduce(args=None):
 
                 # write out results to the log file
                 logfile.write('#\n')
+                alerts = []
                 for cnam in pccd:
                     # get the apertures
                     if cnam not in rfile.aper or \
@@ -740,20 +741,21 @@ def reduce(args=None):
                         )
 
                         if apnam in monitor:
-                            # report any problems with particular targets
+                            # accumulate any problems with particular targets
                             bitmasks = monitor[apnam]
                             flag = r['flag']
-                            messages = []
+                            messes = []
                             for bitmask in bitmasks:
                                 if (flag & bitmask) and bitmask in FLAG_MESSAGES:
-                                    messages.append(FLAG_MESSAGES[bitmask])
+                                    messes.append(FLAG_MESSAGES[bitmask])
 
-                            if len(messages):
-                                print(
+                            if len(messes):
+                                alerts.append(
                                     ' *** WARNING: CCD {:s}, aperture {:s}: {:s}'.format(
-                                        cnam,apnam,', '.join(messages)
+                                        cnam,apnam,', '.join(messes)
                                     )
                                 )
+
 
                     logfile.write('\n')
 
@@ -803,6 +805,9 @@ def reduce(args=None):
                     # end of CCD display loop
                     print(message)
 
+                # print out any accumulated alert messages
+                if len(alerts):
+                    print('\n'.join(alerts))
 
                 # time in minutes since start
                 t = hcam.DMINS*(pccd.head['MJDUTC']-tzero)
