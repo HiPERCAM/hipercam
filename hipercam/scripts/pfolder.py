@@ -96,9 +96,9 @@ def pfolder(args=None):
     data.t = np.mod(86400.*(data.t-t0)/period,1)
     xlabel = 'Phase [cycles]'
     ylabel = 'Counts'
-    data.mplot(plt)
+    data.mplot(plt, mask=hcam.ALL_OK)
     data.t += 1
-    data.mplot(plt)
+    data.mplot(plt, mask=hcam.ALL_OK)
 
     plt.title('{:s}, CCD {:s}, Aperture {:s}'.format(log,ccd,aper))
 
