@@ -200,6 +200,8 @@ class Rhead:
         self.mode = hd['ESO DET READ CURNAME']
         self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
         self.drift = self.mode.startswith('Drift')
+        self.ndwins = hd.get('ESO DET DRIFT NWINS',0)
+
 
         # check for overscan / prescan / clear
         self.clear = hd['ESO DET CLRCCD']
@@ -247,10 +249,10 @@ class Rhead:
 
         elif self.drift:
             # Drift mode
-            LD = hd['ESO DRIFT TLINEDUMP']
-            LS = hd['ESO DRIFT TLINESHIFT']
-            ND = hd['DET DRIFT NWINS']
-            F = hd['ESO DET TREAD']
+            LD = hd['ESO DET DRIFT TLINEDUMP']
+            LS = hd['ESO DET DRIFT TLINESHIFT']
+            ND = self.ndwins
+            R = hd['ESO DET TREAD']
 
             # No NSKIP here, so tdelta irrelevant. in drift
             # mode, TREAD is the read time (no frame transfer)
@@ -507,11 +509,9 @@ class Rhead:
 
             # Essential items
             hnam = 'ESO DET NSKIPS{:d}'.format(n+1)
-            if hnam in hd:
-                # used to identify blank frames
-                chead['NCYCLE'] = (
-                    hd[hnam]+1, 'readout cycle period (NSKIP+1)'
-                )
+            chead['NCYCLE'] = (
+                hd.get(hnam,0)+1, 'readout cycle period (NSKIP+1)'
+            )
 
             # Nice-if-you-can-get-them items
             if full:
@@ -873,11 +873,12 @@ class Rdata (Rhead):
 
         if self.server and (nframe == 0 or self.last) and \
            not self.first and self.nframe > frameCount:
-            # server access tring to get the last complete frame. If the frame
-            # just read in is the same as the one before (i.e. frameCount <
-            # self.nframe), we return None to indicate that no progress is
-            # taking place. The calling routine then needs to wait for a new
-            # frame to come in. See rtplot for an example of this.
+            # server access trying to get the last complete frame. If the
+            # frame just read in is the same as the one before
+            # (i.e. frameCount < self.nframe), we return None to indicate that
+            # no progress is taking place. The calling routine then needs to
+            # wait for a new frame to come in. See rtplot for an example of
+            # this.
             return None
 
         # set the internal frame pointer to the frame just read
@@ -919,11 +920,14 @@ class Rdata (Rhead):
             # explicitly copy each header to avoid propagation of references
             ch = chead.copy()
 
-            # use ncycle to determine whether this frame is really data as
-            # opposed to intermediate blank frame
-            isdata = self.nframe % ch['NCYCLE'] == 0 \
-                     if 'NCYCLE' in ch else True
-            ch['DSTATUS'] = (isdata, 'Data status when NCYCLE > 1')
+            # Determine whether the frame really contains data as
+            # opposed to initial junk frames in the case of drift
+            # mode or intermediate junk frames in the case of NSKIP>0
+            ch['DSTATUS'] = (
+                (self.nframe > self.ndwins) and \
+                (self.nframe % ch['NCYCLE'] == 0),
+                'Valid data (else junk frame)'
+            )
 
             # Get time at centre of exposure
             tmid, texp, flag = self.timing(tstamp.mjd, frameCount, nccd)
