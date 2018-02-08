@@ -20,9 +20,9 @@ manual covers both aspects.
    :caption: Contents:
 
    observers
-   installation
    commands
    api
+   installation
 
 Indices and tables
 ==================
