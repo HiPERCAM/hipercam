@@ -14,6 +14,8 @@
 .. |fig-0028-5| replace:: :numref:`fig-0028-5`
 .. |fig-0029-4| replace:: :numref:`fig-0029-4`
 .. |fig-0029-5| replace:: :numref:`fig-0029-5`
+.. |fig-0032-4| replace:: :numref:`fig-0032-4`
+.. |fig-0032-5| replace:: :numref:`fig-0032-5`
 
 Timing tests
 ************
@@ -278,4 +280,52 @@ Summary results:
 +-------+-------------+------------+---------------+---------+
 | 5     |   +1452     |  0.09158   |   0.08801     |    4    |
 +-------+-------------+------------+---------------+---------+
+
+
+run0032
+-------
+
+This is the first drift mode run. There were 3 junk windows in the masked area
+at the start before real data emerged. There are 3 CCDs with valid data:
+
+.. _fig-0032-3:
+
+.. figure:: 2017-10-22-0032-4.png
+   :scale: 100 %
+   :alt: timing test data for CCD 3, run0032 of 2017-10-22
+
+   Timing test data for CCD 4, run0032 of 2017-10-22.
+
+.. _fig-0032-4:
+
+.. figure:: 2017-10-22-0032-4.png
+   :scale: 100 %
+   :alt: timing test data for CCD 4, run0032 of 2017-10-22
+
+   Timing test data for CCD 4, run0032 of 2017-10-22.
+
+.. _fig-0032-5:
+
+.. figure:: 2017-10-22-0032-5.png
+   :scale: 100 %
+   :alt: timing test data for CCD5, run0032 of 2017-10-22
+
+   Timing test data for CCD 5, run0032 of 2017-10-22.
+
+This is quite different from run0027, but rather few points have been
+caught in transition, and one of them is quite discrepant. Definitely require
+longer runs for these tests.
+
+Summary results:
+
++-------+-------------+------------+---------------+
+| | CCD | | Offset    | | Exposure | | Exposure    |
+| | #   | | [|musec|] | |  [sec]   | | calc. [sec] |
++=======+=============+============+===============+
+| 3     |   -733      |  0.08123   |   0.08306     |
++-------+-------------+------------+---------------+
+| 4     |   +293      |  0.08385   |   0.08306     |
++-------+-------------+------------+---------------+
+| 5     |   -39       |  0.08359   |   0.08306     |
++-------+-------------+------------+---------------+
 
