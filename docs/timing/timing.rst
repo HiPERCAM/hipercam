@@ -111,7 +111,7 @@ while the dead time between exposures is
 
  t_{\text{dead}} = \text{F}.
 
-In the code, :mod:`hipercam.hcam` these are implemented by computing
+In the code, :mod:`hipercam.hcam`, these are implemented by computing
 two offsets plus two multipliers for NSKIP with names like `toff1` etc,
 representing the constant offset and the pre-factor that multiplies NSKIP
 (called `tdelta` in :mod:`hipercam.hcam`).
@@ -119,7 +119,7 @@ representing the constant offset and the pre-factor that multiplies NSKIP
 Clear mode
 ==========
 
-Although clear mode is less useful that clear mode for timing work, I go
+Although clear mode is less useful than clear mode for timing work, I go
 through the same analysis here.
 
 .. _fig-clear:

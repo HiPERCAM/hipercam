@@ -16,7 +16,4 @@ Programmers Interface) is designed to allow you to do so.
    quickapi
    hcmformat
    timing/timing
-
-.. automodule:: hipercam.aperture
-
-
+   timing/timing_tests

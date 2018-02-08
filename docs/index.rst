@@ -23,7 +23,6 @@ manual covers both aspects.
    installation
    commands
    api
-   timing/timing_tests
 
 Indices and tables
 ==================

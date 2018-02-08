@@ -23,3 +23,4 @@
 .. |reduce|  replace:: :func:`hipercam.scripts.reduce`
 .. |rtplot|  replace:: :func:`hipercam.scripts.rtplot`
 .. |setaper| replace:: :func:`hipercam.scripts.setaper`
+.. |musec| replace:: :math:`\mu\text{s}`
