@@ -290,11 +290,11 @@ at the start before real data emerged. There are 3 CCDs with valid data:
 
 .. _fig-0032-3:
 
-.. figure:: 2017-10-22-0032-4.png
+.. figure:: 2017-10-22-0032-3.png
    :scale: 100 %
    :alt: timing test data for CCD 3, run0032 of 2017-10-22
 
-   Timing test data for CCD 4, run0032 of 2017-10-22.
+   Timing test data for CCD 3, run0032 of 2017-10-22.
 
 .. _fig-0032-4:
 
@@ -327,5 +327,151 @@ Summary results:
 | 4     |   +293      |  0.08385   |   0.08306     |
 +-------+-------------+------------+---------------+
 | 5     |   -39       |  0.08359   |   0.08306     |
++-------+-------------+------------+---------------+
+
+
+run0033
+-------
+
+This is the next and faster drift mode run. I have reduced all 4 available
+CCDs which I think show again the effect of non-linearity (and possibly some
+saturation in CCD 3).
+
+.. _fig-0033-2:
+
+.. figure:: 2017-10-22-0033-2.png
+   :scale: 100 %
+   :alt: timing test data for CCD 2, run0033 of 2017-10-22
+
+   Timing test data for CCD 2, run0033 of 2017-10-22.
+
+.. _fig-0033-3:
+
+.. figure:: 2017-10-22-0033-3.png
+   :scale: 100 %
+   :alt: timing test data for CCD 3, run0033 of 2017-10-22
+
+   Timing test data for CCD 3, run0033 of 2017-10-22.
+
+.. _fig-0033-4:
+
+.. figure:: 2017-10-22-0033-4.png
+   :scale: 100 %
+   :alt: timing test data for CCD 4, run0033 of 2017-10-22
+
+   Timing test data for CCD 4, run0033 of 2017-10-22.
+
+.. _fig-0033-5:
+
+.. figure:: 2017-10-22-0033-5.png
+   :scale: 100 %
+   :alt: timing test data for CCD 5, run0033 of 2017-10-22
+
+   Timing test data for CCD 5, run0033 of 2017-10-22.
+
+Summary results:
+
++-------+-------------+------------+---------------+
+| | CCD | | Offset    | | Exposure | | Exposure    |
+| | #   | | [|musec|] | |  [sec]   | | calc. [sec] |
++=======+=============+============+===============+
+| 2     |   +314      |  0.03405   |   0.03322     |
++-------+-------------+------------+---------------+
+| 3     |   -2047     |  0.02979   |   0.03322     |
++-------+-------------+------------+---------------+
+| 4     |   +171      |  0.03395   |   0.03322     |
++-------+-------------+------------+---------------+
+| 5     |   +35       |  0.03362   |   0.03322     |
++-------+-------------+------------+---------------+
+
+run0034
+-------
+
+Another still faster drift mode run (CCD 3 was badly saturated).
+
+.. _fig-0034-2:
+
+.. figure:: 2017-10-22-0034-2.png
+   :scale: 100 %
+   :alt: timing test data for CCD 2, run0034 of 2017-10-22
+
+   Timing test data for CCD 2, run0034 of 2017-10-22.
+
+.. _fig-0034-4:
+
+.. figure:: 2017-10-22-0034-4.png
+   :scale: 100 %
+   :alt: timing test data for CCD 4, run0034 of 2017-10-22
+
+   Timing test data for CCD 4, run0034 of 2017-10-22.
+
+.. _fig-0034-5:
+
+.. figure:: 2017-10-22-0034-5.png
+   :scale: 100 %
+   :alt: timing test data for CCD 5, run0034 of 2017-10-22
+
+   Timing test data for CCD 5, run0034 of 2017-10-22.
+
+Summary results:
+
++-------+-------------+------------+---------------+
+| | CCD | | Offset    | | Exposure | | Exposure    |
+| | #   | | [|musec|] | |  [sec]   | | calc. [sec] |
++=======+=============+============+===============+
+| 2     |   +721      |  0.01713   |   0.01723     |
++-------+-------------+------------+---------------+
+| 4     |   +225      |  0.01788   |   0.01723     |
++-------+-------------+------------+---------------+
+| 5     |   +31       |  0.01773   |   0.01723     |
++-------+-------------+------------+---------------+
+
+
+run0060
+-------
+
+This fast drift run appears to reveal an issue with the LED brightness
+which does not seem to reach its maximum until around 3 msec after switch
+on. This must have an effect upon the accuracy of these tests. I think
+it particularly shows in the over-estimated exposure time since that is
+calculated using the time to go from low to high, but the high value is
+effectively too large. This could also add a few tenths of a millisec to the
+offset.
+
+.. _fig-0060-2:
+
+.. figure:: 2017-10-22-0060-2.png
+   :scale: 100 %
+   :alt: timing test data for CCD 2, run0060 of 2017-10-22
+
+   Timing test data for CCD 2, run0060 of 2017-10-22.
+
+.. _fig-0060-4:
+
+.. figure:: 2017-10-22-0060-4.png
+   :scale: 100 %
+   :alt: timing test data for CCD 4, run0060 of 2017-10-22
+
+   Timing test data for CCD 4, run0060 of 2017-10-22.
+
+.. _fig-0060-5:
+
+.. figure:: 2017-10-22-0060-5.png
+   :scale: 100 %
+   :alt: timing test data for CCD 5, run0060 of 2017-10-22
+
+   Timing test data for CCD 5, run0060 of 2017-10-22.
+
+Summary results:
+
++-------+-------------+------------+---------------+
+| | CCD | | Offset    | | Exposure | | Exposure    |
+| | #   | | [|musec|] | |  [sec]   | | calc. [sec] |
++=======+=============+============+===============+
+| 2     |   -35       |  0.00311   |   0.00263     |
++-------+-------------+------------+---------------+
+| 4     |   +177      |  0.00334   |   0.00263     |
++-------+-------------+------------+---------------+
+| 5     |   +328      |  0.00363   |   0.00263     |
 +-------+-------------+------------+---------------+
 
