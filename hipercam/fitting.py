@@ -603,8 +603,8 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
         # through the exponent but also indirectly through alpha
         dsky = np.ones_like(x)
         dheight = 1/denom**tbeta
-        dxcen = (2*alpha*tbeta)*xoff*save1
-        dycen = (2*alpha*tbeta)*yoff*save1
+        dxcen = (2*alpha*tbeta)*dx*save1
+        dycen = (2*alpha*tbeta)*dy*save1
 
         if comp_dfwhm:
             dfwhm = (2*alpha*tbeta/fwhm)*save2

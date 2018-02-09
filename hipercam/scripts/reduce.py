@@ -450,10 +450,14 @@ def reduce(args=None):
 # This is a logfile produced by the HiPERCAM pipeline command 'reduce'. It consists
 # of one line per reduced CCD per exposure. Each line contains all the information
 # from all apertures defined for the CCD. The column names are defined just before
-# the data below. The logfile was produced using version {hipercam_version} of the
-# pipeline, and was generated using the following command-line inputs to reduce:
+# the data below. The logfile was produced using version number:
 #
-""".format(hipercam_version))
+#  {hipercam_version} 
+#
+# of the HiPERCAM reduction software, and was generated using the following
+# command-line inputs to 'reduce':
+#
+""".format(hipercam_version=hipercam_version))
 
         # second, list the command-line inputs to the logfile
         for line in plist:
