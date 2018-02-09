@@ -13,8 +13,8 @@ __all__ = (
     'combFit', 'fitMoffat', 'fitGaussian'
 )
 
-def combFit(wind, method, sky, height, x, y,
-            fwhm, fwhm_min, fwhm_fix, beta, read, gain, thresh):
+def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
+            beta, read, gain, thresh, ndiv=0):
     """Fits a stellar profile in a :class:Window using either a 2D Gaussian
     or Moffat profile. This is a convenient wrapper of fitMoffat and 
     fitGaussian because one often wants both options.
@@ -62,6 +62,18 @@ def combFit(wind, method, sky, height, x, y,
             read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
             = 4
 
+        ndiv      : int
+            Parameter controlling treatment of sub-pixellation. If ndiv > 0,
+            every pixel in `wind` will be sub-divided first into unbinned
+            pixels, and then each unbinned pixel will be split into a square
+            array of ndiv by ndiv points. The profile will be evaluated and
+            averaged over each of these points. Thus if the pixels in `wind`
+            are binned xbin by ybin, there will be xbin*ybin*nsub**2
+            evaluations per pixel. This is to cope with the case where the
+            seeing is becoming small compared to the pixels, but obviously
+            will slow things. To simply evaluate the profile once at the
+            centre of each pixel in `wind`, set ndiv = 0.
+
     Returns:: (pars, epars, extras)
 
     where::
@@ -73,9 +85,9 @@ def combFit(wind, method, sky, height, x, y,
        epars   : tuple
           (esky, eheight, ex, ey, efwhm, ebeta), fitted standard errors.
           `ebeta` == -1 if `method`=='g'; `efwhm` == -1 if the FWHM was fixed
-          or it hit the minimum value. 
+          or it hit the minimum value.
 
-       extras : tuple 
+       extras : tuple
           (fit,x,y,sigma,chisq,nok,nrej,npar,message) -- `fit` is a Window
           containing the best fit; `x` and `x` are the X and Y coordinates of
           the pixels, sigma are the final uncertainties used for each pixel,
@@ -95,7 +107,7 @@ def combFit(wind, method, sky, height, x, y,
             (esky, eheight, ex, ey, efwhm), \
             (fit, X, Y, sigma, chisq, nok, nrej, npar) = fitGaussian(
                 wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-                read, gain, thresh
+                read, gain, thresh, ndiv
             )
 
     elif method == 'm':
@@ -104,7 +116,7 @@ def combFit(wind, method, sky, height, x, y,
             (esky, eheight, ex, ey, efwhm, ebeta), \
             (fit, X, Y, sigma, chisq, nok, nrej, npar) = fitMoffat(
                 wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-                beta, read, gain, thresh
+                beta, read, gain, thresh, ndiv
             )
 
     else:
@@ -140,7 +152,7 @@ def combFit(wind, method, sky, height, x, y,
 ##########################################
 
 def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-              beta, read, gain, thresh):
+              beta, read, gain, thresh, ndiv):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
     from the centre of the aperture. The constant alpha is determined by the
@@ -195,6 +207,23 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             gain, from which weights are generated. If an array it
             must match the dimensions of the Window (e- per count)
 
+        thresh    : float
+            threshold in terms of RMS for rejection. The RMS is obtained from
+            read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
+            = 4
+
+        ndiv     : int
+            Parameter controlling treatment of sub-pixellation. If ndiv > 0,
+            every pixel will be sub-divided first into unbinned pixels, and
+            then each unbinned pixels will be split into a square array of
+            ndiv by ndiv points. The profile will be evaluated and averaged
+            over each of these points. Thus if the pixels in `wind` are binned
+            xbin by ybin, there will be xbin*ybin*nsub**2 evaluations per
+            pixel. This is to cope with the case where the seeing is becoming
+            small compared to the pixels, but obviously will slow things. To
+            simply evaluate the profile once at the centre of each pixel in
+            `wind`, set ndiv = 0.
+
     Returns:: tuple of tuples
 
         (pars, sigs, extras) where::
@@ -231,9 +260,9 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
     # construct function objects of both types from the first because during
     # rejection, we assume both exist. sigma arrays are constructed here all > 0
-    mfit1 = Mfit1(wind, read, gain)
+    mfit1 = Mfit1(wind, read, gain, ndiv)
     dmfit1 = Dmfit1(mfit1)
-    mfit2 = Mfit2(wind, read, gain, fwhm)
+    mfit2 = Mfit2(wind, read, gain, fwhm, ndiv)
     dmfit2 = Dmfit2(mfit2)
 
     while True:
@@ -341,7 +370,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
         (fit,mfit1.xy[0],mfit1.xy[1],mfit1.sigma,chisq,nok,nrej,len(soln))
     )
 
-def moffat(xy, sky, height, xcen, ycen, fwhm, beta):
+def moffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     """
     Returns a 2D numpy array corresponding to the ordinate grids in xy
     set to a Moffat profile plus a constant. Defined by
@@ -374,16 +403,62 @@ def moffat(xy, sky, height, xcen, ycen, fwhm, beta):
       beta   : float
          Moffat exponent
 
+      xbin   : int
+         X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
+
+      ybin   : int
+         Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
+
+      ndiv   : int
+         Parameter controlling treatment of sub-pixellation. If > 0, every
+         pixel will be sub-divided first into unbinned pixels, and then each
+         unbinned pixels will be split into a square array of ndiv by ndiv
+         points. The profile will be evaluated and averaged over each of these
+         points. Thus if the pixels are binned xbin by ybin, there will be
+         xbin*ybin*nsub**2 evaluations per pixel. This is to cope with the
+         case where the seeing is becoming small compared to the pixels, but
+         obviously will slow things. To simply evaluate the profile once at
+         the centre of each pixel, set ndiv = 0.
+
     Returns:: 2D numpy array containg the Moffat profile plus constant evaluated
     on the ordinate grids in xy.
 
     """
     x,y = xy
-    rsq = (x-xcen)**2+(y-ycen)**2
-    alpha = 4*(2**(1./max(0.01,beta))-1)/fwhm**2
-    return height/(1+alpha*rsq)**max(0.01,beta) + sky
+    tbeta = max(0.01,beta)
+    alpha = 4*(2**(1./tbeta)-1)/fwhm**2
 
-def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, skip_dfwhm=False):
+    if ndiv > 0:
+        # Complicated case with sub-pixellation allowed for
+
+        # mean offset within sub-pixels
+        soff = (ndiv-1)/(2*ndiv)
+
+        prof = np.zeros_like(x)
+        for iy in range(ybin):
+            # loop over unbinned pixels in Y
+            yoff = iy-(ybin-1)/2 - soff
+            for ix in range(xbin):
+                # loop over unbinned pixels in X
+                xoff = ix-(xbin-1)/2 - soff
+                for isy in range(nsub):
+                    # loop over sub-pixels in y
+                    ysoff = yoff + isy/nsub
+                    for isx in range(nsub):
+                        # loop over sub-pixels in x
+                        xsoff = xoff + isx/nsub
+                        rsq = (x+xsoff-xcen)**2+(y+ysoff-ycen)**2
+                        prof += (height/xbin/ybin/nsub**2)/(1+alpha*rsq)**tbeta
+
+        return sky+prof
+
+    else:
+        # Fast as possible, compute profile at pixel centres only
+        rsq = (x-xcen)**2+(y-ycen)**2
+        return height/(1+alpha*rsq)**tbeta + sky
+
+def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
+            comp_dfwhm, comp_dbeta):
     """Returns a list of 2D numpy arrays corresponding to the ordinate grids in xy
     set to the partial derivatives of a Moffat profile plus a
     constant. Defined by sky + height/(1+alpha*r**2)**beta where r is the
@@ -416,39 +491,130 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, skip_dfwhm=False):
       beta   : float
          Moffat exponent
 
-      skip_fwhm : bool
-         skips computation of derivative wrt FWHM and returns onby 5 derivs 
+      xbin   : int
+         X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
 
-    Returns:: a list of six 2D numpy arrays containing the partial derivatives
+      ybin   : int
+         Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
+
+      ndiv   : int
+         Parameter controlling treatment of sub-pixellation. If > 0, every
+         pixel will be sub-divided first into unbinned pixels, and then each
+         unbinned pixels will be split into a square array of ndiv by ndiv
+         points. The profile will be evaluated and averaged over each of these
+         points. Thus if the pixels are binned xbin by ybin, there will be
+         xbin*ybin*nsub**2 evaluations per pixel. This is to cope with the
+         case where the seeing is becoming small compared to the pixels, but
+         obviously will slow things. To simply evaluate the profile once at
+         the centre of each pixel, set ndiv = 0.
+
+      comp_dfwhm : bool
+         compute derivative wrt FWHM (or not). If True, 6 derivs are returned,
+         else 5 or 4, depending on next one.
+
+      comp_dbeta : bool [only operative if comp_dfwhm=False]
+         compute derivative wrt beta (or not). Only has an effect if comp_dfwhm=False.
+         If True, 5 derivs are returned, else 4.
+
+    Returns:: a list of 6, 5, or 4 2D numpy arrays containing the partial derivatives
     of a Moffat profile plus constant evaluated on the ordinate grids in xy.
 
     """
     x,y = xy
-    blim = max(0.01, beta)
-    alpha = 4*(2**(1/blim)-1)/fwhm**2
+    tbeta = max(0.01, beta)
+    alpha = 4*(2**(1/tbeta)-1)/fwhm**2
 
-    # intermediate time savers (but each the same dimension as x and y)
-    xoff = x-xcen
-    yoff = y-ycen
-    rsq = xoff**2 + yoff**2
+    dsky = np.ones_like(x)
 
-    denom = 1+alpha*rsq
-    save1 = height/denom**(blim+1)
-    save2 = save1*rsq
+    if ndiv > 0:
+        # complicated sub-pixellation case
+        dheight = np.zeros_like(x)
+        dxcen = np.zeros_like(x)
+        dycen = np.zeros_like(x)
 
-    # derivatives. beta is a bit complicated because it appears directly
-    # through the exponent but also indirectly through alpha
-    d_sky = np.ones_like(x)
-    d_height = 1/denom**blim
-    d_xcen = (2*alpha*blim)*xoff*save1
-    d_ycen = (2*alpha*blim)*yoff*save1
-    if skip_dfwhm:
-        d_beta = -np.log(denom)*height*d_height + (4.*np.log(2)*2**(1/blim)/blim/fwhm**2)*save2
-        return [d_sky, d_height, d_xcen, d_ycen, d_beta]
+        # mean offset within sub-pixels
+        soff = (ndiv-1)/(2*ndiv)
+
+        for iy in range(ybin):
+            # loop over unbinned pixels in Y
+            yoff = iy-(ybin-1)/2 - soff
+            for ix in range(xbin):
+                # loop over unbinned pixels in X
+                xoff = ix-(xbin-1)/2 - soff
+                for isy in range(nsub):
+                    # loop over sub-pixels in y
+                    ysoff = yoff + isy/nsub
+                    for isx in range(nsub):
+                        # loop over sub-pixels in x
+                        xsoff = xoff + isx/nsub
+
+                        # finally compute stuff
+                        dx = x + xsoff - xcen
+                        dy = y + ysoff - ycen
+                        rsq = dx**2 + dy**2
+
+                        denom = 1+alpha*rsq
+                        save1 = height/denom**(tbeta+1)
+                        save2 = save1*rsq
+
+                        # derivatives. beta is a bit complicated because it appears directly
+                        # through the exponent but also indirectly through alpha
+                        dh = 1/denom**tbeta
+                        dheight += dh
+                        dxcen += (2*alpha*tbeta)*dx*save1
+                        dycen += (2*alpha*tbeta)*dy*save1
+
+                        if comp_dfwhm:
+                            dfwhm += (2*alpha*tbeta/fwhm)*save2
+                            dbeta += -np.log(denom)*height*dh + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
+                        elif comp_dbeta:
+                            dbeta += -np.log(denom)*height*dh + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
+
+        # Normalise by number of evaluations
+        nadd = xbin*ybin*nsub**2
+        dheight /= nadd
+        dxcen /= nadd
+        dycen /= nadd
+
+        if comp_dfwhm:
+            # full set of derivs
+            dfwhm /= nadd
+            dbeta /= nadd
+            return [dsky, dheight, dxcen, dycen, dfwhm, dbeta]
+        elif comp_dbeta:
+            # miss out dfwhm
+            dbeta /= nadd
+            return [dsky, dheight, dxcen, dycen, dbeta]
+        else:
+            # miss out dbeta well
+            return [dsky, dheight, dxcen, dycen]
+
     else:
-        d_fwhm = (2*alpha*blim/fwhm)*save2
-        d_beta = -np.log(denom)*height*d_height + (4.*np.log(2)*2**(1/blim)/blim/fwhm**2)*save2
-        return [d_sky, d_height, d_xcen, d_ycen, d_fwhm, d_beta]
+        # fast as possible, only compute at centre of pixels
+        dx = x - xcen
+        dy = y - ycen
+        rsq = dx**2 + dy**2
+
+        denom = 1+alpha*rsq
+        save1 = height/denom**(tbeta+1)
+        save2 = save1*rsq
+
+        # derivatives. beta is a bit complicated because it appears directly
+        # through the exponent but also indirectly through alpha
+        dsky = np.ones_like(x)
+        dheight = 1/denom**tbeta
+        dxcen = (2*alpha*tbeta)*xoff*save1
+        dycen = (2*alpha*tbeta)*yoff*save1
+
+        if comp_dfwhm:
+            dfwhm = (2*alpha*tbeta/fwhm)*save2
+            dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
+            return [dsky, dheight, dxcen, dycen, dfwhm, dbeta]
+        elif comp_dbeta:
+            dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
+            return [dsky, dheight, dxcen, dycen, dbeta]
+        else:
+            return [dsky, dheight, dxcen, dycen]
 
 class Mfit1:
     """
@@ -456,7 +622,7 @@ class Mfit1:
     background model with free FWHM.
     """
 
-    def __init__(self, wind, read, gain):
+    def __init__(self, wind, read, gain, ndiv):
         """
         Arguments::
 
@@ -470,12 +636,18 @@ class Mfit1:
           gain  : float / array
              gain in electrons / count. Can be a 2D array if dimensions
              same as the data in wind
+
+          ndiv  : int
+             pixel sub-division factor. See comments in fitMoffat
         """
         self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.xy = np.meshgrid(x, y)
         self.data = wind.data
+        self.xbin = wind.xbin
+        self.ybin = wind.ybin
+        self.ndiv = ndiv
 
     def __call__(self, param):
         """
@@ -502,7 +674,9 @@ class Mfit1:
               pixels; 'beta' is the Moffat exponent.
         """
         sky, height, xcen, ycen, fwhm, beta = param
-        return moffat(self.xy, sky, height, xcen, ycen, fwhm, beta)
+        return moffat(
+            self.xy, sky, height, xcen, ycen, fwhm, beta, self.xbin, self.ybin, self.ndiv
+        )
 
 class Dmfit1:
     """
@@ -519,6 +693,9 @@ class Dmfit1:
         """
         self.sigma = mfit1.sigma
         self.xy = mfit1.xy
+        self.xbin = mfit1.xbin
+        self.ybin = mfit1.ybin
+        self.ndiv = mfit1.ndiv
 
     def __call__(self, param):
         """
@@ -527,7 +704,10 @@ class Dmfit1:
         parameters.
         """
         sky, height, xcen, ycen, fwhm, beta = param
-        derivs = dmoffat(self.xy, sky, height, xcen, ycen, fwhm, beta)
+        derivs = dmoffat(
+            self.xy, sky, height, xcen, ycen, fwhm, beta,
+            self.xbin, self.ybin, self.ndiv, True, True
+        )
         ok = self.sigma > 0
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
@@ -537,7 +717,7 @@ class Mfit2:
     background model with fixed FWHM
     """
 
-    def __init__(self, wind, read, gain, fwhm):
+    def __init__(self, wind, read, gain, fwhm, ndiv):
         """
         Arguments:
 
@@ -554,6 +734,9 @@ class Mfit2:
 
           fwhm  : float
              the fixed FWHM to use
+
+          ndiv  : int
+             pixel sub-division factor. See comments in fitMoffat
         """
         self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
@@ -561,6 +744,9 @@ class Mfit2:
         self.xy = np.meshgrid(x, y)
         self.data = wind.data
         self.fwhm = fwhm
+        self.xbin = wind.xbin
+        self.ybin = wind.ybin
+        self.ndiv = ndiv
 
     def __call__(self, param):
         """
@@ -585,7 +771,7 @@ class Mfit2:
               corner of the physical imagine area; 'beta' is the Moffat exponent.
         """
         sky, height, xcen, ycen, beta = param
-        return moffat(self.xy, sky, height, xcen, ycen, self.fwhm, beta)
+        return moffat(self.xy, sky, height, xcen, ycen, self.fwhm, beta, self.xbin, self.ybin, self.ndiv)
 
 class Dmfit2:
     """
@@ -603,6 +789,9 @@ class Dmfit2:
         self.sigma = mfit2.sigma
         self.xy = mfit2.xy
         self.fwhm = mfit2.fwhm
+        self.xbin = mfit2.xbin
+        self.ybin = mfit2.ybin
+        self.ndiv = mfit2.ndiv
 
     def __call__(self, param):
         """
@@ -611,7 +800,114 @@ class Dmfit2:
         parameters.
         """
         sky, height, xcen, ycen, beta = param
-        derivs = dmoffat(self.xy, sky, height, xcen, ycen, self.fwhm, beta, True)
+        derivs = dmoffat(
+            self.xy, sky, height, xcen, ycen, self.fwhm, beta,
+            self.xbin, self.ybin, self.ndiv, False, True
+        )
+        ok = self.sigma > 0
+        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
+
+class Mfit3:
+    """
+    Function object to pass to leastsq for Moffat + constant
+    background model with fixed FWHM and beta
+    """
+
+    def __init__(self, wind, read, gain, fwhm, beta, ndiv):
+        """
+        Arguments:
+
+          wind  : Window
+             the Window containing data to fit
+
+          read  : float / array
+             readout noise in RMS counts. Can be a 2D array if dimensions
+             same as the data in wind
+
+          gain  : float / array
+             gain in electrons / count. Can be a 2D array if dimensions
+             same as the data in wind
+
+          fwhm  : float
+             the fixed FWHM to use
+
+          beta  : float
+             the fixed FWHM to use
+
+          ndiv  : int
+             pixel sub-division factor. See comments in fitMoffat
+        """
+        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
+        x = wind.x(np.arange(wind.nx))
+        y = wind.y(np.arange(wind.ny))
+        self.xy = np.meshgrid(x, y)
+        self.data = wind.data
+        self.fwhm = fwhm
+        self.beta = beta
+        self.xbin = wind.xbin
+        self.ybin = wind.ybin
+        self.ndiv = ndiv
+
+    def __call__(self, param):
+        """
+        Returns 1D array of normalised residuals
+        """
+        mod = self.model(param)
+        diff = (self.data-mod)/self.sigma
+        ok = self.sigma > 0
+        return diff[ok].ravel()
+
+    def model(self, param):
+        """
+        Returns Window with model given a parameter vector.
+
+        Argument::
+
+           param : 1D array
+              unpacks to (sky, height, xcen, ycen) where:
+              'sky' is the background per pixel; 'height' is the central
+              height of the Moffat function; 'xcen' and 'ycen' are the ordinates
+              of its centre in unbinned CCD pixels with (1,1) at the left
+              corner of the physical imagine area.
+        """
+        sky, height, xcen, ycen = param
+        return moffat(
+            self.xy, sky, height, xcen, ycen, self.fwhm,
+            self.beta, self.xbin, self.ybin, self.ndiv
+        )
+
+class Dmfit3:
+    """
+    Function object to pass to leastsq to calculate the Jacobian equivalent
+    to Mfit3
+    """
+
+    def __init__(self, mfit3):
+        """
+        Arguments::
+
+          mfit3 : Mfit3
+             the Mfit3 object passed as 'func' to leastsq
+        """
+        self.sigma = mfit3.sigma
+        self.xy = mfit3.xy
+        self.fwhm = mfit3.fwhm
+        self.beta = mfit3.beta
+        self.xbin = mfit3.xbin
+        self.ybin = mfit3.ybin
+        self.ndiv = mfit3.ndiv
+
+    def __call__(self, param):
+        """
+        Returns list of 1D arrays of the partial derivatives of
+        the normalised residuals with respect to the variable
+        parameters.
+        """
+        sky, height, xcen, ycen = param
+        derivs = dmoffat(
+            self.xy, sky, height, xcen, ycen, self.fwhm, self.beta,
+            self.xbin, self.ybin, self.ndiv, False, False
+        )
         ok = self.sigma > 0
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
@@ -622,7 +918,7 @@ class Dmfit2:
 ##########################################
 
 def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-                read, gain, thresh):
+                read, gain, thresh, ndiv):
     """Fits the profile of one target in a Window with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
     of the aperture. The constant alpha is fixed by the FWHM. The function
@@ -676,7 +972,23 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             gain, from which weights are generated. If an array it
             must match the dimensions of the Window (e- per count)
 
- 
+        thresh    : float
+            threshold in terms of RMS for rejection. The RMS is obtained from
+            read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
+            = 4
+
+        ndiv     : int
+            Parameter controlling treatment of sub-pixellation. If ndiv > 0,
+            every pixel will be sub-divided first into unbinned pixels, and
+            then each unbinned pixels will be split into a square array of
+            ndiv by ndiv points. The profile will be evaluated and averaged
+            over each of these points. Thus if the pixels in `wind` are binned
+            xbin by ybin, there will be xbin*ybin*nsub**2 evaluations per
+            pixel. This is to cope with the case where the seeing is becoming
+            small compared to the pixels, but obviously will slow things. To
+            simply evaluate the profile once at the centre of each pixel in
+            `wind`, set ndiv = 0.
+
     Returns:: tuple of tuples
 
         (pars, sigs, extras) where::
@@ -704,9 +1016,9 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
     # construct function objects of both types from the first because during
     # rejection, we assume both exist. sigma arrays are constructed here all > 0
-    gfit1 = Gfit1(wind, read, gain)
+    gfit1 = Gfit1(wind, read, gain, ndiv)
     dgfit1 = Dgfit1(gfit1)
-    gfit2 = Gfit2(wind, read, gain, fwhm)
+    gfit2 = Gfit2(wind, read, gain, fwhm, ndiv)
     dgfit2 = Dgfit2(gfit2)
 
     while True:
@@ -812,17 +1124,19 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
         (fit,gfit1.xy[0],gfit1.xy[1],gfit1.sigma,chisq,nok,nrej,len(soln))
     )
 
-def gaussian(xy, sky, height, xcen, ycen, fwhm):
+def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     """Returns a 2D numpy array corresponding to the ordinate grids in xy set to a
-    symmetric 2D Gaussian plus a constant. Defined by sky +
-    height*exp(-alpha*r**2) where r is the distance from the centre and alpha
-    is set to give the desired FWHM.
+    symmetric 2D Gaussian plus a constant. The profile is essentially defined
+    by sky + height*exp(-alpha*r**2) where r is the distance from the centre
+    and alpha is set to give the desired FWHM, but account is taken of the finite
+    size of the pixels by summing over multiple points in each one.
 
     Arguments::
 
       xy    : 3D numpy array
-         dimensions (2,NY,NX). x,y = xy sets x and y to the X and Y
-         ordinates of a 2D grid setting the output of the routine.
+         dimensions (2,NY,NX). x,y = xy sets x and y to the X and Y ordinates
+         of a 2D grid setting the output of the routine. They should be in
+         terms of unbinned pixels.
 
       sky    : float
          sky background
@@ -837,18 +1151,62 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm):
          Y-ordinate of centre
 
       fwhm   : float
-         FWHM of the profile
+         FWHM of the profile (unbinned pixels)
+
+      xbin   : int
+         X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
+
+      ybin   : int
+         Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
+
+      ndiv   : int
+         Parameter controlling treatment of sub-pixellation. If > 0, every
+         pixel will be sub-divided first into unbinned pixels, and then each
+         unbinned pixels will be split into a square array of ndiv by ndiv
+         points. The profile will be evaluated and averaged over each of these
+         points. Thus if the pixels are binned xbin by ybin, there will be
+         xbin*ybin*nsub**2 evaluations per pixel. This is to cope with the
+         case where the seeing is becoming small compared to the pixels, but
+         obviously will slow things. To simply evaluate the profile once at
+         the centre of each pixel, set ndiv = 0.
 
     Returns:: 2D numpy array containing the Gaussian plus constant evaluated
     on the ordinate grids in xy.
 
     """
     x,y = xy
-    rsq = (x-xcen)**2+(y-ycen)**2
     alpha = 4.*np.log(2.)/fwhm**2
-    return sky+height*np.exp(-alpha*rsq)
 
-def dgaussian(xy, sky, height, xcen, ycen, fwhm, skip_dfwhm=False):
+    if ndiv > 0:
+        # Complicated case with sub-pixellation allowed for
+
+        # mean offset within sub-pixels
+        soff = (ndiv-1)/(2*ndiv)
+
+        prof = np.zeros_like(x)
+        for iy in range(ybin):
+            # loop over unbinned pixels in Y
+            yoff = iy-(ybin-1)/2 - soff
+            for ix in range(xbin):
+                # loop over unbinned pixels in X
+                xoff = ix-(xbin-1)/2 - soff
+                for isy in range(nsub):
+                    # loop over sub-pixels in y
+                    ysoff = yoff + isy/nsub
+                    for isx in range(nsub):
+                        # loop over sub-pixels in x
+                        xsoff = xoff + isx/nsub
+                        rsq = (x+xsoff-xcen)**2+(y+ysoff-ycen)**2
+                        prof += np.exp(-alpha*rsq)
+
+        return sky+(height/xbin/ybin/nsub**2)*prof
+
+    else:
+        # Fast as possible, compute profile at pixel centres only
+        rsq = (x-xcen)**2+(y-ycen)**2
+        return sky+height*np.exp(-alpha*rsq)
+
+def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
     """Returns a list of four or five 2D numpy arrays corresponding to the
     ordinate grids in xy set to the partial derivatives of a symmetric 2D
     Gaussian plus a constant. Defined by sky + height*exp(-alpha*r**2) where r
@@ -876,8 +1234,26 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, skip_dfwhm=False):
       fwhm   : float
          FWHM of the profile
 
-      skip_fwhm : bool
-         skips computation of derivative wrt FWHM and returns only 4 derivs 
+      xbin   : int
+         X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
+
+      ybin   : int
+         Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
+
+      ndiv   : int
+         Parameter controlling treatment of sub-pixellation. If > 0, every
+         pixel will be sub-divided first into unbinned pixels, and then each
+         unbinned pixels will be split into a square array of ndiv by ndiv
+         points. The profile will be evaluated and averaged over each of these
+         points. Thus if the pixels are binned xbin by ybin, there will be
+         xbin*ybin*nsub**2 evaluations per pixel. This is to cope with the
+         case where the seeing is becoming small compared to the pixels, but
+         obviously will slow things. To simply evaluate the profile once at
+         the centre of each pixel, set ndiv = 0.
+
+      comp_dfwhm : bool
+         compute derivative wrt FWHM (or not). If True, 5 derivs are returned,
+         else 4.
 
     Returns:: a list of four or five 2D numpy arrays containing the partial
     derivatives of a symmetric 2D Gaussian plus constant evaluated on the
@@ -888,25 +1264,69 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, skip_dfwhm=False):
     x,y = xy
     alpha = 4.*np.log(2.)/fwhm**2
 
-    # intermediate time savers (but each the same dimension as x and y)
-    xoff = x-xcen
-    yoff = y-ycen
-    rsq = xoff**2 + yoff**2
+    dsky = np.ones_like(x)
 
-    # derivatives
-    d_sky = np.ones_like(x)
+    if ndiv > 0:
+        # complicated sub-pixellation case
+        dheight = np.zeros_like(x)
+        dxcen = np.zeros_like(x)
+        dycen = np.zeros_like(x)
 
-    d_height = np.exp(-alpha*rsq)
+        # mean offset within sub-pixels
+        soff = (ndiv-1)/(2*ndiv)
 
-    d_xcen = (2*alpha*height)*d_height*xoff
+        for iy in range(ybin):
+            # loop over unbinned pixels in Y
+            yoff = iy-(ybin-1)/2 - soff
+            for ix in range(xbin):
+                # loop over unbinned pixels in X
+                xoff = ix-(xbin-1)/2 - soff
+                for isy in range(nsub):
+                    # loop over sub-pixels in y
+                    ysoff = yoff + isy/nsub
+                    for isx in range(nsub):
+                        # loop over sub-pixels in x
+                        xsoff = xoff + isx/nsub
 
-    d_ycen = (2*alpha*height)*d_height*yoff
+                        # finally compute stuff
+                        dx = x + xsoff - xcen
+                        dy = y + ysoff - ycen
+                        rsq = dx**2 + dy**2
 
-    if skip_dfwhm:
-        return [d_sky, d_height, d_xcen, d_ycen]
+                        dh = np.exp(-alpha*rsq)
+                        dheight += dh
+                        dxcen += (2*alpha*height)*dh*dx
+                        dycen += (2*alpha*height)*dh*dy
+                        if comp_dfwhm:
+                            dfwhm += (2*alpha*height/fwhm)*dh*rsq
+
+        # Normalise by number of evaluations
+        nadd = xbin*ybin*nsub**2
+        dheight /= nadd
+        dxcen /= nadd
+        dycen /= nadd
+
+        if comp_dfwhm:
+            dfwhm /= nadd
+            return [dsky, dheight, dxcen, dycen, dfwhm]
+        else:
+            return [dsky, dheight, dxcen, dycen]
+
     else:
-        d_fwhm = (2*alpha*height/fwhm)*d_height*rsq
-        return [d_sky, d_height, d_xcen, d_ycen, d_fwhm]
+        # fast as possible, only compute at centre of pixels
+        dx = x - xcen
+        dy = y - ycen
+        rsq = dx**2 + dy**2
+
+        dheight = np.exp(-alpha*rsq)
+        dxcen = (2*alpha*height)*dheight*dx
+        dycen = (2*alpha*height)*dheight*dy
+        if comp_dfwhm:
+            dfwhm = (2*alpha*height/fwhm)*dheight*rsq
+            return [dsky, dheight, dxcen, dycen, dfwhm]
+        else:
+            return [dsky, dheight, dxcen, dycen]
+
 
 class Gfit1:
     """
@@ -914,7 +1334,7 @@ class Gfit1:
     background model with free FWHM.
     """
 
-    def __init__(self, wind, read, gain):
+    def __init__(self, wind, read, gain, ndiv):
         """
         Arguments::
 
@@ -928,12 +1348,18 @@ class Gfit1:
           gain  : float / array
              gain in electrons / count. Can be a 2D array if dimensions
              same as the data in wind
+
+          ndiv  : int
+             pixel sub-division factor. See comments in fitGaussian.
         """
         self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.xy = np.meshgrid(x, y)
         self.data = wind.data
+        self.xbin = wind.xbin
+        self.ybin = wind.ybin
+        self.ndiv = ndiv
 
     def __call__(self, param):
         """
@@ -959,7 +1385,7 @@ class Gfit1:
 
         """
         sky, height, xcen, ycen, fwhm = param
-        return gaussian(self.xy, sky, height, xcen, ycen, fwhm)
+        return gaussian(self.xy, sky, height, xcen, ycen, fwhm, self.xbin, self.ybin, self.ndiv)
 
 class Dgfit1:
     """
@@ -976,6 +1402,9 @@ class Dgfit1:
         """
         self.sigma = gfit1.sigma
         self.xy = gfit1.xy
+        self.xbin = gfit1.xbin
+        self.ybin = gfit1.ybin
+        self.ndiv = gfit1.ndiv
 
     def __call__(self, param):
         """Returns list of 1D arrays of the partial derivatives of the normalised
@@ -983,17 +1412,19 @@ class Dgfit1:
 
         """
         sky, height, xcen, ycen, fwhm = param
-        derivs = dgaussian(self.xy, sky, height, xcen, ycen, fwhm)
+        derivs = dgaussian(
+            self.xy, sky, height, xcen, ycen, fwhm, self.xbin, self.ybin, self.ndiv, True
+        )
         ok = self.sigma > 0
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
 class Gfit2:
     """
     Function object to pass to leastsq for Gaussian + constant
-    background model with fixed FWHM.
+    background model with a fixed FWHM.
     """
 
-    def __init__(self, wind, read, gain, fwhm):
+    def __init__(self, wind, read, gain, fwhm, ndiv):
         """
         Arguments:
 
@@ -1010,6 +1441,10 @@ class Gfit2:
 
           fwhm  : float
              the fixed FWHM to use
+
+          ndiv  : int
+             sub-pixellation factor. See fitGaussian for more.
+
         """
         self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
@@ -1017,6 +1452,9 @@ class Gfit2:
         self.xy = np.meshgrid(x, y)
         self.data = wind.data
         self.fwhm = fwhm
+        self.xbin = wind.xbin
+        self.ybin = wind.ybin
+        self.ndiv = ndiv
 
     def __call__(self, param):
         """
@@ -1041,7 +1479,7 @@ class Gfit2:
 
         """
         sky, height, xcen, ycen = param
-        return gaussian(self.xy, sky, height, xcen, ycen, self.fwhm)
+        return gaussian(self.xy, sky, height, xcen, ycen, self.fwhm, self.xbin, self.ybin, self.ndiv)
 
 class Dgfit2:
     """
@@ -1059,6 +1497,9 @@ class Dgfit2:
         self.sigma = gfit2.sigma
         self.xy = gfit2.xy
         self.fwhm = gfit2.fwhm
+        self.xbin = gfit2.xbin
+        self.ybin = gfit2.ybin
+        self.ndiv = gfit2.ndiv
 
     def __call__(self, param):
         """
@@ -1067,6 +1508,8 @@ class Dgfit2:
         parameters.
         """
         sky, height, xcen, ycen = param
-        derivs = dgaussian(self.xy, sky, height, xcen, ycen, self.fwhm, True)
+        derivs = dgaussian(
+            self.xy, sky, height, xcen, ycen, self.fwhm, self.xbin, self.ybin, self.ndiv, False
+        )
         ok = self.sigma > 0
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]

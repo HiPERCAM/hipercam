@@ -20,7 +20,7 @@ __all__ = (
 # Format: YYYYMMDD.# where # is an integer to allow for multiple
 # versions in a day, although that should be rare and it should
 # almost always be '1'
-REDUCE_FILE_VERSION = '20180206.1'
+REDUCE_FILE_VERSION = '20180209.1'
 
 # Standard file extensions
 FIELD = '.fld'

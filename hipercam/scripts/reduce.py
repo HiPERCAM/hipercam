@@ -15,6 +15,13 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
+# get hipercam version to write into the reduce log file
+from pkg_resources import get_distribution, DistributionNotFound
+try:
+    hipercam_version = get_distribution('hipercam').version
+except DistributionNotFound:
+    hipercam_version = 'not found'
+
 __all__ = ['reduce',]
 
 ################################################
@@ -440,13 +447,14 @@ def reduce(args=None):
 
         # first, a general description
         logfile.write("""#
-# This is a logfile produced by the HiPERCAM pipeline. It consists of one line
-# per reduced CCD per exposure. Each line contains all the information from all
-# apertures defined for the CCD. The column names are defined just before the
-# data below. Before these are given, here are the command-line inputs used for
-# this reduction:
+# This is a logfile produced by the HiPERCAM pipeline command 'reduce'. It consists
+# of one line per reduced CCD per exposure. Each line contains all the information
+# from all apertures defined for the CCD. The column names are defined just before
+# the data below. The logfile was produced using version {hipercam_version} of the
+# pipeline, and was generated using the following command-line inputs to reduce:
 #
-""")
+""".format(hipercam_version))
+
         # second, list the command-line inputs to the logfile
         for line in plist:
             logfile.write('# {:s}'.format(line))
@@ -696,7 +704,7 @@ def reduce(args=None):
                     # extract flux from all apertures of each CCD
                     results[cnam] = extractFlux(
                         cnam, ccd, mccd[cnam], ccdaper, ccdwins,
-                        rfile, read, gain, store, mfwhm
+                        rfile, read, gain, store, mfwhm, mbeta
                     )
 
                 # write out results to the log file
@@ -1106,8 +1114,10 @@ class Rfile(OrderedDict):
         elif  apsec['fit_method'] == 'gaussian':
             rfile.method = 'g'
         else:
-            raise NotImplementedError('apertures.fit_method = {:s} not recognised'.format(
-                    apsec['fit_method']))
+            raise ValueError(
+                'apertures.fit_method = {:s} not recognised'.format(
+                    apsec['fit_method'])
+            )
 
         # type conversions
         toBool(rfile,'apertures','fit_fwhm_fixed')
@@ -1117,6 +1127,7 @@ class Rfile(OrderedDict):
         apsec['search_smooth_fwhm'] = float(apsec['search_smooth_fwhm'])
         apsec['fit_fwhm'] = float(apsec['fit_fwhm'])
         apsec['fit_fwhm_min'] = float(apsec['fit_fwhm_min'])
+        apsec['fit_ndiv'] = int(apsec['fit_ndiv'])
         apsec['fit_beta'] = float(apsec['fit_beta'])
         apsec['fit_half_width'] = int(apsec['fit_half_width'])
         apsec['fit_thresh'] = float(apsec['fit_thresh'])
@@ -1382,7 +1393,9 @@ class Rfile(OrderedDict):
         for apnam in monsec:
 
             # interpret the bitmasks.
-            monsec[apnam] = [eval('hcam.'+entry) for entry in monsec[apnam].split()]
+            monsec[apnam] = [
+                eval('hcam.'+entry) for entry in monsec[apnam].split()
+            ]
 
         # We are finally done reading and checking the reduce script.
         # rfile[section][param] should from now on return something
@@ -1538,7 +1551,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
                                  fwind, rfile.method, sky, peak-sky,
                                  x, y, fit_fwhm, apsec['fit_fwhm_min'],
                                  apsec['fit_fwhm_fixed'], fit_beta,
-                                 rd, gn, apsec['fit_thresh']
+                                 rd, gn, apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
                 if height > apsec['fit_height_min']:
@@ -1686,7 +1699,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
                                  fwind, rfile.method, sky, peak-sky,
                                  x, y, fit_fwhm, apsec['fit_fwhm_min'],
                                  apsec['fit_fwhm_fixed'], fit_beta,
-                                 rd, gn, apsec['fit_thresh'],
+                                 rd, gn, apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
                 if height > apsec['fit_height_min']:
@@ -1715,9 +1728,10 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
 
                 else:
                     print(
-                        'CCD {:s}, aperture {:s}, peak = {:.1f} < {:.1f}'.format(
-                            cnam, apnam, height, apsec['fit_height_min']),
-                          file=sys.stderr
+                        ('CCD {:s}, aperture {:s},'
+                         ' peak = {:.1f} < {:.1f}').format(
+                             cnam, apnam, height, apsec['fit_height_min']),
+                        file=sys.stderr
                     )
                     aper.x += xshift
                     aper.y += yshift
@@ -1778,11 +1792,11 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
     return (mfwhm, mbeta)
 
 def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
-                store, mfwhm):
+                store, mfwhm, mbeta):
     """This extracts the flux of all apertures of a given CCD.
 
     The steps are (1) aperture resizing, (2) sky background estimation, (3)
-    flux extraction.
+    flux extraction. The apertures are assumed to be correctly positioned.
 
     It returns the results as a dictionary keyed on the aperture label. Each
     entry returns a list:
@@ -1816,7 +1830,7 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
        ccdaper  : CcdAper
           CCD's-worth of Apertures
 
-       ccdwin   : dictionary of strings 
+       ccdwin   : dictionary of strings
            the Window label corresponding to each Aperture
 
        rfile     : Rfile
@@ -1832,8 +1846,13 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
            see moveApers for what this contains.
 
        mfwhm     : float
-           mean FWHM used as a starter for fits. Start at -1 and the reduce
-           file starter value will be used.
+           mean FWHM from moveApers used to resize the apertures and
+           to define the extraction profile in the case of optimal
+           extraction
+
+       mbeta     : float
+           mean beta from moveApers used to define the extraction profile
+           in the case of optimal extraction with moffat profile fitting.
 
     """
 
@@ -1846,12 +1865,13 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
 
     results = {}
 
-    if resize == 'variable':
+    if resize == 'variable' or extype == 'optimal':
         if mfwhm <= 0:
             # return early here as there is nothing much we can do.
             print(
                 (' *** WARNING: CCD {:s}: no measured FWHM to re-size'
-                ' apertures; no extraction of any aperture').format(cnam)
+                ' apertures or carry out optimal extraction; no'
+                 ' extraction possible').format(cnam)
             )
             # set flag to indicate no FWHM
             flag |= hcam.NO_FWHM
@@ -1886,7 +1906,8 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
                 cnam)
         )
 
-    # apertures are now positioned and re-sized. Finally extract something.
+    # apertures have been positioned in moveApers and now re-sized. Finally
+    # we can extract something.
     for apnam, aper in ccdaper.items():
 
         wnam = ccdwin[apnam]
@@ -1909,6 +1930,8 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
         swind = wind.window(x1,x2,y1,y2)
         srwind = rwind.window(x1,x2,y1,y2)
 
+        # some checks for possible problems. bitmask flags will
+        # be set if they are encountered.
         xlo,xhi,ylo,yhi = swind.extent()
         if xlo > aper.x-aper.rsky2 or xhi < aper.x+aper.rsky2 or \
            ylo > aper.y-aper.rsky2 or yhi < aper.y+aper.rsky2:
@@ -1927,6 +1950,7 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
                 # an extra target aperture overlaps the edge of the window
                 flag |= hcam.TARGET_OFF_EDGE
 
+        # if read & gain are actually CCDs rather than floats
         if isinstance(read, hcam.CCD):
             sread = read[wnam].window(x1,x2,y1,y2).data
 
@@ -1934,10 +1958,10 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
             sgain = gain[wnam].window(x1,x2,y1,y2).data
 
         # compute X, Y arrays over the sub-window relative to the centre
-        # of the aperture and squared to save a little effort
+        # of the aperture and the distance squared from the centre (Rsq)
+        # to save a little effort.
         x = swind.x(np.arange(swind.nx))-aper.x
         y = swind.y(np.arange(swind.ny))-aper.y
-
         X, Y = np.meshgrid(x, y)
         Rsq = X**2 + Y**2
 
@@ -1957,7 +1981,6 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
         if len(dsky):
 
             # we have some sky!
-
             if rfile['sky']['method'] == 'clipped':
 
                 # clipped mean. Take average, compute RMS,
@@ -1999,7 +2022,8 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
                 serror = np.sqrt((rd**2 + np.max(0, dsky[ok])/gn).sum()/nsky**2)
 
         else:
-            # no sky. still return the flux in the aperture but set flag
+            # no sky. will still return the flux in the aperture but set flag
+            # and the sky uncertainty to -1
             flag |= hcam.NO_SKY
             slevel = 0
             serror = -1
@@ -2019,13 +2043,13 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
         if srwind.data[dok].max() >= rfile['general']['satval']:
             flag |= hcam.DATA_SATURATED
 
-        # Pixellation amelioration
+        # Pixellation amelioration:
         #
         # The weight of a pixel is set to 1 at the most and then linearly
         # declines as it approaches the edge of the aperture. The scale over
         # which it declines is set by 'size', the geometric mean of the
         # binning factors. A pixel with its centre exactly on the edge
-        # gets a weight of 0.5
+        # gets a weight of 0.5.
         wgt = np.minimum(
             1, np.maximum(
                 0, (aper.rtarg+size/2.-np.sqrt(Rsq))/size
@@ -2039,7 +2063,6 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
                     0, (aper.rtarg+size/2.-np.sqrt(rsq))/size
                     )
                 )
-
             wgt = np.maximum(wgt, wg)
 
         # extract just the data and weight values in the target region
@@ -2063,8 +2086,26 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
         else:
             gn = gain
 
-        if extype == 'normal':
-            diff = dtarg-slevel
+        # counts above sky
+        diff = dtarg-slevel
+
+        if extype == 'normal' or extype == 'optimal':
+
+            if extype == 'optimal':
+                # optimal extraction. Need the profile
+                warnings.warn(
+                    'The veracity of this implementation of optimal extraction is as yet untested!!!'
+                )
+
+                if beta > 0.:
+                    prof = moffat(x, y, wind.xbin, wind.ybin, nsub, mfwhm, mbeta)
+                else:
+                    prof = gaussian(x, y, wind.xbin, wind.ybin, nsub, mfwhm)
+
+                # multiply weights by the profile
+                wtarg *= prof
+
+            # now extract
             counts = (wtarg*diff).sum()
 
             if override:
@@ -2078,9 +2119,9 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
 
             ecounts = np.sqrt(var)
 
-        elif extype == 'optimal':
-            raise NotImplementedError(
-                'yet to add optimal extraction; sorry. feel free to whinge'
+        else:
+            raise ValueError(
+                'extraction type = {:s} not recognised'.format(extype)
             )
 
         info = store[apnam]
@@ -2810,3 +2851,137 @@ FLAG_MESSAGES = {
     hcam.TARGET_OFF_EDGE : 'target aperture off edge of window',
     hcam.DATA_SATURATED  : 'target aperture has saturated pixels',
 }
+
+def gaussian(x, y, xbin, ybin, nsub, fwhm):
+    """Computes a gaussian profile of FWHM fwhm given arrays of x and y
+    offsets from the centre of the profile, measured in terms of unbinned
+    pixels, the pixel size (xbin,ybin) in terms of unbinned pixels, the FWHM
+    in terms of unbinned pixels, and a integer sub-division factor, nsub, used
+    to sub-divide the pixels. The profile at any point a distance r from the
+    centre is calculated as exp(-alpha*r**2) where alpha is set by the value
+    of fwhm.
+
+    Parameters:
+
+       x    : 1D array
+          x-offset from centre of profile of pixel in question
+
+       y    : 1D array
+          y-offset from centre of profile of pixel in question. Must match
+          x in length.
+
+       xbin : int
+          X-binning factor of pixels
+
+       ybin : int
+          Y-binning factor of pixels
+
+       fwhm : float
+          FWHM of profile, unbinned pixels
+
+       nsub : int
+          Integer sub-division factor per unbinned pixel. The profile will be
+          evaluated over a square grid of nsub by nsub within each unbinned
+          pixel contributing to the (potentially binned) pixel of interest.
+          nsub must be >= 1.
+
+    This is used to implement Tim Naylor's optimal photometry.
+    """
+
+    # exponent factor in gaussian
+    alpha = 4.*np.log(2.)/fwhm**2
+
+    # mean offset within sub-pixels
+    soff = (nsub-1)/(2*nsub)
+
+    prof = np.zeros_like(x)
+    for iy in range(ybin):
+        # loop over unbinned pixels in Y
+        yoff = iy-(ybin-1)/2 - soff
+        for ix in range(xbin):
+            # loop over unbinned pixels in X
+            xoff = ix-(xbin-1)/2 - soff
+            for isy in range(nsub):
+                # loop over sub-pixels in y
+                ysoff = yoff + isy/nsub
+                for isx in range(nsub):
+                    # loop over sub-pixels in x
+                    xsoff = xoff + isx/nsub
+
+                    # Finally we have the x and y offsets needed to
+                    # evaluate the array of squared distances
+                    rsq = (x+xsoff)**2+(y+ysoff)**2
+
+                    # Gaussian profile
+                    prof += np.exp(-alpha*rsq)
+
+    # divide by nsub**2 to keep results more or less independent of nsub
+    return prof/nsub**2
+
+def moffat(x, y, xbin, ybin, nsub, fwhm, beta):
+    """Computes moffat profile of FWHM fwhm, exponent beta given arrays of x and y
+    offsets from the centre of the profile, measured in terms of unbinned
+    pixels, the pixel size (xbin,ybin) in terms of unbinned pixels, the FWHM
+    in terms of unbinned pixels, and a integer sub-division factor, nsub, used
+    to sub-divide the pixels. The profile at any point a distance r from the
+    centre is calculated as 1/(1+alpha*r**2) where alpha is set by the value
+    of fwhm and beta
+
+    Parameters:
+
+       x    : 1D array
+          x-offset from centre of profile of pixel in question
+
+       y    : 1D array
+          y-offset from centre of profile of pixel in question. Must match
+          x in length.
+
+       xbin : int
+          X-binning factor of pixels
+
+       ybin : int
+          Y-binning factor of pixels
+
+       nsub : int 
+          Integer sub-division factor per unbinned pixel. The profile will be
+          evaluated over a square grid of nsub by nsub within each unbinned
+          pixel contributing to the (potentially binned) pixel of interest.
+          nsub must be >= 1.
+
+       fwhm : float
+          FWHM of profile, unbinned pixels
+
+       beta : float
+          Moffat exponent. Will be taken as max(0.01,beta) to prevent numerical
+          difficulties.
+
+    This is used to implement Tim Naylor's optimal photometry.
+
+    """
+    alpha = 4*(2**(1./max(0.01,beta))-1)/fwhm**2
+
+    # mean offset within sub-pixels
+    soff = (nsub-1)/(2*nsub)
+
+    prof = np.zeros_like(x)
+    for iy in range(ybin):
+        # loop over unbinned pixels in Y
+        yoff = iy-(ybin-1)/2 - soff
+        for ix in range(xbin):
+            # loop over unbinned pixels in X
+            xoff = ix-(xbin-1)/2 - soff
+            for isy in range(nsub):
+                # loop over sub-pixels in y
+                ysoff = yoff + isy/nsub
+                for isx in range(nsub):
+                    # loop over sub-pixels in x
+                    xsoff = xoff + isx/nsub
+
+                    # Finally we have the x and y offsets needed to
+                    # evaluate the array of squared distances
+                    rsq = (x+xsoff)**2+(y+ysoff)**2
+
+                    prof += 1/(1+alpha*rsq)**max(0.01,beta)
+
+    # divide by nsub**2 to keep results more or less independent of nsub
+    return prof/nsub**2

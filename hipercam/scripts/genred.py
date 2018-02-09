@@ -449,12 +449,14 @@ def genred(args=None):
 #################################################################
 
 TEMPLATE = """#
-# This is a HiPERCAM "reduce file" which defines the operation of the reduce
-# script. It was written by the HiPERCAM pipeline command 'genred'.  Basically
-# it consists of a series of sections each of which contains a number of
-# parameters. This file explains the meaning of these parameters. The idea is
-# that these are to large extent unchanging and it would be annoying to be
-# prompted every time for them.
+# This is a HiPERCAM "reduce file" which defines the operation of the
+# reduce script. It was written by the HiPERCAM pipeline command 'genred'.
+# It consists of a series of sections each of which contains a number of
+# parameters. The file is self-documenting on the meaning of these
+# parameters. The idea is that these are to large extent unchanging and it
+# would be annoying to be prompted every time for them, but it also acts as
+# a record of how reduction was carried out and is fed into the log file
+# produce by 'reduce'.
 #
 # File written on {tstamp}
 #
@@ -462,16 +464,17 @@ TEMPLATE = """#
 #
 {comment}
 
-
 # Start with some general items that tend not to change much. 'version' is the
-# version of the reduce file format. It automatically matches 'reduce' at the
-# time of creation, but old versions of the reduce file may become incompatible
-# with later versions of reduce. Either they will reauire updating to be used,
-# or the software version can be rolled back to give a compatible version of
-# reduce using 'git'.
+# version of the reduce file format which changes more slowly than the
+# software does. It must match the same parameter in 'reduce' for reduction to
+# proceed. This is automatically the case at the time of creation, but old
+# versions of the reduce file may become incompatible with later versions of
+# reduce. Either they will require updating to be used, or the software
+# version can be rolled back to give a compatible version of reduce using
+# 'git'.
 
 [general]
-version = {version}  # must be compatible with the version in reduce
+version   = {version}  # must be compatible with the version in reduce
 
 ldevice  = 1/xs  # PGPLOT plot device for light curve plots
 lwidth   = 0     # light curve plot width, inches, 0 to let program choose
@@ -491,7 +494,14 @@ satval   = 65000 # Level at which to flag saturated data.
 # to give a mean shift. The search on non-reference apertures can then be
 # tightened. If the aperture are chosen to be fixed, there will be no search
 # or fit carried out in which case you must choose 'fixed' as well when it
-# comes the extraction since otherwise it needs a FWHM.
+# comes the extraction since otherwise it needs a FWHM. The most obscure
+# parameter below is probably 'fit_ndiv'. If this is made > 0, the fit routine
+# attempts to allow for pixellation by evaluating the profile at multiple
+# point in each pixel of the fit. First it will evaluate the profile for every
+# unbinned pixel with a binned pixel if the pixels are binned; second, it will
+# evaluate the profile over an ndiv by ndiv square grid within each unbinned
+# pixel. Obviously this will slow things, but it could help if your images are
+# under-sampled.
 
 [apertures]
 aperfile   = {apfile}   # file of software apertures for each CCD
@@ -503,31 +513,34 @@ search_smooth_fwhm     = {smooth_fwhm:.1f}    # smoothing FWHM, binned pixels
 
 fit_method     = moffat    # gaussian or moffat
 fit_beta       = 4.        # Moffat exponent
-fit_fwhm       = {fwhm:.1f}       # FWHM, unbinned pixels
-fit_fwhm_min   = {fwhm_min:.1f}       # Minimum FWHM, unbinned pixels
+fit_fwhm       = {fwhm:.1f}   # FWHM, unbinned pixels
+fit_fwhm_min   = {fwhm_min:.1f}   # Minimum FWHM, unbinned pixels
+fit_ndiv       = 0         # sub-pixellation factor
 fit_fwhm_fixed = no        # Slightly faster not to fit the FWHM.
 fit_half_width = 15        # for fit, unbinned pixels
-fit_thresh     = 4         # rejection threshold for fits
+fit_thresh     = 4         # RMS rejection threshold for fits
 fit_height_min = 50        # minimum height to accept a fit
 
 
 # The next lines define how the apertures will be re-sized and how the flux
-# will be extracted from the aperture. There is one line per CCD which starts
-# with "CCD label =" and then is followed by
+# will be extracted from the aperture. There is one line per CCD with format:
 #
-# variable | fixed : how the aperture size will be determined. If variable it
-# will be scaled relative to the FWHM, so there needs to be a FWHM.
+# <CCD label> = <resize> <extract method> [scale min max] [scale min max] [scale min max]
 #
-# normal | optimal : how the flux will be extracted. 'normal' means a straight
-# sum of sky subtracted flux over the aperture. This is often the best choice.
-# 'optimum' tries to weight more towards regions of high flux, this is only
-# possible if you have fit the profile earlier.
-#
-# Then follows a series of numbers in three triplets, each of which is a scale
-# factor relative to the FWHM for the aperture radius if the 'variable' option
-# was chosen, then a minimum and a maximum aperture radius in unbinned pixels.
-# The three triples correspond to the innermost target aperture radius, the 
-# inner sky radius and finally the outer sky radius.
+
+# where: <CCD label> is the CCD label; <resize> is either 'variable' or
+# 'fixed' and sets how the aperture size will be determined -- if variable it
+# will be scaled relative to the FWHM, so profile fitting will be attempted;
+# <extract method> is either 'normal' or 'optimal' to say how the flux will be
+# extracted -- 'normal' means a straight sum of sky subtracted flux over the
+# aperture, 'optimal' use Tim Naylor's profile weighting, and requires profile
+# fits to work. Finally there follow a series of numbers in three triplets, each
+# of which is a scale factor relative to the FWHM for the aperture radius if
+# the 'variable' option was chosen, then a minimum and a maximum aperture
+# radius in unbinned pixels.  The three triples correspond to the innermost
+# target aperture radius, the inner sky radius and finally the outer sky
+# radius. The mininum and maximum also apply if you choose 'fixed' apertures
+# and can be used to override whatever value comes from the aperture file.
 
 [extraction]
 {extraction}
@@ -578,8 +591,8 @@ extend_y = 0.1 # fraction of plot height to extend when rescaling
 {light_plot}
 
 
-# Configures the position plot. Can be commented out if you don't want one
-# but make sure to comment it out completely, section name and all parameters.
+# Configures the position plot. Can be commented out if you don't want one but
+# make sure to comment it out completely, section name and all parameters.
 # You can have multiple plot lines
 
 {comm_position}[position]
