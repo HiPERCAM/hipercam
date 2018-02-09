@@ -119,7 +119,7 @@ def script_args(args):
     of arguments in a two element tuple, i.e. (commands, args).
     """
     if args is None:
-        args = sys.argv
+        args = sys.argv.copy()
 
     command = args.pop(0)
     if command is not None:
