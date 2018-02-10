@@ -106,7 +106,7 @@ to
 
 .. math::
 
-   \alpha = \frac{4 \ln 2}{\text{FWHM}^2}.
+   \alpha = \frac{4 \ln 2}{(\text{FWHM})^2}.
 
 Moffat profiles (`Moffat 1969
 <http://adsabs.harvard.edu/abs/1969A%26A.....3..455M>`_) usually provide much
@@ -121,8 +121,11 @@ where now :math:`\alpha` is a function of both the FWHM and :math:`\beta`:
 
 .. math::
 
-   \alpha = \frac{4(2^{1/beta} - 1)}{\text{FWHM}^2}.
+   \alpha = \frac{4(2^{1/\beta} - 1)}{(\text{FWHM})^2}.
 
+Moffat profiles tend to gaussians as :math:`\beta \rightarrow \infty`, anything
+a gaussian can fit, they can. Their great advantage is their more extended
+wings. In order to be integrable, they should have :math:`\beta > 1`.
 The profile fitting is implemented in :mod:`hipercam.fitting` on top of the
 Levenberg-Marquardt fitting routine :func:`scipy.optimize.leastsq`. It is
 designed to be able to sub-pixellate, i.e. the profile is evaluated at
