@@ -20,6 +20,9 @@ from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
 from astropy.time import Time
 
+# temporary
+import matplotlib.pyplot as plt
+
 from hipercam import (CCD, Group, MCCD, Window, Winhead, HRAW, HipercamError)
 from hipercam.utils import add_extension
 
@@ -48,6 +51,11 @@ HCM_NPSCAN = 50
 # Number of unbinned rows added to each window
 # when an overscan is present
 HCM_NOSCAN = 8
+
+# Code to account for reflections of the g and z CCDs
+REFLECTED = (1, 4)
+QNAMS = ('E', 'F', 'G', 'H')
+QNAMS_MAPPING = {'E': 'F', 'F': 'E', 'G': 'H', 'H': 'G'}
 
 class Rhead:
     """Reads an interprets header information from a HiPERCAM run (3D FITS file)
@@ -202,7 +210,6 @@ class Rhead:
         self.drift = self.mode.startswith('Drift')
         self.ndwins = hd.get('ESO DET DRIFT NWINS',0)
 
-
         # check for overscan / prescan / clear
         self.clear = hd['ESO DET CLRCCD']
         self.dummy = hd['ESO DET DUMMY']
@@ -211,7 +218,7 @@ class Rhead:
 
         # framesize parameters
         yframe = 520 if self.oscan else 512
-        xframe = 1024+HCM_NPSCAN if self.pscan else 1024
+        xframe = HCM_NXTOT//2+HCM_NPSCAN if self.pscan else HCM_NXTOT//2
 
         # store the NSKIP values for each CCD. These are needed for exact
         # timing for each CCD.
@@ -289,15 +296,10 @@ class Rhead:
 
         elif self.pscan:
             raise HipercamError(
-                'X-binning factor not a divisor of {:d} with prescan is undefined'.format(
+                ('X-binning factor not a divisor of'
+                 ' {:d} with prescan is undefined').format(
                     HCM_NPSCAN)
             )
-
-        # This mapping is needed for the g and z channels due to reflections.
-        # They need to be flipped around x=0 and be rotated 180 degrees so that
-        # whatever falls on E in the other CCDs falls on F
-        QUAD_MAPPING = {'E': 'F', 'F': 'E', 'G': 'H', 'H': 'G'}
-        QUAD = ('E', 'F', 'G', 'H')
 
         # bottom-left coordinate of quadrant
         LLX = {'E': 1, 'F': HCM_NXTOT//2+1, 'G': HCM_NXTOT//2+1, 'H': 1}
@@ -331,16 +333,16 @@ class Rhead:
             # first set the windows of each CCD
             for nccd in range(5):
                 self.windows[-1].append([])
-                for quad in QUAD:
-                    if nccd in (1, 4):
+                for qnam in QNAMS:
+                    if nccd in REFLECTED:
                         # reflections for g (1) and z (4)
-                        quad = QUAD_MAPPING[quad]
+                        qnam = QNAMS_MAPPING[qnam]
 
                     if self.mode.startswith('FullFrame'):
                         nx = xframe // self.xbin
                         ny = yframe // self.ybin
-                        llx = LLX[quad]
-                        lly = LLY[quad]
+                        llx = LLX[qnam]
+                        lly = LLY[qnam]
 
                     elif self.mode.startswith('OneWindow') or \
                          self.mode.startswith('TwoWindow'):
@@ -358,12 +360,12 @@ class Rhead:
                         win_ys = hd[winID + 'YS']
                         win_ny = hd[winID + 'NY']
                         llx = (
-                            LLX[quad] + X_DIRN[quad] * win_xs +
-                            ADD_XSIZES[quad] * (xframe - win_nx)
+                            LLX[qnam] + X_DIRN[qnam] * win_xs +
+                            ADD_XSIZES[qnam] * (xframe - win_nx)
                         )
                         lly = (
-                            LLY[quad] + Y_DIRN[quad] * win_ys +
-                            ADD_YSIZES[quad] * (yframe - win_ny)
+                            LLY[qnam] + Y_DIRN[qnam] * win_ys +
+                            ADD_YSIZES[qnam] * (yframe - win_ny)
                         )
 
                     elif self.mode.startswith('Drift'):
@@ -375,17 +377,17 @@ class Rhead:
                                 'prescans with drift mode undefined'
                             )
 
-                        win_xs = hd['ESO DET DRWIN XS{}'.format(quad)]
+                        win_xs = hd['ESO DET DRWIN XS{}'.format(qnam)]
                         win_nx = hd['ESO DET DRWIN NX']
                         win_ys = hd['ESO DET DRWIN YS']
                         win_ny = hd['ESO DET DRWIN NY']
                         llx = (
-                            LLX[quad] + X_DIRN[quad] * win_xs +
-                            ADD_XSIZES[quad] * (xframe - win_nx)
+                            LLX[qnam] + X_DIRN[qnam] * win_xs +
+                            ADD_XSIZES[qnam] * (xframe - win_nx)
                         )
                         lly = (
-                            LLY[quad] + Y_DIRN[quad] * win_ys +
-                            ADD_YSIZES[quad] * (yframe - win_ny)
+                            LLY[qnam] + Y_DIRN[qnam] * win_ys +
+                            ADD_YSIZES[qnam] * (yframe - win_ny)
                         )
 
                     else:
@@ -395,7 +397,7 @@ class Rhead:
                     # store the window and the axes to flip
                     self.windows[-1][-1].append(
                         (Winhead(llx, lly, nx, ny, self.xbin, self.ybin),
-                         FLIP_AXES[quad])
+                         FLIP_AXES[qnam])
                     )
 
 
@@ -487,20 +489,24 @@ class Rhead:
             )
 
         if full and 'ESO DET GPS' in hd:
-            self.thead['GPS'] = (hd['ESO DET GPS'],
-                                 hd.comments['ESO DET GPS'])
+            self.thead['GPS'] = (
+                hd['ESO DET GPS'], hd.comments['ESO DET GPS']
+            )
 
         if full:
             if 'EXPTIME' in hd:
                 self.thead['EXPTIME'] = (
                     hd['EXPTIME'], hd.comments['EXPTIME']
                 )
-            self.thead['XBIN'] = (self.xbin,
-                                  hd.comments['ESO DET BINX1'])
-            self.thead['YBIN'] = (self.ybin,
-                                  hd.comments['ESO DET BINY1'])
-            self.thead['SPEED'] = (hd['ESO DET SPEED'],
-                                   hd.comments['ESO DET SPEED'])
+            self.thead['XBIN'] = (
+                self.xbin, hd.comments['ESO DET BINX1']
+            )
+            self.thead['YBIN'] = (
+                self.ybin, hd.comments['ESO DET BINY1']
+            )
+            self.thead['SPEED'] = (
+                hd['ESO DET SPEED'], hd.comments['ESO DET SPEED']
+            )
 
         # Header per CCD. These are modified per CCD in Rdata
         self.cheads = []
@@ -974,9 +980,13 @@ class Rdata (Rhead):
                 ).reshape(5, 4, win.ny, win.nx)
 
             # now build the Windows
+
             for nccd, cnam in enumerate(CNAMS):
                 for nquad, qnam in enumerate(QNAMS):
                     wnam = '{:s}{:d}'.format(qnam,nwin+1)
+                    if nccd in REFLECTED:
+                        # reflections for g (1) and z (4)
+                        qnam = QNAMS_MAPPING[qnam]
 
                     # recover the window and flip parameters
                     win, flip_axes = self.windows[nwin][nccd][nquad]
@@ -991,6 +1001,7 @@ class Rdata (Rhead):
                     # two Windows, splitting off the pre-scan section
                     # in the latter case. We also convert to 32-bit
                     # floats to avoid problems down the line.
+
                     if self.pscan:
                         # pre-scan present. Reduce the size of the data
                         # window in preparation for removal of prescan
