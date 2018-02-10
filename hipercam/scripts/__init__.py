@@ -4,7 +4,6 @@ the terminal. They are all implemented as functions for automatic
 inclusion in the documentation and for portability
 """
 
-from .aligntool import aligntool
 from .arith import add, div, mul, sub
 from .averun import averun
 from .carith import cadd, cdiv, cmul, csub
@@ -27,10 +26,8 @@ from .times import times
 from .mstats import mstats
 from .pfolder import pfolder
 
-# important to keep alphabetical ordering here for sphinx / autodoc
-
 __all__ = [ \
-            'add', 'aligntool', 'averun',
+            'add', 'averun',
             'cadd', 'cdiv', 'cmul', 'combine', 'csub',
             'div',
             'genred', 'grab',
@@ -41,3 +38,12 @@ __all__ = [ \
             'setaper', 'stats', 'sub',
             'times',
         ]
+
+try:
+    from .aligntool import aligntool
+
+    # insert after add
+    __all__.insert(1,'aligntool')
+except:
+    pass
+
