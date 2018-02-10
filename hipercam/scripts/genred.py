@@ -25,21 +25,20 @@ def genred(args=None):
     """``genred apfile rfile comment bias flat dark linear [ccd
     smooth_fwhm fwhm fwhm_min rfac rmin rmax sinner souter]``
 
-    Generates a reduce file as needed by `reduce`. You give it the
-    name of an aperture file and a few other parameters and it will
-    write out a reduce file which you can then refine by hand. A few
-    simplifying assumptions are made, e.g. that the target is called '1',
-    see below for more. This script effectively defines the format of
-    reduce files. The script generates a self-consistent reduce file.
-    e.g. if there are apertures in CCD 5, it does not attempt to plot
-    any corresponding light curves.
+    Generates a reduce file as needed by `reduce`. You give it the name of an
+    aperture file and a few other parameters and it will write out a reduce
+    file which you can then refine by hand. A few simplifying assumptions are
+    made, e.g. that the target is called '1'; see below for more. This script
+    effectively defines the format of reduce files. The script attempts above
+    all to generate a self-consistent reduce file.  e.g. if there are
+    apertures in CCD 5, it does not attempt to plot any corresponding light
+    curves.
 
-    To avoid excessive prompting, `genred` has many hidden parameters
-    that you might want to set up at the start of a run but leave fixed
-    thereafter. Specify 'prompt' on the command line to see all of these.
-    They are chosen to be the parameters most likely to vary with telescope
-    or conditions; many others are left at default values and require
-    editing to change.
+    To avoid excessive prompting, `genred` has many hidden parameters. The
+    very first time you use it on a run, specify 'prompt' on the command line
+    to see all of these.  They are chosen to be the parameters most likely to
+    vary with telescope or conditions; many others are left at default values
+    and require editing to change.
 
     Parameters:
 
@@ -73,8 +72,12 @@ def genred(args=None):
         dark    : string
            Name of dark frame; 'none' to ignore.
 
-        linear : string
+        linear  : string
            light curve plot linear (else magnitudes)
+
+        inst    : string
+           the instrument (needed to set nonlinearity and saturation levels for
+           warning purposes. Possible options listed.
 
         extendx : float [hidden]
            how many minutes to extend light curve plot by at a time
@@ -110,6 +113,9 @@ def genred(args=None):
         souter   : float [hidden]
            outer sky aperture radius [unbinned pixels]
 
+        scale    : float [hidden]
+           image scale in arcsec/pixel
+
     """
 
 #    print(my_version)
@@ -126,6 +132,7 @@ def genred(args=None):
         cl.register('flat', Cline.LOCAL, Cline.PROMPT)
         cl.register('dark', Cline.LOCAL, Cline.PROMPT)
         cl.register('linear', Cline.LOCAL, Cline.PROMPT)
+        cl.register('inst', Cline.LOCAL, Cline.HIDE)
         cl.register('extendx', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.HIDE)
         cl.register('location', Cline.LOCAL, Cline.HIDE)
@@ -137,6 +144,7 @@ def genred(args=None):
         cl.register('rmax', Cline.LOCAL, Cline.HIDE)
         cl.register('sinner', Cline.LOCAL, Cline.HIDE)
         cl.register('souter', Cline.LOCAL, Cline.HIDE)
+        cl.register('scale', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
 
@@ -155,7 +163,8 @@ def genred(args=None):
 
         # user comment string
         comment = cl.get_value(
-            'comment', 'user comment to add [<cr> for newline to get multilines]',''
+            'comment', 'user comment to add [<cr>'
+            ' for newline to get multilines]',''
         )
         if comment == '':
             comment = '# There was no user comment\n'
@@ -185,6 +194,34 @@ def genred(args=None):
             cline.Fname('dark', hcam.HCAM), ignore='none'
         )
         dark = '' if dark is None else dark
+
+        inst = cl.get_value(
+            'inst', 'instrument (hipercam, ultracam, ultraspec)',
+            'hipercam', lvals=['hipercam', 'ultracam', 'ultraspec','ignore']
+        )
+
+        if inst == 'hipercam':
+            warn_levels = """# Warning levels for instrument = HiPERCAM
+warn = 1 55000 62000
+warn = 2 55000 62000
+warn = 3 55000 62000
+warn = 4 55000 62000
+warn = 5 55000 62000
+"""
+        elif inst == 'ultracam':
+            warn_levels = """# Warning levels for instrument = ULTRACAM
+warn = 1 28000 65500
+warn = 2 28000 65500
+warn = 3 50000 65500
+"""
+        elif inst == 'ultraspec':
+            warn_levels = """# Warning levels for instrument = ULTRASPEC
+warn = 1 65000 65500
+"""
+
+        else:
+            warn_levels = """# No warning levels have been set!!"""
+
 
         linear = cl.get_value(
             'linear', 'linear light curve plot?', False
@@ -238,6 +275,9 @@ def genred(args=None):
         )
         souter = cl.get_value(
             'souter','outer sky aperture radius [unbinned pixels]',50.,sinner+1
+        )
+        scale = cl.get_value(
+            'scale','image scale [arcsec/unbinned pixel]',0.3,0.001
         )
 
     ################################################################
@@ -412,9 +452,9 @@ def genred(args=None):
         for targ in ccdaper:
             targs.add(targ)
     monitor = ''
-    for targ in targs:
-        monitor += ('{:s} = DATA_SATURATED TARGET_OFF_EDGE'
-                    ' NO_SKY SKY_OFF_EDGE\n').format(targ)
+    for targ in sorted(targs):
+        monitor += ('{:s} = TARGET_SATURATED TARGET_AT_EDGE'
+                    ' TARGET_NONLINEAR NO_SKY SKY_AT_EDGE\n').format(targ)
 
     # time stamp
     tstamp = strftime("%d %b %Y %H:%M:%S (UTC)", gmtime())
@@ -433,7 +473,8 @@ def genred(args=None):
                 monitor=monitor, comment=comment, tstamp=tstamp,
                 hipercam_version=hipercam_version, location=location,
                 comm_seeing=comm_seeing, extendx=extendx,
-                comm_position=comm_position
+                comm_position=comm_position, scale=scale,
+                warn_levels=warn_levels
             )
         )
 
@@ -484,8 +525,12 @@ idevice  = 2/xs  # PGPLOT plot device for image plots [if implot True]
 iwidth   = 0     # image curve plot width, inches, 0 to let program choose
 iheight  = 0     # image curve plot height, inches
 
-satval   = 65000 # Level at which to flag saturated data.
+# series of count levels at which warnings will be triggered for
+# (a) non linearity and (b) saturation. Each line starts 'warn =',
+# and is then followed by the CCD label, the non-linearity level
+# and the saturation level
 
+{warn_levels}
 
 # The next section defines how the apertures are re-positioned from frame to
 # frame. Apertures are re-positioned through a combination of a search near a
@@ -525,36 +570,37 @@ fit_height_min = 50        # minimum height to accept a fit
 # The next lines define how the apertures will be re-sized and how the flux
 # will be extracted from the aperture. There is one line per CCD with format:
 #
-# <CCD label> = <resize> <extract method> [scale min max] [scale min max] [scale min max]
+# <CCD label> = <resize> <extract method> [scale min max] [scale min max]
+#               [scale min max]
 #
-
 # where: <CCD label> is the CCD label; <resize> is either 'variable' or
 # 'fixed' and sets how the aperture size will be determined -- if variable it
 # will be scaled relative to the FWHM, so profile fitting will be attempted;
 # <extract method> is either 'normal' or 'optimal' to say how the flux will be
 # extracted -- 'normal' means a straight sum of sky subtracted flux over the
 # aperture, 'optimal' use Tim Naylor's profile weighting, and requires profile
-# fits to work. Finally there follow a series of numbers in three triplets, each
-# of which is a scale factor relative to the FWHM for the aperture radius if
-# the 'variable' option was chosen, then a minimum and a maximum aperture
-# radius in unbinned pixels.  The three triples correspond to the innermost
-# target aperture radius, the inner sky radius and finally the outer sky
-# radius. The mininum and maximum also apply if you choose 'fixed' apertures
-# and can be used to override whatever value comes from the aperture file.
+# fits to work. Finally there follow a series of numbers in three triplets,
+# each of which is a scale factor relative to the FWHM for the aperture radius
+# if the 'variable' option was chosen, then a minimum and a maximum aperture
+# radius in unbinned pixels.  The three triples correspond to the target
+# aperture radius, the inner sky radius and finally the outer sky radius. The
+# mininum and maximum also apply if you choose 'fixed' apertures and can be
+# used to override whatever value comes from the aperture file. A common
+# approach is set them equal to each other to give a fixed value, especially for
+# the sky where one does not necessarily want the radii to vary.
 
 [extraction]
 {extraction}
 
-
 # Next lines determine how the sky background level is calculated. Note
-# you can only set error = variance if method = clipped. 'median' should
+# you can only set error = variance if method = 'clipped'. 'median' should
 # usually be avoided as it can cause noticable steps in light curves. It's
-# here as a comparator.
+# here as a comparator. 
+
 [sky]
 method = clipped    # 'clipped' | 'median'
 error  = variance   # 'variance' | 'photon': first uses actual variance of sky
-thresh = 3.5        # threshold in terms of RMS for 'clipped'
-
+thresh = 3.         # threshold in terms of RMS for 'clipped'
 
 # Calibration frames and constants
 [calibration]
@@ -566,19 +612,22 @@ readout = 3.  # RMS ADU. Float or string name of a file
 gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 
 
-# The light curve plot (includes transmission & seeing as well)
+# The light curve plot which consists of light curves, X & Y poistions,
+# the transmission and seeing. All but the light curves can be switched
+# off by commenting them out (in full). First a couple of general
+# parameters.
 
 [lcplot]
 xrange  = 0    # maximum range in X to plot (minutes), <= 0 for everything
 extend_x = {extendx:.2f}  # amount by which to extend xrange, minutes.
 
-# light curve panel (must be present). Mostly obvious, then a series of lines,
-# each starting 'plot' which specify one light curve to be plotted giving CCD,
-# target, comparison ('!' if you don't want a comparison), an additive offset,
-# a multiplicative scaling factor and then a colour for the data and a colour
-# for the error bar There will always be a light curve plot, whereas later
-# elements are optional, therefore the light curve panel is defined to have
-# unit height and all others are scaled relative to this.
+# The light curve panel (must be present). Mostly obvious, then a series of
+# lines, each starting 'plot' which specify one light curve to be plotted
+# giving CCD, target, comparison ('!' if you don't want a comparison), an
+# additive offset, a multiplicative scaling factor and then a colour for the
+# data and a colour for the error bar There will always be a light curve plot,
+# whereas later elements are optional, therefore the light curve panel is
+# defined to have unit height and all others are scaled relative to this.
 
 [light]
 linear  = {linear}  # linear vertical scale (else magnitudes): 'yes' or 'no'
@@ -591,9 +640,9 @@ extend_y = 0.1 # fraction of plot height to extend when rescaling
 {light_plot}
 
 
-# Configures the position plot. Can be commented out if you don't want one but
-# make sure to comment it out completely, section name and all parameters.
-# You can have multiple plot lines
+# The X,Y position panel. Can be commented out if you don't want it but make
+# sure to comment it out completely, section name and all parameters.  You can
+# have multiple plot lines.
 
 {comm_position}[position]
 {comm_position}height  = 0.5    # height relative to light curve plot
@@ -608,10 +657,12 @@ extend_y = 0.1 # fraction of plot height to extend when rescaling
 # line or lines defining the targets to plot
 {position_plot}
 
-
-# Configures the transmission plot. Can be commented out if you don't want one
-# but make sure to comment it out completely, section name and all parameters.
-# You can have multiple plot lines
+# The transmission panel. Can be commented out if you don't want one but make
+# sure to comment it out completely, section name and all parameters.  You can
+# have multiple plot lines. This simply plots the flux in whatever apertures
+# are chosen, scaling them by their maximum (hence one can sometimes find that
+# what you thought was 100% transmission was actually only 50% revealed as the
+# cloud clears).
 
 [transmission]
 height = 0.5      # height relative to the light curve plot
@@ -620,17 +671,16 @@ ymax   = 110      # Maximum transmission to plot (>= 100 to slow replotting)
 # line or lines defining the targets to plot
 {transmission_plot}
 
-
-# Configures the seeing plot. Can be commented out if you don't want one but
-# make sure to comment it out completely, section name and all parameters. You
-# can have multiple plot lines. Don't choose linked targets as their FWHMs are
-# not measured.
+# The seeing plot. Can be commented out if you don't want one but make sure to
+# comment it out completely, section name and all parameters. You can have
+# multiple plot lines. Don't choose linked targets as their FWHMs are not
+# measured.
 
 {comm_seeing}[seeing]
 {comm_seeing}height = 0.5   # height relative to the light curve plot
 {comm_seeing}ymax = 1.999   # Initial maximum seeing
-{comm_seeing}y_fixed = yes  # fix the seeing scale (or not)
-{comm_seeing}scale = 0.3    # Arcsec per unbinned pixel
+{comm_seeing}y_fixed = no   # fix the seeing scale (or not)
+{comm_seeing}scale = {scale:.2f}  # Arcsec per unbinned pixel
 {comm_seeing}extend_y = 0.2 # Y extension fraction if out of range and not fixed
 
 # line or lines defining the targets to plot
@@ -641,14 +691,16 @@ ymax   = 110      # Maximum transmission to plot (>= 100 to slow replotting)
 # during reduce. The messages are determined by the bitmask flag set during
 # the extraction of each target. Ones worth testing for are:
 #
-#  NO_SKY          : no sky pixels at all
-#  SKY_OFF_EDGE    : sky aperture off edge of window
-#  TARGET_OFF_EDGE : target aperture off edge of window
-#  DATA_SATURATED  : at least one pixel in target aperture saturated
+#  NO_SKY            : no sky pixels at all
+#  SKY_AT_EDGE       : sky aperture off edge of window
+#  TARGET_AT_EDGE    : target aperture off edge of window
+#  TARGET_SATURATED  : at least one pixel in target above saturation level
+#  TARGET_NONLINEAR  : at least one pixel in target above nonlinear level
 #
 # For a target you want to monitor, type its label, '=', then the bitmask
 # patterns you want to be flagged up if they are set. This is designed mainly
-# for observing, as there is less you can do once the data have been taken.
+# for observing, as there is less you can do once the data have been taken, but
+# it still may prove useful.
 
 [monitor]
 {monitor}

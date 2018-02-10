@@ -10,8 +10,9 @@ __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
     'HipercamError', 'HipercamWarning', 'DMINS',
     'LOG', 'CNAMS', 'CIS', 'ALL_OK', 'NO_FWHM',
-    'NO_SKY', 'SKY_OFF_EDGE', 'TARGET_OFF_EDGE',
-    'DATA_SATURATED', 'ANY', 'REDUCE_FILE_VERSION'
+    'NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
+    'TARGET_NONLINEAR', 'TARGET_SATURATED', 'ANY',
+    'REDUCE_FILE_VERSION'
 )
 
 # Constants for general use
@@ -20,7 +21,7 @@ __all__ = (
 # Format: YYYYMMDD.# where # is an integer to allow for multiple
 # versions in a day, although that should be rare and it should
 # almost always be '1'
-REDUCE_FILE_VERSION = '20180209.1'
+REDUCE_FILE_VERSION = '20180209.2'
 
 # Standard file extensions
 FIELD = '.fld'
@@ -75,14 +76,16 @@ CNAMS = {
 }
 
 # Bit masks (used in reduce.py and hlog.py)
-ALL_OK          = 0       # no bits set
-NO_FWHM         = 1 << 0  # even though variable apertures are being used
-NO_SKY          = 1 << 1  # no sky pixels
-SKY_OFF_EDGE    = 1 << 2  # sky aperture off edge of window
-TARGET_OFF_EDGE = 1 << 3  # target aperture off edge of window
-DATA_SATURATED  = 1 << 4  # At least one pixel in target aperture saturated
+ALL_OK            = 0       # No bit flags set (good)
+NO_FWHM           = 1 << 0  # No FWHM, even though variable apertures are being used
+NO_SKY            = 1 << 1  # No sky pixels at all
+SKY_AT_EDGE       = 1 << 2  # Sky aperture overlaps edge of window
+TARGET_AT_EDGE    = 1 << 3  # Target aperture overlaps edge of window
+TARGET_SATURATED  = 1 << 4  # At least one pixel in target above saturation level
+TARGET_NONLINEAR  = 1 << 5  # At least one pixel in target above non-linear level
 
-ANY = NO_FWHM | NO_SKY | SKY_OFF_EDGE | TARGET_OFF_EDGE | DATA_SATURATED
+ANY = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | TARGET_SATURATED | \
+      TARGET_NONLINEAR
 
 class HipercamError (Exception):
     """
