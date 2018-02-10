@@ -10,7 +10,7 @@ from .core import *
 from .window import *
 
 __all__ = (
-    'combFit', 'fitMoffat', 'fitGaussian'
+    'combFit', 'fitMoffat', 'fitGaussian', 'moffat', 'gaussian'
 )
 
 def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
@@ -68,7 +68,7 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
             pixels, and then each unbinned pixel will be split into a square
             array of ndiv by ndiv points. The profile will be evaluated and
             averaged over each of these points. Thus if the pixels in `wind`
-            are binned xbin by ybin, there will be xbin*ybin*nsub**2
+            are binned xbin by ybin, there will be xbin*ybin*ndiv**2
             evaluations per pixel. This is to cope with the case where the
             seeing is becoming small compared to the pixels, but obviously
             will slow things. To simply evaluate the profile once at the
@@ -218,7 +218,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             then each unbinned pixels will be split into a square array of
             ndiv by ndiv points. The profile will be evaluated and averaged
             over each of these points. Thus if the pixels in `wind` are binned
-            xbin by ybin, there will be xbin*ybin*nsub**2 evaluations per
+            xbin by ybin, there will be xbin*ybin*ndiv**2 evaluations per
             pixel. This is to cope with the case where the seeing is becoming
             small compared to the pixels, but obviously will slow things. To
             simply evaluate the profile once at the centre of each pixel in
@@ -372,18 +372,18 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
 def moffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     """
-    Returns a 2D numpy array corresponding to the ordinate grids in xy
+    Returns a numpy array corresponding to the ordinate grids in xy
     set to a Moffat profile plus a constant. Defined by
     sky + height/(1+alpha*r**2)**beta where r is the distance from the
     centre and alpha is set to give the desired FWHM given the exponent
     beta. As beta becomes large, this tends to a Gaussian shape but has
     more extended wings at low beta.
 
-    Arguments::
+    Parameters:
 
-      xy    : 3D numpy array
-         dimensions (2,NY,NX). x,y = xy sets x and y to the X and Y
-         ordinates of a 2D grid setting the output of the routine.
+      xy    : array like
+         x,y = xy sets x and y to the X and Y ordinates over which you want to
+         compute the profile. They should be measured in term of unbinned pixels.
 
       sky    : float
          sky background
@@ -415,7 +415,7 @@ def moffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
          unbinned pixels will be split into a square array of ndiv by ndiv
          points. The profile will be evaluated and averaged over each of these
          points. Thus if the pixels are binned xbin by ybin, there will be
-         xbin*ybin*nsub**2 evaluations per pixel. This is to cope with the
+         xbin*ybin*ndiv**2 evaluations per pixel. This is to cope with the
          case where the seeing is becoming small compared to the pixels, but
          obviously will slow things. To simply evaluate the profile once at
          the centre of each pixel, set ndiv = 0.
@@ -441,14 +441,14 @@ def moffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
             for ix in range(xbin):
                 # loop over unbinned pixels in X
                 xoff = ix-(xbin-1)/2 - soff
-                for isy in range(nsub):
+                for isy in range(ndiv):
                     # loop over sub-pixels in y
-                    ysoff = yoff + isy/nsub
-                    for isx in range(nsub):
+                    ysoff = yoff + isy/ndiv
+                    for isx in range(ndiv):
                         # loop over sub-pixels in x
-                        xsoff = xoff + isx/nsub
+                        xsoff = xoff + isx/ndiv
                         rsq = (x+xsoff-xcen)**2+(y+ysoff-ycen)**2
-                        prof += (height/xbin/ybin/nsub**2)/(1+alpha*rsq)**tbeta
+                        prof += (height/xbin/ybin/ndiv**2)/(1+alpha*rsq)**tbeta
 
         return sky+prof
 
@@ -459,7 +459,7 @@ def moffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
 
 def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
             comp_dfwhm, comp_dbeta):
-    """Returns a list of 2D numpy arrays corresponding to the ordinate grids in xy
+    """Returns a list of numpy arrays corresponding to the ordinate grids in xy
     set to the partial derivatives of a Moffat profile plus a
     constant. Defined by sky + height/(1+alpha*r**2)**beta where r is the
     distance from the centre and alpha is set to give the desired FWHM given
@@ -467,11 +467,11 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
     but has more extended wings at low beta. The partial derivatives are in
     the order of the parameters.
 
-    Arguments::
+    Parameters:
 
-      xy    : 3D numpy array
-         dimensions (2,NY,NX). x,y = xy sets x and y to the X and Y
-         ordinates of a 2D grid setting the output of the routine.
+      xy    : array like
+         x,y = xy sets x and y to the X and Y ordinates over which you want to
+         compute the profile. They should be measured in term of unbinned pixels.
 
       sky    : float
          sky background
@@ -503,7 +503,7 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
          unbinned pixels will be split into a square array of ndiv by ndiv
          points. The profile will be evaluated and averaged over each of these
          points. Thus if the pixels are binned xbin by ybin, there will be
-         xbin*ybin*nsub**2 evaluations per pixel. This is to cope with the
+         xbin*ybin*ndiv**2 evaluations per pixel. This is to cope with the
          case where the seeing is becoming small compared to the pixels, but
          obviously will slow things. To simply evaluate the profile once at
          the centre of each pixel, set ndiv = 0.
@@ -531,6 +531,11 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
         dheight = np.zeros_like(x)
         dxcen = np.zeros_like(x)
         dycen = np.zeros_like(x)
+        if comp_dfwhm:
+            dfwhm = np.zeros_like(x)
+            dbeta = np.zeros_like(x)
+        elif comp_dbeta:
+            dbeta = np.zeros_like(x)
 
         # mean offset within sub-pixels
         soff = (ndiv-1)/(2*ndiv)
@@ -541,12 +546,12 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
             for ix in range(xbin):
                 # loop over unbinned pixels in X
                 xoff = ix-(xbin-1)/2 - soff
-                for isy in range(nsub):
+                for isy in range(ndiv):
                     # loop over sub-pixels in y
-                    ysoff = yoff + isy/nsub
-                    for isx in range(nsub):
+                    ysoff = yoff + isy/ndiv
+                    for isx in range(ndiv):
                         # loop over sub-pixels in x
-                        xsoff = xoff + isx/nsub
+                        xsoff = xoff + isx/ndiv
 
                         # finally compute stuff
                         dx = x + xsoff - xcen
@@ -571,7 +576,7 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
                             dbeta += -np.log(denom)*height*dh + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
 
         # Normalise by number of evaluations
-        nadd = xbin*ybin*nsub**2
+        nadd = xbin*ybin*ndiv**2
         dheight /= nadd
         dxcen /= nadd
         dycen /= nadd
@@ -983,7 +988,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             then each unbinned pixels will be split into a square array of
             ndiv by ndiv points. The profile will be evaluated and averaged
             over each of these points. Thus if the pixels in `wind` are binned
-            xbin by ybin, there will be xbin*ybin*nsub**2 evaluations per
+            xbin by ybin, there will be xbin*ybin*ndiv**2 evaluations per
             pixel. This is to cope with the case where the seeing is becoming
             small compared to the pixels, but obviously will slow things. To
             simply evaluate the profile once at the centre of each pixel in
@@ -1125,7 +1130,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
     )
 
 def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
-    """Returns a 2D numpy array corresponding to the ordinate grids in xy set to a
+    """Returns a numpy array corresponding to the ordinate grids in xy set to a
     symmetric 2D Gaussian plus a constant. The profile is essentially defined
     by sky + height*exp(-alpha*r**2) where r is the distance from the centre
     and alpha is set to give the desired FWHM, but account is taken of the finite
@@ -1133,10 +1138,10 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
 
     Arguments::
 
-      xy    : 3D numpy array
-         dimensions (2,NY,NX). x,y = xy sets x and y to the X and Y ordinates
-         of a 2D grid setting the output of the routine. They should be in
-         terms of unbinned pixels.
+      xy    : array like
+         x,y = xy sets x and y to the X and Y ordinates over which you want to
+         compute the profile. They should be measured in term of unbinned pixels.
+
 
       sky    : float
          sky background
@@ -1165,7 +1170,7 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
          unbinned pixels will be split into a square array of ndiv by ndiv
          points. The profile will be evaluated and averaged over each of these
          points. Thus if the pixels are binned xbin by ybin, there will be
-         xbin*ybin*nsub**2 evaluations per pixel. This is to cope with the
+         xbin*ybin*ndiv**2 evaluations per pixel. This is to cope with the
          case where the seeing is becoming small compared to the pixels, but
          obviously will slow things. To simply evaluate the profile once at
          the centre of each pixel, set ndiv = 0.
@@ -1190,16 +1195,16 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
             for ix in range(xbin):
                 # loop over unbinned pixels in X
                 xoff = ix-(xbin-1)/2 - soff
-                for isy in range(nsub):
+                for isy in range(ndiv):
                     # loop over sub-pixels in y
-                    ysoff = yoff + isy/nsub
-                    for isx in range(nsub):
+                    ysoff = yoff + isy/ndiv
+                    for isx in range(ndiv):
                         # loop over sub-pixels in x
-                        xsoff = xoff + isx/nsub
+                        xsoff = xoff + isx/ndiv
                         rsq = (x+xsoff-xcen)**2+(y+ysoff-ycen)**2
                         prof += np.exp(-alpha*rsq)
 
-        return sky+(height/xbin/ybin/nsub**2)*prof
+        return sky+(height/xbin/ybin/ndiv**2)*prof
 
     else:
         # Fast as possible, compute profile at pixel centres only
@@ -1207,7 +1212,7 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
         return sky+height*np.exp(-alpha*rsq)
 
 def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
-    """Returns a list of four or five 2D numpy arrays corresponding to the
+    """Returns a list of four or five numpy arrays corresponding to the
     ordinate grids in xy set to the partial derivatives of a symmetric 2D
     Gaussian plus a constant. Defined by sky + height*exp(-alpha*r**2) where r
     is the distance from the centre and alpha is set to give the desired FWHM.
@@ -1215,9 +1220,9 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
 
     Arguments::
 
-      xy    : 3D numpy array
-         dimensions (2,NY,NX). x,y = xy sets x and y to the X and Y
-         ordinates of a 2D grid setting the output of the routine.
+      xy    : array like
+         x,y = xy sets x and y to the X and Y ordinates over which you want to
+         compute the profile. They should be measured in term of unbinned pixels.
 
       sky    : float
          sky background
@@ -1246,7 +1251,7 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
          unbinned pixels will be split into a square array of ndiv by ndiv
          points. The profile will be evaluated and averaged over each of these
          points. Thus if the pixels are binned xbin by ybin, there will be
-         xbin*ybin*nsub**2 evaluations per pixel. This is to cope with the
+         xbin*ybin*ndiv**2 evaluations per pixel. This is to cope with the
          case where the seeing is becoming small compared to the pixels, but
          obviously will slow things. To simply evaluate the profile once at
          the centre of each pixel, set ndiv = 0.
@@ -1272,6 +1277,9 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
         dxcen = np.zeros_like(x)
         dycen = np.zeros_like(x)
 
+        if comp_dfwhm:
+            dfwhm = np.zeros_like(x)
+
         # mean offset within sub-pixels
         soff = (ndiv-1)/(2*ndiv)
 
@@ -1281,12 +1289,12 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
             for ix in range(xbin):
                 # loop over unbinned pixels in X
                 xoff = ix-(xbin-1)/2 - soff
-                for isy in range(nsub):
+                for isy in range(ndiv):
                     # loop over sub-pixels in y
-                    ysoff = yoff + isy/nsub
-                    for isx in range(nsub):
+                    ysoff = yoff + isy/ndiv
+                    for isx in range(ndiv):
                         # loop over sub-pixels in x
-                        xsoff = xoff + isx/nsub
+                        xsoff = xoff + isx/ndiv
 
                         # finally compute stuff
                         dx = x + xsoff - xcen
@@ -1301,7 +1309,7 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
                             dfwhm += (2*alpha*height/fwhm)*dh*rsq
 
         # Normalise by number of evaluations
-        nadd = xbin*ybin*nsub**2
+        nadd = xbin*ybin*ndiv**2
         dheight /= nadd
         dxcen /= nadd
         dycen /= nadd

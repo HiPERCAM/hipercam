@@ -12,7 +12,7 @@ import warnings
 from trm.pgplot import *
 
 import hipercam as hcam
-from hipercam import cline, utils, spooler
+from hipercam import cline, utils, spooler, fitting
 from hipercam.cline import Cline
 
 # get hipercam version to write into the reduce log file
@@ -35,8 +35,9 @@ def reduce(args=None):
     nx msub xlo xhi ylo yhi iset (ilo ihi | plo phi))``
 
     Reduces a sequence of multi-CCD images, plotting lightcurves as images
-    come in. It uses simple aperture photometry on specific targets defined
-    in an aperture file.
+    come in. It can extract with either simple aperture photometry or Tim
+    Naylor's optimal photometry, on specific targets defined in an aperture
+    file using |setaper|.
 
     reduce can source data from both the ULTRACAM and HiPERCAM servers, from
     local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
@@ -47,7 +48,7 @@ def reduce(args=None):
     reduce is primarily configured from a file with extension ".red". This
     contains a series of directives, e.g. to say how to re-position and
     re-size the apertures. An initial reduce file is best generated with
-    |genred| after you have created an aperture file.
+    the script |genred| after you have created an aperture file.
 
     A reduce run can be terminated at any point with ctrl-C without doing
     any harm. You may often want to do this at the start in order to adjust
@@ -136,6 +137,12 @@ def reduce(args=None):
         phi     : float [if implot and iset='p']
            upper percentile level
 
+    .. Warning::
+
+       The transmission plot generated with reduce is not reliable in the
+       case of optimal photometry since it is highly correlated with the 
+       seeing. If you are worried about the transmission during observing,
+       you should always use normal aperture photometry.
     """
 
     command, args = utils.script_args(args)
@@ -1095,9 +1102,22 @@ class Rfile(OrderedDict):
         if sect['iheight'] < 0:
             raise ValueError('general.iheight must be >= 0')
 
-        sect['satval'] = float(sect['satval'])
-        if sect['satval'] < 1000:
-            raise ValueError('general.satval must be >= 1000')
+        # handle the count level warnings
+        warns = sect.get('warn', [])
+        if isinstance(warns, str):
+            warns = [warns]
+
+        # store a dictionary of warning levels. If
+        # any CCD does not have any warning levels,
+        # a single warning of this will be issued at
+        # the start.
+        rfile.warn = {}
+        for warn in warns:
+            cnam, nonlinear, saturation = warn.split()
+            rfile.warn[cnam] = {
+                'nonlinear' : float(nonlinear),
+                'saturation' : float(saturation),
+            }
 
         #
         # apertures section
@@ -1811,11 +1831,11 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
     flag = bitmask. See hipercam.core to see all the options which are
     referred to by name in the code e.g. ALL_OK. The various flags can
     signal that there no sky pixels (NO_SKY), the sky aperture was off
-    the edge of the window (SKY_OFF_EDGE), etc.
+    the edge of the window (SKY_AT_EDGE), etc.
 
     This code::
 
-       >> bset = flag & DATA_SATURATED
+       >> bset = flag & TARGET_SATURATED
 
     determines whether the data saturation flag is set for example.
 
@@ -1940,19 +1960,19 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
         if xlo > aper.x-aper.rsky2 or xhi < aper.x+aper.rsky2 or \
            ylo > aper.y-aper.rsky2 or yhi < aper.y+aper.rsky2:
             # the sky aperture overlaps the edge of the window
-            flag |= hcam.SKY_OFF_EDGE
+            flag |= hcam.SKY_AT_EDGE
 
         if xlo > aper.x-aper.rtarg or xhi < aper.x+aper.rtarg or \
            ylo > aper.y-aper.rtarg or yhi < aper.y+aper.rtarg:
             # the target aperture overlaps the edge of the window
-            flag |= hcam.TARGET_OFF_EDGE
+            flag |= hcam.TARGET_AT_EDGE
 
         for xoff, yoff in aper.extra:
             rout = np.sqrt(xoff**2+yoff**2) + aper.rtarg
             if xlo > aper.x-rout or xhi < aper.x+rout or \
                ylo > aper.y-rout or yhi < aper.y+rout:
                 # an extra target aperture overlaps the edge of the window
-                flag |= hcam.TARGET_OFF_EDGE
+                flag |= hcam.TARGET_AT_EDGE
 
         # if read & gain are actually CCDs rather than floats
         if isinstance(read, hcam.CCD):
@@ -2043,9 +2063,18 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
         # the edge of the circle (but with a tapered weight)
         dok = Rsq < (aper.rtarg+size/2.)**2
 
-        # finally check for saturation
-        if srwind.data[dok].max() >= rfile['general']['satval']:
-            flag |= hcam.DATA_SATURATED
+        # check for saturation and nonlinearity
+        if cnam in rfile.warn:
+            if srwind.data[dok].max() >= rfile.warn[cnam]['saturation']:
+                flag |= hcam.TARGET_SATURATED
+
+            if srwind.data[dok].max() >= rfile.warn[cnam]['nonlinear']:
+                flag |= hcam.TARGET_NONLINEAR
+
+        else:
+            warnings.warn(
+                'CCD {:s} has no nonlinearity or saturation levels set'
+            )
 
         # Pixellation amelioration:
         #
@@ -2100,11 +2129,20 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
                 warnings.warn(
                     'The veracity of this implementation of optimal extraction is as yet untested!!!'
                 )
+                warnings.warn(
+                    'The veracity of this implementation of optimal extraction is as yet untested!!!'
+                )
 
-                if beta > 0.:
-                    prof = moffat(x, y, wind.xbin, wind.ybin, nsub, mfwhm, mbeta)
+                if mbeta > 0.:
+                    prof = fitting.moffat(
+                        (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm, mbeta,
+                        wind.xbin, wind.ybin, rfile['apertures']['fit_ndiv']
+                    )
                 else:
-                    prof = gaussian(x, y, wind.xbin, wind.ybin, nsub, mfwhm)
+                    prof = fitting.gaussian(
+                        (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm,
+                        wind.xbin, wind.ybin, rfile['apertures']['fit_ndiv']
+                    )
 
                 # multiply weights by the profile
                 wtarg *= prof
@@ -2464,7 +2502,7 @@ class LightCurve:
         targ = res[self.targ]
         ft = targ['counts']
         fte = targ['countse']
-        saturated = targ['flag'] & hcam.DATA_SATURATED
+        saturated = targ['flag'] & hcam.TARGET_SATURATED
 
         if fte > 0:
 
@@ -2472,7 +2510,7 @@ class LightCurve:
                 comp = res[self.comp]
                 fc = comp['counts']
                 fce = comp['countse']
-                saturated |= comp['flag'] & hcam.DATA_SATURATED
+                saturated |= comp['flag'] & hcam.TARGET_SATURATED
 
                 if fc > 0:
                     if fce > 0.:
@@ -2573,7 +2611,7 @@ class Xposition:
         self.t.append(t)
         self.f.append(x)
         self.fe.append(xe)
-        if targ['flag'] & hcam.DATA_SATURATED:
+        if targ['flag'] & hcam.TARGET_SATURATED:
             # mark saturated data with cross
             self.symb.append(5)
         else:
@@ -2641,7 +2679,7 @@ class Yposition:
         self.t.append(t)
         self.f.append(y)
         self.fe.append(ye)
-        if targ['flag'] & hcam.DATA_SATURATED:
+        if targ['flag'] & hcam.TARGET_SATURATED:
             # mark saturated data with cross
             self.symb.append(5)
         else:
@@ -2703,7 +2741,7 @@ class Transmission:
         self.t.append(t)
         self.f.append(f)
         self.fe.append(fe)
-        if targ['flag'] & hcam.DATA_SATURATED:
+        if targ['flag'] & hcam.TARGET_SATURATED:
             # mark saturated data with cross
             self.symb.append(5)
         else:
@@ -2775,7 +2813,7 @@ class Seeing:
         self.t.append(t)
         self.f.append(f)
         self.fe.append(fe)
-        if targ['flag'] & hcam.DATA_SATURATED:
+        if targ['flag'] & hcam.TARGET_SATURATED:
             # mark saturated data with cross
             self.symb.append(5)
         else:
@@ -2849,143 +2887,11 @@ def toBool(rfile, section, param):
 
 # messages if various bitflags are set
 FLAG_MESSAGES = {
-    hcam.NO_FWHM         : 'no FWHM could be measured',
-    hcam.NO_SKY          : 'zero sky pixels',
-    hcam.SKY_OFF_EDGE    : 'sky aperture off edge of window',
-    hcam.TARGET_OFF_EDGE : 'target aperture off edge of window',
-    hcam.DATA_SATURATED  : 'target aperture has saturated pixels',
+    hcam.NO_FWHM           : 'no FWHM could be measured',
+    hcam.NO_SKY            : 'zero sky pixels',
+    hcam.SKY_AT_EDGE       : 'sky aperture overlaps edge of window',
+    hcam.TARGET_AT_EDGE    : 'target aperture overlaps edge of window',
+    hcam.TARGET_SATURATED  : 'target aperture has saturated pixels',
+    hcam.TARGET_NONLINEAR  : 'target aperture has nonlinear pixels',
 }
 
-def gaussian(x, y, xbin, ybin, nsub, fwhm):
-    """Computes a gaussian profile of FWHM fwhm given arrays of x and y
-    offsets from the centre of the profile, measured in terms of unbinned
-    pixels, the pixel size (xbin,ybin) in terms of unbinned pixels, the FWHM
-    in terms of unbinned pixels, and a integer sub-division factor, nsub, used
-    to sub-divide the pixels. The profile at any point a distance r from the
-    centre is calculated as exp(-alpha*r**2) where alpha is set by the value
-    of fwhm.
-
-    Parameters:
-
-       x    : 1D array
-          x-offset from centre of profile of pixel in question
-
-       y    : 1D array
-          y-offset from centre of profile of pixel in question. Must match
-          x in length.
-
-       xbin : int
-          X-binning factor of pixels
-
-       ybin : int
-          Y-binning factor of pixels
-
-       fwhm : float
-          FWHM of profile, unbinned pixels
-
-       nsub : int
-          Integer sub-division factor per unbinned pixel. The profile will be
-          evaluated over a square grid of nsub by nsub within each unbinned
-          pixel contributing to the (potentially binned) pixel of interest.
-          nsub must be >= 1.
-
-    This is used to implement Tim Naylor's optimal photometry.
-    """
-
-    # exponent factor in gaussian
-    alpha = 4.*np.log(2.)/fwhm**2
-
-    # mean offset within sub-pixels
-    soff = (nsub-1)/(2*nsub)
-
-    prof = np.zeros_like(x)
-    for iy in range(ybin):
-        # loop over unbinned pixels in Y
-        yoff = iy-(ybin-1)/2 - soff
-        for ix in range(xbin):
-            # loop over unbinned pixels in X
-            xoff = ix-(xbin-1)/2 - soff
-            for isy in range(nsub):
-                # loop over sub-pixels in y
-                ysoff = yoff + isy/nsub
-                for isx in range(nsub):
-                    # loop over sub-pixels in x
-                    xsoff = xoff + isx/nsub
-
-                    # Finally we have the x and y offsets needed to
-                    # evaluate the array of squared distances
-                    rsq = (x+xsoff)**2+(y+ysoff)**2
-
-                    # Gaussian profile
-                    prof += np.exp(-alpha*rsq)
-
-    # divide by nsub**2 to keep results more or less independent of nsub
-    return prof/nsub**2
-
-def moffat(x, y, xbin, ybin, nsub, fwhm, beta):
-    """Computes moffat profile of FWHM fwhm, exponent beta given arrays of x and y
-    offsets from the centre of the profile, measured in terms of unbinned
-    pixels, the pixel size (xbin,ybin) in terms of unbinned pixels, the FWHM
-    in terms of unbinned pixels, and a integer sub-division factor, nsub, used
-    to sub-divide the pixels. The profile at any point a distance r from the
-    centre is calculated as 1/(1+alpha*r**2) where alpha is set by the value
-    of fwhm and beta
-
-    Parameters:
-
-       x    : 1D array
-          x-offset from centre of profile of pixel in question
-
-       y    : 1D array
-          y-offset from centre of profile of pixel in question. Must match
-          x in length.
-
-       xbin : int
-          X-binning factor of pixels
-
-       ybin : int
-          Y-binning factor of pixels
-
-       nsub : int 
-          Integer sub-division factor per unbinned pixel. The profile will be
-          evaluated over a square grid of nsub by nsub within each unbinned
-          pixel contributing to the (potentially binned) pixel of interest.
-          nsub must be >= 1.
-
-       fwhm : float
-          FWHM of profile, unbinned pixels
-
-       beta : float
-          Moffat exponent. Will be taken as max(0.01,beta) to prevent numerical
-          difficulties.
-
-    This is used to implement Tim Naylor's optimal photometry.
-
-    """
-    alpha = 4*(2**(1./max(0.01,beta))-1)/fwhm**2
-
-    # mean offset within sub-pixels
-    soff = (nsub-1)/(2*nsub)
-
-    prof = np.zeros_like(x)
-    for iy in range(ybin):
-        # loop over unbinned pixels in Y
-        yoff = iy-(ybin-1)/2 - soff
-        for ix in range(xbin):
-            # loop over unbinned pixels in X
-            xoff = ix-(xbin-1)/2 - soff
-            for isy in range(nsub):
-                # loop over sub-pixels in y
-                ysoff = yoff + isy/nsub
-                for isx in range(nsub):
-                    # loop over sub-pixels in x
-                    xsoff = xoff + isx/nsub
-
-                    # Finally we have the x and y offsets needed to
-                    # evaluate the array of squared distances
-                    rsq = (x+xsoff)**2+(y+ysoff)**2
-
-                    prof += 1/(1+alpha*rsq)**max(0.01,beta)
-
-    # divide by nsub**2 to keep results more or less independent of nsub
-    return prof/nsub**2
