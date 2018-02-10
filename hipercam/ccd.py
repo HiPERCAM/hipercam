@@ -135,7 +135,7 @@ class CCD(Agroup):
         # Then compute percentiles
         return np.percentile(arr, q)
 
-    def whdul(self, hdul=fits.HDUList(), cnam=None, xoff=0):
+    def whdul(self, hdul=fits.HDUList(), cnam=None, xoff=0, yoff=0):
         """Write the :class:`CCD` as a series of HDUs, one per :class:`Window`, adding
         to and returning an :class:`HDUList`.
 
@@ -148,7 +148,7 @@ class CCD(Agroup):
                 CCD name.
 
             xoff : int [if cname is not None]
-                X-offset for mosaicing in ds9. Ignored in cnam is None.
+                X-offset for mosaicing in ds9. Ignored if cnam is None.
 
         Returns:: an :class:`HDUList`.
 
@@ -177,7 +177,7 @@ class CCD(Agroup):
                 head['NUMWIN'] = (len(self), 'Total number of windows')
 
             head['WINDOW'] = (wnam, 'Window label')
-            hdul.append(wind.whdu(head, xoff, extnam))
+            hdul.append(wind.whdu(head, xoff, yoff, extnam))
 
         return hdul
 
@@ -558,7 +558,7 @@ class MCCD(Agroup):
         """
         return (self.__class__, (list(self.items()), self.head))
 
-    def write(self, fname, overwrite=False, xgap=100):
+    def write(self, fname, overwrite=False, xgap=200, ygap=200):
         """Writes out the MCCD to a FITS file.
 
         Arguments::
@@ -572,6 +572,9 @@ class MCCD(Agroup):
 
             xgap  : int
                X-gap used to space CCDs for ds9 mosaicing (unbinned pixels)
+
+            ygap  : int
+               Y-gap used to space CCDs for ds9 mosaicing (unbinned pixels)
 
         """
 
@@ -596,11 +599,18 @@ class MCCD(Agroup):
         hdul = fits.HDUList()
         hdul.append(fits.PrimaryHDU(header=phead))
 
-        # add in the HDUs of all the CCDs
-        xoff = 0
+        # add in the HDUs of all the CCDs NX = 3 specific to HiPERCAM but
+        # should do reasonably generally I think.
+        xoff, yoff, noff = 0, 0, 0
+        NX = 3
         for cnam, ccd in self.items():
-            ccd.whdul(hdul, cnam, xoff)
-            xoff += ccd.nxtot + xgap
+            ccd.whdul(hdul, cnam, xoff, yoff)
+            noff += 1
+            if noff % NX == 0:
+                xoff  = 0
+                yoff -= (ccd.nytot+2*ccd.nypad) + ygap
+            else:
+                xoff += (ccd.nxtot+2*ccd.nxpad) + xgap
         hdul.writeto(fname,overwrite=overwrite)
 
     @classmethod

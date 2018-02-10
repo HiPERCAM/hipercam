@@ -707,7 +707,7 @@ class Window(Winhead):
 
         return cls(win, data)
 
-    def whdu(self, head=fits.Header(), xoff=0, extnam=None):
+    def whdu(self, head=fits.Header(), xoff=0, yoff=0, extnam=None):
         """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU`
 
         Arguments::
@@ -718,6 +718,9 @@ class Window(Winhead):
 
           xoff   : int
               Offset in X-direction to use for mosaicing.
+
+          yoff   : int
+              Offset in Y-direction to use for mosaicing.
 
           extnam : None | string
               Extension name, useful in 'fv'
@@ -754,7 +757,7 @@ class Window(Winhead):
         )
         cards.append(
             ('DETSEC','[{:d}:{:d},{:d}:{:d}]'.format(
-                xoff+self.llx,xoff+self.urx,self.lly,self.ury))
+                xoff+self.llx,xoff+self.urx,yoff+self.lly,yoff+self.ury))
         )
 
         # transforms
@@ -775,7 +778,7 @@ class Window(Winhead):
         cards.append(('DTM1_1', 1.))
         cards.append(('DTM2_2', 1.))
         cards.append(('DTV1', float(xoff)))
-        cards.append(('DTV2', 0.))
+        cards.append(('DTV2', float(yoff)))
 
         cards.append(('WCSNAMEP', 'PHYSICAL'))
         cards.append(('CTYPE1', 'PIXEL'))
@@ -783,7 +786,7 @@ class Window(Winhead):
         cards.append(('CRPIX1', 1.))
         cards.append(('CRPIX2', 1.))
         cards.append(('CRVAL1', float(xoff+self.llx)))
-        cards.append(('CRVAL2', float(self.lly)))
+        cards.append(('CRVAL2', float(yoff+self.lly)))
         cards.append(('CD1_1', float(self.xbin)))
         cards.append(('CD2_2', float(self.ybin)))
 
