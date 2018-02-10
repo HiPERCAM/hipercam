@@ -355,7 +355,7 @@ class Rhead:
                             nx += self.nxpscan
 
                         ny = hd[winID + 'NY'] // self.ybin
-                        win_xs = hd[winID + 'XS{}'.format(quad)]
+                        win_xs = hd[winID + 'XS{}'.format(qnam)]
                         win_nx = hd[winID + 'NX']
                         win_ys = hd[winID + 'YS']
                         win_ny = hd[winID + 'NY']
