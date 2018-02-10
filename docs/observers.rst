@@ -10,9 +10,10 @@ and to reduce it in near "real time". It is downstream of the data acquisition
 system and has no direct effect upon it. At the telescope its most important
 role is to allow you to assess the data as it comes in.
 
-The two sections of the guide are aimed first at getting observers started
+The first two sections of the guide are aimed first at getting observers started
 quickly while at the telescope, and second giving a more in depth description
-for a later careful reduction.
+for a later careful reduction. Some implementation details are described in
+the section on photometry which contains further tips on good practice.
 
 .. toctree::
    :maxdepth: 2
@@ -20,3 +21,4 @@ for a later careful reduction.
 
    telescope
    reduction
+   photometry
