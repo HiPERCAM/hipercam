@@ -202,11 +202,11 @@ def genred(args=None):
 
         if inst == 'hipercam':
             warn_levels = """# Warning levels for instrument = HiPERCAM
-warn = 1 55000 62000
-warn = 2 55000 62000
-warn = 3 55000 62000
-warn = 4 55000 62000
-warn = 5 55000 62000
+warn = 1 50000 64000
+warn = 2 50000 64000
+warn = 3 50000 64000
+warn = 4 50000 64000
+warn = 5 50000 64000
 """
         elif inst == 'ultracam':
             warn_levels = """# Warning levels for instrument = ULTRACAM
