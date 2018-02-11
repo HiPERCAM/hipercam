@@ -676,7 +676,7 @@ def reduce(args=None):
                         # window found
                         mccdwins[cnam] = {}
                         for apnam, aper in ccdaper.items():
-                            for wnam, wind in ccd.items():
+                            for wnam, wind in mccd[cnam].items():
                                 if wind.distance(aper.x,aper.y) > 0:
                                     mccdwins[cnam][apnam] = wnam
                                     break
@@ -699,7 +699,7 @@ def reduce(args=None):
                     # send to parallelisable routine
                     results[cnam], store[cnam] = ccdproc(
                         cnam, pccd[cnam], mccd[cnam], rfile.aper[cnam],
-                        mccdwins[cnam], rfile, store[cnam]
+                        mccdwins[cnam], read, gain, rfile, store[cnam]
                     )
 
                 # write out results to the log file
