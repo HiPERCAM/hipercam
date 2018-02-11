@@ -8,6 +8,7 @@ from astropy.time import Time, TimeDelta
 import configparser
 from collections import OrderedDict
 import warnings
+import multiprocessing
 
 from trm.pgplot import *
 
@@ -599,6 +600,10 @@ def reduce(args=None):
         # be consulted often
         monitor = rfile['monitor']
 
+        # for storage / retrieval of fit values from one
+        # frame to the next
+        store = {}
+
         ##############################################
         #
         # Finally, start winding through the frames
@@ -663,11 +668,6 @@ def reduce(args=None):
                        not pccd[cnam].is_data():
                         continue
 
-                    ccdaper = rfile.aper[cnam]
-
-                    # get the CCD and the apertures
-                    ccd = pccd[cnam]
-
                     if cnam not in mccdwins:
                         # first time through, work out an array of which
                         # window each aperture lies in we will assume this is
@@ -683,11 +683,8 @@ def reduce(args=None):
                             else:
                                 mccdwins[cnam][apnam] = None
 
-                        # initialisations
-                        store = {}
-                        mfwhm, mbeta = -1, -1
-
-                    ccdwins = mccdwins[cnam]
+                        # initialisation
+                        store[cnam] = {'mfwhm' : -1., 'mbeta' : -1.}
 
                     if isinstance(rfile.readout, hcam.MCCD):
                         read = rfile.readout[cnam]
@@ -699,23 +696,10 @@ def reduce(args=None):
                     else:
                         gain = rfile.gain
 
-                    # at this point 'ccd' contains all the Windows of a CCD,
-                    # 'ccdaper' all of its apertures, 'ccdwins' the label of
-                    # the Window enclosing each aperture, 'rfile' contains
-                    # control parameters, 'read' contains the readout noise,
-                    # either as a float or a CCD, 'gain' contains the gain,
-                    # either a float or a CCD.
-
-                    # move the apertures
-                    mfwhm, mbeta = moveApers(
-                        cnam, ccd, ccdaper, ccdwins, rfile,
-                        read, gain, mfwhm, mbeta, store
-                    )
-
-                    # extract flux from all apertures of each CCD
-                    results[cnam] = extractFlux(
-                        cnam, ccd, mccd[cnam], ccdaper, ccdwins,
-                        rfile, read, gain, store, mfwhm, mbeta
+                    # send to parallelisable routine
+                    results[cnam], store[cnam] = ccdproc(
+                        cnam, pccd[cnam], mccd[cnam], rfile.aper[cnam],
+                        mccdwins[cnam], rfile, store[cnam]
                     )
 
                 # write out results to the log file
@@ -1448,17 +1432,14 @@ class Rfile(OrderedDict):
             self.gain = self.gain.crop(mccd)
 
 
-def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
-              mbeta, store):
+def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results
     that will be used to start the fits from one frame to the next. It must
-    start as {}.
+    start as {'mfwhm' : -1., 'mbeta' : -1.}. The values of these will be
+    revised and extra stuff added in addition.
 
     It operates by first shifting any reference apertures, then non-linked
     apertures, and finally linked apertures.
-
-    It returns a weighted mean FWHM suitable for re-sizing the apertures. This
-    is only meaningful if the profile is fitted. It is returned as -1 if not.
 
     Arguments::
 
@@ -1469,7 +1450,8 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
            the CCD
 
        ccdaper   : CcdAper
-           the Apertures. These are modified on exit.
+           the Apertures. These are modified on exit, in particular the
+           positions.
 
        ccdwin    : dictionary
            the Window label corresponding to each Aperture
@@ -1483,22 +1465,16 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
        gain      : float | CCD
            readout noise
 
-       mfwhm     : float
-           mean FWHM used as a starter for fits. Start at -1 and the reduce
-           file starter value will be used.
-
-       mbeta     : float
-           mean beat used as a starter for future fits. Start at -1 and the
-           reduce file starter value will be used.
-
-       store     : dict of dicts
-           keyed on aperture label storing `xe`, `ye`, `fwhm`,
-           `fwhme`, `beta`, `betae`, `dx`, `dy`.
-
-    Returns: (mfwhm, mbeta) for use next time around; these are set to -1 if
-    things go wrong. When OK, they are also stored internally in
-    rfile['apertures']['fit_fwhm'] and rfile['apertures']['fit_beta'] for
-    retrieval.
+       store     : dictionary
+           used to store various parameters needed further down the line.
+           Initialise to {'mfwhm' : -1., 'mbeta' : -1.}. For each aperture in
+           ccdaper, parameters `xe`, `ye`, `fwhm`, `fwhme`, `beta`, `betae`,
+           `dx`, `dy` will be added (these are basically parameters that are
+           not stored in ccdaper but will be needed for the log file
+           output). They represent: the uncertainty in the fitted X, Y
+           position (ex, ey), the fitted FWHM and its uncertainty (fwhm,
+           fwhme), the same for beta and its uncertainty (beta, betae), and
+           finally the change in x and y position.
 
     """
 
@@ -1513,7 +1489,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
                 'beta' : 0., 'betae' : -1.,
                 'dx' : 0., 'dy' : 0.
             }
-        return (-1.,-1.)
+        return
 
     # first of all try to get a mean shift from the reference apertures.  we
     # move any of these apertures that are fitted OK
@@ -1543,8 +1519,9 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
 
             # get sub-windat around start position
             shbox = apsec['search_half_width_ref']
-            swind = wind.window(aper.x-shbox, aper.x+shbox,
-                                aper.y-shbox, aper.y+shbox)
+            swind = wind.window(
+                aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
+            )
 
             # carry out initial search
             x,y,peak = swind.find(apsec['search_smooth_fwhm'], False)
@@ -1553,16 +1530,17 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
             fhbox = apsec['fit_half_width']
             fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
+            # initial estimate of background
             sky = np.percentile(fwind.data, 50)
 
             # get some parameters from previous run where possible
-            if mfwhm > 0.:
-                fit_fwhm = mfwhm
+            if store['mfwhm'] > 0.:
+                fit_fwhm = store['mfwhm']
             else:
                 fit_fwhm = apsec['fit_fwhm']
 
-            if mbeta > 0.:
-                fit_beta = mbeta
+            if store['mbeta'] > 0.:
+                fit_beta = store['mbeta']
             else:
                 fit_beta = apsec['fit_beta']
 
@@ -1589,7 +1567,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
                     wysum += wy
                     ysum += wy*dy
 
-                    # store some stuff for next time
+                    # store stuff
                     store[apnam] = {
                         'xe' : ex, 'ye' : ey,
                         'fwhm' : fwhm, 'fwhme' : efwhm,
@@ -1646,14 +1624,15 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
             xshift = xsum / wxsum
             yshift = ysum / wysum
             print(
-                'Mean x,y shift from reference'
-                ' aperture(s) = {:.2f}, {:.2f}'.format(xshift, yshift)
+                ('CCD {:s}, mean x,y shift from reference'
+                 ' aperture(s) = {:.2f}, {:.2f}').format(
+                     cnam, xshift, yshift)
             )
 
         else:
             raise hcam.HipercamError(
-                'reference aperture fit(s)'
-                ' failed; giving up.'
+                'CCD{:s}, reference aperture fit(s)'
+                ' failed; giving up.'.format(cnam)
             )
 
     else:
@@ -1802,21 +1781,18 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, mfwhm,
     # work, store them in the config file for retrieval if mfwhm and mbeta go
     # wrong later.
     if wfsum > 0.:
-        mfwhm = fsum / wfsum
-        apsec['fit_fwhm'] = mfwhm
+        store['mfwhm'] = fsum / wfsum
+        apsec['fit_fwhm'] = store['mfwhm']
     else:
-        mfwhm = -1
+        store['mfwhm'] = -1
 
     if wbsum > 0.:
-        mbeta = bsum / wbsum
-        apsec['fit_beta'] = mbeta
+        store['mbeta'] = bsum / wbsum
+        apsec['fit_beta'] = store['mbeta']
     else:
-        mbeta = -1
+        store['mbeta'] = -1
 
-    return (mfwhm, mbeta)
-
-def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
-                store, mfwhm, mbeta):
+def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
     """This extracts the flux of all apertures of a given CCD.
 
     The steps are (1) aperture resizing, (2) sky background estimation, (3)
@@ -1869,15 +1845,6 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
        store     : dict of dicts
            see moveApers for what this contains.
 
-       mfwhm     : float
-           mean FWHM from moveApers used to resize the apertures and
-           to define the extraction profile in the case of optimal
-           extraction
-
-       mbeta     : float
-           mean beta from moveApers used to define the extraction profile
-           in the case of optimal extraction with moffat profile fitting.
-
     """
 
     # initialise flag
@@ -1888,6 +1855,7 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
         r3fac, r3min, r3max = rfile['extraction'][cnam]
 
     results = {}
+    mfwhm = store['mfwhm']
 
     if resize == 'variable' or extype == 'optimal':
         if mfwhm <= 0:
@@ -1914,6 +1882,7 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
             return results
 
         else:
+
             # Re-size the apertures
             for aper in ccdaper.values():
                 aper.rtarg = max(r1min, min(r1max, r1fac*mfwhm))
@@ -2127,12 +2096,10 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain,
             if extype == 'optimal':
                 # optimal extraction. Need the profile
                 warnings.warn(
-                    'The veracity of this implementation of optimal extraction is as yet untested!!!'
-                )
-                warnings.warn(
-                    'The veracity of this implementation of optimal extraction is as yet untested!!!'
+                    'Tranmission plot is not reliable with optimal extraction'
                 )
 
+                mbeta = store['mbeta']
                 if mbeta > 0.:
                     prof = fitting.moffat(
                         (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm, mbeta,
@@ -2895,3 +2862,29 @@ FLAG_MESSAGES = {
     hcam.TARGET_NONLINEAR  : 'target aperture has nonlinear pixels',
 }
 
+def ccdproc(cnam, ccd, rccd, ccdaper, ccdwins, read, gain, rfile, store):
+    """
+    Processing steps for one CCD. This is designed for parallelising the
+    processing across CCDs using multiprocessing. To be called *after*
+    checking that any processing is needed.
+    """
+
+    # At this point 'ccd' contains all the Windows of a CCD, 'ccdaper' all of
+    # its apertures, 'ccdwins' the label of the Window enclosing each
+    # aperture, 'rfile' contains control parameters, 'read' contains the
+    # readout noise, either as a float or a CCD, 'gain' contains the gain as
+    # either a float or a CCD. 'store' is a dictionary initially with jus
+    # 'mfwhm' and 'mbeta' set = -1, but will pick up extra stuff from
+    # moveApers for use by extractFlux along with revised values of mfwhm
+    # and mbeta which are used to initialise profile fits next time.
+
+    # move the apertures
+    moveApers(cnam, ccd, ccdaper, ccdwins, rfile, read, gain, store)
+
+    # extract flux from all apertures of each CCD. Return the store dictionary
+    # as well for compatibility with multiprocessing
+    return (
+        extractFlux(
+            cnam, ccd, rccd, ccdaper, ccdwins, rfile, read, gain, store),
+        store
+    )
