@@ -8,16 +8,18 @@
 The |hiper| pipeline manual
 ****************************
 
-The |hiper| pipeline serves two purposes. First, it provides a means of
-displaying, analysing and reducing |hiper| data. Second, it provides an
-"Application Programmers Interface" (API) to allow you to access and
-manipulate |hiper| and related data. The first will be of interest to anyone
-using |hiper|; the second to those who want to code their own scripts.  This
-manual covers both aspects.
+The |hiper| reduction software, known as the "pipeline" for short serves two
+purposes. First, it provides a means of displaying, analysing and reducing
+|hiper| data. Second, it provides an "Application Programmers Interface" (API)
+to allow you to access and manipulate |hiper| and related data. The first will
+be of interest to anyone using |hiper|; the second to those who want to code
+their own scripts.  This manual covers both aspects.
 
 .. Warning::
 
-   These pages are under development and incomplete
+   These pages are under development and incomplete. We have not had enough
+   time on sky to shake the system down and there are sure to be many teething
+   problems. Apologies!
 
 .. toctree::
    :maxdepth: 2

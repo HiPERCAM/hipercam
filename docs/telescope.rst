@@ -126,8 +126,8 @@ a format specific to |hiper|. For more on the format of these files consult
 You can then look at these with the |hiper| command |hplot| which, if you use
 the matplotlib option (``device=/mpl``), can allow you to zoom in on the same
 part of all CCDs simultaneously and also enables some simple statistics. These
-frames can also be displayed with other packages such as 
-`ds9 <http://ds9.si.edu/site/Home.html>`_ or 
+frames can also be displayed with other packages such as
+`ds9 <http://ds9.si.edu/site/Home.html>`_ or
 `gaia <http://star-www.dur.ac.uk/~pdraper/gaia/gaia.html>`_.
 
 Commands mentioned in this section: |grab|, |hplot|.
@@ -224,7 +224,7 @@ Commands mentioned in this section: |reduce|.
          foe example |reduce|, you would simply type ``reduce`` in a terminal.
 
 .. [#f1] This may fail if the data source is set incorrectly. If so, re-type
-         as "rtplot PROMPT" to see all the options, many of which are hidden
+         as "rtplot prompt" to see all the options, many of which are hidden
          by default. The one you might want to change is ``source`` which
          should be ``hs` for data from the server at the telescope, or ``hl``
          for data from a disk file local to your computer.
