@@ -596,13 +596,13 @@ def reduce(args=None):
 
         # that's it for the headers!
 
-        # short-hand for the monitor parameters which will
-        # be consulted often
+        # short-hand for the monitor parameters which will be consulted often
         monitor = rfile['monitor']
 
-        # for storage / retrieval of fit values from one
-        # frame to the next
+        # for storage / retrieval of fit values from one frame to the next
         store = {}
+
+        pool = multiprocessing.Pool(processes=rfile['general']['ncpu'])
 
         ##############################################
         #
@@ -657,8 +657,9 @@ def reduce(args=None):
                     # no bias subtraction
                     pccd = mccd
 
-                # container for the results from each CCD
-                results = {}
+                # container for the arguments to send to ccdproc
+                # for each CCD
+                arglist = []
                 for cnam in pccd:
 
                     # get the apertures
@@ -696,11 +697,26 @@ def reduce(args=None):
                     else:
                         gain = rfile.gain
 
-                    # send to parallelisable routine
-                    results[cnam], store[cnam] = ccdproc(
-                        cnam, pccd[cnam], mccd[cnam], rfile.aper[cnam],
-                        mccdwins[cnam], read, gain, rfile, store[cnam]
+                    # compile list of arguments to send to
+                    # parallelisable routine
+                    arglist.append(
+                        (cnam, pccd[cnam], mccd[cnam], rfile.aper[cnam],
+                         mccdwins[cnam], read, gain, rfile, store[cnam])
                     )
+
+                # Run the reduction, potentially in parallel
+                allres = pool.starmap(ccdproc, arglist)
+
+                # Save the results
+                results = {}
+                for cnam, st, res in allres:
+                    store[cnam] = st
+                    results[cnam] = res
+
+#                    results[cnam], store[cnam] = ccdproc(
+#                        cnam, pccd[cnam], mccd[cnam], rfile.aper[cnam],
+#                        mccdwins[cnam], read, gain, rfile, store[cnam]
+#                    )
 
                 # write out results to the log file
                 logfile.write('#\n')
@@ -1102,6 +1118,10 @@ class Rfile(OrderedDict):
                 'nonlinear' : float(nonlinear),
                 'saturation' : float(saturation),
             }
+
+        sect['ncpu'] = int(sect['ncpu'])
+        if sect['ncpu'] < 1:
+            raise ValueError('general.ncpu must be >= 1')
 
         #
         # apertures section
@@ -2881,10 +2901,11 @@ def ccdproc(cnam, ccd, rccd, ccdaper, ccdwins, read, gain, rfile, store):
     # move the apertures
     moveApers(cnam, ccd, ccdaper, ccdwins, rfile, read, gain, store)
 
-    # extract flux from all apertures of each CCD. Return the store dictionary
-    # as well for compatibility with multiprocessing
+    # extract flux from all apertures of each CCD. Return with the CCD
+    # name, the store dictionary and then the results from extractFlux
+    # for compatibility with multiprocessing
     return (
+        cnam, store,
         extractFlux(
             cnam, ccd, rccd, ccdaper, ccdwins, rfile, read, gain, store),
-        store
     )

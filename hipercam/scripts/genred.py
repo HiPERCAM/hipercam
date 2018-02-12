@@ -79,6 +79,12 @@ def genred(args=None):
            the instrument (needed to set nonlinearity and saturation levels for
            warning purposes. Possible options listed.
 
+        ncpu    : int [hidden]
+           some increase in speed can be obtained by running the reduction in
+           parallel. This parameter is the number of CPUs to use. The
+           parellisation is over the CCDs, and there is no point having ncpu
+           greater than the number of CCDs.
+
         extendx : float [hidden]
            how many minutes to extend light curve plot by at a time
 
@@ -133,6 +139,7 @@ def genred(args=None):
         cl.register('dark', Cline.LOCAL, Cline.PROMPT)
         cl.register('linear', Cline.LOCAL, Cline.PROMPT)
         cl.register('inst', Cline.LOCAL, Cline.HIDE)
+        cl.register('ncpu', Cline.LOCAL, Cline.HIDE)
         cl.register('extendx', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.HIDE)
         cl.register('location', Cline.LOCAL, Cline.HIDE)
@@ -208,20 +215,31 @@ warn = 3 50000 64000
 warn = 4 50000 64000
 warn = 5 50000 64000
 """
+            maxcpu = 5
         elif inst == 'ultracam':
             warn_levels = """# Warning levels for instrument = ULTRACAM
 warn = 1 28000 65500
 warn = 2 28000 65500
 warn = 3 50000 65500
 """
+            maxcpu = 3
         elif inst == 'ultraspec':
             warn_levels = """# Warning levels for instrument = ULTRASPEC
 warn = 1 65000 65500
 """
+            maxcpu = 1
 
         else:
             warn_levels = """# No warning levels have been set!!"""
+            maxcpu = 20
 
+        if maxcpu > 1:
+            ncpu = cl.get_value(
+                'ncpu', 'number of CPUs to use (<= number of CCDs)',
+                1, 1, maxcpu
+            )
+        else:
+            ncpu = 1
 
         linear = cl.get_value(
             'linear', 'linear light curve plot?', False
@@ -474,7 +492,7 @@ warn = 1 65000 65500
                 hipercam_version=hipercam_version, location=location,
                 comm_seeing=comm_seeing, extendx=extendx,
                 comm_position=comm_position, scale=scale,
-                warn_levels=warn_levels
+                warn_levels=warn_levels, ncpu=ncpu
             )
         )
 
@@ -531,6 +549,14 @@ iheight  = 0     # image curve plot height, inches
 # and the saturation level
 
 {warn_levels}
+
+# The aperture reposition and extraction stages can be run in separate CPUs in
+# parallel for each CCD. The next parameter is the number of CPUs to use. The
+# maximum useful number is the number of CCDs in the instrument, e.g. 5 for
+# HiPERCAM. You probably also want to leave at leat one CPU to do other stuff,
+# but if you have more than 2 CPUs, this parameter may help speed things a
+# little.
+ncpu = {ncpu}
 
 # The next section defines how the apertures are re-positioned from frame to
 # frame. Apertures are re-positioned through a combination of a search near a
