@@ -15,6 +15,10 @@ manipulate |hiper| and related data. The first will be of interest to anyone
 using |hiper|; the second to those who want to code their own scripts.  This
 manual covers both aspects.
 
+.. Warning::
+
+   These pages are under development and incomplete
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
