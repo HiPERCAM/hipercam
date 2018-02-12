@@ -361,7 +361,7 @@ class Rhead:
                         win_ny = hd[winID + 'NY']
                         llx = (
                             LLX[qnam] + X_DIRN[qnam] * win_xs +
-                            ADD_XSIZES[qnam] * (xframe - win_nx)
+                            ADD_XSIZES[qnam] * (HCM_NXTOT//2 - win_nx)
                         )
                         lly = (
                             LLY[qnam] + Y_DIRN[qnam] * win_ys +
@@ -382,8 +382,8 @@ class Rhead:
                         win_ys = hd['ESO DET DRWIN YS']
                         win_ny = hd['ESO DET DRWIN NY']
                         llx = (
-                            LLX[qnam] + X_DIRN[qnam] * win_xs +
-                            ADD_XSIZES[qnam] * (xframe - win_nx)
+                            LLX[qnam] + X_DIRN[qnam] * win_xs + 
+                            ADD_XSIZES[qnam] * (HCM_NXTOT//2 - win_nx)
                         )
                         lly = (
                             LLY[qnam] + Y_DIRN[qnam] * win_ys +
