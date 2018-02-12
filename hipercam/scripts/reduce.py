@@ -676,7 +676,7 @@ def reduce(args=None):
                         # drift from one window to another. Set to None if no
                         # window found
                         mccdwins[cnam] = {}
-                        for apnam, aper in ccdaper.items():
+                        for apnam, aper in rfile.aper[cnam].items():
                             for wnam, wind in mccd[cnam].items():
                                 if wind.distance(aper.x,aper.y) > 0:
                                     mccdwins[cnam][apnam] = wnam
@@ -709,8 +709,9 @@ def reduce(args=None):
 
                 # Save the results
                 results = {}
-                for cnam, st, res in allres:
+                for cnam, st, ccdaper, res in allres:
                     store[cnam] = st
+                    rfile.aper[cnam] = ccdaper
                     results[cnam] = res
 
 #                    results[cnam], store[cnam] = ccdproc(
@@ -2902,10 +2903,10 @@ def ccdproc(cnam, ccd, rccd, ccdaper, ccdwins, read, gain, rfile, store):
     moveApers(cnam, ccd, ccdaper, ccdwins, rfile, read, gain, store)
 
     # extract flux from all apertures of each CCD. Return with the CCD
-    # name, the store dictionary and then the results from extractFlux
-    # for compatibility with multiprocessing
+    # name, the store dictionary, ccdaper and then the results from
+    # extractFlux for compatibility with multiprocessing. Note 
     return (
-        cnam, store,
+        cnam, store, ccdaper,
         extractFlux(
             cnam, ccd, rccd, ccdaper, ccdwins, rfile, read, gain, store),
     )
