@@ -289,7 +289,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             # process results
             fit = Window(wind.winhead, mfit2.model(soln))
             skyf, heightf, xf, yf, betaf = soln
-            skyfe, heightfe, xfe, yfe, betafe = np.sqrt(np.diag(covar))
+            covs = np.diag(covar)
+            if (covs < 0).any():
+                raise HipercamError('Negative covariance in fitMoffat')
+            skyfe, heightfe, xfe, yfe, betafe = np.sqrt(covs)
             fwhmf, fwhmfe = fwhm, -1
 
         else:
@@ -309,8 +312,11 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             if fwhmf > fwhm_min:
                 # Free fit is OK
                 fit = Window(wind.winhead, mfit1.model(soln))
+                covs = np.diag(covar)
+                if (covs < 0).any():
+                    raise HipercamError('Negative covariance in fitMoffat')
                 skyfe, heightfe, xfe, yfe, \
-                    fwhmfe, betafe = np.sqrt(np.diag(covar))
+                    fwhmfe, betafe = np.sqrt(covs)
 
             else:
                 # fall back to fixed FWHM
@@ -329,7 +335,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 # process results
                 fit = Window(wind.winhead, mfit2.model(soln))
                 skyf, heightf, xf, yf, betaf = soln
-                skyfe, heightfe, xfe, yfe, betafe = np.sqrt(np.diag(covar))
+                covs = np.diag(covar)
+                if (covs < 0).any():
+                    raise HipercamError('Negative covariance in fitMoffat')
+                skyfe, heightfe, xfe, yfe, betafe = np.sqrt(covs)
                 fwhmf, fwhmfe = fwhm_min, -1
 
         # now look for bad outliers
@@ -1050,7 +1059,10 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             # process results
             fit = Window(wind.winhead, gfit2.model(soln))
             skyf, heightf, xf, yf = soln
-            skyfe, heightfe, xfe, yfe = np.sqrt(np.diag(covar))
+            covs = np.diag(covar)
+            if (covs < 0).any():
+                raise HipercamError('Negative covariance in fitGaussian')
+            skyfe, heightfe, xfe, yfe = np.sqrt(np.diag(covs))
             fwhmf, fwhmfe = fwhm, -1
 
         else:
@@ -1069,7 +1081,10 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             skyf, heightf, xf, yf, fwhmf = soln
             if fwhmf > fwhm_min:
                 # Free fit is OK
-                skyfe, heightfe, xfe, yfe, fwhmfe = np.sqrt(np.diag(covar))
+                covs = np.diag(covar)
+                if (covs < 0).any():
+                    raise HipercamError('Negative covariance in fitGaussian')
+                skyfe, heightfe, xfe, yfe, fwhmfe = np.sqrt(covs)
                 fit = Window(wind.winhead, gfit1.model(soln))
 
             else:
@@ -1089,7 +1104,10 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 # process results
                 fit = Window(wind.winhead, gfit2.model(soln))
                 skyf, heightf, xf, yf = soln
-                skyfe, heightfe, xfe, yfe = np.sqrt(np.diag(covar))
+                covs = np.diag(covar)
+                if (covs < 0).any():
+                    raise HipercamError('Negative covariance in fitGaussian')
+                skyfe, heightfe, xfe, yfe = np.sqrt(covs)
                 fwhmf, fwhmfe = fwhm_min, -1
 
         # now look for bad outliers
