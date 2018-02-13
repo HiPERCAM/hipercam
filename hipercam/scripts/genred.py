@@ -97,11 +97,21 @@ def genred(args=None):
         smooth_fwhm : float [hidden]
            FWHM to use for smoothing during initial search
 
+        method   : string
+           profile fitting method. 'g' for gaussian, 'm' for moffat
+
         fwhm     : float [hidden]
            the default FWHM to use when fitting, unbinned pixels.
 
         fwhm_min : float [hidden]
            the default FWHM to use when fitting, unbinned pixels.
+
+        half_width : int [hidden]
+           half width in (binned) pixels for the target searches and
+           profile fits
+
+        height_min : float [hidden]
+           minimum peak height for a fit to be accepted
 
         rfac     : float [hidden]
            target aperture radius relative to the FWHM for 'variable' aperture
@@ -144,8 +154,11 @@ def genred(args=None):
         cl.register('ccd', Cline.LOCAL, Cline.HIDE)
         cl.register('location', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('smooth_fwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwhm_min', Cline.LOCAL, Cline.HIDE)
+        cl.register('smoothfwhm', Cline.LOCAL, Cline.HIDE)
+        cl.register('method', Cline.LOCAL, Cline.HIDE)
+        cl.register('fwhmmin', Cline.LOCAL, Cline.HIDE)
+        cl.register('halfwidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('heightmin', Cline.LOCAL, Cline.HIDE)
         cl.register('rfac', Cline.LOCAL, Cline.HIDE)
         cl.register('rmin', Cline.LOCAL, Cline.HIDE)
         cl.register('rmax', Cline.LOCAL, Cline.HIDE)
@@ -257,7 +270,7 @@ warn = 1 65000 65500
             'ccd', 'label for the CCD used for the position plot','2'
         )
         if ccd not in aper:
-            raise HipercamError(
+            raise hcam.HipercamError(
                 'CCD {:s} not found in aperture file {:s}'.format(ccd,apfile)
             )
 
@@ -271,13 +284,26 @@ warn = 1 65000 65500
         comm_position = '#' if location == 'fixed' else ''
 
         smooth_fwhm = cl.get_value(
-            'smooth_fwhm','search smoothing FWHM [unbinned pixels]',6.,3.
+            'smoothfwhm','search smoothing FWHM [unbinned pixels]',6.,3.
         )
+        profile_type = cl.get_value(
+            'method', 'profile fit method, g(aussian) or m(offat)',
+            'g', lvals=['g','m']
+        )
+        profile_type = 'gaussian' if profile_type == 'g' else 'moffat'
+
         fwhm = cl.get_value(
             'fwhm','starting FWHM, unbinned pixels',5.,1.5
         )
         fwhm_min = cl.get_value(
-            'fwhm_min','minimum FWHM, unbinned pixels',1.5,0.
+            'fwhmmin','minimum FWHM, unbinned pixels',1.5,0.
+        )
+        half_width = cl.get_value(
+            'halfwidth', 'half widths for search & fits, pixels', 21, 7
+        )
+        height_min = cl.get_value(
+            'heightmin',
+            'minimum peak height for a fit to be acceptable [counts]', 40, 1
         )
         rfac = cl.get_value(
             'rfac','target aperture scale factor',1.8,1.0
@@ -492,7 +518,8 @@ warn = 1 65000 65500
                 hipercam_version=hipercam_version, location=location,
                 comm_seeing=comm_seeing, extendx=extendx,
                 comm_position=comm_position, scale=scale,
-                warn_levels=warn_levels, ncpu=ncpu
+                warn_levels=warn_levels, ncpu=ncpu, half_width=half_width,
+                profile_type=profile_type, height_min=height_min
             )
         )
 
@@ -578,19 +605,19 @@ ncpu = {ncpu}
 aperfile   = {apfile}   # file of software apertures for each CCD
 location   = {location} # aperture locations: 'fixed' or 'variable'
 
-search_half_width_ref  = 15   # for initial search around reference aperture, unbinned pixels
-search_half_width_non  = 5    # for initial search around non-reference aperture, unbinned pixels
+search_half_width_ref  = {half_width:d}   # for initial search around reference aperture, unbinned pixels
+search_half_width_non  = {half_width:d}    # for initial search around non-reference aperture, unbinned pixels
 search_smooth_fwhm     = {smooth_fwhm:.1f}    # smoothing FWHM, binned pixels
 
-fit_method     = moffat    # gaussian or moffat
+fit_method     = {profile_type}    # gaussian or moffat
 fit_beta       = 4.        # Moffat exponent
 fit_fwhm       = {fwhm:.1f}   # FWHM, unbinned pixels
 fit_fwhm_min   = {fwhm_min:.1f}   # Minimum FWHM, unbinned pixels
 fit_ndiv       = 0         # sub-pixellation factor
 fit_fwhm_fixed = no        # Slightly faster not to fit the FWHM.
-fit_half_width = 15        # for fit, unbinned pixels
-fit_thresh     = 4         # RMS rejection threshold for fits
-fit_height_min = 50        # minimum height to accept a fit
+fit_half_width = {half_width:d}   # for fit, unbinned pixels
+fit_thresh     = 4            # RMS rejection threshold for fits
+fit_height_min = {height_min} # minimum height to accept a fit
 
 
 # The next lines define how the apertures will be re-sized and how the flux
