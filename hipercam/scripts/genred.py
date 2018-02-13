@@ -497,7 +497,7 @@ warn = 1 65000 65500
             targs.add(targ)
     monitor = ''
     for targ in sorted(targs):
-        monitor += ('{:s} = TARGET_SATURATED TARGET_AT_EDGE'
+        monitor += ('{:s} = NO_EXTRACTION TARGET_SATURATED TARGET_AT_EDGE'
                     ' TARGET_NONLINEAR NO_SKY SKY_AT_EDGE\n').format(targ)
 
     # time stamp

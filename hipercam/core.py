@@ -12,7 +12,7 @@ __all__ = (
     'LOG', 'CNAMS', 'CIS', 'ALL_OK', 'NO_FWHM',
     'NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
     'TARGET_NONLINEAR', 'TARGET_SATURATED', 'ANY',
-    'REDUCE_FILE_VERSION'
+    'REDUCE_FILE_VERSION', 'NO_EXTRACTION'
 )
 
 # Constants for general use
@@ -83,9 +83,10 @@ SKY_AT_EDGE       = 1 << 2  # Sky aperture overlaps edge of window
 TARGET_AT_EDGE    = 1 << 3  # Target aperture overlaps edge of window
 TARGET_SATURATED  = 1 << 4  # At least one pixel in target above saturation level
 TARGET_NONLINEAR  = 1 << 5  # At least one pixel in target above non-linear level
+NO_EXTRACTION     = 1 << 6  # No extraction possible
 
 ANY = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | TARGET_SATURATED | \
-      TARGET_NONLINEAR
+      TARGET_NONLINEAR | NO_EXTRACTION
 
 class HipercamError (Exception):
     """

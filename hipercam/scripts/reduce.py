@@ -1689,35 +1689,38 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
             else:
                 gn = gain
 
-            # get sub-windat around start position
-            shbox = apsec['search_half_width_non']
-            swind = wind.window(
-                aper.x+xshift-shbox, aper.x+xshift+shbox,
-                aper.y+yshift-shbox, aper.y+yshift+shbox
-            )
-
-            # carry out initial search
-            x,y,peak = swind.find(apsec['search_smooth_fwhm'], False)
-
-            # now for a more refined fit. First extract fit Window
-            fhbox = apsec['fit_half_width']
-            fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-
-            sky = np.percentile(fwind.data, 50)
-
-            # get some parameters from previous run where possible
-            if apnam in store and store[apnam]['fwhme'] > 0.:
-                fit_fwhm = store[apnam]['fwhm']
-            else:
-                fit_fwhm = apsec['fit_fwhm']
-
-            if apnam in store and store[apnam]['betae'] > 0.:
-                fit_beta = store[apnam]['beta']
-            else:
-                fit_beta = apsec['fit_beta']
-
-            # refine the Aperture position by fitting the profile
             try:
+
+                # get sub-windat around start position
+                shbox = apsec['search_half_width_non']
+
+                swind = wind.window(
+                    aper.x+xshift-shbox, aper.x+xshift+shbox,
+                    aper.y+yshift-shbox, aper.y+yshift+shbox
+                )
+
+                # carry out initial search
+                x,y,peak = swind.find(apsec['search_smooth_fwhm'], False)
+
+                # now for a more refined fit. First extract fit Window
+                fhbox = apsec['fit_half_width']
+                fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+
+                sky = np.percentile(fwind.data, 50)
+
+                # get some parameters from previous run where possible
+                if apnam in store and store[apnam]['fwhme'] > 0.:
+                    fit_fwhm = store[apnam]['fwhm']
+                else:
+                    fit_fwhm = apsec['fit_fwhm']
+
+                if apnam in store and store[apnam]['betae'] > 0.:
+                    fit_beta = store[apnam]['beta']
+                else:
+                    fit_beta = apsec['fit_beta']
+
+                # refine the Aperture position by fitting the profile
+
                 (sky, height, x, y, fwhm, beta), \
                     (esky, eheight, ex, ey, efwhm, ebeta), \
                     extras = \
@@ -1943,230 +1946,248 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
                       aper.y-aper.rsky2-wind.ybin, \
                       aper.y+aper.rsky2+wind.ybin
 
-        swind = wind.window(x1,x2,y1,y2)
-        srwind = rwind.window(x1,x2,y1,y2)
+        try:
+            swind = wind.window(x1,x2,y1,y2)
+            srwind = rwind.window(x1,x2,y1,y2)
 
-        # some checks for possible problems. bitmask flags will
-        # be set if they are encountered.
-        xlo,xhi,ylo,yhi = swind.extent()
-        if xlo > aper.x-aper.rsky2 or xhi < aper.x+aper.rsky2 or \
-           ylo > aper.y-aper.rsky2 or yhi < aper.y+aper.rsky2:
-            # the sky aperture overlaps the edge of the window
-            flag |= hcam.SKY_AT_EDGE
+            # some checks for possible problems. bitmask flags will
+            # be set if they are encountered.
+            xlo,xhi,ylo,yhi = swind.extent()
+            if xlo > aper.x-aper.rsky2 or xhi < aper.x+aper.rsky2 or \
+               ylo > aper.y-aper.rsky2 or yhi < aper.y+aper.rsky2:
+                # the sky aperture overlaps the edge of the window
+                flag |= hcam.SKY_AT_EDGE
 
-        if xlo > aper.x-aper.rtarg or xhi < aper.x+aper.rtarg or \
-           ylo > aper.y-aper.rtarg or yhi < aper.y+aper.rtarg:
-            # the target aperture overlaps the edge of the window
-            flag |= hcam.TARGET_AT_EDGE
-
-        for xoff, yoff in aper.extra:
-            rout = np.sqrt(xoff**2+yoff**2) + aper.rtarg
-            if xlo > aper.x-rout or xhi < aper.x+rout or \
-               ylo > aper.y-rout or yhi < aper.y+rout:
-                # an extra target aperture overlaps the edge of the window
+            if xlo > aper.x-aper.rtarg or xhi < aper.x+aper.rtarg or \
+               ylo > aper.y-aper.rtarg or yhi < aper.y+aper.rtarg:
+                # the target aperture overlaps the edge of the window
                 flag |= hcam.TARGET_AT_EDGE
 
-        # if read & gain are actually CCDs rather than floats
-        if isinstance(read, hcam.CCD):
-            sread = read[wnam].window(x1,x2,y1,y2).data
+            for xoff, yoff in aper.extra:
+                rout = np.sqrt(xoff**2+yoff**2) + aper.rtarg
+                if xlo > aper.x-rout or xhi < aper.x+rout or \
+                   ylo > aper.y-rout or yhi < aper.y+rout:
+                    # an extra target aperture overlaps the edge of the window
+                    flag |= hcam.TARGET_AT_EDGE
 
-        if isinstance(gain, hcam.CCD):
-            sgain = gain[wnam].window(x1,x2,y1,y2).data
+            # if read & gain are actually CCDs rather than floats
+            if isinstance(read, hcam.CCD):
+                sread = read[wnam].window(x1,x2,y1,y2).data
 
-        # compute X, Y arrays over the sub-window relative to the centre
-        # of the aperture and the distance squared from the centre (Rsq)
-        # to save a little effort.
-        x = swind.x(np.arange(swind.nx))-aper.x
-        y = swind.y(np.arange(swind.ny))-aper.y
-        X, Y = np.meshgrid(x, y)
-        Rsq = X**2 + Y**2
+            if isinstance(gain, hcam.CCD):
+                sgain = gain[wnam].window(x1,x2,y1,y2).data
 
-        # squared aperture radii for comparison
-        R1sq, R2sq, R3sq = aper.rtarg**2, aper.rsky1**2, aper.rsky2**2
+            # compute X, Y arrays over the sub-window relative to the centre
+            # of the aperture and the distance squared from the centre (Rsq)
+            # to save a little effort.
+            x = swind.x(np.arange(swind.nx))-aper.x
+            y = swind.y(np.arange(swind.ny))-aper.y
+            X, Y = np.meshgrid(x, y)
+            Rsq = X**2 + Y**2
 
-        # sky selection, accounting for masks and extra (which we assume
-        # acts like a sky mask as well)
-        sok = (Rsq > R2sq) & (Rsq < R3sq)
-        for xoff, yoff, radius in aper.mask:
-            sok &= (X-xoff)**2 + (Y-yoff)**2 > radius**2
-        for xoff, yoff in aper.extra:
-            sok &= (X-xoff)**2 + (Y-yoff)**2 > R1sq
+            # squared aperture radii for comparison
+            R1sq, R2sq, R3sq = aper.rtarg**2, aper.rsky1**2, aper.rsky2**2
 
-        # generate sky
-        dsky = swind.data[sok]
-        if len(dsky):
+            # sky selection, accounting for masks and extra (which we assume
+            # acts like a sky mask as well)
+            sok = (Rsq > R2sq) & (Rsq < R3sq)
+            for xoff, yoff, radius in aper.mask:
+                sok &= (X-xoff)**2 + (Y-yoff)**2 > radius**2
+            for xoff, yoff in aper.extra:
+                sok &= (X-xoff)**2 + (Y-yoff)**2 > R1sq
 
-            # we have some sky!
-            if rfile['sky']['method'] == 'clipped':
+            # generate sky
+            dsky = swind.data[sok]
+            if len(dsky):
 
-                # clipped mean. Take average, compute RMS,
-                # reject pixels > thresh*rms from the mean.
-                # repeat until no new pixels are rejected.
+                # we have some sky!
+                if rfile['sky']['method'] == 'clipped':
 
-                thresh = rfile['sky']['thresh']
-                ok = np.ones_like(dsky, dtype=bool)
-                nrej = 1
-                while nrej:
-                    slevel = dsky[ok].mean()
-                    srms = dsky[ok].std()
-                    nold = len(dsky[ok])
-                    ok = ok & (np.abs(dsky-slevel) < thresh*srms)
-                    nrej = nold - len(dsky[ok])
+                    # clipped mean. Take average, compute RMS,
+                    # reject pixels > thresh*rms from the mean.
+                    # repeat until no new pixels are rejected.
 
-                nsky = len(dsky[ok])
+                    thresh = rfile['sky']['thresh']
+                    ok = np.ones_like(dsky, dtype=bool)
+                    nrej = 1
+                    while nrej:
+                        slevel = dsky[ok].mean()
+                        srms = dsky[ok].std()
+                        nold = len(dsky[ok])
+                        ok = ok & (np.abs(dsky-slevel) < thresh*srms)
+                        nrej = nold - len(dsky[ok])
 
-                # serror -- error in the sky estimate.
-                serror = srms/np.sqrt(nsky)
+                    nsky = len(dsky[ok])
+
+                    # serror -- error in the sky estimate.
+                    serror = srms/np.sqrt(nsky)
+
+                else:
+
+                    # 'median' goes with 'photon'
+                    slevel = dsky.median()
+                    nsky = len(dsky)
+                    nrej = 0
+
+                    # srms will be used to substitute use read / gain parameters
+                    if isinstance(read, hcam.CCD):
+                        rd = sread[sok][ok]
+                    else:
+                        rd = read
+
+                    if isinstance(gain, hcam.CCD):
+                        gn = sgain[sok][ok]
+                    else:
+                        gn = gain
+                    serror = np.sqrt(
+                        (rd**2 + np.max(0, dsky[ok])/gn).sum()/nsky**2)
 
             else:
-
-                # 'median' goes with 'photon'
-                slevel = dsky.median()
-                nsky = len(dsky)
+                # no sky. will still return the flux in the aperture but set
+                # flag and the sky uncertainty to -1
+                flag |= hcam.NO_SKY
+                slevel = 0
+                serror = -1
+                nsky = 0
                 nrej = 0
 
-                # srms will be used to substitute use read / gain parameters
-                if isinstance(read, hcam.CCD):
-                    rd = sread[sok][ok]
-                else:
-                    rd = read
+            # size of a pixel which is used to taper pixels as they approach
+            # the edge of the aperture to reduce pixellation noise
+            size = np.sqrt(wind.xbin*wind.ybin)
 
-                if isinstance(gain, hcam.CCD):
-                    gn = sgain[sok][ok]
-                else:
-                    gn = gain
-                serror = np.sqrt((rd**2 + np.max(0, dsky[ok])/gn).sum()/nsky**2)
+            # target selection, accounting for extra apertures and allowing
+            # pixels to contribute if their centres are as far as size/2 beyond
+            # the edge of the circle (but with a tapered weight)
+            dok = Rsq < (aper.rtarg+size/2.)**2
 
-        else:
-            # no sky. will still return the flux in the aperture but set flag
-            # and the sky uncertainty to -1
-            flag |= hcam.NO_SKY
-            slevel = 0
-            serror = -1
-            nsky = 0
-            nrej = 0
+            # check for saturation and nonlinearity
+            if cnam in rfile.warn:
+                if srwind.data[dok].max() >= rfile.warn[cnam]['saturation']:
+                    flag |= hcam.TARGET_SATURATED
 
-        # size of a pixel which is used to taper pixels as they approach
-        # the edge of the aperture to reduce pixellation noise
-        size = np.sqrt(wind.xbin*wind.ybin)
+                if srwind.data[dok].max() >= rfile.warn[cnam]['nonlinear']:
+                    flag |= hcam.TARGET_NONLINEAR
 
-        # target selection, accounting for extra apertures and allowing
-        # pixels to contribute if their centres are as far as size/2 beyond
-        # the edge of the circle (but with a tapered weight)
-        dok = Rsq < (aper.rtarg+size/2.)**2
-
-        # check for saturation and nonlinearity
-        if cnam in rfile.warn:
-            if srwind.data[dok].max() >= rfile.warn[cnam]['saturation']:
-                flag |= hcam.TARGET_SATURATED
-
-            if srwind.data[dok].max() >= rfile.warn[cnam]['nonlinear']:
-                flag |= hcam.TARGET_NONLINEAR
-
-        else:
-            warnings.warn(
-                'CCD {:s} has no nonlinearity or saturation levels set'
-            )
-
-        # Pixellation amelioration:
-        #
-        # The weight of a pixel is set to 1 at the most and then linearly
-        # declines as it approaches the edge of the aperture. The scale over
-        # which it declines is set by 'size', the geometric mean of the
-        # binning factors. A pixel with its centre exactly on the edge
-        # gets a weight of 0.5.
-        wgt = np.minimum(
-            1, np.maximum(
-                0, (aper.rtarg+size/2.-np.sqrt(Rsq))/size
-                )
-            )
-        for xoff, yoff in aper.extra:
-            rsq = (X-xoff)**2 + (Y-yoff)**2
-            dok |= rsq < (aper.rtarg+size/2.)**2
-            wg = np.minimum(
-                1, np.maximum(
-                    0, (aper.rtarg+size/2.-np.sqrt(rsq))/size
-                    )
-                )
-            wgt = np.maximum(wgt, wg)
-
-        # extract just the data and weight values in the target region
-        dtarg = swind.data[dok]
-        wtarg = wgt[dok]
-
-        # override to indicate we want to override
-        # the readout noise
-        if nsky and rfile['sky']['error'] == 'variance':
-            rd = srms
-            override = True
-        elif isinstance(read, hcam.CCD):
-            rd = sread[dok]
-            override = False
-        else:
-            rd = read
-            override = False
-
-        if isinstance(gain, hcam.CCD):
-            gn = sgain[dok]
-        else:
-            gn = gain
-
-        # counts above sky
-        diff = dtarg-slevel
-
-        if extype == 'normal' or extype == 'optimal':
-
-            if extype == 'optimal':
-                # optimal extraction. Need the profile
-                warnings.warn(
-                    'Tranmission plot is not reliable with optimal extraction'
-                )
-
-                mbeta = store['mbeta']
-                if mbeta > 0.:
-                    prof = fitting.moffat(
-                        (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm, mbeta,
-                        wind.xbin, wind.ybin, rfile['apertures']['fit_ndiv']
-                    )
-                else:
-                    prof = fitting.gaussian(
-                        (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm,
-                        wind.xbin, wind.ybin, rfile['apertures']['fit_ndiv']
-                    )
-
-                # multiply weights by the profile
-                wtarg *= prof
-
-            # now extract
-            counts = (wtarg*diff).sum()
-
-            if override:
-                var = (wtarg**2*(rd**2 + np.maximum(0, diff/gn))).sum()
             else:
-                var = (wtarg**2*(rd**2 + np.maximum(0, dtarg)/gn)).sum()
+                warnings.warn(
+                    'CCD {:s} has no nonlinearity or saturation levels set'
+                )
 
-            if serror > 0:
-                # add in factor due to uncertainty in sky estimate
-                var += (wtarg.sum()*serror)**2
-
-            ecounts = np.sqrt(var)
-
-        else:
-            raise ValueError(
-                'extraction type = {:s} not recognised'.format(extype)
+            # Pixellation amelioration:
+            #
+            # The weight of a pixel is set to 1 at the most and then linearly
+            # declines as it approaches the edge of the aperture. The scale over
+            # which it declines is set by 'size', the geometric mean of the
+            # binning factors. A pixel with its centre exactly on the edge
+            # gets a weight of 0.5.
+            wgt = np.minimum(
+                1, np.maximum(
+                    0, (aper.rtarg+size/2.-np.sqrt(Rsq))/size
+                )
             )
+            for xoff, yoff in aper.extra:
+                rsq = (X-xoff)**2 + (Y-yoff)**2
+                dok |= rsq < (aper.rtarg+size/2.)**2
+                wg = np.minimum(
+                    1, np.maximum(
+                        0, (aper.rtarg+size/2.-np.sqrt(rsq))/size
+                    )
+                )
+                wgt = np.maximum(wgt, wg)
 
-        info = store[apnam]
+            # extract just the data and weight values in the target region
+            dtarg = swind.data[dok]
+            wtarg = wgt[dok]
 
-        results[apnam] = {
-            'x' : aper.x, 'xe' : info['xe'],
-            'y' : aper.y, 'ye' : info['ye'],
-            'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
-            'beta' : info['beta'], 'betae' : info['betae'],
-            'counts' : counts, 'countse' : ecounts,
-            'sky' : slevel, 'skye' : serror, 'nsky' : nsky,
-            'nrej' : nrej, 'flag' : flag
-        }
+            # override to indicate we want to override
+            # the readout noise
+            if nsky and rfile['sky']['error'] == 'variance':
+                rd = srms
+                override = True
+            elif isinstance(read, hcam.CCD):
+                rd = sread[dok]
+                override = False
+            else:
+                rd = read
+                override = False
+
+            if isinstance(gain, hcam.CCD):
+                gn = sgain[dok]
+            else:
+                gn = gain
+
+            # counts above sky
+            diff = dtarg-slevel
+
+            if extype == 'normal' or extype == 'optimal':
+
+                if extype == 'optimal':
+                    # optimal extraction. Need the profile
+                    warnings.warn(
+                        'Transmission plot is not reliable'
+                        ' with optimal extraction'
+                    )
+
+                    mbeta = store['mbeta']
+                    if mbeta > 0.:
+                        prof = fitting.moffat(
+                            (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm, mbeta,
+                            wind.xbin, wind.ybin, rfile['apertures']['fit_ndiv']
+                        )
+                    else:
+                        prof = fitting.gaussian(
+                            (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm,
+                            wind.xbin, wind.ybin, rfile['apertures']['fit_ndiv']
+                        )
+
+                    # multiply weights by the profile
+                    wtarg *= prof
+
+                # now extract
+                counts = (wtarg*diff).sum()
+
+                if override:
+                    var = (wtarg**2*(rd**2 + np.maximum(0, diff/gn))).sum()
+                else:
+                    var = (wtarg**2*(rd**2 + np.maximum(0, dtarg)/gn)).sum()
+
+                if serror > 0:
+                    # add in factor due to uncertainty in sky estimate
+                    var += (wtarg.sum()*serror)**2
+
+                ecounts = np.sqrt(var)
+
+            else:
+                raise ValueError(
+                    'extraction type = {:s} not recognised'.format(extype)
+                )
+
+            info = store[apnam]
+
+            results[apnam] = {
+                'x' : aper.x, 'xe' : info['xe'],
+                'y' : aper.y, 'ye' : info['ye'],
+                'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
+                'beta' : info['beta'], 'betae' : info['betae'],
+                'counts' : counts, 'countse' : ecounts,
+                'sky' : slevel, 'skye' : serror, 'nsky' : nsky,
+                'nrej' : nrej, 'flag' : flag
+            }
+
+        except hcam.HipercamError as err:
+
+            info = store[apnam]
+            flag |= hcam.NO_EXTRACTION
+
+            results[apnam] = {
+                'x' : aper.x, 'xe' : info['xe'],
+                'y' : aper.y, 'ye' : info['ye'],
+                'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
+                'beta' : info['beta'], 'betae' : info['betae'],
+                'counts' : 0., 'countse' : -1,
+                'sky' : 0., 'skye' : 0., 'nsky' : 0, 'nrej' : 0,
+                'flag' : flag
+            }
 
     # finally, we are done
     return results
