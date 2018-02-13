@@ -1627,7 +1627,8 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
                         'dx' : 0., 'dy' : 0.
                     }
 
-            except hcam.HipercamError as err:
+            except:
+                # trap problems during the fits
                 print(
                     'CCD {:s}, reference aperture {:s},'
                     ' fit failed'.format(cnam, apnam), file=sys.stderr
