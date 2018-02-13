@@ -488,6 +488,46 @@ class Rhead:
                 hd['DATE'], hd.comments['DATE']
             )
 
+        if 'OBJECT' in hd:
+            self.thead['OBJECT'] = (
+                hd['OBJECT'], hd.comments['OBJECT']
+            )
+
+        if 'FILTERS' in hd:
+            self.thead['FILTERS'] = (
+                hd['FILTERS'], hd.comments['FILTERS']
+            )
+
+        if 'PI' in hd:
+            self.thead['PI'] = (
+                hd['PI'], hd.comments['PI']
+            )
+
+        if 'OBSERVER' in hd:
+            self.thead['OBSERVER'] = (
+                hd['OBSERVER'], hd.comments['OBSERVER']
+            )
+
+        if 'RA' in hd:
+            self.thead['RA'] = (
+                hd['RA'], hd.comments['RA']
+            )
+
+        if 'DEC' in hd:
+            self.thead['DEC'] = (
+                hd['DEC'], hd.comments['DEC']
+            )
+
+        if 'INSTRPA' in hd:
+            self.thead['INSTRPA'] = (
+                hd['INSTRPA'], hd.comments['INSTRPA']
+            )
+
+        if 'IMAGETYP' in hd:
+            self.thead['IMAGETYP'] = (
+                hd['IMAGETYP'], hd.comments['IMAGETYP']
+            )
+
         if full and 'ESO DET GPS' in hd:
             self.thead['GPS'] = (
                 hd['ESO DET GPS'], hd.comments['ESO DET GPS']
