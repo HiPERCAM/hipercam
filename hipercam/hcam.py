@@ -208,7 +208,10 @@ class Rhead:
         self.mode = hd['ESO DET READ CURNAME']
         self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
         self.drift = self.mode.startswith('Drift')
-        self.ndwins = hd.get('ESO DET DRIFT NWINS',0)
+        if self.drift:
+            self.ndwins = hd.get('ESO DET DRIFT NWINS',0)
+        else:
+            self.ndwins = 0
 
         # check for overscan / prescan / clear
         self.clear = hd['ESO DET CLRCCD']
