@@ -328,6 +328,16 @@ class Rhead:
         else:
             self.nwins = (0,)
 
+        # Rotation: in the Feb 2018 GTC run, CCD 1 was physically
+        # rotated 180 degrees. Stu accounted for this in the software.
+        # This part is to account for it in the pipeline, defaulting
+        # to no rotation by default.
+        self.rotate = []
+        for nccd in range(5):
+            self.rotate.append(
+                hd.get('ESO DET ROTATE{:d}'.format(nccd+1),False)
+            )
+
         # build windows for each window of each quadrant of each CCDs
         self.windows = []
         for nwin in self.nwins:
@@ -385,7 +395,7 @@ class Rhead:
                         win_ys = hd['ESO DET DRWIN YS']
                         win_ny = hd['ESO DET DRWIN NY']
                         llx = (
-                            LLX[qnam] + X_DIRN[qnam] * win_xs + 
+                            LLX[qnam] + X_DIRN[qnam] * win_xs +
                             ADD_XSIZES[qnam] * (HCM_NXTOT//2 - win_nx)
                         )
                         lly = (
@@ -397,11 +407,20 @@ class Rhead:
                         msg = 'mode {} not currently supported'.format(mode)
                         raise ValueError(msg)
 
+                    # Apply rotation
+                    if self.rotate[nccd]:
+                        llx = HCM_NXTOT - llx - nx*self.xbin
+                        lly = HCM_NYTOT - lly - ny*self.ybin
+                        flip_axes = set((0,1)) - set(FLIP_AXES[qnam])
+                    else:
+                        flip_axes = FLIP_AXES[qnam]
+
                     # store the window and the axes to flip
                     self.windows[-1][-1].append(
                         (Winhead(llx, lly, nx, ny, self.xbin, self.ybin),
-                         FLIP_AXES[qnam])
+                         flip_axes)
                     )
+
 
 
         # set strings for logging purposes giving the settings used in hdriver
