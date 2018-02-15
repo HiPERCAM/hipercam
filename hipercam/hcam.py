@@ -52,10 +52,12 @@ HCM_NPSCAN = 50
 # when an overscan is present
 HCM_NOSCAN = 8
 
-# Code to account for reflections of the g and z CCDs
+# Code to account for reflections of the g and z CCDs,
+# and potential 180 degree rotations
 REFLECTED = (1, 4)
 QNAMS = ('E', 'F', 'G', 'H')
 QNAMS_MAPPING = {'E': 'F', 'F': 'E', 'G': 'H', 'H': 'G'}
+QNAMS_ROTATED = {'E': 'G', 'F': 'H', 'G': 'E', 'H': 'F'}
 
 class Rhead:
     """Reads an interprets header information from a HiPERCAM run (3D FITS file)
@@ -118,7 +120,7 @@ class Rhead:
 
        wforms    : tuple of strings
            formats of each set of windows as strings designed to match the input
-           expectd for hdriver.
+           expected for hdriver.
 
        xbin      : int
            X-binning factor
@@ -351,6 +353,10 @@ class Rhead:
                         # reflections for g (1) and z (4)
                         qnam = QNAMS_MAPPING[qnam]
 
+                    if self.rotate[nccd]:
+                        # if CCD rotated, swap E<-->G, F<-->H, etc
+                        qnam = QNAMS_ROTATED[qnam]
+
                     if self.mode.startswith('FullFrame'):
                         nx = xframe // self.xbin
                         ny = yframe // self.ybin
@@ -407,18 +413,10 @@ class Rhead:
                         msg = 'mode {} not currently supported'.format(mode)
                         raise ValueError(msg)
 
-                    # Apply rotation
-                    if self.rotate[nccd]:
-                        llx = HCM_NXTOT - llx - nx*self.xbin
-                        lly = HCM_NYTOT - lly - ny*self.ybin
-                        flip_axes = set((0,1)) - set(FLIP_AXES[qnam])
-                    else:
-                        flip_axes = FLIP_AXES[qnam]
-
                     # store the window and the axes to flip
                     self.windows[-1][-1].append(
                         (Winhead(llx, lly, nx, ny, self.xbin, self.ybin),
-                         flip_axes)
+                         FLIP_AXES[qnam])
                     )
 
 
