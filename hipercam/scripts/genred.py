@@ -461,7 +461,7 @@ warn = 1 65000 65500
         ccdaper = aper[cnam]
         if '1' in ccdaper and not ccdaper['1'].is_linked():
             seeing_plot += (
-                '{:s}plot = {:s} 2 {:10s} !  '
+                '{:s}plot = {:s} 1 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
                     comm_seeing, cnam, CCD_COLS[cnam]
                 )
@@ -469,7 +469,7 @@ warn = 1 65000 65500
 
         elif '2' in ccdaper and not ccdaper['2'].is_linked():
             seeing_plot += (
-                '{:s}plot = {:s} 3 {:10s} !  '
+                '{:s}plot = {:s} 2 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
                     comm_seeing, cnam, CCD_COLS[cnam]
                 )
@@ -477,7 +477,7 @@ warn = 1 65000 65500
 
         elif '3' in ccdaper  and not ccdaper['3'].is_linked():
             seeing_plot += (
-                '{:s}plot = {:s} 1 {:10s} !  '
+                '{:s}plot = {:s} 3 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
                     comm_seeing, cnam, CCD_COLS[cnam]
                 )
