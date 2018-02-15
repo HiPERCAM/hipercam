@@ -934,11 +934,12 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 # refine the Aperture position by fitting the profile
                 try:
                     (sky, height, x, y, fwhm, beta), epars, \
-                        (X, Y, message) = hcam.combFit(
-                            fwind, self.method, sky, peak-sky,
-                            x, y, self.fwhm, self.fwhm_min, self.fwhm_fix,
-                            self.beta, self.read, self.gain
-                        )
+                        (wfit, X, Y, sigma, chisq, nok, nrej,
+                         npar, message) = hcam.fitting.combFit(
+                        fwind, self.method, sky, peak-sky,
+                        x, y, self.fwhm, self.fwhm_min, self.fwhm_fix,
+                        self.beta, self.read, self.gain, self.thresh
+                     )
 
                     print('Aperture {:s}: {:s}'.format(apnam,message))
                     dx = x - aper.x
