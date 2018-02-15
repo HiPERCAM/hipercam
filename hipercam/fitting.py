@@ -285,6 +285,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
+            elif covar is None:
+                raise HipercamError('leastsq failed returning covar = None')
 
             # process results
             fit = Window(wind.winhead, mfit2.model(soln))
@@ -306,9 +308,13 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
+            elif covar is None:
+                raise HipercamError('leastsq failed returning covar = None')
 
             # process results
             skyf, heightf, xf, yf, fwhmf, betaf = soln
+            fwhmf = abs(fwhmf)
+
             if fwhmf > fwhm_min:
                 # Free fit is OK
                 fit = Window(wind.winhead, mfit1.model(soln))
@@ -331,6 +337,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 )
                 if ier < 1 or ier > 4:
                     raise HipercamError(mesg)
+                elif covar is None:
+                    raise HipercamError('leastsq failed returning covar = None')
 
                 # process results
                 fit = Window(wind.winhead, mfit2.model(soln))
@@ -1055,6 +1063,8 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
+            elif covar is None:
+                raise HipercamError('leastsq failed returning covar = None')
 
             # process results
             fit = Window(wind.winhead, gfit2.model(soln))
@@ -1062,7 +1072,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             covs = np.diag(covar)
             if (covs < 0).any():
                 raise HipercamError('Negative covariance in fitGaussian')
-            skyfe, heightfe, xfe, yfe = np.sqrt(np.diag(covs))
+            skyfe, heightfe, xfe, yfe = np.sqrt(covs)
             fwhmf, fwhmfe = fwhm, -1
 
         else:
@@ -1076,9 +1086,13 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
+            elif covar is None:
+                raise HipercamError('leastsq failed returning covar = None')
 
             # process results
             skyf, heightf, xf, yf, fwhmf = soln
+            fwhmf = abs(fwhmf)
+
             if fwhmf > fwhm_min:
                 # Free fit is OK
                 covs = np.diag(covar)
@@ -1088,6 +1102,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 fit = Window(wind.winhead, gfit1.model(soln))
 
             else:
+
                 # fall back to fixed FWHM
                 gfit2.fwhm = fwhm_min
                 dgfit2.fwhm = fwhm_min
@@ -1100,6 +1115,8 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 )
                 if ier < 1 or ier > 4:
                     raise HipercamError(mesg)
+                elif covar is None:
+                    raise HipercamError('leastsq failed returning covar = None')
 
                 # process results
                 fit = Window(wind.winhead, gfit2.model(soln))
@@ -1486,6 +1503,7 @@ class Gfit2:
         """
         Returns 1D array of normalised residuals
         """
+
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
         ok = self.sigma > 0

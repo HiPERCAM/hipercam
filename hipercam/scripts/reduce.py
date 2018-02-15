@@ -714,11 +714,6 @@ def reduce(args=None):
                     rfile.aper[cnam] = ccdaper
                     results[cnam] = res
 
-#                    results[cnam], store[cnam] = ccdproc(
-#                        cnam, pccd[cnam], mccd[cnam], rfile.aper[cnam],
-#                        mccdwins[cnam], read, gain, rfile, store[cnam]
-#                    )
-
                 # write out results to the log file
                 logfile.write('#\n')
                 alerts = []
