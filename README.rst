@@ -11,7 +11,7 @@ Installation
 hipercam is written in Python3; it does not support Python2.x It relies on the
 following third-party packages. At the moment I suggest you get these
 installed first (you will very likely have several of them already); in the
-future I might make it more automatic:
+future I might try to make it more automatic:
 
   astropy    : widely used astronomical Python package with lots of useful
                stuff.
@@ -45,8 +45,15 @@ future I might make it more automatic:
 
   sep        : astronomical source extractor for the aligntool script
 
-Once you have all these, then it's the usual Python installation
-procedure:
+  setuptools_scm : package to manage version numbers from the git repository
+
+
+Once you have all these, then get the hipercam pipeline software itself using:
+
+  git clone https://github.com/HiPERCAM/hipercam.git
+
+This will create a directory (**). Change to that and then it's the usual
+Python installation procedure:
 
   python setup.py install
 
@@ -68,6 +75,9 @@ or
 
 depending on whether you have root privileges and how you have set things up.
 If you have multiple versions of python, then you need to specify python3, and
-the last line should use pip3
+the last line should use pip3.
+
+If you have already installed but want to update, then go to the directory
+created at step ** above and type `git pull` and then re-install.
 
 Tom Marsh
