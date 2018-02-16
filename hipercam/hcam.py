@@ -52,11 +52,31 @@ HCM_NPSCAN = 50
 # when an overscan is present
 HCM_NOSCAN = 8
 
-# Code to account for reflections of the g and z CCDs,
-# and potential 180 degree rotations
+# bottom-left coordinate of quadrants
+LLX = {'E': 1, 'F': HCM_NXTOT//2+1, 'G': HCM_NXTOT//2+1, 'H': 1}
+LLY = {'E': 1, 'F': 1, 'G': HCM_NYTOT//2+1, 'H': HCM_NYTOT//2+1}
+
+# the direction increasing X- or Y-start moves the window in a quadrant
+X_DIRN = {'E': 1, 'F': -1, 'G': -1, 'H': 1}
+Y_DIRN = {'E': 1, 'F': 1, 'G': -1, 'H': -1}
+
+# whether we need to add size of window to find bottom-left coordinate of
+# window
+ADD_YSIZES = {'E': 0, 'F': 0, 'G': 1, 'H': 1}
+ADD_XSIZES = {'E': 0, 'F': 1, 'G': 1, 'H': 0}
+
+# some axes need flipping, since the data is read out such that the
+# bottom-left is not always the first pixel. Which axes need flipping
+# to get data in correct orientation uses numpy C-convention, 1=y,
+# 0=x. These are fed to numpy.flip later
+FLIP_AXES = {'E': (), 'F': (1,), 'G': (1, 0), 'H': (0,)}
+
+# Code to account for reflections of the g [CCD 1, zero offset] and z [CCD 4]
+# CCDs, and potential 180 degree rotations (In Feb 2018 GTC run, the u-band
+# CCD was 180 degrees rotated cf intended).
 REFLECTED = (1, 4)
 QNAMS = ('E', 'F', 'G', 'H')
-QNAMS_MAPPING = {'E': 'F', 'F': 'E', 'G': 'H', 'H': 'G'}
+QNAMS_REFLECT = {'E': 'F', 'F': 'E', 'G': 'H', 'H': 'G'}
 QNAMS_ROTATED = {'E': 'G', 'F': 'H', 'G': 'E', 'H': 'F'}
 
 class Rhead:
@@ -221,10 +241,6 @@ class Rhead:
         self.oscan = hd['ESO DET INCOVSCY']
         self.pscan = hd['ESO DET INCPRSCX']
 
-        # framesize parameters
-        yframe = 520 if self.oscan else 512
-        xframe = HCM_NXTOT//2+HCM_NPSCAN if self.pscan else HCM_NXTOT//2
-
         # store the NSKIP values for each CCD. These are needed for exact
         # timing for each CCD.
         self.nskips = (
@@ -297,7 +313,7 @@ class Rhead:
 
         if self.pscan and HCM_NPSCAN % self.xbin == 0:
             # number of binned prescan pixels
-            self.nxpscan = HCM_NPSCAN // self.xbin
+            self.npscan = HCM_NPSCAN // self.xbin
 
         elif self.pscan:
             raise HipercamError(
@@ -306,24 +322,16 @@ class Rhead:
                     HCM_NPSCAN)
             )
 
-        # bottom-left coordinate of quadrant
-        LLX = {'E': 1, 'F': HCM_NXTOT//2+1, 'G': HCM_NXTOT//2+1, 'H': 1}
-        LLY = {'E': 1, 'F': 1, 'G': yframe+1, 'H': yframe+1}
+        if self.oscan and HCM_NOSCAN % self.ybin == 0:
+            # number of binned prescan pixels
+            self.noscan = HCM_NOSCAN // self.ybin
 
-        # direction increasing X- or Y-start moves window in quad
-        X_DIRN = {'E': 1, 'F': -1, 'G': -1, 'H': 1}
-        Y_DIRN = {'E': 1, 'F': 1, 'G': -1, 'H': -1}
-
-        # whether we need to add size of window to find bottom-left
-        # coordinate of window
-        ADD_YSIZES = {'E': 0, 'F': 0, 'G': 1, 'H': 1}
-        ADD_XSIZES = {'E': 0, 'F': 1, 'G': 1, 'H': 0}
-
-        # some axes need flipping, since the data is read out such that the
-        # bottom-left is not always the first pixel. Which axes need flipping
-        # to get data in correct orientation uses numpy C-convention, 1=y,
-        # 0=x. These are fed to numpy.flip later
-        FLIP_AXES = {'E': (), 'F': (1,), 'G': (1, 0), 'H': (0,)}
+        elif self.oscan:
+            raise HipercamError(
+                ('Y-binning factor not a divisor of'
+                 ' {:d} with overscan is undefined').format(
+                    HCM_NOSCAN)
+            )
 
         if self.mode.startswith('TwoWindow'):
             self.nwins = (0,1)
@@ -340,7 +348,9 @@ class Rhead:
                 hd.get('ESO DET ROTATE{:d}'.format(nccd+1),False)
             )
 
-        # build windows for each window of each quadrant of each CCDs
+        # Build window parameters for each window of each quadrant of each
+        # CCDs. At this stage, windows with pre- and/or over-scans are treated
+        # as single blocks, data and scans. They are split up in Rdata.
         self.windows = []
         for nwin in self.nwins:
             self.windows.append([])
@@ -351,29 +361,39 @@ class Rhead:
                 for qnam in QNAMS:
                     if nccd in REFLECTED:
                         # reflections for g (1) and z (4)
-                        qnam = QNAMS_MAPPING[qnam]
+                        qnam = QNAMS_REFLECT[qnam]
 
                     if self.rotate[nccd]:
                         # if CCD rotated, swap E<-->G, F<-->H, etc
                         qnam = QNAMS_ROTATED[qnam]
 
                     if self.mode.startswith('FullFrame'):
-                        nx = xframe // self.xbin
-                        ny = yframe // self.ybin
+                        # Full frame mode, account for pre- and over-scans
+                        # in the full frame.
+                        nx = (HCM_NXTOT//2+HCM_NPSCAN
+                              if self.pscan else HCM_NXTOT//2) // self.xbin
+                        ny = (HCM_NYTOT//2+HCM_NOSCA
+                              if self.oscan else HCM_NYTOT//2) // self.ybin
                         llx = LLX[qnam]
                         lly = LLY[qnam]
 
                     elif self.mode.startswith('OneWindow') or \
                          self.mode.startswith('TwoWindow'):
+                        # windowed mode
                         winID = 'ESO DET WIN{} '.format(nwin+1)
                         nx = hd[winID + 'NX'] // self.xbin
+                        ny = hd[winID + 'NY'] // self.ybin
 
                         if self.pscan:
                             # account for extra columns when a pre-scan is
                             # present
-                            nx += self.nxpscan
+                            nx += self.npscan
 
-                        ny = hd[winID + 'NY'] // self.ybin
+                        if self.oscan:
+                            # account for extra rows when an over-scan is
+                            # present
+                            ny += self.noscan
+
                         win_xs = hd[winID + 'XS{}'.format(qnam)]
                         win_nx = hd[winID + 'NX']
                         win_ys = hd[winID + 'YS']
@@ -384,7 +404,7 @@ class Rhead:
                         )
                         lly = (
                             LLY[qnam] + Y_DIRN[qnam] * win_ys +
-                            ADD_YSIZES[qnam] * (yframe - win_ny)
+                            ADD_YSIZES[qnam] * (HCM_NYTOT//2 - win_ny)
                         )
 
                     elif self.mode.startswith('Drift'):
@@ -406,7 +426,7 @@ class Rhead:
                         )
                         lly = (
                             LLY[qnam] + Y_DIRN[qnam] * win_ys +
-                            ADD_YSIZES[qnam] * (yframe - win_ny)
+                            ADD_YSIZES[qnam] * (HCM_NYTOT//2 - win_ny)
                         )
 
                     else:
@@ -418,7 +438,6 @@ class Rhead:
                         (Winhead(llx, lly, nx, ny, self.xbin, self.ybin),
                          FLIP_AXES[qnam])
                     )
-
 
 
         # set strings for logging purposes giving the settings used in hdriver
@@ -976,14 +995,13 @@ class Rdata (Rhead):
 
         # build Windows-->CCDs-->MCCD
         CNAMS = ('1', '2', '3', '4', '5')
-        QNAMS = ('E', 'F', 'G', 'H')
 
         # update the headers, initialise the CCDs
         cheads = {}
         ccds = Group(CCD)
         for nccd, (cnam, chead) in enumerate(zip(CNAMS, self.cheads)):
 
-            # explicitly copy each header to avoid propagation of references
+            # Explicitly copy each header to avoid propagation of references
             ch = chead.copy()
 
             # Determine whether the frame really contains data as
@@ -1024,7 +1042,7 @@ class Rdata (Rhead):
             # Get number of samples per pixel, with a default of 4.  Pixel
             # data order depends on the number of samples, and the data prior
             # to implementing sampling (i.e. October 2017 WHT run) is the same
-            # as nsamps = 4
+            # as nsamps = 4. Use 'as_strided' to perform the de-multiplexing.
             nsamps = self.header.get('ESO DET NSAMP', 4)
             if nsamps == 4:
                 data = as_strided(
@@ -1039,14 +1057,17 @@ class Rdata (Rhead):
                     shape=(5, 4, len(frame)//80, 4)
                 ).reshape(5, 4, win.ny, win.nx)
 
-            # now build the Windows
+            # now build the Windows. This is where we chop off
+            # any pre- and over-scan
 
             for nccd, cnam in enumerate(CNAMS):
                 for nquad, qnam in enumerate(QNAMS):
                     wnam = '{:s}{:d}'.format(qnam,nwin+1)
                     if nccd in REFLECTED:
                         # reflections for g (1) and z (4)
-                        qnam = QNAMS_MAPPING[qnam]
+                        qnam = QNAMS_REFLECT[qnam]
+
+                    # rotate??
 
                     # recover the window and flip parameters
                     win, flip_axes = self.windows[nwin][nccd][nquad]
@@ -1072,33 +1093,34 @@ class Rdata (Rhead):
                         # to be removed.
 
                         wind = Winhead(
-                            win.llx, win.lly, win.nx-self.nxpscan, win.ny,
+                            win.llx, win.lly, win.nx-self.npscan, win.ny,
                             win.xbin, win.ybin, win
                         )
                         if nwin == 0 and nquad == 0:
                             # store CCD header in the first Winhead
                             wind.update(cheads[cnam])
 
+                        # Generate name for the prescan Window
+                        wpnam = '{:s}P'.format(wnam)
+
                         if qnam == 'E' or qnam == 'H':
                             # Prescans are on the left of quadrants E and H
                             # (outputs are on the left). Create the Window
                             # with the image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                wind, windata[:,self.nxpscan:].astype(
+                                wind, windata[:,self.npscan:].astype(
                                     np.float32)
                             )
 
                             # Store the prescan itself
                             winp = Winhead(
-                                1-HCM_NPSCAN, win.lly, self.nxpscan, win.ny,
+                                1-HCM_NPSCAN, win.lly, self.npscan, win.ny,
                                 win.xbin, win.ybin, win
                             )
-                            # Generate name for the prescan Window
-                            wpnam = '{:s}P'.format(wnam)
 
                             # Create the Window with the pre-scan
                             ccds[cnam][wpnam] = Window(
-                                winp, windata[:,:self.nxpscan].astype(
+                                winp, windata[:,:self.npscan].astype(
                                     np.float32)
                             )
 
@@ -1106,25 +1128,24 @@ class Rdata (Rhead):
                             # Prescan on the right. Create the Window with the
                             # image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                wind, windata[:,:-self.nxpscan].astype(
+                                wind, windata[:,:-self.npscan].astype(
                                     np.float32)
                             )
 
                             # Now save the prescan itself
                             winp = Winhead(
-                                HCM_NXTOT+1, win.lly, self.nxpscan, win.ny,
+                                HCM_NXTOT+1, win.lly, self.npscan, win.ny,
                                 win.xbin, win.ybin, win
                             )
-                            # Generate name for the prescan Window
-                            wpnam = '{:s}P'.format(wnam)
 
                             # Create the Window with the pre-scan
                             ccds[cnam][wpnam] = Window(
-                                winp, windata[:,-self.nxpscan:].astype(
+                                winp, windata[:,-self.npscan:].astype(
                                     np.float32)
                             )
 
                     else:
+
                         # No prescan: just store the Window
                         if nwin == 0 and nquad == 0:
                             # store CCD header in the first Winhead
@@ -1133,6 +1154,47 @@ class Rdata (Rhead):
                         ccds[cnam][wnam] = Window(
                             win, windata.astype(np.float32)
                         )
+
+                    if self.oscan:
+                        # over-scan present. Leave any stripped pre-scans
+                        # untouched, but remove rows off data windows.
+
+                        win = ccds[cnam][wnam]
+
+                        # Generate name for the overscan Window
+                        wonam = '{:s}O'.format(wnam)
+
+                        if qnam == 'E' or qnam == 'F':
+                            # Overscans are at the top of quadrants E and F
+                            # (outputs are on the bottom).
+                            wino = Winhead(
+                                win.llx, 1-HCM_NOSCAN, win.nx, self.noscan,
+                                win.xbin, win.ybin, win
+                            )
+
+                            # Create the Window with the over-scan
+                            ccds[cnam][wonam] = Window(
+                                wino, win.data[-self.noscan:,:]
+                            )
+
+                            # Chop overscan off data array
+                            win.data = win.data[:self.noscan,:]
+
+                        else:
+                            # Overscans at the bottom of quadrants G and H
+                            # (outputs are on the top).
+                            wino = Winhead(
+                                win.llx, HCM_NYTOT+1, win.nx, self.noscan,
+                                win.xbin, win.ybin, win
+                            )
+
+                            # Create the Window with the over-scan
+                            ccds[cnam][wonam] = Window(
+                                wino, win.data[:self.noscan,:]
+                            )
+
+                            # Chop overscan off data array
+                            win.data = win.data[self.noscan:,:]
 
             # move pointer on for next set of windows
             npixel += nchunk
