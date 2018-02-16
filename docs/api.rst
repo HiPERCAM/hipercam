@@ -15,5 +15,6 @@ Programmers Interface) is designed to allow you to do so.
 
    quickapi
    hcmformat
+   windows
    timing/timing
    timing/timing_tests
