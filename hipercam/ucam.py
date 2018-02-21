@@ -1004,7 +1004,8 @@ class Rdata (Rhead):
                 wins3[nwin] = Window(w, winr3[yoff:yoff+w.ny,xoff:xoff+w.nx])
 
             # data type conversions
-            for win1, win2, win3 in zip(wins1, wins2, win3):
+            for win1, win2, win3 in zip(wins1.values(), wins2.values(),
+                                        wins3.values()):
                 win1.data = win1.data.astype(np.float32)
                 win2.data = win2.data.astype(np.float32)
                 win3.data = win3.data.astype(np.float32)
