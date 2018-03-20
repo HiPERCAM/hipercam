@@ -337,13 +337,13 @@ def get_ccd_pars(source, resource):
     """
 
     if source.startswith('u'):
-
+        server = source.endswith('s')
         # ULTRA(CAM|SPEC)
-        rhead = ucam.Rhead(resource)
+        rhead = ucam.Rhead(resource, server=server)
         if rhead.instrument == 'ULTRACAM':
             # ULTRACAM raw data file: fixed data
             return OrderedDict(
-                (('1',(1080,1032)), ('2',(1080,1032)), ('3',(1080,1032)))
+                (('1',(1080,1032,56,8)), ('2',(1080,1032,56,8)), ('3',(1080,1032,56,8)))
             )
 
         elif rhead.instrument == 'ULTRASPEC':
