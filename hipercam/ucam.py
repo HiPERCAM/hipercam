@@ -779,7 +779,7 @@ class Rdata (Rhead):
 
         if self.server:
             # read timing and data in one go from the server
-            full_url = '{:s}{:s}?action=get_frame&frame={:s}'.format(
+            full_url = '{:s}{:s}?action=get_frame&frame={:d}'.format(
                 URL, self.run, self.nframe-1)
             buff     = urllib.request.urlopen(full_url).read()
 
