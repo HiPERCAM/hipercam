@@ -374,7 +374,7 @@ def aligntool(args=None):
         # set some flags
         server_or_local = source.endswith('s') or source.endswith('l')
         inst = source[0]
-        
+
         # plot device stuff
         device = cl.get_value('device', 'plot device', '1/xs')
         width = cl.get_value('width', 'plot width (inches)', 0.)
@@ -383,10 +383,8 @@ def aligntool(args=None):
         if server_or_local:
             resource = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to plot', 1, 1)
-
-            if source.endswith('s'):
-                twait = cl.get_value('twait', 'time to wait for a new frame [secs]', 1., 0.)
-                tmax = cl.get_value('tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+            twait = cl.get_value('twait', 'time to wait for a new frame [secs]', 1., 0.)
+            tmax = cl.get_value('tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
         else:
             # set inst = 'h' as only lists of HiPERCAM files are supported
             inst = 'h'
