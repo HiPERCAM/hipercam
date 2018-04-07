@@ -208,6 +208,14 @@ td.left {
     padding-right: 10px;
 }
 
+td.lalert {
+    color: #FFAAAA;
+    vertical-align: top;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 10px;
+}
+
 td.right {
     vertical-align: top;
     text-align: right;
@@ -473,8 +481,17 @@ def hlogger(args=None):
                             try:
                                 rtime = hcam.hcam.Rtime(rname)
                             except:
-                                print('Run = ',rname)
-                                raise
+                                exc_type, exc_value, exc_traceback = sys.exc_info()
+                                traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+                                traceback.print_exc(file=sys.stdout)
+                                print('Problem on run = ',rname)
+
+                                # dummy info line just to allow us to proceed
+                                nhtml.write('<tr>\n')
+                                # run number
+                                nhtml.write('<td class="lalert">{:s}</td>'.format(run[3:]))
+                                nhtml.write('</tr>\n')
+
                             hd = rtime.header
 
                             # start the row
