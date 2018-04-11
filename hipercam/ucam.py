@@ -1027,12 +1027,18 @@ class Rdata (Rhead):
             rhead['GOODTIME'] = (time.good,'flag indicating reliability of time')
             rhead['MJDOKWHY'] = time.reason
 
-            ccd1 = CCD(wins1, self.nxmax, self.nymax, rhead)
+            # store the header in the first Window
+            wins1['1'].update(rhead)
+
+            # construct the red CCD
+            ccd1 = CCD(wins1, self.nxmax, self.nymax)
 
             # green
             ghead = rhead.copy()
             ghead['CCDNAME'] = 'Green CCD'
-            ccd2 = CCD(wins2, self.nxmax, self.nymax, ghead)
+
+            wins2['1'].update(ghead)
+            ccd2 = CCD(wins2, self.nxmax, self.nymax)
 
             # transfer red/green time info to the general header
             self['TIMSTAMP'] = (tstamp.isot,
@@ -1052,7 +1058,9 @@ class Rdata (Rhead):
             bhead['GOODTIME'] = (blueTime.good,'Is MJDUTC reliable?')
             bhead['MJDOKWHY'] = blueTime.reason
             bhead['DSTATUS'] = (not badBlue,'blue data status flag')
-            ccd3 = CCD(wins3, self.nxmax, self.nymax, bhead)
+
+            wins3['1'].update(bhead)
+            ccd3 = CCD(wins3, self.nxmax, self.nymax)
 
             # Finally, return an MCCD
             return MCCD(
