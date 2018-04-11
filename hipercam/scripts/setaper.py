@@ -269,7 +269,7 @@ def setaper(args=None):
                             cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.read(mccd)
 
-        aper = cl.get_value('aper', 'frame to plot',
+        aper = cl.get_value('aper', 'name of aperture file',
                             cline.Fname('hcam', hcam.APER, exist=False))
 
         if os.path.exists(aper):
