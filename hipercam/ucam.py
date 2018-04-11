@@ -375,6 +375,7 @@ class Rhead(fits.Header):
 
             else:
 
+                # windowed modes
                 ystart = int(param['Y1_START'])
                 xleft = int(param['X1L_START'])
                 xright = int(param['X1R_START'])
@@ -384,25 +385,25 @@ class Rhead(fits.Header):
                 self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
                 fsize += 12*nx*ny
 
-            if mode == '2-PAIR' or mode == '3-PAIR':
-                ystart = int(param['Y2_START'])
-                xleft = int(param['X2L_START'])
-                xright = int(param['X2R_START'])
-                nx = int(param['X2_SIZE']) // xbin
-                ny = int(param['Y2_SIZE']) // ybin
-                self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
-                self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
-                fsize += 12*nx*ny
+                if mode == '2-PAIR' or mode == '3-PAIR':
+                    ystart = int(param['Y2_START'])
+                    xleft = int(param['X2L_START'])
+                    xright = int(param['X2R_START'])
+                    nx = int(param['X2_SIZE']) // xbin
+                    ny = int(param['Y2_SIZE']) // ybin
+                    self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
+                    self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
+                    fsize += 12*nx*ny
 
-            if mode == '3-PAIR':
-                ystart = int(param['Y3_START'])
-                xleft = int(param['X3L_START'])
-                xright = int(param['X3R_START'])
-                nx = int(param['X3_SIZE']) // xbin
-                ny = int(param['Y3_SIZE']) // ybin
-                self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
-                self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
-                fsize += 12*nx*ny
+                if mode == '3-PAIR':
+                    ystart = int(param['Y3_START'])
+                    xleft = int(param['X3L_START'])
+                    xright = int(param['X3R_START'])
+                    nx = int(param['X3_SIZE']) // xbin
+                    ny = int(param['Y3_SIZE']) // ybin
+                    self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
+                    self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
+                    fsize += 12*nx*ny
 
         elif self.instrument == 'ULTRASPEC':
 
@@ -459,7 +460,8 @@ class Rhead(fits.Header):
 
         if fsize != self.framesize:
             raise ValueError(
-                'file = {:s}. Framesize = {:s} clashes with calculated value = {:s}'.format(self.run,self.framesize,fsize)
+                ('file = {:s}. Framesize = {:s} clashes with calculated '
+                 'value = {:s}').format(self.run,self.framesize,fsize)
             )
 
         # nasty stuff coming up ...
@@ -722,7 +724,9 @@ class Rdata (Rhead):
             if len(buff) != self.framesize:
                 self.nframe = 1
                 raise UltracamError(
-                    'failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} bytes'.format(self.nframe, len(buff), self.framesize)
+                    ('failed to read frame {:d} from FileServer. Buffer'
+                     ' length vs expected = {:d} vs {:d} bytes').format(
+                         self.nframe, len(buff), self.framesize)
                 )
             tbytes = buff[:2*self.headerwords]
         else:
@@ -812,7 +816,10 @@ class Rdata (Rhead):
                 self.fp.seek(0)
                 self.nframe = 1
                 raise UltracamError(
-                    'failed to read frame {:d}. Buffer length vs attempted = {:d} vs {:d}'.format(self.nframe, len(buff), self.framesize/2-self.headerwords))
+                    ('failed to read frame {:d}. Buffer length vs '
+                     'attempted = {:d} vs {:d}').format(
+                         self.nframe, len(buff), self.framesize/2-self.headerwords)
+                )
 
         # From this point, both server and local disk methods are the same
         if self.instrument == 'ULTRACAM':
@@ -912,7 +919,7 @@ class Rdata (Rhead):
                         )
 
                     noff += npix
-                nwin += 2
+                    nwin += 2
 
             else:
                 # Overscan modes need special re-formatting. See the
