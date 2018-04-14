@@ -141,7 +141,7 @@ def reduce(args=None):
     .. Warning::
 
        The transmission plot generated with reduce is not reliable in the
-       case of optimal photometry since it is highly correlated with the 
+       case of optimal photometry since it is highly correlated with the
        seeing. If you are worried about the transmission during observing,
        you should always use normal aperture photometry.
     """
@@ -460,7 +460,7 @@ def reduce(args=None):
 # from all apertures defined for the CCD. The column names are defined just before
 # the data below. The logfile was produced using version number:
 #
-#  {hipercam_version} 
+#  {hipercam_version}
 #
 # of the HiPERCAM reduction software, and was generated using the following
 # command-line inputs to 'reduce':
@@ -1610,7 +1610,7 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
                 else:
                     print(
                         ('CCD {:s}, reference aperture {:s}'
-                         ', peak = {:.1f} < {:s}').format(
+                         ', peak = {:.1f} < {:.1f}').format(
                              cnam, apnam, height, apsec['fit_height_min']),
                         file=sys.stderr
                     )
@@ -2922,7 +2922,7 @@ def ccdproc(cnam, ccd, rccd, ccdaper, ccdwins, read, gain, rfile, store):
 
     # extract flux from all apertures of each CCD. Return with the CCD
     # name, the store dictionary, ccdaper and then the results from
-    # extractFlux for compatibility with multiprocessing. Note 
+    # extractFlux for compatibility with multiprocessing. Note
     return (
         cnam, store, ccdaper,
         extractFlux(
