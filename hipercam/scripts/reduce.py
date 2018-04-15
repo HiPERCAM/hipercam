@@ -838,7 +838,8 @@ def reduce(args=None):
                 if rfile.position:
                     # plot the positions
                     rep, ptmax = plotPosition(
-                        xpanel, ypanel, t, results, rfile, xbuffer, ybuffer)
+                        xpanel, ypanel, t, results, rfile, xbuffer, ybuffer
+                    )
                     replot |= rep
                     tmax = tmax if ptmax is None else \
                            ptmax if tmax is None else max(tmax, ptmax)
@@ -935,7 +936,7 @@ def reduce(args=None):
                                 pgpt(t[ok], f[ok], symb)
 
                         ypanel.plot()
-                        for ypos in xbuffer:
+                        for ypos in ybuffer:
                             # convert the buffered data into float32 ndarrays
                             t = np.array(ypos.t, dtype=np.float32)
                             f = np.array(ypos.f, dtype=np.float32)
