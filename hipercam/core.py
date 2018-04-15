@@ -12,7 +12,7 @@ __all__ = (
     'LOG', 'CNAMS', 'CIS', 'ALL_OK', 'NO_FWHM',
     'NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
     'TARGET_NONLINEAR', 'TARGET_SATURATED', 'ANY',
-    'REDUCE_FILE_VERSION', 'NO_EXTRACTION'
+    'REDUCE_FILE_VERSION', 'NO_EXTRACTION', 'NO_DATA'
 )
 
 # Constants for general use

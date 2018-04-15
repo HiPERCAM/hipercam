@@ -128,16 +128,16 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
         message = (
             'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),'
             ' FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),'
-            ' sky = {:.1f}({:.1f}), chi**2 = {:.1f}, nok = {:d}, nrej = {:d}'
-        ).format(x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,chisq,nok,nrej)
+            ' sky = {:.1f}({:.1f}), counts = {:.0f}, chi**2 = {:.1f}, nok = {:d}, nrej = {:d}'
+        ).format(x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,fit.sum(),chisq,nok,nrej)
         beta, ebeta = 0., -1.
     elif method == 'm':
         message = (
             'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),'
             ' FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),'
-            ' sky = {:.1f}({:.1f}), beta = {:.2f}({:.2f}), chi**2 = {:.1f},'
+            ' sky = {:.1f}({:.1f}), counts = {:.0f}, beta = {:.2f}({:.2f}), chi**2 = {:.1f},'
             ' nok = {:d}, nrej = {:d}'
-        ).format(x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,beta,ebeta,chisq,nok,nrej)
+        ).format(x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,fit.sum(),beta,ebeta,chisq,nok,nrej)
 
     return (
         (sky, height, x, y, fwhm, beta),
