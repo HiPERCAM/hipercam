@@ -2369,7 +2369,7 @@ def plotPosition(xpanel, ypanel, t, results, rfile, xbuffer, ybuffer):
         x = xpos.add_point(t, results)
         if x is not None:
             tmax = t if tmax is None else max(t, tmax)
-            xmin = x if xmin is None else max(x, xmin)
+            xmin = x if xmin is None else min(x, xmin)
             xmax = x if xmax is None else max(x, xmax)
 
     if xmin is not None and (xmin < xpanel.y1 or xmax > xpanel.y2) and \
@@ -2391,7 +2391,7 @@ def plotPosition(xpanel, ypanel, t, results, rfile, xbuffer, ybuffer):
         y = ypos.add_point(t, results)
         if y is not None:
             tmax = t if tmax is None else max(t, tmax)
-            ymin = y if ymin is None else max(y, ymin)
+            ymin = y if ymin is None else min(y, ymin)
             ymax = y if ymax is None else max(y, ymax)
 
     if ymin is not None and (ymin < ypanel.y1 or ymax > ypanel.y2) and \
