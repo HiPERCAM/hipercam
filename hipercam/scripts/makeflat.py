@@ -158,9 +158,7 @@ def makeflat(args=None):
                                cline.Fname('files.lis',hcam.LIST))
             first = 1
 
-        ngroup = cl.get_value('ngroup', 'number of frames per median average group',
-            cline.Fname('bias', hcam.HCAM), ignore='none'
-        )
+        ngroup = cl.get_value('ngroup', 'number of frames per median average group', 3, 1)
 
         # bias frame (if any)
         bias = cl.get_value(
