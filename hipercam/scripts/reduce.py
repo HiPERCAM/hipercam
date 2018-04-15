@@ -2056,6 +2056,11 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
             # the edge of the circle (but with a tapered weight)
             dok = Rsq < (aper.rtarg+size/2.)**2
 
+            if not dok.any():
+                # check there are some valid pixels
+                flag |= hcam.NO_DATA
+                raise hcam.HipercamError('no valid pixels in aperture')
+
             # check for saturation and nonlinearity
             if cnam in rfile.warn:
                 if srwind.data[dok].max() >= rfile.warn[cnam]['saturation']:
@@ -2900,6 +2905,8 @@ FLAG_MESSAGES = {
     hcam.TARGET_AT_EDGE    : 'target aperture overlaps edge of window',
     hcam.TARGET_SATURATED  : 'target aperture has saturated pixels',
     hcam.TARGET_NONLINEAR  : 'target aperture has nonlinear pixels',
+    hcam.NO_EXTRACTION     : 'no extraction possible',
+    hcam.NO_DATA           : 'no valid pixels in target aperture',
 }
 
 def ccdproc(cnam, ccd, rccd, ccdaper, ccdwins, read, gain, rfile, store):

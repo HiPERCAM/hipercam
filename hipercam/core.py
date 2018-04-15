@@ -84,9 +84,10 @@ TARGET_AT_EDGE    = 1 << 3  # Target aperture overlaps edge of window
 TARGET_SATURATED  = 1 << 4  # At least one pixel in target above saturation level
 TARGET_NONLINEAR  = 1 << 5  # At least one pixel in target above non-linear level
 NO_EXTRACTION     = 1 << 6  # No extraction possible
+NO_DATA           = 1 << 7  # No valid pixels in aperture
 
 ANY = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | TARGET_SATURATED | \
-      TARGET_NONLINEAR | NO_EXTRACTION
+      TARGET_NONLINEAR | NO_EXTRACTION | NO_DATA
 
 class HipercamError (Exception):
     """
