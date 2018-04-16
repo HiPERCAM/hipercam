@@ -22,11 +22,14 @@ and plot the result with matplotlib:
 """
 
 import numpy as np
+import copy
+from astropy.stats import sigma_clip
 
 from .core import *
 from . import utils
 
 __all__ = ('Hlog', 'Tseries')
+
 
 class Hlog(dict):
     """
@@ -41,7 +44,7 @@ class Hlog(dict):
         """
         Loads a HiPERCAM log file written by reduce. Each CCD is loaded
         into a separate structured array, returned in a dictionary labelled
-        by the CCD key. 
+        by the CCD key.
         """
         hlog = cls()
         read_cnames = False
@@ -115,7 +118,7 @@ class Hlog(dict):
         Returns with a Tseries corresponding to CCD cnam and
         aperture apnam. By default it accesses the 'counts',
         but 'x', 'y', 'fwhm', 'beta' and 'sky' are alternative
-        choices. 
+        choices.
 
         Arguments:
 
@@ -133,6 +136,7 @@ class Hlog(dict):
             ccd['{:s}e_{!s}'.format(name,apnam)],
             ccd['flag_{!s}'.format(apnam)]
         )
+
 
 class Tseries:
     """
@@ -306,3 +310,148 @@ class Tseries:
 
         return Tseries(self.t, y, ye, mask)
 
+    def __getitem__(self, key):
+        copy_self = copy.copy(self)
+        copy_self.t = self.t[key]
+        copy_self.y = self.y[key]
+        copy_self.ye = self.ye[key]
+        copy_self.mask = self.mask[key]
+        return copy_self
+
+    def bin(self, binsize=10, method='mean'):
+        """
+        Bins the Timeseries using the function defined by `method` in blocks of binsize.
+
+        Parameters
+        -----------
+        binsize : int
+            Number of observations to incude in every bin
+        method : str, one of 'mean' or 'median'
+            The summary statistic to return
+
+        Returns
+        -------
+        TSeries : Tseries object
+            Binned Timeseries
+        Notes
+        -----
+        - If the ratio between the Tseries length and the binsize is not
+            a whole number, then the remainder of the data points will be
+            ignored.
+        - The binned TSeries will report the root-mean-square error.
+        - The bitwise OR of the quality flags will be returned per bin.
+        """
+        available_methods = ['mean', 'median']
+        if method not in available_methods:
+            raise ValueError("method must be one of: {}".format(available_methods))
+        methodf = np.__dict__['nan' + method]
+        n_bins = len(self.t) // binsize
+
+        t = np.array([methodf(a) for a in np.array_split(self.t, n_bins)])
+        y = np.array([methodf(a) for a in np.array_split(self.y, n_bins)])
+        ye = np.array([
+            np.sqrt(np.nansum(a**2)) for a in np.array_split(self.ye, n_bins)
+        ]) / binsize
+        mask = np.array([np.bitwise_or.reduce(a) for a in np.array_split(self.mask, n_bins)])
+        return Tseries(t, y, ye, mask)
+
+    def remove_outliers(self, sigma=5., return_mask=False, **kwargs):
+        """
+        Removes outlier flux values using sigma-clipping.
+
+        This method returns a new Tseries object from which flux values
+        are removed if they are separated from the mean flux by `sigma` times
+        the standard deviation.
+
+        Parameters
+        ----------
+        sigma : float
+            The number of standard deviations to use for clipping outliers.
+            Defaults to 5.
+        return_mask : bool
+            Whether or not to return the mask indicating which data points
+            were removed. Entries marked as `True` are considered outliers.
+        **kwargs : dict
+            Dictionary of arguments to be passed to `astropy.stats.sigma_clip`.
+
+        Returns
+        -------
+        clean_tseries : Tseries object
+            A new ``Tseries`` in which outliers have been removed.
+        """
+        outlier_mask = sigma_clip(data=self.y, sigma=sigma, **kwargs).mask
+        if return_mask:
+            return self[~outlier_mask], outlier_mask
+        return self[~outlier_mask]
+
+    def append(self, others):
+        """
+        Append Tseries objects
+
+        Parameters
+        ----------
+        others : Tseries object or list of Tseries objects
+            Time series to be appended to the current one
+
+        Returns
+        -------
+        new_ts : Tseries object
+            Concatenated time series
+        """
+        if not hasattr(others, '__iter__'):
+            others = [others]
+        new_lc = copy.copy(self)
+        for i in range(len(others)):
+            new_lc.t = np.append(new_lc.t, others[i].t)
+            new_lc.y = np.append(new_lc.y, others[i].y)
+            new_lc.ye = np.append(new_lc.ye, others[i].ye)
+            new_lc.mask = np.append(new_lc.mask, others[i].mask)
+        return new_lc
+
+    def fold(self, period, t0=0.):
+        """Folds the time series at a specified ``period`` and ``phase``.
+
+        This method returns a new ``Tseries`` object in which the time
+        values range between -0.5 to +0.5.  Data points which occur exactly
+        at ``t0`` or an integer multiple of `t0 + n*period` have time
+        value 0.0.
+
+        Parameters
+        ----------
+        period : float
+            The period upon which to fold.
+        t0 : float, optional
+            Time reference point.
+
+        Returns
+        -------
+        folded_tseries: Tseries object
+            A new ``Tseries`` in which the data are folded and sorted by
+            phase.
+        """
+        fold_time = (((self.t - t0 * period) / period) % 1)
+        # fold time domain from -.5 to .5
+        fold_time[fold_time > 0.5] -= 1
+        sorted_args = np.argsort(fold_time)
+        return Tseries(fold_time[sorted_args],
+                       self.y[sorted_args],
+                       self.ye[sorted_args],
+                       self.mask[sorted_args])
+
+    def normalise(self):
+        """Returns a normalized version of the time series.
+
+        The normalized timeseries is obtained by dividing `y` and `ye`
+        by the median y value.
+
+        Returns
+        -------
+        normalized_tseries : Tseries object
+            A new ``Tseries`` in which `y` and `ye` are divided
+            by the median y value.
+        """
+        lc = copy.copy(self)
+        median_y = np.nanmedian(lc.y)
+        lc.ye = lc.ye / median_y
+        lc.y = lc.y / median_y
+        return lc
