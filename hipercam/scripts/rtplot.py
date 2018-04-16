@@ -507,11 +507,11 @@ def rtplot(args=None):
                     # accumulate string of image scalings
                     if nc:
                         message += ', ccd {:s}: {:.2f} to {:.2f}, exp: {:.4f}'.format(
-                            cnam,vmin,vmax,ccd['1']['EXPTIME']
+                            cnam,vmin,vmax,mccd.head['EXPTIME']
                         )
                     else:
                         message += 'ccd {:s}: {:.2f} to {:.2f}, exp: {:.4f}'.format(
-                            cnam,vmin,vmax,ccd['1']['EXPTIME']
+                            cnam,vmin,vmax,mccd.head['EXPTIME']
                         )
 
             pgebuf()
@@ -569,7 +569,7 @@ def rtplot(args=None):
                     # plot search box
                     if splot:
                         fpar.plot()
- 
+
                     try:
                         # extract search box from the CCD. 'fpar' is updated later
                         # if the fit is successful to reflect the new position
