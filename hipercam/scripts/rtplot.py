@@ -297,6 +297,11 @@ def rtplot(args=None):
                 ccds = list(ccdinf.keys())
             else:
                 ccds = ccd.split()
+                check = set(ccdinf.keys())
+                if not set(ccds) <= check:
+                    raise hcam.HipercamError(
+                        'At least one invalid CCD label supplied'
+                    )
 
             if len(ccds) > 1:
                 nxdef = min(len(ccds), nxdef)
@@ -466,7 +471,8 @@ def rtplot(args=None):
             # indicate progress
             tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
             print(
-                'Frame {:d}, time = {:s}; '.format(mccd.head['NFRAME'], tstamp.iso), end=''
+                'Frame {:d}, time = {:s}, '.format(
+                    mccd.head['NFRAME'], tstamp.iso), end=''
             )
 
             if n == 0 and bias is not None:
@@ -500,9 +506,13 @@ def rtplot(args=None):
 
                     # accumulate string of image scalings
                     if nc:
-                        message += ', ccd {:s}: {:.2f} to {:.2f}'.format(cnam,vmin,vmax)
+                        message += ', ccd {:s}: {:.2f} to {:.2f}, exp: {:.4f}'.format(
+                            cnam,vmin,vmax,ccd['1']['EXPTIME']
+                        )
                     else:
-                        message += 'ccd {:s}: {:.2f} to {:.2f}'.format(cnam,vmin,vmax)
+                        message += 'ccd {:s}: {:.2f} to {:.2f}, exp: {:.4f}'.format(
+                            cnam,vmin,vmax,ccd['1']['EXPTIME']
+                        )
 
             pgebuf()
             # end of CCD display loop

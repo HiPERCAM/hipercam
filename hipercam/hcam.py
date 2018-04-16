@@ -671,8 +671,8 @@ class Rhead:
         exposure times for each CCD appropriate for a "standard" exposure
         (i.e. not the first), the offsets to get to the mid-exposure from a
         timestamp, again for a "standard" exposure, the cycle length for each
-        CCD (NSUB+1) and the dead time between frames. This is intended for use
-        in generating logs.
+        CCD (NSUB+1) and the dead time between frames. This is intended for
+        use in generating logs.
 
         Returns (texps, toffs, ncycs, tdead) where texps, toffs and ncycs are
         5-element tuples representing the "standard" exposure times, the
