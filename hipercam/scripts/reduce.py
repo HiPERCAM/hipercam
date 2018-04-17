@@ -652,7 +652,7 @@ def reduce(args=None):
                 # processed data called 'pccd'
                 if rfile.bias is not None:
                     # subtract bias
-                    pccd -= rfile.bias
+                    pccd = mccd - rfile.bias
                 else:
                     # no bias subtraction
                     pccd = mccd
