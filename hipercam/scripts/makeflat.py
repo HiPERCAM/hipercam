@@ -89,7 +89,7 @@ def makeflat(args=None):
            not supported).
 
         last    : int [if source ends 's' or 'l']
-           last exposure number must be >= first.
+           last exposure number must be >= first or 0 for the whole lot.
 
         twait   : float [if source ends 's' or 'l'; hidden]
            time to wait between attempts to find a new exposure, seconds.
@@ -147,7 +147,7 @@ def makeflat(args=None):
         if server_or_local:
             resource = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to average', 1, 1)
-            last = cl.get_value('last', 'last frame to average', first, first)
+            last = cl.get_value('last', 'last frame to average (0 for all)', first, 0)
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
             tmax = cl.get_value(
@@ -210,11 +210,12 @@ def makeflat(args=None):
     # inputs done with.
 
     try:
-        # big try / except section here to trap ctrl-C to allow the temporary files
-        # to be deleted. First make a directory for the temporary files
+        # big try / except section here to trap ctrl-C to allow the temporary
+        # files to be deleted. First make a directory for the temporary files
 
         if server_or_local:
-            # save ourselves a bit of effort by using grab to get the files if from a local file or server
+            # save ourselves a bit of effort by using grab to get the files if
+            # from a local file or server
             print("\nCalling 'grab' ...")
             args = [
                 None, 'prompt', source, resource, 'yes',
@@ -233,7 +234,7 @@ def makeflat(args=None):
         for cnam in ccds:
             means[cnam] = {}
 
-        # We might have a load of temporaries from bgrab, but we are about to make some more
+        # We might have a load of temporaries from grab, but we are about to make some more
         # to save the bias-subtracted normalised versions.
         tdir = os.path.join(tempfile.gettempdir(), 'hipercam-{:s}'.format(getpass.getuser()))
         os.makedirs(tdir,exist_ok=True)
@@ -258,17 +259,17 @@ def makeflat(args=None):
                 fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
 
                 for cnam in ccds:
-                    # its unlikely that flats would be taken with skips,
-                    # but you never know. Eliminate them from consideration
-                    # now.
+                    # its unlikely that flats would be taken with skips, but
+                    # you never know. Eliminate them from consideration now.
                     ccd = mccd[cnam]
                     if ccd.is_data():
                         cmean = mccd[cnam].mean()
                         means[cnam][fname] = cmean
                         mccd[cnam] /= cmean
 
-                # write the disk, close the filehandle
+                # write the disk, save the name, close the filehandle
                 mccd.write(fname)
+                fnames.append(fname)
                 os.close(fd)
 
                 # a bit of progress info
@@ -276,7 +277,6 @@ def makeflat(args=None):
                     print('Saved debiassed, normalised flat to {:s}'.format(fname))
                 else:
                     print('Saved normalised flat to {:s}'.format(fname))
-                fnames.append(fname)
 
         # now we go through CCD by CCD, using the first as a template
         # for the window names in which we will also store the results.
@@ -301,8 +301,11 @@ def makeflat(args=None):
                 print('.. cannot average 0 frames; will skip CCD {:s}'.format(cnam))
                 continue
             elif len(mkeys) < ngroup:
-                print('WARNING: fewer than ngroup = {:d} frames found. Output for CCD {:s} could be poor'.format(
-                        ngroup,cnam))
+                print(
+                    ('WARNING: fewer than ngroup = {:d} frames'
+                     ' found. Output for CCD {:s} could be poor').format(
+                        ngroup,cnam)
+                )
 
             nchunk = len(mkeys) // ngroup
             if nchunk == 0:
@@ -327,16 +330,16 @@ def makeflat(args=None):
 
                 # load the CCDs of this group
                 ccdgroup = []
-                with spooler.HcamListSpool(mkeys[n1:n2], cnam) as spool:
+                with spooler.HcamListSpool(list(mkeys[n1:n2]), cnam) as spool:
                     for ccd in spool:
                         ccdgroup.append(ccd)
 
                 # take median of the group to get rid of jumping
-                # stars. 'weight' used to weight the results when summin the
+                # stars. 'weight' used to weight the results when summing the
                 # results together. this stage is like the 'n' option of
                 # 'combine' except we have already cut out any junk frames and
                 # we have normalised the remainder
-                weight = mkeys[n1:n2].sum()
+                weight = mvals[n1:n2].sum()
                 wsum += weight
 
                 for wnam, wind in tccd.items():
@@ -369,7 +372,7 @@ def makeflat(args=None):
 
         # write out
         template.write(output, clobber)
-        print('\nFinal result written to {:s}'.format(outfile))
+        print('\nFinal result written to {:s}'.format(output))
 
     except KeyboardInterrupt:
         print('\nmakeflat aborted')

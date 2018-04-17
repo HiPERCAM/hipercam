@@ -205,26 +205,33 @@ class HcamListSpool(SpoolerBase):
         """
         if isinstance(lname, str):
             self._iter = open(lname)
-            self._close_at_end = True
+            self._file = True
         else:
             self._iter = lname
-            self._close_at_end = False
+            self._file = False
 
         self.cnam = cnam
 
     def __exit__(self, *args):
-        if self._close_at_end:
+        if self._file:
             # close in the case of file lists
             self._iter.close()
 
     def __next__(self):
         # returns next image from a list. adds in the file name
         # as a header parameter
-        for fname in self._iter:
-            if not fname.startswith('#') and not fname.isspace():
-                break
+        if self._file:
+            for fname in self._iter:
+                if not fname.startswith('#') and not fname.isspace():
+                    break
+            else:
+                raise StopIteration
+
         else:
-            raise StopIteration
+            try:
+                fname = self._iter.pop(0)
+            except IndexError:
+                raise StopIteration
 
         if self.cnam is None:
             mccd = ccd.MCCD.read(utils.add_extension(fname.strip(), core.HCAM))
