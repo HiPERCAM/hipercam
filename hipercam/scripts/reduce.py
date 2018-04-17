@@ -76,9 +76,6 @@ def reduce(args=None):
         run     : string [if source ends 's' or 'l']
            run number to access, e.g. 'run034'
 
-        flist   : string [if source ends 'f']
-           name of file list
-
         first   : int [if source ends 's' or 'l']
            exposure number to start from. 1 = first frame; set = 0 to
            always try to get the most recent frame (if it has changed)
@@ -90,8 +87,17 @@ def reduce(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
+        flist   : string [if source ends 'f']
+           name of file list
+
         log     : string
            log file for the results
+
+        tkeep   : float
+           maximum number of minutes of data to store in internal buffers,
+           0 for the lot. When large numbers of frames are stored, performance
+           can be slowed in which case it makes sense to lose the earlier points
+           (without affecting the saving to disk).
 
         implot  : bool
            flag to indicate you want to plot images as well. The
@@ -159,6 +165,7 @@ def reduce(args=None):
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('log', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('tkeep', Cline.GLOBAL, Cline.PROMPT)
         cl.register('implot', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
@@ -205,6 +212,11 @@ def reduce(args=None):
         log = cl.get_value(
             'log', 'name of log file to store results',
             cline.Fname('reduce.log',hcam.LOG,cline.Fname.NEW)
+        )
+
+        tkeep = cl.get_value(
+            'tkeep', 'number of minute of data to keep in internal buffers (0 for all)',
+            0, 0
         )
 
         implot = cl.get_value(
@@ -608,6 +620,8 @@ def reduce(args=None):
         #
         # Finally, start winding through the frames
         #
+        tzset = False
+
         with spooler.data_source(source, resource, first) as spool:
 
             # 'spool' is an iterable source of MCCDs
@@ -633,19 +647,24 @@ def reduce(args=None):
                     nframe = nf + 1
 
                 print(
-                    'Frame {:d}: {:s} '.format(
-                    nframe, mccd.head['TIMSTAMP']),
+                    'Frame {:d}: {:s} [{:s}]'.format(
+                        nframe, mccd.head['TIMSTAMP'],
+                        'OK' if mccd.head['GOODTIME'] else 'NOK'),
                     end='' if implot else '\n'
                 )
 
-                if nf == 0 and rfile['calibration']['crop']:
-                    # This is the very first data frame read in. We need to
+                if not mccd.head['GOODTIME']:
+                    continue
+
+                if not tzset and rfile['calibration']['crop']:
+                    # This is the very first OK data we have. We need to
                     # trim the calibrations, on the assumption that all data
                     # frames have the same format
                     rfile.crop(mccd)
 
                     # reference the times relative to the start frame.
                     tzero = mccd.head['MJDUTC']
+                    tzset = True
 
                 # start processing here. Retain a copy of the
                 # raw data as 'mccd' in order to judge saturation.
@@ -703,6 +722,9 @@ def reduce(args=None):
                         (cnam, pccd[cnam], mccd[cnam], rfile.aper[cnam],
                          mccdwins[cnam], read, gain, rfile, store[cnam])
                     )
+
+                if not len(arglist):
+                    continue
 
                 # Run the reduction, potentially in parallel
                 allres = pool.starmap(ccdproc, arglist)
@@ -831,14 +853,14 @@ def reduce(args=None):
                 tmax = None
 
                 # plot the light curve
-                replot, ltmax = plotLight(lpanel, t, results, rfile, lbuffer)
+                replot, ltmax = plotLight(lpanel, t, results, rfile, tkeep, lbuffer)
                 tmax = tmax if ltmax is None else \
                        ltmax if tmax is None else max(tmax, ltmax)
 
                 if rfile.position:
                     # plot the positions
                     rep, ptmax = plotPosition(
-                        xpanel, ypanel, t, results, rfile, xbuffer, ybuffer
+                        xpanel, ypanel, t, results, rfile, tkeep, xbuffer, ybuffer
                     )
                     replot |= rep
                     tmax = tmax if ptmax is None else \
@@ -846,14 +868,14 @@ def reduce(args=None):
 
                 if rfile.transmission:
                     # plot the transmission
-                    rep, ttmax = plotTrans(tpanel, t, results, rfile, tbuffer)
+                    rep, ttmax = plotTrans(tpanel, t, results, rfile, tkeep, tbuffer)
                     replot |= rep
                     tmax = tmax if ttmax is None else \
                            ttmax if tmax is None else max(tmax, ttmax)
 
                 if rfile.seeing:
                     # plot the seeing
-                    rep, stmax = plotSeeing(spanel, t, results, rfile, sbuffer)
+                    rep, stmax = plotSeeing(spanel, t, results, rfile, tkeep, sbuffer)
                     replot |= rep
                     tmax = tmax if stmax is None else \
                            stmax if tmax is None else max(tmax, stmax)
@@ -1649,10 +1671,23 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
             )
 
         else:
-            raise hcam.HipercamError(
-                'CCD{:s}, reference aperture fit(s)'
-                ' failed; giving up.'.format(cnam)
+
+            # all reference fits have failed. Set all others to bad values
+            # and return
+            for apnam, aper in ccdaper.items():
+                if not aper.ref:
+                    store[apnam] = {
+                        'xe' : -1., 'ye' : -1.,
+                        'fwhm' : 0., 'fwhme' : -1.,
+                        'beta' : 0., 'betae' : -1.,
+                        'dx' : 0., 'dy' : 0.
+                    }
+
+            print(
+                'CCD {:s}: no reference aperture fit was successful; skipping'.format(
+                    cnam), file=sys.stderr
             )
+            return
 
     else:
         # no reference apertures. All individual
@@ -2287,7 +2322,7 @@ class Panel:
         pgswin(x1,x2,y1,y2)
 
 
-def plotLight(panel, t, results, rfile, lbuffer):
+def plotLight(panel, t, results, rfile, tkeep, lbuffer):
     """Plots one set of results in the light curve panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
 
@@ -2323,6 +2358,8 @@ def plotLight(panel, t, results, rfile, lbuffer):
             fmax = f if fmax is None else max(fmax, f)
             tmax = t if tmax is None else max(tmax, t)
 
+        lc.trim(tkeep)
+
     if not sect['y_fixed'] and fmin is not None and \
        (fmin < ymin or fmax > ymax):
         # we are going to have to replot because we have moved
@@ -2351,7 +2388,7 @@ def plotLight(panel, t, results, rfile, lbuffer):
 
     return (replot, tmax)
 
-def plotPosition(xpanel, ypanel, t, results, rfile, xbuffer, ybuffer):
+def plotPosition(xpanel, ypanel, t, results, rfile, tkeep, xbuffer, ybuffer):
     """Plots one set of results in the seeing panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
 
@@ -2378,6 +2415,8 @@ def plotPosition(xpanel, ypanel, t, results, rfile, xbuffer, ybuffer):
             xmin = x if xmin is None else min(x, xmin)
             xmax = x if xmax is None else max(x, xmax)
 
+        xpos.trim(tkeep)
+
     if xmin is not None and (xmin < xpanel.y1 or xmax > xpanel.y2) and \
        not sect['x_fixed']:
         replot = True
@@ -2400,6 +2439,8 @@ def plotPosition(xpanel, ypanel, t, results, rfile, xbuffer, ybuffer):
             ymin = y if ymin is None else min(y, ymin)
             ymax = y if ymax is None else max(y, ymax)
 
+        ypos.trim(tkeep)
+
     if ymin is not None and (ymin < ypanel.y1 or ymax > ypanel.y2) and \
        not sect['y_fixed']:
         replot = True
@@ -2412,7 +2453,7 @@ def plotPosition(xpanel, ypanel, t, results, rfile, xbuffer, ybuffer):
 
     return (replot, tmax)
 
-def plotTrans(panel, t, results, rfile, tbuffer):
+def plotTrans(panel, t, results, rfile, tkeep, tbuffer):
     """Plots one set of results in the transmission panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
 
@@ -2441,9 +2482,11 @@ def plotTrans(panel, t, results, rfile, tbuffer):
                 trans.fmax *= f/100
                 replot = True
 
+        trans.trim(tkeep)
+
     return (replot, tmax)
 
-def plotSeeing(panel, t, results, rfile, sbuffer):
+def plotSeeing(panel, t, results, rfile, tkeep, sbuffer):
     """Plots one set of results in the seeing panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
 
@@ -2470,30 +2513,60 @@ def plotSeeing(panel, t, results, rfile, sbuffer):
             tmax = t if tmax is None else max(t, tmax)
             fmax = f if fmax is None else max(f, fmax)
 
+        see.trim(tkeep)
+
     if fmax is not None and fmax > panel.y2 and not sect['y_fixed']:
         replot = True
         panel.y2 = (1+sect['extend_y'])*fmax
 
     return (replot, tmax)
 
-class LightCurve:
+class BaseBuffer:
+    """
+    Base class for buffer classes to define a few things in common.
+    Container for light curves so they can be re-plotted as they come in.
+    There should be one of these per plot line in the 'light' section.
+    """
+
+    def __init__(self, plot_config):
+        self.cnam = plot_config['ccd']
+        self.targ = plot_config['targ']
+        self.dcol = plot_config['dcol']
+        self.ecol = plot_config['ecol']
+        self.t  = []
+        self.f  = []
+        self.fe = []
+        self.symb = []
+
+    def trim(self, tkeep):
+        """
+        Trims points more than tkeep minutes before the last point.
+        Assumes times rise monotonically. Nothing done if tkeep <= 0,
+        or if the first point does not exceed tkeep by at least 1.
+        The idea is to avoid doing this too often.
+        """
+        if len(self.t) > 1 and tkeep > 0. and self.t[-1] > self.t[0] + tkeep + 1:
+            tlast = self.t[-1]
+            for ntrim, t in enumerate(self.t):
+                if t > tlast-tkeep:
+                    break
+            if ntrim:
+                self.t  = self.t[ntrim:]
+                self.f  = self.f[ntrim:]
+                self.fe = self.fe[ntrim:]
+                self.symb = self.symb[ntrim:]
+
+class LightCurve(BaseBuffer):
     """
     Container for light curves so they can be re-plotted as they come in.
     There should be one of these per plot line in the 'light' section.
     """
     def __init__(self, plot_config, linear):
-        self.cnam = plot_config['ccd']
-        self.targ = plot_config['targ']
+        super().__init__(plot_config)
         self.comp = plot_config['comp']
         self.off = plot_config['off']
         self.fac = plot_config['fac']
-        self.dcol = plot_config['dcol']
-        self.ecol = plot_config['ecol']
         self.linear = linear
-        self.t  = []
-        self.f  = []
-        self.fe = []
-        self.symb = []
 
     def add_point(self, t, results):
         """Extracts the data to be plotted on the light curve plot for the given the
@@ -2574,20 +2647,13 @@ class LightCurve:
         # return f up the line
         return f
 
-class Xposition:
+class Xposition(BaseBuffer):
     """Container for X measurements so they can be re-plotted as they come in.
     There should be one of these per plot line in the 'position' section.
 
     """
     def __init__(self, plot_config):
-        self.cnam  = plot_config['ccd']
-        self.targ  = plot_config['targ']
-        self.dcol  = plot_config['dcol']
-        self.ecol  = plot_config['ecol']
-        self.t  = []
-        self.f  = []
-        self.fe = []
-        self.symb = []
+        super().__init__(plot_config)
         self.xzero = None
 
     def add_point(self, t, results):
@@ -2642,20 +2708,13 @@ class Xposition:
         # return x up the line
         return x
 
-class Yposition:
+class Yposition(BaseBuffer):
     """Container for Y measurements so they can be re-plotted as they come in.
     There should be one of these per plot line in the 'position' section.
 
     """
     def __init__(self, plot_config):
-        self.cnam  = plot_config['ccd']
-        self.targ  = plot_config['targ']
-        self.dcol  = plot_config['dcol']
-        self.ecol  = plot_config['ecol']
-        self.t  = []
-        self.f  = []
-        self.fe = []
-        self.symb = []
+        super().__init__(plot_config)
         self.yzero = None
 
     def add_point(self, t, results):
@@ -2710,20 +2769,13 @@ class Yposition:
         # return y up the line
         return y
 
-class Transmission:
+class Transmission(BaseBuffer):
     """
     Container for light curves so they can be re-plotted as they come in.
     There should be one of these per plot line in the 'light' section.
     """
     def __init__(self, plot_config):
-        self.cnam = plot_config['ccd']
-        self.targ = plot_config['targ']
-        self.dcol = plot_config['dcol']
-        self.ecol = plot_config['ecol']
-        self.t  = []
-        self.f  = []
-        self.fe = []
-        self.symb = []
+        super().__init__(plot_config)
         self.fmax = None # Maximum to scale the transmission
 
     def add_point(self, t, results):
@@ -2779,21 +2831,14 @@ class Transmission:
         # return f up the line
         return f
 
-class Seeing:
+class Seeing(BaseBuffer):
     """
     Container for light curves so they can be re-plotted as they come in.
     There should be one of these per plot line in the 'light' section.
     """
     def __init__(self, plot_config, scale):
-        self.cnam  = plot_config['ccd']
-        self.targ  = plot_config['targ']
-        self.dcol  = plot_config['dcol']
-        self.ecol  = plot_config['ecol']
+        super().__init__(plot_config)
         self.scale = scale
-        self.t  = []
-        self.f  = []
-        self.fe = []
-        self.symb = []
 
     def add_point(self, t, results):
         """
