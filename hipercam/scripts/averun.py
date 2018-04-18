@@ -125,7 +125,7 @@ def averun(args=None):
                 'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
 
         else:
-            run = cl.get_value('flist', 'file list',
+            flist = cl.get_value('flist', 'file list',
                                cline.Fname('files.lis',hcam.LIST))
             first = 1
 
