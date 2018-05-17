@@ -676,6 +676,15 @@ def reduce(args=None):
                     # no bias subtraction
                     pccd = mccd
 
+                if rfile.flat is not None:
+                    # divide by flat
+                    pccd /= rfile.flat
+                else:
+                    # makes subsequent code easiest to simply
+                    # fake up a unit flat field at this point
+                    rfile.flat = pccd.copy()
+                    rfile.flat.set_const(1.0)
+
                 # container for the arguments to send to ccdproc
                 # for each CCD
                 arglist = []
@@ -719,8 +728,9 @@ def reduce(args=None):
                     # compile list of arguments to send to
                     # parallelisable routine
                     arglist.append(
-                        (cnam, pccd[cnam], mccd[cnam], rfile.aper[cnam],
-                         mccdwins[cnam], read, gain, rfile, store[cnam])
+                        (cnam, pccd[cnam], rfile.flat[cnam]
+                         mccd[cnam], rfile.aper[cnam], mccdwins[cnam],
+                         read, gain, rfile, store[cnam])
                     )
 
                 if not len(arglist):
@@ -1471,7 +1481,7 @@ class Rfile(OrderedDict):
             self.gain = self.gain.crop(mccd)
 
 
-def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
+def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results
     that will be used to start the fits from one frame to the next. It must
     start as {'mfwhm' : -1., 'mbeta' : -1.}. The values of these will be
@@ -1486,7 +1496,10 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
            CCD label
 
        ccd       : CCD
-           the CCD
+           the debiasses & flat-fielded CCD
+
+       flat      : CCD
+           the flat-field
 
        ccdaper   : CcdAper
            the Apertures. These are modified on exit, in particular the
@@ -1547,14 +1560,14 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
             wind = ccd[ccdwin[apnam]]
 
             if isinstance(read, hcam.CCD):
-                rd = read[ccdwin[apnam]].data
+                rd = read[ccdwin[apnam]].data / flat[ccdwin[apnam]].data
             else:
-                rd = read
+                rd = read / flat[ccdwin[apnam]].data
 
             if isinstance(gain, hcam.CCD):
-                gn = gain[ccdwin[apnam]].data
+                gn = gain[ccdwin[apnam]].data * flat[ccdwin[apnam]].data
             else:
-                gn = gain
+                gn = gain * flat[ccdwin[apnam]].data
 
             # get sub-windat around start position
             shbox = apsec['search_half_width_ref']
@@ -1711,14 +1724,14 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
             wind = ccd[ccdwin[apnam]]
 
             if isinstance(read, hcam.CCD):
-                rd = read[ccdwin[apnam]].data
+                rd = read[ccdwin[apnam]].data / flat[ccdwin[apnam]].data
             else:
-                rd = read
+                rd = read / flat[ccdwin[apnam]].data
 
             if isinstance(gain, hcam.CCD):
-                gn = gain[ccdwin[apnam]].data
+                gn = gain[ccdwin[apnam]].data * flat[ccdwin[apnam]].data
             else:
-                gn = gain
+                gn = gain * flat[ccdwin[apnam]].data
 
             try:
 
@@ -1849,7 +1862,8 @@ def moveApers(cnam, ccd, ccdaper, ccdwin, rfile, read, gain, store):
     else:
         store['mbeta'] = -1
 
-def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
+def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
+                rfile, read, gain, store):
     """This extracts the flux of all apertures of a given CCD.
 
     The steps are (1) aperture resizing, (2) sky background estimation, (3)
@@ -1879,6 +1893,9 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
 
        ccd      : CCD
           corresponding CCD after debiassing and any other processing
+
+       flat     : CCD
+          flat field
 
        rccd     : CCD
           corresponding raw CCD, used to work out whether data are
@@ -1963,6 +1980,7 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
         wnam = ccdwin[apnam]
         wind = ccd[wnam]
         rwind = rccd[wnam]
+        fwind = flat[wnam]
 
         # extract sub-window that includes all of the pixels that could
         # conceivably affect the aperture. We have to check that 'extra'
@@ -1980,6 +1998,7 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
         try:
             swind = wind.window(x1,x2,y1,y2)
             srwind = rwind.window(x1,x2,y1,y2)
+            sfwind = fwind.window(x1,x2,y1,y2)
 
             # some checks for possible problems. bitmask flags will
             # be set if they are encountered.
@@ -2029,6 +2048,7 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
 
             # generate sky
             dsky = swind.data[sok]
+            dflat = sfwind.data[sok]
             if len(dsky):
 
                 # we have some sky!
@@ -2061,15 +2081,17 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
                     nrej = 0
 
                     # srms will be used to substitute use read / gain parameters
+                    # we make some corrections for flat-fielding here too
                     if isinstance(read, hcam.CCD):
-                        rd = sread[sok][ok]
+                        rd = sread[sok][ok]/dflat[ok]
                     else:
-                        rd = read
+                        rd = read/dflat[ok]
 
                     if isinstance(gain, hcam.CCD):
-                        gn = sgain[sok][ok]
+                        gn = sgain[sok][ok]*dflat[ok]
                     else:
-                        gn = gain
+                        gn = gain*dflat[ok]
+
                     serror = np.sqrt(
                         (rd**2 + np.max(0, dsky[ok])/gn).sum()/nsky**2)
 
@@ -2131,8 +2153,9 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
                 )
                 wgt = np.maximum(wgt, wg)
 
-            # extract just the data and weight values in the target region
+            # extract just the data, flat and weight values in the target region
             dtarg = swind.data[dok]
+            ftarg = sfwind.data[dok]
             wtarg = wgt[dok]
 
             # override to indicate we want to override
@@ -2141,16 +2164,16 @@ def extractFlux(cnam, ccd, rccd, ccdaper, ccdwin, rfile, read, gain, store):
                 rd = srms
                 override = True
             elif isinstance(read, hcam.CCD):
-                rd = sread[dok]
+                rd = sread[dok]/ftarg
                 override = False
             else:
-                rd = read
+                rd = read/ftarg
                 override = False
 
             if isinstance(gain, hcam.CCD):
-                gn = sgain[dok]
+                gn = sgain[dok]*ftarg
             else:
-                gn = gain
+                gn = gain*ftarg
 
             # counts above sky
             diff = dtarg-slevel
@@ -2954,11 +2977,44 @@ FLAG_MESSAGES = {
     hcam.NO_DATA           : 'no valid pixels in target aperture',
 }
 
-def ccdproc(cnam, ccd, rccd, ccdaper, ccdwins, read, gain, rfile, store):
+def ccdproc(cnam, ccd, flat, rccd, ccdaper, ccdwins, read, gain, rfile, store):
     """
     Processing steps for one CCD. This is designed for parallelising the
     processing across CCDs using multiprocessing. To be called *after*
     checking that any processing is needed.
+
+    Arguments::
+
+       cnam     : string
+          name of CCD
+
+       ccd      : hcam.CCD
+          the CCD under processing which should have been debiassed and flat
+          fielded
+
+       flat     : hcam.CCD
+          the corresponding flat field, needed for getting errors right.
+
+       rccd     : hcam.CCD
+          unprocessed CCD, used to measure saturation
+
+       ccdaper  : hcam.CCDAper
+          all apertures of the CCD in question
+
+       ccdwins  : ?
+          label of the Window enclosing each aperture
+
+       read     :
+          readnoise
+
+       gain     :
+          gain
+
+       rfile    :
+          reduction control parameters
+
+       store    :
+          dictionary of results
     """
 
     # At this point 'ccd' contains all the Windows of a CCD, 'ccdaper' all of
@@ -2971,7 +3027,7 @@ def ccdproc(cnam, ccd, rccd, ccdaper, ccdwins, read, gain, rfile, store):
     # and mbeta which are used to initialise profile fits next time.
 
     # move the apertures
-    moveApers(cnam, ccd, ccdaper, ccdwins, rfile, read, gain, store)
+    moveApers(cnam, ccd, flat, ccdaper, ccdwins, rfile, read, gain, store)
 
     # extract flux from all apertures of each CCD. Return with the CCD
     # name, the store dictionary, ccdaper and then the results from
@@ -2979,5 +3035,5 @@ def ccdproc(cnam, ccd, rccd, ccdaper, ccdwins, read, gain, rfile, store):
     return (
         cnam, store, ccdaper,
         extractFlux(
-            cnam, ccd, rccd, ccdaper, ccdwins, rfile, read, gain, store),
+            cnam, ccd, flat, rccd, ccdaper, ccdwins, rfile, read, gain, store),
     )
