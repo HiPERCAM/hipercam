@@ -445,6 +445,11 @@ class CCD(Agroup):
         for wind in self.values():
             wind.uint16()
 
+    def set_const(self, val):
+        """Sets all Windows to a constant value"""
+        for wind in self.values():
+            wind.set_const(val)
+
     def inside(self, x, y, dmin):
         """Tests whether a point x,y lies within any Window of a CCD, at
         least dmin from its outer edge. It returns with the Window label
@@ -723,6 +728,11 @@ class MCCD(Agroup):
         """Applies :class:Window.uint16 to all Windows of an MCCD"""
         for ccd in self.values():
             ccd.uint16()
+
+    def set_const(self, val):
+        """Sets all CCDs to a constant value"""
+        for ccd in self.values():
+            ccd.set_const(val)
 
 def get_ccd_info(fname):
     """Routine to return some useful basic information from an MCCD file without
