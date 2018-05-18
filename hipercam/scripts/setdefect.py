@@ -333,7 +333,7 @@ def setdefect(args=None):
         mccd, cnams, anams, toolbar, fig, mccdaper, linput,
         rtarg, rsky1, rsky2, profit, method, beta,
         fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
-        read, gain, thresh, aper, pobjs
+        read, gain, thresh, dfct, pobjs
     )
 
     plt.tight_layout()
@@ -357,7 +357,7 @@ class PickDefect:
 
     def __init__(
             self, mccd, cnams, anams, toolbar, fig, mccd_dfct,
-            apernam, pobjs):
+            dfctnam, pobjs):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
@@ -367,14 +367,13 @@ class PickDefect:
         self.anams = anams
         self.toolbar = toolbar
         self.mccd_dfct = mccd_dfct
-        self.apernam = apernam
+        self.dfctnam = dfctnam
         self.pobjs = pobjs
 
         # then mutually exclusive flags to indicate the action we are in
         # for actions that require extra input. We are not in these at the
         # start so we set them False
-        self._add_mode = False
-        self._extra_mode = False
+        self._pixel_mode = False
 
     @staticmethod
     def action_prompt(cr):
@@ -395,14 +394,25 @@ class PickDefect:
         """
         This is where we do the hard work. Every key press event is diverted
         to this method. It either takes an action based on the input, such as
-        removing an Aperture, or sometimes it causes a state change such that
-        input is diverted to and accumulated in a buffer until 'enter' is hit.
-        The latter stage comes first.
+        removing a defect, or sometimes it causes a state change to get other
+        input.
         """
 
-        if self._add_mode:
-            # accumulate input
-            self._add_input(event.key)
+        if self._pixel_mode:
+
+            if event.key == 'q':
+                self._pixel_mode = False
+                print('no pixel defect added')
+                PickDefect.action_prompt(True)
+                return
+
+            elif event.key == 'm':
+                self._severity = defect.Severity.MODERATE
+
+            elif event.key == 's':
+                self._severity = defect.Severity.SEVERE
+
+            self._pixel()
 
         else:
             # standard mode action
@@ -447,8 +457,7 @@ close enough.
                 # add a pixel defect
                 print(key)
 
-                # numerical sequence input. Try to calculate
-                # the largest number, label the new aperture
+                # Try to calculate the largest number, label the new aperture
                 # with one more
                 high = 0
                 for dfct in self.mccd_dfct[self._cnam]:
@@ -457,56 +466,16 @@ close enough.
                     except ValueError:
                         pass
                 self._buffer = str(high+1)
+                self._pixel_stage = 0
+                self._pixel_mode = True
                 self._pixel()
-                self._add_mode = False
 
-                print(PickStar.ADD_PROMPT, end='',flush=True)
+                print(PickDefect.ADD_PROMPT, end='',flush=True)
 
             elif key == 'd':
                 # delete an defect
                 print(key)
                 self._delete()
-?? got here
-            elif key == 'e':
-                # add extra target pixels to an aperture
-                print(key)
-
-                # switch to extra mode
-                self._extra_mode = True
-                self._extra_stage = 0
-                self._extra()
-
-            elif key == 'l':
-                # link an aperture
-                print(key)
-                if len(self.mccdaper[self._cnam]) < 2:
-                    print('need at least 2 apertures in a CCD to be able to make links')
-                    PickStar.action_prompt(True)
-                else:
-                    # switch to link mode, set number of apertures picked
-                    self._link_stage = 0
-                    self._link_mode = True
-                    self._link()
-
-            elif key == 'm':
-                # add a sky mask to an aperture
-                print(key)
-
-                # switch to mask mode
-                self._mask_mode = True
-                self._mask_stage = 0
-                self._mask()
-
-            elif key == 'p':
-                print(key)
-                self.profit = not self.profit
-                if self.profit:
-                    print(' turned on profile fitting & re-positioning'
-                          ' when adding apertures')
-                else:
-                    print(' switched off profile fitting & re-positioning'
-                          ' when adding apertures')
-                PickStar.action_prompt(True)
 
             elif key == 'q':
                 print(key)
@@ -514,50 +483,11 @@ close enough.
                 plt.close()
 
                 # old files are over-written at this point
-                self.mccdaper.write(self.apernam)
-                print('\nApertures saved to {:s}.\nBye'.format(self.apernam))
-
-            elif key == 'r':
-                print(key)
-                self._reference()
-
-            elif key == 'C':
-                print(key)
-
-                # clone the apertures from this CCD
-                if len(self.mccdaper[self._cnam]):
-
-                    # only if there are some to clone ...
-                    for cnam in self.mccdaper:
-
-                        if cnam != self._cnam and cnam in self.anams:
-                            # ... it is not the CCD to be cloned and it
-                            # is being displayed.
-
-                            # remove all existing aperture on this CCD from
-                            # the plot
-                            for apnam in self.pobjs[cnam]:
-                                for obj in self.pobjs[cnam][apnam]:
-                                    obj.remove()
-
-                            # copy over the apertures of the CCD to be cloned
-                            self.mccdaper[cnam] = self.mccdaper[self._cnam].copy()
-
-                            # plot them, storing the plot objects
-                            self.pobjs[cnam] = hcam.mpl.pCcdAper(
-                                self.anams[cnam], self.mccdaper[cnam]
-                            )
-
-                            plt.draw()
-
-                    print('Copied apertures of CCD {:s}'
-                          ' to all other displayed CCDs'.format(self._cnam)
-                      )
-
-                PickStar.action_prompt(True)
+                self.mccd_dfct.write(self.dfctnam)
+                print('\nDefects saved to {:s}.\nBye'.format(self.dfctnam))
 
             elif key == 'enter':
-                PickStar.action_prompt(True)
+                PickDefect.action_prompt(True)
 
             elif key == 'shift' or key == 'alt' or key == 'control' or \
                  key == 'pagedown' or key == 'pageup':
@@ -566,7 +496,7 @@ close enough.
 
             else:
                 print('\nNo action is defined for key = "{:s}"'.format(key))
-                PickStar.action_prompt(False)
+                PickDefect.action_prompt(False)
 
     def _pixel(self):
         """Once all set to add a Pixel defect, this routine actually carries out the
@@ -574,29 +504,42 @@ close enough.
 
         """
 
-        # create and add aperture
-        aper = hcam.Aperture(
-            self._x, self._y, self.rtarg, self.rsky1, self.rsky2, False
-        )
-        self.mccdaper[self._cnam][self._buffer] = aper
+        self._pixel_stage += 1
 
-        # add aperture to the plot, store plot objects
-        self.pobjs[self._cnam][self._buffer] = hcam.mpl.pAper(
-            self._axes, aper, self._buffer
-        )
+        if self._pixel_stage == 1:
 
-        # make sure it appears
-        plt.draw()
+            # store the CCD, the defect label and the position
+            self._pixel_cnam = self._cnam
+            self._pixel_dnam = self._buffer
+            self._pixel_x = self._x
+            self._pixel_y = self._y
 
-        print('added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
-            self._buffer,self._cnam,self._x,self._y)
-        )
-        PickStar.action_prompt(True)
+            # prompt stage 2
+            print(" Defect level: m(oderate), s(evere), q(uit)")
+
+        elif self._pixel_stage == 2:
+
+            self._pixel_mode = False
+
+            dfct = defect.Pixel(self._severity, self._pixel_x, self._pixel_y)
+            self.mccd_dfct[self._cnam][self._buffer] = dfct
+
+            # add defect to the plot, store plot objects
+            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(
+                self._axes, dfct, self._buffer
+            )
+
+            # make sure it appears
+            plt.draw()
+
+            print('added defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
+                self._buffer,self._cnam,self._pixel_x,self._pixel_y)
+              )
+            PickDefect.action_prompt(True)
 
     def _delete(self):
-        """This deletes the nearest aperture to the currently selected
-        position, if it is near enough. It will also break any links
-        from other Apertures to the Aperture that is deleted.
+        """This deletes the nearest defect to the currently selected
+        position, if it is near enough. 
 
         'Near enough' is defined as within max(rtarg,min(100,max(20,2*rsky2)))
         of the aperture centre.
@@ -641,147 +584,7 @@ close enough.
             print('  found no aperture near enough '
                   'the cursor position for deletion')
 
-        PickStar.action_prompt(True)
-
-    def _extra(self):
-        """
-        Adds extra target aperture
-        """
-
-        # count the stage we are at
-        self._extra_stage += 1
-
-        if self._extra_stage == 1:
-            # Stage 1 first see if there is an aperture near enough the
-            # selected position
-            aper, apnam, dmin = self._find_aper()
-
-            if dmin is None or \
-               dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
-                print('  *** found no aperture near to the'
-                      ' cursor position to add extra pixels; nothing done'
-                )
-                PickStar.action_prompt(True)
-
-            else:
-
-                # ok, we have an aperture. store the CCD, aperture label and
-                # aperture for future ref.
-                self._extra_cnam = self._cnam
-                self._extra_aper = aper
-                self._extra_apnam = apnam
-
-                # prompt stage 2
-                print(" 'e' at the centre of the place to add an"
-                      " extra aperture ['q' to quit]")
-
-        elif self._extra_stage == 2:
-
-            self._extra_mode = False
-
-            if self._cnam != self._extra_cnam:
-                print('  *** cannot add extra apertures across'
-                      ' CCDs; no extra aperture added')
-            else:
-                # add extra to the aperture
-                self._extra_aper.add_extra(
-                    self._x-self._extra_aper.x,
-                    self._y-self._extra_aper.y
-                )
-
-                # delete the aperture from the plot
-                for obj in self.pobjs[self._cnam][self._extra_apnam]:
-                    obj.remove()
-
-                # re-plot new version, over-writing plot objects
-                self.pobjs[self._cnam][self._extra_apnam] = hcam.mpl.pAper(
-                    self._axes, self._extra_aper, self._extra_apnam,
-                    self.mccdaper[self._extra_cnam]
-                )
-                plt.draw()
-
-                print(
-                    '  added extra target aperture to aperture {:s} in CCD {:s}'.format(
-                            self._extra_apnam, self._extra_cnam)
-                )
-
-            PickStar.action_prompt(True)
-
-    def _link(self):
-        """Links one aperture to another. The other one is used when
-        re-positioning. The actions of this depend upon the link status ._link
-        which is used to separate the first from the second aperture.
-
-        """
-
-        # first see if there is an aperture near enough the selected position
-        aper, apnam, dmin = self._find_aper()
-
-        if dmin is None or \
-           dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
-
-            print('  *** found no aperture near to the cursor position to link')
-            if self._link_stage == 1:
-                print(" 'l' to select the aperture to link"
-                      " aperture {:s} from ['q' to quit]".format(apnam))
-            else:
-                print('  *** no link made.')
-                PickStar.action_prompt(True)
-
-        else:
-
-            # ok, we have an aperture
-            self._link_stage += 1
-
-            if self._link_stage == 1:
-
-                if aper.ref:
-                    print('  *** cannot link a reference aperture')
-                    self._link_mode = False
-
-                else:
-                    # first time through, store the CCD, aperture label and
-                    # aperture of the first aperture which is the one that
-                    # will contain the link, set the link status to True and
-                    # prompt the user. these values are used second time round
-                    self._link_cnam = self._cnam
-                    self._link_aper = aper
-                    self._link_apnam = apnam
-                    print(" 'l' to select the aperture to link"
-                          " aperture {:s} from ['q' to quit]".format(apnam))
-
-            else:
-                # second (or more) time through. Check we are in the same CCD
-                # but on a different aperture first change the link status
-                self._link_mode = False
-
-                # then see if we can make a valid link.
-                if self._cnam != self._link_cnam:
-                    print('  *** cannot link across CCDs; no link made')
-                elif apnam == self._link_apnam:
-                    print('  *** cannot link an aperture to itself; '
-                          'no link made')
-                elif self._link_aper.is_linked():
-                    print('  *** cannot link an aperture to an aperture'
-                          ' that is itself linked; no link made')
-                else:
-                    # add link to the first aperture
-                    self._link_aper.set_link(apnam)
-
-                    # delete the first aperture
-                    for obj in self.pobjs[self._cnam][self._link_apnam]:
-                        obj.remove()
-
-                    # re-plot new version, over-writing plot objects
-                    self.pobjs[self._cnam][self._link_apnam] = hcam.mpl.pAper(
-                        self._axes, self._link_aper, self._link_apnam,
-                        self.mccdaper[self._link_cnam])
-                    plt.draw()
-
-                    print('  linked aperture {:s} to aperture {:s}'
-                          ' in CCD {:s}'.format(
-                              self._link_apnam, apnam, self._link_cnam))
-                    PickStar.action_prompt(True)
+        PickDefect.action_prompt(True)
 
     def _mask(self):
         """
@@ -801,7 +604,7 @@ close enough.
                 print('  *** found no aperture near to the'
                       ' cursor position to mask; nothing done'
                 )
-                PickStar.action_prompt(True)
+                PickDefect.action_prompt(True)
 
             else:
 
@@ -860,42 +663,7 @@ close enough.
                     '  added mask to aperture {:s} in CCD {:s}'.format(
                             self._mask_apnam, self._mask_cnam)
                 )
-                PickStar.action_prompt(True)
-
-    def _reference(self):
-        """
-        Toggles the reference status of an aperture
-        """
-
-        # first see if there is an aperture near enough the selected position
-        aper, apnam, dmin = self._find_aper()
-
-        if dmin is None or \
-           dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
-            print('  *** found no aperture near to the cursor position')
-        else:
-
-            if aper.is_linked():
-                print('  *** a linked aperture cannot become a '
-                      'reference aperture')
-            else:
-                aper.ref = not aper.ref
-                if aper.ref:
-                    print('  aperture {:s} is now a '
-                          'reference aperture'.format(apnam))
-                else:
-                    print('  aperture {:s} is no longer a '
-                          'reference aperture'.format(apnam))
-
-                # remove aperture from plot
-                for obj in self.pobjs[self._cnam][apnam]:
-                    obj.remove()
-
-                # re-plot new version, over-writing plot objects
-                self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(
-                    self._axes, aper, apnam)
-
-        PickStar.action_prompt(True)
+                PickDefect.action_prompt(True)
 
     def _find_aper(self):
         """Finds the nearest aperture to the currently selected position,
@@ -931,7 +699,7 @@ close enough.
                     'label={:s} already in use; please try again'.format(self._buffer),
                     file=sys.stderr
                 )
-                print(PickStar.ADD_PROMPT, end='',flush=True)
+                print(PickDefect.ADD_PROMPT, end='',flush=True)
                 self._buffer = ''
 
             elif self._buffer == '':
@@ -939,7 +707,7 @@ close enough.
                     'label blank; please try again'.format(self._buffer),
                     file=sys.stderr
                 )
-                print(PickStar.ADD_PROMPT, end='',flush=True)
+                print(PickDefect.ADD_PROMPT, end='',flush=True)
 
             else:
                 # add & plot aperture
@@ -949,13 +717,13 @@ close enough.
         elif key == '!' and self._buffer == '':
             # terminate accumulation mode without bothering to wait for an 'enter'
             print('\n*** no aperture added')
-            PickStar.action_prompt(True)
+            PickDefect.action_prompt(True)
             self._add_mode = False
 
         elif key == 'backspace' or key == 'delete':
             # remove a character 
             self._buffer = self._buffer[:-1]
-            print('{:s}{:s} '.format(PickStar.ADD_PROMPT, self._buffer))
+            print('{:s}{:s} '.format(PickDefect.ADD_PROMPT, self._buffer))
 
         elif key in '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
             # accumulate input and add to the buffer
@@ -967,7 +735,7 @@ close enough.
 
                 if key == '0':
                     print("Apertures cannot be labelled just '0'")
-                    print(PickStar.ADD_PROMPT, end='',flush=True)
+                    print(PickDefect.ADD_PROMPT, end='',flush=True)
                     self._buffer = ''
 
                 elif self._buffer in self.mccdaper[self._cnam]:
@@ -975,7 +743,7 @@ close enough.
                         'label={:s} already in use; please try again'.format(self._buffer),
                         file=sys.stderr
                     )
-                    print(PickStar.ADD_PROMPT, end='',flush=True)
+                    print(PickDefect.ADD_PROMPT, end='',flush=True)
                     self._buffer = ''
 
                 elif self._buffer == '':
@@ -983,7 +751,7 @@ close enough.
                         'label blank; please try again'.format(self._buffer),
                         file=sys.stderr
                     )
-                    print(PickStar.ADD_PROMPT, end='',flush=True)
+                    print(PickDefect.ADD_PROMPT, end='',flush=True)
 
                 else:
                     # add & plot aperture

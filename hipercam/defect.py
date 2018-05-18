@@ -17,10 +17,10 @@ __all__ = ('Severity', 'Defect',)
 class Severity(Enum):
     """
     Enum class to define defect severity levels. There are
-    two: MODERATE and DISASTER.
+    two: MODERATE and SEVERE
     """
     MODERATE = 1
-    DISASTER = 2
+    SEVERE = 2
 
 class Defect(ABC):
 
@@ -54,14 +54,13 @@ class Defect(ABC):
     def __repr__(self):
         pass
 
-        return 'Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, mask={!r}, extra={!r}, link={!r})'.format(
-            self.x, self.y, self.rtarg, self.rsky1, self.rsky2, self.ref,
-            self.mask, self.extra, self.link
-        )
-
-
-
     @abstractmethod
+    def dist(self, x, y):
+        """Returns the distance of a defect from a position x,y. This defines
+        what is meant by the distance from a defect
+        """
+        pass
+
     def write(self, fname):
         """Dumps Aperture in JSON format to a file called fname"""
         with open(fname,'w') as fp:
@@ -114,23 +113,8 @@ class Pixel(ABC):
             self.severity, self.x, self.y
         )
 
-    @abstractmethod
-    def write(self, fname):
-        """Dumps Aperture in JSON format to a file called fname"""
-        with open(fname,'w') as fp:
-            json.dump(self, cls=_Encoder, indent=2)
-
-    def toString(self):
-        """Returns Aperture as a JSON-type string"""
-        return json.dumps(self, fp, cls=_Encoder, indent=2)
-
-    @classmethod
-    def read(cls, fname):
-        """Read from JSON-format file fname"""
-        with open(fname) as fp:
-            aper = json.load(fp, cls=_Decoder)
-        aper.check()
-        return aper
+    def dist(self, x, y):
+        return np.sqrt((x-self.x)**2+(y-self.y)**2)
 
 class CcdDefect(Group):
     """Class representing all the :class:Defects for a single CCD.
