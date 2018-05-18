@@ -12,12 +12,13 @@ __all__ = (
     'LOG', 'CNAMS', 'CIS', 'ALL_OK', 'NO_FWHM',
     'NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
     'TARGET_NONLINEAR', 'TARGET_SATURATED', 'ANY',
-    'REDUCE_FILE_VERSION', 'NO_EXTRACTION', 'NO_DATA'
+    'REDUCE_FILE_VERSION', 'NO_EXTRACTION', 'NO_DATA',
+    'DFCT'
 )
 
 # Constants for general use
 
-# Version of the reduce file in operatop (used by 'reduce' and 'genred')
+# Version of the reduce file in operation (used by 'reduce' and 'genred')
 # Format: YYYYMMDD.# where # is an integer to allow for multiple
 # versions in a day, although that should be rare and it should
 # almost always be '1'
@@ -31,6 +32,7 @@ APER = '.ape'
 HRAW = '.fits'
 RED  = '.red'
 LOG  = '.log'
+DFCT = '.dft'
 
 # number of minutes in a day
 DMINS = 1440.
@@ -53,8 +55,8 @@ CIS = (
     (0.682,0.443,0.505),  # 11 -- mauve
     (0.635,0.643,0.082),  # 12 -- vomit
     (0.7,0.008,0.0),      # 13 -- darkred
-    (0.498, 0.372, 0),    # 14 -- mud 
-    (0.8, 0.8, 0),        # 15 -- yellow 
+    (0.498, 0.372, 0),    # 14 -- mud
+    (0.8, 0.8, 0),        # 15 -- yellow
 )
 
 CNAMS = {
