@@ -330,10 +330,7 @@ def setdefect(args=None):
 
     # create the aperture picker (see below for class def)
     picker = PickDefect(
-        mccd, cnams, anams, toolbar, fig, mccdaper, linput,
-        rtarg, rsky1, rsky2, profit, method, beta,
-        fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
-        read, gain, thresh, dfct, pobjs
+        mccd, cnams, anams, toolbar, fig, mccd_dfct, dfct, pobjs
     )
 
     plt.tight_layout()
@@ -356,8 +353,7 @@ class PickDefect:
     """
 
     def __init__(
-            self, mccd, cnams, anams, toolbar, fig, mccd_dfct,
-            dfctnam, pobjs):
+            self, mccd, cnams, anams, toolbar, fig, mccd_dfct, dfctnam, pobjs):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
@@ -440,7 +436,7 @@ class PickDefect:
                 print(key)
                 print("""
 
-Help on the actions available in 'setaper':
+Help on the actions available in 'setdefect':
 
   d(elete)   : delete a defect
   h(elp)     : print this help text
@@ -539,10 +535,7 @@ close enough.
 
     def _delete(self):
         """This deletes the nearest defect to the currently selected
-        position, if it is near enough. 
-
-        'Near enough' is defined as within max(rtarg,min(100,max(20,2*rsky2)))
-        of the aperture centre.
+        position, if it is near enough (within 5 pixels)
 
         """
 
@@ -586,178 +579,24 @@ close enough.
 
         PickDefect.action_prompt(True)
 
-    def _mask(self):
-        """
-        Adds a sky mask to an aperture
-        """
+    def _find_defect(self):
+        """Finds the nearest Defect to the currently selected position,
 
-        # count the stage we are at
-        self._mask_stage += 1
-
-        if self._mask_stage == 1:
-            # Stage 1 first see if there is an aperture near enough the
-            # selected position
-            aper, apnam, dmin = self._find_aper()
-
-            if dmin is None or \
-               dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
-                print('  *** found no aperture near to the'
-                      ' cursor position to mask; nothing done'
-                )
-                PickDefect.action_prompt(True)
-
-            else:
-
-                # ok, we have an aperture. store the CCD, aperture label and
-                # aperture for future ref.
-                self._mask_cnam = self._cnam
-                self._mask_aper = aper
-                self._mask_apnam = apnam
-
-                # prompt stage 2
-                print(" 'm' at the centre of the region to mask ['q' to quit]")
-
-        elif self._mask_stage == 2:
-
-            if self._cnam != self._mask_cnam:
-                print('  *** cannot add sky mask across CCDs; no mask added')
-                self._mask_mode = False
-            else:
-                # store mask centre
-                self._mask_xcen = self._x
-                self._mask_ycen = self._y
-
-                # prompt stage 3
-                print(" 'm' at the edge of the region to mask ['q' to quit]")
-
-        elif self._mask_stage == 3:
-
-            # final stage of mask mode
-            self._mask_mode = False
-
-            if self._cnam != self._mask_cnam:
-                print('  *** cannot add sky mask across CCDs; no mask added')
-            else:
-                # compute radius
-                radius = np.sqrt((self._x-self._mask_xcen)**2 +
-                                 (self._y-self._mask_ycen)**2)
-
-                # add mask to the aperture
-                self._mask_aper.add_mask(
-                    self._mask_xcen-self._mask_aper.x,
-                    self._mask_ycen-self._mask_aper.y, radius
-                )
-
-                # delete the aperture from the plot
-                for obj in self.pobjs[self._cnam][self._mask_apnam]:
-                    obj.remove()
-
-                # re-plot new version, over-writing plot objects
-                self.pobjs[self._cnam][self._mask_apnam] = hcam.mpl.pAper(
-                    self._axes, self._mask_aper, self._mask_apnam,
-                    self.mccdaper[self._mask_cnam]
-                )
-                plt.draw()
-
-                print(
-                    '  added mask to aperture {:s} in CCD {:s}'.format(
-                            self._mask_apnam, self._mask_cnam)
-                )
-                PickDefect.action_prompt(True)
-
-    def _find_aper(self):
-        """Finds the nearest aperture to the currently selected position,
-
-        It returns (aper, apnam, dmin) where aper is the Aperture, apnam its
+        It returns (dfct, dfctnam, dmin) where dfct is the Defect, dfctnam its
         label, and dmin is the minimum distance. These are all returned as
-        None if no suitable Aperture is found.
+        None if no suitable Defect is found.
 
         """
 
         dmin = None
-        apmin = None
-        anmin = None
-        for anam, aper in self.mccdaper[self._cnam].items():
-            dist = np.sqrt((aper.x-self._x)**2+(aper.y-self._y)**2)
+        dfctmin = None
+        dnmin = None
+        for dfctnam, dfct in self.mccd_dfct[self._cnam].items():
+            dist = dfct.dist(self._x, self._y)
             if dmin is None or dist < dmin:
                 dmin = dist
-                apmin = aper
-                anmin = anam
+                dfctmin = dfct
+                dnmin = dfctnam
 
         return (apmin, anmin, dmin)
 
-    def _add_input(self, key):
-        """Accumulates input to label an aperture
-        """
-
-        if key == 'enter':
-            # trap 'enter'
-            print()
-
-            if self._buffer in self.mccdaper[self._cnam]:
-                print(
-                    'label={:s} already in use; please try again'.format(self._buffer),
-                    file=sys.stderr
-                )
-                print(PickDefect.ADD_PROMPT, end='',flush=True)
-                self._buffer = ''
-
-            elif self._buffer == '':
-                print(
-                    'label blank; please try again'.format(self._buffer),
-                    file=sys.stderr
-                )
-                print(PickDefect.ADD_PROMPT, end='',flush=True)
-
-            else:
-                # add & plot aperture
-                self._add_aperture()
-                self._add_mode = False
-
-        elif key == '!' and self._buffer == '':
-            # terminate accumulation mode without bothering to wait for an 'enter'
-            print('\n*** no aperture added')
-            PickDefect.action_prompt(True)
-            self._add_mode = False
-
-        elif key == 'backspace' or key == 'delete':
-            # remove a character 
-            self._buffer = self._buffer[:-1]
-            print('{:s}{:s} '.format(PickDefect.ADD_PROMPT, self._buffer))
-
-        elif key in '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
-            # accumulate input and add to the buffer
-            self._buffer += key
-
-            if self.linput == 's':
-                # single character input. bail out immediately (inside _add_aperture)
-                print(key)
-
-                if key == '0':
-                    print("Apertures cannot be labelled just '0'")
-                    print(PickDefect.ADD_PROMPT, end='',flush=True)
-                    self._buffer = ''
-
-                elif self._buffer in self.mccdaper[self._cnam]:
-                    print(
-                        'label={:s} already in use; please try again'.format(self._buffer),
-                        file=sys.stderr
-                    )
-                    print(PickDefect.ADD_PROMPT, end='',flush=True)
-                    self._buffer = ''
-
-                elif self._buffer == '':
-                    print(
-                        'label blank; please try again'.format(self._buffer),
-                        file=sys.stderr
-                    )
-                    print(PickDefect.ADD_PROMPT, end='',flush=True)
-
-                else:
-                    # add & plot aperture
-                    self._add()
-                    self._add_mode = False
-
-            else:
-                # multi character input. just accumulate characters
-                print(key, end='', flush=True)
