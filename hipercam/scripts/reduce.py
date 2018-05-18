@@ -728,7 +728,7 @@ def reduce(args=None):
                     # compile list of arguments to send to
                     # parallelisable routine
                     arglist.append(
-                        (cnam, pccd[cnam], rfile.flat[cnam]
+                        (cnam, pccd[cnam], rfile.flat[cnam],
                          mccd[cnam], rfile.aper[cnam], mccdwins[cnam],
                          read, gain, rfile, store[cnam])
                     )
