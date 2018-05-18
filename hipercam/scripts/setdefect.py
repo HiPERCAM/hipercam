@@ -158,7 +158,7 @@ def setdefect(args=None):
 
         # register parameters
         cl.register('mccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('aper', Cline.LOCAL, Cline.PROMPT)
+        cl.register('defect', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('width', Cline.LOCAL, Cline.HIDE)
         cl.register('height', Cline.LOCAL, Cline.HIDE)
@@ -175,16 +175,18 @@ def setdefect(args=None):
                             cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.read(mccd)
 
-        dfct = cl.get_value('defect', 'name of defect file',
-                            cline.Fname('hcam', hcam.DFCT, exist=False))
+        dfct = cl.get_value(
+            'defect', 'name of defect file',
+            cline.Fname('defect', hcam.DFCT, exist=False)
+        )
 
-        if os.path.exists(aper):
+        if os.path.exists(dfct):
             # read in old defects
-            mccd_dfct = hcam.MccdDefect.read(dfct)
+            mccd_dfct = defect.MccdDefect.read(dfct)
             print('Loaded existing file = {:s}'.format(dfct))
         else:
             # create empty container
-            mccd_dfct = hcam.MccdDefect()
+            mccd_dfct = defect.MccdDefect()
             print(
                 'No file called {:s} exists; '
                 'will create from scratch'.format(dfct)
@@ -323,7 +325,7 @@ def setdefect(args=None):
 
         else:
             # add in an empty CcdApers for any CCD not already present
-            mccd_dfct[cnam] = hcam.CcdDefect()
+            mccd_dfct[cnam] = defect.CcdDefect()
 
             # and an empty container for any new plot objects
             pobjs[cnam] = hcam.Group(tuple)
@@ -334,7 +336,7 @@ def setdefect(args=None):
     )
 
     plt.tight_layout()
-    PickStar.action_prompt(False)
+    PickDefect.action_prompt(False)
 
     # squeeze space a bit
     plt.subplots_adjust(wspace=0.1, hspace=0.1)
@@ -461,12 +463,11 @@ close enough.
                         high = max(high, int(aper))
                     except ValueError:
                         pass
+
                 self._buffer = str(high+1)
                 self._pixel_stage = 0
                 self._pixel_mode = True
                 self._pixel()
-
-                print(PickDefect.ADD_PROMPT, end='',flush=True)
 
             elif key == 'd':
                 # delete an defect
@@ -540,41 +541,24 @@ close enough.
         """
 
         # first see if there is an aperture near enough the selected position
-        aper, apnam, dmin = self._find_aper()
+        dfct, dfnam, dmin = self._find_defect()
 
-        if dmin is not None and \
-           dmin < max(self.rtarg,min(100,max(20.,2*self.rsky2))):
+        if dmin is not None and  dmin < 5:
+
             # near enough for deletion
-            for obj in self.pobjs[self._cnam][apnam]:
+            for obj in self.pobjs[self._cnam][dfnam]:
                 obj.remove()
 
-            # delete Aperture from containers
-            del self.pobjs[self._cnam][apnam]
-            del self.mccdaper[self._cnam][apnam]
-
-            # break any links to the deleted aperture
-            for anam, aper in self.mccdaper[self._cnam].items():
-                if aper.link == apnam:
-                    aper.link = ''
-                    print('  removed link to aperture "{:s}"'
-                          ' from aperture "{:s}"'.format(
-                              apnam, anam))
-
-                    # remove the plot of the aperture that was linked in to
-                    # wipe the link
-                    for obj in self.pobjs[self._cnam][anam]:
-                        obj.remove()
-
-                    # then re-plot
-                    self.pobjs[self._cnam][anam] = hcam.mpl.pAper(
-                        self._axes, aper, anam)
+            # delete Defect from containers
+            del self.pobjs[self._cnam][dfnam]
+            del self.mccd_dfct[self._cnam][dfnam]
 
             # update plot
             plt.draw()
-            print('  deleted aperture "{:s}"'.format(apnam))
+            print('  deleted defect "{:s}"'.format(dfnam))
 
         else:
-            print('  found no aperture near enough '
+            print('  found no defect near enough '
                   'the cursor position for deletion')
 
         PickDefect.action_prompt(True)
@@ -598,5 +582,5 @@ close enough.
                 dfctmin = dfct
                 dnmin = dfctnam
 
-        return (apmin, anmin, dmin)
+        return (dfctmin, dnmin, dmin)
 

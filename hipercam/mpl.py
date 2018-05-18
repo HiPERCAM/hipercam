@@ -6,13 +6,13 @@ matplotlib plotting functions.
 import os
 from matplotlib.patches import Circle
 
-import .defect
-
 from .core import *
 from .window import *
 from .group import *
 from .ccd import *
 from . import utils
+from . import defect
+
 
 # Font scale factor
 SCALE_FACTOR = float(os.environ['HIPERCAM_MPL_FSCALE']) \
@@ -338,7 +338,8 @@ def pDefect(axes, dfct):
            the :class:`Defect` to plot
 
     Returns a reference to the plotting object created in case when plotting
-    the Defect in case of a later need to delete it
+    the Defect in case of a later need to delete it. For forwards
+    compatibility, this is returned in a tuple
 
     """
 
@@ -350,7 +351,7 @@ def pDefect(axes, dfct):
         elif dfct.severity == defect.Severity.SEVERE:
             obj = axes.plot(dfct.x, dfct.y, 'o', color='r')
 
-    return obj
+    return (obj,)
 
 def pCcdDefect(axes, ccdDefect):
     """Plots a :class:`CcdDefect` object, returning references to the plot
