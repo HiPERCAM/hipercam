@@ -6,6 +6,8 @@ matplotlib plotting functions.
 import os
 from matplotlib.patches import Circle
 
+import .defect
+
 from .core import *
 from .window import *
 from .group import *
@@ -320,5 +322,56 @@ def pCcdAper(axes, ccdAper):
     for key, aper in ccdAper.items():
         objs = pAper(axes, aper, key, ccdAper)
         g[key] = objs
+
+    return g
+
+def pDefect(axes, dfct):
+    """Plots a :class:`Defect` object, returning references to the
+    plot objects.
+
+    Arguments::
+
+      axes    : :class:`matplotlib.axes.Axes`
+           the Axes to plot to.
+
+      dfct    : Defect
+           the :class:`Defect` to plot
+
+    Returns a reference to the plotting object created in case when plotting
+    the Defect in case of a later need to delete it
+
+    """
+
+    if isinstance(dfct, defect.Pixel):
+        # draw circles to represent the apert. 'objs' is a list of the
+        # objects that we keep to return for possible later deletion.
+        if dfct.severity == defect.Severity.MODERATE:
+            obj = axes.plot(dfct.x, dfct.y, 'o', color='b')
+        elif dfct.severity == defect.Severity.SEVERE:
+            obj = axes.plot(dfct.x, dfct.y, 'o', color='r')
+
+    return obj
+
+def pCcdDefect(axes, ccdDefect):
+    """Plots a :class:`CcdDefect` object, returning references to the plot
+    objects.
+
+    Arguments::
+
+      axes      : :class:`matplotlib.axes.Axes`
+           the Axes to plot to.
+
+      ccdDefect : CcdDefect
+           the :class:`CcdDefect` to plot
+
+    Returns a Group keyed on the same keys as ccdDefect but containing tuples
+    of the plot objects used to plot each Defect. This can be used to
+    delete them if need be.
+
+    """
+    g = Group(tuple)
+    for key, dfct in ccdDefect.items():
+        obj = pDefect(axes, dfct, key)
+        g[key] = obj
 
     return g
