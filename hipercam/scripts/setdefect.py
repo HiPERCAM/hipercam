@@ -30,7 +30,7 @@ if curs is not None:
 import matplotlib.pyplot as plt
 
 import hipercam as hcam
-from hipercam import cline, utils
+from hipercam import cline, utils, defect
 from hipercam.cline import Cline
 
 __all__ = ['setdefect',]
@@ -175,19 +175,19 @@ def setdefect(args=None):
                             cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.read(mccd)
 
-        aper = cl.get_value('defect', 'name of defect file',
-                            cline.Fname('hcam', hcam.APER, exist=False))
+        dfct = cl.get_value('defect', 'name of defect file',
+                            cline.Fname('hcam', hcam.DFCT, exist=False))
 
         if os.path.exists(aper):
-            # read in old apertures
-            mccdaper = hcam.MccdAper.read(aper)
-            print('Loaded existing file = {:s}'.format(aper))
+            # read in old defects
+            mccd_dfct = hcam.MccdDefect.read(dfct)
+            print('Loaded existing file = {:s}'.format(dfct))
         else:
             # create empty container
-            mccdaper = hcam.MccdAper()
+            mccd_dfct = hcam.MccdDefect()
             print(
                 'No file called {:s} exists; '
-                'will create from scratch'.format(aper)
+                'will create from scratch'.format(dfct)
             )
 
         # define the panel grid
@@ -206,21 +206,8 @@ def setdefect(args=None):
         else:
             ccds = list(mccd.keys())
 
-        # next three are usually hidden
-        linput = cl.get_value(
-            'linput', 'n(umerical), s(ingle) or m(ulti)-character label input',
-            'n', lvals=('n','s','m')
-        )
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
-
-        # aperture radii
-        rtarg = cl.get_value(
-            'rtarg', 'target aperture radius [unbinned pixels]', 10., 0.)
-        rsky1 = cl.get_value(
-            'rsky1', 'inner sky aperture radius [unbinned pixels]', 15., 0.)
-        rsky2 = cl.get_value(
-            'rsky2', 'outer sky aperture radius [unbinned pixels]', 25., 0.)
 
         # number of panels in X
         if len(ccds) > 1:
@@ -257,46 +244,6 @@ def setdefect(args=None):
 
         # might be worth trying to improve this at some point
         xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
-
-#        fwidth = cl.get_value('fwidth', 'fit plot width (inches)', 0.)
-#        fheight = cl.get_value('fheight', 'fit plot height (inches)', 0.)
-        profit = cl.get_value(
-            'profit', 'use profile fits to refine'
-            ' the aperture positions?', True
-        )
-        method = cl.get_value(
-            'method', 'fit method g(aussian) or m(offat)', 'm', lvals=['g','m']
-        )
-        if method == 'm':
-            beta = cl.get_value(
-                'beta', 'initial exponent for Moffat fits', 5., 0.5)
-        else:
-            beta = 0
-        fwhm_min = cl.get_value(
-            'fwmin', 'minimum FWHM to allow [unbinned pixels]', 1.5, 0.01)
-        fwhm = cl.get_value(
-            'fwhm', 'initial FWHM [unbinned pixels] for profile fits',
-            6., fwhm_min
-        )
-        fwhm_fix = cl.get_value('fwfix', 'fix the FWHM at start value?', False)
-
-        shbox = cl.get_value(
-            'shbox', 'half width of box for initial'
-            ' location of target [unbinned pixels]', 11., 2.
-        )
-        smooth = cl.get_value(
-            'smooth', 'FWHM for smoothing for initial object'
-            ' detection [binned pixels]', 6.
-        )
-#        splot = cl.get_value(
-#            'splot', 'plot outline of search box?', True)
-        fhbox = cl.get_value(
-            'fhbox', 'half width of box for profile fit'
-            ' [unbinned pixels]', 21., 3.)
-        read = cl.get_value('read', 'readout noise, RMS ADU', 3.)
-        gain = cl.get_value('gain', 'gain, ADU/e-', 1.)
-        thresh = cl.get_value('thresh',
-                              'RMS rejection threshold for fitting', 4.)
 
     # Inputs obtained.
 
@@ -369,20 +316,20 @@ def setdefect(args=None):
         # and axes associated with each CCD
         anams[cnam] = axes
 
-        if cnam in mccdaper:
+        if cnam in mccd_dfct:
             # plot any pre-existing apertures, keeping track of
             # the plot objects
-            pobjs[cnam] = hcam.mpl.pCcdAper(axes, mccdaper[cnam])
+            pobjs[cnam] = hcam.mpl.pCcdDefect(axes, mccd_dfct[cnam])
 
         else:
             # add in an empty CcdApers for any CCD not already present
-            mccdaper[cnam] = hcam.CcdAper()
+            mccd_dfct[cnam] = hcam.CcdDefect()
 
             # and an empty container for any new plot objects
             pobjs[cnam] = hcam.Group(tuple)
 
     # create the aperture picker (see below for class def)
-    picker = PickStar(
+    picker = PickDefect(
         mccd, cnams, anams, toolbar, fig, mccdaper, linput,
         rtarg, rsky1, rsky2, profit, method, beta,
         fwhm, fwhm_min, fwhm_fix, shbox, smooth, fhbox,
@@ -404,17 +351,13 @@ def setdefect(args=None):
 # impossible, explaining some of the weirdness. Effectively the class is used
 # here to define a scope for variables that would otherwise be treated as globals
 
-class PickStar:
-    """Class to pick targets for apertures.
+class PickDefect:
+    """Class to pick defects
     """
 
-    ADD_PROMPT = "enter a label for the aperture, '!' to abort: "
-
     def __init__(
-            self, mccd, cnams, anams, toolbar, fig, mccdaper, linput,
-            rtarg, rsky1, rsky2, profit, method, beta, fwhm, fwhm_min,
-            fwhm_fix, shbox, smooth, fhbox, read, gain, thresh, apernam,
-            pobjs):
+            self, mccd, cnams, anams, toolbar, fig, mccd_dfct,
+            apernam, pobjs):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
@@ -423,24 +366,7 @@ class PickStar:
         self.cnams = cnams
         self.anams = anams
         self.toolbar = toolbar
-        self.mccdaper = mccdaper
-        self.linput = linput
-        self.rtarg = rtarg
-        self.rsky1 = rsky1
-        self.rsky2 = rsky2
-        self.rsky2 = rsky2
-        self.profit = profit
-        self.method = method
-        self.beta = beta
-        self.fwhm = fwhm
-        self.fwhm_min = fwhm_min
-        self.fwhm_fix = fwhm_fix
-        self.shbox = shbox
-        self.smooth = smooth
-        self.fhbox = fhbox
-        self.read = read
-        self.gain = gain
-        self.thresh = thresh
+        self.mccd_dfct = mccd_dfct
         self.apernam = apernam
         self.pobjs = pobjs
 
@@ -448,8 +374,6 @@ class PickStar:
         # for actions that require extra input. We are not in these at the
         # start so we set them False
         self._add_mode = False
-        self._link_mode = False
-        self._mask_mode = False
         self._extra_mode = False
 
     @staticmethod
@@ -463,9 +387,7 @@ class PickStar:
             print()
 
         print(
-            'a(dd), b(reak), c(entre), d(elete), e(xtra) h(elp), '
-            ' l(ink), m(ask), p(rofit), q(uit), r(eference), '
-            'C(opy): ', end='', flush=True
+            'd(elete), h(elp), l(ine), p(ixel), q(uit): ', end='', flush=True
         )
 
 
@@ -481,53 +403,6 @@ class PickStar:
         if self._add_mode:
             # accumulate input
             self._add_input(event.key)
-
-        elif self._link_mode:
-            # if in link mode, we should be selecting another aperture, the
-            # one to link to
-            if event.key == 'q':
-                # trap 'q' for quit during linking
-                self._link_mode = False
-                print('no extra aperture added')
-                PickStar.action_prompt(True)
-
-            elif event.key == 'l':
-                # link mode. this should be the second aperture
-                # store essential data
-                self._cnam = self.cnams[event.inaxes]
-                self._axes = event.inaxes
-                self._x = event.xdata
-                self._y = event.ydata
-                self._link()
-
-        elif self._extra_mode:
-            # add an extra aperture
-            if event.key == 'q':
-                self._extra_mode = False
-                PickStar.action_prompt(True)
-
-            elif event.key == 'e':
-
-                # extra mode. store essential data
-                self._cnam = self.cnams[event.inaxes]
-                self._axes = event.inaxes
-                self._x = event.xdata
-                self._y = event.ydata
-                self._extra()
-
-        elif self._mask_mode:
-            if event.key == 'q':
-                self._mask_mode = False
-                PickStar.action_prompt(True)
-
-            elif event.key == 'm':
-
-                # mask mode. store essential data
-                self._cnam = self.cnams[event.inaxes]
-                self._axes = event.inaxes
-                self._x = event.xdata
-                self._y = event.ydata
-                self._mask()
 
         else:
             # standard mode action
@@ -557,65 +432,41 @@ class PickStar:
 
 Help on the actions available in 'setaper':
 
-  a(dd)      : add an aperture
-  b(reak)    : break the link on an aperture
-  c(entre)   : centre an aperture by fitting nearby star
-  d(elete)   : delete an aperture
-  e(xtra)    : add extra pixels to the target aperture
+  d(elete)   : delete a defect
   h(elp)     : print this help text
-  l(ink)     : link one aperture to another in the same CCD for re-positioning
-  m(ask)     : add a mask to an aperture to ignore regions of sky
-  p(rofit)   : toggle between fitting+position correction and no fits
-  r(eference): toggle whether an aperture is a reference aperture
-  C(opy)     : copy apertures of the CCD the cursor is in to all others (overwrites)
-  q(uit)     : quit 'setaper' and save the apertures to disk
+  l(ine)     : add a line defect (straight lines only)
+  p(ixel)    : add a pixel defect
+  q(uit)     : quit 'setdefect' and save the defects to disk
 
-Hitting 'd' will delete the aperture nearest to the cursor, as long as it is
-close enough. Note that the 'extra' option aperture will be scaled to have the
-same size as the main target aperture. The 'mask' apertures have a fixed size.
+Hitting 'd' will delete the defect nearest to the cursor, as long as it is
+close enough.
 """)
 
-            elif key == 'a':
+            elif key == 'p':
 
-                # add an aperture
+                # add a pixel defect
                 print(key)
 
-                if self.linput == 'n':
+                # numerical sequence input. Try to calculate
+                # the largest number, label the new aperture
+                # with one more
+                high = 0
+                for dfct in self.mccd_dfct[self._cnam]:
+                    try:
+                        high = max(high, int(aper))
+                    except ValueError:
+                        pass
+                self._buffer = str(high+1)
+                self._pixel()
+                self._add_mode = False
 
-                    # numerical sequence input. Try to calculate
-                    # the largest number, label the new aperture
-                    # with one more
-                    high = 0
-                    for aper in self.mccdaper[self._cnam]:
-                        try:
-                            high = max(high, int(aper))
-                        except ValueError:
-                            pass
-                    self._buffer = str(high+1)
-                    self._add()
-                    self._add_mode = False
-
-                else:
-                    # switch to add mode, initialise buffer for label input
-                    self._add_mode = True
-                    self._buffer = ''
-                    print(PickStar.ADD_PROMPT, end='',flush=True)
-
-            elif key == 'b':
-                # break a link
-                print(key)
-                self._break()
-
-            elif key == 'c':
-                # centre an aperture
-                print(key)
-                self._centre()
+                print(PickStar.ADD_PROMPT, end='',flush=True)
 
             elif key == 'd':
-                # delete an aperture
+                # delete an defect
                 print(key)
                 self._delete()
-
+?? got here
             elif key == 'e':
                 # add extra target pixels to an aperture
                 print(key)
@@ -717,64 +568,11 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 print('\nNo action is defined for key = "{:s}"'.format(key))
                 PickStar.action_prompt(False)
 
-    def _add(self):
+    def _pixel(self):
+        """Once all set to add a Pixel defect, this routine actually carries out the
+        necessary operations
+
         """
-        Once all set to add an aperture, and relevant attribute values are all
-        set, this routine actually carries out the necessary operations which
-        are (i) refine the position of the aperture, (ii) create the aperture,
-        (iii) store in the multiaperture object, (iv) plot it.
-        """
-
-        if self.profit:
-
-            print ('  fitting ...')
-
-            # extract the CCD
-            ccd = self.mccd[self._cnam]
-
-            # check that the selected position is inside a window
-            wnam = ccd.inside(self._x, self._y, 2)
-            if wnam is None:
-                print(
-                    '  *** selected position ({:.1f},{:.1f}) not in a window;'
-                    ' should not occur'.format(self._x,self._y), file=sys.stderr
-                )
-                PickStar.action_prompt(True)
-                return
-
-            # get Window around the selected position
-            wind = ccd[wnam].window(
-                self._x-self.shbox, self._x+self.shbox,
-                self._y-self.shbox, self._y+self.shbox
-            )
-
-            # carry out initial search
-            x,y,peak = wind.find(self.smooth, False)
-
-            # now for a more refined fit. First extract fit Window
-            fwind = ccd[wnam].window(x-self.fhbox, x+self.fhbox,
-                                     y-self.fhbox, y+self.fhbox)
-            sky = np.percentile(fwind.data, 25)
-
-            # refine the Aperture position by fitting the profile
-            try:
-                (sky, height, x, y, fwhm, beta), epars, \
-                    (wfit, X, Y, sigma, chisq, nok, nrej,
-                     npar, message) = hcam.fitting.combFit(
-                         fwind, self.method, sky, peak-sky,
-                         x, y, self.fwhm, self.fwhm_min, self.fwhm_fix,
-                         self.beta, self.read, self.gain, self.thresh
-                     )
-
-                print('Aperture {:s}: {:s}'.format(self._buffer,message))
-                self._x = x
-                self._y = y
-
-            except hcam.HipercamError as err:
-                print(err, file=sys.stderr)
-                # fit failed.
-                PickStar.action_prompt(True)
-                return
 
         # create and add aperture
         aper = hcam.Aperture(
@@ -793,125 +591,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         print('added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
             self._buffer,self._cnam,self._x,self._y)
         )
-        PickStar.action_prompt(True)
-
-    def _break(self):
-        """
-        Breaks the link on an aperture (if any)
-        """
-
-        # first see if there is an aperture near enough the selected position
-        aper, apnam, dmin = self._find_aper()
-
-        if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
-            print('  *** found no aperture near to the cursor position')
-
-        elif aper.link == '':
-            print('  *** there is no link on aperture {:s}'.format(apnam))
-
-        else:
-
-            # cancel the link on the aperture
-            self.mccdaper[self._cnam][apnam].break_link()
-
-            # delete the aperture
-            for obj in self.pobjs[self._cnam][apnam]:
-                obj.remove()
-
-            # re-plot new version, over-writing plot objects
-            self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
-            plt.draw()
-
-            print('  cancelled link on aperture {:s} in CCD {:s}'.format(
-                    apnam, self._cnam))
-
-        PickStar.action_prompt(True)
-
-    def _centre(self):
-        """
-        Centres an aperture using the current fit parameters.
-        """
-
-        # first see if there is an aperture near enough the selected position
-        aper, apnam, dmin = self._find_aper()
-
-        if dmin is None or dmin > max(self.rtarg,min(100,max(20.,2*self.rsky2))):
-            print('  *** found no aperture near to the cursor position to re-centre')
-        else:
-            # OK, there is one near enough
-            print ('  fitting ...')
-
-            # extract the CCD
-            ccd = self.mccd[self._cnam]
-
-            # check that the selected position is inside a window
-            wnam = ccd.inside(self._x, self._y, 2)
-            if wnam is None:
-                print('  *** selected position ({:.1f},{:.1f}) not in a window;'
-                      ' should not occur'.format(self._x,self._y), file=sys.stderr)
-            else:
-                # get Window around the selected position
-                wind = ccd[wnam].window(
-                    self._x-self.shbox, self._x+self.shbox,
-                    self._y-self.shbox, self._y+self.shbox)
-
-                # carry out initial search
-                x,y,peak = wind.find(self.smooth, False)
-
-                # now for a more refined fit. First extract fit Window
-                fwind = ccd[wnam].window(
-                    x-self.fhbox, x+self.fhbox,
-                    y-self.fhbox, y+self.fhbox)
-                sky = np.percentile(fwind.data, 25)
-
-                # refine the Aperture position by fitting the profile
-                try:
-                    (sky, height, x, y, fwhm, beta), epars, \
-                        (wfit, X, Y, sigma, chisq, nok, nrej,
-                         npar, message) = hcam.fitting.combFit(
-                        fwind, self.method, sky, peak-sky,
-                        x, y, self.fwhm, self.fwhm_min, self.fwhm_fix,
-                        self.beta, self.read, self.gain, self.thresh
-                     )
-
-                    print('Aperture {:s}: {:s}'.format(apnam,message))
-                    dx = x - aper.x
-                    dy = y - aper.y
-                    aper.x = x
-                    aper.y = y
-
-                    # remove old aperture from from plot
-                    for obj in self.pobjs[self._cnam][apnam]:
-                        obj.remove()
-
-                    # plot in new position, over-writing the plot objects
-                    self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(
-                        self._axes, aper, apnam)
-
-                    # look for any apertures linked to this one and adjust
-                    # them so the links are still valid
-                    for lanam, laper in self.mccdaper[self._cnam].items():
-                        if laper.link == apnam:
-                            laper.x += dx
-                            laper.y += dy
-
-                            # remove the plot of the aperture that was linked
-                            # in to wipe the link
-                            for obj in self.pobjs[self._cnam][lanam]:
-                                obj.remove()
-
-                            # then re-plot
-                            self.pobjs[self._cnam][lanam] = hcam.mpl.pAper(
-                                self._axes, laper, lanam, self.mccdaper[self._cnam]
-                            )
-
-                    # finally update the plot
-                    plt.draw()
-
-                except hcam.HipercamError as err:
-                    print(err, file=sys.stderr)
-                    print('  *** aperture left as is')
-
         PickStar.action_prompt(True)
 
     def _delete(self):
