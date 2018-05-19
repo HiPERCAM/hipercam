@@ -343,13 +343,12 @@ def pDefect(axes, dfct):
 
     """
 
-    if isinstance(dfct, defect.Pixel):
-        # draw circles to represent the apert. 'objs' is a list of the
-        # objects that we keep to return for possible later deletion.
+    if isinstance(dfct, defect.Point):
+        # draw circles to represent the apert. 
         if dfct.severity == defect.Severity.MODERATE:
-            obj = axes.plot(dfct.x, dfct.y, 'o', color='b')
+            obj = axes.plot(dfct.x, dfct.y, 'o', color='b', ms=1)
         elif dfct.severity == defect.Severity.SEVERE:
-            obj = axes.plot(dfct.x, dfct.y, 'o', color='r')
+            obj = axes.plot(dfct.x, dfct.y, 'o', color='r', ms=1)
 
     return (obj,)
 
@@ -372,7 +371,7 @@ def pCcdDefect(axes, ccdDefect):
     """
     g = Group(tuple)
     for key, dfct in ccdDefect.items():
-        obj = pDefect(axes, dfct, key)
+        obj = pDefect(axes, dfct)
         g[key] = obj
 
     return g

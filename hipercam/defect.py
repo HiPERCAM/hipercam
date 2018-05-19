@@ -227,7 +227,7 @@ class _Encoder(json.JSONEncoder):
             return OrderedDict(
                 (
                     ('Comment', 'hipercam.defect.Point'),
-                    ('severity', obj.severity),
+                    ('severity', obj.severity.name),
                     ('x', obj.x),
                     ('y', obj.y),
                     )
@@ -244,7 +244,7 @@ class _Decoder(json.JSONDecoder):
         # look out for Defect objects. Everything else done by default
         if 'Comment' in obj and obj['Comment'] == 'hipercam.defect.Point':
             return Point(
-                obj['severity'], obj['x'], obj['y']
+                getattr(Severity,obj['severity']), obj['x'], obj['y']
             )
 
         return obj

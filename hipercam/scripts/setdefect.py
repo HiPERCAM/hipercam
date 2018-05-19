@@ -339,7 +339,7 @@ def setdefect(args=None):
 
     # create the aperture picker (see below for class def)
     picker = PickDefect(
-        mccd, cnams, anams, toolbar, fig, mccd_dfct, dfct, pobjs
+        mccd, cnams, anams, toolbar, fig, mccd_dfct, dfct, hsbox, pobjs
     )
 
     plt.tight_layout()
@@ -380,7 +380,7 @@ class PickDefect:
         # then mutually exclusive flags to indicate the action we are in
         # for actions that require extra input. We are not in these at the
         # start so we set them False
-        self._pixel_mode = False
+        self._point_mode = False
 
     @staticmethod
     def action_prompt(cr):
@@ -393,7 +393,7 @@ class PickDefect:
             print()
 
         print(
-            'd(elete), h(elp), l(ine), p(ixel), s(how), q(uit): ', end='', flush=True
+            'd(elete), h(elp), l(ine), p(oint), s(how), q(uit): ', end='', flush=True
         )
 
 
@@ -405,11 +405,11 @@ class PickDefect:
         input.
         """
 
-        if self._pixel_mode:
+        if self._point_mode:
 
             if event.key == 'q':
-                self._pixel_mode = False
-                print('no pixel defect added')
+                self._point_mode = False
+                print('no point defect added')
                 PickDefect.action_prompt(True)
                 return
 
@@ -419,7 +419,7 @@ class PickDefect:
             elif event.key == 's':
                 self._severity = defect.Severity.SEVERE
 
-            self._pixel()
+            self._point()
 
         else:
             # standard mode action
@@ -452,7 +452,7 @@ Help on the actions available in 'setdefect':
   d(elete)   : delete a defect
   h(elp)     : print this help text
   l(ine)     : add a line defect (straight lines only)
-  p(ixel)    : add a pixel defect
+  p(oint)    : add a point defect
   s(how)     : show image values
   q(uit)     : quit 'setdefect' and save the defects to disk
 
@@ -462,7 +462,7 @@ close enough.
 
             elif key == 'p':
 
-                # add a pixel defect
+                # add a point defect
                 print(key)
 
                 # Try to calculate the largest number, label the new aperture
@@ -475,9 +475,9 @@ close enough.
                         pass
 
                 self._buffer = str(high+1)
-                self._pixel_stage = 0
-                self._pixel_mode = True
-                self._pixel()
+                self._point_stage = 0
+                self._point_mode = True
+                self._point()
 
             elif key == 'd':
                 # delete an defect
@@ -510,51 +510,50 @@ close enough.
                 print('\nNo action is defined for key = "{:s}"'.format(key))
                 PickDefect.action_prompt(False)
 
-    def _pixel(self):
+    def _point(self):
         """Once all set to add a Point defect, this routine actually carries out the
         necessary operations
 
         """
 
-        self._pixel_stage += 1
+        self._point_stage += 1
 
-        if self._pixel_stage == 1:
+        if self._point_stage == 1:
 
-            wnam = self.mccd[self._cnam].inside(self._x,self._y)
+            wnam = self.mccd[self._cnam].inside(self._x,self._y,0.5)
             if wnam is None:
-                self._pixel_mode = False
+                self._point_mode = False
                 print('  cannot set defects outside windows')
                 PickDefect.action_prompt(True)
 
             else:
 
                 # store the CCD, the defect label and the position
-                self._pixel_cnam = self._cnam
-                self._pixel_dnam = self._buffer
-                wnam = self.mccd[self._cnam].inside(self._x,self._y)
-                self._pixel_x = self._x
-                self._pixel_y = self._y
+                self._point_cnam = self._cnam
+                self._point_dnam = self._buffer
+                self._point_x = self._x
+                self._point_y = self._y
 
                 # prompt stage 2
                 print(" Defect level: m(oderate), s(evere), q(uit)")
 
-        elif self._pixel_stage == 2:
+        elif self._point_stage == 2:
 
-            self._pixel_mode = False
+            self._point_mode = False
 
-            dfct = defect.Point(self._severity, self._pixel_x, self._pixel_y)
+            dfct = defect.Point(self._severity, self._point_x, self._point_y)
             self.mccd_dfct[self._cnam][self._buffer] = dfct
 
             # add defect to the plot, store plot objects
             self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(
-                self._axes, dfct, self._buffer
+                self._axes, dfct
             )
 
             # make sure it appears
             plt.draw()
 
             print('added defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
-                self._buffer,self._cnam,self._pixel_x,self._pixel_y)
+                self._buffer,self._cnam,self._point_x,self._point_y)
               )
             PickDefect.action_prompt(True)
 
@@ -563,7 +562,7 @@ close enough.
         Prints stats on pixels around selected place
         """
 
-        wnam = self.mccd[self._cnam].inside(self._x,self._y)
+        wnam = self.mccd[self._cnam].inside(self._x,self._y,0.5)
         if wnam is not None:
             wind = self.mccd[self._cnam][wnam]
             ix = int(round(wind.x_pixel(self._x)))
