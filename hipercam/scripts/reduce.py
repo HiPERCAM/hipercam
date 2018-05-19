@@ -1560,14 +1560,14 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
             wind = ccd[ccdwin[apnam]]
 
             if isinstance(read, hcam.CCD):
-                rd = read[ccdwin[apnam]].data / flat[ccdwin[apnam]].data
+                rd = read[ccdwin[apnam]] / flat[ccdwin[apnam]]
             else:
-                rd = read / flat[ccdwin[apnam]].data
+                rd = read / flat[ccdwin[apnam]]
 
             if isinstance(gain, hcam.CCD):
-                gn = gain[ccdwin[apnam]].data * flat[ccdwin[apnam]].data
+                gn = gain[ccdwin[apnam]] * flat[ccdwin[apnam]]
             else:
-                gn = gain * flat[ccdwin[apnam]].data
+                gn = gain * flat[ccdwin[apnam]]
 
             # get sub-windat around start position
             shbox = apsec['search_half_width_ref']
@@ -1581,6 +1581,8 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
             # now for a more refined fit. First extract fit Window
             fhbox = apsec['fit_half_width']
             fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+            frd = rd.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+            fgn = gn.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
             # initial estimate of background
             sky = np.percentile(fwind.data, 50)
@@ -1605,7 +1607,8 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
                                  fwind, rfile.method, sky, peak-sky,
                                  x, y, fit_fwhm, apsec['fit_fwhm_min'],
                                  apsec['fit_fwhm_fixed'], fit_beta,
-                                 rd, gn, apsec['fit_thresh'], apsec['fit_ndiv']
+                                 frd, fgn,
+                                 apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
                 if height > apsec['fit_height_min']:
@@ -1724,14 +1727,14 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
             wind = ccd[ccdwin[apnam]]
 
             if isinstance(read, hcam.CCD):
-                rd = read[ccdwin[apnam]].data / flat[ccdwin[apnam]].data
+                rd = read[ccdwin[apnam]] / flat[ccdwin[apnam]]
             else:
-                rd = read / flat[ccdwin[apnam]].data
+                rd = read / flat[ccdwin[apnam]]
 
             if isinstance(gain, hcam.CCD):
-                gn = gain[ccdwin[apnam]].data * flat[ccdwin[apnam]].data
+                gn = gain[ccdwin[apnam]] * flat[ccdwin[apnam]]
             else:
-                gn = gain * flat[ccdwin[apnam]].data
+                gn = gain * flat[ccdwin[apnam]]
 
             try:
 
@@ -1749,6 +1752,8 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
                 fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                frd = rd.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fgn = gn.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
                 sky = np.percentile(fwind.data, 50)
 
@@ -1772,7 +1777,8 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
                                  fwind, rfile.method, sky, peak-sky,
                                  x, y, fit_fwhm, apsec['fit_fwhm_min'],
                                  apsec['fit_fwhm_fixed'], fit_beta,
-                                 rd, gn, apsec['fit_thresh'], apsec['fit_ndiv']
+                                 frd, fgn,
+                                 apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
                 if height > apsec['fit_height_min']:
