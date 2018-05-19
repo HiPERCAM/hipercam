@@ -116,6 +116,53 @@ class Point(Defect):
     def dist(self, x, y):
         return np.sqrt((x-self.x)**2+(y-self.y)**2)
 
+class Line(Defect):
+
+    """Line defect class.
+
+    Attributes::
+
+      severity   : Severity
+         severity of the Defect
+
+      x1, y1     : float, float
+         coordinates of one end of the line, starting (1,1) at lower-left
+
+      x2, y2     : float, float
+         coordinates of the other end of the line, starting (1,1) at lower-left
+    """
+
+    def __init__(self, severity, x1, y1, x2, y2):
+        """Constructor. Arguments::
+
+           severity     : Severity
+              indicator of the severity of a defect
+
+           x1, y1         : float, float
+              coordinates of one end of the line, starting (1,1) at lower-left
+
+           x2, y2         : float, float
+              coordinates of the other end of the line
+        """
+        super().__init__(severity)
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+
+    def copy(self, memo=None):
+        """Returns with a copy of the Line"""
+        return Line(self.severity, self.x1, self.y1, self.x2, self.y2)
+
+    def __repr__(self):
+        return 'Line(severity={!r}, x1={!r}, y1={!r}, x2={!r}, y2={!r})'.format(
+            self.severity, self.x1, self.y1, self.x2, self.y2
+        )
+
+    def dist(self, x, y):
+        # ?? got here
+        return np.sqrt((x-self.x)**2+(y-self.y)**2)
+
 class CcdDefect(Group):
     """Class representing all the :class:Defects for a single CCD.
     Normal usage is to create an empty one and then add Defects via
@@ -233,6 +280,18 @@ class _Encoder(json.JSONEncoder):
                     )
                 )
 
+        elif isinstance(obj, Line):
+            return OrderedDict(
+                (
+                    ('Comment', 'hipercam.defect.Line'),
+                    ('severity', obj.severity.name),
+                    ('x1', obj.x1),
+                    ('y1', obj.y1),
+                    ('x2', obj.x2),
+                    ('y2', obj.y2),
+                    )
+                )
+
         return super().default(obj)
 
 class _Decoder(json.JSONDecoder):
@@ -242,9 +301,15 @@ class _Decoder(json.JSONDecoder):
 
     def object_hook(self, obj):
         # look out for Defect objects. Everything else done by default
-        if 'Comment' in obj and obj['Comment'] == 'hipercam.defect.Point':
-            return Point(
-                getattr(Severity,obj['severity']), obj['x'], obj['y']
-            )
+        if 'Comment' in obj:
+            if obj['Comment'] == 'hipercam.defect.Point':
+                return Point(
+                    getattr(Severity,obj['severity']), obj['x'], obj['y']
+                )
+            elif obj['Comment'] == 'hipercam.defect.Line':
+                return Line(
+                    getattr(Severity,obj['severity']), obj['x1'], obj['y1'],
+                    obj['x2'], obj['y2']
+                )
 
         return obj

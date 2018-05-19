@@ -118,41 +118,14 @@ def setdefect(args=None):
          single- and multi-character input ('linput').
 
     Various standard keyboard shortcuts (e.g. 's' to save) are disabled as
-    they just confuse things and are of limited use in setaper in any case.
+    they just confuse things and are of limited use in setdefect in any case.
 
-    Some aspects of the usage of matplotlib in setaper are tricky. It is
+    Some aspects of the usage of matplotlib in setdefect are tricky. It is
     possible that particular 'backends' will cause problems. I have tested
     this with Qt4Agg, Qt5agg and GTK3Agg. One aspect is the cursor icon in pan
     mode is a rather indistinct hand where one can't tell what is being
     pointed at. I have therefore suppressed this, but only for the tested
     backends. Others would need require further investigation.
-
-    When in `setaper`, help is always available by hitting 'h'. Most of the options
-    are self-evident. A few which may not be are:
-
-      | e(xtra)    : add extra pixels to the target aperture. This allows you to sculpt
-      |              the shape of the extraction aperure to perhaps include the flux of
-      |              a blended star.
-      |
-      | l(ink)     : link one aperture to another in the same CCD for re-positioning. If
-      |              a target is very faint or will disappear, this will make sure that
-      |              is position is defined relative to another, brighter star. Best to
-      |              choose one close by because of potential refractive distortion.
-      |
-      | r(eference): toggle whether an aperture is a reference aperture. The re-positioning
-      |              can work in two steps: first position reference stars, then the other stars,
-      |              using the reference stars to provide a first cut at the position shift of
-      |              the rest.
-      |
-      | C(opy)     : copy apertures of the CCD the cursor is in to all others. This basically
-      |              clones apertures across the CCDs. You will need to re-centre each on afterwards.
-
-
-    .. Warning::
-
-       The aperture positionsimmediately after a copy reflect the origin CCD, and may be somewhat off
-       if there are significant offsets between CCDs.
-
 
     """
 
@@ -294,10 +267,10 @@ def setdefect(args=None):
     cnams = {}
     anams = {}
 
-    # this is a container for all the objects used to plot apertures to allow
-    # deletion. This is Group of Group objects supporting tuple storage. The idea
-    # is that pobjs[cnam][anam] returns the objects used to plot aperture anam of
-    # CCD cnam. It is initially empty,
+    # this is a container for all the objects used to plot Defects to allow
+    # deletion. This is Group of Group objects supporting tuple storage. The
+    # idea is that pobjs[cnam][anam] returns the objects used to plot Defect
+    # anam of CCD cnam. It is initially empty,
     pobjs = hcam.Group(hcam.Group)
 
     for n, cnam in enumerate(ccds):
@@ -326,18 +299,18 @@ def setdefect(args=None):
         anams[cnam] = axes
 
         if cnam in mccd_dfct:
-            # plot any pre-existing apertures, keeping track of
+            # plot any pre-existing Defects, keeping track of
             # the plot objects
             pobjs[cnam] = hcam.mpl.pCcdDefect(axes, mccd_dfct[cnam])
 
         else:
-            # add in an empty CcdApers for any CCD not already present
+            # add in an empty CcdDefect for any CCD not already present
             mccd_dfct[cnam] = defect.CcdDefect()
 
             # and an empty container for any new plot objects
             pobjs[cnam] = hcam.Group(tuple)
 
-    # create the aperture picker (see below for class def)
+    # create the Defect picker (see below for class def)
     picker = PickDefect(
         mccd, cnams, anams, toolbar, fig, mccd_dfct, dfct, hsbox, pobjs
     )
@@ -465,12 +438,12 @@ close enough.
                 # add a point defect
                 print(key)
 
-                # Try to calculate the largest number, label the new aperture
+                # Try to calculate the largest number, label the new Defect
                 # with one more
                 high = 0
                 for dfct in self.mccd_dfct[self._cnam]:
                     try:
-                        high = max(high, int(aper))
+                        high = max(high, int(dfct))
                     except ValueError:
                         pass
 
@@ -596,7 +569,7 @@ close enough.
 
         """
 
-        # first see if there is an aperture near enough the selected position
+        # first see if there is a Defect near enough the selected position
         dfct, dfnam, dmin = self._find_defect()
 
         if dmin is not None and  dmin < 5:

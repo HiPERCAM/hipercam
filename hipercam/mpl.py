@@ -65,6 +65,12 @@ Params = {
 
     # aperture extra colour
     'aper.extra.col' : CIS[14],
+
+    # moderate defect colour
+    'defect.moderate.col' : CIS[15],
+
+    # severe defect colour
+    'defect.severe.col' : CIS[2],
 }
 
 def pWin(axes, win, label=''):
@@ -344,11 +350,17 @@ def pDefect(axes, dfct):
     """
 
     if isinstance(dfct, defect.Point):
-        # draw circles to represent the apert. 
+        # draw circles to represent the apert.
         if dfct.severity == defect.Severity.MODERATE:
-            obj = axes.plot(dfct.x, dfct.y, 'o', color='b', ms=1)
+            obj = axes.plot(
+                dfct.x, dfct.y, 'o', color=Params['defect.moderate.col'],
+                ms=2.5
+            )
         elif dfct.severity == defect.Severity.SEVERE:
-            obj = axes.plot(dfct.x, dfct.y, 'o', color='r', ms=1)
+            obj = axes.plot(
+                dfct.x, dfct.y, 'o', color=Params['defect.severe.col'],
+                ms=2.5
+            )
 
     return (obj,)
 
