@@ -5,6 +5,7 @@ Classes and functions of general use
 import os
 import sys
 import math
+import numpy as np
 from .core import *
 
 __all__ = (
@@ -165,7 +166,7 @@ def print_stats(ccd, cnam, x, y, hsbox, warn=True):
 
     wnam = ccd.inside(x,y,0)
     if wnam is not None:
-        wind = mccd[cnam][wnam]
+        wind = ccd[wnam]
         ix = int(round(wind.x_pixel(x)))
         iy = int(round(wind.y_pixel(y)))
         ix1 = max(0, ix - hsbox)
@@ -174,7 +175,7 @@ def print_stats(ccd, cnam, x, y, hsbox, warn=True):
         iy2 = min(wind.ny, iy + hsbox + 1)
 
         print('\nClicked on x,y = {:.2f},{:.2f} in CCD {:s}, window {:s}'.format(
-            x,y,self._cnam,wnam)
+            x,y,cnam,wnam)
           )
 
         print(' Stats box in window pixels, X,Y = [{:d}:{:d},{:d}:{:d}] ({:d}x{:d}), central pixel = [{:d},{:d}], value = {:.2f}'.format(
@@ -183,7 +184,7 @@ def print_stats(ccd, cnam, x, y, hsbox, warn=True):
 
         box = wind.data[iy1:iy2,ix1:ix2]
         print(
-            ' Mean = {:.2f}, RMS = {:.2f}, min = {:.2f}, max = {:.2f}, median = {:.2f}'.format(
+            ' Mean = {:.4g}, RMS = {:.4g}, min = {:.4g}, max = {:.4g}, median = {:.4g}'.format(
                 box.mean(),box.std(),box.min(),box.max(),np.median(box)
             )
         )
