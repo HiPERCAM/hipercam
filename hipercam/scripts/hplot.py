@@ -300,27 +300,5 @@ def buttonPressEvent(event):
             cnam = caxes[event.inaxes]
             ccd = mccd[cnam]
             x, y = event.xdata, event.ydata
-            wnam = ccd.inside(x,y,1)
-            if wnam is None:
-                print('\n *** selected position ({:.1f},{:.1f}) not in any window'.format(x,y))
-            else:
-                wind = ccd[wnam]
-                ix = int(round(wind.x_pixel(x)))
-                iy = int(round(wind.y_pixel(y)))
-                ix1 = max(0, ix - hsbox)
-                ix2 = min(wind.nx, ix + hsbox + 1)
-                iy1 = max(0, iy - hsbox)
-                iy2 = min(wind.ny, iy + hsbox + 1)
+            utils.print_stats(ccd, cnam, x, y, hsbox)
 
-                print('\nClicked on x,y = {:.2f},{:.2f} in CCD {:s}, window {:s}'.format(
-                    x,y,cnam,wnam)
-                  )
-                print(' Stats box in window pixels, X,Y = [{:d}:{:d},{:d}:{:d}] ({:d}x{:d}), central pixel = [{:d},{:d}], value = {:.2f}'.format(
-                    ix1,ix2,iy1,iy2,ix2-ix1,iy2-iy1,ix,iy,wind.data[iy,ix])
-                )
-                box = wind.data[iy1:iy2,ix1:ix2]
-                print(
-                    ' Mean = {:.2f}, RMS = {:.2f}, min = {:.2f}, max = {:.2f}, median = {:.2f}'.format(
-                        box.mean(),box.std(),box.min(),box.max(),np.median(box)
-                        )
-                )

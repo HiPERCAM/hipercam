@@ -493,7 +493,12 @@ close enough.
 
         if self._point_stage == 1:
 
-            wnam = self.mccd[self._cnam].inside(self._x,self._y,0.5)
+            # search for enclosing window, print stats
+            wnam, wind = utils.print_stats(
+                self.mccd[self._cnam], self._cnam, self._x, self._y,
+                self.hsbox, False
+            )
+
             if wnam is None:
                 self._point_mode = False
                 print('  cannot set defects outside windows')
@@ -535,30 +540,12 @@ close enough.
         Prints stats on pixels around selected place
         """
 
-        wnam = self.mccd[self._cnam].inside(self._x,self._y,0.5)
-        if wnam is not None:
-            wind = self.mccd[self._cnam][wnam]
-            ix = int(round(wind.x_pixel(self._x)))
-            iy = int(round(wind.y_pixel(self._y)))
-            ix1 = max(0, ix - self.hsbox)
-            ix2 = min(wind.nx, ix + self.hsbox + 1)
-            iy1 = max(0, iy - self.hsbox)
-            iy2 = min(wind.ny, iy + self.hsbox + 1)
-
-            print('\nClicked on x,y = {:.2f},{:.2f} in CCD {:s}, window {:s}'.format(
-                self._x,self._y,self._cnam,wnam)
-              )
-            print(' Stats box in window pixels, X,Y = [{:d}:{:d},{:d}:{:d}] ({:d}x{:d}), central pixel = [{:d},{:d}], value = {:.2f}'.format(
-                ix1,ix2,iy1,iy2,ix2-ix1,iy2-iy1,ix,iy,wind.data[iy,ix])
-              )
-            box = wind.data[iy1:iy2,ix1:ix2]
-            print(
-                ' Mean = {:.2f}, RMS = {:.2f}, min = {:.2f}, max = {:.2f}, median = {:.2f}'.format(
-                    box.mean(),box.std(),box.min(),box.max(),np.median(box)
-                )
-            )
-
-        else:
+        # search for enclosing window, print stats
+        wnam, wind = utils.print_stats(
+            self.mccd[self._cnam], self._cnam, self._x, self._y,
+            self.hsbox, False
+        )
+        if wnam is None:
             print('  must hit "s" inside a window')
 
         PickDefect.action_prompt(True)
