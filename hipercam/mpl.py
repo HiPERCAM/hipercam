@@ -362,7 +362,7 @@ def pDefect(axes, dfct):
                 ms=2.5
             )
 
-    return (obj,)
+    return tuple(obj)
 
 def pCcdDefect(axes, ccdDefect):
     """Plots a :class:`CcdDefect` object, returning references to the plot
@@ -383,7 +383,6 @@ def pCcdDefect(axes, ccdDefect):
     """
     g = Group(tuple)
     for key, dfct in ccdDefect.items():
-        obj = pDefect(axes, dfct)
-        g[key] = obj
+        g[key] = pDefect(axes, dfct)
 
     return g
