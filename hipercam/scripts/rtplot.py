@@ -8,7 +8,7 @@ from astropy.time import Time
 
 from trm.pgplot import *
 import hipercam as hcam
-from hipercam import cline, utils, spooler
+from hipercam import cline, utils, spooler, defect
 from hipercam.cline import Cline
 
 __all__ = ['rtplot',]
@@ -99,6 +99,9 @@ def rtplot(args=None):
 
         bias    : string
            Name of bias frame to subtract, 'none' to ignore.
+
+        defect  : string
+           Name of defect file, 'none' to ignore.
 
         msub    : bool
            subtract the median from each window before scaling for the
@@ -230,6 +233,7 @@ def rtplot(args=None):
         cl.register('plotall', Cline.LOCAL, Cline.HIDE)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('defect', Cline.GLOBAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
@@ -331,6 +335,15 @@ def rtplot(args=None):
         if bias is not None:
             # read the bias frame
             bias = hcam.MCCD.read(bias)
+
+        # defect file (if any)
+        dfct = cl.get_value(
+            'defect', "defect file ['none' to ignore]",
+            cline.Fname('defect', hcam.DFCT), ignore='none'
+        )
+        if dfct is not None:
+            # read the bias frame
+            dfct = defect.MccdDefect.read(dfct)
 
         # define the display intensities
         msub = cl.get_value('msub', 'subtract median from each window?', True)
@@ -503,6 +516,10 @@ def rtplot(args=None):
                     iy = nc // nx + 1
                     pgpanl(ix,iy)
                     vmin, vmax = hcam.pgp.pCcd(ccd,iset,plo,phi,ilo,ihi)
+
+                    if dfct is not None and cnam in dfct:
+                        # plot defects
+                        hcam.pgp.pCcdDefect(dfct[cnam])
 
                     # accumulate string of image scalings
                     if nc:

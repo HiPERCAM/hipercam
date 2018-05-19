@@ -11,6 +11,8 @@ from .window import *
 from .group import *
 from .ccd import *
 from . import utils
+from . import defect
+
 
 # Font scale factor
 SCALE_FACTOR = float(os.environ['HIPERCAM_MPL_FSCALE']) \
@@ -63,6 +65,12 @@ Params = {
 
     # aperture extra colour
     'aper.extra.col' : CIS[14],
+
+    # moderate defect colour
+    'defect.moderate.col' : CIS[15],
+
+    # severe defect colour
+    'defect.severe.col' : CIS[2],
 }
 
 def pWin(axes, win, label=''):
@@ -320,5 +328,61 @@ def pCcdAper(axes, ccdAper):
     for key, aper in ccdAper.items():
         objs = pAper(axes, aper, key, ccdAper)
         g[key] = objs
+
+    return g
+
+def pDefect(axes, dfct):
+    """Plots a :class:`Defect` object, returning references to the
+    plot objects.
+
+    Arguments::
+
+      axes    : :class:`matplotlib.axes.Axes`
+           the Axes to plot to.
+
+      dfct    : Defect
+           the :class:`Defect` to plot
+
+    Returns a reference to the plotting object created in case when plotting
+    the Defect in case of a later need to delete it. For forwards
+    compatibility, this is returned in a tuple
+
+    """
+
+    if isinstance(dfct, defect.Point):
+        # draw circles to represent the apert.
+        if dfct.severity == defect.Severity.MODERATE:
+            obj = axes.plot(
+                dfct.x, dfct.y, 'o', color=Params['defect.moderate.col'],
+                ms=2.5
+            )
+        elif dfct.severity == defect.Severity.SEVERE:
+            obj = axes.plot(
+                dfct.x, dfct.y, 'o', color=Params['defect.severe.col'],
+                ms=2.5
+            )
+
+    return tuple(obj)
+
+def pCcdDefect(axes, ccdDefect):
+    """Plots a :class:`CcdDefect` object, returning references to the plot
+    objects.
+
+    Arguments::
+
+      axes      : :class:`matplotlib.axes.Axes`
+           the Axes to plot to.
+
+      ccdDefect : CcdDefect
+           the :class:`CcdDefect` to plot
+
+    Returns a Group keyed on the same keys as ccdDefect but containing tuples
+    of the plot objects used to plot each Defect. This can be used to
+    delete them if need be.
+
+    """
+    g = Group(tuple)
+    for key, dfct in ccdDefect.items():
+        g[key] = pDefect(axes, dfct)
 
     return g

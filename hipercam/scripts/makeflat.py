@@ -169,7 +169,7 @@ def makeflat(args=None):
         ccdinf = spooler.get_ccd_pars(source, resource)
 
         if len(ccdinf) > 1:
-            ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
+            ccd = cl.get_value('ccd', 'CCD(s) to process [0 for all]', '0')
             if ccd == '0':
                 ccds = list(ccdinf.keys())
             else:
@@ -200,9 +200,9 @@ def makeflat(args=None):
         }
 
     upper = {
-        '1' : 40000.,
-        '2' : 40000.,
-        '3' : 40000.,
+        '1' : 58000.,
+        '2' : 58000.,
+        '3' : 58000.,
         '4' : 40000.,
         '5' : 40000.
         }

@@ -148,6 +148,7 @@ setup(
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
             'setaper=hipercam.scripts.setaper:setaper',
+            'setdefect=hipercam.scripts.setdefect:setdefect',
             'stats=hipercam.scripts.stats:stats',
             'times=hipercam.scripts.times:times',
         ],

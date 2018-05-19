@@ -12,25 +12,27 @@ from .core import *
 __all__ = ('Group', 'Agroup')
 
 class Group(OrderedDict):
-    """A specialized OrderedDict that enforces string keys only and a single
-    type for the values. The objects stored as values should support a `copy`
+    """A specialized OrderedDict that enforces string keys only and a single class
+    for the values. The objects stored as values should support a `copy`
     method to return a deepcopy for use in the :class:`Group`s copy operation.
 
     :class:`Group` is designed to amalgamate several of the classes used for
     objects associated with CCDs such as :class:`Window` (see :class:`CCD`),
     and :class:`Aperture` (see :class:`CcdAper`)
+
     """
 
     def __init__(self, ftype, *args, **kwargs):
-        """Group constructor; see :class:`OrderedDict` for possible values of
-        args and kwargs. The first argument, `ftype`, is the fixed type that
-        will be enforced. e.g. it could be Window, Winhead, CCD etc. An attribute
-        of the same name will be stored.
+        """Group constructor; see :class:`OrderedDict` for possible values of args and
+        kwargs. The first argument, `ftype`, is the fixed type that will be
+        enforced. e.g. it could be Window, Winhead, CCD etc. An attribute of
+        the same name will be stored.
 
         Arguments::
 
-          ftype : (type)
+          ftype : type
             the type of the objects that will be allowed.
+
         """
         # set the example type
         self.ftype = ftype
@@ -47,9 +49,9 @@ class Group(OrderedDict):
             raise HipercamError('keys must be strings')
 
         # values must have specific type
-        if any(type(obj) != self.ftype for obj in self.values()):
+        if any(not isinstance(obj,ftype) for obj in self.values()):
             raise HipercamError(
-                'an input object type conflicts with ftype = {!s}'.format(ftype)
+                'an input object is not a {!s} object'.format(ftype)
             )
 
     def __setitem__(self, key, item):
@@ -60,7 +62,7 @@ class Group(OrderedDict):
             raise KeyError('key must be an string')
 
         # store or check that the new item matches in type
-        if type(item) != self.ftype:
+        if not isinstance(item, self.ftype):
             raise HipercamError(
                 'key = {:s}: item = {!s} does not have'
                 ' the expected type = {!s}'.format(key,item,self.ftype)
