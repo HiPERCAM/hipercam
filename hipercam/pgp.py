@@ -12,6 +12,7 @@ from .core import *
 from .window import *
 from .ccd import *
 from . import utils
+from . import defect
 
 __all__ = (
     'Params', 'Device',
@@ -66,6 +67,13 @@ Params = {
 
     # aperture extra colour
     'aper.extra.ci' : 14,
+
+    # moderate defect colour
+    'defect.moderate.ci' : 15,
+
+    # severe defect colour
+    'defect.severe.ci' : 2,
+
 }
 
 class Device(PGdevice):
@@ -284,3 +292,42 @@ def pCcdAper(ccdaper):
     for key, aper in ccdaper.items():
         pAper(aper, key, ccdaper)
 
+
+def pDefect(dfct):
+    """y
+    Plots a :class:`Defect` o the current PGPLOT device
+
+    Arguments::
+
+      dfct    : Defect
+           the :class:`Defect` to plot
+
+    """
+
+    if isinstance(dfct, defect.Point):
+
+        if dfct.severity == defect.Severity.MODERATE:
+            pgsci(Params['defect.moderate.ci'])
+            pgsch(1.5)
+            pgpt1(dfct.x, dfct.y, 17)
+
+        elif dfct.severity == defect.Severity.SEVERE:
+            pgsci(Params['defect.severe.ci'])
+            pgsch(1.5)
+            pgpt1(dfct.x, dfct.y, 17)
+            pgslw(2)
+            pgsch(2)
+            pgpt1(dfct.x, dfct.y, 5)
+
+def pCcdDefect(ccd_dfct):
+    """
+    Plots a :class:`CcdDefect` object
+
+    Arguments::
+
+      ccd_dfct  : CcdDefect
+           the :class:`CcdDefect` to plot
+
+    """
+    for key, dfct in ccd_dfct.items():
+        pDefect(dfct)
