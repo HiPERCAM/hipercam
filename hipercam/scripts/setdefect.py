@@ -81,6 +81,11 @@ def setdefect(args=None):
       msub   : bool
          True/False to subtract median from each window before scaling
 
+      hsbox  : int
+         half-width in binned pixels of stats box as offset from central pixel
+         hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
+         the "show" option when setting defects.
+
       iset   : string [single character]
          determines how the intensities are determined. There are three
          options: 'a' for automatic simply scales from the minimum to the
@@ -164,6 +169,7 @@ def setdefect(args=None):
         cl.register('height', Cline.LOCAL, Cline.HIDE)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('hsbox', Cline.GLOBAL, Cline.HIDE)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
@@ -222,6 +228,7 @@ def setdefect(args=None):
         # define the display intensities
         msub = cl.get_value('msub', 'subtract median from each window?', True)
 
+        hsbox = cl.get_value('hsbox', 'half-width of stats box (binned pixels)', 2, 1)
         iset = cl.get_value(
             'iset', 'set intensity a(utomatically),'
             ' d(irectly) or with p(ercentiles)?',
@@ -355,7 +362,8 @@ class PickDefect:
     """
 
     def __init__(
-            self, mccd, cnams, anams, toolbar, fig, mccd_dfct, dfctnam, pobjs):
+            self, mccd, cnams, anams, toolbar, fig, mccd_dfct,
+            dfctnam, hsbox, pobjs):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
@@ -366,6 +374,7 @@ class PickDefect:
         self.toolbar = toolbar
         self.mccd_dfct = mccd_dfct
         self.dfctnam = dfctnam
+        self.hsbox = hsbox
         self.pobjs = pobjs
 
         # then mutually exclusive flags to indicate the action we are in
@@ -384,7 +393,7 @@ class PickDefect:
             print()
 
         print(
-            'd(elete), h(elp), l(ine), p(ixel), q(uit): ', end='', flush=True
+            'd(elete), h(elp), l(ine), p(ixel), s(how), q(uit): ', end='', flush=True
         )
 
 
@@ -444,6 +453,7 @@ Help on the actions available in 'setdefect':
   h(elp)     : print this help text
   l(ine)     : add a line defect (straight lines only)
   p(ixel)    : add a pixel defect
+  s(how)     : show image values
   q(uit)     : quit 'setdefect' and save the defects to disk
 
 Hitting 'd' will delete the defect nearest to the cursor, as long as it is
@@ -474,6 +484,11 @@ close enough.
                 print(key)
                 self._delete()
 
+            elif key == 's':
+                # show some values
+                print(key)
+                self._show()
+
             elif key == 'q':
                 print(key)
                 # quit and clear up
@@ -496,7 +511,7 @@ close enough.
                 PickDefect.action_prompt(False)
 
     def _pixel(self):
-        """Once all set to add a Pixel defect, this routine actually carries out the
+        """Once all set to add a Point defect, this routine actually carries out the
         necessary operations
 
         """
@@ -505,20 +520,29 @@ close enough.
 
         if self._pixel_stage == 1:
 
-            # store the CCD, the defect label and the position
-            self._pixel_cnam = self._cnam
-            self._pixel_dnam = self._buffer
-            self._pixel_x = self._x
-            self._pixel_y = self._y
+            wnam = self.mccd[self._cnam].inside(self._x,self._y)
+            if wnam is None:
+                self._pixel_mode = False
+                print('  cannot set defects outside windows')
+                PickDefect.action_prompt(True)
 
-            # prompt stage 2
-            print(" Defect level: m(oderate), s(evere), q(uit)")
+            else:
+
+                # store the CCD, the defect label and the position
+                self._pixel_cnam = self._cnam
+                self._pixel_dnam = self._buffer
+                wnam = self.mccd[self._cnam].inside(self._x,self._y)
+                self._pixel_x = self._x
+                self._pixel_y = self._y
+
+                # prompt stage 2
+                print(" Defect level: m(oderate), s(evere), q(uit)")
 
         elif self._pixel_stage == 2:
 
             self._pixel_mode = False
 
-            dfct = defect.Pixel(self._severity, self._pixel_x, self._pixel_y)
+            dfct = defect.Point(self._severity, self._pixel_x, self._pixel_y)
             self.mccd_dfct[self._cnam][self._buffer] = dfct
 
             # add defect to the plot, store plot objects
@@ -533,6 +557,39 @@ close enough.
                 self._buffer,self._cnam,self._pixel_x,self._pixel_y)
               )
             PickDefect.action_prompt(True)
+
+    def _show(self):
+        """
+        Prints stats on pixels around selected place
+        """
+
+        wnam = self.mccd[self._cnam].inside(self._x,self._y)
+        if wnam is not None:
+            wind = self.mccd[self._cnam][wnam]
+            ix = int(round(wind.x_pixel(self._x)))
+            iy = int(round(wind.y_pixel(self._y)))
+            ix1 = max(0, ix - self.hsbox)
+            ix2 = min(wind.nx, ix + self.hsbox + 1)
+            iy1 = max(0, iy - self.hsbox)
+            iy2 = min(wind.ny, iy + self.hsbox + 1)
+
+            print('\nClicked on x,y = {:.2f},{:.2f} in CCD {:s}, window {:s}'.format(
+                self._x,self._y,self._cnam,wnam)
+              )
+            print(' Stats box in window pixels, X,Y = [{:d}:{:d},{:d}:{:d}] ({:d}x{:d}), central pixel = [{:d},{:d}], value = {:.2f}'.format(
+                ix1,ix2,iy1,iy2,ix2-ix1,iy2-iy1,ix,iy,wind.data[iy,ix])
+              )
+            box = wind.data[iy1:iy2,ix1:ix2]
+            print(
+                ' Mean = {:.2f}, RMS = {:.2f}, min = {:.2f}, max = {:.2f}, median = {:.2f}'.format(
+                    box.mean(),box.std(),box.min(),box.max(),np.median(box)
+                )
+            )
+
+        else:
+            print('  must hit "s" inside a window')
+
+        PickDefect.action_prompt(True)
 
     def _delete(self):
         """This deletes the nearest defect to the currently selected

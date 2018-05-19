@@ -78,16 +78,16 @@ class Defect(ABC):
         aper.check()
         return aper
 
-class Pixel(ABC):
+class Point(Defect):
 
-    """Single pixel defect.
+    """Single Point defect.
 
     Attributes::
 
       severity   : Severity
          severity of the Defect
 
-      x, y       : int, int
+      x, y       : float, float
          coordinates of the pixel, starting (1,1) at lower-left
     """
 
@@ -97,7 +97,7 @@ class Pixel(ABC):
            severity     : Severity
               indicator of the severity of a defect
 
-           x, y         : int, int
+           x, y         : float, float
               coordinates of the pixel, starting (1,1) at lower-left
         """
         super().__init__(severity)
@@ -105,11 +105,11 @@ class Pixel(ABC):
         self.y = y
 
     def copy(self, memo=None):
-        """Returns with a copy of the Pixel"""
-        return Pixel(self.severity, self.x, self.y)
+        """Returns with a copy of the Point"""
+        return Point(self.severity, self.x, self.y)
 
     def __repr__(self):
-        return 'Pixel(severity={!r}, x={!r}, y={!r})'.format(
+        return 'Point(severity={!r}, x={!r}, y={!r})'.format(
             self.severity, self.x, self.y
         )
 
@@ -223,10 +223,10 @@ class _Encoder(json.JSONEncoder):
 
     def default(self, obj):
 
-        if isinstance(obj, Pixel):
+        if isinstance(obj, Point):
             return OrderedDict(
                 (
-                    ('Comment', 'hipercam.defect.Pixel'),
+                    ('Comment', 'hipercam.defect.Point'),
                     ('severity', obj.severity),
                     ('x', obj.x),
                     ('y', obj.y),
@@ -242,8 +242,8 @@ class _Decoder(json.JSONDecoder):
 
     def object_hook(self, obj):
         # look out for Defect objects. Everything else done by default
-        if 'Comment' in obj and obj['Comment'] == 'hipercam.defect.Pixel':
-            return Pixel(
+        if 'Comment' in obj and obj['Comment'] == 'hipercam.defect.Point':
+            return Point(
                 obj['severity'], obj['x'], obj['y']
             )
 
