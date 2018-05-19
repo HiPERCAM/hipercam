@@ -1273,7 +1273,7 @@ class Window(Winhead):
 
         """
         # carry out multiplication to a float type
-        data = np.multiply(self.data, other, dtype=np.float)
+        data = self.data*other
         return Window(self.winhead, data)
 
     def __truediv__(self, other):
@@ -1291,8 +1291,8 @@ class Window(Winhead):
         else:
             num = other
 
-        # carry out multiplication to a float type
-        data = np.true_divide(self.data, num, dtype=np.float)
+        # carry out division
+        data = self.data / num
         return Window(self.winhead, data)
 
     def __rtruediv__(self, other):
@@ -1300,8 +1300,8 @@ class Window(Winhead):
         any object that can be divided by a :class:`numpy.ndarray`, e.g. a
         float, another matching array, etc.
         """
-        # carry out multiplication to a float type
-        data = self.data*other
+        # carry out division
+        data = other / self.data
         return Window(self.winhead, data)
 
 

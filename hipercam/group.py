@@ -302,12 +302,15 @@ class Agroup(Group):
         """
         return self.__mul__(other)
 
-    def __truediv__(self, other):
+    def __rtruediv__(self, other):
         """Divides a :class:`Agroup` by `other` as '= other / self'.
         """
+
         cself = self.copy()
-        cself /= other
-        return cself
+        for obj in cself.values():
+            obj = other / cself
+
+        return self
 
     def __repr__(self):
         return 'Agroup(ftype={!r}, [{}])'.format(
