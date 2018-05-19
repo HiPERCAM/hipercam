@@ -552,14 +552,14 @@ close enough.
 
     def _delete(self):
         """This deletes the nearest defect to the currently selected
-        position, if it is near enough (within 5 pixels)
+        position, if it is near enough (within 10 pixels)
 
         """
 
         # first see if there is a Defect near enough the selected position
         dfct, dfnam, dmin = self._find_defect()
 
-        if dmin is not None and  dmin < 5:
+        if dmin is not None and  dmin < 10:
 
             # near enough for deletion
             for obj in self.pobjs[self._cnam][dfnam]:
@@ -574,8 +574,7 @@ close enough.
             print('  deleted defect "{:s}"'.format(dfnam))
 
         else:
-            print('  found no defect near enough '
-                  'the cursor position for deletion')
+            print('  no defect near enough the cursor position for deletion')
 
         PickDefect.action_prompt(True)
 
