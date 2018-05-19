@@ -353,7 +353,7 @@ class PickDefect:
         # then mutually exclusive flags to indicate the action we are in
         # for actions that require extra input. We are not in these at the
         # start so we set them False
-        self._point_mode = False
+        self._line_mode = False
 
     @staticmethod
     def action_prompt(cr):
@@ -378,7 +378,7 @@ class PickDefect:
         input.
         """
 
-        if self._point_mode:
+        if self._line_mode:
 
             if event.key == 'q':
                 self._point_mode = False
@@ -392,7 +392,7 @@ class PickDefect:
             elif event.key == 's':
                 self._severity = defect.Severity.SEVERE
 
-            self._point()
+            self._line()
 
         else:
             # standard mode action
@@ -425,7 +425,7 @@ Help on the actions available in 'setdefect':
   d(elete)   : delete a defect
   h(elp)     : print this help text
   l(ine)     : add a line defect (straight lines only)
-  p(oint)    : add a point defect
+  m(odest)   : add a point defect
   s(how)     : show image values
   q(uit)     : quit 'setdefect' and save the defects to disk
 
@@ -433,7 +433,7 @@ Hitting 'd' will delete the defect nearest to the cursor, as long as it is
 close enough.
 """)
 
-            elif key == 'p':
+            elif key == 'm' or key == 'n':
 
                 # add a point defect
                 print(key)
@@ -448,8 +448,11 @@ close enough.
                         pass
 
                 self._buffer = str(high+1)
-                self._point_stage = 0
-                self._point_mode = True
+
+                if key == 'm':
+                    self._severity = defect.Severity.MODERATE
+                else:
+                    self._severity = defect.Severity.SEVERE
                 self._point()
 
             elif key == 'd':
@@ -489,33 +492,112 @@ close enough.
 
         """
 
-        self._point_stage += 1
+        # search for enclosing window, print stats
+        wnam, wind = utils.print_stats(
+            self.mccd[self._cnam], self._cnam, self._x, self._y,
+            self.hsbox, False
+        )
 
-        if self._point_stage == 1:
+        if wnam is None:
+            self._point_mode = False
+            print('  cannot set defects outside windows')
 
-            # search for enclosing window, print stats
-            wnam, wind = utils.print_stats(
-                self.mccd[self._cnam], self._cnam, self._x, self._y,
-                self.hsbox, False
+        else:
+
+            dfct = defect.Point(self._severity, self._point_x, self._point_y)
+            self.mccd_dfct[self._cnam][self._buffer] = dfct
+
+            # add defect to the plot, store plot objects
+            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(
+                self._axes, dfct
             )
 
+            # make sure it appears
+            plt.draw()
+
+            # let user know what has happened
+            level = 'moderate' if self._severity == defect.Severity.MODERATE else 'severe'
+
+            print('added {:s} level defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(level, self._buffer, self._cnam, self._point_x, self._point_y)
+              )
+
+        PickDefect.action_prompt(True)
+
+    def _line(self):
+        """Once all set to add a Line defect, this routine actually carries out the
+        necessary operations
+
+        """
+
+        self._line_stage += 1
+
+        if self._line_stage == 1:
+
+            wnam = self.mccd[self._cnam].inside(self._x,self._y,0)
             if wnam is None:
-                self._point_mode = False
+                self._line_mode = False
                 print('  cannot set defects outside windows')
                 PickDefect.action_prompt(True)
 
             else:
 
-                # store the CCD, the defect label and the position
-                self._point_cnam = self._cnam
-                self._point_dnam = self._buffer
-                self._point_x = self._x
-                self._point_y = self._y
+                # store the CCD, and the first x,y position
+                self._line_cnam = self._cnam
+                self._line_x1 = self._x
+                self._line_y1 = self._y
+
+                # prompt stage 2
+                print(" second point: s(elect) or q(uit)")
+
+        elif self._line_stage == 2:
+
+            wnam = self.mccd[self._cnam].inside(self._x,self._y,0)
+            if wnam is None:
+                self._line_mode = False
+                print('  cannot set defects outside windows')
+                PickDefect.action_prompt(True)
+
+            else:
+
+                # now the second x,y position
+                if self._cnam != self._line_cnam:
+                    self._line_mode = False
+                    print('  cannot set defects across different CCDs')
+                    PickDefect.action_prompt(True)
+
+                self._line_x2 = self._x
+                self._line_y2 = self._y
+
 
                 # prompt stage 2
                 print(" Defect level: m(oderate), s(evere), q(uit)")
 
-        elif self._point_stage == 2:
+        elif self._line_stage == 3:
+
+            self._line_mode = False
+
+            dfct = defect.Line(
+                self._severity,
+                self._line_x1, self._line_y1, self._line_x2, self._line_y2
+            )
+            self.mccd_dfct[self._cnam][self._buffer] = dfct
+
+            # add defect to the plot, store plot objects
+            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(
+                self._axes, dfct
+            )
+
+            # make sure it appears
+            plt.draw()
+
+            print('added defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
+                self._buffer,self._cnam,self._point_x,self._point_y)
+              )
+            PickDefect.action_prompt(True)
+
+???
+                # prompt stage 2
+                print(" second point: s(elect) or q(uit)")
 
             self._point_mode = False
 
