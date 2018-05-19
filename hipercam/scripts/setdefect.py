@@ -81,6 +81,10 @@ def setdefect(args=None):
       msub   : bool
          True/False to subtract median from each window before scaling
 
+      invert : bool [if msub]
+         If msub is True, then you can invert the image values (-ve to +ve)
+         with this parameter. Can make it easier to spot bad values.
+
       hsbox  : int
          half-width in binned pixels of stats box as offset from central pixel
          hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
@@ -104,7 +108,6 @@ def setdefect(args=None):
 
       phi    : float [if iset=='p']
          upper percentile level
-
 
     There are a few conveniences to make setdefect easier:
 
@@ -142,6 +145,7 @@ def setdefect(args=None):
         cl.register('height', Cline.LOCAL, Cline.HIDE)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('invert', Cline.GLOBAL, Cline.PROMPT)
         cl.register('hsbox', Cline.GLOBAL, Cline.HIDE)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
@@ -200,6 +204,9 @@ def setdefect(args=None):
 
         # define the display intensities
         msub = cl.get_value('msub', 'subtract median from each window?', True)
+
+        if msub:
+            invert = cl.get_value('invert', 'invert image intensities?', True)
 
         hsbox = cl.get_value('hsbox', 'half-width of stats box (binned pixels)', 2, 1)
         iset = cl.get_value(
@@ -287,6 +294,8 @@ def setdefect(args=None):
             # subtract median from each window
             for wind in mccd[cnam].values():
                 wind -= wind.median()
+            if invert:
+                mccd *= -1
 
         hcam.mpl.pCcd(
             axes,mccd[cnam],iset,plo,phi,ilo,ihi,'CCD {:s}'.format(cnam)
@@ -366,7 +375,8 @@ class PickDefect:
             print()
 
         print(
-            'd(elete), h(elp), l(ine), p(oint), s(how), q(uit): ', end='', flush=True
+            'd(elete), h(elp), l(ine), m(odest), n(asty), s(how), q(uit): ',
+            end='', flush=True
         )
 
 
@@ -381,15 +391,15 @@ class PickDefect:
         if self._line_mode:
 
             if event.key == 'q':
-                self._point_mode = False
-                print('no point defect added')
+                self._line_mode = False
+                print('no line defect added')
                 PickDefect.action_prompt(True)
                 return
 
             elif event.key == 'm':
                 self._severity = defect.Severity.MODERATE
 
-            elif event.key == 's':
+            elif event.key == 'n':
                 self._severity = defect.Severity.SEVERE
 
             self._line()
@@ -425,12 +435,13 @@ Help on the actions available in 'setdefect':
   d(elete)   : delete a defect
   h(elp)     : print this help text
   l(ine)     : add a line defect (straight lines only)
-  m(odest)   : add a point defect
+  m(odest)   : add a moderate-level point defect
+  n(asty)    : add a severe-level point defect
   s(how)     : show image values
   q(uit)     : quit 'setdefect' and save the defects to disk
 
 Hitting 'd' will delete the defect nearest to the cursor, as long as it is
-close enough.
+close enough (< 10 pixels)
 """)
 
             elif key == 'm' or key == 'n':
@@ -451,7 +462,7 @@ close enough.
 
                 if key == 'm':
                     self._severity = defect.Severity.MODERATE
-                else:
+                elif key == 'n':
                     self._severity = defect.Severity.SEVERE
                 self._point()
 
@@ -499,12 +510,11 @@ close enough.
         )
 
         if wnam is None:
-            self._point_mode = False
             print('  cannot set defects outside windows')
 
         else:
 
-            dfct = defect.Point(self._severity, self._point_x, self._point_y)
+            dfct = defect.Point(self._severity, self._x, self._y)
             self.mccd_dfct[self._cnam][self._buffer] = dfct
 
             # add defect to the plot, store plot objects
@@ -518,7 +528,8 @@ close enough.
             # let user know what has happened
             level = 'moderate' if self._severity == defect.Severity.MODERATE else 'severe'
 
-            print('added {:s} level defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(level, self._buffer, self._cnam, self._point_x, self._point_y)
+            print('added {:s} level defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
+                level, self._buffer, self._cnam, self._x, self._y)
               )
 
         PickDefect.action_prompt(True)
@@ -570,7 +581,7 @@ close enough.
 
 
                 # prompt stage 2
-                print(" Defect level: m(oderate), s(evere), q(uit)")
+                print(" Defect level: m(odest), n(asty) [else q(uit)]")
 
         elif self._line_stage == 3:
 
@@ -590,30 +601,12 @@ close enough.
             # make sure it appears
             plt.draw()
 
-            print('added defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
-                self._buffer,self._cnam,self._point_x,self._point_y)
-              )
-            PickDefect.action_prompt(True)
+            # let user know what has happened
+            level = 'moderate' if self._severity == defect.Severity.MODERATE else 'severe'
 
-???
-                # prompt stage 2
-                print(" second point: s(elect) or q(uit)")
-
-            self._point_mode = False
-
-            dfct = defect.Point(self._severity, self._point_x, self._point_y)
-            self.mccd_dfct[self._cnam][self._buffer] = dfct
-
-            # add defect to the plot, store plot objects
-            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(
-                self._axes, dfct
-            )
-
-            # make sure it appears
-            plt.draw()
-
-            print('added defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
-                self._buffer,self._cnam,self._point_x,self._point_y)
+            print('added {:s} level line defect {:s} to CCD {:s} from x1,y1 = {:.2f},{:.2f} to x2,y2 = {:.2f},{:.2f}'.format(
+                level,self._buffer,self._cnam,self._line_x1,self._line_y1,
+                self._line_x2,self._line_y2)
               )
             PickDefect.action_prompt(True)
 
