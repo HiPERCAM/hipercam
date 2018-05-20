@@ -312,24 +312,28 @@ class Rhead:
         self.ybin = hd['ESO DET BINY1']
 
         if self.pscan:
-            # number of binned prescan pixels
-            self.npscan = int(np.ceil(HCM_NPSCAN/self.xbin))
+            if HCM_NPSCAN % self.xbin == 0:
+                # number of binned prescan pixels.
+                self.npscan = HCM_NPSCAN // self.xbin
 
-            # main window has to lose a pixel if x-binning factor not an exact
-            # divisor of HCM_NPSCAN. This pixel, which is a mix of pre-scan and
-            # real pixels, will appear at the inner edge of the pre-scan
-            self.pscan_lost = 0 if HCM_NPSCAN % self.xbin == 0 else 1
+            else:
+                raise HipercamError(
+                    ('Use of X-binning factors which are not divisors of'
+                     ' {:d} with overscan enabled is not supported').format(
+                         HCM_NPSCAN)
+                )
 
-        if self.oscan and HCM_NOSCAN % self.ybin == 0:
-            # number of binned prescan pixels
-            self.noscan = HCM_NOSCAN // self.ybin
+        if self.oscan:
+            if HCM_NOSCAN % self.ybin == 0:
+                # number of binned prescan pixels
+                self.noscan = HCM_NOSCAN // self.ybin
 
-        elif self.oscan:
-            raise HipercamError(
-                ('Y-binning factor not a divisor of'
-                 ' {:d} with overscan is undefined').format(
-                    HCM_NOSCAN)
-            )
+            else:
+                raise HipercamError(
+                    ('Use of Y-binning factors which are not divisors of'
+                     ' {:d} with overscan is not supported').format(
+                         HCM_NOSCAN)
+                )
 
         if self.mode.startswith('TwoWindow'):
             self.nwins = (0,1)
@@ -370,8 +374,6 @@ class Rhead:
                         # in the full frame.
                         nx = (HCM_NXTOT//2+HCM_NPSCAN
                               if self.pscan else HCM_NXTOT//2) // self.xbin
-                        if self.pscan:
-                            nx += self.pscan_lost
 
                         ny = (HCM_NYTOT//2+HCM_NOSCAN
                               if self.oscan else HCM_NYTOT//2) // self.ybin
@@ -1084,22 +1086,12 @@ class Rdata (Rhead):
                     # floats to avoid problems down the line.
 
                     if self.pscan:
-                        # pre-scan present. Reduce the size of the data
-                        # window in preparation for removal of prescan
-                        # data, adjust llx on left-hand side for case of
-                        # xbin not divifing exactly into pre-scan cols.
-
-                        if qnam == 'E' or qnam == 'H':
-                            wind = Winhead(
-                                win.llx+self.pscan_lost, win.lly,
-                                win.nx-self.npscan, win.ny,
-                                win.xbin, win.ybin, win
-                            )
-                        else:
-                            wind = Winhead(
-                                win.llx, win.lly, win.nx-self.npscan, win.ny,
-                                win.xbin, win.ybin, win
-                            )
+                        # pre-scan present. Reduce the size of the data window
+                        # in preparation for removal of prescan data.
+                        wind = Winhead(
+                            win.llx, win.lly, win.nx-self.npscan, win.ny,
+                            win.xbin, win.ybin, win
+                        )
 
                         if nwin == 0 and nquad == 0:
                             # store CCD header in the first Winhead
