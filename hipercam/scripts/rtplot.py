@@ -10,6 +10,8 @@ from trm.pgplot import *
 import hipercam as hcam
 from hipercam import cline, utils, spooler, defect
 from hipercam.cline import Cline
+import requests
+import socket
 
 __all__ = ['rtplot',]
 
@@ -21,15 +23,16 @@ __all__ = ['rtplot',]
 
 def rtplot(args=None):
     """``rtplot [source device width height] (run first twait tmax | flist)
-    [pause plotall] ccd (nx) bias msub iset (ilo ihi | plo phi) xlo xhi
-    ylo yhi (profit [fdevice fwidth fheight method beta fwhm fwhm_min
-    shbox smooth splot fhbox hmin read gain thresh])``
+    [pause plotall] ccd (nx) bias defect setup [hurl] msub iset
+    (ilo ihi | plo phi) xlo xhi ylo yhi (profit [fdevice fwidth fheight
+    method beta fwhm fwhm_min shbox smooth splot fhbox hmin read gain thresh])``
 
     Plots a sequence of images as a movie in near 'real time', hence
     'rt'. Designed to be used to look at images coming in while at the
     telescope, 'rtplot' comes with many options, a large number of which are
     hidden by default, and many of which are only prompted if other arguments
     are set correctly. If you want to see them all, invoke as 'rtplot prompt'.
+    This is worth doing once to know rtplot's capabilities.
 
     rtplot can source data from both the ULTRACAM and HiPERCAM servers, from
     local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
@@ -102,6 +105,18 @@ def rtplot(args=None):
 
         defect  : string
            Name of defect file, 'none' to ignore.
+
+        setup   : bool
+           True/yes to access the current windows from hdriver. Useful during
+           observing when seeting up windows, but not normally otherwise. Next
+           argument (hidden) is the URL to get to hdriver. Once setup, you should
+           probably turn this off to avoid overloading hdriver, especially if in
+           drift mode as it makes a request for the windows for every frame.
+
+        hurl    : string [if setup; hidden]
+           URL needed to access window setting from hdriver. The internal
+           server in hdriver must be switched on using rtplot_server_on
+           in the hdriver config file.
 
         msub    : bool
            subtract the median from each window before scaling for the
@@ -234,6 +249,8 @@ def rtplot(args=None):
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('defect', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('setup', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('hurl', Cline.GLOBAL, Cline.HIDE)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
@@ -345,6 +362,16 @@ def rtplot(args=None):
             # read the bias frame
             dfct = defect.MccdDefect.read(dfct)
 
+        # Get windows from hdriver
+        setup = cl.get_value(
+            'setup', 'display current hdriver window settings', False
+        )
+
+        if setup:
+            hurl = cl.get_value(
+                'hurl', 'URL for hdriver windows', 'http://192.168.1.2:5100'
+            )
+
         # define the display intensities
         msub = cl.get_value('msub', 'subtract median from each window?', True)
 
@@ -435,7 +462,6 @@ def rtplot(args=None):
     #
     # all the inputs have now been obtained. Get on with doing stuff
 
-
     # open image plot device
     imdev = hcam.pgp.Device(device)
     if width > 0 and height > 0:
@@ -484,13 +510,61 @@ def rtplot(args=None):
             # indicate progress
             tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
             print(
-                'Frame {:d}, time = {:s}, '.format(
+                '{:d}, utc = {:s}, '.format(
                     mccd.head['NFRAME'], tstamp.iso), end=''
             )
+
+            # accumulate errors
+            emessages = []
 
             if n == 0 and bias is not None:
                 # crop the bias on the first frame only
                 bias = bias.crop(mccd)
+
+            if setup:
+                # Get windows from hdriver. Fair bit of error checking
+                # needed. 'got_windows' indicates if anything useful
+                # found, 'hwindows' is a list of (llx,lly,nx,ny) tuples
+                # if somthing is found.
+                try:
+                    r = requests.get(
+                        'http://192.168.1.2:5100',timeout=0.2
+                    )
+
+                    if r.text == 'No valid data available':
+                        emessages.append(
+                            '** bad return from hdriver = {:s}'.format(r.text)
+                        )
+                        got_windows = False
+
+                    else:
+                        # OK, got something
+                        lines = r.text.split('\r\n')
+                        xbinh,ybinh,nwinh = lines[0].split()
+                        xbinh,ybinh,nwinh = int(xbinh),int(ybinh),int(nwinh)
+                        hwindows = []
+                        for line in lines[1:nwinh+1]:
+                            llxh,llyh,nxh,nyh = line.split()
+                            hwindows.append(
+                                (int(llxh),int(llyh),int(nxh),int(nyh))
+                            )
+
+                        if nwinh != len(hwindows):
+                            emessages.append(
+                                ('** expected {:d} windows from'
+                                 ' hdriver but got {:d}').format(nwinh,len(hwindows))
+                            )
+                            got_windows = False
+
+                        got_windows = True
+
+                except (requests.exceptions.ConnectionError, socket.timeout,
+                        requests.exceptions.Timeout) as err:
+                    emessages.append(' ** hdriver error: {!r}'.format(err))
+                    got_windows = False
+
+            else:
+                got_windows = False
 
             # display the CCDs chosen
             message = ''
@@ -517,23 +591,32 @@ def rtplot(args=None):
                     pgpanl(ix,iy)
                     vmin, vmax = hcam.pgp.pCcd(ccd,iset,plo,phi,ilo,ihi)
 
+                    if got_windows:
+                        # plot the current hdriver windows
+                        pgsci(hcam.CNAMS['yellow'])
+                        pgsls(2)
+                        for llxh,llyh,nxh,nyh in hwindows:
+                            pgrect(llxh-0.5,llxh+nxh-0.5,llyh-0.5,llyh+nyh-0.5)
+
                     if dfct is not None and cnam in dfct:
                         # plot defects
                         hcam.pgp.pCcdDefect(dfct[cnam])
 
                     # accumulate string of image scalings
                     if nc:
-                        message += ', ccd {:s}: {:.2f} to {:.2f}, exp: {:.4f}'.format(
+                        message += ', ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
                             cnam,vmin,vmax,mccd.head['EXPTIME']
                         )
                     else:
-                        message += 'ccd {:s}: {:.2f} to {:.2f}, exp: {:.4f}'.format(
+                        message += 'ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
                             cnam,vmin,vmax,mccd.head['EXPTIME']
                         )
 
             pgebuf()
             # end of CCD display loop
             print(message)
+            for emessage in emessages:
+                print(emessage)
 
             if ccd.is_data() and profit and fframe:
                 fframe = False

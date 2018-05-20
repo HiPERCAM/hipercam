@@ -39,7 +39,7 @@ DMINS = 1440.
 
 # For compatibility between PGPLOT and matplotlib, establish a uniform
 # set of colours. These are fed directly to matplotlib, and used to override
-# the colour indices used by PGPLOT. Could extend from 0 to 15 max.
+# the colour indices used by PGPLOT.
 CIS = (
     (1,1,1),              # 0 -- white
     (0,0,0),              # 1 -- black
@@ -56,7 +56,7 @@ CIS = (
     (0.635,0.643,0.082),  # 12 -- vomit
     (0.7,0.008,0.0),      # 13 -- darkred
     (0.498, 0.372, 0),    # 14 -- mud
-    (0.8, 0.8, 0),        # 15 -- yellow
+    (0.95, 0.95, 0),      # 15 -- yellow
 )
 
 CNAMS = {
@@ -68,13 +68,14 @@ CNAMS = {
     'pink'   : 5,
     'purple' : 6,
     'turquoise' : 7,
-    'orange' : 8,
+    'orange'  : 8,
     'mustard' : 9,
     'magenta' : 10,
-    'mauve' : 11,
-    'vomit' : 12,
+    'mauve'   : 11,
+    'vomit'   : 12,
     'darkred' : 13,
-    'mud' : 14,
+    'mud'     : 14,
+    'yellow'  : 15,
 }
 
 # Bit masks (used in reduce.py and hlog.py)
