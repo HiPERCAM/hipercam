@@ -170,6 +170,7 @@ def genred(args=None):
         cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhmmin', Cline.LOCAL, Cline.HIDE)
         cl.register('halfwidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('thresh', Cline.LOCAL, Cline.HIDE)
         cl.register('heightmin', Cline.LOCAL, Cline.HIDE)
         cl.register('rfac', Cline.LOCAL, Cline.HIDE)
         cl.register('rmin', Cline.LOCAL, Cline.HIDE)
