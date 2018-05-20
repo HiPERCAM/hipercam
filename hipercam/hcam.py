@@ -311,16 +311,14 @@ class Rhead:
         self.xbin = hd['ESO DET BINX1']
         self.ybin = hd['ESO DET BINY1']
 
-        if self.pscan and HCM_NPSCAN % self.xbin == 0:
+        if self.pscan:
             # number of binned prescan pixels
-            self.npscan = HCM_NPSCAN // self.xbin
+            self.npscan = int(np.ceil(HCM_NPSCAN/self.xbin))
 
-        elif self.pscan:
-            raise HipercamError(
-                ('X-binning factor not a divisor of'
-                 ' {:d} with prescan is undefined').format(
-                    HCM_NPSCAN)
-            )
+            # main window has to lose a pixel if x-binning factor not an exact
+            # divisor of HCM_NPSCAN. This pixel, which is a mix of pre-scan and
+            # real pixels, will appear at the inner edge of the pre-scan
+            self.pscan_lost = 0 if HCM_NPSCAN % self.xbin == 0 else 1
 
         if self.oscan and HCM_NOSCAN % self.ybin == 0:
             # number of binned prescan pixels
@@ -372,8 +370,12 @@ class Rhead:
                         # in the full frame.
                         nx = (HCM_NXTOT//2+HCM_NPSCAN
                               if self.pscan else HCM_NXTOT//2) // self.xbin
-                        ny = (HCM_NYTOT//2+HCM_NOSCA
+                        if self.pscan:
+                            nx += self.pscan_lost
+
+                        ny = (HCM_NYTOT//2+HCM_NOSCAN
                               if self.oscan else HCM_NYTOT//2) // self.ybin
+
                         llx = LLX[qnam]
                         lly = LLY[qnam]
 
@@ -1057,8 +1059,8 @@ class Rdata (Rhead):
                     shape=(5, 4, len(frame)//80, 4)
                 ).reshape(5, 4, win.ny, win.nx)
 
-            # now build the Windows. This is where we chop off
-            # any pre- and over-scan
+            # now build the Windows. This is where we chop off any pre- and
+            # over-scan
 
             for nccd, cnam in enumerate(CNAMS):
                 for nquad, qnam in enumerate(QNAMS):
@@ -1066,8 +1068,6 @@ class Rdata (Rhead):
                     if nccd in REFLECTED:
                         # reflections for g (1) and z (4)
                         qnam = QNAMS_REFLECT[qnam]
-
-                    # rotate??
 
                     # recover the window and flip parameters
                     win, flip_axes = self.windows[nwin][nccd][nquad]
@@ -1086,22 +1086,34 @@ class Rdata (Rhead):
                     if self.pscan:
                         # pre-scan present. Reduce the size of the data
                         # window in preparation for removal of prescan
-                        # data. We rely on the llx value being correct
-                        # for the imaging portion so that it requires
-                        # no updating. nx however needs trimming down
-                        # by the number of prescan pixels which are about
-                        # to be removed.
+                        # data, adjust llx on left-hand side for case of
+                        # xbin not divifing exactly into pre-scan cols.
 
-                        wind = Winhead(
-                            win.llx, win.lly, win.nx-self.npscan, win.ny,
-                            win.xbin, win.ybin, win
-                        )
+                        if qnam == 'E' or qnam == 'H':
+                            wind = Winhead(
+                                win.llx+self.pscan_lost, win.lly,
+                                win.nx-self.npscan, win.ny,
+                                win.xbin, win.ybin, win
+                            )
+                        else:
+                            wind = Winhead(
+                                win.llx, win.lly, win.nx-self.npscan, win.ny,
+                                win.xbin, win.ybin, win
+                            )
+
                         if nwin == 0 and nquad == 0:
                             # store CCD header in the first Winhead
                             wind.update(cheads[cnam])
 
                         # Generate name for the prescan Window
                         wpnam = '{:s}P'.format(wnam)
+
+                        # work out lly-value of bottom of pre-scan windows which
+                        # needs adjusting if the overscan is also on
+                        if self.oscan and (qnam == 'E' or qnam == 'F'):
+                            plly = 1-HCM_NOSCAN
+                        else:
+                            plly = win.lly
 
                         if qnam == 'E' or qnam == 'H':
                             # Prescans are on the left of quadrants E and H
@@ -1114,7 +1126,7 @@ class Rdata (Rhead):
 
                             # Store the prescan itself
                             winp = Winhead(
-                                1-HCM_NPSCAN, win.lly, self.npscan, win.ny,
+                                1-HCM_NPSCAN, plly, self.npscan, win.ny,
                                 win.xbin, win.ybin, win
                             )
 
@@ -1134,7 +1146,7 @@ class Rdata (Rhead):
 
                             # Now save the prescan itself
                             winp = Winhead(
-                                HCM_NXTOT+1, win.lly, self.npscan, win.ny,
+                                HCM_NXTOT+1, plly, self.npscan, win.ny,
                                 win.xbin, win.ybin, win
                             )
 
@@ -1172,13 +1184,14 @@ class Rdata (Rhead):
                                 win.xbin, win.ybin, win
                             )
 
-                            # Create the Window with the over-scan
+                            # Create the Window with the over-scan from top part
+                            # of data frame
                             ccds[cnam][wonam] = Window(
                                 wino, win.data[-self.noscan:,:]
                             )
 
                             # Chop overscan off data array
-                            win.data = win.data[:self.noscan,:]
+                            win.data = win.data[:-self.noscan,:]
 
                         else:
                             # Overscans at the bottom of quadrants G and H
