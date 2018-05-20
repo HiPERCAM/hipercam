@@ -1601,7 +1601,6 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
 
             # limit the initial value of beta because of tendency
             # to wander to high values and never come down.
-            print('come on',fit_beta, apsec['fit_beta_max'])
             fit_beta = min(fit_beta, apsec['fit_beta_max'])
 
             # refine the Aperture position by fitting the profile
@@ -1944,6 +1943,7 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
     mfwhm = store['mfwhm']
 
     if resize == 'variable' or extype == 'optimal':
+
         if mfwhm <= 0:
             # return early here as there is nothing much we can do.
             print(
@@ -1976,8 +1976,13 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
                 aper.rsky2 = max(r3min, min(r3max, r3fac*mfwhm))
 
     elif resize == 'fixed':
-        # do nothing
-        pass
+
+        # just apply the limits
+        for aper in ccdaper.values():
+            aper.rtarg = max(r1min, min(r1max, aper.rtarg))
+            aper.rsky1 = max(r2min, min(r2max, aper.rsky1))
+            aper.rsky2 = max(r3min, min(r3max, aper.rsky2))
+
     else:
         raise ValueError(
             "CCD {:s}: 'variable' and 'fixed' are the only"
