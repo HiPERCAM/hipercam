@@ -308,16 +308,13 @@ def pDefect(dfct):
 
         if dfct.severity == defect.Severity.MODERATE:
             pgsci(Params['defect.moderate.ci'])
-            pgsch(1.5)
+            pgsch(1.3)
             pgpt1(dfct.x, dfct.y, 17)
 
         elif dfct.severity == defect.Severity.SEVERE:
             pgsci(Params['defect.severe.ci'])
-            pgsch(1.5)
+            pgsch(1.7)
             pgpt1(dfct.x, dfct.y, 17)
-            pgslw(2)
-            pgsch(2)
-            pgpt1(dfct.x, dfct.y, 5)
 
 def pCcdDefect(ccd_dfct):
     """
