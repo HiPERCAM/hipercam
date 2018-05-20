@@ -21,6 +21,7 @@ from .plog import plog
 from .reduce import reduce
 from .rtplot import rtplot
 from .setaper import setaper
+from .setdefect import setdefect
 from .stats import stats
 from .times import times
 from .mstats import mstats
@@ -35,7 +36,7 @@ __all__ = [ \
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'pfolder', 'plog',
             'reduce', 'rtplot',
-            'setaper', 'stats', 'sub',
+            'setaper', 'setdefect', 'stats', 'sub',
             'times',
         ]
 
