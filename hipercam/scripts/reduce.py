@@ -1601,6 +1601,7 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
 
             # limit the initial value of beta because of tendency
             # to wander to high values and never come down.
+            print(fit_beta, apsec['fit_beta_max'])
             fit_beta = min(fit_beta, apsec['fit_beta_max'])
 
             # refine the Aperture position by fitting the profile
