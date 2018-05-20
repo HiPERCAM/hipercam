@@ -1186,6 +1186,7 @@ class Rfile(OrderedDict):
         apsec['fit_fwhm_min'] = float(apsec['fit_fwhm_min'])
         apsec['fit_ndiv'] = int(apsec['fit_ndiv'])
         apsec['fit_beta'] = float(apsec['fit_beta'])
+        apsec['fit_beta_max'] = float(apsec['fit_beta_max'])
         apsec['fit_half_width'] = int(apsec['fit_half_width'])
         apsec['fit_thresh'] = float(apsec['fit_thresh'])
         apsec['fit_height_min'] = float(apsec['fit_height_min'])
