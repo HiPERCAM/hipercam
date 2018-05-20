@@ -531,9 +531,9 @@ def rtplot(args=None):
                         'http://192.168.1.2:5100',timeout=0.2
                     )
 
-                    if r.text == 'No valid data available':
+                    if r.text.strip() == 'No valid data available':
                         emessages.append(
-                            '** bad return from hdriver = {:s}'.format(r.text)
+                            '** bad return from hdriver = {:s}'.format(r.text.strip())
                         )
                         got_windows = False
 
