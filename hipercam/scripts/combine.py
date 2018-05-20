@@ -42,10 +42,15 @@ def combine(args=None):
            average. sigma=3 is typical.
 
         adjust  : string
-           adjustments to make: 'i' = ignore; 'n' = normalise the mean of all
-           frames to match the first; 'b' = add offsets so that the mean of
-           all frames is the same as the first.  Option 'n' is useful for
-           twilight flats; 'b' for combining biases.
+           adjustments to make: 'i' = ignore; 'n' = normalise the mean or
+           median of all frames to match the first; 'b' = add offsets so that
+           the mean or median of all frames is the same as the first. Option
+           'n' is useful for twilight flats and fringe frames; 'b' is good
+           for combining biases.
+
+        usemean : bool [if adjust == 'n' or 'b']
+           True to use the mean rather than the median for normalisation or
+           biass offsetting.
 
         plot    : bool [hidden, if adjust == 'n' or 'b'; defaults to False]
            make a plot of the mean versus frame number. This can provide a
@@ -84,6 +89,7 @@ def combine(args=None):
         cl.register('method', Cline.LOCAL, Cline.PROMPT)
         cl.register('sigma', Cline.LOCAL, Cline.PROMPT)
         cl.register('adjust', Cline.LOCAL, Cline.PROMPT)
+        cl.register('usemean', Cline.LOCAL, Cline.PROMPT)
         cl.register('plot', Cline.LOCAL, Cline.HIDE)
         cl.register('clobber', Cline.LOCAL, Cline.HIDE)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
@@ -108,20 +114,32 @@ def combine(args=None):
         )
 
         if method == 'c':
-            sigma = cl.get_value('sigma', 'number of RMS deviations to clip', 3.)
+            sigma = cl.get_value(
+                'sigma', 'number of RMS deviations to clip', 3.
+            )
 
         adjust = cl.get_value(
-            'adjust', 'i(gnore), n(ormalise) b(ias offsets)',
+            'adjust', 'i(gnore), n(ormalise), b(ias offsets)',
             'i', lvals=('i','n','b')
         )
 
         if adjust == 'n' or adjust == 'b':
+
+            usemean = cl.get_value(
+                'usemean',
+                'use the mean for normalisation / offsetting [else median]',
+                True
+            )
+
             plot = cl.get_value(
-                'plot', 'plot mean levels versus frame number?',
-                False
-                )
+                'plot',
+                'plot mean levels versus frame number?' if usemean else \
+                'plot median levels versus frame number?', False
+            )
+
         else:
             plot = False
+            usemean = False
 
         clobber = cl.get_value(
             'clobber', 'clobber any pre-existing files on output',
@@ -187,9 +205,12 @@ def combine(args=None):
                     # keep the result
                     ccds.append(ccd)
 
-                    # store the first mean
-                    if mean is None:
-                        mean = ccd.mean()
+                    if (adjust == 'b' or adjust == 'n') and mean is None:
+                        # store the first mean [median]
+                        if usemean:
+                            mean = ccd.mean()
+                        else:
+                            mean = ccd.median()
 
             if len(ccds) == 0:
                 raise hcam.HipercamError(
@@ -207,7 +228,11 @@ def combine(args=None):
 
             # now carry out the adjustments
             for ccd in ccds:
-                cmean = ccd.mean()
+                if usemean:
+                    cmean = ccd.mean()
+                else:
+                    cmean = ccd.median()
+
                 means.append(cmean)
                 if adjust == 'b':
                     ccd += mean - cmean

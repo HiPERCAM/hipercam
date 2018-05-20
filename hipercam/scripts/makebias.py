@@ -145,7 +145,7 @@ def makebias(args=None):
         print("\nCalling 'combine' ...")
         args = [
             None, 'prompt', flist, 'none', 'c', str(sigma),
-            'b', 'yes' if plot else 'no', 'yes', output
+            'b', 'yes', 'yes' if plot else 'no', 'yes', output
         ]
         hcam.scripts.combine(args)
 

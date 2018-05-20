@@ -179,13 +179,15 @@ def averun(args=None):
             args = [
                 None, 'prompt', flist,
                 'none' if bias is None else bias, method, adjust,
+                'usemean=yes', 'plot=no',
                 'yes' if clobber else 'no', output
             ]
         else:
             args = [
                 None, 'prompt', flist,
                 'none' if bias is None else bias, method, str(sigma),
-                adjust, 'yes' if clobber else 'no', output
+                adjust, 'usemean=yes', 'plot=no',
+                'yes' if clobber else 'no', output
             ]
         hcam.scripts.combine(args)
 
