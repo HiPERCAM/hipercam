@@ -118,6 +118,18 @@ class CCD(Agroup):
             total += wind.sum()
         return total / float(npix)
 
+    def median(self):
+        """
+        Returns the median value of the :class:`CCD`.
+        """
+
+        # Flatten into a single 1D array
+        arrs = [wind.data.flatten() for wind in self.values()]
+        arr = np.concatenate(arrs)
+
+        # Then compute median
+        return np.median(arr)
+
     def percentile(self, q):
         """
         Computes percentile(s) of the :class:`CCD`.
@@ -128,7 +140,7 @@ class CCD(Agroup):
             Percentile(s) to use, in range [0,100]
         """
 
-       # Flatten into a single 1D array
+        # Flatten into a single 1D array
         arrs = [wind.data.flatten() for wind in self.values()]
         arr = np.concatenate(arrs)
 
