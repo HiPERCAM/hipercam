@@ -51,10 +51,10 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
         beta      : float [if method == 'm']
             exponent of Moffat function
 
-        read      : float
+        read      : float | array
             readout noise, RMS ADU
 
-        gain      : float
+        gain      : float | array
             gain, electrons per ADU
 
         thresh    : float
@@ -199,15 +199,13 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             fix the FWHM at the value `fwhm` during fits. Should be a bit
             faster and more robust.
 
-        read     : float / array
-            readout noise, from which weights are generated. If an
-            array it must match the dimensions of the Window. (RMS counts)
+        read     : float | array
+            readout noise, from which weights are generated (RMS counts)
 
-        gain     : float / array
-            gain, from which weights are generated. If an array it
-            must match the dimensions of the Window (e- per count)
+        gain     : float | array
+            gain, from which weights are generated (e- per count)
 
-        thresh    : float
+        thresh   : float
             threshold in terms of RMS for rejection. The RMS is obtained from
             read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
             = 4
@@ -651,11 +649,11 @@ class Mfit1:
           wind  : Window
              the Window containing data to fit
 
-          read  : float / array
+          read  : float | array
              readout noise in RMS counts. Can be a 2D array if dimensions
              same as the data in wind
 
-          gain  : float / array
+          gain  : float | array
              gain in electrons / count. Can be a 2D array if dimensions
              same as the data in wind
 

@@ -100,17 +100,27 @@ def genred(args=None):
         method   : string
            profile fitting method. 'g' for gaussian, 'm' for moffat
 
+        beta     : float [hidden]
+           default Moffat exponent to use to start fitting
+
+        betamax  : float [hidden]
+           maximum Moffat exponent to pass on to subsequent fits. Prevents
+           it wandering to silly values which can happen.
+
         fwhm     : float [hidden]
            the default FWHM to use when fitting, unbinned pixels.
 
-        fwhm_min : float [hidden]
+        fwhmmin  : float [hidden]
            the default FWHM to use when fitting, unbinned pixels.
 
-        half_width : int [hidden]
+        halfwidth : int [hidden]
            half width in (binned) pixels for the target searches and
            profile fits
 
-        height_min : float [hidden]
+        thresh     : float [hidden]
+           RMS rejection threshold for profile fits.
+
+        heightmin  : float [hidden]
            minimum peak height for a fit to be accepted
 
         rfac     : float [hidden]
@@ -153,6 +163,8 @@ def genred(args=None):
         cl.register('extendx', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.HIDE)
         cl.register('location', Cline.LOCAL, Cline.HIDE)
+        cl.register('beta', Cline.LOCAL, Cline.HIDE)
+        cl.register('betamax', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('smoothfwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('method', Cline.LOCAL, Cline.HIDE)
@@ -286,40 +298,63 @@ warn = 1 65000 65500
         smooth_fwhm = cl.get_value(
             'smoothfwhm','search smoothing FWHM [unbinned pixels]',6.,3.
         )
+
         profile_type = cl.get_value(
             'method', 'profile fit method, g(aussian) or m(offat)',
             'g', lvals=['g','m']
         )
         profile_type = 'gaussian' if profile_type == 'g' else 'moffat'
 
+        beta = cl.get_value(
+            'beta','starting value of beta', 4., 3.
+        )
+
+        beta_max = cl.get_value(
+            'betamax','maximum value of beta to start consecutive fits',
+            20., beta
+        )
+
         fwhm = cl.get_value(
             'fwhm','starting FWHM, unbinned pixels',5.,1.5
         )
+
         fwhm_min = cl.get_value(
             'fwhmmin','minimum FWHM, unbinned pixels',1.5,0.
         )
+
         half_width = cl.get_value(
             'halfwidth', 'half widths for search & fits, pixels', 21, 7
         )
+
+        thresh = cl.get_value(
+            'thresh', 'RMS rejection threshold for fits (sigma)', 5., 2.
+        )
+
         height_min = cl.get_value(
             'heightmin',
             'minimum peak height for a fit to be acceptable [counts]', 40, 1
         )
+
         rfac = cl.get_value(
             'rfac','target aperture scale factor',1.8,1.0
         )
+
         rmin = cl.get_value(
             'rmin','minimum target aperture radius [unbinned pixels]',6.,1.
         )
+
         rmax = cl.get_value(
             'rmax','maximum target aperture radius [unbinned pixels]',30.,rmin
         )
+
         sinner = cl.get_value(
             'sinner','inner sky aperture radius [unbinned pixels]',30.,rmax
         )
+
         souter = cl.get_value(
             'souter','outer sky aperture radius [unbinned pixels]',50.,sinner+1
         )
+
         scale = cl.get_value(
             'scale','image scale [arcsec/unbinned pixel]',0.3,0.001
         )
@@ -519,7 +554,8 @@ warn = 1 65000 65500
                 comm_seeing=comm_seeing, extendx=extendx,
                 comm_position=comm_position, scale=scale,
                 warn_levels=warn_levels, ncpu=ncpu, half_width=half_width,
-                profile_type=profile_type, height_min=height_min
+                profile_type=profile_type, height_min=height_min,
+                beta=beta, beta_max=beta_max, thresh=thresh
             )
         )
 
@@ -609,16 +645,16 @@ search_half_width_ref  = {half_width:d}   # for initial search around reference 
 search_half_width_non  = {half_width:d}    # for initial search around non-reference aperture, unbinned pixels
 search_smooth_fwhm     = {smooth_fwhm:.1f}    # smoothing FWHM, binned pixels
 
-fit_method     = {profile_type}    # gaussian or moffat
-fit_beta       = 4.        # Moffat exponent
+fit_method     = {profile_type}   # gaussian or moffat
+fit_beta       = {beta:.1f}       # Moffat exponent
+fit_beta_max   = {beta_max:.1f}   # max Moffat expt for later fits
 fit_fwhm       = {fwhm:.1f}   # FWHM, unbinned pixels
 fit_fwhm_min   = {fwhm_min:.1f}   # Minimum FWHM, unbinned pixels
 fit_ndiv       = 0         # sub-pixellation factor
 fit_fwhm_fixed = no        # Slightly faster not to fit the FWHM.
 fit_half_width = {half_width:d}   # for fit, unbinned pixels
-fit_thresh     = 4            # RMS rejection threshold for fits
-fit_height_min = {height_min} # minimum height to accept a fit
-
+fit_thresh     = {thresh:.2f}     # RMS rejection threshold for fits
+fit_height_min = {height_min:.1f} # minimum height to accept a fit
 
 # The next lines define how the apertures will be re-sized and how the flux
 # will be extracted from the aperture. There is one line per CCD with format:

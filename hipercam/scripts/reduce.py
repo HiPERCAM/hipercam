@@ -1598,6 +1598,10 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
             else:
                 fit_beta = apsec['fit_beta']
 
+            # limit the initial value of beta because of tendency
+            # to wander to high values and never come down.
+            fit_beta = min(fit_beta, apsec['fit_beta_max'])
+
             # refine the Aperture position by fitting the profile
             try:
                 (sky, height, x, y, fwhm, beta), \
@@ -1607,7 +1611,7 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
                                  fwind, rfile.method, sky, peak-sky,
                                  x, y, fit_fwhm, apsec['fit_fwhm_min'],
                                  apsec['fit_fwhm_fixed'], fit_beta,
-                                 frd, fgn,
+                                 frd.data, fgn.data,
                                  apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
@@ -1777,7 +1781,7 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
                                  fwind, rfile.method, sky, peak-sky,
                                  x, y, fit_fwhm, apsec['fit_fwhm_min'],
                                  apsec['fit_fwhm_fixed'], fit_beta,
-                                 frd, fgn,
+                                 frd.data, fgn.data,
                                  apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
