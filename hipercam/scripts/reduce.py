@@ -1550,7 +1550,7 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
     wxsum, wysum = 0., 0.
     ref = False
 
-    # next used to work out weighted mean FWHM and beta values
+    # the next part is used to work out weighted mean FWHM and beta values
     fsum, wfsum = 0, 0
     bsum, wbsum = 0, 0
     for apnam, aper in ccdaper.items():
@@ -1718,6 +1718,7 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
     # apertures are skipped except any that failed are shifted
     # by the mean shift.
     for apnam, aper in ccdaper.items():
+
         if aper.ref:
             if store[apnam]['fwhme'] <= 0.:
                 # Move failed reference fit to the mean shift
@@ -1772,6 +1773,10 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
                     fit_beta = store[apnam]['beta']
                 else:
                     fit_beta = apsec['fit_beta']
+
+                # limit the initial value of beta because of tendency
+                # to wander to high values and never come down.
+                fit_beta = min(fit_beta, apsec['fit_beta_max'])
 
                 # refine the Aperture position by fitting the profile
 
