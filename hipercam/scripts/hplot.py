@@ -239,7 +239,8 @@ def hplot(args=None):
                 axes.set_aspect('equal', adjustable='box')
             else:
                 axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-                axes.set_aspect('equal', adjustable='datalim')
+#                axes.set_aspect('equal', adjustable='datalim')
+                axes.set_aspect('equal')
 
             # store the CCD associated with these axes for the cursor callback
             caxes[axes] = cnam
@@ -254,7 +255,11 @@ def hplot(args=None):
                 )
             print('CCD =',cnam,'plot range =',vmin,'to',vmax)
 
-        plt.tight_layout()
+        try:
+            plt.tight_layout()
+        except:
+            pass
+
         if hard == '':
             # add in the callback
             fig.canvas.mpl_connect('button_press_event', buttonPressEvent)
