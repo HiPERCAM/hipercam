@@ -483,7 +483,11 @@ def setaper(args=None):
         read, gain, thresh, aper, pobjs
     )
 
-    plt.tight_layout()
+    try:
+        plt.tight_layout()
+    except:
+        pass
+
     PickStar.action_prompt(False)
 
     # squeeze space a bit
