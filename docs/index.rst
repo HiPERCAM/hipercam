@@ -8,7 +8,7 @@
 The |hiper| pipeline manual
 ****************************
 
-The |hiper| reduction software, known as the "pipeline" for short serves two
+The |hiper| reduction software, known as the "pipeline" for short, serves two
 purposes. First, it provides a means of displaying, analysing and reducing
 |hiper| data. Second, it provides an "Application Programmers Interface" (API)
 to allow you to access and manipulate |hiper| and related data. The first will

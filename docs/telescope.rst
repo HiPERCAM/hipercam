@@ -100,15 +100,15 @@ all CCDs during reduction.  The section on :ref:`command-calling` has many
 further details on the parameter input system. From now it will be assumed that
 you know the parameter input system.
 
-Tips for using |rtplot| during observing
-----------------------------------------
+.. Note::
 
-|rtplot| has two features that are useful while observing. The first is the
-option to plot a file of defects (example :download:`defect file
-<hipercam_defects_2018_05_21.dft>`). This should always be used when setting
-on a target to avoid bad regions of the CCDs. The second is the `setup` option
-which interrogates the `hdriver` GUI for the current set of windows. This is
-useful for optimising the CCD setup on a target.
+  |rtplot| is one of the most useful commands during observing runs. Three
+  useful features are (1) the ability to fit the profiles of selected targets
+  when displaying a single CCD; (2) the option to plot a file of CCD defects
+  (:download:`defect file <hipercam_defects_2018_05_21.dft>`). Use this to
+  avoid bad regions of the CCDs; (3) the `setup` option which interrogates the
+  `hdriver` GUI for the current set of windows. This is useful for optimising
+  the CCD setup on a target.
 
 Commands used in this section: |rtplot|, |hls|
 
