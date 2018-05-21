@@ -2,6 +2,8 @@
 
 .. include:: globals.rst
 
+.. |fig-1| replace:: :numref:`fig-1`
+
 Reducing |hiper| data
 *********************
 
@@ -78,11 +80,13 @@ Flat fields
 
 Flat fields with |hiper| are taken at twilight in areas of sky with as few
 stars as possible. One should offset the telescope between images to allow
-stars to be removed. |hiper| takes images at high-speed so one can normally
-aquire more than 100 frames in a single run, but the different CCDs will have
-different count levels on any one frame, and will come out of saturation at
-different times. The count levels will also be falling or rising according to
-whether the flats were taken at evening or morning twilight.
+stars to be removed. At the GTC, |hiper|'s driving routine, ``hdriver`` can
+drive the telescope as well as the instrument, making spiralling during sky
+flats straightforward. One can normally aquire more than 100 frames in a
+single run, but the different CCDs will have different count levels on any one
+frame, and will come out of saturation at different times. The count levels
+will also be falling or rising according to whether the flats were taken at
+evening or morning twilight.
 
 The task of making the flat fields is thus to combine a series of frames with
 differing count levels while removing features that vary between images. In
@@ -119,6 +123,38 @@ not, then |setaper| gives you the option of ``linking`` any target to another,
 with the idea that a brighter target can define the position shifts which are
 applied to the fainter target.
 
+An example of a set of apertures showing all these features is shown in
+|fig-1|. 
+
+.. _fig-1:
+
+.. figure:: complex_mask.png
+   :scale: 100 %
+   :alt: complex set of apertures
+
+   Example of a complex set of apertures. The target is at the centre of the
+   circles in the lower-right. The upper-left target is the comparison star.
+
+In this case the target star has two nearby companions which causes three
+problems: (1) the sky annulus may include flux from the companions, (2) the
+target aperture can include a variable contribution from the companions,
+depending upon the seeing, and (3) it is hard to locate the object because the
+position location can jump to the nearby objects. The set of apertures shown
+in |fig-1| combats these problems as follows. First, there are pink/purplish
+dashed circles connected to the centre of the apertures. These are *mask*
+regions which exclude the circled regions from any consideration in sky
+estimation. NB they *do not* exclude the pixels from inclusion in target
+apertures; this is not possible without systematic bias without full-blown
+profile fits. Second, are somewhat similar brown/green dashed circles. These
+are *extra* apertures which indicate that the flux in the regions enclosed is
+to be added to the flux in the target aperture. This offsets the problem of
+variable amounts of nearby stars' flux being included in the
+aperture. Finally, the thick pink arrow pointing from the lower-right (target)
+aperture to the upper-left reference aperture (green circle) *links* the
+target aperture. This means its position is calculated using a fixed offset
+from the reference aperture. This is often useful for very faint targets, or
+those, which like the one shown here, havd close-by objects that can confuse
+the re-positioning code.
 
 Reduction files
 ===============
