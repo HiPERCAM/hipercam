@@ -446,7 +446,8 @@ def setaper(args=None):
             axes.set_ylim(ylo,yhi)
         else:
             axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-            axes.set_aspect('equal', adjustable='datalim')
+#            axes.set_aspect('equal', adjustable='datalim')
+            axes.set_aspect('equal')
 
         if msub:
             # subtract median from each window
