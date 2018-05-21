@@ -103,7 +103,7 @@ you know the parameter input system.
 Tips for using |rtplot| during observing
 ----------------------------------------
 
-|rtplot| has two features that are most use during observing. The first is the
+|rtplot| has two features that are useful while observing. The first is the
 option to plot a file of defects (example :download:`defect file
 <hipercam_defects_2018_05_21.dft>`). This should always be used when setting
 on a target to avoid bad regions of the CCDs. The second is the `setup` option
@@ -240,7 +240,7 @@ Commands mentioned in this section: |reduce|.
 .. [#f1] This may fail if the data source is set incorrectly. If so, re-type
          as "rtplot prompt" to see all the options, many of which are hidden
          by default. The one you might want to change is ``source`` which
-         should be ``hs` for data from the server at the telescope, or ``hl``
+         should be ``hs`` for data from the server at the telescope, or ``hl``
          for data from a disk file local to your computer.
 
 .. [#f2] All raw |hiper| file names take the form 'run####.fits' but
