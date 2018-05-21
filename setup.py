@@ -135,6 +135,7 @@ setup(
             'grab=hipercam.scripts.grab:grab',
             'genred=hipercam.scripts.genred:genred',
             'hist=hipercam.scripts.hist:hist',
+            'hfilter=hipercam.scripts.hfilter:hfilter',
             'hlogger=hipercam.scripts.hlogger:hlogger',
             'hls=hipercam.scripts.hls:hls',
             'hplot=hipercam.scripts.hplot:hplot',

@@ -11,6 +11,7 @@ from .combine import combine
 from .grab import grab
 from .genred import genred
 from .hist import hist
+from .hfilter import hfilter
 from .hlogger import hlogger
 from .hls import hls
 from .hplot import hplot
@@ -32,7 +33,7 @@ __all__ = [ \
             'cadd', 'cdiv', 'cmul', 'combine', 'csub',
             'div',
             'genred', 'grab',
-            'hist', 'hlogger', 'hls', 'hplot',
+            'hist', 'hfilter', 'hlogger', 'hls', 'hplot',
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'pfolder', 'plog',
             'reduce', 'rtplot',
