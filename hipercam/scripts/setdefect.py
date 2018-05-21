@@ -130,6 +130,10 @@ def setdefect(args=None):
     pointed at. I have therefore suppressed this, but only for the tested
     backends. Others would need require further investigation.
 
+    NB At the end of this routine, it re-orders the defects so that the severe
+    ones follows the moderates. This helps emphasize the severe ones over the
+    moderates when running rtplot.
+
     """
 
     command, args = utils.script_args(args)
@@ -481,8 +485,29 @@ close enough (< 10 pixels)
                 # quit and clear up
                 plt.close()
 
+                # Re-order to have severe after moderate defects
+                # create empty output container
+                out_dfct = defect.MccdDefect()
+                for cnam, ccd_dfct in self.mccd_dfct.items():
+
+                    # initialise output object for this CCD
+                    ccd_dfct_out = out_dfct[cnam] = defect.CcdDefect()
+
+                    # first add in moderates
+                    n = 0
+                    for dnam, dfct in ccd_dfct.items():
+                        if dfct.severity == defect.Severity.MODERATE:
+                            ccd_dfct_out[str(n+1)] = dfct
+                            n += 1
+
+                    # then the severes
+                    for dnam, dfct in ccd_dfct.items():
+                        if dfct.severity == defect.Severity.SEVERE:
+                            ccd_dfct_out[str(n+1)] = dfct
+                            n += 1
+
                 # old files are over-written at this point
-                self.mccd_dfct.write(self.dfctnam)
+                out_dfct.write(self.dfctnam)
                 print('\nDefects saved to {:s}.\nBye'.format(self.dfctnam))
 
             elif key == 'enter':
