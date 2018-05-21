@@ -17,7 +17,8 @@ __all__ = ['combine',]
 ############################
 
 def combine(args=None):
-    """``combine list bias method (sigma) adjust [plot clobber] output``
+    """``combine list bias method (sigma) adjust (usemean) [plot clobber]
+    output``
 
     Combines a series of images defined by a list using median or clipped
     mean combination. Only combines those CCDs for which is_data() is true
