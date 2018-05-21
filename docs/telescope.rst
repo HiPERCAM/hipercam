@@ -47,6 +47,8 @@ Returning to |rtplot| we can enter more inputs::
   ccd - CCD(s) to plot [0 for all] [3]: 2 3 4 5
   nx - number of panels in X [2]:
   bias - bias frame ['none' to ignore] [none]:
+  defect - defect file ['none' to ignore] [defect]:
+  setup - display current hdriver window settings [True]:
   msub - subtract median from each window? [True]:
   iset - set intensity a(utomatically), d(irectly) or with p(ercentiles)? [p]:
   plo - lower intensity limit percentile [10.0]:
@@ -97,6 +99,16 @@ focus, although focussing can only be done properly by looking at the FWHMs of
 all CCDs during reduction.  The section on :ref:`command-calling` has many
 further details on the parameter input system. From now it will be assumed that
 you know the parameter input system.
+
+Tips for using |rtplot| during observing
+----------------------------------------
+
+|rtplot| has two features that are most use during observing. The first is the
+option to plot a file of defects (example :download:`defect file
+<hipercam_defects_2018_05_21.dft>`). This should always be used when setting
+on a target to avoid bad regions of the CCDs. The second is the `setup` option
+which interrogates the `hdriver` GUI for the current set of windows. This is
+useful for optimising the CCD setup on a target.
 
 Commands used in this section: |rtplot|, |hls|
 
@@ -170,7 +182,7 @@ of the program. The end result of |setaper| is an "aperture file" with
 extension `.ape`, which it is recommended you call by the same name as the run
 itself, and thus in this case you would end up with a file called
 :file:`run0076.ape`. This is a JSON-format text file, and can be edited
-directly, although it is safer to let |setaper| do the job for you.
+directly, although it is much safer to let |setaper| do the job for you.
 
 Commands mentioned in this section: |averun|, |grab|, |setaper|.
 
@@ -188,8 +200,9 @@ this case the command would be::
 which generates a reduce file called :file:`run0076.red` with no bias, flat or
 dark frame ('none none none') and using a magnitude scale (linear='false') at
 the end. It is very likely, almost certain in fact, that the resultant reduce
-file will not be right for you, and you will want to adjust it, but this
-should be a start. The reduce file is just a text file and is easy to edit.
+file will not be right for you, and you will want to adjust it, but it
+provides a start to get you going quickly. The reduce file is just a text file
+and is easy to edit.
 
 Commands mentioned in this section: |genred|.
 
@@ -202,9 +215,10 @@ and the FWHM of the images. You will almost certainly need to adjust the
 plots, especially the light curve plots, by adding offsets to the ``plot``
 lines in the ``[light]`` section of the reduce file. Apart from this, the
 first thing to do is to look at the FWHM plots (at the bottom of the light
-curve plot panel) and see whether the focus can be adjusted to improve
-them. It is also worth displaying images at least once (parameter ``implot``)
-in order to see that things are doing what you expected.
+curve plot panel) and see whether the telescope focus can be adjusted to
+improve them. It is also worth displaying images at least once (parameter
+``implot``) in order to see that things are doing what you expected, but once
+you are going you may want to switch off this option for speed.
 
 If you have got this far, well done. You will see some steps, such as bias
 subtraction have been skipped. This was in the spirit of getting going fast.

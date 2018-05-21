@@ -29,6 +29,7 @@ their own scripts.  This manual covers both aspects.
    commands
    api
    installation
+   files
 
 Indices and tables
 ==================
