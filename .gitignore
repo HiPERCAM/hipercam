@@ -56,3 +56,5 @@ env
 
 dev
 
+# hipercam files
+*.hcm
