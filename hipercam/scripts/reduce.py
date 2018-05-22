@@ -2107,7 +2107,7 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
 
             # size of a pixel which is used to taper pixels as they approach
             # the edge of the aperture to reduce pixellation noise
-            size = np.sqrt(wind.xbin*wind.ybin)
+            size = np.sqrt(wdata.xbin*wdata.ybin)
 
             # target selection, accounting for extra apertures and allowing
             # pixels to contribute if their centres are as far as size/2 beyond
