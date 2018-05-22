@@ -124,16 +124,17 @@ with the idea that a brighter target can define the position shifts which are
 applied to the fainter target.
 
 An example of a set of apertures showing all these features is shown in
-|fig-1|. 
+|fig-1|.
 
 .. _fig-1:
 
 .. figure:: complex_mask.png
-   :scale: 100 %
-   :alt: complex set of apertures
+   :scale: 80 %
+   :alt: Click on image to enlarge
+   :align: center
 
    Example of a complex set of apertures. The target is at the centre of the
-   circles in the lower-right. The upper-left target is the comparison star.
+   circles in the lower-right. The comparison star is in the upper-left.
 
 In this case the target star has two nearby companions which causes three
 problems: (1) the sky annulus may include flux from the companions, (2) the

@@ -12,6 +12,7 @@
 .. figure:: windows.png
    :scale: 100 %
    :alt: |hiper| windows
+   :align: center
 
    Figure showing how the |hiper| windows are defined. The thin rectangles at
    the left and right of the imaging area represent the "pre-scan" (zero light)

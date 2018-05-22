@@ -158,6 +158,7 @@ An example of the improvement possible with optimal photometry in shown in
 .. figure:: optimal.png
    :scale: 100 %
    :alt: optimal versus normal photometry
+   :align: center
 
    Normal (blue) versus optimal (green) photometry of the same target relative
    to a much brighter comparison. The optimal photometry has been moved up by
