@@ -55,6 +55,9 @@ def reduce(args=None):
     any harm. You may often want to do this at the start in order to adjust
     parameters of the reduce file.
 
+    'reduce' extracts the data in terms of electrons using the gain supplied (in
+    electrons per ADU).
+
     Parameters:
 
         source  : string [hidden]
@@ -215,7 +218,8 @@ def reduce(args=None):
         )
 
         tkeep = cl.get_value(
-            'tkeep', 'number of minute of data to keep in internal buffers (0 for all)',
+            'tkeep', 'number of minute of data to'
+            ' keep in internal buffers (0 for all)',
             0, 0
         )
 
@@ -551,10 +555,10 @@ def reduce(args=None):
 #    fwhme   : FWHM error
 #    beta    : Moffat exponent
 #    betae   : Moffat exponent error
-#    counts  : sky-subtracted counts in aperture
-#    countse : error in       "          "
-#    sky     : sky level per pixel
-#    skye    : sky level error
+#    elecs   : sky-subtracted electrons in aperture
+#    elecse  : error in       "          "
+#    sky     : sky level, electrons per pixel
+#    skye    : sky level error, electrons per pixel
 #    nsky    : number of contributing sky pixels (those not rejected)
 #    nrej    : number of sky pixels rejected
 #    flag    : status flag, 0 = all OK.
@@ -573,7 +577,7 @@ def reduce(args=None):
             for apnam in ccdaper:
                 cnames += 'x_{0:s} xe_{0:s} y_{0:s} ye_{0:s} ' \
                           'fwhm_{0:s} fwhme_{0:s} beta_{0:s} betae_{0:s} ' \
-                          'counts_{0:s} countse_{0:s} sky_{0:s} skye_{0:s} ' \
+                          'elecs_{0:s} elecse_{0:s} sky_{0:s} skye_{0:s} ' \
                           'nsky_{0:s} nrej_{0:s} flag_{0:s} '.format(
                               apnam)
             logfile.write(cnames + '\n')
@@ -666,24 +670,37 @@ def reduce(args=None):
                     tzero = mccd.head['MJDUTC']
                     tzset = True
 
-                # start processing here. Retain a copy of the
-                # raw data as 'mccd' in order to judge saturation.
-                # processed data called 'pccd'
+                # start processing. 
+
+                # First de-biassing: retain a copy of the raw data as 'mccd'
+                # in order to judge saturation. Processed data called 'pccd'
                 if rfile.bias is not None:
                     # subtract bias
                     pccd = mccd - rfile.bias
                 else:
                     # no bias subtraction
-                    pccd = mccd
+                    pccd = mccd.copy()
 
-                if rfile.flat is not None:
-                    # divide by flat
-                    pccd /= rfile.flat
-                else:
-                    # makes subsequent code easiest to simply
-                    # fake up a unit flat field at this point
-                    rfile.flat = pccd.copy()
-                    rfile.flat.set_const(1.0)
+                # on first frame: process the flat, readout and gain
+                if nf == 0:
+                    if rfile.flat is not None:
+                        # we have loaded a flat
+                        flat = rfile.flat
+                    else:
+                        # makes subsequent code easiest to simply
+                        # fake up a unit flat field at this point
+                        flat = pccd.copy()
+                        flat.set_const(1.0)
+
+                    # gain frame (elec/ADU), divided by the flat
+                    gflat = rfile.gain / flat
+
+                    # readout frame in electrons, divided by the flat
+                    rflat = gflat*rfile.readout
+
+                # apply flat field and gain to data to get effective
+                # electrons
+                pccd *= gflat
 
                 # container for the arguments to send to ccdproc
                 # for each CCD
@@ -715,22 +732,12 @@ def reduce(args=None):
                         # initialisation
                         store[cnam] = {'mfwhm' : -1., 'mbeta' : -1.}
 
-                    if isinstance(rfile.readout, hcam.MCCD):
-                        read = rfile.readout[cnam]
-                    else:
-                        read = rfile.readout
-
-                    if isinstance(rfile.gain, hcam.MCCD):
-                        gain = rfile.gain[cnam]
-                    else:
-                        gain = rfile.gain
-
-                    # compile list of arguments to send to
-                    # parallelisable routine
+                    # compile list of arguments to send to parallelisable
+                    # routine
                     arglist.append(
-                        (cnam, pccd[cnam], rfile.flat[cnam],
+                        (cnam, pccd[cnam], flat[cnam], rflat[cnam],
                          mccd[cnam], rfile.aper[cnam], mccdwins[cnam],
-                         read, gain, rfile, store[cnam])
+                         rfile, store[cnam])
                     )
 
                 if not len(arglist):
@@ -782,7 +789,7 @@ def reduce(args=None):
                             '{:d} {:d} {:d} '.format(
                                 r['x'], r['xe'], r['y'], r['ye'],
                                 r['fwhm'], r['fwhme'], r['beta'], r['betae'],
-                                r['counts'], r['countse'], r['sky'], r['skye'],
+                                r['elecs'], r['elecse'], r['sky'], r['skye'],
                                 r['nsky'], r['nrej'], r['flag']
                             )
                         )
@@ -1482,7 +1489,7 @@ class Rfile(OrderedDict):
             self.gain = self.gain.crop(mccd)
 
 
-def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
+def moveApers(cnam, ccd, flat, rflat, ccdaper, ccdwin, rfile, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results
     that will be used to start the fits from one frame to the next. It must
     start as {'mfwhm' : -1., 'mbeta' : -1.}. The values of these will be
@@ -1497,10 +1504,14 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
            CCD label
 
        ccd       : CCD
-           the debiasses & flat-fielded CCD
+           the debiassed, flat-fielded CCD multiplied by the gain to get
+           into electrons
 
        flat      : CCD
            the flat-field
+
+       rflat     : CCD
+           readout noise / flat, in electrons.
 
        ccdaper   : CcdAper
            the Apertures. These are modified on exit, in particular the
@@ -1511,12 +1522,6 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
 
        rfile     : Rfile
            reduce file configuration parameters
-
-       read      : float | CCD
-           readout noise
-
-       gain      : float | CCD
-           readout noise
 
        store     : dictionary
            used to store various parameters needed further down the line.
@@ -1557,18 +1562,14 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
         if aper.ref:
             ref = True
 
-            # extract Window for this reference aperture
-            wind = ccd[ccdwin[apnam]]
+            # name of window for this aperture
+            wnam = ccdwin[apnam]
 
-            if isinstance(read, hcam.CCD):
-                rd = read[ccdwin[apnam]] / flat[ccdwin[apnam]]
-            else:
-                rd = read / flat[ccdwin[apnam]]
-
-            if isinstance(gain, hcam.CCD):
-                gn = gain[ccdwin[apnam]] * flat[ccdwin[apnam]]
-            else:
-                gn = gain * flat[ccdwin[apnam]]
+            # extract the Window of the processed CCD, read divided
+            # by the flat and the flat itself for the aperture in question
+            wind = ccd[wnam]
+            wrdf = rflat[wnam]
+            wflt = flat[wnam]
 
             # get sub-windat around start position
             shbox = apsec['search_half_width_ref']
@@ -1579,32 +1580,29 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
             # carry out initial search
             x,y,peak = swind.find(apsec['search_smooth_fwhm'], False)
 
-            # now for a more refined fit. First extract fit Window
+            # Now for a more refined fit. First extract fit Window
             fhbox = apsec['fit_half_width']
             fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-            frd = rd.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-            fgn = gn.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+            fwrdf = wrdf.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+            fwflt = wflt.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
             # initial estimate of background
             sky = np.percentile(fwind.data, 50)
 
             # get some parameters from previous run where possible
-            if store['mfwhm'] > 0.:
-                fit_fwhm = store['mfwhm']
-            else:
-                fit_fwhm = apsec['fit_fwhm']
+            fit_fwhm = store['mfwhm'] if store['mfwhm'] > 0. else apsec['fit_fwhm']
+            fit_beta = store['mbeta'] if store['mbeta'] > 0. else apsec['fit_beta']
 
-            if store['mbeta'] > 0.:
-                fit_beta = store['mbeta']
-            else:
-                fit_beta = apsec['fit_beta']
-
-            # limit the initial value of beta because of tendency
-            # to wander to high values and never come down.
+            # limit the initial value of beta because of tendency to wander to
+            # high values and never come down.
             fit_beta = min(fit_beta, apsec['fit_beta_max'])
 
             # refine the Aperture position by fitting the profile
             try:
+                # Note that we send in read*gain/flat and 1/flat as the
+                # "readout noise" and "gain" used by combfit. This is because
+                # of the flat fielding and conversion to electrons applied to
+                # the data themselves.
                 (sky, height, x, y, fwhm, beta), \
                     (esky, eheight, ex, ey, efwhm, ebeta), \
                     extras = \
@@ -1612,7 +1610,7 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
                                  fwind, rfile.method, sky, peak-sky,
                                  x, y, fit_fwhm, apsec['fit_fwhm_min'],
                                  apsec['fit_fwhm_fixed'], fit_beta,
-                                 frd.data, fgn.data,
+                                 fwrdf.data, fwflt.data,
                                  apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
@@ -1729,22 +1727,15 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
 
         elif not aper.is_linked():
 
-            # extract Window for this reference aperture
-            wind = ccd[ccdwin[apnam]]
-
-            if isinstance(read, hcam.CCD):
-                rd = read[ccdwin[apnam]] / flat[ccdwin[apnam]]
-            else:
-                rd = read / flat[ccdwin[apnam]]
-
-            if isinstance(gain, hcam.CCD):
-                gn = gain[ccdwin[apnam]] * flat[ccdwin[apnam]]
-            else:
-                gn = gain * flat[ccdwin[apnam]]
+            # extract Window for data, rflat and flat
+            wnam = ccdwin[apnam]
+            wind = ccd[wnam]
+            wrdf = rflat[wnam]
+            wflt = flat[wnam]
 
             try:
 
-                # get sub-windat around start position
+                # get sub-window around start position
                 shbox = apsec['search_half_width_non']
 
                 swind = wind.window(
@@ -1758,21 +1749,19 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
                 fwind = wind.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                frd = rd.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fgn = gn.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwrdf = wrdf.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwflt = wflt.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
                 sky = np.percentile(fwind.data, 50)
 
                 # get some parameters from previous run where possible
-                if apnam in store and store[apnam]['fwhme'] > 0.:
-                    fit_fwhm = store[apnam]['fwhm']
-                else:
-                    fit_fwhm = apsec['fit_fwhm']
+                fit_fwhm = store[apnam]['fwhm'] \
+                           if apnam in store and store[apnam]['fwhme'] > 0. \
+                              else apsec['fit_fwhm']
 
-                if apnam in store and store[apnam]['betae'] > 0.:
-                    fit_beta = store[apnam]['beta']
-                else:
-                    fit_beta = apsec['fit_beta']
+                fit_beta = store[apnam]['beta'] \
+                           if apnam in store and store[apnam]['betae'] > 0. \
+                              else apsec['fit_beta']
 
                 # limit the initial value of beta because of tendency
                 # to wander to high values and never come down.
@@ -1787,7 +1776,7 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
                                  fwind, rfile.method, sky, peak-sky,
                                  x, y, fit_fwhm, apsec['fit_fwhm_min'],
                                  apsec['fit_fwhm_fixed'], fit_beta,
-                                 frd.data, fgn.data,
+                                 fwrdf.data, fwflt.data,
                                  apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
@@ -1878,8 +1867,7 @@ def moveApers(cnam, ccd, flat, ccdaper, ccdwin, rfile, read, gain, store):
     else:
         store['mbeta'] = -1
 
-def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
-                rfile, read, gain, store):
+def extractFlux(cnam, ccd, flat, rflat, rccd, ccdaper, ccdwin, rfile, store):
     """This extracts the flux of all apertures of a given CCD.
 
     The steps are (1) aperture resizing, (2) sky background estimation, (3)
@@ -1888,7 +1876,7 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
     It returns the results as a dictionary keyed on the aperture label. Each
     entry returns a list:
 
-    [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, ecounts, sky, esky,
+    [x, ex, y, ey, fwhm, efwhm, beta, ebeta, elecs, elecse, sky, esky,
     nsky, nrej, flag]
 
     flag = bitmask. See hipercam.core to see all the options which are
@@ -1908,10 +1896,14 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
           CCD identifier label
 
        ccd      : CCD
-          corresponding CCD after debiassing and any other processing
+          corresponding CCD after debiassing, flat fielding and conversion to
+          electrons
 
        flat     : CCD
           flat field
+
+       rflat    : CCD
+           readout noise in electrons divided by the flat
 
        rccd     : CCD
           corresponding raw CCD, used to work out whether data are
@@ -1925,12 +1917,6 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
 
        rfile     : Rfile
            reduce file configuration parameters
-
-       read      : float | CCD
-           readout noise
-
-       gain      : float | CCD
-           readout noise
 
        store     : dict of dicts
            see moveApers for what this contains.
@@ -1966,7 +1952,7 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
                     'y' : aper.y, 'ye' : info['ye'],
                     'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
                     'beta' : info['beta'], 'betae' : info['betae'],
-                    'counts' : 0., 'countse' : -1,
+                    'elecs' : 0., 'elecse' : -1,
                     'sky' : 0., 'skye' : 0., 'nsky' : 0, 'nrej' : 0,
                     'flag' : flag
                 }
@@ -1982,7 +1968,7 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
 
     elif resize == 'fixed':
 
-        # just apply the limits
+        # just apply the max and min limits
         for aper in ccdaper.values():
             aper.rtarg = max(r1min, min(r1max, aper.rtarg))
             aper.rsky1 = max(r2min, min(r2max, aper.rsky1))
@@ -1999,12 +1985,15 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
     # we can extract something.
     for apnam, aper in ccdaper.items():
 
+        # extract Windows relevant for this aperture
         wnam = ccdwin[apnam]
-        wind = ccd[wnam]
-        rwind = rccd[wnam]
-        fwind = flat[wnam]
 
-        # extract sub-window that includes all of the pixels that could
+        wind = ccd[wnam]
+        wraw = rccd[wnam]
+        wrdf = rflat[wnam]
+        wflt = flat[wnam]
+
+        # extract sub-windows that include all of the pixels that could
         # conceivably affect the aperture. We have to check that 'extra'
         # apertures do not go beyond rsky2 which would normally be expected to
         # be the default outer radius
@@ -2012,18 +2001,19 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
         for xoff, yoff in aper.extra:
             rmax = max(rmax, np.sqrt(xoff**2+yoff**2) + aper.rtarg)
 
-        x1,x2,y1,y2 = aper.x-aper.rsky2-wind.xbin, \
-                      aper.x+aper.rsky2+wind.xbin, \
-                      aper.y-aper.rsky2-wind.ybin, \
-                      aper.y+aper.rsky2+wind.ybin
+        # this is the region of interest
+        x1,x2,y1,y2 = aper.x-aper.rsky2-wind.xbin, aper.x+aper.rsky2+wind.xbin, \
+                      aper.y-aper.rsky2-wind.ybin, aper.y+aper.rsky2+wind.ybin
 
         try:
+            # extract sub-Windows
             swind = wind.window(x1,x2,y1,y2)
-            srwind = rwind.window(x1,x2,y1,y2)
-            sfwind = fwind.window(x1,x2,y1,y2)
+            swraw = wraw.window(x1,x2,y1,y2)
+            swrdf = wrdf.window(x1,x2,y1,y2)
+            swflt = wflt.window(x1,x2,y1,y2)
 
-            # some checks for possible problems. bitmask flags will
-            # be set if they are encountered.
+            # some checks for possible problems. bitmask flags will be set if
+            # they are encountered.
             xlo,xhi,ylo,yhi = swind.extent()
             if xlo > aper.x-aper.rsky2 or xhi < aper.x+aper.rsky2 or \
                ylo > aper.y-aper.rsky2 or yhi < aper.y+aper.rsky2:
@@ -2041,13 +2031,6 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
                    ylo > aper.y-rout or yhi < aper.y+rout:
                     # an extra target aperture overlaps the edge of the window
                     flag |= hcam.TARGET_AT_EDGE
-
-            # if read & gain are actually CCDs rather than floats
-            if isinstance(read, hcam.CCD):
-                sread = read[wnam].window(x1,x2,y1,y2).data
-
-            if isinstance(gain, hcam.CCD):
-                sgain = gain[wnam].window(x1,x2,y1,y2).data
 
             # compute X, Y arrays over the sub-window relative to the centre
             # of the aperture and the distance squared from the centre (Rsq)
@@ -2068,12 +2051,20 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
             for xoff, yoff in aper.extra:
                 sok &= (X-xoff)**2 + (Y-yoff)**2 > R1sq
 
-            # generate sky
-            dsky = swind.data[sok]
+            # extract gain and flat data over sky region
+            if isinstance(gain, hcam.CCD):
+                gn = sgain[sok][ok]*dflat[ok]
+            else:
+                gn = gain*dflat[ok]
             dflat = sfwind.data[sok]
+
+            # data for flat-fielded sky in electrons
+            dsky  = swind.data[sok]
+
             if len(dsky):
 
                 # we have some sky!
+
                 if rfile['sky']['method'] == 'clipped':
 
                     # clipped mean. Take average, compute RMS,
@@ -2102,20 +2093,13 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
                     nsky = len(dsky)
                     nrej = 0
 
-                    # srms will be used to substitute use read / gain parameters
-                    # we make some corrections for flat-fielding here too
-                    if isinstance(read, hcam.CCD):
-                        rd = sread[sok][ok]/dflat[ok]
-                    else:
-                        rd = read/dflat[ok]
-
-                    if isinstance(gain, hcam.CCD):
-                        gn = sgain[sok][ok]*dflat[ok]
-                    else:
-                        gn = gain*dflat[ok]
+                    # read*gain/flat and flat over sky region
+                    dwrdf = swrdf.data[sok]
+                    dwflt = swflt.data[sok]
 
                     serror = np.sqrt(
-                        (rd**2 + np.max(0, dsky[ok])/gn).sum()/nsky**2)
+                        (dwrdf**2 + np.max(0, dsky)/dwflt).sum()/nsky**2
+                    )
 
             else:
                 # no sky. will still return the flux in the aperture but set
@@ -2142,10 +2126,10 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
 
             # check for saturation and nonlinearity
             if cnam in rfile.warn:
-                if srwind.data[dok].max() >= rfile.warn[cnam]['saturation']:
+                if swraw.data[dok].max() >= rfile.warn[cnam]['saturation']:
                     flag |= hcam.TARGET_SATURATED
 
-                if srwind.data[dok].max() >= rfile.warn[cnam]['nonlinear']:
+                if swraw.data[dok].max() >= rfile.warn[cnam]['nonlinear']:
                     flag |= hcam.TARGET_NONLINEAR
 
             else:
@@ -2175,29 +2159,23 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
                 )
                 wgt = np.maximum(wgt, wg)
 
-            # extract just the data, flat and weight values in the target region
+            # the values needed to extract the flux.
             dtarg = swind.data[dok]
-            ftarg = sfwind.data[dok]
+            dwrdf = swrdf.data[dok]
+            dwflt = swflt.data[dok]
             wtarg = wgt[dok]
 
-            # override to indicate we want to override
-            # the readout noise
+            # override to indicate we want to override the readout noise. We
+            # measure the readout noise in electrons.
             if nsky and rfile['sky']['error'] == 'variance':
+                # from sky variance
                 rd = srms
                 override = True
-            elif isinstance(read, hcam.CCD):
-                rd = sread[dok]/ftarg
-                override = False
             else:
-                rd = read/ftarg
+                rd = dwrdf
                 override = False
 
-            if isinstance(gain, hcam.CCD):
-                gn = sgain[dok]*ftarg
-            else:
-                gn = gain*ftarg
-
-            # counts above sky
+            # electrons above sky
             diff = dtarg-slevel
 
             if extype == 'normal' or extype == 'optimal':
@@ -2225,18 +2203,24 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
                     wtarg *= prof
 
                 # now extract
-                counts = (wtarg*diff).sum()
+                elecs = (wtarg*diff).sum()
 
                 if override:
-                    var = (wtarg**2*(rd**2 + np.maximum(0, diff/gn))).sum()
+                    # in this case, the "readout noise" includes the component
+                    # due to the sky background so we use the sky-subtracted
+                    # electrons above sky for the object contribution.
+                    var = (wtarg**2*(rd**2 + np.maximum(0, diff)/dwflt)).sum()
                 else:
-                    var = (wtarg**2*(rd**2 + np.maximum(0, dtarg)/gn)).sum()
+                    # in this case we are using the true readout noise and we
+                    # just use the data (which should be debiassed) without
+                    # removal of the sky.
+                    var = (wtarg**2*(rd**2 + np.maximum(0, dtarg)/dwflt)).sum()
 
                 if serror > 0:
                     # add in factor due to uncertainty in sky estimate
                     var += (wtarg.sum()*serror)**2
 
-                ecounts = np.sqrt(var)
+                elecse = np.sqrt(var)
 
             else:
                 raise ValueError(
@@ -2250,7 +2234,7 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
                 'y' : aper.y, 'ye' : info['ye'],
                 'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
                 'beta' : info['beta'], 'betae' : info['betae'],
-                'counts' : counts, 'countse' : ecounts,
+                'elecs' : elecs, 'elecse' : elecse,
                 'sky' : slevel, 'skye' : serror, 'nsky' : nsky,
                 'nrej' : nrej, 'flag' : flag
             }
@@ -2265,7 +2249,7 @@ def extractFlux(cnam, ccd, flat, rccd, ccdaper, ccdwin,
                 'y' : aper.y, 'ye' : info['ye'],
                 'fwhm' : info['fwhm'], 'fwhme' : info['fwhme'],
                 'beta' : info['beta'], 'betae' : info['betae'],
-                'counts' : 0., 'countse' : -1,
+                'elecs' : 0., 'elecse' : -1,
                 'sky' : 0., 'skye' : 0., 'nsky' : 0, 'nrej' : 0,
                 'flag' : flag
             }
@@ -2630,16 +2614,16 @@ class LightCurve(BaseBuffer):
         res = results[self.cnam]
 
         targ = res[self.targ]
-        ft = targ['counts']
-        fte = targ['countse']
+        ft = targ['elecs']
+        fte = targ['elecse']
         saturated = targ['flag'] & hcam.TARGET_SATURATED
 
         if fte > 0:
 
             if self.comp != '!':
                 comp = res[self.comp]
-                fc = comp['counts']
-                fce = comp['countse']
+                fc = comp['elecs']
+                fce = comp['elecse']
                 saturated |= comp['flag'] & hcam.TARGET_SATURATED
 
                 if fc > 0:
@@ -2839,8 +2823,8 @@ class Transmission(BaseBuffer):
         res = results[self.cnam]
 
         targ = res[self.targ]
-        f = targ['counts']
-        fe = targ['countse']
+        f = targ['elecs']
+        fe = targ['elecse']
 
         if f <= 0 or fe <= 0:
             # skip junk
@@ -2999,7 +2983,7 @@ FLAG_MESSAGES = {
     hcam.NO_DATA           : 'no valid pixels in target aperture',
 }
 
-def ccdproc(cnam, ccd, flat, rccd, ccdaper, ccdwins, read, gain, rfile, store):
+def ccdproc(cnam, ccd, flat, rflat, rccd, ccdaper, ccdwins, rfile, store):
     """
     Processing steps for one CCD. This is designed for parallelising the
     processing across CCDs using multiprocessing. To be called *after*
@@ -3010,14 +2994,17 @@ def ccdproc(cnam, ccd, flat, rccd, ccdaper, ccdwins, read, gain, rfile, store):
        cnam     : string
           name of CCD
 
-       ccd      : hcam.CCD
-          the CCD under processing which should have been debiassed and flat
-          fielded
+       ccd      : CCD
+          the CCD under processing which should have been debiassed, flat
+          fielded and multiplied by the gain to get into electrons.
 
-       flat     : hcam.CCD
+       flat     : CCD
           the corresponding flat field, needed for getting errors right.
 
-       rccd     : hcam.CCD
+       rflat     : CCD
+          readnoise in electrons, divided by the flat
+
+       rccd     : CCD
           unprocessed CCD, used to measure saturation
 
        ccdaper  : hcam.CCDAper
@@ -3025,12 +3012,6 @@ def ccdproc(cnam, ccd, flat, rccd, ccdaper, ccdwins, read, gain, rfile, store):
 
        ccdwins  : ?
           label of the Window enclosing each aperture
-
-       read     :
-          readnoise
-
-       gain     :
-          gain
 
        rfile    :
           reduction control parameters
@@ -3041,15 +3022,15 @@ def ccdproc(cnam, ccd, flat, rccd, ccdaper, ccdwins, read, gain, rfile, store):
 
     # At this point 'ccd' contains all the Windows of a CCD, 'ccdaper' all of
     # its apertures, 'ccdwins' the label of the Window enclosing each
-    # aperture, 'rfile' contains control parameters, 'read' contains the
-    # readout noise, either as a float or a CCD, 'gain' contains the gain as
-    # either a float or a CCD. 'store' is a dictionary initially with jus
-    # 'mfwhm' and 'mbeta' set = -1, but will pick up extra stuff from
-    # moveApers for use by extractFlux along with revised values of mfwhm
-    # and mbeta which are used to initialise profile fits next time.
+    # aperture, 'rfile' contains control parameters, 'rflat' contains the
+    # readout noise in electrons and divided by the flat as a CCD, 'store' is
+    # a dictionary initially with jus 'mfwhm' and 'mbeta' set = -1, but will
+    # pick up extra stuff from moveApers for use by extractFlux along with
+    # revised values of mfwhm and mbeta which are used to initialise profile
+    # fits next time.
 
     # move the apertures
-    moveApers(cnam, ccd, flat, ccdaper, ccdwins, rfile, read, gain, store)
+    moveApers(cnam, ccd, flat, rflat, ccdaper, ccdwins, rfile, store)
 
     # extract flux from all apertures of each CCD. Return with the CCD
     # name, the store dictionary, ccdaper and then the results from
@@ -3057,5 +3038,5 @@ def ccdproc(cnam, ccd, flat, rccd, ccdaper, ccdwins, read, gain, rfile, store):
     return (
         cnam, store, ccdaper,
         extractFlux(
-            cnam, ccd, flat, rccd, ccdaper, ccdwins, rfile, read, gain, store),
+            cnam, ccd, flat, rflat, rccd, ccdaper, ccdwins, rfile, store),
     )
