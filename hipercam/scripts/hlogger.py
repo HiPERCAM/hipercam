@@ -65,8 +65,10 @@ TABLE_HEADER = """
 <th class="left">Run<br>no.</th>
 <th class="left">Target<br>name</th>
 <th class="left">Type</th>
-<th class="left">RA (J2000)<br>Dec&nbsp;(J2000)<br>(telescope)</th>
-<th class="cen">Start<br>End</th>
+<th class="left">RA (J2000)<br>(telescope)</th>
+<th class="left">Dec&nbsp;(J2000)<br>(telescope)</th>
+<th class="cen">Start</th>
+<th class="cen">End</th>
 <th class="right">Cadence<br>(sec)</th>
 <th class="right">Duty<br>cycle, %</th>
 <th class="right">Nframe</th>
@@ -491,6 +493,7 @@ def hlogger(args=None):
                                 # run number
                                 nhtml.write('<td class="lalert">{:s}</td>'.format(run[3:]))
                                 nhtml.write('</tr>\n')
+                                continue
 
                             hd = rtime.header
 
@@ -515,7 +518,7 @@ def hlogger(args=None):
                             # RA, Dec
                             ra, dec = correct_ra_dec(hd['RA'], hd['Dec'])
                             nhtml.write(
-                                '<td class="left">{:s}<br>{:s}</td>'.format(
+                                '<td class="left">{:s}</td><td class="left">{:s}</td>'.format(
                                     ra, dec)
                             )
 
@@ -539,7 +542,7 @@ def hlogger(args=None):
                                 tstart = rtime(1)[0].isot
                                 tend = rtime(ntotal)[0].isot
                                 nhtml.write(
-                                    '<td class="cen">{:s}<br>{:s}</td>'.format(
+                                    '<td class="cen">{:s}</td><td class="cen">{:s}</td>'.format(
                                         tstart[tstart.find('T')+1:tstart.rfind('.')],
                                         tend[tend.find('T')+1:tend.rfind('.')]
                                         )
@@ -549,7 +552,7 @@ def hlogger(args=None):
                                 traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
                                 traceback.print_exc(file=sys.stdout)
                                 print('Run =',rname)
-                                nhtml.write('<td class="cen">--:--:--</td>')
+                                nhtml.write('<td class="cen">--:--:--</td><td class="cen">--:--:--</td>')
 
                             # sample time
                             nhtml.write('<td class="right">{:.3f}</td>'.format(tsamp))
