@@ -81,7 +81,10 @@ xsl,xsr,ys,nx,ny [DRIFT]<br>
 Quad1, Quad2</th>
 <th class="cen">XxY<br>bin</th>
 <th class="cen">CDOP<br>flags</th>
+<th class="cen">Readout<br>speed</th>
+<th class="cen">Fast<br>clocks</th>
 <th class="cen">Tbytes</th>
+<th class="cen">FPslide</th>
 <th class="left">PI</th>
 <th class="left">PID</th>
 <th class="left">Run<br>no.</th>
@@ -90,7 +93,6 @@ Quad1, Quad2</th>
 """
 
 NIGHT_FOOTER = """
-</table>
 
 <p> Along with others of more obvious meaning, the columns 'Read', 'xsll, ..',
 and 'CDOP' specify the information needed to repeat the setup at the telescope
@@ -439,8 +441,23 @@ def hlogger(args=None):
                     print('hlogger aborted',file=sys.stderr)
                     return
 
-                for nname in nnames:
+                for nn, nname in enumerate(nnames):
+
                     print('  night {:s}'.format(nname))
+
+                    if nn > 0:
+                        bnight = os.path.basename(nnames[nn-1])
+                        links = '\n<p><a href=../{0:s}/{0:s}.html>Previous night</a>'.format(bnight)
+
+                    if nn < len(nnames)-1:
+                        anight = os.path.basename(nnames[nn+1])
+                        if nn > 0:
+                            links += ', '
+                        else:
+                            links = '\n<p>'
+                        links += '<a href=../{0:s}/{0:s}.html>Next night</a>\n</p>\n'.format(anight)
+                    elif nn > 0:
+                        links += '\n</p>\n'
 
                     # Write an entry for each night linking to the log for that night.
                     night = os.path.basename(nname)
@@ -453,6 +470,7 @@ def hlogger(args=None):
                     with open(fname,'w') as nhtml:
                         # write header of night file
                         nhtml.write(NIGHT_HEADER.format(date))
+                        nhtml.write(links)
 
                         # read and store the hand written log
                         handlog = os.path.join(night,'{:s}.dat'.format(night))
@@ -601,10 +619,47 @@ def hlogger(args=None):
                                     'Y' if rtime.pscan else 'N')
                                 )
 
-                            # tbytes problem
+                            # CCD speed
+                            if 'ESO DET SPEED' in hd:
+                                speed = gethead(hd,'ESO DET SPEED')
+                                if speed == 0:
+                                    speed = 'Slow'
+                                elif speed == 1:
+                                    speed = 'Fast'
+                                else:
+                                    speed = '--'
+                            else:
+                                speed = '--'
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(speed)
+                                )
+
+                            # Fast clocks
+                            if 'ESO DET FASTCLK' in hd:
+                                fclock = gethead(hd,'ESO DET FASTCLK')
+                                if fclock == 0:
+                                    fclock = 'No'
+                                elif fclock == 1:
+                                    fclock = 'Yes'
+                                else:
+                                    fclock = '--'
+                            else:
+                                fclock = '--'
+                            nhtml.write(
+                                '<td class="cen">{!s}</td>'.format(fclock)
+                                )
+
+                            # Tbytes problem
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
                                     'OK' if rtime.ntbytes == 36 else 'BAD'
+                                    )
+                                )
+
+                            # Focal plane slide
+                            nhtml.write(
+                                '<td class="cen">{!s}</td>'.format(
+                                    gethead(hd,'FPslide','----')
                                     )
                                 )
 
@@ -642,6 +697,7 @@ def hlogger(args=None):
                             nhtml.write('\n</tr>\n')
 
                         # finish off the night file
+                        nhtml.write('</table>\n{:s}'.format(links))
                         nhtml.write(NIGHT_FOOTER)
 
                 # finish off the run table
