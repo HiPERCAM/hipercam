@@ -1379,7 +1379,7 @@ class Rtime (Rhead):
 
         if nsats == -1 and synced == -1:
             # invalid time; pretend we are on 2000-01-01 taking one frame per second.
-            tstamp = Time(51544 + self.nframe/86400., format='MJD',precision=7)
+            tstamp = Time(51544 + self.nframe/86400., format='mjd',precision=7)
         else:
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
                 years, day_of_year, hours, mins, seconds+nanoseconds/1e9
