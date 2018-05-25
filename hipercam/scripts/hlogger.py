@@ -51,12 +51,14 @@ NIGHT_HEADER1 = """<html>
 
 <!-- script to hide/reveal selected columns -->
 <script type="text/javascript">
+
 function hide ( column ) {
 var tbl = document.getElementById( "tbl" );
 var i;
 for ( i = 0; i < tbl.rows.length; i++ )
         tbl.rows[ i ].cells[ column ].style.display = "none";
 }
+
 function restore () {
 var tbl = document.getElementById( "tbl" );
 var i;
@@ -65,6 +67,17 @@ for ( i = 0; i < tbl.rows.length; i++ )
         for ( j = 0; j < tbl.rows[ i ].cells.length; j++ )
                 tbl.rows[ i ].cells[ j ].style.display = "table-cell";
 }
+
+function shrink () {
+var hcols = [7, 16, 17, 18, 20, 21, 22];
+var tbl = document.getElementById( "tbl" );
+var i;
+var j;
+for ( i = 0; i < tbl.rows.length; i++ )
+        for ( j = 0; j < hcols.length; j++ )
+                tbl.rows[ i ].cells[ hcols[j] ].style.display = "none";
+}
+
 </script>
 
 <!-- script to toggle auto refresh -->
@@ -101,12 +114,17 @@ NIGHT_HEADER2 = """<title>HiPERCAM log {0:s}</title>
 <p>
 The table below lists information on runs from the night starting on {0:s}.
 See the end of the table for some more details on the meanings of the various columns.
+You can hide any column using the buttons in the top line and "shrink" will a standard
+set of below average interest.
+"""
+
+TABLE_TOP = """<p>
+<button onclick="restore();">Restore columns</button>
+<button onclick="shrink();">Shrink table</button>
 
 <p>
-<button style="width: 100px; height: 25px;" onclick="restore();">Restore columns</button>
-
-<p>
-<table border=1 cellspacing="0" cellpadding="4" id="tbl">"""
+<table border=1 cellspacing="0" cellpadding="4" id="tbl">
+"""
 
 TABLE_HEADER = """
 <tr>
@@ -136,11 +154,7 @@ TABLE_HEADER = """
 <td><button id="hidden23" onclick="hide(23)"></button></td>
 <td><button id="hidden24" onclick="hide(24)"></button></td>
 <td><button id="hidden25" onclick="hide(25)"></button></td>
-<td><button id="hidden26" onclick="hide(26)"></button></td>
-<td><button id="hidden27" onclick="hide(27)"></button></td>
-<td><button id="hidden28" onclick="hide(28)"></button></td>
-<td><button id="hidden29" onclick="hide(29)"></button></td>
-<td><button id="hidden30" onclick="hide(30)"></button></td>
+<td align="left"><button id="hidden26" onclick="hide(26)"></button></td>
 </tr>
 
 <tr>
@@ -160,7 +174,11 @@ TABLE_HEADER = """
 <th class="cen">
 xll,xlr,xul,xur,ys,nx,ny<br>
 xsl,xsr,ys,nx,ny [DRIFT]<br>
-Quad1, Quad2</th>
+Quad1</th>
+<th class="cen">
+xll,xlr,xul,xur,ys,nx,ny<br>
+xsl,xsr,ys,nx,ny [DRIFT]<br>
+Quad2</th>
 <th class="cen">XxY<br>bin</th>
 <th class="cen">Clr</th>
 <th class="cen">Dum</th>
@@ -198,17 +216,6 @@ is the (minimum) time between exposures, minimised over the different arms.
 
 <address>Tom Marsh, Warwick</address>
 </body>
-
-<!-- script to hide certain columns on page load by auto-clicking on the button -->
-<script>
-document.getElementById('hidden15').click()
-document.getElementById('hidden16').click()
-document.getElementById('hidden17').click()
-document.getElementById('hidden19').click()
-document.getElementById('hidden20').click()
-document.getElementById('hidden21').click()
-</script>
-
 </html>
 """
 
@@ -234,7 +241,7 @@ CSS = """
 
 body{
     background-color: #000000;
-    font: 11pt sans-serif;
+    font: 9pt sans-serif;
     color: #FFFFFF;
     margin: 10px;
     border: 0px;
@@ -276,6 +283,8 @@ body{
     overflow: auto;
 }
 
+button {font-family: Arial,Helvetica,sans-serif;font-size: 10px;width: 10px; height: 10px; border-radius: 0%;}
+
 p {color: #ffffe0}
 
 h1 {color: #ffffff}
@@ -297,14 +306,14 @@ td {
     vertical-align: top;
     text-align: center;
     white-space: nowrap;
-    padding-right: 10px;
+    padding-right: 5px;
 }
 
 td.left {
     vertical-align: top;
     text-align: left;
     white-space: nowrap;
-    padding-right: 10px;
+    padding-right: 5px;
 }
 
 td.lalert {
@@ -312,14 +321,14 @@ td.lalert {
     vertical-align: top;
     text-align: left;
     white-space: nowrap;
-    padding-right: 10px;
+    padding-right: 5px;
 }
 
 td.right {
     vertical-align: top;
     text-align: right;
     white-space: nowrap;
-    padding-right: 10px;
+    padding-right: 5px;
 }
 
 td.cen {
@@ -341,8 +350,8 @@ td.format {
 td.long {
     vertical-align: top;
     text-align: left;
-    padding-right: 10px;
-    font: 12pt sans-serif;
+    padding-right: 5px;
+    font: 9pt sans-serif;
     white-space: normal;
 }
 
@@ -351,8 +360,8 @@ td.bleft {
     vertical-align: top;
     text-align: left;
     white-space: nowrap;
-    padding-right: 10px;
-    font: 12pt sans-serif;
+    padding-right: 5px;
+    font: 9pt sans-serif;
     font-weight: bold;
 }
 
@@ -376,19 +385,19 @@ th.cen {
 a:link {
     color: #7070ff;
     text-decoration:underline;
-    font-size: 11pt;
+    font-size: 9pt;
 }
 
 a:visited {
     color: #e0b0e0;
     text-decoration:underline;
-    font-size: 11pt;
+    font-size: 9pt;
 }
 
 a:hover {
     color: red;
     text-decoration:underline;
-    font-size: 11pt;
+    font-size: 9pt;
 }
 """
 
@@ -567,6 +576,7 @@ def hlogger(args=None):
                         nhtml.write(NIGHT_HEADER1)
                         nhtml.write(NIGHT_HEADER2.format(date))
                         nhtml.write(links)
+                        nhtml.write(TABLE_TOP)
 
                         # read and store the hand written log
                         handlog = os.path.join(night,'{:s}.dat'.format(night))
@@ -692,10 +702,13 @@ def hlogger(args=None):
                                 ','.join([str(nskip) for nskip in nskips]))
                             )
 
-                            # format
+                            # window formats
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(rtime.wforms[0])
+                                )
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
-                                    '<br>'.join(rtime.wforms))
+                                    rtime.wforms[1] if len(rtime.wforms) > 1 else '')
                                 )
 
                             # binning
