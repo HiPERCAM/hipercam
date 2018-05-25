@@ -27,6 +27,7 @@ __all__ = ['hlogger',]
 
 INTRODUCTION_HEADER = """<html>
 <head>
+
 <title>HiPERCAM data logs</title>
 </head>
 
@@ -34,7 +35,8 @@ INTRODUCTION_HEADER = """<html>
 <h1>HiPERCAM data logs</h1>
 
 <p>
-These online logs summarise HiPERCAM runs and were automatically generated from the data files and hand-written logs. 
+These online logs summarise HiPERCAM runs and were automatically generated from
+the data files and hand-written logs.
 
 """
 
@@ -44,27 +46,106 @@ INTRODUCTION_FOOTER = """
 </html>
 """
 
-NIGHT_HEADER = """<html>
+NIGHT_HEADER1 = """<html>
 <head>
+
+<!-- script to hide/reveal selected columns -->
+<script type="text/javascript">
+function hide ( column ) {
+var tbl = document.getElementById( "tbl" );
+var i;
+for ( i = 0; i < tbl.rows.length; i++ )
+        tbl.rows[ i ].cells[ column ].style.display = "none";
+}
+function restore () {
+var tbl = document.getElementById( "tbl" );
+var i;
+var j;
+for ( i = 0; i < tbl.rows.length; i++ )
+        for ( j = 0; j < tbl.rows[ i ].cells.length; j++ )
+                tbl.rows[ i ].cells[ j ].style.display = "table-cell";
+}
+</script>
+
+<!-- script to toggle auto refresh -->
+
+<script>
+var reloading;
+function checkReloading() {
+    if (window.location.hash=="#autoreload") {
+        reloading=setTimeout("window.location.reload();",10000);
+        document.getElementById("reloadCB").checked=true;
+    }
+}
+function toggleAutoRefresh(cb) {
+    if (cb.checked) {
+        window.location.replace("#autoreload");
+        reloading=setTimeout("window.location.reload();",10000);
+    } else {
+        window.location.replace("#");
+        clearTimeout(reloading);
+    }
+}
+window.onload=checkReloading;
+</script>
+
 <link rel="stylesheet" type="text/css" href="../hiper.css" />
-<title>HiPERCAM log {0:s}</title>
+"""
+
+NIGHT_HEADER2 = """<title>HiPERCAM log {0:s}</title>
 </head>
 
 <body>
 <h1>HiPERCAM log {0:s}</h1>
 
 <p>
-The table below lists information on runs from the night starting on {0:s}. See the end of the table for some more details on the
-meanings of the various columns.
+The table below lists information on runs from the night starting on {0:s}.
+See the end of the table for some more details on the meanings of the various columns.
 
 <p>
-<table>"""
+<button style="width: 100px; height: 25px;" onclick="restore();">Restore columns</button>
+
+<p>
+<table border=1 cellspacing="0" cellpadding="4" id="tbl">"""
 
 TABLE_HEADER = """
 <tr>
+<td><button id="hidden0" onclick="hide(0)"></button></td>
+<td><button id="hidden1" onclick="hide(1)"></button></td>
+<td><button id="hidden2" onclick="hide(2)"></button></td>
+<td><button id="hidden3" onclick="hide(3)"></button></td>
+<td><button id="hidden4" onclick="hide(4)"></button></td>
+<td><button id="hidden5" onclick="hide(5)"></button></td>
+<td><button id="hidden6" onclick="hide(6)"></button></td>
+<td><button id="hidden7" onclick="hide(7)"></button></td>
+<td><button id="hidden8" onclick="hide(8)"></button></td>
+<td><button id="hidden9" onclick="hide(9)"></button></td>
+<td><button id="hidden10" onclick="hide(10)"></button></td>
+<td><button id="hidden11" onclick="hide(11)"></button></td>
+<td><button id="hidden12" onclick="hide(12)"></button></td>
+<td><button id="hidden13" onclick="hide(13)"></button></td>
+<td><button id="hidden14" onclick="hide(14)"></button></td>
+<td><button id="hidden15" onclick="hide(15)"></button></td>
+<td><button id="hidden16" onclick="hide(16)"></button></td>
+<td><button id="hidden17" onclick="hide(17)"></button></td>
+<td><button id="hidden18" onclick="hide(18)"></button></td>
+<td><button id="hidden19" onclick="hide(19)"></button></td>
+<td><button id="hidden20" onclick="hide(20)"></button></td>
+<td><button id="hidden21" onclick="hide(21)"></button></td>
+<td><button id="hidden22" onclick="hide(22)"></button></td>
+<td><button id="hidden23" onclick="hide(23)"></button></td>
+<td><button id="hidden24" onclick="hide(24)"></button></td>
+<td><button id="hidden25" onclick="hide(25)"></button></td>
+<td><button id="hidden26" onclick="hide(26)"></button></td>
+<td><button id="hidden27" onclick="hide(27)"></button></td>
+<td><button id="hidden28" onclick="hide(28)"></button></td>
+<td><button id="hidden29" onclick="hide(29)"></button></td>
+<td><button id="hidden30" onclick="hide(30)"></button></td>
+</tr>
+
+<tr>
 <th class="left">Run<br>no.</th>
 <th class="left">Target<br>name</th>
-<th class="left">Type</th>
 <th class="left">RA (J2000)<br>(telescope)</th>
 <th class="left">Dec&nbsp;(J2000)<br>(telescope)</th>
 <th class="cen">Start</th>
@@ -73,14 +154,17 @@ TABLE_HEADER = """
 <th class="right">Duty<br>cycle, %</th>
 <th class="right">Nframe</th>
 <th class="right">Dwell<br>(sec)</th>
-<th class="cen">Ncycle</th>
+<th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
+<th class="cen">Nskips</th>
 <th class="cen">
 xll,xlr,xul,xur,ys,nx,ny<br>
 xsl,xsr,ys,nx,ny [DRIFT]<br>
 Quad1, Quad2</th>
 <th class="cen">XxY<br>bin</th>
-<th class="cen">CDOP<br>flags</th>
+<th class="cen">Clr</th>
+<th class="cen">Dum</th>
+<th class="cen">Ov-/Pre-<br>scan</th>
 <th class="cen">Readout<br>speed</th>
 <th class="cen">Fast<br>clocks</th>
 <th class="cen">Tbytes</th>
@@ -102,8 +186,8 @@ namely 'FULL' for a full frame, 1-WIN or 2-WIN for standard windows mode, and
 the bottom of the top-right window of hdriver (or 5 parameters in DRIFT mode).
 In hdriver these are called xsll, xslr, xsul, xsur, ys, nx and ny (or xsl, xsr, ys, nx, ny
 in drift mode), and there are up to two sets of them. In fullframe mode, these parameters
-do not need to be specified. 'CDOP' are four Y/N flags which say whether or not clears, the dummy output,
-overscans and prescans were enabled or not. If overscans were enabled, extra
+do not need to be specified. 'CDOP' are four Y/N flags which say whether or not clears, 
+the dummy output, overscans and prescans were enabled or not. If overscans were enabled, extra
 pixels are added in the Y direction. Prescans add extra pixels in X. 'Ncycle'
 refers to how often each CCD is read out. The numbers correspond to nu, ng,
 nr, ni, nz listed in hdriver.</p>
@@ -114,6 +198,17 @@ is the (minimum) time between exposures, minimised over the different arms.
 
 <address>Tom Marsh, Warwick</address>
 </body>
+
+<!-- script to hide certain columns on page load by auto-clicking on the button -->
+<script>
+document.getElementById('hidden15').click()
+document.getElementById('hidden16').click()
+document.getElementById('hidden17').click()
+document.getElementById('hidden19').click()
+document.getElementById('hidden20').click()
+document.getElementById('hidden21').click()
+</script>
+
 </html>
 """
 
@@ -469,7 +564,8 @@ def hlogger(args=None):
 
                     with open(fname,'w') as nhtml:
                         # write header of night file
-                        nhtml.write(NIGHT_HEADER.format(date))
+                        nhtml.write(NIGHT_HEADER1)
+                        nhtml.write(NIGHT_HEADER2.format(date))
                         nhtml.write(links)
 
                         # read and store the hand written log
@@ -527,12 +623,6 @@ def hlogger(args=None):
                                     hd['OBJECT'])
                             )
 
-                            # run type
-                            nhtml.write(
-                                '<td class="left">{:s}</td>'.format(
-                                    gethead(hd, 'IMAGETYP', '---'))
-                            )
-
                             # RA, Dec
                             ra, dec = correct_ra_dec(hd['RA'], hd['Dec'])
                             nhtml.write(
@@ -543,15 +633,15 @@ def hlogger(args=None):
 
                             # timing info
                             ntotal = rtime.ntotal()
-                            texps, toffs, ncycs, tdead = rtime.tinfo()
+                            texps, toffs, nskips, tdead = rtime.tinfo()
                             # total = total time on target
                             # duty = worst duty cycle, percent
                             # tsamp = shortest sample time
                             ttotal = 0.
                             duty = 100
                             tsamp = 99000.
-                            for texp, ncyc in zip(texps, ncycs):
-                                ttotal = max(ttotal, (texp+tdead)*(ntotal // ncyc))
+                            for texp, nskip in zip(texps, nskips):
+                                ttotal = max(ttotal, (texp+tdead)*(ntotal // nskip))
                                 duty = min(duty, 100.*texp/(texp+tdead))
                                 tsamp = min(tsamp, texp+tdead)
 
@@ -579,24 +669,28 @@ def hlogger(args=None):
                             nhtml.write('<td class="right">{:.1f}</td>'.format(duty))
 
                             # number of frames
-                            nhtml.write(
-                                '<td class="right">{:d}</td>'.format(ntotal)
-                            )
+                            nhtml.write('<td class="right">{:d}</td>'.format(ntotal))
 
                             # total exposure time
                             nhtml.write('<td class="right">{:d}</td>'.format(
                                 int(round(ttotal)))
                             )
 
-                            # cycle nums
-                            nhtml.write('<td class="cen">{:s}</td>'.format(
-                                '|'.join([str(ncyc) for ncyc in ncycs]))
+                            # run type
+                            nhtml.write(
+                                '<td class="left">{:s}</td>'.format(
+                                    gethead(hd, 'IMAGETYP', '---'))
                             )
 
                             # readout mode
                             nhtml.write('<td class="cen">{:s}</td>'.format(
                                     TRANSLATE_MODE[rtime.mode])
                                         )
+
+                            # cycle nums
+                            nhtml.write('<td class="cen">{:s}</td>'.format(
+                                ','.join([str(nskip) for nskip in nskips]))
+                            )
 
                             # format
                             nhtml.write(
@@ -610,13 +704,23 @@ def hlogger(args=None):
                                     rtime.xbin,rtime.ybin)
                                 )
 
-                            # flags
+                            # clear
                             nhtml.write(
-                                '<td class="cen">{:s}{:s}{:s}{:s}</td>'.format(
-                                    'Y' if rtime.clear else 'N',
-                                    'Y' if rtime.dummy else 'N',
-                                    'Y' if rtime.oscan else 'N',
-                                    'Y' if rtime.pscan else 'N')
+                                '<td class="cen">{:s}</td>'.format(
+                                    'On' if rtime.clear else 'Off')
+                                )
+
+                            # dummy
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(
+                                    'On' if rtime.dummy else 'Off')
+                                )
+
+                            # overscan/prescan
+                            nhtml.write(
+                                '<td class="cen">{:s},{:s}</td>'.format(
+                                    'On' if rtime.oscan else 'Off',
+                                    'On' if rtime.pscan else 'Off')
                                 )
 
                             # CCD speed

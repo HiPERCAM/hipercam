@@ -470,7 +470,7 @@ class Rhead:
                 xsur = HCM_NXTOT + 1 - hd[winID + 'XSG'] - nx
 
             self.wforms.append(
-                '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
+                '{:d},{:d},{:d},{:d},{:d},{:d},{:d}'.format(
                     xsll, xslr, xsul, xsur, ys, nx, ny)
                 )
 
@@ -493,7 +493,7 @@ class Rhead:
                     xsur = HCM_NXTOT + 1 - hd[winID + 'XSG'] - nx
 
                 self.wforms.append(
-                    '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:d}'.format(
+                    '{:d},{:d},{:d},{:d},{:d},{:d},{:d}'.format(
                         xsll, xslr, xsul, xsur, ys, nx, ny)
                     )
 
@@ -512,7 +512,7 @@ class Rhead:
                 xsr = HCM_NXTOT + 1 - hd[winID + 'XSF'] - nx
 
             self.wforms.append(
-                '{:d}|{:d}|{:d}|{:d}|{:d}'.format(xsl, xsr, ys, nx, ny)
+                '{:d},{:d},{:d},{:d},{:d}'.format(xsl, xsr, ys, nx, ny)
                 )
 
         # compute the total number of pixels (making use of symmetry between
