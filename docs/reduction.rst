@@ -70,7 +70,8 @@ calibration section of the reduce file.
 .. Warning::
    Do not take bias frames too soon after (within less than 20 minutes)
    powering on the CCDs to avoid higher than normal dark current. |makebias|
-   include a plot option to check this.
+   include a plot option to check this. Make sure to look at this if the bias
+   is taken not long after a power on.
 
 Flat fields
 ===========
@@ -232,8 +233,9 @@ Defocussed images
 Defocussing is often used in exoplanet work. Defocussed images are not well
 fit by gaussian of moffat profiles. In this case you should hold the FWHM
 fixed and use a large FWHM, comparable to the width of the image. Experiment
-for best results. Probably rais the threshold for bad data rejection as
-well. The idea is simply to get a sort of weighted centroid.
+for best results. Probably raise the threshold for bad data rejection as
+well. The idea is simply to get a sort of weighted centroid, and there is no
+point trying to fit the profile.
 
 Linked apertures
 ----------------
