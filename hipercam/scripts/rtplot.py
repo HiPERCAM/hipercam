@@ -537,6 +537,10 @@ def rtplot(args=None):
                         )
                         got_windows = False
 
+                    elif r.text.strip() == 'fullframe':
+                        # to help Stu out a bit, effectively just ignore this one
+                        got_windows = False
+
                     else:
                         # OK, got something
                         lines = r.text.split('\r\n')
