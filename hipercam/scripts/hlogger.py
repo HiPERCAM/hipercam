@@ -69,7 +69,8 @@ for ( i = 0; i < tbl.rows.length; i++ )
 }
 
 function shrink () {
-var hcols = [7, 16, 17, 18, 20, 21, 22];
+var hcols = [4, 6, 7, 9, 15, 19, 20, 21, 22, 24, 25, 26, 27, 28];
+
 var tbl = document.getElementById( "tbl" );
 var i;
 var j;
@@ -114,13 +115,14 @@ NIGHT_HEADER2 = """<title>HiPERCAM log {0:s}</title>
 <p>
 The table below lists information on runs from the night starting on {0:s}.
 See the end of the table for some more details on the meanings of the various columns.
-You can hide any column using the buttons in the top line and "shrink" will a standard
-set of below average interest.
+You can hide any column using the buttons in the top line and "shrink" will reduce clutter
+to focus on those of most interest.
 """
 
 TABLE_TOP = """<p>
-<button onclick="restore();">Restore columns</button>
-<button onclick="shrink();">Shrink table</button>
+<button style="width: 100px; height: 25px;" onclick="shrink();">Shrink table</button>
+<button style="width: 125px; height: 25px;" onclick="restore();">Restore columns</button>
+
 
 <p>
 <table border=1 cellspacing="0" cellpadding="4" id="tbl">
@@ -154,7 +156,13 @@ TABLE_HEADER = """
 <td><button id="hidden23" onclick="hide(23)"></button></td>
 <td><button id="hidden24" onclick="hide(24)"></button></td>
 <td><button id="hidden25" onclick="hide(25)"></button></td>
-<td align="left"><button id="hidden26" onclick="hide(26)"></button></td>
+<td><button id="hidden26" onclick="hide(26)"></button></td>
+<td><button id="hidden27" onclick="hide(27)"></button></td>
+<td><button id="hidden28" onclick="hide(28)"></button></td>
+<td><button id="hidden29" onclick="hide(29)"></button></td>
+<td><button id="hidden30" onclick="hide(30)"></button></td>
+<td><button id="hidden31" onclick="hide(31)"></button></td>
+<td align="left"><button id="hidden32" onclick="hide(32)"></button></td>
 </tr>
 
 <tr>
@@ -162,31 +170,37 @@ TABLE_HEADER = """
 <th class="left">Target<br>name</th>
 <th class="left">RA (J2000)<br>(telescope)</th>
 <th class="left">Dec&nbsp;(J2000)<br>(telescope)</th>
+<th class="cen">Date<br>(start)</th>
 <th class="cen">Start</th>
 <th class="cen">End</th>
+<th class="cen">Time<br>flag</th>
 <th class="right">Cadence<br>(sec)</th>
 <th class="right">Duty<br>cycle, %</th>
 <th class="right">Nframe</th>
 <th class="right">Dwell<br>(sec)</th>
+<th class="cen">Filters</th>
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
 <th class="cen">Nskips</th>
 <th class="cen">
 xll,xlr,xul,xur,ys,nx,ny<br>
-xsl,xsr,ys,nx,ny [DRIFT]<br>
+xsl,xsr,ys,nx,ny&nbsp;[DRIFT]<br>
 Quad1</th>
 <th class="cen">
 xll,xlr,xul,xur,ys,nx,ny<br>
-xsl,xsr,ys,nx,ny [DRIFT]<br>
+xsl,xsr,ys,nx,ny&nbsp;[DRIFT]<br>
 Quad2</th>
 <th class="cen">XxY<br>bin</th>
 <th class="cen">Clr</th>
 <th class="cen">Dum</th>
+<th class="cen">LED</th>
 <th class="cen">Ov-/Pre-<br>scan</th>
 <th class="cen">Readout<br>speed</th>
 <th class="cen">Fast<br>clocks</th>
 <th class="cen">Tbytes</th>
 <th class="cen">FPslide</th>
+<th class="cen">Instr.<br>PA</th>
+<th class="cen">CCD<br>temps</th>
 <th class="left">PI</th>
 <th class="left">PID</th>
 <th class="left">Run<br>no.</th>
@@ -196,23 +210,23 @@ Quad2</th>
 
 NIGHT_FOOTER = """
 
-<p> Along with others of more obvious meaning, the columns 'Read', 'xsll, ..',
-and 'CDOP' specify the information needed to repeat the setup at the telescope
-using 'hdriver'. 'Read' is the readout mode which can be one of 4 options,
-namely 'FULL' for a full frame, 1-WIN or 2-WIN for standard windows mode, and
-'DRIFT' for drift-mode. The 'xsll,xslr,..' column gives the 7 parameters that appear at
-the bottom of the top-right window of hdriver (or 5 parameters in DRIFT mode).
-In hdriver these are called xsll, xslr, xsul, xsur, ys, nx and ny (or xsl, xsr, ys, nx, ny
-in drift mode), and there are up to two sets of them. In fullframe mode, these parameters
-do not need to be specified. 'CDOP' are four Y/N flags which say whether or not clears, 
-the dummy output, overscans and prescans were enabled or not. If overscans were enabled, extra
-pixels are added in the Y direction. Prescans add extra pixels in X. 'Ncycle'
-refers to how often each CCD is read out. The numbers correspond to nu, ng,
-nr, ni, nz listed in hdriver.</p>
-
-<p> 'Duty cycle' shows the fractional time collecting photons; the 'cadence'
-is the (minimum) time between exposures, minimised over the different arms.
-</p>
+<p> 'Instr. PA' is the instrumental PA. On the GTC this is measured East of North in degrees, but has
+an offset which may vary somewhat from night-to-night. 'Clr' indicates whether clears were enabled; 'Dum' whether the dummy
+output was being used to reduce pickup noise; 'Ov-Pre-scan' whether the over-
+and pre-scans were on or off. 'Time flag' is set to NOK (not OK) if the number
+of satellites == -1 and the GPS was not synced or if the time that came back
+could not be understood. 'Read mode' is the readout mode which can be one of 4
+options, namely 'FULL' for a full frame, 1-WIN or 2-WIN for standard windows
+mode, and 'DRIFT' for drift-mode. The 'xsll,xslr,..' column gives the 7
+parameters that appear at the bottom of the top-right window of hdriver (or 5
+parameters in DRIFT mode).  In hdriver these are called xsll, xslr, xsul,
+xsur, ys, nx and ny (or xsl, xsr, ys, nx, ny in drift mode), and there are up
+to two sets of them. In fullframe mode, these parameters do not need to be
+specified. 'Nskips' refers to how often each CCD is read out. The numbers
+correspond to nu, ng, nr, ni, nz listed in hdriver. 'Duty cycle' shows the
+fractional time collecting photons; the 'cadence' is the (minimum) time
+between exposures, minimised over the different arms. 'Tbytes' says whether
+there are the correct number of timing bytes (36).  </p>
 
 <address>Tom Marsh, Warwick</address>
 </body>
@@ -431,14 +445,6 @@ def correct_ra_dec(ra, dec):
 
     return (ra, dec)
 
-def gethead(head, key, default=''):
-    """Extracts the value corresponding to key from head, returning default
-    if the key is not present"""
-    if key in head:
-        return head[key]
-    else:
-        return default
-
 def hlogger(args=None):
     """``hlogger server (dirnam)``
 
@@ -549,19 +555,16 @@ def hlogger(args=None):
 
                     print('  night {:s}'.format(nname))
 
+                    links = '\n<p><a href="../">Run index</a>'
                     if nn > 0:
                         bnight = os.path.basename(nnames[nn-1])
-                        links = '\n<p><a href=../{0:s}/{0:s}.html>Previous night</a>'.format(bnight)
+                        links += ', <a href="../{0:s}/{0:s}.html">Previous night</a>'.format(bnight)
 
                     if nn < len(nnames)-1:
                         anight = os.path.basename(nnames[nn+1])
-                        if nn > 0:
-                            links += ', '
-                        else:
-                            links = '\n<p>'
-                        links += '<a href=../{0:s}/{0:s}.html>Next night</a>\n</p>\n'.format(anight)
-                    elif nn > 0:
-                        links += '\n</p>\n'
+                        links += ', <a href="../{0:s}/{0:s}.html">Next night</a>\n</p>\n'.format(anight)
+
+                    links += '\n</p>\n'
 
                     # Write an entry for each night linking to the log for that night.
                     night = os.path.basename(nname)
@@ -640,7 +643,6 @@ def hlogger(args=None):
                                     ra, dec)
                             )
 
-
                             # timing info
                             ntotal = rtime.ntotal()
                             texps, toffs, nskips, tdead = rtime.tinfo()
@@ -657,12 +659,16 @@ def hlogger(args=None):
 
                             # First & last timestamp
                             try:
-                                tstart = rtime(1)[0].isot
-                                tend = rtime(ntotal)[0].isot
+                                tstamp, tinfo, tflag1 = rtime(1)
+                                tstart = tstamp.isot
+                                tstamp, tinfo, tflag2 = rtime(ntotal)
+                                tend = tstamp.isot
                                 nhtml.write(
-                                    '<td class="cen">{:s}</td><td class="cen">{:s}</td>'.format(
+                                    '<td class="cen">{:s}</td><td class="cen">{:s}</td><td class="cen">{:s}</td><td class="cen">{:s}</td>'.format(
+                                        tstart[:tstart.find('T')],
                                         tstart[tstart.find('T')+1:tstart.rfind('.')],
-                                        tend[tend.find('T')+1:tend.rfind('.')]
+                                        tend[tend.find('T')+1:tend.rfind('.')],
+                                        'OK' if tflag1 and tflag2 else 'NOK'
                                         )
                                     )
                             except:
@@ -670,7 +676,7 @@ def hlogger(args=None):
                                 traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
                                 traceback.print_exc(file=sys.stdout)
                                 print('Run =',rname)
-                                nhtml.write('<td class="cen">--:--:--</td><td class="cen">--:--:--</td>')
+                                nhtml.write('<td class="cen">----</td><td class="cen">----</td><td class="cen">----</td><td>NOK</td>')
 
                             # sample time
                             nhtml.write('<td class="right">{:.3f}</td>'.format(tsamp))
@@ -686,11 +692,16 @@ def hlogger(args=None):
                                 int(round(ttotal)))
                             )
 
+                            # filters used
+                            nhtml.write('<td class="cen">{:s}</td>'.format(
+                                hd.get('filters','----')
+                            ))
+
                             # run type
                             nhtml.write(
                                 '<td class="left">{:s}</td>'.format(
-                                    gethead(hd, 'IMAGETYP', '---'))
-                            )
+                                    hd.get('IMAGETYP', '---'))
+                                )
 
                             # readout mode
                             nhtml.write('<td class="cen">{:s}</td>'.format(
@@ -700,7 +711,7 @@ def hlogger(args=None):
                             # cycle nums
                             nhtml.write('<td class="cen">{:s}</td>'.format(
                                 ','.join([str(nskip) for nskip in nskips]))
-                            )
+                                        )
 
                             # window formats
                             nhtml.write(
@@ -723,10 +734,21 @@ def hlogger(args=None):
                                     'On' if rtime.clear else 'Off')
                                 )
 
-                            # dummy
+                            # dummy output in use
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
                                     'On' if rtime.dummy else 'Off')
+                                )
+
+                            # LED on
+                            led = hd.get('ESO DET EXPLED','--')
+                            if led == 0:
+                                led = 'Off'
+                            elif led == 1:
+                                led = 'On'
+
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(led)
                                 )
 
                             # overscan/prescan
@@ -737,31 +759,21 @@ def hlogger(args=None):
                                 )
 
                             # CCD speed
-                            if 'ESO DET SPEED' in hd:
-                                speed = gethead(hd,'ESO DET SPEED')
-                                if speed == 0:
-                                    speed = 'Slow'
-                                elif speed == 1:
-                                    speed = 'Fast'
-                                else:
-                                    speed = '--'
-                            else:
-                                speed = '--'
+                            speed = hd.get('ESO DET SPEED','--')
+                            if speed == 0:
+                                speed = 'Slow'
+                            elif speed == 1:
+                                speed = 'Fast'
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(speed)
                                 )
 
                             # Fast clocks
-                            if 'ESO DET FASTCLK' in hd:
-                                fclock = gethead(hd,'ESO DET FASTCLK')
-                                if fclock == 0:
-                                    fclock = 'No'
-                                elif fclock == 1:
-                                    fclock = 'Yes'
-                                else:
-                                    fclock = '--'
-                            else:
-                                fclock = '--'
+                            fclock = hd.get('ESO DET FASTCLK','--')
+                            if fclock == 0:
+                                fclock = 'No'
+                            elif fclock == 1:
+                                fclock = 'Yes'
                             nhtml.write(
                                 '<td class="cen">{!s}</td>'.format(fclock)
                                 )
@@ -769,27 +781,39 @@ def hlogger(args=None):
                             # Tbytes problem
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
-                                    'OK' if rtime.ntbytes == 36 else 'BAD'
+                                    'OK' if rtime.ntbytes == 36 else 'NOK'
                                     )
                                 )
 
                             # Focal plane slide
                             nhtml.write(
                                 '<td class="cen">{!s}</td>'.format(
-                                    gethead(hd,'FPslide','----')
+                                    hd.get('FPslide','----')
                                     )
                                 )
+
+                            # instr PA [GTC]
+                            nhtml.write(
+                                '<td class="cen">{!s}</td>'.format(
+                                    hd.get('INSTRPA','UNDEF')
+                            ))
+
+                            # CCD temps
+                            nhtml.write(
+                                '<td class="cen">{:.1f},{:.1f},{:.1f},{:.1f},{:.1f}</td>'.format(
+                                    hd.get('CCD1TEMP',0.0),hd.get('CCD2TEMP',0.0),hd.get('CCD3TEMP',0.0),hd.get('CCD4TEMP',0.0),hd.get('CCD5TEMP',0.0)
+                            ))
 
                             # PI
                             nhtml.write(
                                 '<td class="left">{:s}</td>'.format(
-                                    gethead(hd, 'PI', '---'))
+                                    hd.get('PI', '---'))
                             )
 
                             # Program ID
                             nhtml.write(
                                 '<td class="left">{:s}</td>'.format(
-                                    gethead(hd, 'PROGRM', '---'))
+                                    hd.get('PROGRM', '---'))
                             )
 
                             # run number again
@@ -798,14 +822,15 @@ def hlogger(args=None):
                             )
 
                             # comments
-                            pcomm = gethead(hd, 'RUNCOM', '').strip()
-                            if pcomm == 'None':
+                            pcomm = hd.get('RUNCOM', '').strip()
+                            if pcomm == 'None' or pcomm == 'UNDEF':
                                 pcomm = ''
                             if pcomm != '':
                                 if not pcomm.endswith('.'):
-                                    pcomm += '. '
+                                    pcomm += ' '
                                 else:
-                                    pcomm += '.'
+                                    pcomm += '. '
+
                             nhtml.write(
                                 '<td class="left">{:s}{:s}</td>'.format(pcomm,hlog[run])
                             )
