@@ -9,20 +9,16 @@ Reducing |hiper| data
 
 This guide assumes that you have got started with the |hiper| pipeline (see
 :doc:`telescope` for a quick start to observing), but now would like a more
-detailed guide to reducing your data. It covers the following steps:
+detailed guide to reducing your data.  It covers the following steps:
 
-  1. Creation of bias frames,
-  2. Creation of flat field frames,
-  3. Setting up aperture files,
-  4. Defining the reduction file,
-  5. Plotting the results.
-  6. Customising the pipeline
+.. contents::
+   :local:
 
 .. Note::
 
-  I am aware that these pages need some illustrations and it is really a
-  matter of obtaining suitable data from which to compile a set of example
-  figures.
+  I am aware that these pages need more illustrations. This is work in
+  progress.
+
 
 Bias frames
 ===========
@@ -73,7 +69,8 @@ calibration section of the reduce file.
 
 .. Warning::
    Do not take bias frames too soon after (within less than 20 minutes)
-   powering on the CCDs to avoid higher than normal dark current.
+   powering on the CCDs to avoid higher than normal dark current. |makebias|
+   include a plot option to check this.
 
 Flat fields
 ===========
@@ -105,7 +102,7 @@ are referred to this for more information.
    It is highly advisable to compute multiple versions of the flat field
    using different values of the parameter ``ngroup`` which can have a
    significant effect on the removal of stars from the final frame and
-   to compare the results against each other. See |makeflat|.
+   then to compare the results against each other. See |makeflat|.
 
 Aperture files
 ==============
@@ -200,3 +197,52 @@ it relatively easy to access |hiper| data. If you devise routines of generic
 interest, you are encouraged to submit them for possible inclusion within the
 main pipeline commands. The existing pipeline commands are a good place to
 start when looking for examples.
+
+The reduce log files
+====================
+
+|reduce| writes all results to an ASCII log file. This can be pretty enormous
+with many columns. It is self-documenting with an extensive header section
+which is worth a look through. In particular the columns are named and given
+data types to aid ingestion into numpy recarrays. The pipeline command |plog|
+provides a crude interface to plotting these files, and module
+:mod:`hipercam.hlog` should allow you to develop scripts to access the data
+and to make your own plots.
+
+Trouble shooting reduction
+==========================
+
+There are several things you can do to avoid problems during reduction. The
+main thing to avoid is that |reduce| simply loses your target or the
+comparison stars.
+
+Use reference apertures
+-----------------------
+
+If you identify a star (or stars) as "reference apertures", their position is
+the first to be determined and then used to offset the location before
+searching for other stars. If you choose a well-isolated reference star, this
+can allow to cope with large changes in position from frame to frame, while
+maintaining a tight search on non-reference stars which may be close to other
+objects.
+
+Defocussed images
+-----------------
+
+Defocussing is often used in exoplanet work. Defocussed images are not well
+fit by gaussian of moffat profiles. In this case you should hold the FWHM
+fixed and use a large FWHM, comparable to the width of the image. Experiment
+for best results. Probably rais the threshold for bad data rejection as
+well. The idea is simply to get a sort of weighted centroid.
+
+Linked apertures
+----------------
+
+Linked apertures can be very useful if your target is simply too faint or near
+others to track well. However, they bring the danger, especially in long runs,
+of atmospheric refraction shiting the relative positions of the linked
+apertures, leading to loss of flux. This is particularly the case in the
+u-band. I have not, but will at some point, implemente a two-pass reduction to
+avoid this issue, but in the meantime, if you have to link an aperture, try to
+do so with a nearby object. It does not need to be super-bright, or your main
+comparison, the key point should be that its position can be securely tracked.
