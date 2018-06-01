@@ -77,6 +77,10 @@ extension '.hcm'.
 ---------------------------------------
 .. autofunction:: hipercam.scripts.grab
 
+:func:`hfilter`: filter a HiPERCAM image
+----------------------------------------
+.. autofunction:: hipercam.scripts.hfilter
+
 :func:`hist`: plot a histogram of a frame
 -----------------------------------------
 .. autofunction:: hipercam.scripts.hist
@@ -120,6 +124,10 @@ extension '.hcm'.
 :func:`setaper`: define the photometric apertures
 -------------------------------------------------
 .. autofunction:: hipercam.scripts.setaper
+
+:func:`setdefect`: define a file of CCD defects
+-----------------------------------------------
+.. autofunction:: hipercam.scripts.setdefect
 
 :func:`stats`: report statistics of a frame
 -------------------------------------------

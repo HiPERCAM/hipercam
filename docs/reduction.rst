@@ -140,12 +140,13 @@ An example of a set of apertures showing all these features is shown in
 .. _fig-1:
 
 .. figure:: complex_mask.png
-   :scale: 80 %
+   :scale: 50 %
    :alt: Click on image to enlarge
    :align: center
 
    Example of a complex set of apertures. The target is at the centre of the
    circles in the lower-right. The comparison star is in the upper-left.
+   [click on the image to enlarge it].
 
 In this case the target star has two nearby companions which causes three
 problems: (1) the sky annulus may include flux from the companions, (2) the
