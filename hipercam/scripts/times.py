@@ -122,11 +122,11 @@ def times(args=None):
             continue
 
         # indicate progress
-        tstamp, tinfo = tdata
+        tstamp, tinfo, tflag = tdata
         tstamp.precision = tdigit
         print(
-            'Frame {:d}, GPS = {:s}'.format(
-                nframe, tstamp.iso), end=''
+            'Frame {:d}, GPS = {:s} [{:s}]'.format(
+                nframe, tstamp.iso, 'OK' if tflag else 'NOK'), end=''
             )
 
 

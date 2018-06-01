@@ -642,26 +642,6 @@ class Rhead:
             d = eval(raw_bytes)
             ntot = d['nframes']
         else:
-            """
-            # rather than read NAXIS3, this is designed to allow for the
-            # file being incremented. First record where we are so we can
-            # return
-            ctell = self._ffile.tell()
-
-            # seek the end of file
-            self._ffile.seek(0,2)
-
-            # compute byte offset at this point and thus the total number of
-            # complete frames (this is what we return)
-            ntot = (self._ffile.tell() - self._hbytes) // self._framesize
-
-            print( ctell, self._ffile.tell(), self._hbytes, self._framesize,
-                   (self._ffile.tell() - self._hbytes) / self._framesize)
-
-            # return pointer to starting position
-            self._ffile.seek(ctell)
-
-            """
             # the commented out section was an attempt to work out the number
             # of frames even when the file was growing. This fails owing the
             # 2880-byte FITS standard when one has small framesizes, thus I am
@@ -933,6 +913,8 @@ class Rdata (Rhead):
                     return None
 
             elif nframe is not None:
+                ntot = self.seek_last()
+
                 # move to correct place
                 self.seek_frame(nframe)
 
@@ -940,7 +922,8 @@ class Rdata (Rhead):
             # the standard FITS BZERO offset. At this stage we have the data
             # as unsigned 2-byte ints
             frame = np.fromfile(
-                self._ffile, '>u2', (self._framesize - self.ntbytes) // 2)
+                self._ffile, '>u2', (self._framesize - self.ntbytes) // 2
+                )
             frame += BZERO
             tbytes = self._ffile.read(self.ntbytes)
             if len(tbytes) != self.ntbytes:
@@ -969,6 +952,13 @@ class Rdata (Rhead):
             # wait for a new frame to come in. See rtplot for an example of
             # this.
             return None
+
+        elif not self.server and frameCount != self.nframe:
+            # frameCount failed to match what was expected.; give up
+            raise HendError(
+                'encountered frame {:d} cf expected {:d}; giving up.'.format(
+                    frameCount, self.nframe)
+                )
 
         # set the internal frame pointer to the frame just read
         self.nframe = frameCount
@@ -1234,21 +1224,18 @@ class Rdata (Rhead):
     def seek_last(self):
         """
         In the case of a local file, this sets the pointer position
-        to the start of the final complete, and updates the 'nframe'
+        to the start of the final complete frame, and updates the 'nframe'
         attribute appropriately. This is not implemented for the server.
         It returns the number of the frame it moves to
         """
         if self.server:
             raise NotImplementedError('no seek_last in the case of server access')
         else:
-            # First seek the end of file
-            self._ffile.seek(0,2)
-
             # compute byte offset at this point and thus the total number of
             # complete frames
-            ntot = (self._ffile.tell()-self._hbytes) // self._framesize
+            ntot = self.ntotal()
 
-            # move pointer
+            # move pointer to this file
             self.seek_frame(ntot)
 
         return ntot
@@ -1377,14 +1364,17 @@ class Rtime (Rhead):
         frameCount, timeStampCount, years, day_of_year, \
             hours, mins, seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
 
-        if nsats == -1 and synced == -1:
-            # invalid time; pretend we are on 2000-01-01 taking one frame per second.
-            tstamp = Time(51544 + self.nframe/86400., format='mjd',precision=7)
-        else:
+        tflag = nsats != -1 or synced != -1
+        try:
             time_string = '{}:{}:{}:{}:{:.7f}'.format(
                 years, day_of_year, hours, mins, seconds+nanoseconds/1e9
                 )
             tstamp = Time(time_string, format='yday',precision=7)
+        except ValueError:
+            tflag = False
+            # invalid time; pretend we are on 2000-01-01 taking one frame per second.
+            tstamp = Time(51544 + self.nframe/86400., format='mjd',precision=7)
+
 
         tinfo = []
         for nccd in range(5):
@@ -1394,7 +1384,7 @@ class Rtime (Rhead):
         self.nframe += 1
 
         # Return timing data
-        return (tstamp, tuple(tinfo))
+        return (tstamp, tuple(tinfo), tflag)
 
 def decode_timing_bytes(tbytes):
     """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the
