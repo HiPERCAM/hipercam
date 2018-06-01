@@ -105,6 +105,19 @@ are referred to this for more information.
    significant effect on the removal of stars from the final frame and
    then to compare the results against each other. See |makeflat|.
 
+Fringing / darks
+================
+
+With |hiper| there is some fringing in the z-band and to a much
+smaller extent in the i-band. Fringing does not flat-field away because it is
+the result of illumination by the emission-line dominated night sky whereas
+twilight flats come from broad-band illumination. It should be possible to
+correct for it, but I have yet to do so. This is mostly here for warning.
+
+.. Warning::
+   I have yet to implement corrections for fringing or dark current in the
+   |hiper| pipeline.
+
 Aperture files
 ==============
 
@@ -242,9 +255,17 @@ Linked apertures
 
 Linked apertures can be very useful if your target is simply too faint or near
 others to track well. However, they bring the danger, especially in long runs,
-of atmospheric refraction shiting the relative positions of the linked
+of atmospheric refraction shifting the relative positions of the linked
 apertures, leading to loss of flux. This is particularly the case in the
-u-band. I have not, but will at some point, implemente a two-pass reduction to
-avoid this issue, but in the meantime, if you have to link an aperture, try to
+u-band. I have not, but will at some point, implement a two-pass reduction to
+get round this issue, but in the meantime, if you have to link an aperture, try to
 do so with a nearby object. It does not need to be super-bright, or your main
 comparison, the key point should be that its position can be securely tracked.
+
+Experiment
+----------
+
+Try different settings. Especially the extraction settings can make a
+difference. Compare the results visually. There is no one prescription
+that works for all cases. Faint targets normally require different setting
+from bright ones for the best results.
