@@ -236,19 +236,20 @@ Use reference apertures
 If you identify a star (or stars) as "reference apertures", their position is
 the first to be determined and then used to offset the location before
 searching for other stars. If you choose a well-isolated reference star, this
-can allow to cope with large changes in position from frame to frame, while
+can allow cope with large changes in position from frame to frame, while
 maintaining a tight search on non-reference stars which may be close to other
-objects.
+objects and be difficult to locate using a more wide-ranging search. Sensible
+use of this can avoid the need to link apertures in some cases.
 
 Defocussed images
 -----------------
 
 Defocussing is often used in exoplanet work. Defocussed images are not well
-fit by gaussian of moffat profiles. In this case you should hold the FWHM
-fixed and use a large FWHM, comparable to the width of the image. Experiment
-for best results. Probably raise the threshold for bad data rejection as
-well. The idea is simply to get a sort of weighted centroid, and there is no
-point trying to fit the profile.
+fit by gaussian of moffat profiles. In this case, when measuring the object
+position, you should hold the FWHM fixed and use a large FWHM, comparable to
+the width of the image. Experiment for best results. Probably raise the
+threshold for bad data rejection as well. The idea is simply to get a sort of
+weighted centroid, and there is no point trying to fit the profile.
 
 Linked apertures
 ----------------
@@ -258,14 +259,16 @@ others to track well. However, they bring the danger, especially in long runs,
 of atmospheric refraction shifting the relative positions of the linked
 apertures, leading to loss of flux. This is particularly the case in the
 u-band. I have not, but will at some point, implement a two-pass reduction to
-get round this issue, but in the meantime, if you have to link an aperture, try to
-do so with a nearby object. It does not need to be super-bright, or your main
-comparison, the key point should be that its position can be securely tracked.
+get round this issue, but in the meantime, if you have to link an aperture,
+try to do so with a nearby object to minimise the distortion. It does not need
+to be super-bright (although preferably it should be brighter than your
+target), or your main comparison; the key point should be that its position
+can be securely tracked.
 
 Experiment
 ----------
 
 Try different settings. Especially the extraction settings can make a
-difference. Compare the results visually. There is no one prescription
-that works for all cases. Faint targets normally require different setting
-from bright ones for the best results.
+significant difference to the results. Compare the results visually. There is
+no one prescription that works for all cases. Faint targets normally require
+different setting from bright ones for the best results.
