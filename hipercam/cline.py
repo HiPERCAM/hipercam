@@ -254,8 +254,8 @@ class Cline:
                 self._gpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    'failed to read global defaults file ' + self._gname + '; possible corrupted file.\n',
-                    ClineWarning)
+                    'failed to read global defaults file ' + self._gname +
+                    '; possible corrupted file.\n', ClineWarning)
                 self._gpars = {}
         else:
             self._ddir = None
@@ -332,8 +332,8 @@ class Cline:
                     ClineWarning)
             except AttributeError:
                 warnings.warn(
-                    'defaults directory attribute undefined; possible programming error\n',
-                    ClineWarning)
+                    'defaults directory attribute undefined;'
+                    ' possible programming error\n', ClineWarning)
 
             # save local defaults
             try:
@@ -341,12 +341,12 @@ class Cline:
                     pickle.dump(self._lpars, flocal)
             except (IOError, TypeError):
                 warnings.warn(
-                    'failed to save local parameter/value pairs to ' + self._lname + '\n',
-                    ClineWarning)
+                    'failed to save local parameter/value pairs to ' +
+                    self._lname + '\n', ClineWarning)
             except AttributeError:
                 warnings.warn(
-                    'local parameter file attribute undefined; possible programming error\n',
-                    ClineWarning)
+                    'local parameter file attribute undefined;'
+                    ' possible programming error\n', ClineWarning)
 
             # save global defaults
             try:
@@ -354,12 +354,12 @@ class Cline:
                     pickle.dump(self._gpars, fglobal)
             except (IOError, TypeError):
                     warnings.warn(
-                        'failed to save global parameter/value pairs to ' + self._gname + '\n',
-                        ClineWarning)
+                        'failed to save global parameter/value pairs to ' +
+                        self._gname + '\n', ClineWarning)
             except AttributeError:
                     warnings.warn(
-                        'global parameter file attribute undefined; possible programming error\n',
-                        ClineWarning)
+                        'global parameter file attribute undefined;'
+                        ' possible programming error\n', ClineWarning)
 
     def prompt_state(self):
         """Says whether prompting is being forced or not. Note the propting state does
@@ -406,23 +406,29 @@ class Cline:
             raise ClineError('Parameter = ' + param + ' is illegal.')
 
         if g_or_l != Cline.GLOBAL and g_or_l != Cline.LOCAL:
-            raise ClineError('g_or_l must either be Cline.GLOBAL or Cline.LOCAL')
+            raise ClineError(
+                'g_or_l must either be Cline.GLOBAL or Cline.LOCAL')
 
         if p_or_h != Cline.PROMPT and p_or_h != Cline.HIDE:
-            raise ClineError('p_or_h must either be Cline.PROMPT or Cline.HIDE')
+            raise ClineError(
+                'p_or_h must either be Cline.PROMPT or Cline.HIDE')
 
         if param in self._rpars:
-            raise ClineError('parameter = ' + param + ' has already been registered.')
+            raise ClineError('parameter = ' + param +
+                             ' has already been registered.')
 
         self._rpars[param] = {'g_or_l' : g_or_l, 'p_or_h' : p_or_h}
 
     def set_default(self, param, defval):
-        """
-        Set the default value of a parameter automatically. This is often useful for changing hidden
-        parameters on the fly.
+        """Set the default value of a parameter automatically. This is often useful
+        for changing hidden parameters on the fly.
+
         """
         if param not in self._rpars:
-            raise ClineError('set_default: parameter = "' + param + '" has not been registered.')
+            raise ClineError(
+                'set_default: parameter = "' + param +
+                '" has not been registered.'
+            )
 
         if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
             self._gpars[param] = defval
@@ -434,7 +440,10 @@ class Cline:
         Gets the current default value of a parameter called 'param'
         """
         if param not in self._rpars:
-            raise ClineError('set_default: parameter = "' + param + '" has not been registered.')
+            raise ClineError(
+                'set_default: parameter = "' + param +
+                '" has not been registered.'
+            )
 
         if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
             defval = self._gpars[param]
@@ -496,7 +505,8 @@ class Cline:
 
         if param not in self._rpars:
             raise ClineError(
-                'parameter = "{:s}" has not been registered.'.format(param.upper())
+                'parameter = "{:s}" has not been registered.'.format(
+                    param.upper())
                 )
 
         if lvals != None and defval not in lvals:
@@ -533,9 +543,11 @@ class Cline:
 
         else:
             # load default from values read from file or the initial value
-            if self._rpars[param]['g_or_l'] == Cline.GLOBAL and param in self._gpars:
+            if self._rpars[param]['g_or_l'] == Cline.GLOBAL and \
+               param in self._gpars:
                 value = self._gpars[param]
-            elif self._rpars[param]['g_or_l'] == Cline.LOCAL and param in self._lpars:
+            elif self._rpars[param]['g_or_l'] == Cline.LOCAL and \
+                 param in self._lpars:
                 value = self._lpars[param]
             else:
                 value = defval
@@ -553,22 +565,33 @@ class Cline:
                     elif reply == '?':
                         print()
                         if minval is not None and maxval is not None:
-                            print('Parameter = "{:s}" must lie from {!s} to {!s}'.format(
-                                param,minval,maxval))
+                            print(
+                                ('Parameter = "{:s}" must lie from'
+                                 ' {!s} to {!s}').format(
+                                     param,minval,maxval))
                         elif minval is not None:
-                            print('Parameter = "{:s}" must be greater than {!s}'.format(
+                            print(
+                                ('Parameter = "{:s}" must be'
+                                 ' greater than {!s}').format(
                                 param,minval))
                         elif maxval is not None:
-                            print('Parameter = "{:s}" must be less than {!s}'.format(param,maxval))
+                            print(
+                                ('Parameter = "{:s}" must be '
+                                 'less than {!s}').format(param,maxval))
                         else:
-                            print('Parameter = "{:s}" has no restriction on its value'.format(param))
+                            print(
+                                ('Parameter = "{:s}" has no '
+                                 'restriction on its value').format(param))
 
-                        print('"{:s}" has data type = {!s}'.format(param,type(defval)))
+                        print('"{:s}" has data type = {!s}'.format(
+                            param,type(defval)))
                         if lvals is not None:
                             print('Only the following values are allowed:')
                             print(lvals)
                         if isinstance(defval, (list, tuple)) and fixlen:
-                            print('You must enter exactly {:d} values'.format(len(defval)))
+                            print(
+                                ('You must enter exactly'
+                                 ' {:d} values').format(len(defval)))
                         print()
                     elif reply != '':
                         if  isinstance(defval, (list, tuple)) and fixlen and \
