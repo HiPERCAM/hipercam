@@ -108,6 +108,22 @@ def makeflat(args=None):
         ccd     : string
            CCD(s) to process, '0' for all, '1 3' for '1' and '3' only, etc.
 
+        lower   : list of floats
+           Lower limits to the mean count level for a flat to be included. The
+           count level is determined after bias subtraction.  Should be the
+           same number as the selected CCDs, and will be assumed to be in the
+           same order. Use this to elminate frames that are of so low a level
+           that the accuracy of the bias subtraction could be a worry.
+           Suggested hipercam values: 3000 for each CCD.
+
+        upper   : list of floats
+           Upper limits to the mean count level for a flat to be included. The
+           count level is determined after bias subtraction.  Should be the
+           same number as the selected CCDs, and will be assumed to be in the
+           same order. Use this to eliminate saturated, peppered or non-linear
+           frames. Suggested hipercam values: 58000, 58000, 58000, 40000 and
+           40000 for CCDs 1, 2, 3, 4 and 5.
+
         clobber : bool [hidden]
            clobber any pre-existing output files
 
@@ -132,6 +148,8 @@ def makeflat(args=None):
         cl.register('ngroup', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('lower', Cline.LOCAL, Cline.PROMPT)
+        cl.register('upper', Cline.LOCAL, Cline.PROMPT)
         cl.register('clobber', Cline.LOCAL, Cline.HIDE)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
 
@@ -158,7 +176,9 @@ def makeflat(args=None):
                                cline.Fname('files.lis',hcam.LIST))
             first = 1
 
-        ngroup = cl.get_value('ngroup', 'number of frames per median average group', 3, 1)
+        ngroup = cl.get_value(
+            'ngroup', 'number of frames per median average group', 3, 1
+        )
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -177,6 +197,16 @@ def makeflat(args=None):
         else:
             ccds = list(ccdinf.keys())
 
+        lowers = cl.get_value(
+            'lower', 'lower limits on mean count level for included flats',
+            len(ccds)*[5000]
+        )
+
+        uppers = cl.get_value(
+            'upper', 'lower limits on mean count level for included flats',
+            len(ccds)*[50000]
+        )
+
         clobber = cl.get_value(
             'clobber', 'clobber any pre-existing files on output',
             False
@@ -189,23 +219,6 @@ def makeflat(args=None):
                 cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
             )
         )
-
-    # temporary -- need to get from user as inputs
-    lower = {
-        '1' : 2000.,
-        '2' : 2000.,
-        '3' : 2000.,
-        '4' : 2000.,
-        '5' : 2000.
-        }
-
-    upper = {
-        '1' : 58000.,
-        '2' : 58000.,
-        '3' : 58000.,
-        '4' : 40000.,
-        '5' : 40000.
-        }
 
     # inputs done with.
 
@@ -282,7 +295,7 @@ def makeflat(args=None):
         # for the window names in which we will also store the results.
         template = hcam.MCCD.read(fnames[0])
 
-        for cnam in ccds:
+        for cnam, lower, upper in zip(ccds, lower, upper):
             tccd = template[cnam]
 
             # get the keys (filenames) and corresponding mean values
@@ -290,7 +303,7 @@ def makeflat(args=None):
             mvals = np.array(list(means[cnam].values()))
 
             # chop down to acceptable ones
-            ok = (mvals > lower[cnam]) & (mvals < upper[cnam])
+            ok = (mvals > lower) & (mvals < upper)
 
             mkeys = mkeys[ok]
             mvals = mvals[ok]
@@ -298,8 +311,12 @@ def makeflat(args=None):
             # some more progress info
             print('Found {:d} frames for CCD {:s}'.format(len(mkeys), cnam))
             if len(mkeys) == 0:
-                print('.. cannot average 0 frames; will skip CCD {:s}'.format(cnam))
+                print(
+                    ('.. cannot average 0 frames;'
+                     ' will skip CCD {:s}').format(cnam)
+                )
                 continue
+
             elif len(mkeys) < ngroup:
                 print(
                     ('WARNING: fewer than ngroup = {:d} frames'
@@ -343,7 +360,8 @@ def makeflat(args=None):
                 wsum += weight
 
                 for wnam, wind in tccd.items():
-                    # go through each window, building a list of all data arrays
+                    # go through each window, building a list of all data
+                    # arrays
                     arrs = [ccd[wnam].data for ccd in ccdgroup]
                     arr3d = np.stack(arrs)
 
@@ -362,10 +380,12 @@ def makeflat(args=None):
 
             # Add some history
             tccd.head.add_history(
-                'result of makeflat on {:d} frames, ngroup = {:d}'.format(len(mkeys),ngroup)
-                )
+                ('result of makeflat on {:d}'
+                 ' frames, ngroup = {:d}'.format(len(mkeys),ngroup)
+             )
 
-        # Remove any CCDs not included to avoid impression of having done something to them
+        # Remove any CCDs not included to avoid impression of having done
+        # something to them
         for cnam in template:
             if cnam not in ccds:
                 del template[cnam]
@@ -378,7 +398,8 @@ def makeflat(args=None):
         print('\nmakeflat aborted')
 
     if server_or_local:
-        # grab has created a load of temporaries, including the file list 'resource'
+        # grab has created a load of temporaries, including the file list
+        # 'resource'
         with open(resource) as fin:
             for fname in fin:
                 os.remove(fname.strip())
