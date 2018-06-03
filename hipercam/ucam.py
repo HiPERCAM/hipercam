@@ -787,6 +787,8 @@ class Rdata (Rhead):
                 URL, self.run, self.nframe-1)
             buff     = urllib.request.urlopen(full_url).read()
 
+            print(' ** ', self.nframe, len(buff), self.framesize)
+
             if len(buff) != self.framesize:
                 # we return None in this case as we might want to wait for
                 # more data to accumulate. It's up to the calling script to do
