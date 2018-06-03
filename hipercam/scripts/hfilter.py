@@ -65,7 +65,7 @@ def hfilter(args=None):
 
         max_ccd = len(mccd)
         if max_ccd > 1:
-            ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
+            ccd = cl.get_value('ccd', 'CCD(s) to filter [0 for all]', '0')
             if ccd == '0':
                 ccds = list(mccd.keys())
             else:
