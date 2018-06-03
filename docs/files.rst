@@ -40,6 +40,15 @@ from any such defects, particularly those that appear in red.
 
 Files:
 
-  1. 2018-05-21 (:download:`defect file <hipercam_defects_2018_05_21.dft>`,
-     :download:`filtered flat field <filtered_flat_2018_05_21.hcm>`)
+  1. 2018-05-21 (:download:`hipercam defect file
+     <hipercam_defects_2018_05_21.dft>`)
+
+  2. 2018-06-02 (:download:`ultracam defect file
+     <ultracam_defects_2018_06_02.dft>`)
+
+.. Warning::
+   For ULTRACAM I need also to add hot pixel defects which need to be regarded
+   differently to flat field and poor charge transfer defects as a poor hot
+   pixel could be very bad for a faint target but not matter much for a bright
+   one.
 
