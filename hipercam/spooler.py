@@ -1,5 +1,6 @@
-"""Classes and methods to support reading data in multiple formats and for iterating
-through multiple images from a variety of sources in a standardised manner.
+"""Classes and methods to support reading data in multiple formats and for
+iterating through multiple images from a variety of sources in a standardised
+manner.
 
 For instance this piece of code::
 
@@ -7,12 +8,13 @@ For instance this piece of code::
        for mccd in spool:
            ...
 
-creates an object 'spool' that then acts a source of :class:`MCCD` objects. The
-:meth:`data_source` method returns this for a variety of possible sources of data
-such as raw HiPERCAM and ULTRACAM files and a list of hcm files. Important methods
-are :meth:`data_source` and :meth:`get_ccd_pars`. You may also want to look at
-classes such as :class:`HcamListSpool` if you are interested in accessing data in a
-specific manner.
+creates an object 'spool' that then acts a source of :class:`MCCD`
+objects. The :meth:`data_source` method returns this for a variety of possible
+sources of data such as raw HiPERCAM and ULTRACAM files and a list of hcm
+files. Important methods are :meth:`data_source` and :meth:`get_ccd_pars`. You
+may also want to look at classes such as :class:`HcamListSpool` if you are
+interested in accessing data in a specific manner.
+
 """
 
 import time
@@ -307,6 +309,9 @@ def data_source(source, resource, first=1):
          >> with data_source('us', 'run003') as dsource:
          >>    for frame in dsource:
          >>       ... do something with 'frame'
+
+       A possible return is None if no frame is found. See `hang_about` for
+       how to handle this.
     """
 
     if source == 'us':
@@ -383,19 +388,28 @@ def get_ccd_pars(source, resource):
             # HiPERCAM raw data file: fixed data
             return OrderedDict(
                 (
-                    ('1',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
-                    ('2',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
-                    ('3',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
-                    ('4',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
-                    ('5',(hcam.HCM_NXTOT, hcam.HCM_NYTOT, hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
+                    ('1',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
+                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
+
+                    ('2',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
+                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
+
+                    ('3',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
+                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
+
+                    ('4',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
+                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
+
+                    ('5',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
+                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
                     )
                 )
 
 def hang_about(obj, twait, tmax, total_time):
-    """
-    Carries out some standard actions when we loop through frames which are
+    """Carries out some standard actions when we loop through frames which are
     common to rtplot, reduce and grab. This is a case of seeing whether we
-    want to try again for a frame or a time that may have arrived while we wait.
+    want to try again for a frame or a time that may have arrived while we
+    wait.
 
     Arguments::
 
@@ -419,6 +433,7 @@ def hang_about(obj, twait, tmax, total_time):
        try_again == True ==> have another go
 
     If both are False, that indicates success and we carry on.
+
     """
 
     if obj is None:
