@@ -76,6 +76,10 @@ class Vec2D:
     def __repr__(self):
         return 'Vec2D(x={:f}, y={:f})'.format(self.x, self.y)
 
+def dot(v1, v2):
+    """Returns the scalar or 'dot' product of two vectors"""
+    return v1.x*v2.x + v1.y*v2.y
+
 def add_extension(fname, ext):
     """Add extension ext to a file name if it is not already there, and returns
     the revised name

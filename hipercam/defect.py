@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from .core import *
 from .group import *
+from . import utils
 
 __all__ = ('Severity', 'Defect',)
 
@@ -160,8 +161,26 @@ class Line(Defect):
         )
 
     def dist(self, x, y):
-        # ?? got here
-        return np.sqrt((x-self.x)**2+(y-self.y)**2)
+        """Defines 'distance' from a line defect as the minimum distance
+        of a point (x,y) from any portion of the line between its two
+        end-points
+        """
+        p = utils.Vec2D(x,y)
+        l1 = utils.Vec2D(self.x1, self.y1)
+        l2 = utils.Vec2D(self.x2, self.y2)
+        pl1 = p-l1
+        pl2 = p-l2
+
+        # first the minimum distance from either end-point
+        d = min(pl1.length(), pl2.length())
+
+        l12 = l2-l1
+        ll12 = l12.length()
+        if ll12 > 0:
+            lam = utils.dot(pl1,l12)/ll12**2
+            if lam > 0 and lam < 1:
+                d = min(d, (p-l1-lam*l12).length())
+        return d
 
 class CcdDefect(Group):
     """Class representing all the :class:Defects for a single CCD.
