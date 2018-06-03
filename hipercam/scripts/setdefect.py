@@ -406,7 +406,14 @@ class PickDefect:
             elif event.key == 'n':
                 self._severity = defect.Severity.SEVERE
 
-            self._line()
+            axes = event.inaxes
+            if axes is not None:
+                self._cnam = self.cnams[axes]
+                self._key = event.key
+                self._axes = axes
+                self._x = event.xdata
+                self._y = event.ydata
+                self._line()
 
         else:
             # standard mode action
@@ -469,6 +476,25 @@ close enough (< 10 pixels)
                 elif key == 'n':
                     self._severity = defect.Severity.SEVERE
                 self._point()
+
+            elif key == 'l':
+                # add a line defect
+                print(key)
+                self._line_stage = 0
+                self._line_mode = True
+
+                # Try to calculate the largest number, label the new Defect
+                # with one more
+                high = 0
+                for dfct in self.mccd_dfct[self._cnam]:
+                    try:
+                        high = max(high, int(dfct))
+                    except ValueError:
+                        pass
+
+                self._buffer = str(high+1)
+
+                self._line()
 
             elif key == 'd':
                 # delete an defect
@@ -604,7 +630,6 @@ close enough (< 10 pixels)
                 self._line_x2 = self._x
                 self._line_y2 = self._y
 
-
                 # prompt stage 2
                 print(" Defect level: m(odest), n(asty) [else q(uit)]")
 
@@ -627,12 +652,18 @@ close enough (< 10 pixels)
             plt.draw()
 
             # let user know what has happened
-            level = 'moderate' if self._severity == defect.Severity.MODERATE else 'severe'
+            level = 'moderate' if \
+                    self._severity == defect.Severity.MODERATE \
+                    else 'severe'
 
-            print('added {:s} level line defect {:s} to CCD {:s} from x1,y1 = {:.2f},{:.2f} to x2,y2 = {:.2f},{:.2f}'.format(
-                level,self._buffer,self._cnam,self._line_x1,self._line_y1,
-                self._line_x2,self._line_y2)
-              )
+            print(
+                ('added {:s} level line defect {:s}'
+                 ' to CCD {:s} from x1,y1 = {:.2f},{:.2f}'
+                 ' to x2,y2 = {:.2f},{:.2f}').format(
+                     level,self._buffer,self._cnam,
+                     self._line_x1,self._line_y1,
+                     self._line_x2,self._line_y2)
+            )
             PickDefect.action_prompt(True)
 
     def _show(self):

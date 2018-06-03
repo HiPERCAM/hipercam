@@ -32,7 +32,7 @@ Params = {
     # axis number character height
     'axis.number.ch' : 1.,
 
-    # axis colour index
+   # axis colour index
     'axis.ci' : 4,
 
     # window box colour index
@@ -315,6 +315,21 @@ def pDefect(dfct):
             pgsci(Params['defect.severe.ci'])
             pgsch(1.7)
             pgpt1(dfct.x, dfct.y, 17)
+
+    elif isinstance(dfct, defect.Line):
+
+        if dfct.severity == defect.Severity.MODERATE:
+            pgsci(Params['defect.moderate.ci'])
+            pgsls(2)
+            pgline([dfct.x1,dfct.x2], [dfct.y1,dfct.y2])
+
+        elif dfct.severity == defect.Severity.SEVERE:
+            pgsci(Params['defect.severe.ci'])
+            pgsls(1)
+            pgline([dfct.x1,dfct.x2], [dfct.y1,dfct.y2])
+
+    else:
+        raise HipercamError('Did not recognise Defect')
 
 def pCcdDefect(ccd_dfct):
     """

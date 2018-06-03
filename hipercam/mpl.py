@@ -350,7 +350,6 @@ def pDefect(axes, dfct):
     """
 
     if isinstance(dfct, defect.Point):
-        # draw circles to represent the apert.
         if dfct.severity == defect.Severity.MODERATE:
             obj = axes.plot(
                 dfct.x, dfct.y, 'o', color=Params['defect.moderate.col'],
@@ -361,6 +360,20 @@ def pDefect(axes, dfct):
                 dfct.x, dfct.y, 'o', color=Params['defect.severe.col'],
                 ms=2.5
             )
+
+    elif isinstance(dfct, defect.Line):
+        if dfct.severity == defect.Severity.MODERATE:
+            obj = axes.plot(
+                [dfct.x1,dfct.x2], [dfct.y1,dfct.y2],
+                '--', color=Params['defect.moderate.col']
+            )
+        elif dfct.severity == defect.Severity.SEVERE:
+            obj = axes.plot(
+                [dfct.x1,dfct.x2], [dfct.y1,dfct.y2],
+                color=Params['defect.severe.col']
+            )
+    else:
+        raise HipercamError('Did not recognise Defect')
 
     return tuple(obj)
 
