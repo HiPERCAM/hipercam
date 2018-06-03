@@ -114,7 +114,8 @@ def makeflat(args=None):
            same number as the selected CCDs, and will be assumed to be in the
            same order. Use this to elminate frames that are of so low a level
            that the accuracy of the bias subtraction could be a worry.
-           Suggested hipercam values: 3000 for each CCD.
+           Suggested hipercam values: 3000 for each CCD. Enter values with
+           spaces.
 
         upper   : list of floats
            Upper limits to the mean count level for a flat to be included. The
@@ -122,7 +123,8 @@ def makeflat(args=None):
            same number as the selected CCDs, and will be assumed to be in the
            same order. Use this to eliminate saturated, peppered or non-linear
            frames. Suggested hipercam values: 58000, 58000, 58000, 40000 and
-           40000 for CCDs 1, 2, 3, 4 and 5.
+           40000 for CCDs 1, 2, 3, 4 and 5. Enter values with spaces. ULTRACAM
+           values 52000, 30000, 27000 for CCDs 1, 2 and 3.
 
         clobber : bool [hidden]
            clobber any pre-existing output files
@@ -199,12 +201,12 @@ def makeflat(args=None):
 
         lowers = cl.get_value(
             'lower', 'lower limits on mean count level for included flats',
-            len(ccds)*[5000]
+            len(ccds)*(5000,)
         )
 
         uppers = cl.get_value(
             'upper', 'lower limits on mean count level for included flats',
-            len(ccds)*[50000]
+            len(ccds)*(50000,)
         )
 
         clobber = cl.get_value(
@@ -237,19 +239,23 @@ def makeflat(args=None):
             ]
             resource = hcam.scripts.grab(args)
 
-        # at this point 'resource' is a list of files, no matter the input method.
+        # at this point 'resource' is a list of files, no matter the input
+        # method.
 
         # Read all the files to determine mean levels (after bias subtraction)
-        # save the bias-subtracted, mean-level normalised results to temporary files
+        # save the bias-subtracted, mean-level normalised results to temporary
+        # files
         print('Reading all files in to determine their mean levels')
         bframe = None
         means = {}
         for cnam in ccds:
             means[cnam] = {}
 
-        # We might have a load of temporaries from grab, but we are about to make some more
-        # to save the bias-subtracted normalised versions.
-        tdir = os.path.join(tempfile.gettempdir(), 'hipercam-{:s}'.format(getpass.getuser()))
+        # We might have a load of temporaries from grab, but we are about to
+        # make some more to save the bias-subtracted normalised versions.
+        tdir = os.path.join(tempfile.gettempdir(), 'hipercam-{:s}'.format(
+            getpass.getuser())
+        )
         os.makedirs(tdir,exist_ok=True)
         fnames = []
         with spooler.HcamListSpool(resource) as spool:
@@ -287,7 +293,9 @@ def makeflat(args=None):
 
                 # a bit of progress info
                 if bias is not None:
-                    print('Saved debiassed, normalised flat to {:s}'.format(fname))
+                    print(
+                        'Saved debiassed, normalised'
+                        ' flat to {:s}'.format(fname))
                 else:
                     print('Saved normalised flat to {:s}'.format(fname))
 
@@ -295,7 +303,7 @@ def makeflat(args=None):
         # for the window names in which we will also store the results.
         template = hcam.MCCD.read(fnames[0])
 
-        for cnam, lower, upper in zip(ccds, lower, upper):
+        for cnam, lower, upper in zip(ccds, lowers, uppers):
             tccd = template[cnam]
 
             # get the keys (filenames) and corresponding mean values
@@ -381,7 +389,7 @@ def makeflat(args=None):
             # Add some history
             tccd.head.add_history(
                 ('result of makeflat on {:d}'
-                 ' frames, ngroup = {:d}'.format(len(mkeys),ngroup)
+                 ' frames, ngroup = {:d}').format(len(mkeys),ngroup)
              )
 
         # Remove any CCDs not included to avoid impression of having done
