@@ -372,6 +372,19 @@ def pDefect(axes, dfct):
                 [dfct.x1,dfct.x2], [dfct.y1,dfct.y2],
                 color=Params['defect.severe.col']
             )
+
+    elif isinstance(dfct, defect.Hot):
+        if dfct.severity == defect.Severity.MODERATE:
+            obj = axes.plot(
+                dfct.x, dfct.y, '*', color=Params['defect.moderate.col'],
+                ms=2.5
+            )
+        elif dfct.severity == defect.Severity.SEVERE:
+            obj = axes.plot(
+                dfct.x, dfct.y, '*', color=Params['defect.severe.col'],
+                ms=2.5
+            )
+
     else:
         raise HipercamError('Did not recognise Defect')
 

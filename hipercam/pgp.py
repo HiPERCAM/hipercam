@@ -328,6 +328,18 @@ def pDefect(dfct):
             pgsls(1)
             pgline([dfct.x1,dfct.x2], [dfct.y1,dfct.y2])
 
+    elif isinstance(dfct, defect.Hot):
+
+        if dfct.severity == defect.Severity.MODERATE:
+            pgsci(Params['defect.moderate.ci'])
+            pgsch(1.3)
+            pgpt1(dfct.x, dfct.y, 6)
+
+        elif dfct.severity == defect.Severity.SEVERE:
+            pgsci(Params['defect.severe.ci'])
+            pgsch(1.7)
+            pgpt1(dfct.x, dfct.y, 6)
+
     else:
         raise HipercamError('Did not recognise Defect')
 

@@ -1,7 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
 Defines classes to represent CCD defects. Base class Defect from
-which others are inherited.
+which others are inherited. The derived classes are :class:`Point`,
+:class:`Line` and :class:`Hot` representing point, line and hot pixel
+defects.
 """
 
 import numpy as np
@@ -182,6 +184,44 @@ class Line(Defect):
                 d = min(d, (p-l1-lam*l12).length())
         return d
 
+class Hot(Defect):
+
+    """Hot pixel defect.
+
+    Attributes::
+
+      severity   : Severity
+         severity of the Defect
+
+      x, y       : float, float
+         coordinates of the pixel, starting (1,1) at lower-left
+    """
+
+    def __init__(self, severity, x, y):
+        """Constructor. Arguments::
+
+           severity     : Severity
+              indicator of the severity of a defect
+
+           x, y         : float, float
+              coordinates of the pixel, starting (1,1) at lower-left
+        """
+        super().__init__(severity)
+        self.x = x
+        self.y = y
+
+    def copy(self, memo=None):
+        """Returns with a copy of the Hot"""
+        return Hot(self.severity, self.x, self.y)
+
+    def __repr__(self):
+        return 'Hot(severity={!r}, x={!r}, y={!r})'.format(
+            self.severity, self.x, self.y
+        )
+
+    def dist(self, x, y):
+        return np.sqrt((x-self.x)**2+(y-self.y)**2)
+
 class CcdDefect(Group):
     """Class representing all the :class:Defects for a single CCD.
     Normal usage is to create an empty one and then add Defects via
@@ -311,6 +351,16 @@ class _Encoder(json.JSONEncoder):
                     )
                 )
 
+        elif isinstance(obj, Hot):
+            return OrderedDict(
+                (
+                    ('Comment', 'hipercam.defect.Hot'),
+                    ('severity', obj.severity.name),
+                    ('x', obj.x),
+                    ('y', obj.y),
+                    )
+                )
+
         return super().default(obj)
 
 class _Decoder(json.JSONDecoder):
@@ -329,6 +379,10 @@ class _Decoder(json.JSONDecoder):
                 return Line(
                     getattr(Severity,obj['severity']), obj['x1'], obj['y1'],
                     obj['x2'], obj['y2']
+                )
+            elif obj['Comment'] == 'hipercam.defect.Hot':
+                return Hot(
+                    getattr(Severity,obj['severity']), obj['x'], obj['y']
                 )
 
         return obj

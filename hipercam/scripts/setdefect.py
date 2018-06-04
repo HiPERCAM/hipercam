@@ -85,6 +85,16 @@ def setdefect(args=None):
          If msub is True, then you can invert the image values (-ve to +ve)
          with this parameter. Can make it easier to spot bad values.
 
+      ffield : bool
+         If True, all defects will be assumed to be flat-field or poor
+         charge transfer defects as opposed to hot pixels. The latter are
+         best set from dark frames, and have a different impact than the
+         first two types in that they are worst for faint targets. Hot pixels
+         and flat-field defects are shown with the same colours for moderate
+         and severe, but different symbols (filled circles for flat-field
+         defects, stars for hot pixels). If you say no to add hot pixels,
+         the line defect option is not available.
+
       hsbox  : int
          half-width in binned pixels of stats box as offset from central pixel
          hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
@@ -150,6 +160,7 @@ def setdefect(args=None):
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('invert', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ffield', Cline.GLOBAL, Cline.PROMPT)
         cl.register('hsbox', Cline.GLOBAL, Cline.HIDE)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
@@ -211,6 +222,9 @@ def setdefect(args=None):
 
         if msub:
             invert = cl.get_value('invert', 'invert image intensities?', True)
+
+        ffield = cl.get_value(
+            'ffield', 'flat field defects? [else hot pixels]', True)
 
         hsbox = cl.get_value('hsbox', 'half-width of stats box (binned pixels)', 2, 1)
         iset = cl.get_value(
@@ -325,7 +339,7 @@ def setdefect(args=None):
 
     # create the Defect picker (see below for class def)
     picker = PickDefect(
-        mccd, cnams, anams, toolbar, fig, mccd_dfct, dfct, hsbox, pobjs
+        mccd, cnams, anams, toolbar, fig, mccd_dfct, dfct, ffield, hsbox, pobjs
     )
 
     plt.tight_layout()
@@ -349,7 +363,7 @@ class PickDefect:
 
     def __init__(
             self, mccd, cnams, anams, toolbar, fig, mccd_dfct,
-            dfctnam, hsbox, pobjs):
+            dfctnam, ffield, hsbox, pobjs):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
@@ -360,6 +374,7 @@ class PickDefect:
         self.toolbar = toolbar
         self.mccd_dfct = mccd_dfct
         self.dfctnam = dfctnam
+        self.ffield = ffield
         self.hsbox = hsbox
         self.pobjs = pobjs
 
@@ -378,10 +393,16 @@ class PickDefect:
         if cr:
             print()
 
-        print(
-            'd(elete), h(elp), l(ine), m(odest), n(asty), s(how), q(uit): ',
-            end='', flush=True
-        )
+        if self.ffield:
+            print(
+                'd(elete), h(elp), l(ine), m(odest), n(asty), s(how), q(uit): ',
+                end='', flush=True
+            )
+        else:
+            print(
+                'd(elete), h(elp), m(odest), n(asty), s(how), q(uit): ',
+                end='', flush=True
+            )
 
 
     def _keyPressEvent(self, event):
@@ -445,7 +466,7 @@ Help on the actions available in 'setdefect':
 
   d(elete)   : delete a defect
   h(elp)     : print this help text
-  l(ine)     : add a line defect (straight lines only)
+  l(ine)     : add a line defect (flat-field defects, not hot pixels)
   m(odest)   : add a moderate-level point defect
   n(asty)    : add a severe-level point defect
   s(how)     : show image values
@@ -477,7 +498,7 @@ close enough (< 10 pixels)
                     self._severity = defect.Severity.SEVERE
                 self._point()
 
-            elif key == 'l':
+            elif self.ffield and key == 'l':
                 # add a line defect
                 print(key)
                 self._line_stage = 0
@@ -544,6 +565,11 @@ close enough (< 10 pixels)
                 # trap some special keys to avoid irritating messages
                 pass
 
+            elif key == 'l' and not self.ffield:
+                print(
+                    '\nCannot add lines of hot pixels, only flat-field defects'
+                )
+
             else:
                 print('\nNo action is defined for key = "{:s}"'.format(key))
                 PickDefect.action_prompt(False)
@@ -565,7 +591,14 @@ close enough (< 10 pixels)
 
         else:
 
-            dfct = defect.Point(self._severity, self._x, self._y)
+            if self.ffield:
+                # flat-field defect
+                dfct = defect.Point(self._severity, self._x, self._y)
+
+            else:
+                # hot pixel
+                dfct = defect.Hot(self._severity, self._x, self._y)
+
             self.mccd_dfct[self._cnam][self._buffer] = dfct
 
             # add defect to the plot, store plot objects
@@ -577,7 +610,8 @@ close enough (< 10 pixels)
             plt.draw()
 
             # let user know what has happened
-            level = 'moderate' if self._severity == defect.Severity.MODERATE else 'severe'
+            level = 'moderate' \
+                    if self._severity == defect.Severity.MODERATE else 'severe'
 
             print('added {:s} level defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
                 level, self._buffer, self._cnam, self._x, self._y)
