@@ -230,18 +230,22 @@ Commands mentioned in this section: |reduce|.
 .. rubric:: Footnotes
 
 .. [#f0] All |hiper| commands are implemented as entry points to functions,
-         all of which are part of the :mod:`hipercam.scripts` module, hence
-         the slightly odd-looking command name. The same string, without the
-         closing pair of braces, is needed when looking up help from the
-         terminal using ``pydoc``. In all cases, at the terminal you simply
-         type the last part of the string to issue the command, i.e. to invoke
-         foe example |reduce|, you would simply type ``reduce`` in a terminal.
+         all of which are part of the :mod:`hipercam.scripts` module. This
+         means that documentation on the same command can be looked up in 
+         two ways at the terminal with `pydoc`. e.g. for |rtplot| you could
+         type ``pydoc hipercam.scripts.pydoc`` or simply ``pydoc rtplot``.
+         To actually invoke the same command, simply type ``rtplot`` in a
+         terminal.
+
 
 .. [#f1] This may fail if the data source is set incorrectly. If so, re-type
-         as "rtplot prompt" to see all the options, many of which are hidden
+         as``rtplot prompt`` to see all the options, many of which are hidden
          by default. The one you might want to change is ``source`` which
-         should be ``hs`` for data from the server at the telescope, or ``hl``
-         for data from a disk file local to your computer.
+         should be ``hs`` for data from the |hiper| server at the telescope,
+         or ``hl`` for data from a disk file local to your computer (or ``us``
+         and ``ul`` for ULTRACAM).
 
 .. [#f2] All raw |hiper| file names take the form 'run####.fits' but
-         the extension '.fits' can be omitted.
+         the extension '.fits' can be omitted. ULTRACAM files take the
+         form 'run###.dat' / 'run###.xml'. Note that |hiper| files have
+         4 digits compared to ULTRACAM's 3.
