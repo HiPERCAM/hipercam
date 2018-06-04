@@ -105,10 +105,11 @@ you know the parameter input system.
   |rtplot| is one of the most useful commands during observing runs. Three
   useful features are (1) the ability to fit the profiles of selected targets
   when displaying a single CCD; (2) the option to plot a file of CCD defects
-  (:download:`defect file <hipercam_defects_2018_05_21.dft>`). Use this to
-  avoid bad regions of the CCDs; (3) the `setup` option which interrogates the
-  `hdriver` GUI for the current set of windows. This is useful for optimising
-  the CCD setup on a target.
+  (:download:`hipercam defect file <hipercam_defects_2018_05_21.dft>`;
+  :download:`ultracam defect file <ultracam_defects_2018_06_02.dft>`). Use
+  this to avoid bad regions of the CCDs; (3) the `setup` option which
+  interrogates the `hdriver` GUI for the current set of windows. This is
+  useful for optimising the CCD setup on a target.
 
 Commands used in this section: |rtplot|, |hls|
 
