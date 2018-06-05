@@ -27,6 +27,7 @@ from .stats import stats
 from .times import times
 from .mstats import mstats
 from .pfolder import pfolder
+from .uls import uls
 
 __all__ = [ \
             'add', 'averun',
@@ -39,13 +40,14 @@ __all__ = [ \
             'reduce', 'rtplot',
             'setaper', 'setdefect', 'stats', 'sub',
             'times',
+            'uls',
         ]
 
 try:
+    # allow this one to fail
     from .aligntool import aligntool
 
     # insert after add
     __all__.insert(1,'aligntool')
 except:
     pass
-

@@ -152,6 +152,7 @@ setup(
             'setdefect=hipercam.scripts.setdefect:setdefect',
             'stats=hipercam.scripts.stats:stats',
             'times=hipercam.scripts.times:times',
+            'uls=hipercam.scripts.uls:uls',
         ],
     },
 

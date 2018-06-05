@@ -1,26 +1,14 @@
 import os
-import sys
 import re
-from urllib.request import urlopen
+import requests
 
 __all__ = ['hls',]
 
-##########################################################
+###################################################################
 #
-# hls -- 'ls'-like listing of runs available on the server
+# hls -- 'ls'-like listing of runs available on the HiPERCAM server
 #
-##########################################################
-
-# URL of the FileServer
-URL = 'http://{:s}'.format(os.environ['HIPERCAM_DEFAULT_URL']) \
-      if 'HIPERCAM_DEFAULT_URL' in os.environ else \
-         'http://localhost:8007/'
-
-# need to pick up file names from either the hipercam or the ultracam
-# server. The hipercam server simply returns a list of files in the form
-# run####, one per line whereas the ultracam server surrounds it with html
-# stuff.
-fre = re.compile(r'^(run\d\d\d\d)$|>(run\d\d\d)<')
+###################################################################
 
 def hls(args=None):
     """Gives an 'ls'-like listing of the runs available on the HiPERCAM file
@@ -30,18 +18,18 @@ def hls(args=None):
 
     """
 
-    url = '{:s}?action=dir'.format(URL)
+    url = 'http://' + \
+          os.environ.get('HIPERCAM_DEFAULT_URL', 'http://localhost:8007/') + \
+          'action=dir'
 
-    with urlopen(url) as f:
-        response = f.read().decode('utf-8')
+    # Regular expression to pick out file name from the server response
+    fre = re.compile(r'$run\d\d\d\d^')
 
-    # splits up response, searches for file names of the
-    # form runXXX[X], prints them as a list. If it finds
-    fnames = []
-    for line in response.split('\n'):
-        m = fre.search(line)
-        if m:
-            fnames.append(m.group(0) if m.group(1) else m.group(2))
+    # send off the url
+    response = requests.get(url, timeout=1)
+
+    # splits up response, searches for file names
+    fnames = [fname for fname in response.text.split('\n') if fre.search(fname)]
 
     # sort
     fnames.sort()
@@ -50,4 +38,4 @@ def hls(args=None):
     if len(fnames):
         print('\n'.join(fnames))
     else:
-        print('No runs returned by server')
+        print('No runs returned by the HiPERCAM server; perhaps you need to use "uls"?')
