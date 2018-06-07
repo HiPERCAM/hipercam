@@ -317,8 +317,8 @@ This section contains documentation auto-generated from the code. This is the
 same as is returned from clicking command names in the lists at the top of
 this page. Each command appears as a function, followed by a highlighted line
 showing the parameters one can use on the command-line. Inputs in square
-brackets such as `[source]` are hidden by default; those in round brackets
-e.g. `(plot)` may or may not be prompted depending upon earlier inputs. It is
+brackets such as ``[source]`` are hidden by default; those in round brackets
+e.g. ``(plot)`` may or may not be prompted depending upon earlier inputs. It is
 always safest when first running a command simply to type its name and hit
 enter and let the command itself prompt you for input. Many commands have
 hidden parameters that can only be revealed by typing e.g. ``rtplot
