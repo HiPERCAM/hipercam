@@ -1,0 +1,3 @@
+#!/usr/bin/csh
+
+rsync -av _build/html shika:/storage/astro2/www/phsaap/hipercam/docs
