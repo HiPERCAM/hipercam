@@ -2,151 +2,119 @@
 
 .. include:: globals.rst
 
+.. One-liners for each command that come up repeatedly
+
+.. |ol-add|      replace:: |add|: add two frames
+.. |ol-averun|   replace:: |averun|: average a series of frames in a run
+.. |ol-cadd|     replace:: |cadd|: add a constant to a frame
+.. |ol-cdiv|     replace:: |cdiv|: divide a frame by a constant
+.. |ol-combine|  replace:: |combine|: combine a list of frames
+.. |ol-csub|     replace:: |csub|: subtract a constant from a frame
+.. |ol-div|      replace:: |div|: divide one frame by another
+.. |ol-genred|   replace:: |genred|: create a reduce file
+.. |ol-grab|     replace:: |grab|: split frames out of a run
+.. |ol-hfilter|  replace:: |hfilter|: filter a HiPERCAM image
+.. |ol-hist|     replace:: |hist|: plot a histogram of a frame
+.. |ol-hls|      replace:: |hls|: list the runs on the |hiper| server
+.. |ol-hplot|    replace:: |hplot|: plot a frame
+.. |ol-makebias| replace:: |makebias|: combine a run to make a bias frame
+.. |ol-makeflat| replace:: |makeflat|: combine a list of frames into a flat
+.. |ol-mstats|   replace:: |mstats|: list stats of multiple frames from a run
+.. |ol-mul|      replace:: |mul|: multiply two frames
+.. |ol-plog|     replace:: |plog|: plot output log from |reduce|
+.. |ol-reduce|   replace:: |reduce|: carry out photometric reduction
+.. |ol-rtplot|   replace:: |rtplot|: plot frames as they come in
+.. |ol-setaper|  replace:: |setaper|: define the photometric apertures
+.. |ol-setdefect| replace:: |setdefect|: define a file of CCD defects
+.. |ol-stats|    replace:: |stats|: report statistics of a frame
+.. |ol-sub|      replace:: |sub|: subtract two frames
+.. |ol-times|    replace:: |times|: list times of a run
+.. |ol-uls|      replace:: |uls|: list the runs on the ULTRACAM server
+
 .. highlightlang:: rest
 
 |hiper| commands
 ****************
 
-This page documents the pipeline commands which are all part of the
-`hipercam.scripts` sub-module. Help on any given command can be obtained at
+This page documents the pipeline commands which are all part of
+:mod:`hipercam.scripts`. Help on any given command can be obtained at
 the terminal using e.g. ``pydoc hipercam.scripts`` or ``pydoc
-hipercam.scripts.rtplot``. If you are new to the pipeline, it would be worth
+hipercam.scripts.rtplot``. This is often the most useful way to get 
+information quickly. If you are new to the pipeline, it would be worth
 reading the :ref:`command-calling` section on how to call the pipeline
 commands and specify parameters.
 
 .. contents:: Contents
    :local:
 
-.. _command-definitions:
+Available commands
+==================
 
-Command definitions
-===================
+This section contains the list of all |hiper| commands [#f1]_ ; see also the bottom of the page
+for all the documentation on the commands in one long list. Clicking on a
+command name in the table below will take you to the relevant section of this long
+list. The table also indicates contexts in which each command is particularly
+useful.
 
-This section contains documentation auto-generated from the code.  The
-pipeline commands are all implemented as functions (and can be called as such
-within scripts). Each command therefore appears below as a function, followed
-by a highlighted line showing the parameters one can use on the
-command-line. Inputs in square brackets such as `[source]` are hidden by
-default; those in round brackets e.g. `(plot)` may or may not be prompted
-depending upon earlier inputs. It is always safest when first running a
-command simply to type its name and hit enter and let the command itself
-prompt you for input. Many commands have hidden parameters that can only be
-revealed by typing e.g. ``rtplot prompt``. These are usually parameters that
-rarely need changing, but you are sure sometimes to need to alter them.  See
-the :ref:`command-calling` section for details on how to specify command
-parameters.
+.. table::
+   :widths: 30 10 10 10 10 10
 
-In the one-line descriptions below, ``run`` refers to a complete run,
-containing multiple images, stored in a .fits file. ``frame`` refers to a
-single image from a run as might be extracted using |grab|. These have file
-extension '.hcm'.
-
-:func:`add`: add two frames
----------------------------
-.. autofunction:: hipercam.scripts.add
-
-:func:`averun`: average a series of frames in a run
----------------------------------------------------
-.. autofunction:: hipercam.scripts.averun
-
-:func:`cadd`: add a constant to a frame
----------------------------------------
-.. autofunction:: hipercam.scripts.cadd
-
-:func:`cdiv`: divide a frame by a constant
-------------------------------------------
-.. autofunction:: hipercam.scripts.cdiv
-
-:func:`combine`: combine a list of frames
------------------------------------------
-.. autofunction:: hipercam.scripts.combine
-
-:func:`csub`: subtract a constant from a frame
-----------------------------------------------
-.. autofunction:: hipercam.scripts.csub
-
-:func:`div`: divide one frame by another
-----------------------------------------
-.. autofunction:: hipercam.scripts.div
-
-:func:`genred`: create a reduce file
-------------------------------------
-.. autofunction:: hipercam.scripts.genred
-
-:func:`grab`: split frames out of a run
----------------------------------------
-.. autofunction:: hipercam.scripts.grab
-
-:func:`hfilter`: filter a HiPERCAM image
-----------------------------------------
-.. autofunction:: hipercam.scripts.hfilter
-
-:func:`hist`: plot a histogram of a frame
------------------------------------------
-.. autofunction:: hipercam.scripts.hist
-
-:func:`hls`: list the runs on the server
-----------------------------------------
-.. autofunction:: hipercam.scripts.hls
-
-:func:`hplot`: plot a frame
----------------------------
-.. autofunction:: hipercam.scripts.hplot
-
-:func:`makebias`: combine a run to make a bias frame
-----------------------------------------------------
-.. autofunction:: hipercam.scripts.makebias
-
-:func:`makeflat`: combine a list of frames into a flat
-------------------------------------------------------
-.. autofunction:: hipercam.scripts.makeflat
-
-:func:`mstats`: list stats of multiple frames from a run
---------------------------------------------------------
-.. autofunction:: hipercam.scripts.mstats
-
-:func:`mul`: multiply two frames
---------------------------------
-.. autofunction:: hipercam.scripts.mul
-
-:func:`plog`: plot output log from :func:`reduce`
--------------------------------------------------
-.. autofunction:: hipercam.scripts.plog
-
-:func:`reduce`: carry out photometric reduction
------------------------------------------------
-.. autofunction:: hipercam.scripts.reduce
-
-:func:`rtplot`: plot frames as they come in
--------------------------------------------
-.. autofunction:: hipercam.scripts.rtplot
-
-:func:`setaper`: define the photometric apertures
--------------------------------------------------
-.. autofunction:: hipercam.scripts.setaper
-
-:func:`setdefect`: define a file of CCD defects
------------------------------------------------
-.. autofunction:: hipercam.scripts.setdefect
-
-:func:`stats`: report statistics of a frame
--------------------------------------------
-.. autofunction:: hipercam.scripts.stats
-
-:func:`sub`: subtract two frames
---------------------------------
-.. autofunction:: hipercam.scripts.sub
-
-:func:`times`: list times of a run
-----------------------------------
-.. autofunction:: hipercam.scripts.times
-
-.. Note::
-
-  Five other commands, :func:`aligntool`, :func:`hlogger`,
-  :func:`makefield`, :func:`makedata` and :func:`pfolder` are
-  not documented here as they are of specialist usage.
-  Information on these is however available via ``pydoc``.
+   +--------------------+----------+----------+---------+-----------+------------+
+   | Command: purpose   |Observing |Reduction |Display& |Arithematic|Information | 
+   |                    |          |          |analysis |           |            |
+   +====================+==========+==========+=========+===========+============+
+   | |ol-add|           |          |          |         |   Yes     |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-averun|        | Yes      | Yes      |         |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-cadd|          |          |          |         |   Yes     |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-cdiv|          |          |          |         |   Yes     |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-combine|       | Yes      | Yes      |         |   Yes     |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-csub|          |          |          |         |   Yes     |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-div|           |          |          |         |   Yes     |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-genred|        | Yes      | Yes      |         |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-grab|          | Yes      | Yes      |         |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-hfilter|       |          |          |         |   Yes     |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-hist|          |          |          |  Yes    |           | Yes        |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-hls|           | Yes      |          |         |           | Yes        |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-hplot|         | Yes      | Yes      |  Yes    |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-makebias|      | Yes      | Yes      |         |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-makeflat|      |          | Yes      |         |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-mstats|        |          |          |         |           | Yes        |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-mul|           |          |          |         |   Yes     |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-plog|          | Yes      |          |  Yes    |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-reduce|        | Yes      | Yes      |         |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-rtplot|        | Yes      | Yes      |  Yes    |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-setaper|       | Yes      | Yes      |         |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-setdefect|     | Yes      |          |         |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-stats|         |          |          |         |           | Yes        |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-sub|           |          |          |         |   Yes     |            |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-times|         |          |          |         |           | Yes        |
+   +--------------------+----------+----------+---------+-----------+------------+
+   | |ol-uls|           | Yes      |          |         |           |            |
+   +--------------------+----------+----------+---------+-----------+------------+
 
 .. _command-calling:
 
@@ -240,7 +208,7 @@ A look through the :ref:`command-definitions` will reveal that many commands
 have "hidden" parameters that are not usually prompted for. The idea behind
 this is to reduce the level of prompting, particularly for those parameters
 that hardly ever change. The values of all parameters can be revealed through
-the use of a special keyword ``list``::
+the use of a special keyword ``list```::
 
   rtplot list \\
   rtplot
@@ -268,7 +236,7 @@ the use of a special keyword ``list``::
 
 This reveals parameters ``source``, ``device``, ``width`` and ``height`` that
 were never prompted for in the commands of the previous section. Their values
-can be changed by giving another special keyword ``prompt``::
+can be changed by giving another special keyword ``prompt``:
 
   rtplot prompt
   source - data source [hs, hl, us, ul, hf] [hl]:
@@ -339,3 +307,138 @@ variable `HIPERCAM_ENV` has been defined to re-direct where the default files
 are stored. Once you have located them it is always safe to delete one or more
 or all of the default files (end with .def). The worst that happens is that
 the commands have lost the default values.
+
+.. _command-definitions:
+
+Command definitions
+===================
+
+This section contains documentation auto-generated from the code. This is the
+same as is returned from clicking command names in the lists at the top of
+this page. Each command appears as a function, followed by a highlighted line
+showing the parameters one can use on the command-line. Inputs in square
+brackets such as `[source]` are hidden by default; those in round brackets
+e.g. `(plot)` may or may not be prompted depending upon earlier inputs. It is
+always safest when first running a command simply to type its name and hit
+enter and let the command itself prompt you for input. Many commands have
+hidden parameters that can only be revealed by typing e.g. ``rtplot
+prompt``. These are usually parameters that rarely need changing, but you are
+sure sometimes to need to alter them.  See the :ref:`command-calling` section
+for details on how to specify command parameters.
+
+In the one-line descriptions below, ``run`` refers to a complete run,
+containing multiple images, stored in a .fits file. ``frame`` refers to a
+single image from a run as might be extracted using |grab|. These have file
+extension '.hcm'.
+
+|ol-add|:
+
+  .. autofunction:: hipercam.scripts.add
+
+|ol-averun|:
+
+  .. autofunction:: hipercam.scripts.averun
+
+|ol-cadd|:
+
+  .. autofunction:: hipercam.scripts.cadd
+
+|ol-cdiv|:
+
+  .. autofunction:: hipercam.scripts.cdiv
+
+|ol-combine|:
+
+  .. autofunction:: hipercam.scripts.combine
+
+|ol-csub|:
+
+  .. autofunction:: hipercam.scripts.csub
+
+|ol-div|:
+
+  .. autofunction:: hipercam.scripts.div
+
+|ol-genred|:
+
+  .. autofunction:: hipercam.scripts.genred
+
+|ol-grab|:
+
+  .. autofunction:: hipercam.scripts.grab
+
+|ol-hfilter|:
+
+  .. autofunction:: hipercam.scripts.hfilter
+
+|ol-hist|:
+
+
+  .. autofunction:: hipercam.scripts.hist
+
+|ol-hls|:
+
+  .. autofunction:: hipercam.scripts.hls
+
+|ol-hplot|:
+
+  .. autofunction:: hipercam.scripts.hplot
+
+|ol-makebias|:
+
+  .. autofunction:: hipercam.scripts.makebias
+
+|ol-makeflat|:
+
+  .. autofunction:: hipercam.scripts.makeflat
+
+|ol-mstats|:
+
+  .. autofunction:: hipercam.scripts.mstats
+
+|ol-mul|:
+
+  .. autofunction:: hipercam.scripts.mul
+
+|ol-plog|:
+
+  .. autofunction:: hipercam.scripts.plog
+
+|ol-reduce|:
+
+  .. autofunction:: hipercam.scripts.reduce
+
+|ol-rtplot|:
+
+  .. autofunction:: hipercam.scripts.rtplot
+
+|ol-setaper|:
+
+  .. autofunction:: hipercam.scripts.setaper
+
+|ol-setdefect|:
+
+  .. autofunction:: hipercam.scripts.setdefect
+
+|ol-stats|:
+
+  .. autofunction:: hipercam.scripts.stats
+
+|ol-sub|:
+
+  .. autofunction:: hipercam.scripts.sub
+
+|ol-times|:
+
+  .. autofunction:: hipercam.scripts.times
+
+|ol-uls|:
+
+  .. autofunction:: hipercam.scripts.uls
+
+.. [#f1] Five other commands (``aligntool``, ``hlogger``, ``makefield``,
+         ``makedata``, ``pfolder``) are not documented here as they are of
+         specialist usage.  Information on these is however available via
+         ``pydoc``.
+
+

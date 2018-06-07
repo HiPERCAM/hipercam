@@ -217,10 +217,10 @@ The reduce log files
 ====================
 
 |reduce| writes all results to an ASCII log file. This can be pretty enormous
-with many columns. It is self-documenting with an extensive header section
-which is worth a look through. In particular the columns are named and given
-data types to aid ingestion into numpy recarrays. The pipeline command |plog|
-provides a crude interface to plotting these files, and module
+with many columns. The log file is self-documenting with an extensive header
+section which is worth a look through. In particular the columns are named and
+given data types to aid ingestion into numpy recarrays. The pipeline command
+|plog| provides a crude interface to plotting these files, and module
 :mod:`hipercam.hlog` should allow you to develop scripts to access the data
 and to make your own plots.
 
