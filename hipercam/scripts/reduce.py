@@ -1579,18 +1579,34 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
             # get sub-windat around start position
             shbox = apsec['search_half_width_ref']
-            swdata = wdata.window(
-                aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
-            )
+            try:
+                swdata = wdata.window(
+                    aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
+                )
+                # carry out initial search
+                x,y,peak = swdata.find(apsec['search_smooth_fwhm'], False)
 
-            # carry out initial search
-            x,y,peak = swdata.find(apsec['search_smooth_fwhm'], False)
+                # Now for a more refined fit. First extract fit Window
+                fhbox = apsec['fit_half_width']
+                fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
-            # Now for a more refined fit. First extract fit Window
-            fhbox = apsec['fit_half_width']
-            fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-            fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-            fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+            except hcam.HipercamError as err:
+                # trap problems during the fits
+                print(
+                    'CCD {:s}, reference aperture {:s},'
+                    ' fit failed, error = {!s}'.format(
+                        cnam, apnam, err), file=sys.stderr
+                )
+
+                store[apnam] = {
+                    'xe' : -1., 'ye' : -1.,
+                    'fwhm' : 0., 'fwhme' : -1.,
+                    'beta' : 0., 'betae' : -1.,
+                    'dx' : 0., 'dy' : 0.
+                }
+                continue
 
             # initial estimate of background
             sky = np.percentile(fwdata.data, 50)
