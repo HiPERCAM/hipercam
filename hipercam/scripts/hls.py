@@ -20,10 +20,10 @@ def hls(args=None):
 
     url = 'http://' + \
           os.environ.get('HIPERCAM_DEFAULT_URL', 'http://localhost:8007/') + \
-          'action=dir'
+          '?action=dir'
 
     # Regular expression to pick out file name from the server response
-    fre = re.compile(r'$run\d\d\d\d^')
+    fre = re.compile(r'^run\d\d\d\d$')
 
     # send off the url
     response = requests.get(url, timeout=1)

@@ -687,8 +687,8 @@ def reduce(args=None):
                         # These corrections allow the use of the usual
                         # read**2+data/gain as the variance, after the data
                         # have been flat-fielded.
-                        read /= flat
-                        gain *= flat
+                        read /= rfile.flat
+                        gain *= rfile.flat
 
                     # reference the times relative to the start frame.
                     tzero = mccd.head['MJDUTC']
@@ -707,7 +707,7 @@ def reduce(args=None):
 
                 if rfile.flat is not None:
                     # apply flat field to processed frame
-                    pccd /= flat
+                    pccd /= rfile.flat
 
                 # container for the arguments to send to ccdproc
                 # for each CCD
