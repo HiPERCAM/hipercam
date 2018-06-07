@@ -1571,40 +1571,40 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
             # name of window for this aperture
             wnam = ccdwin[apnam]
 
-            # extract the Window of the processed data, read noise
-            # and gain frames
+            # extract the Window of the processed data, read noise and gain
+            # frames
             wdata = ccd[wnam]
             wread = read[wnam]
             wgain = gain[wnam]
 
-            # get sub-windat around start position
-            shbox = apsec['search_half_width_ref']
-            swdata = wdata.window(
-                aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
-            )
-
-            # carry out initial search
-            x,y,peak = swdata.find(apsec['search_smooth_fwhm'], False)
-
-            # Now for a more refined fit. First extract fit Window
-            fhbox = apsec['fit_half_width']
-            fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-            fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-            fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-
-            # initial estimate of background
-            sky = np.percentile(fwdata.data, 50)
-
-            # get some parameters from previous run where possible
-            fit_fwhm = store['mfwhm'] if store['mfwhm'] > 0. else apsec['fit_fwhm']
-            fit_beta = store['mbeta'] if store['mbeta'] > 0. else apsec['fit_beta']
-
-            # limit the initial value of beta because of tendency to wander to
-            # high values and never come down.
-            fit_beta = min(fit_beta, apsec['fit_beta_max'])
-
-            # refine the Aperture position by fitting the profile
             try:
+                # get sub-windat around start position
+                shbox = apsec['search_half_width_ref']
+                swdata = wdata.window(
+                    aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
+                )
+
+                # carry out initial search
+                x,y,peak = swdata.find(apsec['search_smooth_fwhm'], False)
+
+                # Now for a more refined fit. First extract fit Window
+                fhbox = apsec['fit_half_width']
+                fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+
+                # initial estimate of background
+                sky = np.percentile(fwdata.data, 50)
+
+                # get some parameters from previous run where possible
+                fit_fwhm = store['mfwhm'] if store['mfwhm'] > 0. else apsec['fit_fwhm']
+                fit_beta = store['mbeta'] if store['mbeta'] > 0. else apsec['fit_beta']
+
+                # limit the initial value of beta because of tendency to
+                # wander to high values and never come down.
+                fit_beta = min(fit_beta, apsec['fit_beta_max'])
+
+                # refine the Aperture position by fitting the profile
                 (sky, height, x, y, fwhm, beta), \
                     (esky, eheight, ex, ey, efwhm, ebeta), \
                     extras = \
