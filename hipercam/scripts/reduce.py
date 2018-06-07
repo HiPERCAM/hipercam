@@ -1616,6 +1616,12 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                                  apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
+                # check that x, y are in range
+                if fwdata.distance(x,y) < 0.5:
+                    raise hcam.HipercamError(
+                        'Fitted position ({:.1f},{:.1f}) too close or outside window = {!s}'.format(x,y,fwdata.winhead())
+                    )
+
                 if height > apsec['fit_height_min']:
                     dx = x - aper.x
                     wx = 1./ex**2
@@ -1781,6 +1787,12 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                                  fwread.data, fwgain.data,
                                  apsec['fit_thresh'], apsec['fit_ndiv']
                              )
+
+                # check that x, y are in range
+                if fwdata.distance(x,y) < 0.5:
+                    raise hcam.HipercamError(
+                        'Fitted position ({:.1f},{:.1f}) too close or outside window = {!s}'.format(x,y,fwdata.winhead())
+                    )
 
                 if height > apsec['fit_height_min']:
                     # store some stuff for next time and for passing onto
