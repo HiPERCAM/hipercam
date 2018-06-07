@@ -4,32 +4,32 @@
 
 .. One-liners for each command that come up repeatedly
 
-.. |ol-add|      replace:: |add|: add two frames
-.. |ol-averun|   replace:: |averun|: average a series of frames in a run
-.. |ol-cadd|     replace:: |cadd|: add a constant to a frame
-.. |ol-cdiv|     replace:: |cdiv|: divide a frame by a constant
-.. |ol-combine|  replace:: |combine|: combine a list of frames
-.. |ol-csub|     replace:: |csub|: subtract a constant from a frame
-.. |ol-div|      replace:: |div|: divide one frame by another
-.. |ol-genred|   replace:: |genred|: create a reduce file
-.. |ol-grab|     replace:: |grab|: split frames out of a run
-.. |ol-hfilter|  replace:: |hfilter|: filter a HiPERCAM image
-.. |ol-hist|     replace:: |hist|: plot a histogram of a frame
-.. |ol-hls|      replace:: |hls|: list the runs on the |hiper| server
-.. |ol-hplot|    replace:: |hplot|: plot a frame
-.. |ol-makebias| replace:: |makebias|: combine a run to make a bias frame
-.. |ol-makeflat| replace:: |makeflat|: combine a list of frames into a flat
-.. |ol-mstats|   replace:: |mstats|: list stats of multiple frames from a run
-.. |ol-mul|      replace:: |mul|: multiply two frames
-.. |ol-plog|     replace:: |plog|: plot output log from |reduce|
-.. |ol-reduce|   replace:: |reduce|: carry out photometric reduction
-.. |ol-rtplot|   replace:: |rtplot|: plot frames as they come in
-.. |ol-setaper|  replace:: |setaper|: define the photometric apertures
-.. |ol-setdefect| replace:: |setdefect|: define a file of CCD defects
-.. |ol-stats|    replace:: |stats|: report statistics of a frame
-.. |ol-sub|      replace:: |sub|: subtract two frames
-.. |ol-times|    replace:: |times|: list times of a run
-.. |ol-uls|      replace:: |uls|: list the runs on the ULTRACAM server
+.. |ol-add|      replace:: add two frames
+.. |ol-averun|   replace:: average a series of frames in a run
+.. |ol-cadd|     replace:: add a constant to a frame
+.. |ol-cdiv|     replace:: divide a frame by a constant
+.. |ol-combine|  replace:: combine a list of frames
+.. |ol-csub|     replace:: subtract a constant from a frame
+.. |ol-div|      replace:: divide one frame by another
+.. |ol-genred|   replace:: create a reduce file
+.. |ol-grab|     replace:: split frames out of a run
+.. |ol-hfilter|  replace:: filter a HiPERCAM image
+.. |ol-hist|     replace:: plot a histogram of a frame
+.. |ol-hls|      replace:: list the runs on the |hiper| server
+.. |ol-hplot|    replace:: plot a frame
+.. |ol-makebias| replace:: combine a run to make a bias frame
+.. |ol-makeflat| replace:: combine a list of frames into a flat
+.. |ol-mstats|   replace:: list stats of multiple frames from a run
+.. |ol-mul|      replace:: multiply two frames
+.. |ol-plog|     replace:: plot output log from |reduce|
+.. |ol-reduce|   replace:: carry out photometric reduction
+.. |ol-rtplot|   replace:: plot frames as they come in
+.. |ol-setaper|  replace:: define the photometric apertures
+.. |ol-setdefect| replace:: define a file of CCD defects
+.. |ol-stats|    replace:: report statistics of a frame
+.. |ol-sub|      replace:: subtract two frames
+.. |ol-times|    replace:: list times of a run
+.. |ol-uls|      replace:: list the runs on the ULTRACAM server
 
 .. highlightlang:: rest
 
@@ -57,64 +57,64 @@ list. The table also indicates contexts in which each command is particularly
 useful.
 
 .. table::
-   :widths: 30 10 10 10 10 10
+   :widths: 10 25 10 10 10 10 10
 
-   +--------------------+----------+----------+---------+-----------+------------+
-   | Command: purpose   |Observing |Reduction |Display& |Arithematic|Information | 
-   |                    |          |          |analysis |           |            |
-   +====================+==========+==========+=========+===========+============+
-   | |ol-add|           |          |          |         |   Yes     |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-averun|        | Yes      | Yes      |         |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-cadd|          |          |          |         |   Yes     |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-cdiv|          |          |          |         |   Yes     |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-combine|       | Yes      | Yes      |         |   Yes     |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-csub|          |          |          |         |   Yes     |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-div|           |          |          |         |   Yes     |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-genred|        | Yes      | Yes      |         |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-grab|          | Yes      | Yes      |         |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-hfilter|       |          |          |         |   Yes     |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-hist|          |          |          |  Yes    |           | Yes        |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-hls|           | Yes      |          |         |           | Yes        |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-hplot|         | Yes      | Yes      |  Yes    |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-makebias|      | Yes      | Yes      |         |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-makeflat|      |          | Yes      |         |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-mstats|        |          |          |         |           | Yes        |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-mul|           |          |          |         |   Yes     |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-plog|          | Yes      |          |  Yes    |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-reduce|        | Yes      | Yes      |         |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-rtplot|        | Yes      | Yes      |  Yes    |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-setaper|       | Yes      | Yes      |         |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-setdefect|     | Yes      |          |         |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-stats|         |          |          |         |           | Yes        |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-sub|           |          |          |         |   Yes     |            |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-times|         |          |          |         |           | Yes        |
-   +--------------------+----------+----------+---------+-----------+------------+
-   | |ol-uls|           | Yes      |          |         |           |            |
-   +--------------------+----------+----------+---------+-----------+------------+
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | Command      |Purpose         |Observing |Reduction |Plots &  |Arithematic|Information |
+   |              |                |          |          |analysis |           |            |
+   +==============+================+==========+==========+=========+===========+============+
+   | |add|        | |ol-add|       |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |averun|     | |ol-averun|    | Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |cadd|       | |ol-cadd|      |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |cdiv|       | |ol-cdiv|      |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |combine|    | |ol-combine|   | Yes      | Yes      |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |csub|       | |ol-csub|      |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |div|        | |ol-div|       |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |genred|     | |ol-genred|    | Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |grab|       | |ol-grab|      | Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |hfilter|    | |ol-hfilter|   |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |hist|       | |ol-hist|      |          |          |  Yes    |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |hls|        | |ol-hls|       | Yes      |          |         |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |hplot|      | |ol-hplot|     | Yes      | Yes      |  Yes    |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |makebias|   | |ol-makebias|  | Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |makeflat|   | |ol-makeflat|  |          | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |mstats|     | |ol-mstats|    |          |          |         |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |mul|        | |ol-mul|       |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |plog|       | |ol-plog|      | Yes      |          |  Yes    |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |reduce|     | |ol-reduce|    | Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |rtplot|     | |ol-rtplot|    | Yes      | Yes      |  Yes    |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |setaper|    | |ol-setaper|   | Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |setdefect|  | |ol-setdefect| | Yes      |          |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |stats|      | |ol-stats|     |          |          |         |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |sub|        | |ol-sub|       |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |times|      | |ol-times|     |          |          |         |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |uls|        | |ol-uls|       | Yes      |          |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
 
 .. _command-calling:
 
@@ -331,110 +331,32 @@ containing multiple images, stored in a .fits file. ``frame`` refers to a
 single image from a run as might be extracted using |grab|. These have file
 extension '.hcm'.
 
-|ol-add|:
-
-  .. autofunction:: hipercam.scripts.add
-
-|ol-averun|:
-
-  .. autofunction:: hipercam.scripts.averun
-
-|ol-cadd|:
-
-  .. autofunction:: hipercam.scripts.cadd
-
-|ol-cdiv|:
-
-  .. autofunction:: hipercam.scripts.cdiv
-
-|ol-combine|:
-
-  .. autofunction:: hipercam.scripts.combine
-
-|ol-csub|:
-
-  .. autofunction:: hipercam.scripts.csub
-
-|ol-div|:
-
-  .. autofunction:: hipercam.scripts.div
-
-|ol-genred|:
-
-  .. autofunction:: hipercam.scripts.genred
-
-|ol-grab|:
-
-  .. autofunction:: hipercam.scripts.grab
-
-|ol-hfilter|:
-
-  .. autofunction:: hipercam.scripts.hfilter
-
-|ol-hist|:
-
-
-  .. autofunction:: hipercam.scripts.hist
-
-|ol-hls|:
-
-  .. autofunction:: hipercam.scripts.hls
-
-|ol-hplot|:
-
-  .. autofunction:: hipercam.scripts.hplot
-
-|ol-makebias|:
-
-  .. autofunction:: hipercam.scripts.makebias
-
-|ol-makeflat|:
-
-  .. autofunction:: hipercam.scripts.makeflat
-
-|ol-mstats|:
-
-  .. autofunction:: hipercam.scripts.mstats
-
-|ol-mul|:
-
-  .. autofunction:: hipercam.scripts.mul
-
-|ol-plog|:
-
-  .. autofunction:: hipercam.scripts.plog
-
-|ol-reduce|:
-
-  .. autofunction:: hipercam.scripts.reduce
-
-|ol-rtplot|:
-
-  .. autofunction:: hipercam.scripts.rtplot
-
-|ol-setaper|:
-
-  .. autofunction:: hipercam.scripts.setaper
-
-|ol-setdefect|:
-
-  .. autofunction:: hipercam.scripts.setdefect
-
-|ol-stats|:
-
-  .. autofunction:: hipercam.scripts.stats
-
-|ol-sub|:
-
-  .. autofunction:: hipercam.scripts.sub
-
-|ol-times|:
-
-  .. autofunction:: hipercam.scripts.times
-
-|ol-uls|:
-
-  .. autofunction:: hipercam.scripts.uls
+.. autofunction:: hipercam.scripts.add
+.. autofunction:: hipercam.scripts.averun
+.. autofunction:: hipercam.scripts.cadd
+.. autofunction:: hipercam.scripts.cdiv
+.. autofunction:: hipercam.scripts.combine
+.. autofunction:: hipercam.scripts.csub
+.. autofunction:: hipercam.scripts.div
+.. autofunction:: hipercam.scripts.genred
+.. autofunction:: hipercam.scripts.grab
+.. autofunction:: hipercam.scripts.hfilter
+.. autofunction:: hipercam.scripts.hist
+.. autofunction:: hipercam.scripts.hls
+.. autofunction:: hipercam.scripts.hplot
+.. autofunction:: hipercam.scripts.makebias
+.. autofunction:: hipercam.scripts.makeflat
+.. autofunction:: hipercam.scripts.mstats
+.. autofunction:: hipercam.scripts.mul
+.. autofunction:: hipercam.scripts.plog
+.. autofunction:: hipercam.scripts.reduce
+.. autofunction:: hipercam.scripts.rtplot
+.. autofunction:: hipercam.scripts.setaper
+.. autofunction:: hipercam.scripts.setdefect
+.. autofunction:: hipercam.scripts.stats
+.. autofunction:: hipercam.scripts.sub
+.. autofunction:: hipercam.scripts.times
+.. autofunction:: hipercam.scripts.uls
 
 .. [#f1] Five other commands (``aligntool``, ``hlogger``, ``makefield``,
          ``makedata``, ``pfolder``) are not documented here as they are of

@@ -22,8 +22,9 @@ __all__ = ['genred',]
 ################################################
 
 def genred(args=None):
-    """``genred apfile rfile comment bias flat dark linear [ccd
-    smooth_fwhm fwhm fwhm_min rfac rmin rmax sinner souter]``
+    """``genred apfile rfile comment bias flat dark linear inst [ncpu extendx
+    ccd location smoothfwhm method beta betamax fwhm fwhmmin halfwidth thresh
+    heightmin rfac rmin rmax sinner souter scale]``
 
     Generates a reduce file as needed by `reduce`. You give it the name of an
     aperture file and a few other parameters and it will write out a reduce
@@ -38,7 +39,8 @@ def genred(args=None):
     very first time you use it on a run, specify 'prompt' on the command line
     to see all of these.  They are chosen to be the parameters most likely to
     vary with telescope or conditions; many others are left at default values
-    and require editing to change.
+    and require editing to change. If you find yourself repeatedly editing a
+    parameter, let me know and I will add it to this routine.
 
     Parameters:
 
@@ -92,9 +94,9 @@ def genred(args=None):
            label of the (single) CCD used for the position plot
 
         location : string [hidden]
-           whether to reposition aperturs or leave them fixed.
+           whether to reposition apertures or leave them fixed.
 
-        smooth_fwhm : float [hidden]
+        smoothfwhm : float [hidden]
            FWHM to use for smoothing during initial search
 
         method   : string
