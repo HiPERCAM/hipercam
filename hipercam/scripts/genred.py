@@ -26,7 +26,7 @@ def genred(args=None):
     ccd location smoothfwhm method beta betamax fwhm fwhmmin halfwidth thresh
     heightmin rfac rmin rmax sinner souter scale]``
 
-    Generates a reduce file as needed by `reduce`. You give it the name of an
+    Generates a reduce file as needed by |reduce|. You give it the name of an
     aperture file and a few other parameters and it will write out a reduce
     file which you can then refine by hand. A few simplifying assumptions are
     made, e.g. that the target is called '1'; see below for more. This script
@@ -35,8 +35,8 @@ def genred(args=None):
     apertures in CCD 5, it does not attempt to plot any corresponding light
     curves.
 
-    To avoid excessive prompting, `genred` has many hidden parameters. The
-    very first time you use it on a run, specify 'prompt' on the command line
+    To avoid excessive prompting, |genred| has many hidden parameters. The
+    very first time you use it on a run, specify ``prompt`` on the command line
     to see all of these.  They are chosen to be the parameters most likely to
     vary with telescope or conditions; many others are left at default values
     and require editing to change. If you find yourself repeatedly editing a
@@ -45,7 +45,7 @@ def genred(args=None):
     Parameters:
 
         apfile   : string
-           the input aperture file created using `setaper` (default extension
+           the input aperture file created using |setaper| (default extension
            .ape). This will be read for the targets. The main target will be
            assumed to have been called '1', the main comparison '2'. If there
            is a '3' it will be plotted relative to '2'; all others will be
@@ -55,7 +55,7 @@ def genred(args=None):
            is linked when target '2' will be used instead.
 
         rfile    : string
-           the output reduce file created using `setaper`. This will be read
+           the output reduce file created using |setaper|. This will be read
            for the targets. The main target will be assumed to have been
            called '1', the main comparison '2'. If there is a '3' it will be
            plotted relative to '2'; all others will be ignored for plotting

@@ -37,12 +37,12 @@
 ****************
 
 This page documents the pipeline commands which are all part of
-:mod:`hipercam.scripts`. Help on any given command can be obtained at
-the terminal using e.g. ``pydoc hipercam.scripts`` or ``pydoc
-hipercam.scripts.rtplot``. This is often the most useful way to get 
-information quickly. If you are new to the pipeline, it would be worth
-reading the :ref:`command-calling` section on how to call the pipeline
-commands and specify parameters.
+:mod:`hipercam.scripts`. Help on any given command can be obtained at the
+terminal using e.g. ``pydoc hipercam.scripts`` or ``pydoc
+hipercam.scripts.rtplot``. This is often the most useful way to get
+information quickly. If you are new to the pipeline, it would be worth reading
+the :ref:`command-calling` section on how to call the pipeline commands and
+specify parameters.
 
 .. contents:: Contents
    :local:
