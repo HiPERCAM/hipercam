@@ -310,7 +310,7 @@ warn = 1 60000 64000
         comm_position = '#' if location == 'fixed' else ''
 
         smooth_fwhm = cl.get_value(
-            'smoothfwhm','search smoothing FWHM [unbinned pixels]',6.,3.
+            'smoothfwhm','search smoothing FWHM [binned pixels]',6.,3.
         )
 
         profile_type = cl.get_value(
