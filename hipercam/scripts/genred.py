@@ -115,21 +115,23 @@ def genred(args=None):
         fwhmmin  : float [hidden]
            the default FWHM to use when fitting, unbinned pixels.
 
-        halfwidth : int [hidden]
-           half width in (binned) pixels for the target searches and
-           profile fits
+        searchwidth : int [hidden]
+           half width in (binned) pixels for the target searches
 
-        thresh     : float [hidden]
+        fitwidth : int [hidden]
+           half width in (binned) pixels for the profile fits
+
+        thresh : float [hidden]
            RMS rejection threshold for profile fits.
 
-        heightmin  : float [hidden]
+        heightmin : float [hidden]
            minimum peak height for a fit to be accepted
 
-        rfac     : float [hidden]
+        rfac : float [hidden]
            target aperture radius relative to the FWHM for 'variable' aperture
            photometry. Usual values 1.5 to 2.5.
 
-        rmin     : float [hidden]
+        rmin : float [hidden]
            minimum target aperture radius [unbinned pixels]
 
         rmax     : float [hidden]
@@ -246,14 +248,14 @@ warn = 5 50000 64000
             maxcpu = 5
         elif inst == 'ultracam':
             warn_levels = """# Warning levels for instrument = ULTRACAM
-warn = 1 28000 65500
-warn = 2 28000 65500
-warn = 3 50000 65500
+warn = 1 28000 64000
+warn = 2 28000 64000
+warn = 3 50000 64000
 """
             maxcpu = 3
         elif inst == 'ultraspec':
             warn_levels = """# Warning levels for instrument = ULTRASPEC
-warn = 1 65000 65500
+warn = 1 60000 64000
 """
             maxcpu = 1
 
@@ -325,8 +327,12 @@ warn = 1 65000 65500
             'fwhmmin','minimum FWHM, unbinned pixels',1.5,0.
         )
 
-        half_width = cl.get_value(
-            'halfwidth', 'half widths for search & fits, pixels', 21, 7
+        search_half_width = cl.get_value(
+            'searchwidth', 'half width for initial searches, unbinned pixels', 11, 3
+        )
+
+        fit_half_width = cl.get_value(
+            'fitwidth', 'half width for profile fits, unbinned pixels', 21, 5
         )
 
         thresh = cl.get_value(
@@ -556,8 +562,8 @@ warn = 1 65000 65500
                 hipercam_version=hipercam_version, location=location,
                 comm_seeing=comm_seeing, extendx=extendx,
                 comm_position=comm_position, scale=scale,
-                warn_levels=warn_levels, ncpu=ncpu, half_width=half_width,
-                profile_type=profile_type, height_min=height_min,
+                warn_levels=warn_levels, ncpu=ncpu, search_half_width=search_half_width,
+                fit_half_width=fit_half_width, profile_type=profile_type, height_min=height_min,
                 beta=beta, beta_max=beta_max, thresh=thresh
             )
         )
@@ -644,8 +650,7 @@ ncpu = {ncpu}
 aperfile   = {apfile}   # file of software apertures for each CCD
 location   = {location} # aperture locations: 'fixed' or 'variable'
 
-search_half_width_ref  = {half_width:d}   # for initial search around reference aperture, unbinned pixels
-search_half_width_non  = {half_width:d}    # for initial search around non-reference aperture, unbinned pixels
+search_half_width = {search_half_width:d} # for initial search for objects around previous position, unbinned pixels
 search_smooth_fwhm     = {smooth_fwhm:.1f}    # smoothing FWHM, binned pixels
 
 fit_method     = {profile_type}   # gaussian or moffat
@@ -653,9 +658,9 @@ fit_beta       = {beta:.1f}       # Moffat exponent
 fit_beta_max   = {beta_max:.1f}   # max Moffat expt for later fits
 fit_fwhm       = {fwhm:.1f}   # FWHM, unbinned pixels
 fit_fwhm_min   = {fwhm_min:.1f}   # Minimum FWHM, unbinned pixels
-fit_ndiv       = 0         # sub-pixellation factor
-fit_fwhm_fixed = no        # Slightly faster not to fit the FWHM.
-fit_half_width = {half_width:d}   # for fit, unbinned pixels
+fit_ndiv       = 0   # sub-pixellation factor
+fit_fwhm_fixed = no  # Might want to set = 'yes' for defocussed images
+fit_half_width = {fit_half_width:d}   # for fit, unbinned pixels
 fit_thresh     = {thresh:.2f}     # RMS rejection threshold for fits
 fit_height_min = {height_min:.1f} # minimum height to accept a fit
 
