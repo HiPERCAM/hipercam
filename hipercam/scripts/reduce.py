@@ -1728,6 +1728,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
     for apnam, aper in ccdaper.items():
 
         if aper.ref:
+
             if store[apnam]['fwhme'] <= 0.:
                 # Move failed reference fit to the mean shift
                 aper.x += xshift
@@ -1758,9 +1759,11 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     x,y,peak = swdata.find(apsec['search_smooth_fwhm'], False)
 
                 else:
-                    # simply apply the reference aperture mean shift
+                    # simply apply the reference aperture mean shift and
+                    # extract flux at nearest pixel
                     x = aper.x+xshift
                     y = aper.y+yshift
+                    peak = swdata.data[int(round(swdata.y_pixel(y))),int(round(swdata.y_pixel(x)))]
 
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
