@@ -1728,11 +1728,11 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
         if wxsum > 0. and wysum > 0.:
             xshift = xsum / wxsum
             yshift = ysum / wysum
-            print(
-                ('CCD {:s}, mean x,y shift from reference'
-                 ' aperture(s) = {:.2f}, {:.2f}').format(
-                     cnam, xshift, yshift)
-            )
+#            print(
+#                ('CCD {:s}, mean x,y shift from reference'
+#                 ' aperture(s) = {:.2f}, {:.2f}').format(
+#                     cnam, xshift, yshift)
+#            )
 
         else:
 
