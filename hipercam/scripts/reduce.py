@@ -49,7 +49,8 @@ def reduce(args=None):
     reduce is primarily configured from a file with extension ".red". This
     contains a series of directives, e.g. to say how to re-position and
     re-size the apertures. An initial reduce file is best generated with
-    the script |genred| after you have created an aperture file.
+    the script |genred| after you have created an aperture file. This contains
+    lots of help on what to do.
 
     A reduce run can be terminated at any point with ctrl-C without doing
     any harm. You may often want to do this at the start in order to adjust
@@ -661,7 +662,28 @@ def reduce(args=None):
 
                     # This is the very first OK data we have. There are a few
                     # things we do now on the assumption that all the data frames
-                    # will have the same format.
+                    # will have the same format. Begin by checking for some poor
+                    # settings
+                    xbin = ybin = 1
+                    for cnam in mccd:
+                        for wnam in mccd[cnam]:
+                            xbin = max(xbin, mccd[cnam][wnam].xbin)
+                            ybin = max(ybin, mccd[cnam][wnam].ybin)
+
+                    if rfile['apertures']['fit_half_width'] < 3*max(xbin, ybin):
+                        print(
+                            ("'** fit_half_width' < 3*max(xbin,ybin) ({:.1f} vs {:d}); profile fits"
+                             " will fail. Please increase its value in the reduce file.").format(
+                                rfile['apertures']['fit_half_width'], 3*max(xbin, ybin)
+                                ), file=sys.stderr)
+                        break
+
+                    elif rfile['apertures']['fit_half_width'] < 5*max(xbin,ybin):
+                        warnings.warn(
+                            ("'** fit_half_width' < 5*max(xbin,ybin) ({:.1f} vs {:d}) ==> small windows for"
+                             " profile fits. Advise increasing its value in the reduce file if possible.").format(
+                                rfile['apertures']['fit_half_width'], 5*max(xbin,ybin)
+                                ))
 
                     if  rfile['calibration']['crop']:
                         # Trim the calibrations, on the assumption that all
@@ -1193,8 +1215,7 @@ class Rfile(OrderedDict):
         # type conversions
         toBool(rfile,'apertures','fit_fwhm_fixed')
 
-        apsec['search_half_width_ref'] = int(apsec['search_half_width_ref'])
-        apsec['search_half_width_non'] = int(apsec['search_half_width_non'])
+        apsec['search_half_width'] = int(apsec['search_half_width'])
         apsec['search_smooth_fwhm'] = float(apsec['search_smooth_fwhm'])
         apsec['fit_fwhm'] = float(apsec['fit_fwhm'])
         apsec['fit_fwhm_min'] = float(apsec['fit_fwhm_min'])
@@ -1555,15 +1576,17 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
             }
         return
 
-    # first of all try to get a mean shift from the reference apertures.  we
-    # move any of these apertures that are fitted OK
+    # some initialisations
     xsum, ysum = 0., 0.
     wxsum, wysum = 0., 0.
     ref = False
-
-    # the next part is used to work out weighted mean FWHM and beta values
     fsum, wfsum = 0, 0
     bsum, wbsum = 0, 0
+    shbox = apsec['search_half_width']
+
+    # first of all try to get a mean shift from the reference apertures.  we
+    # move any of these apertures that are fitted OK the next part is used to
+    # work out weighted mean FWHM and beta values
     for apnam, aper in ccdaper.items():
         if aper.ref:
             ref = True
@@ -1579,7 +1602,6 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
             try:
                 # get sub-windat around start position
-                shbox = apsec['search_half_width_ref']
                 swdata = wdata.window(
                     aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
                 )
@@ -1616,10 +1638,11 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                                  apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
-                # check that x, y are in range
-                if fwdata.distance(x,y) < 0.5:
+                # check that x, y are in range of the original search box.
+                if swdata.distance(x,y) < 0.5:
                     raise hcam.HipercamError(
-                        'Fitted position ({:.1f},{:.1f}) too close or outside window = {!s}'.format(x,y,fwdata.winhead.format())
+                        'Fitted position ({:.1f},{:.1f}) too close to or beyond edge of search window = {!s}'.format(
+                            x,y,swdata.winhead.format())
                     )
 
                 if height > apsec['fit_height_min']:
@@ -1722,10 +1745,11 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
     # now go over all apertures except linked ones. reference
     # apertures are skipped except any that failed are shifted
-    # by the mean shift.
+    # by the mean shift just determined
     for apnam, aper in ccdaper.items():
 
         if aper.ref:
+
             if store[apnam]['fwhme'] <= 0.:
                 # Move failed reference fit to the mean shift
                 aper.x += xshift
@@ -1743,16 +1767,24 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
             try:
 
-                # get sub-window around start position
-                shbox = apsec['search_half_width_non']
-
+                # extract search sub-window around start position. If there were reference
+                # apertures this is only used to check that the position remains OK, but it
+                # should not be an expensive step
                 swdata = wdata.window(
                     aper.x+xshift-shbox, aper.x+xshift+shbox,
                     aper.y+yshift-shbox, aper.y+yshift+shbox
-                )
+                    )
 
-                # carry out initial search
-                x,y,peak = swdata.find(apsec['search_smooth_fwhm'], False)
+                if not ref:
+                    # if there were no reference apertures, we need to carry out a search
+                    x,y,peak = swdata.find(apsec['search_smooth_fwhm'], False)
+
+                else:
+                    # simply apply the reference aperture mean shift and
+                    # extract flux at nearest pixel
+                    x = aper.x+xshift
+                    y = aper.y+yshift
+                    peak = swdata.data[int(round(swdata.y_pixel(y))),int(round(swdata.x_pixel(x)))]
 
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
@@ -1776,7 +1808,6 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 fit_beta = min(fit_beta, apsec['fit_beta_max'])
 
                 # refine the Aperture position by fitting the profile
-
                 (sky, height, x, y, fwhm, beta), \
                     (esky, eheight, ex, ey, efwhm, ebeta), \
                     extras = \
@@ -1788,10 +1819,11 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                                  apsec['fit_thresh'], apsec['fit_ndiv']
                              )
 
-                # check that x, y are in range
-                if fwdata.distance(x,y) < 0.5:
+                # this is where the search window gets used.
+                if swdata.distance(x,y) < 0.5:
                     raise hcam.HipercamError(
-                        'Fitted position ({:.1f},{:.1f}) too close or outside window = {!s}'.format(x,y,fwdata.winhead.format())
+                        'Fitted position ({:.1f},{:.1f}) too close to or beyond edge of search window = {!s}'.format(
+                            x,y,swdata.winhead.format())
                     )
 
                 if height > apsec['fit_height_min']:
@@ -1837,8 +1869,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
             except hcam.HipercamError as err:
                 print(
-                    'CCD {:s}, aperture {:s}, fit failed'.format(
-                        cnam, apnam), file=sys.stderr
+                    'CCD {:s}, aperture {:s}, fit failed, error = {!s}'.format(
+                        cnam, apnam, err), file=sys.stderr
                 )
                 aper.x += xshift
                 aper.y += yshift

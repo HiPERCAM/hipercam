@@ -23,7 +23,7 @@ __all__ = ['genred',]
 
 def genred(args=None):
     """``genred apfile rfile comment bias flat dark linear inst [ncpu extendx
-    ccd location smoothfwhm method beta betamax fwhm fwhmmin halfwidth thresh
+    ccd location smoothfwhm method beta betamax fwhm fwhmmin searchwidth thresh
     heightmin rfac rmin rmax sinner souter scale]``
 
     Generates a reduce file as needed by |reduce|. You give it the name of an
@@ -115,21 +115,23 @@ def genred(args=None):
         fwhmmin  : float [hidden]
            the default FWHM to use when fitting, unbinned pixels.
 
-        halfwidth : int [hidden]
-           half width in (binned) pixels for the target searches and
-           profile fits
+        searchwidth : int [hidden]
+           half width in (binned) pixels for the target searches
 
-        thresh     : float [hidden]
+        fitwidth : int [hidden]
+           half width in (binned) pixels for the profile fits
+
+        thresh : float [hidden]
            RMS rejection threshold for profile fits.
 
-        heightmin  : float [hidden]
+        heightmin : float [hidden]
            minimum peak height for a fit to be accepted
 
-        rfac     : float [hidden]
+        rfac : float [hidden]
            target aperture radius relative to the FWHM for 'variable' aperture
            photometry. Usual values 1.5 to 2.5.
 
-        rmin     : float [hidden]
+        rmin : float [hidden]
            minimum target aperture radius [unbinned pixels]
 
         rmax     : float [hidden]
@@ -140,6 +142,12 @@ def genred(args=None):
 
         souter   : float [hidden]
            outer sky aperture radius [unbinned pixels]
+
+        readout : float | string [hidden]
+           readout noise, RMS ADU. Can either be a single value or an hcm file.
+
+        gain : float [hidden]
+           gain, electrons per ADU. Can either be a single value or an hcm file.
 
         scale    : float [hidden]
            image scale in arcsec/pixel
@@ -171,7 +179,8 @@ def genred(args=None):
         cl.register('smoothfwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhmmin', Cline.LOCAL, Cline.HIDE)
-        cl.register('halfwidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('searchwidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('fitwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('thresh', Cline.LOCAL, Cline.HIDE)
         cl.register('heightmin', Cline.LOCAL, Cline.HIDE)
         cl.register('rfac', Cline.LOCAL, Cline.HIDE)
@@ -179,6 +188,8 @@ def genred(args=None):
         cl.register('rmax', Cline.LOCAL, Cline.HIDE)
         cl.register('sinner', Cline.LOCAL, Cline.HIDE)
         cl.register('souter', Cline.LOCAL, Cline.HIDE)
+        cl.register('readout', Cline.LOCAL, Cline.HIDE)
+        cl.register('gain', Cline.LOCAL, Cline.HIDE)
         cl.register('scale', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
@@ -246,14 +257,14 @@ warn = 5 50000 64000
             maxcpu = 5
         elif inst == 'ultracam':
             warn_levels = """# Warning levels for instrument = ULTRACAM
-warn = 1 28000 65500
-warn = 2 28000 65500
-warn = 3 50000 65500
+warn = 1 28000 64000
+warn = 2 28000 64000
+warn = 3 50000 64000
 """
             maxcpu = 3
         elif inst == 'ultraspec':
             warn_levels = """# Warning levels for instrument = ULTRASPEC
-warn = 1 65000 65500
+warn = 1 60000 64000
 """
             maxcpu = 1
 
@@ -299,7 +310,7 @@ warn = 1 65000 65500
         comm_position = '#' if location == 'fixed' else ''
 
         smooth_fwhm = cl.get_value(
-            'smoothfwhm','search smoothing FWHM [unbinned pixels]',6.,3.
+            'smoothfwhm','search smoothing FWHM [binned pixels]',6.,3.
         )
 
         profile_type = cl.get_value(
@@ -325,8 +336,12 @@ warn = 1 65000 65500
             'fwhmmin','minimum FWHM, unbinned pixels',1.5,0.
         )
 
-        half_width = cl.get_value(
-            'halfwidth', 'half widths for search & fits, pixels', 21, 7
+        search_half_width = cl.get_value(
+            'searchwidth', 'half width for initial searches, unbinned pixels', 11, 3
+        )
+
+        fit_half_width = cl.get_value(
+            'fitwidth', 'half width for profile fits, unbinned pixels', 21, 5
         )
 
         thresh = cl.get_value(
@@ -356,6 +371,15 @@ warn = 1 65000 65500
 
         souter = cl.get_value(
             'souter','outer sky aperture radius [unbinned pixels]',50.,sinner+1
+        )
+
+
+        readout = cl.get_value(
+            'readout', 'readout noise, RMS ADU (float or file name)', '4.5'
+        )
+
+        gain = cl.get_value(
+            'gain', 'gain, electrons/ADU, (float or file name)', '1.1'
         )
 
         scale = cl.get_value(
@@ -494,7 +518,7 @@ warn = 1 65000 65500
 
     # Generate the seeing plot lines
     seeing_plot = ''
-    no_seeing = True 
+    no_seeing = True
     for cnam in aper:
         ccdaper = aper[cnam]
         if '1' in ccdaper and not ccdaper['1'].is_linked():
@@ -556,9 +580,9 @@ warn = 1 65000 65500
                 hipercam_version=hipercam_version, location=location,
                 comm_seeing=comm_seeing, extendx=extendx,
                 comm_position=comm_position, scale=scale,
-                warn_levels=warn_levels, ncpu=ncpu, half_width=half_width,
-                profile_type=profile_type, height_min=height_min,
-                beta=beta, beta_max=beta_max, thresh=thresh
+                warn_levels=warn_levels, ncpu=ncpu, search_half_width=search_half_width,
+                fit_half_width=fit_half_width, profile_type=profile_type, height_min=height_min,
+                beta=beta, beta_max=beta_max, thresh=thresh, readout=readout, gain=gain
             )
         )
 
@@ -574,14 +598,14 @@ warn = 1 65000 65500
 #################################################################
 
 TEMPLATE = """#
-# This is a HiPERCAM "reduce file" which defines the operation of the
-# reduce script. It was written by the HiPERCAM pipeline command 'genred'.
-# It consists of a series of sections each of which contains a number of
-# parameters. The file is self-documenting on the meaning of these
+# This is a HiPERCAM "reduce file" which defines the operation
+# of the reduce script. It was written by the HiPERCAM pipeline command
+# 'genred'.  It consists of a series of sections each of which contains a
+# number of parameters. The file is self-documenting on the meaning of these
 # parameters. The idea is that these are to large extent unchanging and it
-# would be annoying to be prompted every time for them, but it also acts as
-# a record of how reduction was carried out and is fed into the log file
-# produce by 'reduce'.
+# would be annoying to be prompted every time for them, but it also acts as a
+# record of how reduction was carried out and is fed into the log file produce
+# by 'reduce'.
 #
 # File written on {tstamp}
 #
@@ -599,64 +623,75 @@ TEMPLATE = """#
 # 'git'.
 
 [general]
-version   = {version}  # must be compatible with the version in reduce
+version = {version} # must be compatible with the version in reduce
 
-ldevice  = 1/xs  # PGPLOT plot device for light curve plots
-lwidth   = 0     # light curve plot width, inches, 0 to let program choose
-lheight  = 0     # light curve plot height, inches
+ldevice = 1/xs # PGPLOT plot device for light curve plots
+lwidth = 0 # light curve plot width, inches, 0 to let program choose
+lheight = 0 # light curve plot height, inches
 
-idevice  = 2/xs  # PGPLOT plot device for image plots [if implot True]
-iwidth   = 0     # image curve plot width, inches, 0 to let program choose
-iheight  = 0     # image curve plot height, inches
+idevice = 2/xs # PGPLOT plot device for image plots [if implot True]
+iwidth = 0 # image curve plot width, inches, 0 to let program choose
+iheight = 0 # image curve plot height, inches
 
-# series of count levels at which warnings will be triggered for
-# (a) non linearity and (b) saturation. Each line starts 'warn =',
-# and is then followed by the CCD label, the non-linearity level
-# and the saturation level
+# series of count levels at which warnings will be triggered for (a) non
+# linearity and (b) saturation. Each line starts 'warn =', and is then
+# followed by the CCD label, the non-linearity level and the saturation level
 
 {warn_levels}
 
 # The aperture reposition and extraction stages can be run in separate CPUs in
 # parallel for each CCD. The next parameter is the number of CPUs to use. The
 # maximum useful number is the number of CCDs in the instrument, e.g. 5 for
-# HiPERCAM. You probably also want to leave at leat one CPU to do other stuff,
-# but if you have more than 2 CPUs, this parameter may help speed things a
-# little.
+# HiPERCAM. You probably also want to leave at least one CPU to do other stuff,
+# but if you have more than 2 CPUs, this parameter may help speed things.
 ncpu = {ncpu}
 
 # The next section defines how the apertures are re-positioned from frame to
 # frame. Apertures are re-positioned through a combination of a search near a
-# start location followed by a 2D fit. Several parameters below are associated
-# with this process. If there are reference apertures, they are located first
-# to give a mean shift. The search on non-reference apertures can then be
-# tightened. If the aperture are chosen to be fixed, there will be no search
-# or fit carried out in which case you must choose 'fixed' as well when it
-# comes the extraction since otherwise it needs a FWHM. The most obscure
-# parameter below is probably 'fit_ndiv'. If this is made > 0, the fit routine
-# attempts to allow for pixellation by evaluating the profile at multiple
-# point in each pixel of the fit. First it will evaluate the profile for every
-# unbinned pixel with a binned pixel if the pixels are binned; second, it will
-# evaluate the profile over an ndiv by ndiv square grid within each unbinned
-# pixel. Obviously this will slow things, but it could help if your images are
-# under-sampled.
+# start location followed by a 2D profile fit. Several parameters below are
+# associated with this process and setting these right can be the key to a
+# successful reduction. If there are reference apertures, they are located
+# first to give a mean shift. This is used to bypass the initial search on any
+# non-reference apertures. The search is carried out by first extracting a
+# square sub-window centred on the last good position of a target. This is
+# then smoothed by a gaussian, and the peak is taken as the initial position
+# for later profile fits. The gaussian should have a width comparable to the
+# targets FWHM and is to make the process more robust against cosmic rays. The
+# width of the search box depends on how good the telescope guiding is. In
+# particular if at some point there is a sudden jump in position, the box may
+# have to be large enough to cope. Well-chosen reference targets, which above
+# all should be isolated, can help this process a great deal. The boxes for
+# the fits need to be large enough to include the target and a bit of sky to
+# ensure that the FWHM is accurately measured. Remember that seeing can flare
+# of course. If your target was defocussed, a gaussian or Moffat function will
+# be a poor fit and you may be better keeping the FWHM fixed at a large value
+# comparable to the widths of your defeoccused images. If the apertures are
+# chosen to be fixed, there will be no search or fit carried out in which case
+# you must choose 'fixed' as well when it comes the extraction since otherwise
+# it needs a FWHM. The most obscure parameter below is probably 'fit_ndiv'. If
+# this is made > 0, the fit routine attempts to allow for pixellation by
+# evaluating the profile at multiple point in each pixel of the fit. First it
+# will evaluate the profile for every unbinned pixel with a binned pixel if
+# the pixels are binned; second, it will evaluate the profile over an ndiv by
+# ndiv square grid within each unbinned pixel. Obviously this will slow
+# things, but it could help if your images are under-sampled.
 
 [apertures]
-aperfile   = {apfile}   # file of software apertures for each CCD
-location   = {location} # aperture locations: 'fixed' or 'variable'
+aperfile = {apfile} # file of software apertures for each CCD
+location = {location} # aperture locations: 'fixed' or 'variable'
 
-search_half_width_ref  = {half_width:d}   # for initial search around reference aperture, unbinned pixels
-search_half_width_non  = {half_width:d}    # for initial search around non-reference aperture, unbinned pixels
-search_smooth_fwhm     = {smooth_fwhm:.1f}    # smoothing FWHM, binned pixels
+search_half_width = {search_half_width:d} # for initial search for objects around previous position, unbinned pixels
+search_smooth_fwhm = {smooth_fwhm:.1f}    # smoothing FWHM, binned pixels
 
-fit_method     = {profile_type}   # gaussian or moffat
-fit_beta       = {beta:.1f}       # Moffat exponent
-fit_beta_max   = {beta_max:.1f}   # max Moffat expt for later fits
-fit_fwhm       = {fwhm:.1f}   # FWHM, unbinned pixels
-fit_fwhm_min   = {fwhm_min:.1f}   # Minimum FWHM, unbinned pixels
-fit_ndiv       = 0         # sub-pixellation factor
-fit_fwhm_fixed = no        # Slightly faster not to fit the FWHM.
-fit_half_width = {half_width:d}   # for fit, unbinned pixels
-fit_thresh     = {thresh:.2f}     # RMS rejection threshold for fits
+fit_method = {profile_type} # gaussian or moffat
+fit_beta = {beta:.1f} # Moffat exponent
+fit_beta_max = {beta_max:.1f} # max Moffat expt for later fits
+fit_fwhm = {fwhm:.1f} # FWHM, unbinned pixels
+fit_fwhm_min = {fwhm_min:.1f} # Minimum FWHM, unbinned pixels
+fit_ndiv = 0 # sub-pixellation factor
+fit_fwhm_fixed = no # Might want to set = 'yes' for defocussed images
+fit_half_width = {fit_half_width:d} # for fit, unbinned pixels
+fit_thresh = {thresh:.2f} # RMS rejection threshold for fits
 fit_height_min = {height_min:.1f} # minimum height to accept a fit
 
 # The next lines define how the apertures will be re-sized and how the flux
@@ -678,8 +713,8 @@ fit_height_min = {height_min:.1f} # minimum height to accept a fit
 # aperture radius, the inner sky radius and finally the outer sky radius. The
 # mininum and maximum also apply if you choose 'fixed' apertures and can be
 # used to override whatever value comes from the aperture file. A common
-# approach is set them equal to each other to give a fixed value, especially for
-# the sky where one does not necessarily want the radii to vary.
+# approach is set them equal to each other to give a fixed value, especially
+# for the sky where one does not necessarily want the radii to vary.
 
 [extraction]
 {extraction}
@@ -687,22 +722,21 @@ fit_height_min = {height_min:.1f} # minimum height to accept a fit
 # Next lines determine how the sky background level is calculated. Note
 # you can only set error = variance if method = 'clipped'. 'median' should
 # usually be avoided as it can cause noticable steps in light curves. It's
-# here as a comparator. 
+# here as a comparator.
 
 [sky]
-method = clipped    # 'clipped' | 'median'
-error  = variance   # 'variance' | 'photon': first uses actual variance of sky
-thresh = 3.         # threshold in terms of RMS for 'clipped'
+method = clipped # 'clipped' | 'median'
+error  = variance # 'variance' | 'photon': first uses actual variance of sky
+thresh = 3. # threshold in terms of RMS for 'clipped'
 
 # Calibration frames and constants
 [calibration]
-crop = yes    # Crop calibrations to match the data
-bias = {bias}    # Bias frame, blank to ignore
-flat = {flat}    # Flat field frame, blank to ignore
-dark = {dark}    # Dark frame, blank to ignore
-readout = 3.  # RMS ADU. Float or string name of a file
-gain = 1.     # Gain, electrons/ADU. Float or string name of a file
-
+crop = yes # Crop calibrations to match the data
+bias = {bias} # Bias frame, blank to ignore
+flat = {flat} # Flat field frame, blank to ignore
+dark = {dark} # Dark frame, blank to ignore
+readout = {readout} # RMS ADU. Float or string name of a file
+gain = {gain} # Gain, electrons/ADU. Float or string name of a file
 
 # The light curve plot which consists of light curves, X & Y poistions,
 # the transmission and seeing. All but the light curves can be switched
@@ -710,8 +744,8 @@ gain = 1.     # Gain, electrons/ADU. Float or string name of a file
 # parameters.
 
 [lcplot]
-xrange  = 0    # maximum range in X to plot (minutes), <= 0 for everything
-extend_x = {extendx:.2f}  # amount by which to extend xrange, minutes.
+xrange  = 0 # maximum range in X to plot (minutes), <= 0 for everything
+extend_x = {extendx:.2f} # amount by which to extend xrange, minutes.
 
 # The light curve panel (must be present). Mostly obvious, then a series of
 # lines, each starting 'plot' which specify one light curve to be plotted
@@ -722,10 +756,10 @@ extend_x = {extendx:.2f}  # amount by which to extend xrange, minutes.
 # defined to have unit height and all others are scaled relative to this.
 
 [light]
-linear  = {linear}  # linear vertical scale (else magnitudes): 'yes' or 'no'
-y_fixed = no   # keep a fixed vertical range or not: 'yes' or 'no'
-y1 = 0         # initial lower y value
-y2 = 0         # initial upper y value. y1=y2 for auto scaling
+linear  = {linear} # linear vertical scale (else magnitudes): 'yes' or 'no'
+y_fixed = no # keep a fixed vertical range or not: 'yes' or 'no'
+y1 = 0 # initial lower y value
+y2 = 0 # initial upper y value. y1=y2 for auto scaling
 extend_y = 0.1 # fraction of plot height to extend when rescaling
 
 # line or lines defining the targets to plot
@@ -737,14 +771,14 @@ extend_y = 0.1 # fraction of plot height to extend when rescaling
 # have multiple plot lines.
 
 {comm_position}[position]
-{comm_position}height  = 0.5    # height relative to light curve plot
-{comm_position}x_fixed = no     # keep X-position vertical range fixed
-{comm_position}x_min   = -5     # lower limit for X-position
-{comm_position}x_max   = +5     # upper limit for X-position
-{comm_position}y_fixed = no     # keep Y-position vertical range fixed
-{comm_position}y_min   = -5     # lower limit for Y-position
-{comm_position}y_max   = +5     # upper limit for Y-position
-{comm_position}extend_y = 0.2  # Vertical extension fraction if limits exceeded
+{comm_position}height = 0.5 # height relative to light curve plot
+{comm_position}x_fixed = no # keep X-position vertical range fixed
+{comm_position}x_min = -5 # lower limit for X-position
+{comm_position}x_max = +5 # upper limit for X-position
+{comm_position}y_fixed = no # keep Y-position vertical range fixed
+{comm_position}y_min = -5 # lower limit for Y-position
+{comm_position}y_max = +5 # upper limit for Y-position
+{comm_position}extend_y = 0.2 # Vertical extension fraction if limits exceeded
 
 # line or lines defining the targets to plot
 {position_plot}
@@ -757,8 +791,8 @@ extend_y = 0.1 # fraction of plot height to extend when rescaling
 # cloud clears).
 
 [transmission]
-height = 0.5      # height relative to the light curve plot
-ymax   = 110      # Maximum transmission to plot (>= 100 to slow replotting)
+height = 0.5 # height relative to the light curve plot
+ymax = 110 # Maximum transmission to plot (>= 100 to slow replotting)
 
 # line or lines defining the targets to plot
 {transmission_plot}
@@ -769,10 +803,10 @@ ymax   = 110      # Maximum transmission to plot (>= 100 to slow replotting)
 # measured.
 
 {comm_seeing}[seeing]
-{comm_seeing}height = 0.5   # height relative to the light curve plot
-{comm_seeing}ymax = 1.999   # Initial maximum seeing
-{comm_seeing}y_fixed = no   # fix the seeing scale (or not)
-{comm_seeing}scale = {scale:.2f}  # Arcsec per unbinned pixel
+{comm_seeing}height = 0.5 # height relative to the light curve plot
+{comm_seeing}ymax = 1.999 # Initial maximum seeing
+{comm_seeing}y_fixed = no # fix the seeing scale (or not)
+{comm_seeing}scale = {scale:.2f} # Arcsec per unbinned pixel
 {comm_seeing}extend_y = 0.2 # Y extension fraction if out of range and not fixed
 
 # line or lines defining the targets to plot
