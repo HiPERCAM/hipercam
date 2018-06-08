@@ -23,7 +23,7 @@ __all__ = ['genred',]
 
 def genred(args=None):
     """``genred apfile rfile comment bias flat dark linear inst [ncpu extendx
-    ccd location smoothfwhm method beta betamax fwhm fwhmmin halfwidth thresh
+    ccd location smoothfwhm method beta betamax fwhm fwhmmin searchwidth thresh
     heightmin rfac rmin rmax sinner souter scale]``
 
     Generates a reduce file as needed by |reduce|. You give it the name of an
@@ -179,7 +179,8 @@ def genred(args=None):
         cl.register('smoothfwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhmmin', Cline.LOCAL, Cline.HIDE)
-        cl.register('halfwidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('searchwidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('fitwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('thresh', Cline.LOCAL, Cline.HIDE)
         cl.register('heightmin', Cline.LOCAL, Cline.HIDE)
         cl.register('rfac', Cline.LOCAL, Cline.HIDE)
@@ -517,7 +518,7 @@ warn = 1 60000 64000
 
     # Generate the seeing plot lines
     seeing_plot = ''
-    no_seeing = True 
+    no_seeing = True
     for cnam in aper:
         ccdaper = aper[cnam]
         if '1' in ccdaper and not ccdaper['1'].is_linked():
@@ -721,7 +722,7 @@ fit_height_min = {height_min:.1f} # minimum height to accept a fit
 # Next lines determine how the sky background level is calculated. Note
 # you can only set error = variance if method = 'clipped'. 'median' should
 # usually be avoided as it can cause noticable steps in light curves. It's
-# here as a comparator. 
+# here as a comparator.
 
 [sky]
 method = clipped # 'clipped' | 'median'
