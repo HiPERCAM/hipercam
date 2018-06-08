@@ -662,7 +662,28 @@ def reduce(args=None):
 
                     # This is the very first OK data we have. There are a few
                     # things we do now on the assumption that all the data frames
-                    # will have the same format.
+                    # will have the same format. Begin by checking for some poor
+                    # settings
+                    xbin = ybin = 1
+                    for cnam in mccd:
+                        for wnam in mccd[cnam]:
+                            xbin = max(xbin, mccd[cnam][wnam].xbin)
+                            ybin = max(ybin, mccd[cnam][wnam].ybin)
+
+                    if rfile['apertures']['fit_half_width'] < 3*max(xbin, ybin):
+                        print(
+                            ("'** fit_half_width' < 3*max(xbin,ybin) ({:.1f} vs {:d}); profile fits"
+                             " will fail. Please increase its value in the reduce file.").format(
+                                rfile['apertures']['fit_half_width'], 3*max(xbin, ybin)
+                                ), file=sys.stderr)
+                        break
+
+                    elif rfile['apertures']['fit_half_width'] < 5*max(xbin,ybin):
+                        warnings.warn(
+                            ("'** fit_half_width' < 5*max(xbin,ybin) ({:.1f} vs {:d}) ==> small windows for"
+                             " profile fits. Advise increasing its value in the reduce file if possible.").format(
+                                rfile['apertures']['fit_half_width'], 5*max(xbin,ybin)
+                                ))
 
                     if  rfile['calibration']['crop']:
                         # Trim the calibrations, on the assumption that all
@@ -1787,7 +1808,6 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 fit_beta = min(fit_beta, apsec['fit_beta_max'])
 
                 # refine the Aperture position by fitting the profile
-
                 (sky, height, x, y, fwhm, beta), \
                     (esky, eheight, ex, ey, efwhm, ebeta), \
                     extras = \
