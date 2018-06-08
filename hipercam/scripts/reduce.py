@@ -1763,7 +1763,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     # extract flux at nearest pixel
                     x = aper.x+xshift
                     y = aper.y+yshift
-                    peak = swdata.data[int(round(swdata.y_pixel(y))),int(round(swdata.y_pixel(x)))]
+                    peak = swdata.data[int(round(swdata.y_pixel(y))),int(round(swdata.x_pixel(x)))]
 
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
