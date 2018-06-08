@@ -654,8 +654,8 @@ def reduce(args=None):
                     end='' if implot else '\n'
                 )
 
-                if not mccd.head['GOODTIME']:
-                    continue
+                #if not mccd.head['GOODTIME']:
+                #    continue
 
                 if not tzset:
 
@@ -1619,7 +1619,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 # check that x, y are in range
                 if fwdata.distance(x,y) < 0.5:
                     raise hcam.HipercamError(
-                        'Fitted position ({:.1f},{:.1f}) too close or outside window = {!s}'.format(x,y,fwdata.winhead())
+                        'Fitted position ({:.1f},{:.1f}) too close or outside window = {!s}'.format(x,y,fwdata.winhead.format())
                     )
 
                 if height > apsec['fit_height_min']:
@@ -1791,7 +1791,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 # check that x, y are in range
                 if fwdata.distance(x,y) < 0.5:
                     raise hcam.HipercamError(
-                        'Fitted position ({:.1f},{:.1f}) too close or outside window = {!s}'.format(x,y,fwdata.winhead())
+                        'Fitted position ({:.1f},{:.1f}) too close or outside window = {!s}'.format(x,y,fwdata.winhead.format())
                     )
 
                 if height > apsec['fit_height_min']:
