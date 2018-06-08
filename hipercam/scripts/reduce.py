@@ -1621,7 +1621,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 if swdata.distance(x,y) < 0.5:
                     raise hcam.HipercamError(
                         'Fitted position ({:.1f},{:.1f}) too close to or beyond edge of search window = {!s}'.format(
-                            x,y,fwdata.winhead.format())
+                            x,y,swdata.winhead.format())
                     )
 
                 if height > apsec['fit_height_min']:
@@ -1803,7 +1803,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 if swdata.distance(x,y) < 0.5:
                     raise hcam.HipercamError(
                         'Fitted position ({:.1f},{:.1f}) too close to or beyond edge of search window = {!s}'.format(
-                            x,y,fwdata.winhead.format())
+                            x,y,swdata.winhead.format())
                     )
 
                 if height > apsec['fit_height_min']:
