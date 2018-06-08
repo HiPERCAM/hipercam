@@ -49,7 +49,8 @@ def reduce(args=None):
     reduce is primarily configured from a file with extension ".red". This
     contains a series of directives, e.g. to say how to re-position and
     re-size the apertures. An initial reduce file is best generated with
-    the script |genred| after you have created an aperture file.
+    the script |genred| after you have created an aperture file. This contains
+    lots of help on what to do.
 
     A reduce run can be terminated at any point with ctrl-C without doing
     any harm. You may often want to do this at the start in order to adjust

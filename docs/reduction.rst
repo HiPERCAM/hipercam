@@ -183,6 +183,30 @@ field file. You should experiment with changing settings such as the
 extraction lines and aperture re-position section to get a feel for the
 different parameters.
 
+The two keys elements to get right in the reduction files are the sections
+concerning how the apertures are re-located and the extraction. The former is
+the trickier one. The apertures are re-located in a two-step process. First a
+search is made in a square box centred on the last position measured for a
+given target. The size of this box (``search_half_width``) is important. If it
+too small, your target may jump beyond it and the reduction is likely to fail
+as that will set an error condition and the target may never be recovered. On
+the other hand too large, and you could easily end up jumping to a nearby
+object. (The search identifies the brightest target in the box after gaussian
+smoothing to reduce the effects of cosmic rays.) This is where rerence targets
+come in. A well chosen reference target (bright, in an isolated region), can
+allow you to set a relatively large search box, robust against large
+jumps. The shifts from the reference targets are used to place the profile fit
+boxes and avoid the need to searches over non-reference targets. This can be a
+great help on faint targets. The main decision on extraction are variable or
+fixed apertures (usually recommend variable), optimal or normal extraction
+(usually recommend normal), and the various aperture radii. It is recommended
+to plot the images in reduce at least once zoomed in on your target to get a
+feel for this. Depending on circumstances, significant improvments to the
+photometry can be made with careful choices on these parameters; do not assume
+that the file produced by |genred| is in any way the last word; there is no
+automatic way to come up with the ideal choices which depend upon the nature
+of the field and conditions.
+
 Plotting results
 ================
 
