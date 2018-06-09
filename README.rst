@@ -90,9 +90,9 @@ created at step ** above and type ``git pull`` and then re-install.
 
 For more information see:
 
-  * `The documentation
-    <http://deneb.astro.warwick.ac.uk/phsaap/hipercam/docs/html/>`
+  * ``The documentation
+    <http://deneb.astro.warwick.ac.uk/phsaap/hipercam/docs/html/>``
 
-  * `github repository <https://github.com/HiPERCAM/hipercam>`
+  * ``github repository <https://github.com/HiPERCAM/hipercam>``
 
 Tom Marsh
