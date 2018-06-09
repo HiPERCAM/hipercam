@@ -354,7 +354,7 @@ warn = 1 60000 64000
         )
 
         fit_max_shift = cl.get_value(
-            'maxshift', 'maximum non-reference shift, unbinned pixels', 5, 0
+            'maxshift', 'maximum non-reference shift, unbinned pixels', 15, 0
         )
 
         thresh = cl.get_value(
