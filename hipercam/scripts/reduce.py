@@ -1239,6 +1239,7 @@ class Rfile(OrderedDict):
         apsec['fit_half_width'] = int(apsec['fit_half_width'])
         apsec['fit_thresh'] = float(apsec['fit_thresh'])
         apsec['fit_height_min'] = float(apsec['fit_height_min'])
+        apsec['fit_max_shift'] = float(apsec['fit_max_shift'])
 
         #
         # calibration section
@@ -1728,11 +1729,6 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
         if wxsum > 0. and wysum > 0.:
             xshift = xsum / wxsum
             yshift = ysum / wysum
-#            print(
-#                ('CCD {:s}, mean x,y shift from reference'
-#                 ' aperture(s) = {:.2f}, {:.2f}').format(
-#                     cnam, xshift, yshift)
-#            )
 
         else:
 
@@ -1748,7 +1744,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     }
 
             print(
-                'CCD {:s}: no reference aperture fit was successful; skipping'.format(
+                ('CCD {:s}: no reference aperture '
+                 'fit was successful; skipping').format(
                     cnam), file=sys.stderr
             )
             return
@@ -1781,23 +1778,24 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
             try:
 
-                # extract search sub-window around start position. If there were reference
-                # apertures this is only used to check that the position remains OK, but it
-                # should not be an expensive step
+                # extract search sub-window around start position. If there
+                # were reference apertures this is only used to check that the
+                # position remains OK, but it should not be an expensive step
                 swdata = wdata.window(
                     aper.x+xshift-shbox, aper.x+xshift+shbox,
                     aper.y+yshift-shbox, aper.y+yshift+shbox
                     )
 
                 if not ref:
-                    # if there were no reference apertures, we need to carry out a search
+                    # if there were no reference apertures, we need to carry
+                    # out a search
                     x,y,peak = swdata.find(apsec['search_smooth_fwhm'], False)
 
                 else:
                     # simply apply the reference aperture mean shift and
                     # extract flux at nearest pixel
-                    x = aper.x+xshift
-                    y = aper.y+yshift
+                    xold = x = aper.x+xshift
+                    yold = y = aper.y+yshift
                     peak = swdata.data[int(round(swdata.y_pixel(y))),int(round(swdata.x_pixel(x)))]
 
                 # now for a more refined fit. First extract fit Window
@@ -1838,6 +1836,16 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     raise hcam.HipercamError(
                         'Fitted position ({:.1f},{:.1f}) too close to or beyond edge of search window = {!s}'.format(
                             x,y,swdata.winhead.format())
+                    )
+
+                # check for overly large shifts in the case that we have
+                # reference apertures
+                if ref and np.sqrt((x-xold)**2+(y-yold)**2) > apsec['fit_max_shift']:
+                    raise hcam.HipercamError(
+                        ('Position of non-reference aperture shifted by '
+                         '{:.1f} which exceeds fit_max_shift = {:.1f}').format(
+                             np.sqrt((x-xold)**2+(y-yold)**2),
+                             apsec['fit_max_shift'])
                     )
 
                 if height > apsec['fit_height_min']:

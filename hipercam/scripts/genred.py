@@ -121,6 +121,14 @@ def genred(args=None):
         fitwidth : int [hidden]
            half width in (binned) pixels for the profile fits
 
+        maxshift : float [hidden]
+           maximum shift of non-reference targets relative to the initial
+           positions derived from the reference targets. The reference targets
+           should give good initial positions, thus this can be set to quite a
+           small value to improve robustness against duff positions, caused
+           e.g. by cosmic rays or field crowding in periods of bad seeing. Use
+           linked apertures for more difficult cases still.
+
         thresh : float [hidden]
            RMS rejection threshold for profile fits.
 
@@ -181,6 +189,7 @@ def genred(args=None):
         cl.register('fwhmmin', Cline.LOCAL, Cline.HIDE)
         cl.register('searchwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('fitwidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('maxshift', Cline.LOCAL, Cline.HIDE)
         cl.register('thresh', Cline.LOCAL, Cline.HIDE)
         cl.register('heightmin', Cline.LOCAL, Cline.HIDE)
         cl.register('rfac', Cline.LOCAL, Cline.HIDE)
@@ -342,6 +351,10 @@ warn = 1 60000 64000
 
         fit_half_width = cl.get_value(
             'fitwidth', 'half width for profile fits, unbinned pixels', 21, 5
+        )
+
+        fit_max_shift = cl.get_value(
+            'maxshift', 'maximum non-reference shift, unbinned pixels', 5, 0
         )
 
         thresh = cl.get_value(
@@ -580,9 +593,12 @@ warn = 1 60000 64000
                 hipercam_version=hipercam_version, location=location,
                 comm_seeing=comm_seeing, extendx=extendx,
                 comm_position=comm_position, scale=scale,
-                warn_levels=warn_levels, ncpu=ncpu, search_half_width=search_half_width,
-                fit_half_width=fit_half_width, profile_type=profile_type, height_min=height_min,
-                beta=beta, beta_max=beta_max, thresh=thresh, readout=readout, gain=gain
+                warn_levels=warn_levels, ncpu=ncpu,
+                search_half_width=search_half_width,
+                fit_half_width=fit_half_width, profile_type=profile_type,
+                height_min=height_min, beta=beta, beta_max=beta_max,
+                thresh=thresh, readout=readout, gain=gain,
+                fit_max_shift=fit_max_shift
             )
         )
 
@@ -674,7 +690,11 @@ ncpu = {ncpu}
 # will evaluate the profile for every unbinned pixel with a binned pixel if
 # the pixels are binned; second, it will evaluate the profile over an ndiv by
 # ndiv square grid within each unbinned pixel. Obviously this will slow
-# things, but it could help if your images are under-sampled.
+# things, but it could help if your images are under-sampled. Finally if you
+# use reference targets, you should get good initial positions for the
+# non-reference targets. You can then guard against problems using the
+# parameter 'fit_max_shift' to reject positions that shift too far from the
+# initial guess.
 
 [apertures]
 aperfile = {apfile} # file of software apertures for each CCD
@@ -693,6 +713,7 @@ fit_fwhm_fixed = no # Might want to set = 'yes' for defocussed images
 fit_half_width = {fit_half_width:d} # for fit, unbinned pixels
 fit_thresh = {thresh:.2f} # RMS rejection threshold for fits
 fit_height_min = {height_min:.1f} # minimum height to accept a fit
+fit_max_shift = {fit_max_shift:.1f} # max. non-ref. shift, unbinned pixels.
 
 # The next lines define how the apertures will be re-sized and how the flux
 # will be extracted from the aperture. There is one line per CCD with format:
