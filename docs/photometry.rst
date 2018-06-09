@@ -16,6 +16,9 @@ background-limited targets `(Naylor 1998)
 details of the implementations and the advantages and disadvantages of the
 various options, and summarises some other aspects of how things work.
 
+.. contents:: Contents
+   :local:
+
 Aperture positioning
 ====================
 
@@ -38,13 +41,13 @@ usual case one defines one or more targets as ``reference`` apertures in
     that if the reference targets cannot be located, then no others will be
     either.
 
-#. Next, the positions of non-reference, non-linked apertures are
-   determined. This is done through 2D profile fits starting from the shift
-   determined from the reference targets. No initial search is carried
-   out. The idea is that the mean shift from the reference targets should
-   provide a good start. An extra parameter ``fit_max_shift`` can be used to
-   control how far the profile fits are allowed to wander from the initial
-   positions.
+ #. Next, the positions of non-reference, non-linked apertures are
+    determined. This is done through 2D profile fits starting from the shift
+    determined from the reference targets. No initial search is carried
+    out. The idea is that the mean shift from the reference targets should
+    provide a good start. An extra parameter ``fit_max_shift`` can be used to
+    control how far the profile fits are allowed to wander from the initial
+    positions.
 
 The combination of the options available in |setaper| and the |reduce|
 configuration file are a powerful means to track objects for hours at a time

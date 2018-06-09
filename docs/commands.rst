@@ -299,7 +299,7 @@ Trouble-shooting parameter input
 --------------------------------
 
 It very rarely happens that the file I/O needed to read the default values
-can ge confused. This can happen e.g. if the data type of a parameter has
+can get confused. This can happen e.g. if the data type of a parameter has
 changed. If very odd things seems to happen when you try to start a command,
 then you might want to track down where the default files are located. Usually
 this will be in `.hipercam` in your home directory, unless the environment
@@ -315,21 +315,22 @@ Command definitions
 
 This section contains documentation auto-generated from the code. This is the
 same as is returned from clicking command names in the lists at the top of
-this page. Each command appears as a function, followed by a highlighted line
-showing the parameters one can use on the command-line. Inputs in square
-brackets such as ``[source]`` are hidden by default; those in round brackets
-e.g. ``(plot)`` may or may not be prompted depending upon earlier inputs. It is
-always safest when first running a command simply to type its name and hit
-enter and let the command itself prompt you for input. Many commands have
-hidden parameters that can only be revealed by typing e.g. ``rtplot
-prompt``. These are usually parameters that rarely need changing, but you are
-sure sometimes to need to alter them.  See the :ref:`command-calling` section
-for details on how to specify command parameters.
+this page or from using ``pydoc`` in a terminal. Each command appears as a
+function (an implementation detail), followed by a highlighted line showing
+the parameters one can use on the command-line. Inputs in square brackets such
+as ``[source]`` are hidden by default; those in round brackets e.g. ``(plot)``
+may or may not be prompted depending upon earlier inputs. It is always safest
+when first running a command simply to type its name and hit enter and let the
+command itself prompt you for input. Many commands have hidden parameters that
+can only be revealed by typing e.g. ``rtplot prompt``. These are usually
+parameters that rarely need changing, but you are sure sometimes to need to
+alter them.  See the :ref:`command-calling` section for details on how to
+specify command parameters.
 
 In the one-line descriptions below, ``run`` refers to a complete run,
 containing multiple images, stored in a .fits file. ``frame`` refers to a
 single image from a run as might be extracted using |grab|. These have file
-extension '.hcm'.
+extension '.hcm' to distinguish them, although they are also FITS-format files.
 
 .. autofunction:: hipercam.scripts.add
 .. autofunction:: hipercam.scripts.averun
