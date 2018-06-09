@@ -32,8 +32,7 @@ __all__ = [
 ]
 
 # Set the URL of the FileServer from the environment or default to localhost.
-URL = 'ws://{:s}'.format(os.environ['HIPERCAM_DEFAULT_URL']) \
-      if 'HIPERCAM_DEFAULT_URL' in os.environ else 'ws://localhost:8007/'
+URL = 'ws://' + os.environ.get('HIPERCAM_DEFAULT_URL','localhost:8007/')
 
 # FITS offset to convert from signed to unsigned 16-bit ints and vice versa
 BZERO = (1 << 15)
@@ -164,9 +163,10 @@ class Rhead:
            server : (bool)
               True/False for server vs local disk access. Server access goes
               through a websocket.  It uses a base URL taken from the
-              environment variable "HIPERCAM_DEFAULT_URL", or, if that is not
-              set, "ws://localhost:8007/".  The server here is Stu Littlefair's
-              Python-based server that defaults to port 8007.
+              environment variable "HIPERCAM_DEFAULT_URL" (pre-fixed by
+              'ws://'), or, if that is not set, "ws://localhost:8007/".  The
+              server here is Stu Littlefair's Python-based server that
+              defaults to port 8007.
 
            server : (bool)
               True to access the data from a server. It uses a URL set in an
