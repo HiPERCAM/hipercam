@@ -786,7 +786,7 @@ class Rdata (Rhead):
         self.last = (nframe == 0)
 
         # store initial value of first
-        self.ffirst = first
+        self.ffirst = nframe
 
         # set flag to indicate first time through
         self.first = True

@@ -78,7 +78,7 @@ def rtplot(args=None):
         first   : int [if source ends 's' or 'l']
            exposure number to start from. 1 = first frame; set = 0 to always
            try to get the most recent frame (if it has changed).  For data
-           from the |hiper| server, A negative number tries to get a frame not
+           from the |hiper| server, a negative number tries to get a frame not
            quite at the end.  i.e. -10 will try to get 10 from the last
            frame. This is mainly to sidestep a difficult bug with the
            acquisition system.
