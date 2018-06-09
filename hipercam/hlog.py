@@ -46,6 +46,8 @@ class Hlog(dict):
         into a separate structured array, returned in a dictionary labelled
         by the CCD key.
         """
+        NBUFFER = 10000
+        buff = {}
         hlog = cls()
         read_cnames = False
         read_dtypes = False
@@ -82,7 +84,8 @@ class Hlog(dict):
                         dtype_defs[cnam] = line[line.find('=')+1:].strip().split()[1:]
 
                         # get ready for the data
-                        hlog[cnam] = []
+                        hlog[cnam] = None
+                        buff[cnam] = []
 
                 elif line.find('Start of column name definitions') > -1:
                     read_cnames = True
@@ -106,10 +109,32 @@ class Hlog(dict):
                         elif dt == '?':
                             items[n] = bool(items[n])
 
-                    hlog[cnam].append(tuple(items))
+                    buff[cnam].append(tuple(items))
+                    if len(buff[cnam]) == NBUFFER:
+                        # bufffer the loading in an effort to save memory
+                        # as the numpy array should be more efficient
+                        if hlog[cnam] is None:
+                            hlog[cnam] = np.array(buff[cnam],dtypes[cnam])
+                        else:
+                            hlog[cnam] = np.concatenate(
+                                (hlog[cnam],np.array(buff[cnam],dtypes[cnam]))
+                             )
 
+                        # clear the buffer
+                        buff[cnam] = []
+
+
+        # tidy up any extra data in the buffers
         for cnam in hlog:
-            hlog[cnam] = np.array(hlog[cnam],dtypes[cnam])
+            if len(buff[cnam]):
+                # bufffer the loading in an effort to save memory
+                # as the numpy array should be more efficient
+                if hlog[cnam] is None:
+                    hlog[cnam] = np.array(buff[cnam],dtypes[cnam])
+                else:
+                    hlog[cnam] = np.concatenate(
+                        (hlog[cnam],np.array(buff[cnam],dtypes[cnam]))
+                    )
 
         return hlog
 
