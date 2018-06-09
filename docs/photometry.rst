@@ -14,7 +14,42 @@ refers to a weighted extraction designed to yield the best signal-to-noise for
 background-limited targets `(Naylor 1998)
 <http://adsabs.harvard.edu/abs/1998MNRAS.296..339N>`_. This page discusses some
 details of the implementations and the advantages and disadvantages of the
-various options.
+various options, and summarises some other aspects of how things work.
+
+Aperture positioning
+====================
+
+A key problem faced by the pipeline is how to locate the targets rom frame to
+frame given that the telescope moves, and conditions vary. The usual option
+in the |reduce| configuration file is the ``[apertures]`` section is
+``location = variable``. It's worth understanding how this operates. In the
+usual case one defines one or more targets as ``reference`` apertures in
+|setaper|. The aperture movement inside |reduce| then proceeds as follows:
+
+ #. First search for each reference target in boxes of half width
+    ``search_half_width`` around the last position of each one. This
+    search is carried out by smoothing the image and taking the location
+    of the maximum value as the starting position for a 2D profile fit.
+    If reference targets are chosen to be bright and isolated, one can
+    carry out broad searches which allow for very poor guiding. Following
+    the search, 2D profile fits are carried out and the mean x,y shift
+    relative to the starting positions calculated. If this stage fails (e.g.
+    because of clouds), then the rest of the frame is skipped on the basis
+    that if the reference targets cannot be located, then no others will be
+    either.
+
+#. Next, the positions of non-reference, non-linked apertures are
+   determined. This is done through 2D profile fits starting from the shift
+   determined from the reference targets. No initial search is carried
+   out. The idea is that the mean shift from the reference targets should
+   provide a good start. An extra parameter ``fit_max_shift`` can be used to
+   control how far the profile fits are allowed to wander from the initial
+   positions.
+
+The combination of the options available in |setaper| and the |reduce|
+configuration file are a powerful means to track objects for hours at a time
+while at the telescope. Once the aperture positions are determined, |reduce|
+moves onto extracting the flux.
 
 Sky background estimation
 =========================
