@@ -27,7 +27,8 @@ frame given that the telescope moves, and conditions vary. The usual option
 in the |reduce| configuration file is the ``[apertures]`` section is
 ``location = variable``. It's worth understanding how this operates. In the
 usual case one defines one or more targets as ``reference`` apertures in
-|setaper|. The aperture movement inside |reduce| then proceeds as follows:
+|setaper|. The aperture movement inside |reduce| then proceeds through a two
+step process as follows:
 
  #. First search for each reference target in boxes of half width
     ``search_half_width`` around the last position of each one. This

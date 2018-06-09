@@ -88,4 +88,11 @@ the last line should use pip3.
 If you have already installed but want to update, then go to the directory
 created at step ** above and type ``git pull`` and then re-install.
 
+For more information see:
+
+  * `The documentation
+    <http://deneb.astro.warwick.ac.uk/phsaap/hipercam/docs/html/>`
+
+  * `github repository <https://github.com/HiPERCAM/hipercam>`
+
 Tom Marsh

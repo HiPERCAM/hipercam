@@ -13,7 +13,9 @@ purposes. First, it provides a means of displaying, analysing and reducing
 |hiper| data. Second, it provides an "Application Programmers Interface" (API)
 to allow you to access and manipulate |hiper| and related data. The first will
 be of interest to anyone using |hiper|; the second to those who want to code
-their own scripts.  This manual covers both aspects.
+their own scripts.  This manual covers both aspects. It does not cover use of
+the |hiper| GUI or the finding chart generator, hfinder. Details of these
+may be found on `gitub <https://github.com/HiPERCAM>`.
 
 .. Warning::
 
