@@ -76,8 +76,12 @@ def rtplot(args=None):
            name of file list
 
         first   : int [if source ends 's' or 'l']
-           exposure number to start from. 1 = first frame; set = 0 to
-           always try to get the most recent frame (if it has changed)
+           exposure number to start from. 1 = first frame; set = 0 to always
+           try to get the most recent frame (if it has changed).  For data
+           from the |hiper| server, A negative number tries to get a frame not
+           quite at the end.  i.e. -10 will try to get 10 from the last
+           frame. This is mainly to sidestep a difficult bug with the
+           acquisition system.
 
         twait   : float [if source ends 's' or 'l'; hidden]
            time to wait between attempts to find a new exposure, seconds.
@@ -292,7 +296,11 @@ def rtplot(args=None):
 
         if server_or_local:
             resource = cl.get_value('run', 'run name', 'run005')
-            first = cl.get_value('first', 'first frame to plot', 1, 0)
+            if source == 'hs':
+                first = cl.get_value('first', 'first frame to plot', 1)
+            else:
+                first = cl.get_value('first', 'first frame to plot', 1, 0)
+
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
             tmax = cl.get_value(

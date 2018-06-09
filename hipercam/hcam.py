@@ -767,7 +767,8 @@ class Rdata (Rhead):
               initialises an attribute of the same name that is used when
               reading frames sequentially. nframe=0 is an indication to set an
               attribute 'last' = True to indicate that it should always try to
-              access the last frame.
+              access the last frame. nframe=-10 means try to get the
+              10th-from-last frame, a cludge to get round an acquisition bug.
 
            server : (bool)
               True/False for server vs local disk access. Server access goes
@@ -783,6 +784,9 @@ class Rdata (Rhead):
 
         # flag to indicate should always try to get the last frame
         self.last = (nframe == 0)
+
+        # store initial value of first
+        self.ffirst = first
 
         # set flag to indicate first time through
         self.first = True
@@ -850,6 +854,20 @@ class Rdata (Rhead):
                 # we actually return with None to indicate no progress.
                 request = json.dumps(dict(action='get_last'))
 
+            elif self.ffirst < 0:
+                # this case we are trying to get a frame -self.ffirst from
+                # being the last frame.
+                nget = self.ntotal() + self.ffirst
+                if nget < 1:
+                    return None
+
+                if nget == self.nframe:
+                    request = json.dumps(dict(action='get_next'))
+                else:
+                    request = json.dumps(
+                        dict(action='get_frame', frame_number=nget))
+                    self.nframe = nget
+
             elif nframe is None:
                 # in this case, on the first time through we need to
                 # explicitly request the frame, otherwise we can just read
@@ -864,12 +882,12 @@ class Rdata (Rhead):
                 # a particular frame number is being requested. Check whether
                 # we have to request it explicitly or whether we can just get
                 # the next one
-                if self.nframe != nframe:
+                if self.nframe == nframe:
+                    request = json.dumps(dict(action='get_next'))
+                else:
                     request = json.dumps(
                         dict(action='get_frame', frame_number=nframe))
                     self.nframe = nframe
-                else:
-                    request = json.dumps(dict(action='get_next'))
 
             # send the request
             self._ws.send(request)
@@ -943,14 +961,15 @@ class Rdata (Rhead):
             seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
         frameCount += 1
 
-        if self.server and (nframe == 0 or self.last) and \
-           not self.first and self.nframe > frameCount:
-            # server access trying to get the last complete frame. If the
-            # frame just read in is the same as the one before
-            # (i.e. frameCount < self.nframe), we return None to indicate that
-            # no progress is taking place. The calling routine then needs to
-            # wait for a new frame to come in. See rtplot for an example of
-            # this.
+        if self.server and \
+           (nframe == 0 or self.last or self.ffirst < 0) and \
+           self.nframe > frameCount:
+            # server access, trying to get the last complete frame or some
+            # frames from the end. If the frame just read in is the same as
+            # the one before (i.e. self.nframe > frameCount), we return None
+            # to indicate that no progress is taking place. The calling
+            # routine then needs to wait for a new frame to come in. See
+            # rtplot for an example of this.
             return None
 
         elif not self.server and frameCount != self.nframe:
