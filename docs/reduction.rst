@@ -260,21 +260,24 @@ Use reference apertures
 
 If you identify a star (or stars) as "reference apertures", their position is
 the first to be determined and then used to offset the location before
-searching for other stars. If you choose a well-isolated reference star, this
-can allow cope with large changes in position from frame to frame, while
-maintaining a tight search on non-reference stars which may be close to other
-objects and be difficult to locate using a more wide-ranging search. Sensible
-use of this can avoid the need to link apertures in some cases.
+carrying out profile fits for other stars. If you choose a well-isolated
+reference star, this can allow cope with large changes in position from frame
+to frame, while maintaining a tight search on non-reference stars which may be
+close to other objects and be difficult to locate using a more wide-ranging
+search. Sensible use of this can avoid the need to link apertures in some
+cases.
 
 Defocussed images
 -----------------
 
 Defocussing is often used in exoplanet work. Defocussed images are not well
-fit by gaussian of moffat profiles. In this case, when measuring the object
-position, you should hold the FWHM fixed and use a large FWHM, comparable to
-the width of the image. Experiment for best results. Probably raise the
-threshold for bad data rejection as well. The idea is simply to get a sort of
-weighted centroid, and there is no point trying to fit the profile.
+fit by either gaussian or moffat profiles. In this case, when measuring the
+object position, you should hold the FWHM fixed and use a large FWHM,
+comparable to the width of the image. Experiment for best results. You should
+also raise the threshold for bad data rejection as well. The idea is simply to
+get a sort of weighted centroid, and you will not get a good profile fit. For
+very defocussed images, it is important to avoid too narrow a FWHM otherwise
+you could end up zeroing in on randome peaks in the profile.
 
 Linked apertures
 ----------------
