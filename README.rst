@@ -47,7 +47,7 @@ future I might try to make it more automatic:
          for talking to the hipercam server. You want the Websocket
          client library which you can get from::
 
-             https://github.com/websocket-client/websocket-client
+             git clone https://github.com/websocket-client/websocket-client
 
   sep :
          astronomical source extractor for the aligntool script
@@ -93,6 +93,6 @@ For more information see:
   * `The documentation
     <http://deneb.astro.warwick.ac.uk/phsaap/hipercam/docs/html/>`_
 
-  * `github repository <https://github.com/HiPERCAM/hipercam>`_
+  * `The |hiper| pipeline github repository <https://github.com/HiPERCAM/hipercam>`_
 
 Tom Marsh
