@@ -633,7 +633,7 @@ class MCCD(Agroup):
     @classmethod
     def read(cls, fname):
         """Builds an :class:`MCCD` from a FITS file. Expects a primary HDU, containing
-        no data, but some general headers, followed by a series of HDU blocks
+        general headers and the first HDU, followed by a series of HDU blocks
         for each CCD with the first one of each containing some general
         per-CCD header items.
 
@@ -650,12 +650,11 @@ class MCCD(Agroup):
         This will usually be passed the :class:`HDUList` from a file. The
         header from the first (primary) HDU will be used to create the header
         for the :class:`MCCD`. It is then assumed that the data for each
-        :class:`CCD` is contained in the succeeding HDUs, i.e. that there is
-        no data in the primary HDU. The data from all HDUs will be read into
-        the :class:`Window` objects that make up the CCD. Each HDU will be
-        searched for a header parameter WINDOW to label the :class:`Window`,
-        but the code will attempt to generate a sequential label if WINDOW is
-        not found.
+        :class:`CCD` is contained in blocks of HDUs after the first. The
+        data from all HDUs will be read into the :class:`Window` objects that
+        make up the CCD. Each HDU will be searched for a header parameter
+        WINDOW to label the :class:`Window`, but the code will attempt to
+        generate a sequential label if WINDOW is not found.
 
         Arguments::
 

@@ -163,8 +163,13 @@ where now :math:`\alpha` is a function of both the FWHM and :math:`\beta`:
    \alpha = \frac{4(2^{1/\beta} - 1)}{(\text{FWHM})^2}.
 
 Moffat profiles tend to gaussians as :math:`\beta \rightarrow \infty`, anything
-a gaussian can fit, they can. Their great advantage is their more extended
-wings. In order to be integrable, they should have :math:`\beta > 1`.
+a gaussian can fit, they can. Their advantage is their more extended
+wings which often give a better fit to real stellar profiles. However, they
+also have a downside in that some profiles seem to fall off more steeply than
+gaussians and when fitted with Moffat profiles, there is a tendency for the
+value of :math:`\beta` to climb to very large values. This probably depends
+upon the telescope and instrument, so should be the subject of
+experimentation. In order to be integrable, they should have :math:`\beta > 1`.
 The profile fitting is implemented in :mod:`hipercam.fitting` on top of the
 Levenberg-Marquardt fitting routine :func:`scipy.optimize.leastsq`. It is
 designed to be able to sub-pixellate, i.e. the profile is evaluated at

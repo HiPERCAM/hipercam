@@ -28,6 +28,7 @@ from .times import times
 from .mstats import mstats
 from .pfolder import pfolder
 from .uls import uls
+from .fits2hcm import fits2hcm
 
 __all__ = [ \
             'add', 'averun',

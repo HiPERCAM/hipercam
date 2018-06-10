@@ -662,12 +662,9 @@ def reduce(args=None):
                 print(
                     'Frame {:d}: {:s} [{:s}]'.format(
                         nframe, mccd.head['TIMSTAMP'],
-                        'OK' if mccd.head['GOODTIME'] else 'NOK'),
+                        'OK' if mccd.head.get('GOODTIME',True) else 'NOK'),
                     end='' if implot else '\n'
                 )
-
-                #if not mccd.head['GOODTIME']:
-                #    continue
 
                 if not tzset:
 
@@ -808,11 +805,12 @@ def reduce(args=None):
 
                     # get time and flag
                     mjd = pccd[cnam].head['MJDUTC']
-                    mjdok = pccd[cnam].head['GOODTIME']
+                    mjdok = pccd[cnam].head.get('GOODTIME',True)
                     if 'EXPTIME' in pccd[cnam].head:
                         exptim = pccd[cnam].head['EXPTIME']
                     else:
                         exptim = 1.0
+
                     # write generic data
                     logfile.write(
                         '{:s} {:d} {:17.11f} {:b} {:.5f} '.format(

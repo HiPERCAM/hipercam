@@ -132,6 +132,7 @@ setup(
             'csub=hipercam.scripts.carith:csub',
             'combine=hipercam.scripts.combine:combine',
             'digest=hipercam.scripts.digest:digest',
+            'fits2hcm=hipercam.scripts.fits2hcm:fits2hcm',
             'grab=hipercam.scripts.grab:grab',
             'genred=hipercam.scripts.genred:genred',
             'hist=hipercam.scripts.hist:hist',
