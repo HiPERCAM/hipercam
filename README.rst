@@ -93,6 +93,6 @@ For more information see:
   * `The documentation
     <http://deneb.astro.warwick.ac.uk/phsaap/hipercam/docs/html/>`_
 
-  * `The |hiper| pipeline github repository <https://github.com/HiPERCAM/hipercam>`_
+  * `The HiPERCAM pipeline github repository <https://github.com/HiPERCAM/hipercam>`_
 
 Tom Marsh
