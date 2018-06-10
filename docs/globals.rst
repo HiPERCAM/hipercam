@@ -17,6 +17,7 @@
 .. |combine| replace:: :func:`combine <hipercam.scripts.combine>`
 .. |csub| replace:: :func:`csub <hipercam.scripts.csub>`
 .. |div| replace:: :func:`div <hipercam.scripts.div>`
+.. |fits2hcm| replace:: :func:`fits2hcm <hipercam.scripts.fits2hcm>`
 .. |genred| replace:: :func:`genred <hipercam.scripts.genred>`
 .. |grab| replace:: :func:`grab <hipercam.scripts.grab>`
 .. |hist| replace:: :func:`hist <hipercam.scripts.hist>`

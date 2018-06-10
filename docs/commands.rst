@@ -11,6 +11,7 @@
 .. |ol-combine|  replace:: combine a list of frames
 .. |ol-csub|     replace:: subtract a constant from a frame
 .. |ol-div|      replace:: divide one frame by another
+.. |ol-fits2hcm| replace:: convert foreign FITs files to hcm format
 .. |ol-genred|   replace:: create a reduce file
 .. |ol-grab|     replace:: split frames out of a run
 .. |ol-hfilter|  replace:: filter a HiPERCAM image
@@ -76,6 +77,8 @@ useful.
    | |csub|       | |ol-csub|      |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |div|        | |ol-div|       |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |fits2hcm|   | |ol-fits2hcm|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |genred|     | |ol-genred|    | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -339,6 +342,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.combine
 .. autofunction:: hipercam.scripts.csub
 .. autofunction:: hipercam.scripts.div
+.. autofunction:: hipercam.scripts.fits2hcm
 .. autofunction:: hipercam.scripts.genred
 .. autofunction:: hipercam.scripts.grab
 .. autofunction:: hipercam.scripts.hfilter
