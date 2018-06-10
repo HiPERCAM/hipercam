@@ -782,24 +782,25 @@ class Rdata (Rhead):
         self.set(nframe)
 
         if self.server:
+
             # read timing and data in one go from the server
             full_url = '{:s}{:s}?action=get_frame&frame={:d}'.format(
                 URL, self.run, self.nframe-1)
-            buff     = urllib.request.urlopen(full_url).read()
 
-            print(' ** ', self.nframe, len(buff), self.framesize)
+            try:
+                buff = urllib.request.urlopen(full_url).read()
 
-            if len(buff) != self.framesize:
-                # we return None in this case as we might want to wait for
-                # more data to accumulate. It's up to the calling script to do
-                # something sensible with this. Note that self.nframe is left
-                # untouched.
+                # Re-format into the timing bytes and unsigned 2
+                # byte int data buffer
+                tbytes = buff[:2*self.headerwords]
+                buff = np.fromstring(buff[2*self.headerwords:],dtype='uint16')
+
+            except urllib.error.HTTPError:
+                # when there is nothing there to read the request
+                # to the server will raise an HTTPError. Trap here
+                # and return None. It's up to the calling routine to
+                # wait if it is thought more data are coming.
                 return None
-
-            # have data. Re-format into the timing bytes and unsigned 2 byte
-            # int data buffer
-            tbytes = buff[:2*self.headerwords]
-            buff = np.fromstring(buff[2*self.headerwords:],dtype='uint16')
 
         else:
             # read timing bytes
@@ -1251,7 +1252,7 @@ class Rtime (Rhead):
             # have to read both timing and data in one go from the server
             # and just ignore the data
             full_url = URL + self.run + '?action=get_frame&frame=' + str(self.nframe-1)
-            buff     = urllib.request.urlopen(full_url).read()
+            buff = urllib.request.urlopen(full_url).read()
             if len(buff) != self.framesize:
                 self.nframe = 1
                 raise UltracamError(
@@ -2010,7 +2011,6 @@ def utimer(tbytes, rhead, fnum):
             'did not recognize instrument = {:s}'.format(rhead.instrument)
         )
 
-
 # The ATC FileServer recognises various GET requests (look for 'action=' in
 # the code) which are accessed using urllib. The following code is to allow
 # urllib to connect to a local version of the FileServer which does not work
@@ -2022,8 +2022,7 @@ opener = urllib.request.build_opener(proxy_support)
 urllib.request.install_opener(opener)
 
 # Set the URL of the FileServer from the environment or default to localhost.
-URL = os.environ['ULTRACAM_DEFAULT_URL'] if \
-    'ULTRACAM_DEFAULT_URL' in os.environ else 'http://localhost:8007/'
+URL = os.environ.get('ULTRACAM_DEFAULT_URL', 'http://localhost:8007/')
 
 def get_nframe_from_server(run):
     """
