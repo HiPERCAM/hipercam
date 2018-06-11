@@ -21,6 +21,7 @@ and plot the result with matplotlib:
 
 """
 
+import struct
 import numpy as np
 import copy
 from astropy.stats import sigma_clip
@@ -30,6 +31,14 @@ from . import utils
 
 __all__ = ('Hlog', 'Tseries')
 
+# maps numpy dtype code into struct flagd
+TYPE_MAP = {
+    'f4' : 'f',
+    'f8' : 'd',
+    '?'  : '?',
+    'i4' : 'i',
+    'u4' : 'I',
+}
 
 class Hlog(dict):
     """
@@ -46,8 +55,7 @@ class Hlog(dict):
         into a separate structured array, returned in a dictionary labelled
         by the CCD key.
         """
-        NBUFFER = 10000
-        buff = {}
+
         hlog = cls()
         read_cnames = False
         read_dtypes = False
@@ -55,6 +63,8 @@ class Hlog(dict):
         cnames = {}
         dtype_defs = {}
         dtypes = {}
+        struct_types = {}
+
         with open(fname) as fin:
             for line in fin:
 
@@ -68,14 +78,20 @@ class Hlog(dict):
                         cnames[cnam] = line[line.find('=')+1:].strip().split()[1:]
 
                 elif read_dtypes:
-                    # reading the data types
+                    # reading the data types. We build anump.dtype objects and strings
+                    # for packing the data with struct.pack to save memory.
                     if line.find('End of data type definitions') > -1:
                         read_dtypes = False
                         # can now create the record array dtype
                         for cnam in cnames:
+                            # numpy dtype
                             dtypes[cnam] = np.dtype(
                                 list(zip(cnames[cnam], dtype_defs[cnam]))
                             )
+                            # equivalent struct. Use native byte order but with no alignment
+                            # to match numpy packing.
+                            struct_types[cnam] = '=' + ''.join([TYPE_MAP[dt] for dt in dtype_defs[cnam]])
+
                         read_data = True
 
                     elif line.find('=') > -1:
@@ -84,8 +100,7 @@ class Hlog(dict):
                         dtype_defs[cnam] = line[line.find('=')+1:].strip().split()[1:]
 
                         # get ready for the data
-                        hlog[cnam] = None
-                        buff[cnam] = []
+                        hlog[cnam] = []
 
                 elif line.find('Start of column name definitions') > -1:
                     read_cnames = True
@@ -94,6 +109,7 @@ class Hlog(dict):
                     read_dtypes = True
 
                 elif read_data and not line.startswith('#'):
+
                     # read a data line
                     items = line.strip().split()
                     cnam = items.pop(0)
@@ -109,32 +125,15 @@ class Hlog(dict):
                         elif dt == '?':
                             items[n] = bool(items[n])
 
-                    buff[cnam].append(tuple(items))
-                    if len(buff[cnam]) == NBUFFER:
-                        # bufffer the loading in an effort to save memory
-                        # as the numpy array should be more efficient
-                        if hlog[cnam] is None:
-                            hlog[cnam] = np.array(buff[cnam],dtypes[cnam])
-                        else:
-                            hlog[cnam] = np.concatenate(
-                                (hlog[cnam],np.array(buff[cnam],dtypes[cnam]))
-                             )
-
-                        # clear the buffer
-                        buff[cnam] = []
+                    # store in a list. Although lists are wasteful, they grow quite
+                    # fast and each element here is efficiently packed so it should
+                    # cope with quite large log files.
+                    hlog[cnam].append(struct.pack(struct_types[cnam], *items))
 
 
-        # tidy up any extra data in the buffers
+        # convert lists to numpy arrays
         for cnam in hlog:
-            if len(buff[cnam]):
-                # bufffer the loading in an effort to save memory
-                # as the numpy array should be more efficient
-                if hlog[cnam] is None:
-                    hlog[cnam] = np.array(buff[cnam],dtypes[cnam])
-                else:
-                    hlog[cnam] = np.concatenate(
-                        (hlog[cnam],np.array(buff[cnam],dtypes[cnam]))
-                    )
+            hlog[cnam] = np.array(hlog[cnam], dtype=dtypes[cnam])
 
         return hlog
 
