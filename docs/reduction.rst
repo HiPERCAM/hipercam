@@ -4,8 +4,8 @@
 
 .. |fig-1| replace:: :numref:`fig-1`
 
-Reducing |hiper| data
-*********************
+Reducing with the |hiper| pipeline
+**********************************
 
 This guide assumes that you have got started with the |hiper| pipeline (see
 :doc:`telescope` for a quick start to observing), but now would like a more
@@ -248,6 +248,16 @@ given data types to aid ingestion into numpy recarrays. The pipeline command
 :mod:`hipercam.hlog` should allow you to develop scripts to access the data
 and to make your own plots.
 
+ULTRACAM vs |hiper|
+===================
+
+The |hiper| pipeline is designed to be usable with ULTRACAM as well as
+|hiper|. You will need a different set of CCD defects, otherwise the two are
+very similar. One extra ULTRACAM needs is proper dark subtraction which I have
+yet to implement. Finally, at the telescope you can access the ULTRACAM server
+using |uls| versus |hls| for |hiper|, and you will need the environment
+variable ``ULTRACAM_DEFAULT_URL`` to have been set.
+
 Trouble shooting reduction
 ==========================
 
@@ -255,17 +265,18 @@ There are several things you can do to avoid problems during reduction. The
 main thing to avoid is that |reduce| simply loses your target or the
 comparison stars.
 
-Use reference apertures
------------------------
+Reference apertures
+-------------------
 
 If you identify a star (or stars) as "reference apertures", their position is
 the first to be determined and then used to offset the location before
 carrying out profile fits for other stars. If you choose a well-isolated
-reference star, this can allow cope with large changes in position from frame
-to frame, while maintaining a tight search on non-reference stars which may be
-close to other objects and be difficult to locate using a more wide-ranging
-search. Sensible use of this can avoid the need to link apertures in some
-cases.
+reference star, this can allow you to cope with large changes in position from
+frame to frame, whilst maintaining a tight search on non-reference stars which
+may be close to other objects and be difficult to locate using a more
+wide-ranging search. Sensible use of this can avoid the need to link apertures
+in some cases. Reference targets don't have to be ones that you will use for
+photometry, although they usually are of course.
 
 Defocussed images
 -----------------
@@ -277,7 +288,7 @@ comparable to the width of the image. Experiment for best results. You should
 also raise the threshold for bad data rejection as well. The idea is simply to
 get a sort of weighted centroid, and you will not get a good profile fit. For
 very defocussed images, it is important to avoid too narrow a FWHM otherwise
-you could end up zeroing in on randome peaks in the profile.
+you could end up zeroing in on random peaks in the doughnut-like profile.
 
 Linked apertures
 ----------------
@@ -292,6 +303,23 @@ try to do so with a nearby object to minimise the distortion. It does not need
 to be super-bright (although preferably it should be brighter than your
 target), or your main comparison; the key point should be that its position
 can be securely tracked.
+
+Problems with PGPLOT windows
+----------------------------
+
+|reduce| opens two PGPLOT windows to display images and the light curve. You
+can sometimes encounter problems with this. I use explicit numbers in the
+reduce file "1/xs" and "2/xs" to avoid their clashing, but if you are already
+running a process (e.g. |rtplot|) plotting to either of these you might
+encounter problems. Usually shutting down the other process and/or killing
+PGPLOT windows will fix things.  You can also use "/xs" to automate the
+numbering, but you will then lose control of which plot window is used for
+what. I recently had another problem where it kept saying::
+
+  %PGPLOT, PGSCH: no graphics device has been selected
+
+and I could not close the PGPLOT windows. In the end the only way I could cure
+this was to kill the PGPLOT X-windows server. (Search for 'pgxin' with 'ps'.)
 
 Experiment
 ----------
