@@ -138,6 +138,7 @@ setup(
             'hist=hipercam.scripts.hist:hist',
             'hfilter=hipercam.scripts.hfilter:hfilter',
             'hlogger=hipercam.scripts.hlogger:hlogger',
+            'hlog2fits=hipercam.scripts.hlog2fits:hlog2fits',
             'hls=hipercam.scripts.hls:hls',
             'hplot=hipercam.scripts.hplot:hplot',
             'makedata=hipercam.scripts.makestuff:makedata',

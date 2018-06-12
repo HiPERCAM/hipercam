@@ -19,39 +19,39 @@ def plog(args=None):
     """``plog log [device width height] ccd1 aper1 param1 ccd2 (aper2 param2
     scheme)``
 
-    Provides quick-look plots of HiPERCAM reduce logs.
+    Provides quick-look plots of HiPERCAM |reduce| logs.
 
     Parameters:
 
-      log    : string
-          name of reduce log file (text file with loads of columns)
+      log : string
+          name of |reduce| ASCII log file (text file with loads of columns)
 
       device : string [hidden, defaults to 'term']
          'term' for interactive plot, file name such as 'plot.pdf'
          for a hardcopy.
 
-      width  : float [hidden]
+      width : float [hidden]
          plot width (inches). Set = 0 to let the program choose.
 
       height : float [hidden]
          plot height (inches). Set = 0 to let the program choose. BOTH
          width AND height must be non-zero to have any effect
 
-      ccd1   : string
+      ccd1 : string
          first CCD to consider, e.g. '1'
 
-      aper1  : string
+      aper1 : string
          first aperture to consider
 
       param1 : string
          first parameter to consider. Choices are 'x' = X position,
          'y' = Y position, 'f' = FWHM, 'b' = Moffat beta, 's' = sky.
 
-      ccd2   : string
+      ccd2 : string
          second CCD to consider; '!' to ignore. Can be (and typically
          would be) the same as ccd1.
 
-      aper2  : string [if ccd2 != '!']
+      aper2 : string [if ccd2 != '!']
          second aperture to consider
 
       param2 : string [if ccd2 != '!']
@@ -139,7 +139,7 @@ def plog(args=None):
             )
 
     # load the reduce log
-    hlog = hcam.hlog.Hlog.fromLog(log)
+    hlog = hcam.hlog.Hlog.from_ascii(log)
 
     if width > 0 and height > 0:
         fig = plt.figure(figsize=(width,height))

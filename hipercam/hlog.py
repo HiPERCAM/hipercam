@@ -10,7 +10,7 @@ and plot the result with matplotlib:
   >> import matplotlib.pyplot as plt
   >> import hipercam as hcam
   >>
-  >> hlog = hcam.hlog.Hlog.fromLog('ts.log')
+  >> hlog = hcam.hlog.Hlog.from_ascii('ts.log')
   >> targ = hlog.tseries('2','t')
   >> comp = hlog.tseries('2','c')
   >>
@@ -24,6 +24,7 @@ and plot the result with matplotlib:
 import struct
 import numpy as np
 import copy
+from astropy.io import fits
 from astropy.stats import sigma_clip
 
 from .core import *
@@ -32,7 +33,7 @@ from . import utils
 __all__ = ('Hlog', 'Tseries')
 
 # maps numpy dtype code into struct flagd
-TYPE_MAP = {
+NUMPY_TO_STRUCT = {
     'f4' : 'f',
     'f8' : 'd',
     '?'  : '?',
@@ -49,11 +50,11 @@ class Hlog(dict):
     """
 
     @classmethod
-    def fromLog(cls, fname):
+    def from_ascii(cls, fname):
         """
-        Loads a HiPERCAM log file written by reduce. Each CCD is loaded
-        into a separate structured array, returned in a dictionary labelled
-        by the CCD key.
+        Loads a HiPERCAM ASCII log file written by reduce. Each CCD is loaded
+        into a separate structured array, returned in a dictionary labelled by
+        the CCD key.
         """
 
         hlog = cls()
@@ -90,7 +91,7 @@ class Hlog(dict):
                             )
                             # equivalent struct. Use native byte order but with no alignment
                             # to match numpy packing.
-                            struct_types[cnam] = '=' + ''.join([TYPE_MAP[dt] for dt in dtype_defs[cnam]])
+                            struct_types[cnam] = '=' + ''.join([NUMPY_TO_STRUCT[dt] for dt in dtype_defs[cnam]])
 
                         read_data = True
 
@@ -134,6 +135,23 @@ class Hlog(dict):
         # convert lists to numpy arrays
         for cnam in hlog:
             hlog[cnam] = np.array(hlog[cnam], dtype=dtypes[cnam])
+
+        return hlog
+
+    @classmethod
+    def from_fits(cls, fname):
+        """
+        Loads a HiPERCAM FITS log file written by |reduce| and subsequently
+        converted by |hlog2fits|. Each CCD is loaded into a separate
+        structured array, returned in a dictionary labelled by the CCD key.
+        """
+
+        hlog = cls()
+
+        with fits.open(fname) as hdul:
+            for hdu in hdul[1:]:
+                cnam = hdu.header['CCDNAME']
+                hlog[cnam] = hdu.data
 
         return hlog
 

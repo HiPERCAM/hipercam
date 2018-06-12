@@ -29,13 +29,14 @@ from .mstats import mstats
 from .pfolder import pfolder
 from .uls import uls
 from .fits2hcm import fits2hcm
+from .hlog2fits import hlog2fits
 
 __all__ = [ \
             'add', 'averun',
             'cadd', 'cdiv', 'cmul', 'combine', 'csub',
             'div',
             'genred', 'grab',
-            'hist', 'hfilter', 'hlogger', 'hls', 'hplot',
+            'hist', 'hfilter', 'hlog2fits', 'hlogger', 'hls', 'hplot',
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'pfolder', 'plog',
             'reduce', 'rtplot',
