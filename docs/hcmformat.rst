@@ -4,14 +4,14 @@
 =========================
 
 The |hiper| pipeline stores individual multi-CCD exposures in files with
-extension '.hcm'. These are FITS files that can be examined with e.g. 'fv' or
-listed with 'fitshead', but the extension '.hcm' is used to distinguish them
-clearly from the raw '.fits' files and to reduce the chances of overwriting
-the latter. In order for these to be useful through the rest of the
-software, some assumptions about their internal structure are necessary, and
-they need to contain location information to show where sub-windows are placed
-within the CCDs.  The purpose of this document is to specify this in as much
-detail as possible.
+extension '.hcm'. These are in fact FITS files that can be examined with
+e.g. 'fv' or listed with 'fitshead', but the extension '.hcm' is used to
+distinguish them clearly from the raw '.fits' files and to reduce the chances
+of overwriting the latter. In order for these to be useful through the rest of
+the software, some assumptions about their internal structure are necessary,
+and they need to contain location information to show where sub-windows are
+placed within the CCDs.  The purpose of this document is to specify this in as
+much detail as possible.
 
 The basic structure of an '.hcm' file is as follows::
 
@@ -34,7 +34,8 @@ but they should come as a contiguous block.
 HDU structure and keywords
 --------------------------
 
-I now expand on this, detailing the header keywords expected.
+I now expand on this, detailing the header keywords expected. I concentrate on
+those essential for the operation of pipeline commands, |reduce| above all.
 
 1) HDU0. An hcm file starts with an HDU with no data but some header.
 
@@ -75,7 +76,8 @@ I now expand on this, detailing the header keywords expected.
          TIMSTAMP of the general header, but it might not.
 
       GOODTIME : bool
-         flag to indicate whether the time is thought to be reliable
+         flag to indicate whether the time is thought to be reliable. Defaults
+         to True if not present.
 
    It can also contain a keyword 'DSTATUS' giving a boolean that indicates
    whether the frame contains data or not (True means yes). This is needed
@@ -83,7 +85,7 @@ I now expand on this, detailing the header keywords expected.
    'NSKIP') which lead to blank dummy frames in between the real data
    frames. If 'DSTATUS' is not found, the CCD will be assumed to be OK.
 
-   All HDUs after the first in a CCD *must* contain::
+   All the HDUs in a CCD *must* contain::
 
       CCD    : string
          string label matching the label of the first HDU of the CCD.
@@ -110,11 +112,22 @@ I now expand on this, detailing the header keywords expected.
          a string label for the window. If it doesn't exist
          an attempt will be made to generate labels by counting.
 
+Foreign data
+------------
+
+The format of '.hcm' files needs to be created if you want to apply the
+pipeline to data from other instruments. Since such data is typically
+FITS-format as are '.hcm' files, this might simply be a matter of adding new
+keywords and re-arranging HDUs. The script for carrying this out is
+|fits2hcm|. If you have some data, look at that script and submit new code
+through github.
+
 Example headers
 ---------------
 
 Here is the result of running 'fitsheader' on a '.hcm' file which
-may make the above easier to understand:
+may make the above easier to understand. Bear in mind there are many
+extras associated with making it easier to display hcm files with 'ds9'.
 
 .. literalinclude:: ../data/example_headers
 
