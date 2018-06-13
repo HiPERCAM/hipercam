@@ -17,6 +17,13 @@ def uls(args=None):
     See |hls| for the |hiper| equivalent.
     """
 
+    # if ever want to get sub-directory list:
+    #
+    #    if dir is None:
+    #        full_url = URL + '?action=dir'
+    #    else:
+    #        full_url = URL + dir + '?action=dir'
+
     url = os.environ.get('ULTRACAM_DEFAULT_URL', 'http://localhost:8007/') + \
           '?action=dir'
 

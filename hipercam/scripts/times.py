@@ -31,36 +31,40 @@ def times(args=None):
 
     Parameters:
 
-        source  : string [hidden]
+        source : string [hidden]
            Data source, two options:
 
               | 'hs' : HiPERCAM server
               | 'hl' : local HiPERCAM FITS file
 
-        run     : string
+        run : string
            run number to access, e.g. 'run0034'
 
-        first   : int
+        first : int
            exposure number to start from. 1 = first frame; set = 0 to
            always try to get the most recent frame (if it changes)
 
-        last    : int
+        last : int
            last exposure number, 0 for all.
 
-        twait   : float [hidden]
+        twait : float [hidden]
            time to wait between attempts to find a new exposure, seconds.
 
-        tmax    : float [hidden]
+        tmax : float [hidden]
            maximum time to wait between attempts to find a new exposure,
            seconds. Set to 0 to avoid waiting and extra output messages.
 
-        tdigit  : int [hidden]
+        tdigit : int [hidden]
            number of digits of precision for the seconds after the decimal
            point when reporting the times.
 
-        edigit  : int [hidden]
+        edigit : int [hidden]
            number of digits of precision after the decimal point when
            reporting the exposure times
+
+    .. Warn::
+
+       This routine does not yet work with ULTRACAM data.
 
     """
 

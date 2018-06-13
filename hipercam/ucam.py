@@ -10,6 +10,7 @@ import warnings
 import xml.dom.minidom
 import numpy as np
 import urllib.request
+import requests
 import datetime
 
 from astropy.io import fits
@@ -614,11 +615,13 @@ class Rdata (Rhead):
               frame. Default is always to read as an MCCD.
 
         """
+
         Rhead.__init__(self, run, server)
         if self.isPonoff():
             raise PowerOnOffError(
                 'attempted to read a power on/off')
 
+        self.last = (nframe == 0)
         self.nframe = nframe
         self._ccd = ccd
         self._tstamp = []
@@ -626,7 +629,7 @@ class Rdata (Rhead):
         if not self.server:
             # If it's not via a server, then we must access a local disk
             # file. We need random access hence buffering=0. Move the pointer
-            # if we not on frame 1.
+            # if we are not on frame 1.
             self.fp = open(self.run + '.dat', 'rb', buffering=0)
             if self.nframe: self.fp.seek(self.framesize*(self.nframe-1))
 
@@ -650,6 +653,8 @@ class Rdata (Rhead):
 
     def set(self, nframe=1):
         """Sets the internal file pointer to point at frame number nframe.
+        Updates self.nframe equivalently. Returns the value of self.nframe
+        on entry.
 
         Args::
 
@@ -660,28 +665,33 @@ class Rdata (Rhead):
              file will work, but will cause an exception to be raised on the
              next attempted read.
 
+        It returns
         """
 
-        # position read pointer
-        if nframe is not None:
+        old_frame = self.nframe
+
+        if nframe == 0:
+            # work out last frame
+            if self.server:
+                self.nframe = get_nframe_from_server(self.run)
+            else:
+                # wind to end of file, work out where we are
+                # to deduce number of frames
+                self.fp.seek(0,2)
+                fp = self.fp.tell()
+                nf = fp // self.framesize
+                self.fp.seek(self.framesize*(nf-1)-fp,2)
+                self.nframe = nf
+
+        elif nframe is not None:
             if nframe < 0:
                 raise UltracamError('nframe < 0')
-            elif nframe == 0:
-                if self.server:
-                    self.nframe = get_nframe_from_server(self.run)
-                else:
-                    # wind to end of file, work out where we are
-                    # to deduce number of frames
-                    self.fp.seek(0,2)
-                    fp = self.fp.tell()
-                    nf = fp // self.framesize
-                    self.fp.seek(self.framesize*(nf-1)-fp,2)
-                    self.nframe = nf
-
             elif self.nframe != nframe:
                 if not self.server:
                     self.fp.seek(self.framesize*(nframe-1))
                 self.nframe = nframe
+
+        return old_frame
 
     def ntotal(self):
         """
@@ -709,6 +719,7 @@ class Rdata (Rhead):
 
         See utimer for what gets returned by this. See also Rtime for a class
         dedicated to reading times only.
+
         """
 
         # position read pointer
@@ -753,11 +764,11 @@ class Rdata (Rhead):
         on the assumption that the internal file pointer in the :class:`Rdata`
         is positioned at the start of a frame. If `nframe` is None, then it
         will read the frame it is positioned at. If nframe is an integer > 0,
-        it will try to read that particular frame; if nframe == 0, it reads
-        the last complete frame.  nframe == 1 gives the first frame. This
-        returns either a CCD or MCCD object for ULTRASPEC and ULTRACAM
-        respectively. It raises an exception if it fails to read data and
-        resets to the start of the file in this case. The data are stored
+        it will try to read that particular frame; if self.nframe == 0, it
+        reads the last complete frame.  nframe == 1 gives the first
+        frame. This returns either a CCD or MCCD object for ULTRASPEC and
+        ULTRACAM respectively. It raises an exception if it fails to read data
+        and resets to the start of the file in this case. The data are stored
         internally as either 4-byte floats or 2-byte unsigned ints.
 
         Arguments::
@@ -779,7 +790,17 @@ class Rdata (Rhead):
         """
 
         # position read pointer
-        self.set(nframe)
+        nframe = 0 if self.last else nframe
+        old_frame = self.set(nframe)
+
+        if self.last and self.nframe < old_frame:
+            # We are trying to get the last frame. If the frame
+            # we will attempt to get is less than the expected
+            # (minimum) value, i.e. 1 more than the last frame
+            # read, then we are not profressing, so return None.
+            # It's then up to calling routine to wait or give up.
+            self.nframe = old_frame
+            return None
 
         if self.server:
 
@@ -830,9 +851,6 @@ class Rdata (Rhead):
         elif self.instrument == 'ULTRASPEC':
             time,info = utimer(tbytes, self, self.nframe)
 
-        # move frame counter on by one
-        self.nframe += 1
-
         # add some specifics for the frame to the header
         self['RUN'] = (self.run, 'run number')
         self['NFRAME'] = (self.nframe, 'frame number within run')
@@ -842,6 +860,9 @@ class Rdata (Rhead):
         self['FRAMEERR'] = (
             info['frameError'],'problem with frame numbers found'
         )
+
+        # move frame counter on by one
+        self.nframe += 1
 
         # interpret data
         if self.instrument == 'ULTRACAM':
@@ -1186,35 +1207,46 @@ class Rtime (Rhead):
             self.fp.seek(self.framesize*(nframe-1))
 
     def set(self, nframe=1):
-        """Sets the internal file pointer to point at frame nframe.
+        """Sets the internal file pointer to point at frame number nframe.
+        Updates self.nframe equivalently. Returns the value of self.nframe
+        on entry.
 
-           nframe : (int)
-               frame number to get, starting at 1. 0 for the last (complete)
-               frame. 'None' will be ignored, i.e. it will leave the pointer
-               wherever it currently is. A value < 0 will cause an
-               exception. A value greater than the number of frames in the
-               file will work, but will cause an exception to be raised on the
-               next attempted read.
+        Args::
 
+          nframe : (int | None)
+             frame number to get, starting at 1. 0 for the last (complete)
+             frame. A value of 'None' will be ignored. A value < 0 will cause
+             an exception. A value greater than the number of frames in the
+             file will work, but will cause an exception to be raised on the
+             next attempted read.
+
+        It returns
         """
 
-        # position read pointer
-        if nframe is not None:
+        old_frame = self.nframe
+
+        if nframe == 0:
+            # work out last frame
+            if self.server:
+                self.nframe = get_nframe_from_server(self.run)
+            else:
+                # wind to end of file, work out where we are
+                # to deduce number of frames
+                self.fp.seek(0,2)
+                fp = self.fp.tell()
+                nf = fp // self.framesize
+                self.fp.seek(self.framesize*(nf-1)-fp,2)
+                self.nframe = nf
+
+        elif nframe is not None:
             if nframe < 0:
                 raise UltracamError('nframe < 0')
-            elif nframe == 0:
-                if self.server:
-                    self.nframe = get_nframe_from_server(self.run)
-                else:
-                    self.fp.seek(0,2)
-                    fp = self.fp.tell()
-                    nf = fp // self.framesize
-                    self.fp.seek(self.framesize*(nf-1)-fp,2)
-                    self.nframe = nf
             elif self.nframe != nframe:
                 if not self.server:
                     self.fp.seek(self.framesize*(nframe-1))
                 self.nframe = nframe
+
+        return old_frame
 
     def close_file(self):
         """
@@ -2036,39 +2068,15 @@ def get_nframe_from_server(run):
 
     # Get from FileServer
     full_url = URL + run + '?action=get_num_frames'
-    resp = urllib.request.urlopen(full_url).read()
+    resp = requests.get(full_url)
 
     # Parse the response
-    loc = resp.find('nframes="')
+    loc = resp.text.find('nframes="')
     if loc > -1:
-        end = resp[loc+9:].find('"')
-        return int(resp[loc+9:loc+9+end])
+        end = resp.text[loc+9:].find('"')
+        return int(resp.text[loc+9:loc+9+end])
     else:
         raise ValueError('failed to parse server response to ' + full_url)
-
-def get_runs_from_server(dir=None):
-    """
-    Returns with a list of runs from the server
-
-    Argument::
-
-       dir : (string)
-          name of sub-directory on server
-    """
-
-    # get from FileServer
-    if dir is None:
-        full_url = URL + '?action=dir'
-    else:
-        full_url = URL + dir + '?action=dir'
-    resp = urllib.request.urlopen(full_url).read()
-
-    # parse response from server
-    ldir = resp.split('<li>')
-    runs = [entry[entry.find('>run')+1:entry.find('>run')+7] for entry in ldir
-            if entry.find('getdata">run') > -1]
-    runs.sort()
-    return runs
 
 class UltracamError(Exception):
     """For throwing exceptions from the ultracam module"""
