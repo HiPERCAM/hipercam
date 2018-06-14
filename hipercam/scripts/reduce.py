@@ -95,10 +95,13 @@ def reduce(args=None):
            log file for the results
 
         tkeep : float
-           maximum number of minutes of data to store in internal buffers,
-           0 for the lot. When large numbers of frames are stored, performance
-           can be slowed in which case it makes sense to lose the earlier points
-           (without affecting the saving to disk).
+           maximum number of minutes of data to store in internal buffers, 0
+           for the lot. When large numbers of frames are stored, performance
+           can be slowed (although I am not entirely clear why) in which case
+           it makes sense to lose the earlier points (without affecting the
+           saving to disk). This parameter also gives operation similar to that
+           of "max_xrange" parameter in the ULTRACAM pipeline whereby just
+           the last few minutes are shown.
 
         lplot : bool
            flag to indicate you want to plot the light curve. Saves time not
@@ -198,7 +201,12 @@ def reduce(args=None):
         # the reduce file
         rfilen = cl.get_value(
             'rfile', 'reduce file', cline.Fname('reduce.red',hcam.RED))
-        rfile = Rfile.read(rfilen)
+        try:
+            rfile = Rfile.read(rfilen)
+        except hcam.HipercamError as err:
+            # abort on failure to read as there are many ways to get reduce files wrong
+            print(err, file=sys.stderr)
+            exit(1)
 
         if server_or_local:
             resource = cl.get_value('run', 'run name', 'run005')
@@ -223,7 +231,7 @@ def reduce(args=None):
         tkeep = cl.get_value(
             'tkeep', 'number of minute of data to'
             ' keep in internal buffers (0 for all)',
-            0, 0
+            0., 0.
         )
 
         lplot = cl.get_value(
@@ -960,7 +968,24 @@ def reduce(args=None):
                             spanel.x2 = x2
 
                     if replot:
-                        # re-plot
+
+                        # re-plot. 
+
+                        if tkeep > 0:
+                            # adjust start time if tkeep in use
+                            tstart = max(0, lpanel.x2 - tkeep - rfile['lcplot']['extend_x'])
+
+                            lpanel.x1 = tstart
+
+                            if rfile.position:
+                                xpanel.x1 = tstart
+                                ypanel.x1 = tstart
+
+                            if rfile.transmission:
+                                tpanel.x1 = tstart
+
+                            if rfile.seeing:
+                                spanel.x1 = tstart
 
                         # start buffering
                         pgbbuf()
@@ -1107,7 +1132,7 @@ class Rfile(OrderedDict):
     @classmethod
     def read(cls, filename):
         """
-        Builds an Rfile from a reduce file
+        Builds an Rfile from a reduce file. A few checks for viability are applied.
         """
 
         rfile = cls()
@@ -1158,26 +1183,26 @@ class Rfile(OrderedDict):
         sect = rfile['general']
         if sect['version'] != hcam.REDUCE_FILE_VERSION:
             # check the version
-            raise ValueError(
+            raise hcam.HipercamError(
                 'Version mismatch: file = {:s}, reduce = {:s}'.format(
                     sect['version'], hcam.REDUCE_FILE_VERSION)
             )
 
         sect['lwidth'] = float(sect['lwidth'])
         if sect['lwidth'] < 0:
-            raise ValueError('general.lwidth must be >= 0')
+            raise hcam.HipercamError('general.lwidth must be >= 0')
 
         sect['lheight'] = float(sect['lheight'])
         if sect['lheight'] < 0:
-            raise ValueError('general.lheight must be >= 0')
+            raise hcam.HipercamError('general.lheight must be >= 0')
 
         sect['iwidth'] = float(sect['iwidth'])
         if sect['iwidth'] < 0:
-            raise ValueError('general.iwidth must be >= 0')
+            raise hcam.HipercamError('general.iwidth must be >= 0')
 
         sect['iheight'] = float(sect['iheight'])
         if sect['iheight'] < 0:
-            raise ValueError('general.iheight must be >= 0')
+            raise hcam.HipercamError('general.iheight must be >= 0')
 
         # handle the count level warnings
         warns = sect.get('warn', [])
@@ -1198,7 +1223,7 @@ class Rfile(OrderedDict):
 
         sect['ncpu'] = int(sect['ncpu'])
         if sect['ncpu'] < 1:
-            raise ValueError('general.ncpu must be >= 1')
+            raise hcam.HipercamError('general.ncpu must be >= 1')
 
         #
         # apertures section
@@ -1210,7 +1235,7 @@ class Rfile(OrderedDict):
         )
         if apsec['location'] != 'fixed' and \
            apsec['location'] != 'variable':
-            raise ValueError(
+            raise hcam.HipercamError(
                 "aperture location must either be 'fixed' or 'variable'"
             )
 
@@ -1219,7 +1244,7 @@ class Rfile(OrderedDict):
         elif  apsec['fit_method'] == 'gaussian':
             rfile.method = 'g'
         else:
-            raise ValueError(
+            raise hcam.HipercamError(
                 'apertures.fit_method = {:s} not recognised'.format(
                     apsec['fit_method'])
             )
@@ -1292,13 +1317,13 @@ class Rfile(OrderedDict):
             extsec[cnam] = lst = extsec[cnam].split()
 
             if lst[0] != 'variable' and lst[0] != 'fixed':
-                raise ValueError(
+                raise hcam.HipercamError(
                     "first entry of extraction lines must either"
                     " be 'variable' or 'fixed'"
                 )
 
             if lst[1] != 'normal' and lst[1] != 'optimal':
-                raise ValueError(
+                raise hcam.HipercamError(
                     "second entry of extraction lines"
                     " must either be 'normal' or 'optimal'"
                 )
@@ -1314,16 +1339,16 @@ class Rfile(OrderedDict):
 
         if skysec['error'] == 'variance':
             if skysec['method'] == 'median':
-                raise ValueError(
+                raise hcam.HipercamError(
                     'sky.error == variance requires sky.method == clipped'
                 )
         elif skysec['error'] != 'photon':
-            raise ValueError(
+            raise hcam.HipercamError(
                 "sky.error must be either 'variance' or 'photon'"
             )
 
         if skysec['method'] != 'clipped' and skysec['method'] != 'median':
-            raise ValueError(
+            raise hcam.HipercamError(
                 "sky.method must be either 'clipped' or 'median'"
             )
 
@@ -1338,7 +1363,7 @@ class Rfile(OrderedDict):
         sect['xrange'] = float(sect['xrange'])
         sect['extend_x'] = float(sect['extend_x'])
         if sect['extend_x'] <= 0:
-            raise ValueError('lcplot.extend_x must be > 0')
+            raise hcam.HipercamError('lcplot.extend_x must be > 0')
 
         #
         # light curve panel section
@@ -1354,6 +1379,32 @@ class Rfile(OrderedDict):
         # PGPLOT colour indices.
         for n in range(len(plot)):
             cnam, tnm, cnm, off, fac, dcol, ecol = plot[n].split()
+
+            # some consistency checks
+            if cnam not in rfile.aper:
+                raise hcam.HipercamError(
+                    ("CCD = {:s} has a plot line in 'light' but is"
+                     " not present in the aperture file").format(cnam)
+                )
+
+            if cnam not in extsec:
+                raise hcam.HipercamError(
+                    ("CCD = {:s} has a plot line in 'light' but no"
+                     " corresponding entry under 'extraction'").format(cnam)
+                )
+
+            if tnm not in rfile.aper[cnam]:
+                raise hcam.HipercamError(
+                    ("Aperture = {:s} [target], CCD = {:s} has a plot line"
+                     " in 'light' but is not present in the aperture file").format(tnm,cnam)
+                )
+
+            if cnm != '!' and cnm not in rfile.aper[cnam]:
+                raise hcam.HipercamError(
+                    ("Aperture = {:s} [comparison], CCD = {:s} has a plot line"
+                     " in 'light' but is not present in the aperture file").format(tnm,cnam)
+                )
+
             plot[n] = {
                 'ccd' : cnam,
                 'targ' : tnm,
@@ -1372,7 +1423,7 @@ class Rfile(OrderedDict):
         sect['y2'] = float(sect['y2'])
         sect['extend_y'] = float(sect['extend_y'])
         if sect['extend_y'] <= 0:
-            raise ValueError('light.extend_y must be > 0')
+            raise hcam.HipercamError('light.extend_y must be > 0')
 
         #
         # position panel section
@@ -1390,6 +1441,26 @@ class Rfile(OrderedDict):
             # PGPLOT colour indices.
             for n in range(len(plot)):
                 cnam, tnm, dcol, ecol = plot[n].split()
+
+                # some consistency checks
+                if cnam not in rfile.aper:
+                    raise hcam.HipercamError(
+                        ("CCD = {:s} has a plot line in 'position'"
+                         " but is not present in the aperture file").format(cnam)
+                        )
+
+                if cnam not in extsec:
+                    raise hcam.HipercamError(
+                        ("CCD = {:s} has a plot line in 'position'"
+                         " but is no corresponding entry under 'extraction'").format(cnam)
+                        )
+
+                if tnm not in rfile.aper[cnam]:
+                    raise hcam.HipercamError(
+                        ("Aperture = {:s}, CCD = {:s} has a plot line in 'position'"
+                         " but is not present in the aperture file").format(tnm,cnam)
+                        )
+
                 plot[n] = {
                     'ccd' : cnam,
                     'targ' : tnm,
@@ -1400,23 +1471,23 @@ class Rfile(OrderedDict):
 
             sect['height'] = float(sect['height'])
             if sect['height'] <= 0:
-                raise ValueError('position.height must be > 0')
+                raise hcam.HipercamError('position.height must be > 0')
 
             toBool(rfile, 'position', 'x_fixed')
             sect['x_min'] = float(sect['x_min'])
             sect['x_max'] = float(sect['x_max'])
             if sect['x_max'] <= sect['x_min']:
-                raise ValueError('position.x_min must be < position.x_max')
+                raise hcam.HipercamError('position.x_min must be < position.x_max')
 
             toBool(rfile, 'position', 'y_fixed')
             sect['y_min'] = float(sect['y_min'])
             sect['y_max'] = float(sect['y_max'])
             if sect['y_max'] <= sect['y_min']:
-                raise ValueError('position.y_min must be < position.y_max')
+                raise hcam.HipercamError('position.y_min must be < position.y_max')
 
             sect['extend_y'] = float(sect['extend_y'])
             if sect['extend_y'] <= 0:
-                raise ValueError('position.extend_y must be > 0')
+                raise hcam.HipercamError('position.extend_y must be > 0')
 
         #
         # transmission panel section
@@ -1434,6 +1505,26 @@ class Rfile(OrderedDict):
             # PGPLOT colour indices.
             for n in range(len(plot)):
                 cnam, tnm, dcol, ecol = plot[n].split()
+
+                # some consistency checks
+                if cnam not in rfile.aper:
+                    raise hcam.HipercamError(
+                        ("CCD = {:s} has a plot line in 'transmission' but is"
+                         " not present in the aperture file").format(cnam)
+                        )
+
+                if cnam not in extsec:
+                    raise hcam.HipercamError(
+                        ("CCD = {:s} has a plot line in 'transmission' but no"
+                         " corresponding entry under 'extraction'").format(cnam)
+                        )
+
+                if tnm not in rfile.aper[cnam]:
+                    raise hcam.HipercamError(
+                        ("Aperture = {:s}, CCD = {:s} has a plot line in 'transmission'"
+                         " but is not present in the aperture file").format(tnm,cnam)
+                        )
+
                 plot[n] = {
                     'ccd' : cnam,
                     'targ' : tnm,
@@ -1444,11 +1535,11 @@ class Rfile(OrderedDict):
 
             sect['height'] = float(sect['height'])
             if sect['height'] <= 0:
-                raise ValueError('transmission.height must be > 0')
+                raise hcam.HipercamError('transmission.height must be > 0')
 
             sect['ymax'] = float(sect['ymax'])
             if sect['ymax'] < 100:
-                raise ValueError('transmission.ymax must be >= 100')
+                raise hcam.HipercamError('transmission.ymax must be >= 100')
 
         #
         # seeing panel section
@@ -1466,6 +1557,26 @@ class Rfile(OrderedDict):
             # PGPLOT colour indices.
             for n in range(len(plot)):
                 cnam, tnm, dcol, ecol = plot[n].split()
+
+                # some consistency checks
+                if cnam not in rfile.aper:
+                    raise hcam.HipercamError(
+                        ("CCD = {:s} has a plot line in 'position' but is"
+                         " not present in the aperture file").format(cnam)
+                        )
+
+                if cnam not in extsec:
+                    raise hcam.HipercamError(
+                        ("CCD = {:s} has a plot line in 'position' but no"
+                         " corresponding entry under 'extraction'").format(cnam)
+                        )
+
+                if tnm not in rfile.aper[cnam]:
+                    raise hcam.HipercamError(
+                        ("Aperture = {:s}, CCD = {:s} has a plot line in 'position'"
+                         " but is not present in the aperture file").format(tnm,cnam)
+                        )
+
                 plot[n] = {
                     'ccd' : cnam,
                     'targ' : tnm,
@@ -1478,19 +1589,19 @@ class Rfile(OrderedDict):
 
             sect['height'] = float(sect['height'])
             if sect['height'] <= 0:
-                raise ValueError('seeing.height must be > 0')
+                raise hcam.HipercamError('seeing.height must be > 0')
 
             sect['ymax'] = float(sect['ymax'])
             if sect['ymax'] <= 0:
-                raise ValueError('seeing.ymax must be > 0')
+                raise hcam.HipercamError('seeing.ymax must be > 0')
 
             sect['scale'] = float(sect['scale'])
             if sect['scale'] <= 0:
-                raise ValueError('seeing.scale must be > 0')
+                raise hcam.HipercamError('seeing.scale must be > 0')
 
             sect['extend_y'] = float(sect['extend_y'])
             if sect['extend_y'] <= 0:
-                raise ValueError('seeing.extend_y must be > 0')
+                raise hcam.HipercamError('seeing.extend_y must be > 0')
 
         # Monitor section
 
@@ -2040,7 +2151,7 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
             aper.rsky2 = max(r3min, min(r3max, aper.rsky2))
 
     else:
-        raise ValueError(
+        raise hcam.HipercamError(
             "CCD {:s}: 'variable' and 'fixed' are the only"
             " aperture resizing options".format(
                 cnam)
@@ -2281,7 +2392,7 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
                 countse = np.sqrt(var)
 
             else:
-                raise ValueError(
+                raise hcam.HipercamError(
                     'extraction type = {:s} not recognised'.format(extype)
                 )
 
@@ -2620,8 +2731,8 @@ class BaseBuffer:
         self.targ = plot_config['targ']
         self.dcol = plot_config['dcol']
         self.ecol = plot_config['ecol']
-        self.t  = []
-        self.f  = []
+        self.t = []
+        self.f = []
         self.fe = []
         self.symb = []
 
@@ -2630,7 +2741,7 @@ class BaseBuffer:
         Trims points more than tkeep minutes before the last point.
         Assumes times rise monotonically. Nothing done if tkeep <= 0,
         or if the first point does not exceed tkeep by at least 1.
-        The idea is to avoid doing this too often.
+        The idea is to avoid doing this too often. Returns the first time
         """
         if len(self.t) > 1 and tkeep > 0. and self.t[-1] > self.t[0] + tkeep + 1:
             tlast = self.t[-1]
@@ -2642,6 +2753,15 @@ class BaseBuffer:
                 self.f  = self.f[ntrim:]
                 self.fe = self.fe[ntrim:]
                 self.symb = self.symb[ntrim:]
+
+    def tstart(self):
+        """
+        Returns the start time of the buffer, 0 if one is not defined
+        """
+        if len(self.t) == 0:
+            return 0.
+        else:
+            return self.t[0]
 
 class LightCurve(BaseBuffer):
     """
@@ -3024,7 +3144,7 @@ def toBool(rfile, section, param):
     elif rfile[section][param] == 'no':
         rfile[section][param] = False
     else:
-        raise ValueError(
+        raise hcam.HipercamError(
             "{:s}.{:s}: 'yes' or 'no' are the only supported values".format(
                 section,param)
             )
