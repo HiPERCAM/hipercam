@@ -131,7 +131,6 @@ class Hlog(dict):
                     # cope with quite large log files.
                     hlog[cnam].append(struct.pack(struct_types[cnam], *items))
 
-
         # convert lists to numpy arrays
         for cnam in hlog:
             hlog[cnam] = np.array(hlog[cnam], dtype=dtypes[cnam])
@@ -152,6 +151,98 @@ class Hlog(dict):
             for hdu in hdul[1:]:
                 cnam = hdu.header['CCDNAME']
                 hlog[cnam] = hdu.data
+
+        return hlog
+
+    @classmethod
+    def from_ulog(cls, fname):
+        """
+        Creates an Hlog from an ASCII file produced by the C++ ULTRACAM 
+        pipeline.
+        """
+
+        hlog = cls()
+
+        # CCD labels, number of apertures, numpy dtypes, struct types
+        cnames = {}
+        naps = {}
+        dtypes = {}
+        stypes = {}
+
+        n = 0
+        with open(fname) as fin:
+            for line in fin:
+                n += 1
+                if not line.startswith('#'):
+                    arr = line.split()
+                    nframe,mjd,tflag,expose,cnam,fwhm,beta = arr[:7]
+
+                    mjd = float(mjd)
+                    tflag = bool(tflag)
+                    expose = float(expose)
+                    fwhm = float(fwhm)
+                    beta = float(beta)
+
+                    values = [mjd, tflag, expose, fwhm, beta]
+
+                    if cnam in hlog:
+                        # at least one line for this CCD has been read already
+                        if len(arr[7:]) // 14 != naps[cnam]:
+                            raise hcam.HipercamError(
+                                ('First line of CCD {:s} had {:d} apertures,'
+                                 ' whereas line {:d} of file has {:d}').format(
+                                     cnam, naps[cnam], len(arr[7:]) // 14)
+                                )
+
+                        for nap in range(naps[cnam]):
+                            naper, x, y, xm, ym, exm, eym, counts, \
+                                sigma, sky, nsky, nrej, worst, error_flag = arr[7+14*nap:7+14*(nap+1)]
+                            values += [float(x),float(y),float(xm),float(ym),float(exm),
+                                       float(eym),float(counts),float(sigma),float(sky),
+                                       int(nsky),int(nrej),int(worst),int(error_flag)]
+
+                    else:
+                        # first time for this CCD
+                        hlog[cnam] = []
+                        names = ['MJD','Tflag','Expose','FWHM','beta']
+                        dts = ['f8','?','f4','f4','f4']
+                        naps[cnam] = len(arr[7:]) // 14
+                        for nap in range(naps[cnam]):
+                            naper, x, y, xm, ym, exm, eym, counts, \
+                                sigma, sky, nsky, nrej, worst, error_flag = arr[7+14*nap:7+14*(nap+1)]
+                            names += [
+                                'x_{:s}'.format(naper),
+                                'y_{:s}'.format(naper),
+                                'xm_{:s}'.format(naper),
+                                'ym_{:s}'.format(naper),
+                                'exm_{:s}'.format(naper),
+                                'eym_{:s}'.format(naper),
+                                'counts_{:s}'.format(naper),
+                                'countse_{:s}'.format(naper),
+                                'sky_{:s}'.format(naper),
+                                'nsky_{:s}'.format(naper),
+                                'nrej_{:s}'.format(naper),
+                                'worst_{:s}'.format(naper),
+                                'flag_{:s}'.format(naper),
+                                ]
+                            dts += ['f4','f4','f4','f4','f4','f4','f4',
+                                    'f4','f4','i4','i4','i4','i4']
+
+                            values += [float(x),float(y),float(xm),float(ym),float(exm),
+                                       float(eym),float(counts),float(sigma),float(sky),
+                                       int(nsky),int(nrej),int(worst),int(error_flag)]
+
+                        dtypes[cnam] = np.dtype(list(zip(names, dts)))
+                        stypes[cnam] = '=' + ''.join([NUMPY_TO_STRUCT[dt] for dt in dts])
+
+                    # store in a list. Although lists are wasteful, they grow quite
+                    # fast and each element here is efficiently packed so it should
+                    # cope with quite large log files.
+                    hlog[cnam].append(struct.pack(stypes[cnam], *values))
+
+        # convert lists to numpy arrays
+        for cnam in hlog:
+            hlog[cnam] = np.array(hlog[cnam], dtype=dtypes[cnam])
 
         return hlog
 
@@ -178,7 +269,6 @@ class Hlog(dict):
             ccd['{:s}e_{!s}'.format(name,apnam)],
             ccd['flag_{!s}'.format(apnam)]
         )
-
 
 class Tseries:
     """

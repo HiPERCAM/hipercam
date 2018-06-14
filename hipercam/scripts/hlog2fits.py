@@ -43,11 +43,17 @@ def hlog2fits(args=None):
 
         # register parameters
         cl.register('log', Cline.LOCAL, Cline.PROMPT)
+        cl.register('origin', Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         log = cl.get_value(
             'log', 'name of log file from "reduce" to convert to FITS',
             cline.Fname('red', hcam.LOG)
+        )
+
+        origin = cl.get_value(
+            'origin', 'h(ipercam) or u(ltracam)',
+            'h', lvals=['h','u']
         )
 
     oname = os.path.basename(log)
@@ -59,7 +65,10 @@ def hlog2fits(args=None):
             )
 
     # Read in the ASCII log
-    hlg = hcam.hlog.Hlog.from_ascii(log)
+    if origin == 'h':
+        hlg = hcam.hlog.Hlog.from_ascii(log)
+    elif origin == 'u':
+        hlg = hcam.hlog.Hlog.from_ulog(log)
 
     print('Loaded ASCII log = {:s}'.format(log))
 
