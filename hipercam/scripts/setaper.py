@@ -422,8 +422,8 @@ def setaper(args=None):
     else:
         fig = plt.figure()
 
-    # get the navigation toolbar. Go straight into pan mode
-    # where we want to stay.
+    # get the navigation toolbar. Go straight into pan mode where we want to
+    # stay.
     toolbar = fig.canvas.manager.toolbar
     toolbar.pan()
 
@@ -436,9 +436,9 @@ def setaper(args=None):
     anams = {}
 
     # this is a container for all the objects used to plot apertures to allow
-    # deletion. This is Group of Group objects supporting tuple storage. The idea
-    # is that pobjs[cnam][anam] returns the objects used to plot aperture anam of
-    # CCD cnam. It is initially empty,
+    # deletion. This is Group of Group objects supporting tuple storage. The
+    # idea is that pobjs[cnam][anam] returns the objects used to plot aperture
+    # anam of CCD cnam. It is initially empty,
     pobjs = hcam.Group(hcam.Group)
 
     for n, cnam in enumerate(ccds):
