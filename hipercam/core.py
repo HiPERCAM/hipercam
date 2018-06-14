@@ -13,7 +13,7 @@ __all__ = (
     'NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
     'TARGET_NONLINEAR', 'TARGET_SATURATED', 'ANY',
     'REDUCE_FILE_VERSION', 'NO_EXTRACTION', 'NO_DATA',
-    'DFCT'
+    'DFCT', 'version'
 )
 
 # Constants for general use
@@ -90,6 +90,11 @@ NO_DATA           = 1 << 7  # No valid pixels in aperture
 
 ANY = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | TARGET_SATURATED | \
       TARGET_NONLINEAR | NO_EXTRACTION | NO_DATA
+
+def version():
+    """Returns version number of installed |hiper| pipeline"""
+    import pkg_resources
+    return pkg_resources.require("hipercam")[0].version
 
 class HipercamError (Exception):
     """

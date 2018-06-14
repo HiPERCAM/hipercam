@@ -31,9 +31,8 @@ extension = [
 setup(
     name='hipercam',
 
-    # Versions should comply with PEP440. Here
-    # we use a version generated automatically
-    # from git.
+    # Versions should comply with PEP440. Here we use a version generated
+    # automatically from git.
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
 
