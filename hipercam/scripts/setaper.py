@@ -198,32 +198,35 @@ def setaper(args=None):
     pointed at. I have therefore suppressed this, but only for the tested
     backends. Others would need require further investigation.
 
-    When in `setaper`, help is always available by hitting 'h'. Most of the options
-    are self-evident. A few which may not be are:
+    When in `setaper`, help is always available by hitting 'h'. Most of the
+    options are self-evident. A few which may not be are:
 
-      | e(xtra)    : add extra pixels to the target aperture. This allows you to sculpt
-      |              the shape of the extraction aperure to perhaps include the flux of
-      |              a blended star.
+      | e(xtra)    : add extra pixels to the target aperture. This allows you
+      |              to sculpt the shape of the extraction aperure to perhaps
+      |              include the flux of a blended star.
       |
-      | l(ink)     : link one aperture to another in the same CCD for re-positioning. If
-      |              a target is very faint or will disappear, this will make sure that
-      |              is position is defined relative to another, brighter star. Best to
-      |              choose one close by because of potential refractive distortion.
+      | l(ink)     : link one aperture to another in the same CCD for
+      |              re-positioning. If a target is very faint or will
+      |              disappear, this will make sure that its position
+      |              is defined relative to another, brighter star. Best
+      |              to choose one close by because of potential refractive
+      |              distortion.
       |
-      | r(eference): toggle whether an aperture is a reference aperture. The re-positioning
-      |              can work in two steps: first position reference stars, then the other stars,
-      |              using the reference stars to provide a first cut at the position shift of
-      |              the rest.
+      | r(eference): toggle whether an aperture is a reference aperture. The
+      |              re-positioning can work in two steps: first position
+      |              reference stars, then the other stars, using the reference
+      |              stars to provide a first cut at the position shift of the
+      |              rest.
       |
-      | C(opy)     : copy apertures of the CCD the cursor is in to all others. This basically
-      |              clones apertures across the CCDs. You will need to re-centre each on afterwards.
+      | C(opy)     : copy apertures of the CCD the cursor is in to all others.
+      |              This basically clones apertures across the CCDs. You will
+      |              need to re-centre each on afterwards.
 
 
     .. Warning::
 
-       The aperture positionsimmediately after a copy reflect the origin CCD, and may be somewhat off
-       if there are significant offsets between CCDs.
-
+       The aperture positions immediately after a copy reflect the origin CCD,
+       and may be somewhat off if there are significant offsets between CCDs.
 
     """
 
