@@ -2,7 +2,7 @@ import sys
 import os
 import struct
 import numpy as np
-import fitsio
+from astropy.io import fits
 
 import hipercam as hcam
 from hipercam import cline, utils
@@ -46,7 +46,7 @@ def hlog2fits(args=None):
 
         # get inputs
         log = cl.get_value(
-            'log', 'name of log file from reduce to convert to FITS',
+            'log', 'name of log file from "reduce" to convert to FITS',
             cline.Fname('red', hcam.LOG)
         )
 
@@ -61,14 +61,30 @@ def hlog2fits(args=None):
     # Read in the ASCII log
     hlg = hcam.hlog.Hlog.from_ascii(log)
 
-    # Open fits file for output, write out results CCD by CCD as binary tables
-    with fitsio.FITS(oname,'rw') as fout:
-        for cnam in sorted(hlg):
-            print('Writing CCD =',cnam)
-            fout.write(
-                hlg[cnam], extname='CCD {:s}'.format(cnam),
-                header={'CCDNAME' : cnam}
-                )
+    print('Loaded ASCII log = {:s}'.format(log))
+
+    # Generate HDU list
+
+    # First the primary HDU (no data)
+    phdr = fits.Header()
+    phdr['LOGFILE'] = (os.path.basename(log),'Original log file')
+    phdu = fits.PrimaryHDU(header=phdr)
+    hdul = [phdu,]
+
+    # Now a BinTable for each CCD
+    for cnam in sorted(hlg):
+        hdr = fits.Header()
+        hdr['CCDNAME'] = (cnam, 'CCD name')
+        hdul.append(
+            fits.BinTableHDU(
+                hlg[cnam], header=hdr, name='CCD {:s}'.format(cnam))
+            )
+
+    hdul = fits.HDUList(hdul)
+
+    # finally write to disk
+    print('Writing to disk in file = {:s}'.format(oname))
+    hdul.writeto(oname)
 
     print('Converted {:s} to {:s}'.format(log,oname))
 

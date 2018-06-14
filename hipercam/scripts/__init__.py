@@ -53,10 +53,3 @@ try:
 except:
     pass
 
-try:
-    # allow this one to fail
-    from .hlog2fits import hlog2fits
-
-    __all__.append('hlog2fits')
-except:
-    pass

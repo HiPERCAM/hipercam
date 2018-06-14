@@ -20,10 +20,6 @@ future I might try to make it more automatic:
          C-extensions for Python. Widely used package used to interface
          to C-libraries and to enable faster code when critical.
 
-  fitsio :
-         an implementation of FITS reading and writing that allows some
-         things not provided by astropy.io.fits. It is used in |hlog2fits|.
-
   matplotlib :
          standard plotting package for Python.
 

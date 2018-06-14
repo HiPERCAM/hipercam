@@ -15,7 +15,6 @@ Programmers Interface) is designed to allow you to do so.
 
    quickapi
    hcmformat
-   foreign
    windows
    timing/timing
    timing/timing_tests
