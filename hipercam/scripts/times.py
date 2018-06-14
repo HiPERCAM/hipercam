@@ -62,7 +62,7 @@ def times(args=None):
            number of digits of precision after the decimal point when
            reporting the exposure times
 
-    .. Warn::
+    .. Warning::
 
        This routine does not yet work with ULTRACAM data.
 
