@@ -49,7 +49,14 @@ try:
     # allow this one to fail
     from .aligntool import aligntool
 
-    # insert after add
-    __all__.insert(1,'aligntool')
+    __all__.append('aligntool')
+except:
+    pass
+
+try:
+    # allow this one to fail
+    from .hlog2fits import hlog2fits
+
+    __all__.append('hlog2fits')
 except:
     pass
