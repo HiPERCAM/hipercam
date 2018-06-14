@@ -19,9 +19,7 @@ may be found on `github <https://github.com/HiPERCAM>`_.
 
 .. Warning::
 
-   These pages are under development and incomplete. We have not had enough
-   time on sky to shake the system down and there are sure to be many teething
-   problems. Apologies!
+   These pages are under development and incomplete. Apologies!
 
 .. toctree::
    :maxdepth: 2
