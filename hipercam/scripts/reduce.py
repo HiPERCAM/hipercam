@@ -1301,7 +1301,8 @@ class Rfile(OrderedDict):
         apsec['fit_beta_max'] = float(apsec['fit_beta_max'])
         apsec['fit_half_width'] = int(apsec['fit_half_width'])
         apsec['fit_thresh'] = float(apsec['fit_thresh'])
-        apsec['fit_height_min'] = float(apsec['fit_height_min'])
+        apsec['fit_height_min_ref'] = float(apsec['fit_height_min_ref'])
+        apsec['fit_height_min_nrf'] = float(apsec['fit_height_min_nrf'])
         apsec['fit_max_shift'] = float(apsec['fit_max_shift'])
 
         #
@@ -1809,7 +1810,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                             x,y,swdata.winhead.format())
                     )
 
-                if height > apsec['fit_height_min']:
+                if height > apsec['fit_height_min_ref']:
                     dx = x - aper.x
                     wx = 1./ex**2
                     wxsum += wx
@@ -1848,7 +1849,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     print(
                         ('CCD {:s}, reference aperture {:s}'
                          ', peak = {:.1f} < {:.1f}').format(
-                             cnam, apnam, height, apsec['fit_height_min']),
+                             cnam, apnam, height, apsec['fit_height_min_ref']),
                         file=sys.stderr
                     )
 
@@ -1997,7 +1998,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                              apsec['fit_max_shift'])
                     )
 
-                if height > apsec['fit_height_min']:
+                if height > apsec['fit_height_min_nrf']:
                     # store some stuff for next time and for passing onto
                     # next routine
                     store[apnam] = {
@@ -2025,7 +2026,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     print(
                         ('CCD {:s}, aperture {:s},'
                          ' peak = {:.1f} < {:.1f}').format(
-                             cnam, apnam, height, apsec['fit_height_min']),
+                             cnam, apnam, height, apsec['fit_height_min_nrf']),
                         file=sys.stderr
                     )
                     aper.x += xshift
@@ -2159,7 +2160,7 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
                  ' extraction possible').format(cnam)
             )
             # set flag to indicate no FWHM
-            flag |= hcam.NO_FWHM
+            flag = hcam.NO_FWHM
 
             for apnam, aper in ccdaper.items():
                 info = store[apnam]
@@ -2200,6 +2201,9 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
     # apertures have been positioned in moveApers and now re-sized. Finally
     # we can extract something.
     for apnam, aper in ccdaper.items():
+
+        # initialise flag
+        flag = hcam.ALL_OK
 
         # extract Windows relevant for this aperture
         wnam = ccdwin[apnam]

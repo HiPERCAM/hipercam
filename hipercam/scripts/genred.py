@@ -24,7 +24,7 @@ __all__ = ['genred',]
 def genred(args=None):
     """``genred apfile rfile comment bias flat dark linear inst [ncpu extendx
     ccd location smoothfwhm method beta betamax fwhm fwhmmin searchwidth thresh
-    heightmin rfac rmin rmax sinner souter scale]``
+    hminref hminnrf rfac rmin rmax sinner souter scale]``
 
     Generates a reduce file as needed by |reduce|. You give it the name of an
     aperture file and a few other parameters and it will write out a reduce
@@ -132,8 +132,11 @@ def genred(args=None):
         thresh : float [hidden]
            RMS rejection threshold for profile fits.
 
-        heightmin : float [hidden]
-           minimum peak height for a fit to be accepted
+        hminref : float [hidden]
+           minimum peak height for a fit to a reference aperture to be accepted
+
+        hminnrf : float [hidden]
+           minimum peak height for a fit to a non-reference aperture to be accepted
 
         rfac : float [hidden]
            target aperture radius relative to the FWHM for 'variable' aperture
@@ -191,7 +194,8 @@ def genred(args=None):
         cl.register('fitwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('maxshift', Cline.LOCAL, Cline.HIDE)
         cl.register('thresh', Cline.LOCAL, Cline.HIDE)
-        cl.register('heightmin', Cline.LOCAL, Cline.HIDE)
+        cl.register('hminref', Cline.LOCAL, Cline.HIDE)
+        cl.register('hminnrf', Cline.LOCAL, Cline.HIDE)
         cl.register('rfac', Cline.LOCAL, Cline.HIDE)
         cl.register('rmin', Cline.LOCAL, Cline.HIDE)
         cl.register('rmax', Cline.LOCAL, Cline.HIDE)
@@ -361,9 +365,14 @@ warn = 1 60000 64000
             'thresh', 'RMS rejection threshold for fits (sigma)', 5., 2.
         )
 
-        height_min = cl.get_value(
-            'heightmin',
-            'minimum peak height for a fit to be acceptable [counts]', 40, 1
+        height_min_ref = cl.get_value(
+            'hminref',
+            'minimum peak height for a fit to reference aperture [counts]', 50, 1
+        )
+
+        height_min_nrf = cl.get_value(
+            'hminnrf',
+            'minimum peak height for a fit to non-reference aperture [counts]', 10, 1
         )
 
         rfac = cl.get_value(
@@ -596,9 +605,9 @@ warn = 1 60000 64000
                 warn_levels=warn_levels, ncpu=ncpu,
                 search_half_width=search_half_width,
                 fit_half_width=fit_half_width, profile_type=profile_type,
-                height_min=height_min, beta=beta, beta_max=beta_max,
-                thresh=thresh, readout=readout, gain=gain,
-                fit_max_shift=fit_max_shift
+                height_min_ref=height_min_ref, height_min_nrf=height_min_nrf,
+                beta=beta, beta_max=beta_max, thresh=thresh, readout=readout,
+                gain=gain, fit_max_shift=fit_max_shift
             )
         )
 
@@ -712,7 +721,8 @@ fit_ndiv = 0 # sub-pixellation factor
 fit_fwhm_fixed = no # Might want to set = 'yes' for defocussed images
 fit_half_width = {fit_half_width:d} # for fit, unbinned pixels
 fit_thresh = {thresh:.2f} # RMS rejection threshold for fits
-fit_height_min = {height_min:.1f} # minimum height to accept a fit
+fit_height_min_ref = {height_min_ref:.1f} # minimum height to accept a fit, reference aperture
+fit_height_min_nrf = {height_min_nrf:.1f} # minimum height to accept a fit, non-reference aperture
 fit_max_shift = {fit_max_shift:.1f} # max. non-ref. shift, unbinned pixels.
 
 # The next lines define how the apertures will be re-sized and how the flux
