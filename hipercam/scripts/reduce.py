@@ -635,7 +635,9 @@ def reduce(args=None):
         # for storage / retrieval of fit values from one frame to the next
         store = {}
 
-        pool = multiprocessing.Pool(processes=rfile['general']['ncpu'])
+        ncpu = rfile['general']['ncpu']
+        if ncpu > 1:
+            pool = multiprocessing.Pool(processes=ncpu)
 
         ##############################################
         #
@@ -747,56 +749,94 @@ def reduce(args=None):
                     # apply flat field to processed frame
                     pccd /= rfile.flat
 
-                # container for the arguments to send to ccdproc
-                # for each CCD
-                arglist = []
-                for cnam in pccd:
+                results = {}
+                if ncpu > 1:
+                    # container for the arguments to send to ccdproc
+                    # for each CCD
+                    arglist = []
+                    for cnam in pccd:
 
-                    # get the apertures
-                    if cnam not in rfile.aper or \
-                       cnam not in rfile['extraction'] or \
-                       len(rfile.aper[cnam]) == 0 or \
-                       not pccd[cnam].is_data():
+                        # get the apertures
+                        if cnam not in rfile.aper or \
+                                cnam not in rfile['extraction'] or \
+                                len(rfile.aper[cnam]) == 0 or \
+                                not pccd[cnam].is_data():
+                            continue
+
+                        if cnam not in mccdwins:
+                            # first time through, work out an array of which
+                            # window each aperture lies in we will assume this
+                            # is fixed for the whole run, i.e. that apertures
+                            # do not drift from one window to another. Set to
+                            # None if no window found
+                            mccdwins[cnam] = {}
+                            for apnam, aper in rfile.aper[cnam].items():
+                                for wnam, wind in mccd[cnam].items():
+                                    if wind.distance(aper.x,aper.y) > 0:
+                                        mccdwins[cnam][apnam] = wnam
+                                        break
+                                    else:
+                                        mccdwins[cnam][apnam] = None
+
+                        if cnam not in store:
+                            # initialisation
+                            store[cnam] = {'mfwhm' : -1., 'mbeta' : -1.}
+
+                        # compile list of arguments to send to parallelisable
+                        # routine
+                        arglist.append(
+                            (cnam, pccd[cnam], read[cnam], gain[cnam],
+                             mccd[cnam], rfile.aper[cnam], mccdwins[cnam],
+                             rfile, store[cnam])
+                            )
+
+                    if not len(arglist):
                         continue
 
-                    if cnam not in mccdwins:
-                        # first time through, work out an array of which
-                        # window each aperture lies in we will assume this is
-                        # fixed for the whole run, i.e. that apertures do not
-                        # drift from one window to another. Set to None if no
-                        # window found
-                        mccdwins[cnam] = {}
-                        for apnam, aper in rfile.aper[cnam].items():
-                            for wnam, wind in mccd[cnam].items():
-                                if wind.distance(aper.x,aper.y) > 0:
-                                    mccdwins[cnam][apnam] = wnam
-                                    break
-                            else:
-                                mccdwins[cnam][apnam] = None
+                    # Run the reduction in parallel
+                    allres = pool.starmap(ccdproc, arglist)
 
-                        # initialisation
-                        store[cnam] = {'mfwhm' : -1., 'mbeta' : -1.}
+                    # Save the results
+                    for cnam, st, ccdaper, res in allres:
+                        store[cnam] = st
+                        rfile.aper[cnam] = ccdaper
+                        results[cnam] = res
 
-                    # compile list of arguments to send to parallelisable
-                    # routine
-                    arglist.append(
-                        (cnam, pccd[cnam], read[cnam], gain[cnam],
-                         mccd[cnam], rfile.aper[cnam], mccdwins[cnam],
-                         rfile, store[cnam])
-                    )
+                else:
+                    # single processor
+                    for cnam in pccd:
 
-                if not len(arglist):
-                    continue
+                        # get the apertures
+                        if cnam not in rfile.aper or cnam not in rfile['extraction'] or \
+                                len(rfile.aper[cnam]) == 0 or not pccd[cnam].is_data():
+                            continue
 
-                # Run the reduction, potentially in parallel
-                allres = pool.starmap(ccdproc, arglist)
+                        if cnam not in mccdwins:
+                            # first time through, work out an array of which
+                            # window each aperture lies in we will assume this
+                            # is fixed for the whole run, i.e. that apertures
+                            # do not drift from one window to another. Set to
+                            # None if no window found
+                            mccdwins[cnam] = {}
+                            for apnam, aper in rfile.aper[cnam].items():
+                                for wnam, wind in mccd[cnam].items():
+                                    if wind.distance(aper.x,aper.y) > 0:
+                                        mccdwins[cnam][apnam] = wnam
+                                        break
+                                    else:
+                                        mccdwins[cnam][apnam] = None
 
-                # Save the results
-                results = {}
-                for cnam, st, ccdaper, res in allres:
-                    store[cnam] = st
-                    rfile.aper[cnam] = ccdaper
-                    results[cnam] = res
+                        if cnam not in store:
+                            # initialisation
+                            store[cnam] = {'mfwhm' : -1., 'mbeta' : -1.}
+
+                        # run the reduction using the paralleisable routine but in serial mode
+                        cn, store[cnam], rfile.aper[cnam], results[cnam] = \
+                            ccdproc(
+                            cnam, pccd[cnam], read[cnam], gain[cnam], mccd[cnam],
+                            rfile.aper[cnam], mccdwins[cnam], rfile, store[cnam]
+                            )
+
 
                 # write out results to the log file
                 logfile.write('#\n')
@@ -1998,7 +2038,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                         'dx' : xshift, 'dy' : yshift
                     }
 
-            except hcam.HipercamError as err:
+            except (hcam.HipercamError, IndexError) as err:
                 print(
                     'CCD {:s}, aperture {:s}, fit failed, error = {!s}'.format(
                         cnam, apnam, err), file=sys.stderr
@@ -3196,6 +3236,10 @@ def ccdproc(cnam, ccd, flat, rflat, rccd, ccdaper, ccdwins, rfile, store):
 
        store    :
           dictionary of results
+
+
+    Returns:: (cnam, store, ccdaper, results)
+
     """
 
     # At this point 'ccd' contains all the Windows of a CCD, 'ccdaper' all of
