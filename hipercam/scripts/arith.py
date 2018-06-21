@@ -23,25 +23,29 @@ def arith(args=None):
 
     Parameters:
 
-       input1  : string
+       input1 : string
           first input hcm file
 
-       input2  : string
+       input2 : string
           second input hcm file
 
-       ccd     : string [hidden, defaults to 'all']
+       ccd : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. '2 4' or just
           one '3'
 
-       win     : string [hidden, defaults to 'all']
+       win : string [hidden, defaults to 'all']
           the CCD or CCDs to apply the operation to. 'all' for the whole lot
           which it returns to by default.  Can be several e.g. 'E2 G1' or just
           one 'H1'. If you specify windows in this manner, it is assumed that
           all the CCDs chosen in the previous input have the named windows;
           'all' just applies the operation to all windows regardless.
 
-       output  : string
+       crop : bool [hidden, defaults to False]
+         set True to try to crop input2 to have the same format as input1 (it
+         must enclose it and have compatible binning for this to work).
+
+       output : string
           output hcm file name. Can be same as either input1 or input2
           in which case the input file will be over-written.
 
@@ -57,6 +61,7 @@ def arith(args=None):
         cl.register('input2', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.HIDE)
         cl.register('win', Cline.LOCAL, Cline.HIDE)
+        cl.register('crop', Cline.LOCAL, Cline.HIDE)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
 
         prompts = {'add' : 'add', 'sub' : 'subtract',
@@ -92,6 +97,12 @@ def arith(args=None):
         else:
             win = 'all'
             wins = 'all'
+
+        cl.set_default('crop', False)
+        crop = cl.get_value('crop', 'try to crop input2 to the same format as input1', False)
+        if crop:
+            mccd2 = mccd2.crop(mccd1)
+            print('cropped {:s} to match {:s} before operation'.format(infile2,infile1))
 
         outfile = cl.get_value('output', 'output file',
                                cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW))

@@ -118,15 +118,20 @@ class Winhead(fits.Header):
     def __str__(self):
         return self.__repr__()
 
-    def format(self):
+    def format(self, nohead=False):
         """Used to ensure that only the Winhead format gets printed which is
         useful in some instances. Relying on __repr__ carries the risk of
-        being overloaded."""
+        being overloaded. Set 'nohead' True to suppress the header in addition"""
 
-        return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={!r})'.format(
-            self.llx, self.lly, self.nx, self.ny,
-            self.xbin, self.ybin, super().__repr__()
-        )
+        if nohead:
+            return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head=<...>)'.format(
+                self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin
+                )
+        else:
+            return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={!r})'.format(
+                self.llx, self.lly, self.nx, self.ny,
+                self.xbin, self.ybin, super().__repr__()
+                )
 
     @property
     def urx(self):
@@ -325,7 +330,7 @@ class Winhead(fits.Header):
         if self != win:
             raise ValueError(
                 'self = {!s} clashes with win = {!s}'.format(
-                    self.win,win.win
+                    self.format(True), win.format(True)
                 )
             )
 
@@ -820,7 +825,8 @@ class Window(Winhead):
 
     @property
     def winhead(self):
-        """A copy of the :class:`Winhead` underlying the :class:`Window`"""
+        """A copy of the :class:`Winhead` underlying the :class:`Window` This is to
+        allow simpler reporting of problems with the format without the data as well"""
         return super().copy()
 
     def set_const(self, val):
