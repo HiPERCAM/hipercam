@@ -343,7 +343,7 @@ def setdefect(args=None):
     )
 
     plt.tight_layout()
-    PickDefect.action_prompt(False)
+    picker.action_prompt(False)
 
     # squeeze space a bit
     plt.subplots_adjust(wspace=0.1, hspace=0.1)
@@ -383,8 +383,7 @@ class PickDefect:
         # start so we set them False
         self._line_mode = False
 
-    @staticmethod
-    def action_prompt(cr):
+    def action_prompt(self, cr):
         """Prompts user for an action. cr controls whether there is an intial
         carriage return or not.  It leaves the cursor at the end of the
         line. This appears in multiple places hence why it is a method.
@@ -418,7 +417,7 @@ class PickDefect:
             if event.key == 'q':
                 self._line_mode = False
                 print('no line defect added')
-                PickDefect.action_prompt(True)
+                self.action_prompt(True)
                 return
 
             elif event.key == 'm':
@@ -558,7 +557,7 @@ close enough (< 10 pixels)
                 print('\nDefects saved to {:s}.\nBye'.format(self.dfctnam))
 
             elif key == 'enter':
-                PickDefect.action_prompt(True)
+                self.action_prompt(True)
 
             elif key == 'shift' or key == 'alt' or key == 'control' or \
                  key == 'pagedown' or key == 'pageup':
@@ -572,7 +571,7 @@ close enough (< 10 pixels)
 
             else:
                 print('\nNo action is defined for key = "{:s}"'.format(key))
-                PickDefect.action_prompt(False)
+                self.action_prompt(False)
 
     def _point(self):
         """Once all set to add a Point defect, this routine actually carries out the
@@ -617,7 +616,7 @@ close enough (< 10 pixels)
                 level, self._buffer, self._cnam, self._x, self._y)
               )
 
-        PickDefect.action_prompt(True)
+        self.action_prompt(True)
 
     def _line(self):
         """Once all set to add a Line defect, this routine actually carries out the
@@ -633,7 +632,7 @@ close enough (< 10 pixels)
             if wnam is None:
                 self._line_mode = False
                 print('  cannot set defects outside windows')
-                PickDefect.action_prompt(True)
+                self.action_prompt(True)
 
             else:
 
@@ -651,7 +650,7 @@ close enough (< 10 pixels)
             if wnam is None:
                 self._line_mode = False
                 print('  cannot set defects outside windows')
-                PickDefect.action_prompt(True)
+                self.action_prompt(True)
 
             else:
 
@@ -659,7 +658,7 @@ close enough (< 10 pixels)
                 if self._cnam != self._line_cnam:
                     self._line_mode = False
                     print('  cannot set defects across different CCDs')
-                    PickDefect.action_prompt(True)
+                    self.action_prompt(True)
 
                 self._line_x2 = self._x
                 self._line_y2 = self._y
@@ -698,7 +697,7 @@ close enough (< 10 pixels)
                      self._line_x1,self._line_y1,
                      self._line_x2,self._line_y2)
             )
-            PickDefect.action_prompt(True)
+            self.action_prompt(True)
 
     def _show(self):
         """
@@ -713,7 +712,7 @@ close enough (< 10 pixels)
         if wnam is None:
             print('  must hit "s" inside a window')
 
-        PickDefect.action_prompt(True)
+        self.action_prompt(True)
 
     def _delete(self):
         """This deletes the nearest defect to the currently selected
@@ -741,7 +740,7 @@ close enough (< 10 pixels)
         else:
             print('  no defect near enough the cursor position for deletion')
 
-        PickDefect.action_prompt(True)
+        self.action_prompt(True)
 
     def _find_defect(self):
         """Finds the nearest Defect to the currently selected position,
