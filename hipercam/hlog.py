@@ -398,7 +398,7 @@ class Tseries:
             y = self.y + other.y
             ye = np.empty_like(y)
             ok = (self.ye > 0) & (other.ye > 0)
-            ye[ok] = np.sqrt(self.ye[ok]**2 + other.y[ok]**2)
+            ye[ok] = np.sqrt(self.ye[ok]**2 + other.ye[ok]**2)
             ye[~ok] = -1
             mask = np.bitwise_or(self.mask, other.mask)
 
@@ -427,7 +427,7 @@ class Tseries:
             y = self.y - other.y
             ye = np.empty_like(y)
             ok = (self.ye > 0) & (other.ye > 0)
-            ye[ok] = np.sqrt(self.ye[ok]**2 + other.y[ok]**2)
+            ye[ok] = np.sqrt(self.ye[ok]**2 + other.ye[ok]**2)
             ye[~ok] = -1
             mask = np.bitwise_or(self.mask, other.mask)
 
