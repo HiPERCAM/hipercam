@@ -278,6 +278,16 @@ wide-ranging search. Sensible use of this can avoid the need to link apertures
 in some cases. Reference targets don't have to be ones that you will use for
 photometry, although they usually are of course.
 
+The most difficult case by far is when clouds come and completely wipe out
+your targets, only for them to re-appear after a few seconds or perhaps a
+few minutes. In this case, careful use of the `fit_height_min_ref` and
+`fit_height_min_nrf` parameters in the reduce file might get you through.  The
+idea is that if the target gets too faint, you don't want to trust any
+position from it, so it does not update the position at all. Provided the
+telescope is not moving too much, you should have a chance of placing the
+apertures when the target re-appears. If conditions are good, the aperture
+location can work without problem for many thousands of images in a row.
+
 Defocussed images
 -----------------
 

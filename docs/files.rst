@@ -40,11 +40,14 @@ from any such defects, particularly those that appear in red.
 
 Files:
 
-  1. 2018-05-21 (:download:`hipercam defect file
+  #. 2018-05-21 (:download:`hipercam defect file
      <hipercam_defects_2018_05_21.dft>`)
 
-  2. 2018-06-02 (:download:`ultracam defect file
+  #. 2018-06-02 (:download:`ultracam defect file
      <ultracam_defects_2018_06_02.dft>`)
+
+  #. 2018-06-21 (:download:`ultracam defect file
+     <ultracam_defects_2018_06_21.dft>`) Added another bad column in CCD 2
 
 .. Warning::
    For ULTRACAM I need also to add hot pixel defects which need to be regarded
