@@ -77,4 +77,6 @@ better observing practice.
      then it is often best to stop and re-start the run.
 
   #. If you have to move the targets, but don't want to break the run, try to
-     move by relatively small amounts as this will make the reduction simpler.
+     move by relatively small amounts in possible a few steps as this will
+     make the reduction simpler. The main requirement is not to move in a huge
+     jump between consecutive frames.
