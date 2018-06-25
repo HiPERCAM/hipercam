@@ -463,14 +463,14 @@ def moffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
                         # loop over sub-pixels in x
                         xsoff = xoff + isx/ndiv
                         rsq = (x+xsoff-xcen)**2+(y+ysoff-ycen)**2
-                        prof += (height/xbin/ybin/ndiv**2)/(1+alpha*rsq)**tbeta
+                        prof += (height/xbin/ybin/ndiv**2)*(1+alpha*rsq)**(-tbeta)
 
         return sky+prof
 
     else:
         # Fast as possible, compute profile at pixel centres only
         rsq = (x-xcen)**2+(y-ycen)**2
-        return height/(1+alpha*rsq)**tbeta + sky
+        return height*(1+alpha*rsq)**(-tbeta) + sky
 
 def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
             comp_dfwhm, comp_dbeta):
@@ -574,12 +574,12 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
                         rsq = dx**2 + dy**2
 
                         denom = 1+alpha*rsq
-                        save1 = height/denom**(tbeta+1)
+                        save1 = height*denom**(-tbeta-1)
                         save2 = save1*rsq
 
                         # derivatives. beta is a bit complicated because it appears directly
                         # through the exponent but also indirectly through alpha
-                        dh = 1/denom**tbeta
+                        dh = denom**(-tbeta)
                         dheight += dh
                         dxcen += (2*alpha*tbeta)*dx*save1
                         dycen += (2*alpha*tbeta)*dy*save1
@@ -616,13 +616,13 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
         rsq = dx**2 + dy**2
 
         denom = 1+alpha*rsq
-        save1 = height/denom**(tbeta+1)
+        save1 = height*denom**(-tbeta-1)
         save2 = save1*rsq
 
         # derivatives. beta is a bit complicated because it appears directly
         # through the exponent but also indirectly through alpha
         dsky = np.ones_like(x)
-        dheight = 1/denom**tbeta
+        dheight = denom**(-tbeta)
         dxcen = (2*alpha*tbeta)*dx*save1
         dycen = (2*alpha*tbeta)*dy*save1
 
