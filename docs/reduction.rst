@@ -186,26 +186,27 @@ different parameters.
 The two keys elements to get right in the reduction files are the sections
 concerning how the apertures are re-located and the extraction. The former is
 the trickier one. The apertures are re-located in a two-step process. First a
-search is made in a square box centred on the last position measured for a
-given target. The size of this box (``search_half_width``) is important. If it
-too small, your target may jump beyond it and the reduction is likely to fail
-as that will set an error condition and the target may never be recovered. On
-the other hand too large, and you could easily end up jumping to a nearby
-object. (The search identifies the brightest target in the box after gaussian
-smoothing to reduce the effects of cosmic rays.) This is where rerence targets
-come in. A well chosen reference target (bright, in an isolated region), can
-allow you to set a relatively large search box, robust against large
-jumps. The shifts from the reference targets are used to place the profile fit
-boxes and avoid the need to searches over non-reference targets. This can be a
-great help on faint targets. The main decision on extraction are variable or
-fixed apertures (usually recommend variable), optimal or normal extraction
-(usually recommend normal), and the various aperture radii. It is recommended
-to plot the images in reduce at least once zoomed in on your target to get a
-feel for this. Depending on circumstances, significant improvments to the
-photometry can be made with careful choices on these parameters; do not assume
-that the file produced by |genred| is in any way the last word; there is no
-automatic way to come up with the ideal choices which depend upon the nature
-of the field and conditions.
+search is made in a square box centred on the last position measured for a set
+of "reference" targets (if they have been defined). The size of this box
+(`search_half_width`) is important. If it is too small, your targets may
+jump beyond it and the reduction is likely to fail as that will set an error
+condition from which it may never recover. On the other hand, too large, and
+you could jump to a nearby object, and you also increase the chance of cosmic
+rays causing problems even though the search uses gaussian smoothing to reduce
+their influence. The mian way to combat this is to choose bright,
+well-isolated stars as reference target. The shifts from the reference targets
+are used to place the profile fit boxes and avoid the need to searches over
+non-reference targets. This can be a great help on faint targets. The main
+decision on extraction is whether to use `variable` or `fixed` apertures
+(I usually recommend `variable`), `optimal` or `normal` extraction (I
+usually recommend `normal`), and the various aperture radii. It is
+recommended to plot the images in reduce at least once, zoomed in on your
+target to get a feel for this. Depending on circumstances, significant
+improvements to the photometry can be made with careful choices on these
+parameters; do not assume that the file produced by |genred| is in any way the
+last word; there is no automatic way to come up with the ideal choices which
+depend upon the nature of the field and conditions.
+
 
 Plotting results
 ================
@@ -265,28 +266,58 @@ There are several things you can do to avoid problems during reduction. The
 main thing to avoid is that |reduce| simply loses your target or the
 comparison stars.
 
-Reference apertures
--------------------
+Aperture positioning
+--------------------
 
-If you identify a star (or stars) as "reference apertures", their position is
-the first to be determined and then used to offset the location before
-carrying out profile fits for other stars. If you choose a well-isolated
-reference star, this can allow you to cope with large changes in position from
-frame to frame, whilst maintaining a tight search on non-reference stars which
-may be close to other objects and be difficult to locate using a more
-wide-ranging search. Sensible use of this can avoid the need to link apertures
-in some cases. Reference targets don't have to be ones that you will use for
-photometry, although they usually are of course.
+Tracking multiple targets in multiple CCDs over potentially tens of thousands
+of frames is a challenge. A single meteor or cosmic ray can throw the position
+of a target off and you may never recover. This could happen after many
+minutes of reduction have gone by. The 'apertures' section of reduce files has
+multiple parameters designed to help avoid such problems.
 
-The most difficult case by far is when clouds come and completely wipe out
-your targets, only for them to re-appear after a few seconds or perhaps a
+As emphasized above, if you identify a star (or stars) as "reference
+apertures", their position is the first to be determined and then used to
+offset the location before carrying out profile fits for other stars. If you
+choose a well-isolated reference star, this can allow you to cope with large
+changes in position from frame-to-frame, whilst maintaining a tight search on
+non-reference stars which may be close to other objects and be difficult to
+locate using a more wide-ranging search. Sensible use of this can avoid the
+need to link apertures in some cases. Reference targets don't have to be ones
+that you will use for photometry, although they usually are of course. As you
+get a feel for your data, be alert for reducing the size of the search box as
+the smaller the region you search over, the less likely are you to be affected
+by cosmic rays and similar problems. However, it is not unusual to make
+position shifts during observation and if these are large, you could lose your
+targets.
+
+Cloudy conditions can be hard to cope with: clouds may come completely wipe
+out your targets, only for them to re-appear after a few seconds or perhaps a
 few minutes. In this case, careful use of the `fit_height_min_ref` and
 `fit_height_min_nrf` parameters in the reduce file might get you through.  The
 idea is that if the target gets too faint, you don't want to trust any
-position from it, so it does not update the position at all. Provided the
-telescope is not moving too much, you should have a chance of placing the
-apertures when the target re-appears. If conditions are good, the aperture
-location can work without problem for many thousands of images in a row.
+position from it, so that no attempt is made to update the position. Provided
+the telescope is not moving too much, you should have a chance of re-locating
+apertures successfully when the target re-appears. If conditions are good, the
+aperture location can work without problem for many thousands of images in a
+row.
+
+I have had a case where a particularly bright and badly-placed cosmic ray
+caused the reference aperture positioning to fail after a reduction had run
+successfully for more than 10,000 frames. Very annoying. It was easily fixed
+by shifting the reference to another aperture, but it does highlight the
+importance of choosing a good reference star if at all possible. Choosing
+multiple reference stars is also wise if you can. In this case, a new
+parameter, `fit_diff`, comes in. In this case, if the position shifts of the
+different reference targets from one frame to the next differ by more than
+this number, all apertures are flagged as unreliable and no shift or
+extraction is attempted. This can be effective as a back-stop for a cosmic ray
+affecting the position of one of the reference apertures.
+
+In bad cases, nothing you try will work. Then the final fallback is to reduce
+the run in chunks using the `first` parameter (prompted in |reduce|) to skip
+past the part causing problems. This is a little annoying for later analysis,
+but there will always be some cases which cannot be easily traversed in any
+other way.
 
 Defocussed images
 -----------------

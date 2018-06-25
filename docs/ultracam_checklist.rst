@@ -64,3 +64,17 @@ better observing practice.
      especially in the green and blue CCDs. It's unclear whether peppering
      affects stars in the same way that it does flat field frames, but it is
      probably better to avoid exceeding these levels if possible.
+
+  #. Once you start observing, you should try to get the reduction going asap.
+     The main reason is to focus using the seeing plot. Make sure you are
+     plotting the seeing measured in all CCDs and either use your main target
+     or one nearby to it in case of CCD tilts. Your aim should be to get the
+     seeing values of all CCDs overlapping each other. On the NTT, the focus
+     tends to drift and you should monitor it all the time.
+
+  #. Once you have seen to the seeing, double-check your main target for poor
+     columns or pixels. Move it if need be. If you have to make a large move,
+     then it is often best to stop and re-start the run.
+
+  #. If you have to move the targets, but don't want to break the run, try to
+     move by relatively small amounts as this will make the reduction simpler.
