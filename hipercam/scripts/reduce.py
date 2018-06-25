@@ -1304,6 +1304,9 @@ class Rfile(OrderedDict):
         apsec['fit_height_min_ref'] = float(apsec['fit_height_min_ref'])
         apsec['fit_height_min_nrf'] = float(apsec['fit_height_min_nrf'])
         apsec['fit_max_shift'] = float(apsec['fit_max_shift'])
+        apsec['fit_alpha'] = float(apsec['fit_alpha'])
+        if apsec['fit_alpha'] <= 0. or apsec['fit_alpha'] > 1:
+            raise hcam.HipercamError('apertures.fit_alpha must lie in the interval (0,1].')
 
         #
         # calibration section
@@ -2005,8 +2008,15 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                         'beta' : beta, 'betae' : ebeta,
                         'dx' : x-aper.x, 'dy' : y-aper.y
                     }
-                    aper.x = x
-                    aper.y = y
+
+                    if ref:
+                        # apply a fraction 'fit_alpha' times the change is position
+                        # relative to the expected position. Experimental parameter.
+                        aper.x = xold + apsec['fit_alpha']*(x-xold)
+                        aper.y = yold + apsec['fit_alpha']*(y-yold)
+                    else:
+                        aper.x = x
+                        aper.y = y
 
                     if efwhm > 0.:
                         # average FWHM computation
