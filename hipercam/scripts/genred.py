@@ -685,49 +685,56 @@ iheight = 0 # image curve plot height, inches
 # but if you have more than 2 CPUs, this parameter may help speed things.
 ncpu = {ncpu}
 
-# The next section defines how the apertures are re-positioned from frame to
-# frame. Apertures are re-positioned through a combination of a search near a
-# start location followed by a 2D profile fit. Several parameters below are
-# associated with this process and setting these right can be the key to a
-# successful reduction. If there are reference apertures, they are located
-# first to give a mean shift. This is used to bypass the initial search on any
-# non-reference apertures. The search is carried out by first extracting a
-# square sub-window centred on the last good position of a target. This is
-# then smoothed by a gaussian, and the peak is taken as the initial position
-# for later profile fits. The gaussian should have a width comparable to the
-# targets FWHM and is to make the process more robust against cosmic rays. The
-# width of the search box depends on how good the telescope guiding is. In
-# particular if at some point there is a sudden jump in position, the box may
-# have to be large enough to cope. Well-chosen reference targets, which above
-# all should be isolated, can help this process a great deal. The boxes for
-# the fits need to be large enough to include the target and a bit of sky to
-# ensure that the FWHM is accurately measured. Remember that seeing can flare
-# of course. If your target was defocussed, a gaussian or Moffat function will
-# be a poor fit and you may be better keeping the FWHM fixed at a large value
-# comparable to the widths of your defeoccused images. If the apertures are
-# chosen to be fixed, there will be no search or fit carried out in which case
-# you must choose 'fixed' as well when it comes the extraction since otherwise
-# it needs a FWHM. The most obscure parameter below is probably 'fit_ndiv'. If
-# this is made > 0, the fit routine attempts to allow for pixellation by
-# evaluating the profile at multiple point in each pixel of the fit. First it
-# will evaluate the profile for every unbinned pixel with a binned pixel if
-# the pixels are binned; second, it will evaluate the profile over an ndiv by
-# ndiv square grid within each unbinned pixel. Obviously this will slow
-# things, but it could help if your images are under-sampled. Finally if you
-# use reference targets, you should get good initial positions for the
-# non-reference targets. You can then guard against problems using the
-# parameter 'fit_max_shift' to reject positions that shift too far from the
-# initial guess.
+# The next section '[apertures]' defines how the apertures are re-positioned
+# from frame to frame. Apertures are re-positioned through a combination of a
+# search near a start location followed by a 2D profile fit. Several
+# parameters below are associated with this process and setting these right
+# can be the key to a successful reduction. If there are reference apertures,
+# they are located first to give a mean shift. This is used to bypass the
+# initial search for any non-reference apertures. The search is carried out by
+# first extracting a square sub-window centred on the last good position of a
+# target. This is then smoothed by a gaussian, and the peak is taken as the
+# initial position for later profile fits. The gaussian should have a width
+# comparable to the targets FWHM and is to make the process more robust
+# against cosmic rays. However, there are sometime really nasty cosmic rays,
+# so it's in your interests to choose as bright a reference target as
+# possible, or more than one. The width of the search box depends on how good
+# the telescope guiding is. In particular if at some point there is a sudden
+# jump in position, the box may have to be large enough to cope. Well-chosen
+# reference targets, which above all should be isolated, can help this process
+# a great deal. The boxes for the fits need to be large enough to include the
+# target and a bit of sky to ensure that the FWHM is accurately
+# measured. Remember that seeing can flare of course. If your target was
+# defocussed, a gaussian or Moffat function will be a poor fit and you may be
+# better keeping the FWHM fixed at a large value comparable to the widths of
+# your defoccused images (and use the gaussian option in such cases). If the
+# apertures are chosen to be fixed, there will be no search or fit carried out
+# in which case you must choose 'fixed' as well when it comes the extraction
+# since otherwise it needs a FWHM.
 #
-# 'fit_alpha' is an experimental parameter that applies only when there are
-# reference apertures. In this case a good prediction for the expected
-# locations of non-reference apertures can be made. In this case when the
-# non-reference aperture's position is measured, its position will be adjusted
-# by 'fit_alpha' times the change in position relative to that expected. Its
-# value is bounded by 0 < fit_alpha <= 1. "1" is effectively no change from
-# the old behaviour. Anything less effectively build in a bit of past
-# history. The hope is that this could make the aperture positioning,
+# An obscure parameter below is 'fit_ndiv'. If this is made > 0, the fit
+# routine attempts to allow for pixellation by evaluating the profile at
+# multiple points within each pixel of the fit. First it will evaluate the profile
+# for every unbinned pixel within a binned pixel if the pixels are binned;
+# second, it will evaluate the profile over an ndiv by ndiv square grid within
+# each unbinned pixel. Obviously this will slow things, but it could help if
+# your images are under-sampled. I would always start with fit_ndiv=0, and only
+# raise it if the measured FWHM seem to be close to or below two binned pixels.
+#
+# Finally if you use reference targets, you should get good initial positions
+# for the non-reference targets. You can then guard against problems using the
+# parameter 'fit_max_shift' to reject positions that shift too far from the
+# initial guess. 'fit_alpha' is another parameter that applies only in this
+# case. If reference apertures are being used, the expected locations of
+# non-reference apertures can be predicted with some confidence. In this case
+# when the non-reference aperture's position is measured, its position will be
+# adjusted by 'fit_alpha' times the change in position relative to that
+# expected. Its value is bounded by 0 < fit_alpha <= 1. "1" is effectively no
+# change from the old behaviour. Anything < 1 effectively builds in a bit of
+# past history. The hope is that this could make the aperture positioning,
 # especially for faint targets, more robust to cosmic rays and other issues.
+# Of course it will correlate the positions from frame to frame. fit_alpha = 10
+# for instance with lead to a correlation length ~ 10 frames.
 
 [apertures]
 aperfile = {apfile} # file of software apertures for each CCD

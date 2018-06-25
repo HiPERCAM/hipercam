@@ -780,7 +780,7 @@ def reduce(args=None):
 
                         if cnam not in store:
                             # initialisation
-                            store[cnam] = {'mfwhm' : -1., 'mbeta' : -1.}
+                            store[cnam] = {'mfwhm' : -1., 'mbeta' : -1., 'nok' : 0}
 
                         # compile list of arguments to send to parallelisable
                         # routine
@@ -828,7 +828,7 @@ def reduce(args=None):
 
                         if cnam not in store:
                             # initialisation
-                            store[cnam] = {'mfwhm' : -1., 'mbeta' : -1.}
+                            store[cnam] = {'mfwhm' : -1., 'mbeta' : -1., 'nok' : 0}
 
                         # run the reduction using the paralleisable routine but in serial mode
                         cn, store[cnam], rfile.aper[cnam], results[cnam] = \
@@ -1696,38 +1696,39 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
     Arguments::
 
-       cnam      : string
+       cnam : string
            CCD label
 
-       ccd       : CCD
+       ccd : CCD
            the debiassed, flat-fielded CCD.
 
-       read      : CCD
+       read : CCD
            readnoise divided by the flat-field
 
-       gain      : CCD
+       gain : CCD
            gain multiplied by the flat field
 
-       ccdaper   : CcdAper
+       ccdaper : CcdAper
            the Apertures. These are modified on exit, in particular the
            positions.
 
-       ccdwin    : dictionary
+       ccdwin : dictionary
            the Window label corresponding to each Aperture
 
-       rfile     : Rfile
+       rfile : Rfile
            reduce file configuration parameters
 
-       store     : dictionary
+       store : dictionary
            used to store various parameters needed further down the line.
-           Initialise to {'mfwhm' : -1., 'mbeta' : -1.}. For each aperture in
-           ccdaper, parameters `xe`, `ye`, `fwhm`, `fwhme`, `beta`, `betae`,
-           `dx`, `dy` will be added (these are basically parameters that are
-           not stored in ccdaper but will be needed for the log file
-           output). They represent: the uncertainty in the fitted X, Y
-           position (ex, ey), the fitted FWHM and its uncertainty (fwhm,
+           Initialise to {'mfwhm' : -1., 'mbeta' : -1., 'nok' : 0}. For each
+           aperture in ccdaper, parameters `xe`, `ye`, `fwhm`, `fwhme`,
+           `beta`, `betae`, `dx`, `dy` will be added (these are basically
+           parameters that are not stored in ccdaper but will be needed for
+           the log file output). They represent: the uncertainty in the fitted
+           X, Y position (ex, ey), the fitted FWHM and its uncertainty (fwhm,
            fwhme), the same for beta and its uncertainty (beta, betae), and
-           finally the change in x and y position.
+           finally the change in x and y position. 'nok' stores the number
+           of times a successful mean FWHM was measured.
 
     """
 
@@ -2009,9 +2010,12 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                         'dx' : x-aper.x, 'dy' : y-aper.y
                     }
 
-                    if ref:
-                        # apply a fraction 'fit_alpha' times the change is position
-                        # relative to the expected position. Experimental parameter.
+                    if ref and store['nok'] > 0:
+                        # apply a fraction 'fit_alpha' times the change is
+                        # position relative to the expected
+                        # position. Experimental parameter.  We only do this
+                        # after at least one successful measurement has been
+                        # made to cope with large initial shifts.
                         aper.x = xold + apsec['fit_alpha']*(x-xold)
                         aper.y = yold + apsec['fit_alpha']*(y-yold)
                     else:
@@ -2084,6 +2088,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
     if wfsum > 0.:
         store['mfwhm'] = fsum / wfsum
         apsec['fit_fwhm'] = store['mfwhm']
+        store['nok'] += 1
     else:
         store['mfwhm'] = -1
 
