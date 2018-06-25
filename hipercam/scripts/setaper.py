@@ -1184,7 +1184,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 elif apnam == self._link_apnam:
                     print('  *** cannot link an aperture to itself; '
                           'no link made')
-                elif self._link_aper.is_linked():
+                elif self._link_aper.linked:
                     print('  *** cannot link an aperture to an aperture'
                           ' that is itself linked; no link made')
                 else:
@@ -1298,7 +1298,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             print('  *** found no aperture near to the cursor position')
         else:
 
-            if aper.is_linked():
+            if aper.linked:
                 print('  *** a linked aperture cannot become a '
                       'reference aperture')
             else:

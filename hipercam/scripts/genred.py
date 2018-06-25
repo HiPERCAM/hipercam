@@ -543,7 +543,7 @@ warn = 1 60000 64000
     no_seeing = True
     for cnam in aper:
         ccdaper = aper[cnam]
-        if '1' in ccdaper and not ccdaper['1'].is_linked():
+        if '1' in ccdaper and not ccdaper['1'].linked:
             seeing_plot += (
                 '{:s}plot = {:s} 1 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
@@ -551,7 +551,7 @@ warn = 1 60000 64000
                 )
             no_seeing = False
 
-        elif '2' in ccdaper and not ccdaper['2'].is_linked():
+        elif '2' in ccdaper and not ccdaper['2'].linked:
             seeing_plot += (
                 '{:s}plot = {:s} 2 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(
@@ -559,7 +559,7 @@ warn = 1 60000 64000
                 )
             no_seeing = False
 
-        elif '3' in ccdaper  and not ccdaper['3'].is_linked():
+        elif '3' in ccdaper  and not ccdaper['3'].linked:
             seeing_plot += (
                 '{:s}plot = {:s} 3 {:10s} !  '
                 ' # ccd, targ, dcol, ecol\n').format(

@@ -131,7 +131,8 @@ class Aperture(object):
         """Cancels any link to another :class:Aperture"""
         self.link = ''
 
-    def is_linked(self):
+    @property
+    def linked(self):
         """Returns True if the :class:Aperture is linked to another"""
         return self.link != ''
 
@@ -203,10 +204,10 @@ class CcdAper(Group):
     def check(self):
         """Checks for problems with links"""
         for apnam, aper in self.items():
-            if aper.is_linked():
+            if aper.linked:
                 if aper.link not in self:
                     raise ValueError('Aperture = {!r} links to anon-existent aperture'.format(self))
-                elif self[aper.link].is_linked():
+                elif self[aper.link].linked:
                     raise ValueError('Aperture = {!r} is linked to an aperture which is itself linked'.format(self))
 
     def write(self, fname):

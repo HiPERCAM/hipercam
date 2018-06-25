@@ -1009,11 +1009,11 @@ def reduce(args=None):
 
                     if replot:
 
-                        # re-plot. 
+                        # re-plot.
 
                         if tkeep > 0:
                             # adjust start time if tkeep in use
-                            tstart = max(0, lpanel.x2 - tkeep - rfile['lcplot']['extend_x'])
+                            tstart = max(0, lpanel.x2 - tkeep)
 
                             lpanel.x1 = tstart
 
@@ -1904,21 +1904,19 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
         # no reference apertures. All individual
         xshift, yshift = 0., 0.
 
-    # now go over all apertures except linked ones. reference
-    # apertures are skipped except any that failed are shifted
-    # by the mean shift just determined
+    # now go over non-reference, non-linked apertures. Failed reference
+    # apertures are shifted by the mean shift just determined
     for apnam, aper in ccdaper.items():
 
-        if aper.ref:
+        if aper.ref and store[apnam]['fwhme'] <= 0.:
 
-            if store[apnam]['fwhme'] <= 0.:
-                # Move failed reference fit to the mean shift
-                aper.x += xshift
-                aper.y += yshift
-                store[apnam]['dx'] = xshift
-                store[apnam]['dy'] = yshift
+            # Move failed reference fit to the mean shift
+            aper.x += xshift
+            aper.y += yshift
+            store[apnam]['dx'] = xshift
+            store[apnam]['dy'] = yshift
 
-        elif not aper.is_linked():
+        elif not aper.ref and not aper.linked:
 
             # extract Window for data, rflat and flat
             wnam = ccdwin[apnam]
@@ -2057,7 +2055,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
     # finally the linked ones
     for apnam, aper in ccdaper.items():
 
-        if aper.is_linked():
+        if aper.linked:
             aper.x += store[aper.link]['dx']
             aper.y += store[aper.link]['dy']
 
