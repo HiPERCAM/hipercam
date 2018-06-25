@@ -481,7 +481,7 @@ def reduce(args=None):
 
     ############################################
     #
-    # open the log file. long section
+    # open the log file. long section this
     #
     with open(log,'w') as logfile:
         # start by writing headers (long section)
@@ -558,6 +558,8 @@ def reduce(args=None):
 #    MJD    : MJD at the centre of the exposure
 #    MJDok  : flag to say whether the MJD is thought reliable
 #    Exptim : exposure time, seconds
+#    mfwhm  : the mean FWHM used to determine the aperture scale (-1 if none)
+#    mbeta  : the mean Moffat beta exponent (-1 if none)
 #
 # Then a set of 15 items that is repeated for each aperture and will
 # have '_<apnam>' added to them. The 'errors' are RMS uncertainties, and
@@ -590,7 +592,7 @@ def reduce(args=None):
                 # apertures
                 continue
 
-            cnames = '# {:s} = CCD nframe MJD MJDok Exptim '.format(cnam)
+            cnames = '# {:s} = CCD nframe MJD MJDok Exptim mfwhm mbeta '.format(cnam)
             for apnam in ccdaper:
                 cnames += 'x_{0:s} xe_{0:s} y_{0:s} ye_{0:s} ' \
                           'fwhm_{0:s} fwhme_{0:s} beta_{0:s} betae_{0:s} ' \
@@ -604,7 +606,7 @@ def reduce(args=None):
 # End of column name definitions
 #
 # Now follow a similar series of datatypes which are designed to be used to
-# build a dtype for each CCD to allow them to read into numpy structured
+# build a numpy.dtype for each CCD to allow them to read into numpy structured
 # arrays.
 #
 # Start of data type definitions:
@@ -618,7 +620,7 @@ def reduce(args=None):
                 continue
 
             logfile.write(
-                '# {:s} = s i4 f8 ? f4 {:s}\n'.format(
+                '# {:s} = s i4 f8 ? f4 f4 f4 {:s}\n'.format(
                     cnam,len(ccdaper)*atypes)
             )
 
@@ -830,7 +832,7 @@ def reduce(args=None):
                             # initialisation
                             store[cnam] = {'mfwhm' : -1., 'mbeta' : -1., 'nok' : 0}
 
-                        # run the reduction using the paralleisable routine but in serial mode
+                        # run the reduction using the parallelisable routine but in serial mode
                         cn, store[cnam], rfile.aper[cnam], results[cnam] = \
                             ccdproc(
                             cnam, pccd[cnam], read[cnam], gain[cnam], mccd[cnam],
@@ -859,10 +861,14 @@ def reduce(args=None):
                     else:
                         exptim = 1.0
 
+                    # get mean profile parameters
+                    mfwhm = store[cnam]['mfwhm']
+                    mbeta = store[cnam]['mbeta']
+
                     # write generic data
                     logfile.write(
-                        '{:s} {:d} {:17.11f} {:b} {:.5f} '.format(
-                            cnam, nframe, mjd, mjdok, exptim)
+                        '{:s} {:d} {:17.11f} {:b} {:.5f} {:.2f} {:.2f} '.format(
+                            cnam, nframe, mjd, mjdok, exptim, mfwhm, mbeta)
                     )
 
                     # now for data per aperture
@@ -1754,8 +1760,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
     shbox = apsec['search_half_width']
 
     # first of all try to get a mean shift from the reference apertures.  we
-    # move any of these apertures that are fitted OK the next part is used to
-    # work out weighted mean FWHM and beta values
+    # move any of these apertures that are fitted OK. We work out weighted
+    # mean FWHM and beta values once any other apertures are fitted.
     for apnam, aper in ccdaper.items():
         if aper.ref:
             ref = True
