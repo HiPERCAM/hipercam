@@ -146,6 +146,12 @@ def genred(args=None):
            of past history. This can be done by setting alpha small. If alpha = 1, then that
            simply returns to fully independent positioning for each frame.
 
+        diff : float [hidden]
+           maximum difference in the shifts of reference apertures, when more
+           than one has been defined on a CCD. If exceeded, no extraction is
+           performed. This is to guard against perturbations of the reference
+           apertures by meteors, cosmic rays and the like. [unbinned pixels]
+
         rfac : float [hidden]
            target aperture radius relative to the FWHM for 'variable' aperture
            photometry. Usual values 1.5 to 2.5.
@@ -205,6 +211,7 @@ def genred(args=None):
         cl.register('hminref', Cline.LOCAL, Cline.HIDE)
         cl.register('hminnrf', Cline.LOCAL, Cline.HIDE)
         cl.register('alpha', Cline.LOCAL, Cline.HIDE)
+        cl.register('diff', Cline.LOCAL, Cline.HIDE)
         cl.register('rfac', Cline.LOCAL, Cline.HIDE)
         cl.register('rmin', Cline.LOCAL, Cline.HIDE)
         cl.register('rmax', Cline.LOCAL, Cline.HIDE)
@@ -387,6 +394,11 @@ warn = 1 60000 64000
         fit_alpha = cl.get_value(
             'alpha',
             'non-reference aperture fractional shift parameter (range: (0,1])', 1., 1.e-5, 1.
+        )
+
+        fit_diff = cl.get_value(
+            'diff',
+            'maximum differential reference aperture shift', 2., 1.e-5
         )
 
         rfac = cl.get_value(
@@ -621,7 +633,8 @@ warn = 1 60000 64000
                 fit_half_width=fit_half_width, profile_type=profile_type,
                 height_min_ref=height_min_ref, height_min_nrf=height_min_nrf,
                 beta=beta, beta_max=beta_max, thresh=thresh, readout=readout,
-                gain=gain, fit_max_shift=fit_max_shift, fit_alpha=fit_alpha
+                gain=gain, fit_max_shift=fit_max_shift, fit_alpha=fit_alpha,
+                fit_diff=fit_diff
             )
         )
 
@@ -756,6 +769,7 @@ fit_height_min_ref = {height_min_ref:.1f} # minimum height to accept a fit, refe
 fit_height_min_nrf = {height_min_nrf:.1f} # minimum height to accept a fit, non-reference aperture
 fit_max_shift = {fit_max_shift:.1f} # max. non-ref. shift, unbinned pixels.
 fit_alpha = {fit_alpha:.2f} # Fraction of non-reference aperture shift to apply
+fit_diff = {fit_diff:.2f} # Fraction of non-reference aperture shift to apply
 
 # The next lines define how the apertures will be re-sized and how the flux
 # will be extracted from the aperture. There is one line per CCD with format:

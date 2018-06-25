@@ -204,7 +204,8 @@ def reduce(args=None):
         try:
             rfile = Rfile.read(rfilen)
         except hcam.HipercamError as err:
-            # abort on failure to read as there are many ways to get reduce files wrong
+            # abort on failure to read as there are many ways to get reduce
+            # files wrong
             print(err, file=sys.stderr)
             exit(1)
 
@@ -1311,8 +1312,19 @@ class Rfile(OrderedDict):
         apsec['fit_height_min_nrf'] = float(apsec['fit_height_min_nrf'])
         apsec['fit_max_shift'] = float(apsec['fit_max_shift'])
         apsec['fit_alpha'] = float(apsec['fit_alpha'])
+        apsec['fit_diff'] = float(apsec['fit_diff'])
+
+        # run a few checks
+        if apsec['fit_beta'] <= 0.:
+            raise hcam.HipercamError('apertures.fit_beta <= 0')
+        if apsec['fit_thresh'] <= 1.:
+            raise hcam.HipercamError('apertures.fit_thresh <= 1')
+        if apsec['fit_max_shift'] <= 0.:
+            raise hcam.HipercamError('apertures.fit_diff <= 0')
         if apsec['fit_alpha'] <= 0. or apsec['fit_alpha'] > 1:
-            raise hcam.HipercamError('apertures.fit_alpha must lie in the interval (0,1].')
+            raise hcam.HipercamError('apertures.fit_alpha outside interval (0,1].')
+        if apsec['fit_diff'] <= 0.:
+            raise hcam.HipercamError('apertures.fit_diff <= 0')
 
         #
         # calibration section
@@ -1762,6 +1774,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
     # first of all try to get a mean shift from the reference apertures.  we
     # move any of these apertures that are fitted OK. We work out weighted
     # mean FWHM and beta values once any other apertures are fitted.
+    shifts = []
     for apnam, aper in ccdaper.items():
         if aper.ref:
             ref = True
@@ -1794,8 +1807,10 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 sky = np.percentile(fwdata.data, 50)
 
                 # get some parameters from previous run where possible
-                fit_fwhm = store['mfwhm'] if store['mfwhm'] > 0. else apsec['fit_fwhm']
-                fit_beta = store['mbeta'] if store['mbeta'] > 0. else apsec['fit_beta']
+                fit_fwhm = store['mfwhm'] if store['mfwhm'] > 0. else \
+                    apsec['fit_fwhm']
+                fit_beta = store['mbeta'] if store['mbeta'] > 0. else \
+                    apsec['fit_beta']
 
                 # limit the initial value of beta because of tendency to
                 # wander to high values and never come down.
@@ -1816,9 +1831,10 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 # check that x, y are in range of the original search box.
                 if swdata.distance(x,y) < 0.5:
                     raise hcam.HipercamError(
-                        'Fitted position ({:.1f},{:.1f}) too close to or beyond edge of search window = {!s}'.format(
-                            x,y,swdata.winhead.format())
-                    )
+                        ('Fitted position ({:.1f},{:.1f}) too close to or'
+                         ' beyond edge of search window = {!s}'.format(
+                                x,y,swdata.winhead.format()))
+                        )
 
                 if height > apsec['fit_height_min_ref']:
                     dx = x - aper.x
@@ -1831,6 +1847,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     wysum += wy
                     ysum += wy*dy
 
+                    shifts.append((dx,dy))
+
                     # store stuff
                     store[apnam] = {
                         'xe' : ex, 'ye' : ey,
@@ -1838,10 +1856,6 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                         'beta' : beta, 'betae' : ebeta,
                         'dx' : x-aper.x, 'dy' : y-aper.y
                     }
-
-                    # update position
-                    aper.x = x
-                    aper.y = y
 
                     if efwhm > 0.:
                         # average FWHM computation
@@ -1885,10 +1899,53 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     'dx' : 0., 'dy' : 0.
                 }
 
+    # at this point we are done with measuring the positions of the reference
+    # apertures, although their positions have yet to be fixed because another
+    # test might have to be passed, namely the differential shift when there
+    # is more than one reference star
+
     if ref:
+
+        # if more than one reference aperture shift is measured, check all
+        # shifts for consistency as a guard against cosmic rays and other
+        # offsets
+        if len(shifts) > 1:
+            for n, (x1, y1) in enumerate(shifts[:-1]):
+                for (x2, y2) in shifts[n+1:]:
+                    diff = np.sqrt((x2-x1)**2+(y2-y1)**2)
+
+                    if np.sqrt((x2-x1)**2+(y2-y1)**2) > apsec['fit_diff']:
+                        # have exceeded threshold differential shift
+                        for apnam, aper in ccdaper.items():
+                            store[apnam] = {
+                                'xe' : -1., 'ye' : -1.,
+                                'fwhm' : 0., 'fwhme' : -1.,
+                                'beta' : 0., 'betae' : -1.,
+                                'dx' : 0., 'dy' : 0.
+                                }
+
+                        store['mfwhm'] = -1.
+                        store['mbeta'] = -1.
+
+                        print(
+                            ('CCD {:s}: reference aperture differential '
+                             'shift = {:.2f} exceeded limit = {:.2f}').format(
+                                cnam, diff, apsec['fit_diff']), file=sys.stderr
+                            )
+                        return
+
         if wxsum > 0. and wysum > 0.:
+            # things are OK if we get here. Work out mean shift
             xshift = xsum / wxsum
             yshift = ysum / wysum
+
+            # Finally apply individual shifts to the reference targets
+            # this means we do *not* change any positions if the differential
+            # shift test fails.
+            for apnam, aper in ccdaper.items():
+                if aper.ref:
+                    aper.x += store[apnam]['dx']
+                    aper.y += store[apnam]['dy']
 
         else:
 
@@ -1901,7 +1958,9 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                         'fwhm' : 0., 'fwhme' : -1.,
                         'beta' : 0., 'betae' : -1.,
                         'dx' : 0., 'dy' : 0.
-                    }
+                        }
+            store['mfwhm'] = -1.
+            store['mbeta'] = -1.
 
             print(
                 ('CCD {:s}: no reference aperture '
