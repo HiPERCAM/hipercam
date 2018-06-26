@@ -1066,7 +1066,7 @@ class Window(Winhead):
 
             self.data = self.data.astype(np.uint16)
 
-    def search(self, fwhm, x0, y0, thresh, fft, max=False):
+    def search(self, fwhm, x0, y0, thresh, fft, max=False, percent=50):
         """
         Search for a target in a :class:Window. Works by convolving the image
         with a gaussian of FWHM = fwhm, and returns the location of the
@@ -1094,8 +1094,9 @@ class Window(Winhead):
             sufficiently high maximum will be taken.
 
           thresh : float
-            The peak counts in the maximum of the *smoothed* image must exceed
-            this value for a maximum to count. Use this to filter out noise.
+            The peak counts above background in the maximum of the *smoothed*
+            image must exceed this value for a maximum to count. Use this to
+            filter out noise.
 
           fft : bool
             The astropy.convolution routines are used. By default FFT-based
@@ -1107,7 +1108,10 @@ class Window(Winhead):
 
          max : bool
             If True, just go for the highest peak, i.e. ignore x0, y0. The peak
-            should still exceed 'thresh'
+            should still exceed the background by `thresh`
+
+         percent : float
+            percentile to use to compute the background value
 
         Returns::
 
@@ -1119,6 +1123,7 @@ class Window(Winhead):
             HipercamError will be raised.
 
         """
+
         if fwhm > 0:
             kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
             if fft:
@@ -1128,21 +1133,24 @@ class Window(Winhead):
         else:
             cimg = self.data
 
+        # compute the background for judging peak heights
+        back = np.percentile(self.data, 50)
+
         if max:
             # Locate the pixel of the global maximum
             iy,ix = np.unravel_index(cimg.argmax(),cimg.shape)
 
             # it must exceed thresh to count
-            if cimg[iy,ix] <= thresh:
+            if cimg[iy,ix] <= back+thresh:
                 raise HipercamError(
-                    'no peak higher than {:.1f} found; highest = {:.1f}'.format(thresh, cimg[iy,ix])
+                    'no peak higher than {:.1f} found; highest = {:.1f} (background = {:.1f})'.format(thresh, cimg[iy,ix], back)
                     )
 
         else:
             # in this case we will search for the maximum > thresh and closest to x0,y0
             # Find local maxima in smoothed image
             dmax = maximum_filter(cimg, 3, mode='nearest')
-            iys, ixs = np.nonzero((dmax == cimg) & (cimg > thresh))
+            iys, ixs = np.nonzero((dmax == cimg) & (cimg > back+thresh))
 
             # Find the maximum (if there is one) nearest to the expected
             # position
@@ -1150,7 +1158,7 @@ class Window(Winhead):
                 # Locate the pixel of the global maximum
                 cmax = cimg.max()
                 raise HipercamError(
-                    'no peak higher than {:.1f} found; highest = {:.1f}'.format(thresh, cmax)
+                    'no peak higher than {:.1f} found; highest = {:.1f} (background = {:.1f})'.format(thresh, cmax, back)
                     )
 
             ix0, iy0 = self.x_pixel(x0), self.y_pixel(y0)

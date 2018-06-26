@@ -850,16 +850,16 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 self._y-self.shbox, self._y+self.shbox
             )
 
-            # carry out initial search
-            x,y,peak = wind.search(self.smooth, 0, 0, wind.min(), False, True)
-
-            # now for a more refined fit. First extract fit Window
-            fwind = ccd[wnam].window(x-self.fhbox, x+self.fhbox,
-                                     y-self.fhbox, y+self.fhbox)
-            sky = np.percentile(fwind.data, 25)
-
-            # refine the Aperture position by fitting the profile
             try:
+                # carry out initial search
+                x,y,peak = wind.search(self.smooth, 0, 0, 0, False, True)
+
+                # now for a more refined fit. First extract fit Window
+                fwind = ccd[wnam].window(x-self.fhbox, x+self.fhbox,
+                                         y-self.fhbox, y+self.fhbox)
+                sky = np.percentile(fwind.data, 25)
+
+                # refine the Aperture position by fitting the profile
                 (sky, height, x, y, fwhm, beta), epars, \
                     (wfit, X, Y, sigma, chisq, nok, nrej,
                      npar, message) = hcam.fitting.combFit(
@@ -957,17 +957,17 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     self._x-self.shbox, self._x+self.shbox,
                     self._y-self.shbox, self._y+self.shbox)
 
-                # carry out initial search
-                x,y,peak = wind.search(self.smooth, 0, 0, wind.min(), False, True)
-
-                # now for a more refined fit. First extract fit Window
-                fwind = ccd[wnam].window(
-                    x-self.fhbox, x+self.fhbox,
-                    y-self.fhbox, y+self.fhbox)
-                sky = np.percentile(fwind.data, 25)
-
-                # refine the Aperture position by fitting the profile
                 try:
+                    # carry out initial search
+                    x,y,peak = wind.search(self.smooth, 0, 0, 0, False, True)
+
+                    # now for a more refined fit. First extract fit Window
+                    fwind = ccd[wnam].window(
+                        x-self.fhbox, x+self.fhbox,
+                        y-self.fhbox, y+self.fhbox)
+                    sky = np.percentile(fwind.data, 25)
+
+                    # refine the Aperture position by fitting the profile
                     (sky, height, x, y, fwhm, beta), epars, \
                         (wfit, X, Y, sigma, chisq, nok, nrej,
                          npar, message) = hcam.fitting.combFit(

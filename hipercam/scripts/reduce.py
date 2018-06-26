@@ -1797,11 +1797,10 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
                 )
 
-                # compute the threshold which any local maximum must exceed to count.
-                thresh = np.percentile(swdata.data, 50) + apsec['fit_height_min_ref']
-
                 # carry out initial search
-                x,y,peak = swdata.search(apsec['search_smooth_fwhm'], aper.x, aper.y, thresh, False)
+                x,y,peak = swdata.search(
+                    apsec['search_smooth_fwhm'], aper.x, aper.y, apsec['fit_height_min_ref'], False
+                    )
 
                 # Now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
@@ -2014,11 +2013,10 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
                 if not ref:
                     # if there were no reference apertures, we need to carry
-                    # out a search
-
-                    # compute the threshold which any local maximum must exceed to count.
-                    thresh = np.percentile(swdata.data, 50) + apsec['fit_height_min_nrf']
-                    x,y,peak = swdata.search(apsec['search_smooth_fwhm'], aper.x, aper.y, thresh, False)
+                    # out a search 
+                    x,y,peak = swdata.search(
+                        apsec['search_smooth_fwhm'], aper.x, aper.y, apsec['fit_height_min_nrf'], False
+                        )
 
                 else:
                     # simply apply the reference aperture mean shift and

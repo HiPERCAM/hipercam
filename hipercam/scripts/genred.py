@@ -789,7 +789,7 @@ fit_height_min_ref = {height_min_ref:.1f} # minimum height to accept a fit, refe
 fit_height_min_nrf = {height_min_nrf:.1f} # minimum height to accept a fit, non-reference aperture
 fit_max_shift = {fit_max_shift:.1f} # max. non-ref. shift, unbinned pixels.
 fit_alpha = {fit_alpha:.2f} # Fraction of non-reference aperture shift to apply
-fit_diff = {fit_diff:.2f} # Fraction of non-reference aperture shift to apply
+fit_diff = {fit_diff:.2f} # Maximum differential shift of multiple reference apertures
 
 # The next lines define how the apertures will be re-sized and how the flux
 # will be extracted from the aperture. There is one line per CCD with format:
