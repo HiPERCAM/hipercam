@@ -1066,7 +1066,7 @@ class Window(Winhead):
 
             self.data = self.data.astype(np.uint16)
 
-    def search(self, fwhm, x0, y0, thresh, fft, max=False, percent=50):
+    def search(self, fwhm, x0, y0, thresh, fft, max=False, percent=50.):
         """
         Search for a target in a :class:Window. Works by convolving the image
         with a gaussian of FWHM = fwhm, and returns the location of the
@@ -1111,7 +1111,8 @@ class Window(Winhead):
             should still exceed the background by `thresh`
 
          percent : float
-            percentile to use to compute the background value
+            percentile to use to compute the background value. < 0 and it will
+            be set to the minimum. 50% = median by default.
 
         Returns::
 
@@ -1134,7 +1135,10 @@ class Window(Winhead):
             cimg = self.data
 
         # compute the background for judging peak heights
-        back = np.percentile(self.data, 50)
+        if percent <= 0:
+            back = self.data.min()
+        else:
+            back = np.percentile(self.data, percent)
 
         if max:
             # Locate the pixel of the global maximum

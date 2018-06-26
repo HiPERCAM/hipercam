@@ -852,7 +852,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
             try:
                 # carry out initial search
-                x,y,peak = wind.search(self.smooth, 0, 0, 0, False, True)
+                x,y,peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
 
                 # now for a more refined fit. First extract fit Window
                 fwind = ccd[wnam].window(x-self.fhbox, x+self.fhbox,
@@ -959,7 +959,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                 try:
                     # carry out initial search
-                    x,y,peak = wind.search(self.smooth, 0, 0, 0, False, True)
+                    x,y,peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
 
                     # now for a more refined fit. First extract fit Window
                     fwind = ccd[wnam].window(
