@@ -25,6 +25,7 @@ may be found on `github <https://github.com/HiPERCAM>`_.
    :maxdepth: 2
    :caption: Contents:
 
+   news
    observers
    commands
    api
