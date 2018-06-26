@@ -15,13 +15,13 @@ one issue-per-problem.  If you e-mail me, I might well simply respond with
 
 Rules of the game are:
 
-  #. Know which version you are running. The following line should tell you
-     this::
+  #. Know which version you are running. The following line typed at a
+     terminal should tell you this::
 
-     python -c 'import hipercam; print(hipercam.version())
+        python -c 'import hipercam; print(hipercam.version())'
 
   #. Make sure you are up to date (compare your version with the latest docs
-     for example.
+     for example).
 
   #. Try to narrow down the circumstances under which the problem arises; make
      sure it's repeatable.
