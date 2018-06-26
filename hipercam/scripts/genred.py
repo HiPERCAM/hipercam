@@ -134,19 +134,21 @@ def genred(args=None):
 
         hminref : float [hidden]
            minimum peak height for a fit to a reference aperture to be
-           accepted. This applies above all to the peak height in the smoothed
-           image used during the initial search which will in general be less
-           than the seeing-limited peak height. This has the advantage of
-           being more constant, but smaller in general so you should use a
-           value less than you might guess from images. The decrease in peak
-           height from smoothing is of order
-           seeing**2/(seeing**2+smoothfwhm**2).
+           accepted. This applies to the peak height in the *smoothed* image
+           used during the initial search as well as the peak height after
+           profile fitting. It is the check on the smoothed image that is more
+           consistent since the seeing-limited peak height can be highly
+           variable, and the more stringent since smoothing reduces the peak
+           height by seeing**2/(seeing**2+smoothfwhm**2) where 'seeing' is the
+           FWHM of the seeing in binned pixels. If smoothfwhm is chosen to be
+           larger than seeing is likely to be, this makes the peak heights more
+           consistent so that the thresholding is better behaved. But, it means
+           you should use a value lower than you might guess from the images.
 
         hminnrf : float [hidden]
            minimum peak height for a fit to a non-reference aperture to be
-           accepted. If there are no reference apertures, this applies to the
-           smoothed peak height as for hminref.  If there are reference
-           apertures it applies to the height of the fitted profile.
+           accepted. This applies above all to the smoothed peak height as for
+           hminref.
 
         alpha : float [hidden]
            amount by which non-reference apertures are corrected relative to
@@ -728,17 +730,24 @@ ncpu = {ncpu}
 # depends on how good the telescope guiding is. It should be large enough to
 # cope with the largest likely shift in position between any two consecutive
 # frames. Well-chosen reference targets, which should be isolated and bright,
-# can help this process a great deal. The boxes for the fits
-# ('fit_half_width') need to be large enough to include the target and a bit
-# of sky to ensure that the FWHM is accurately measured, remembering that
-# seeing can flare of course. If your target was defocussed, a gaussian or
-# Moffat function will be a poor fit and you may be better keeping the FWHM
-# fixed at a large value comparable to the widths of your defoccused images
-# (and use the gaussian option in such cases). If the apertures are chosen to
-# be fixed, there will be no search or fit carried out in which case you must
-# choose 'fixed' as well when it comes the extraction since otherwise it needs
-# a FWHM. 'fixed' is a last resort and you will very likely need to use large
-# aperture radii in the extraction section.
+# can help this process a great deal. The threshold is applied to the
+# *smoothed* image. This typically means that it can be significantly lower
+# than simply the typical peak height. i.e. a target might have a typical peak
+# height around 100, in seeing of 4 pixels FWHM. If you smooth by 10 pixels,
+# the peak height will drop to 100*4**2/(4**2+10**2) = 14 counts. It will be
+# much more stable as a result, but you should then probably choose a threshold of
+# 7 when you might have thought 50 was appropriate.
+#
+# The boxes for the fits ('fit_half_width') need to be large enough to include
+# the target and a bit of sky to ensure that the FWHM is accurately measured,
+# remembering that seeing can flare of course. If your target was defocussed,
+# a gaussian or Moffat function will be a poor fit and you may be better
+# keeping the FWHM fixed at a large value comparable to the widths of your
+# defoccused images (and use the gaussian option in such cases). If the
+# apertures are chosen to be fixed, there will be no search or fit carried out
+# in which case you must choose 'fixed' as well when it comes the extraction
+# since otherwise it needs a FWHM. 'fixed' is a last resort and you will very
+# likely need to use large aperture radii in the extraction section.
 #
 # An obscure parameter is 'fit_ndiv'. If this is made > 0, the fit routine
 # attempts to allow for pixellation by evaluating the profile at multiple

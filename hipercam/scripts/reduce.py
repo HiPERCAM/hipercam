@@ -1799,7 +1799,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
                 # carry out initial search
                 x,y,peak = swdata.search(
-                    apsec['search_smooth_fwhm'], aper.x, aper.y, apsec['fit_height_min_ref'], False
+                    apsec['search_smooth_fwhm'], aper.x, aper.y,
+                    apsec['fit_height_min_ref'], False
                     )
 
                 # Now for a more refined fit. First extract fit Window
@@ -2011,16 +2012,16 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     aper.y+yshift-shbox, aper.y+yshift+shbox
                     )
 
-                if not ref:
-                    # if there were no reference apertures, we need to carry
-                    # out a search 
-                    x,y,peak = swdata.search(
-                        apsec['search_smooth_fwhm'], aper.x, aper.y, apsec['fit_height_min_nrf'], False
-                        )
+                # We carry out a search in either case because it involves a
+                # threshold check and we want that to be applied consistently.
+                x,y,peak = swdata.search(
+                    apsec['search_smooth_fwhm'], aper.x, aper.y,
+                    apsec['fit_height_min_nrf'], False
+                    )
 
-                else:
-                    # simply apply the reference aperture mean shift and
-                    # extract flux at nearest pixel
+                if ref:
+                    # in this case we ignore the position from the search as it is safer
+                    # to use the reference stars for the first position.
                     xold = x = aper.x+xshift
                     yold = y = aper.y+yshift
                     peak = swdata.data[int(round(swdata.y_pixel(y))),int(round(swdata.x_pixel(x)))]
@@ -2061,7 +2062,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 # this is where the search window gets used.
                 if swdata.distance(x,y) < 0.5:
                     raise hcam.HipercamError(
-                        'Fitted position ({:.1f},{:.1f}) too close to or beyond edge of search window = {!s}'.format(
+                        ('Fitted position ({:.1f},{:.1f}) too close to or'
+                         ' beyond edge of search window = {!s}').format(
                             x,y,swdata.winhead.format())
                     )
 
@@ -2076,8 +2078,10 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     )
 
                 if height > apsec['fit_height_min_nrf']:
-                    # store some stuff for next time and for passing onto
-                    # next routine
+                    # As above, the peak height check is probably not required
+                    # at this point since the search routine applies it more
+                    # stringently but I have left it in for safety. Store some
+                    # stuff for next time and for passing onto next routine
                     store[apnam] = {
                         'xe' : ex, 'ye' : ey,
                         'fwhm' : fwhm, 'fwhme' : efwhm,
