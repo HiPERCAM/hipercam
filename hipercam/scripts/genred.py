@@ -620,7 +620,7 @@ warn = 1 60000 64000
     monitor = ''
     for targ in sorted(targs):
         monitor += ('{:s} = NO_EXTRACTION TARGET_SATURATED TARGET_AT_EDGE'
-                    ' TARGET_NONLINEAR NO_SKY SKY_AT_EDGE\n').format(targ)
+                    ' TARGET_NONLINEAR NO_SKY NO_FWHM NO_DATA SKY_AT_EDGE\n').format(targ)
 
     # time stamp
     tstamp = strftime("%d %b %Y %H:%M:%S (UTC)", gmtime())
@@ -717,57 +717,66 @@ ncpu = {ncpu}
 # can be the key to a successful reduction.
 #
 # If there are reference apertures, they are located first to give a mean
-# shift. This is used to bypass the initial search for any non-reference
-# apertures. The search is carried out by first extracting a square sub-window
-# centred on the last good position of a target. This is then smoothed by a
-# gaussian, and the closest peak to the last valid position higher than
-# 'fit_height_min_ref' is taken as the initial position for later profile
-# fits. The smoothing serves to make the process more robust against cosmic
-# rays. The width of the search box ('search_half_width') depends on how good
-# the telescope guiding is. In particular if at some point there is a sudden
-# jump in position, the box should be large enough to cope. Well-chosen
-# reference targets, which should be isolated and bright, can help this
-# process a great deal. The boxes for the fits need to be large enough to
-# include the target and a bit of sky to ensure that the FWHM is accurately
-# measured. Remember that seeing can flare of course. If your target was
-# defocussed, a gaussian or Moffat function will be a poor fit and you may be
-# better keeping the FWHM fixed at a large value comparable to the widths of
-# your defoccused images (and use the gaussian option in such cases). If the
-# apertures are chosen to be fixed, there will be no search or fit carried out
-# in which case you must choose 'fixed' as well when it comes the extraction
-# since otherwise it needs a FWHM.
+# shift. This is used to avoid the initial search for any non-reference
+# apertures which has the advantage of reducing the chance of problems. The
+# search is carried out by first extracting a sub-window centred on the last
+# good position of a target. This is then smoothed by a gaussian, and the
+# closest peak to the last valid position higher than 'fit_height_min_ref'
+# above background (median of the square box) is taken as the initial position
+# for later profile fits. The smoothing serves to make the process more robust
+# against cosmic rays. The width of the search box ('search_half_width')
+# depends on how good the telescope guiding is. It should be large enough to
+# cope with the largest likely shift in position between any two consecutive
+# frames. Well-chosen reference targets, which should be isolated and bright,
+# can help this process a great deal. The boxes for the fits
+# ('fit_half_width') need to be large enough to include the target and a bit
+# of sky to ensure that the FWHM is accurately measured, remembering that
+# seeing can flare of course. If your target was defocussed, a gaussian or
+# Moffat function will be a poor fit and you may be better keeping the FWHM
+# fixed at a large value comparable to the widths of your defoccused images
+# (and use the gaussian option in such cases). If the apertures are chosen to
+# be fixed, there will be no search or fit carried out in which case you must
+# choose 'fixed' as well when it comes the extraction since otherwise it needs
+# a FWHM. 'fixed' is a last resort and you will very likely need to use large
+# aperture radii in the extraction section.
 #
-# An obscure parameter below is 'fit_ndiv'. If this is made > 0, the fit
-# routine attempts to allow for pixellation by evaluating the profile at
-# multiple points within each pixel of the fit. First it will evaluate the profile
-# for every unbinned pixel within a binned pixel if the pixels are binned;
-# second, it will evaluate the profile over an ndiv by ndiv square grid within
-# each unbinned pixel. Obviously this will slow things, but it could help if
-# your images are under-sampled. I would always start with fit_ndiv=0, and only
-# raise it if the measured FWHM seem to be close to or below two binned pixels.
+# An obscure parameter is 'fit_ndiv'. If this is made > 0, the fit routine
+# attempts to allow for pixellation by evaluating the profile at multiple
+# points within each pixel of the fit. First it will evaluate the profile for
+# every unbinned pixel within a binned pixel if the pixels are binned; second,
+# it will evaluate the profile over an ndiv by ndiv square grid within each
+# unbinned pixel. Obviously this will slow things, but it could help if your
+# images are under-sampled. I would always start with fit_ndiv=0, and only
+# raise it if the measured FWHM seem to be close to or below two binned
+# pixels.
 #
-# If you use reference targets, the initial positions for the non-reference
-# targets should be good. You can then guard further against problems using
-# the parameter 'fit_max_shift' to reject positions that shift too far from
-# the initial guess. 'fit_alpha' is another parameter that applies only in
-# this case. If reference apertures are being used, the expected locations of
-# non-reference apertures can be predicted with some confidence. In this case
-# when the non-reference aperture's position is measured, its position will be
-# adjusted by 'fit_alpha' times the change in position relative to that
-# expected. Its value is bounded by 0 < fit_alpha <= 1. "1" is effectively no
-# change from the old behaviour. Anything < 1 effectively builds in a bit of
-# past history. The hope is that this could make the aperture positioning,
-# especially for faint targets, more robust to cosmic rays and other issues.
-# Of course it will correlate the positions from frame to frame. fit_alpha =
-# 10 for instance with lead to a correlation length ~ 10 frames.
+# If you use reference targets (you should if possible), the initial positions
+# for the non-reference targets should be good. You can then guard further
+# against problems using the parameter 'fit_max_shift' to reject positions for
+# the non-reference targets that shift too far from the initial
+# guess. 'fit_alpha' is another parameter that applies only in this case. If
+# reference apertures are being used, the expected locations of non-reference
+# apertures can be predicted with some confidence. In this case when the
+# non-reference aperture's position is measured, its position will be adjusted
+# by 'fit_alpha' times the measured change in position. Its value is bounded
+# by 0 < fit_alpha <= 1. "1" is effectively no change from the old
+# behaviour. Anything < 1 effectively builds in a bit of past history. The
+# hope is that this could make the aperture positioning, especially for faint
+# targets, more robust to cosmic rays and other issues.  Of course it will
+# correlate the positions from frame to frame. fit_alpha = 0.1 for instance
+# will lead to a correlation length ~ 10 frames.
 #
 # If you use > 1 reference targets, then the parameter 'fit_diff' comes into
 # play.  Multiple reference targets should move togather and give very
-# consistent shifts. If they don't, then a problem may have occurred. The
-# maximum acceptable differential shift is defined by 'fit_diff'.
+# consistent shifts. If they don't, then a problem may have occurred, e.g. one
+# or more have been affected by a meteor trail for instance. The maximum
+# acceptable differential shift is defined by 'fit_diff'. If exceeded, then the
+# entire extraction will be aborted and positions held fixed.
 #
-# To get the ideal values of some of these parameters. in particular the
-# 'search_half_width', the height thresholds, 'fit_max_shift' and 'fit_diff'
+# To get and idea of the right values of some of these parameters, in
+# particular the 'search_half_width', the height thresholds, 'fit_max_shift'
+# and 'fit_diff', the easiest approach is probably to run a reduction with
+# loose values and see how it goes.
 
 [apertures]
 aperfile = {apfile} # file of software apertures for each CCD
@@ -912,13 +921,16 @@ ymax = 110 # Maximum transmission to plot (>= 100 to slow replotting)
 # Monitor section. This section allows you to monitor particular targets
 # for problems. If they occur, then messages will be printed to the terminal
 # during reduce. The messages are determined by the bitmask flag set during
-# the extraction of each target. Ones worth testing for are:
+# the extraction of each target. Possibilities:
 #
+#  NO_FWHM           : no FWHM measured
 #  NO_SKY            : no sky pixels at all
 #  SKY_AT_EDGE       : sky aperture off edge of window
 #  TARGET_AT_EDGE    : target aperture off edge of window
 #  TARGET_SATURATED  : at least one pixel in target above saturation level
 #  TARGET_NONLINEAR  : at least one pixel in target above nonlinear level
+#  NO_EXTRACTION     : no extraction possible
+#  NO_DATA           : no valid pixels in aperture
 #
 # For a target you want to monitor, type its label, '=', then the bitmask
 # patterns you want to be flagged up if they are set. This is designed mainly
