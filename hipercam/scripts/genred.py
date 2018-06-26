@@ -133,18 +133,30 @@ def genred(args=None):
            RMS rejection threshold for profile fits.
 
         hminref : float [hidden]
-           minimum peak height for a fit to a reference aperture to be accepted
+           minimum peak height for a fit to a reference aperture to be
+           accepted. This applies above all to the peak height in the smoothed
+           image used during the initial search which will in general be less
+           than the seeing-limited peak height. This has the advantage of
+           being more constant, but smaller in general so you should use a
+           value less than you might guess from images. The decrease in peak
+           height from smoothing is of order
+           seeing**2/(seeing**2+smoothfwhm**2).
 
         hminnrf : float [hidden]
-           minimum peak height for a fit to a non-reference aperture to be accepted
+           minimum peak height for a fit to a non-reference aperture to be
+           accepted. If there are no reference apertures, this applies to the
+           smoothed peak height as for hminref.  If there are reference
+           apertures it applies to the height of the fitted profile.
 
         alpha : float [hidden]
-           amount by which non-reference apertures are corrected relative to their expected
-           positions when reference apertures are enabled. The idea is that the positions of
-           non-reference relative to reference apertures should vary little, so rather than
-           simply re-positioning independently every frame, one might want to build in a bit
-           of past history. This can be done by setting alpha small. If alpha = 1, then that
-           simply returns to fully independent positioning for each frame.
+           amount by which non-reference apertures are corrected relative to
+           their expected positions when reference apertures are enabled. The
+           idea is that the positions of non-reference relative to reference
+           apertures should vary little, so rather than simply re-positioning
+           independently every frame, one might want to build in a bit of past
+           history. This can be done by setting alpha small. If alpha = 1,
+           then that simply returns to fully independent positioning for each
+           frame.
 
         diff : float [hidden]
            maximum difference in the shifts of reference apertures, when more
@@ -702,21 +714,21 @@ ncpu = {ncpu}
 # from frame to frame. Apertures are re-positioned through a combination of a
 # search near a start location followed by a 2D profile fit. Several
 # parameters below are associated with this process and setting these right
-# can be the key to a successful reduction. If there are reference apertures,
-# they are located first to give a mean shift. This is used to bypass the
-# initial search for any non-reference apertures. The search is carried out by
-# first extracting a square sub-window centred on the last good position of a
-# target. This is then smoothed by a gaussian, and the peak is taken as the
-# initial position for later profile fits. The gaussian should have a width
-# comparable to the targets FWHM and is to make the process more robust
-# against cosmic rays. However, there are sometime really nasty cosmic rays,
-# so it's in your interests to choose as bright a reference target as
-# possible, or more than one. The width of the search box depends on how good
+# can be the key to a successful reduction.
+#
+# If there are reference apertures, they are located first to give a mean
+# shift. This is used to bypass the initial search for any non-reference
+# apertures. The search is carried out by first extracting a square sub-window
+# centred on the last good position of a target. This is then smoothed by a
+# gaussian, and the closest peak to the last valid position higher than
+# 'fit_height_min_ref' is taken as the initial position for later profile
+# fits. The smoothing serves to make the process more robust against cosmic
+# rays. The width of the search box ('search_half_width') depends on how good
 # the telescope guiding is. In particular if at some point there is a sudden
-# jump in position, the box may have to be large enough to cope. Well-chosen
-# reference targets, which above all should be isolated, can help this process
-# a great deal. The boxes for the fits need to be large enough to include the
-# target and a bit of sky to ensure that the FWHM is accurately
+# jump in position, the box should be large enough to cope. Well-chosen
+# reference targets, which should be isolated and bright, can help this
+# process a great deal. The boxes for the fits need to be large enough to
+# include the target and a bit of sky to ensure that the FWHM is accurately
 # measured. Remember that seeing can flare of course. If your target was
 # defocussed, a gaussian or Moffat function will be a poor fit and you may be
 # better keeping the FWHM fixed at a large value comparable to the widths of
@@ -734,11 +746,11 @@ ncpu = {ncpu}
 # your images are under-sampled. I would always start with fit_ndiv=0, and only
 # raise it if the measured FWHM seem to be close to or below two binned pixels.
 #
-# Finally if you use reference targets, you should get good initial positions
-# for the non-reference targets. You can then guard against problems using the
-# parameter 'fit_max_shift' to reject positions that shift too far from the
-# initial guess. 'fit_alpha' is another parameter that applies only in this
-# case. If reference apertures are being used, the expected locations of
+# If you use reference targets, the initial positions for the non-reference
+# targets should be good. You can then guard further against problems using
+# the parameter 'fit_max_shift' to reject positions that shift too far from
+# the initial guess. 'fit_alpha' is another parameter that applies only in
+# this case. If reference apertures are being used, the expected locations of
 # non-reference apertures can be predicted with some confidence. In this case
 # when the non-reference aperture's position is measured, its position will be
 # adjusted by 'fit_alpha' times the change in position relative to that
@@ -746,8 +758,16 @@ ncpu = {ncpu}
 # change from the old behaviour. Anything < 1 effectively builds in a bit of
 # past history. The hope is that this could make the aperture positioning,
 # especially for faint targets, more robust to cosmic rays and other issues.
-# Of course it will correlate the positions from frame to frame. fit_alpha = 10
-# for instance with lead to a correlation length ~ 10 frames.
+# Of course it will correlate the positions from frame to frame. fit_alpha =
+# 10 for instance with lead to a correlation length ~ 10 frames.
+#
+# If you use > 1 reference targets, then the parameter 'fit_diff' comes into
+# play.  Multiple reference targets should move togather and give very
+# consistent shifts. If they don't, then a problem may have occurred. The
+# maximum acceptable differential shift is defined by 'fit_diff'.
+#
+# To get the ideal values of some of these parameters. in particular the
+# 'search_half_width', the height thresholds, 'fit_max_shift' and 'fit_diff'
 
 [apertures]
 aperfile = {apfile} # file of software apertures for each CCD

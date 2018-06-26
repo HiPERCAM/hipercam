@@ -14,6 +14,7 @@ from numpy.lib.stride_tricks import as_strided
 
 from astropy.io import fits
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
+from scipy.ndimage.filters import maximum_filter
 
 import matplotlib.pyplot as plt
 from .core import *
@@ -1065,29 +1066,38 @@ class Window(Winhead):
 
             self.data = self.data.astype(np.uint16)
 
-    def find(self, fwhm, fft=True):
+    def search(self, fwhm, x0, y0, thresh, fft, max=False):
         """
-        Finds the position of one star in a :class:Window. Works by convolving
-        the image with a gaussian of FWHM = fwhm, and returns the location of
-        the brightest pixel of the result along with the value of that pixel
-        in the uncolvolved image. The convolution improves the reliability of
-        the identification of the object position and reduces the chance of
-        problems being caused by cosmic rays, although if there is more
-        overall flux in a cosmic ray than the star, it will go wrong, so some
-        form of prior cleaning is advisable in such cases. It is up to the
-        user to make the :class:Window small enough the star of interest is the
-        brightest object (see e.g. `window`).
+        Search for a target in a :class:Window. Works by convolving the image
+        with a gaussian of FWHM = fwhm, and returns the location of the
+        maximum in the smoothed image which exceeds a level `thresh` and lies
+        closest to the expected position. The convolution improves the
+        reliability of the identification of the object position and reduces
+        the chance of problems being caused by cosmic rays, although if there
+        is more overall flux in a cosmic ray than the star, it could go wrong.
 
         This routine is intended to provide a first cut in position for more
         precise methods to polish.
 
         Arguments::
 
-          fwhm  : (float)
+          fwhm : float
             Gaussian FWHM in pixels. If <= 0, there will be no convolution, although
             this is not advisable as a useful strategy.
 
-          fft   : (bool)
+          x0 : float
+            x-position to judge position from (CCD-coordinates). The closest
+            sufficiently high maximum will be taken.
+
+          y0 : float
+            y-position to judge position from (CCD-coordinates). The closest
+            sufficiently high maximum will be taken.
+
+          thresh : float
+            The peak counts in the maximum of the *smoothed* image must exceed
+            this value for a maximum to count. Use this to filter out noise.
+
+          fft : bool
             The astropy.convolution routines are used. By default FFT-based
             convolution is applied as it scales better with fwhm, especially
             for fwhm >> 1, however the direct method (fft=False) may be faster
@@ -1095,13 +1105,18 @@ class Window(Winhead):
             edges where it extends value with the nearest pixel while the FFT
             wraps values.
 
-        Returns:: 
+         max : bool
+            If True, just go for the highest peak, i.e. ignore x0, y0. The peak
+            should still exceed 'thresh'
 
-          (x,y,peak) : (tuple) x,y is the location of the brightest pixel
-            measured in terms of CCD coordinates (i.e. lower-left pixel is at
-            (1,1)). `peak` is the image value at the peak pixel, in the
-            *unconvolved* image. It might be useful for initial estimates of
-            peak height.
+        Returns::
+
+            a tuple of (x,y,peak): x,y is the location of the
+            brightest pixel measured in terms of CCD coordinates
+            (i.e. lower-left pixel is at (1,1)) and `peak` is the image value
+            at the peak pixel, in the *unconvolved* image. It might be useful
+            for initial estimates of peak height. If no peak is found, a
+            HipercamError will be raised.
 
         """
         if fwhm > 0:
@@ -1113,10 +1128,30 @@ class Window(Winhead):
         else:
             cimg = self.data
 
-        # locate coords of maximum pixel.
-        iy, ix = np.unravel_index(cimg.argmax(), cimg.shape)
+        if max:
+            # Locate the pixel of the global maximum
+            iy,ix = np.unravel_index(cimg.argmax(),cimg.shape)
 
-        # return with device coords and the value
+            # it must exceed thresh to count
+            if cimg[iy,ix] <= thresh:
+                raise hcam.HipercamError('no peak higher than {:.1f} found'.format(thresh))
+
+        else:
+            # in this case we will search for the maximum > thresh and closest to x0,y0
+            # Find local maxima in smoothed image
+            dmax = maximum_filter(cimg, 3, mode='nearest')
+            iys, ixs = np.nonzero((dmax == cimg) & (cimg > thresh))
+
+            # Find the maximum (if there is one) nearest to the expected
+            # position
+            if len(iys) == 0:
+                raise hcam.HipercamError('no peak higher than {:.1f} found'.format(thresh))
+
+            ix0, iy0 = self.x_pixel(x0), self.y_pixel(y0)
+            imin = ((ixs-ix0)**2 + (iys-iy0)**2).argmin()
+            iy, ix = iys[imin], ixs[imin]
+
+        # return with the device coords and the value
         return (self.x(ix),self.y(iy),self.data[iy,ix])
 
     def __copy__(self):
