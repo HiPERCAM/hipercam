@@ -30,6 +30,7 @@ from .pfolder import pfolder
 from .uls import uls
 from .fits2hcm import fits2hcm
 from .hlog2fits import hlog2fits
+from .redanal import redanal
 
 __all__ = [ \
             'add', 'averun',
@@ -39,7 +40,7 @@ __all__ = [ \
             'hist', 'hfilter', 'hlog2fits', 'hlogger', 'hls', 'hplot',
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'pfolder', 'plog',
-            'reduce', 'rtplot',
+            'redanal', 'reduce', 'rtplot',
             'setaper', 'setdefect', 'stats', 'sub',
             'times',
             'uls',

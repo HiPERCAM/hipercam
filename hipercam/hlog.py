@@ -65,6 +65,7 @@ class Hlog(dict):
         dtype_defs = {}
         dtypes = {}
         struct_types = {}
+        hlog.apnames = {}
 
         with open(fname) as fin:
             for line in fin:
@@ -77,6 +78,10 @@ class Hlog(dict):
                         # store the column names
                         cnam = line[1:line.find('=')].strip()
                         cnames[cnam] = line[line.find('=')+1:].strip().split()[1:]
+                        hlog.apnames[cnam] = list(set(
+                            [item[item.find('_')+1:] for item in cnames[cnam] if item.find('_') > -1]
+                            ))
+                        hlog.apnames[cnam].sort()
 
                 elif read_dtypes:
                     # reading the data types. We build anump.dtype objects and strings
@@ -146,11 +151,16 @@ class Hlog(dict):
         """
 
         hlog = cls()
+        hlog.apnames = {}
 
         with fits.open(fname) as hdul:
             for hdu in hdul[1:]:
                 cnam = hdu.header['CCDNAME']
                 hlog[cnam] = hdu.data
+                hlog.apnames[cnam] = list(set(
+                        [item[item.find('_')+1:] for item in hdu.data.dtype.names if item.find('_') > -1]
+                        ))
+                hlog.apnames[cnam].sort()
 
         return hlog
 

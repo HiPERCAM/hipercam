@@ -147,6 +147,7 @@ setup(
             'mstats=hipercam.scripts.mstats:mstats',
             'pfolder=hipercam.scripts.pfolder:pfolder',
             'plog=hipercam.scripts.plog:plog',
+            'redanal=hipercam.scripts.redanal:redanal',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
             'setaper=hipercam.scripts.setaper:setaper',
