@@ -1134,7 +1134,9 @@ class Window(Winhead):
 
             # it must exceed thresh to count
             if cimg[iy,ix] <= thresh:
-                raise hcam.HipercamError('no peak higher than {:.1f} found'.format(thresh))
+                raise HipercamError(
+                    'no peak higher than {:.1f} found; highest = {:.1f}'.format(thresh, cimg[iy,ix])
+                    )
 
         else:
             # in this case we will search for the maximum > thresh and closest to x0,y0
@@ -1145,7 +1147,11 @@ class Window(Winhead):
             # Find the maximum (if there is one) nearest to the expected
             # position
             if len(iys) == 0:
-                raise hcam.HipercamError('no peak higher than {:.1f} found'.format(thresh))
+                # Locate the pixel of the global maximum
+                cmax = cimg.max()
+                raise HipercamError(
+                    'no peak higher than {:.1f} found; highest = {:.1f}'.format(thresh, cmax)
+                    )
 
             ix0, iy0 = self.x_pixel(x0), self.y_pixel(y0)
             imin = ((ixs-ix0)**2 + (iys-iy0)**2).argmin()
