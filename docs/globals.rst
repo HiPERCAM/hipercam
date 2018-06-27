@@ -29,6 +29,7 @@
 .. |mstats| replace:: :func:`mstats <hipercam.scripts.mstats>`
 .. |mul| replace:: :func:`mul <hipercam.scripts.mul>`
 .. |plog| replace:: :func:`plog <hipercam.scripts.plog>`
+.. |redanal| replace:: :func:`redanal <hipercam.scripts.redanal>`
 .. |reduce| replace:: :func:`reduce <hipercam.scripts.reduce>`
 .. |rtplot| replace:: :func:`rtplot <hipercam.scripts.rtplot>`
 .. |setaper| replace:: :func:`setaper <hipercam.scripts.setaper>`
