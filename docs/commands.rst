@@ -339,6 +339,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.averun
 .. autofunction:: hipercam.scripts.cadd
 .. autofunction:: hipercam.scripts.cdiv
+.. autofunction:: hipercam.scripts.cmul
 .. autofunction:: hipercam.scripts.combine
 .. autofunction:: hipercam.scripts.csub
 .. autofunction:: hipercam.scripts.div
@@ -347,6 +348,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.grab
 .. autofunction:: hipercam.scripts.hfilter
 .. autofunction:: hipercam.scripts.hist
+.. autofunction:: hipercam.scripts.hlog2fits
 .. autofunction:: hipercam.scripts.hls
 .. autofunction:: hipercam.scripts.hplot
 .. autofunction:: hipercam.scripts.makebias
@@ -354,6 +356,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.mstats
 .. autofunction:: hipercam.scripts.mul
 .. autofunction:: hipercam.scripts.plog
+.. autofunction:: hipercam.scripts.redanal
 .. autofunction:: hipercam.scripts.reduce
 .. autofunction:: hipercam.scripts.rtplot
 .. autofunction:: hipercam.scripts.setaper
@@ -363,9 +366,9 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.times
 .. autofunction:: hipercam.scripts.uls
 
-.. [#f1] Five other commands (``aligntool``, ``hlogger``, ``makefield``,
-         ``makedata``, ``pfolder``) are not documented here as they are of
-         specialist usage.  Information on these is however available via
-         ``pydoc``.
+.. [#f1] Six other commands (``aligntool``, ``digest``, ``hlogger``,
+         ``makefield``, ``makedata``, ``pfolder``) are not documented here as
+         they are of specialist usage.  Information on these is however
+         available via ``pydoc``.
 
 
