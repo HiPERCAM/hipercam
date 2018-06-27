@@ -2245,7 +2245,7 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
     if resize == 'variable' or extype == 'optimal':
 
         if mfwhm <= 0:
-            # return early here as there is nothing much we can do.
+            # return early here as there is nothing we can do.
             print(
                 (' *** WARNING: CCD {:s}: no measured FWHM to re-size'
                 ' apertures or carry out optimal extraction; no'

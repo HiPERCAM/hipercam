@@ -335,15 +335,20 @@ Linked apertures
 ----------------
 
 Linked apertures can be very useful if your target is simply too faint or near
-others to track well. However, they bring the danger, especially in long runs,
-of atmospheric refraction shifting the relative positions of the linked
-apertures, leading to loss of flux. This is particularly the case in the
-u-band. I have not, but will at some point, implement a two-pass reduction to
-get round this issue, but in the meantime, if you have to link an aperture,
-try to do so with a nearby object to minimise the distortion. It does not need
-to be super-bright (although preferably it should be brighter than your
-target), or your main comparison; the key point should be that its position
-can be securely tracked.
+others to track well. However, they should only be used as a last resort,
+especially for long runs, because of differential image motion due to
+atmopsheric refraction which can lead to loss of flux. This is particularly
+the case in the u-band. If you have to link an aperture, try to do so with a
+nearby object to minimise the distortion. It does not need to be super-bright
+(although preferably it should be brighter than your target), or your main
+comparison; the key point should be that its position can be securely tracked.
+If your target is reasonably trackable but simply a bit faint, then the
+``fit_alpha`` parameter is worth exploring as it effectively offsets from the
+reference targets by a variable amount that averages over the previous
+1/fit_alpha frames. This allows you to ride over frames that are too
+faint. This for example is an effective way to cope with deep eclipses whilst
+allowing for differential image motion in a way that linked apertures cannot
+manage.
 
 Problems with PGPLOT windows
 ----------------------------
