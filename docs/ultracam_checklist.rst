@@ -72,7 +72,7 @@ better observing practice.
      seeing values of all CCDs overlapping each other. On the NTT, the focus
      tends to drift and you should monitor it all the time.
 
-  #. Once you have seen to the seeing, double-check your main target for poor
+  #. Once you have seen to the focus, double-check your main target for poor
      columns or pixels. Move it if need be. If you have to make a large move,
      then it is often best to stop and re-start the run.
 
@@ -80,3 +80,26 @@ better observing practice.
      move by relatively small amounts in possible a few steps as this will
      make the reduction simpler. The main requirement is not to move in a huge
      jump between consecutive frames.
+
+  #. If you see different symbols appear in the light curve plot from
+     |reduce|, the count levels in one or more of your targets may be too
+     high. Check with |rtplot| which you can run at the same time as |reduce|.
+
+  #. You should also check for overly low counts. Essentially it is a matter
+     of the number of counts per pixel at the peak of each target compared to
+     the gain*readout**2. You want the peak number of counts (sky plus target)
+     to be significantly the larger to avoid being readout noise limited. For
+     ULTRACAM this means >> 1.1*2.8**2 = 9 counts. I usually aim for at least
+     50 to 100 counts at peak if possible.
+
+  #. Make sure to write an entry *one line per target* in the standard ASCII
+     log file for AutoLogger. Try to write stuff that is not otherwise easily
+     seen. i.e. "Run on IP Peg" is not much extra use if the target name is
+     "IP Peg", but "Bad cloud after 20 minutes" is useful.
+
+  #. At the start of the night, add a comment to say what the filters are. If
+     you change them, say e.g. "changed from r to i". This is a very helpful
+     layer of redundancy on top of the filter names.
+
+  #. If something goes badly wrong with a run, put "Junk!" somewhere in the
+     comment, probably the start. 
