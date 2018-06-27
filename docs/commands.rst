@@ -8,6 +8,7 @@
 .. |ol-averun|   replace:: average a series of frames in a run
 .. |ol-cadd|     replace:: add a constant to a frame
 .. |ol-cdiv|     replace:: divide a frame by a constant
+.. |ol-cmul|     replace:: multiply a frame by a constant
 .. |ol-combine|  replace:: combine a list of frames
 .. |ol-csub|     replace:: subtract a constant from a frame
 .. |ol-div|      replace:: divide one frame by another
@@ -24,6 +25,7 @@
 .. |ol-mul|      replace:: multiply two frames
 .. |ol-plog|     replace:: plot output log from |reduce|
 .. |ol-reduce|   replace:: carry out photometric reduction
+.. |ol-redanal|  replace:: analyse a reduction log file
 .. |ol-rtplot|   replace:: plot frames as they come in
 .. |ol-setaper|  replace:: define the photometric apertures
 .. |ol-setdefect| replace:: define a file of CCD defects
