@@ -133,6 +133,7 @@ def genred(args=None):
            RMS rejection threshold for profile fits.
 
         hminref : float [hidden]
+
            minimum peak height for a fit to a reference aperture to be
            accepted. This applies to the peak height in the *smoothed* image
            used during the initial search as well as the peak height after
@@ -141,9 +142,12 @@ def genred(args=None):
            variable, and the more stringent since smoothing reduces the peak
            height by seeing**2/(seeing**2+smoothfwhm**2) where 'seeing' is the
            FWHM of the seeing in binned pixels. If smoothfwhm is chosen to be
-           larger than seeing is likely to be, this makes the peak heights more
-           consistent so that the thresholding is better behaved. But, it means
-           you should use a value lower than you might guess from the images.
+           larger than seeing is likely to be, this makes the peak heights
+           more consistent so that the thresholding is better behaved. But, it
+           means you should use a value lower than you might guess from the
+           images.  A peak of height `h` in a smoothed image will contain
+           about (seeing**2+smoothfwhm**2)*h counts in total (but fewer if
+           binned).
 
         hminnrf : float [hidden]
            minimum peak height for a fit to a non-reference aperture to be

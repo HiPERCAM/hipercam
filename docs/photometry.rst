@@ -19,10 +19,12 @@ various options, and summarises some other aspects of how things work.
 .. contents:: Contents
    :local:
 
+.. _aperture_positioning:
+
 Aperture positioning
 ====================
 
-A key problem faced by the pipeline is how to locate the targets rom frame to
+A key problem faced by the pipeline is how to locate the targets from frame to
 frame given that the telescope moves, and conditions vary. The usual option
 in the |reduce| configuration file is the ``[apertures]`` section is
 ``location = variable``. It's worth understanding how this operates. In the
@@ -125,7 +127,7 @@ Sometimes one might have no suitable comparison star, or only ones of very
 different colour to the target such that they are bright in some bands but
 faint in others. If the weather is photometric, then extraction of just the
 target with a large aperture, reminiscent of the old days of photometry with
-photomulipliers through 10 or 15 arcsec diameter apertures, may be in order.
+photomultipliers through 10 or 15 arcsec diameter apertures, may be in order.
 It is also possible to use the comparison star on one band to correct for
 short timescale fluctuations in another where the comparison may be faint, but
 one should then typically use a larger than normal radius because the profiles
@@ -150,7 +152,7 @@ relation
 
    f(r) = h \exp \left(- \alpha r^2\right),
 
-where :math:`r` is the dinstance from the centre of the gaussian, :math:`h` is
+where :math:`r` is the distance from the centre of the gaussian, :math:`h` is
 its height, and :math:`\alpha` is defined by the FWHM of the profile according
 to
 

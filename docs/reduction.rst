@@ -26,7 +26,7 @@ Bias frames
 Bias frames can be quickly taken with |hiper|. All dome lights should be off,
 the focal plane slide should be in to block light, and ideally the telescope
 mirrors closed. Bias frames should be taken in clear mode with the shortest
-possible exposures to minimize the time spent accumulating photons.
+possible exposures to minimise the time spent accumulating photons.
 
 We standardly take 50 or 100 bias exposures. These can be combined by
 averaging pixel-by-pixel with rejection of outliers to remove cosmic rays, or
@@ -44,7 +44,7 @@ level which could otherwise affect the action of |combine|.
 The two operations of |grab| followed by |combine|, along with clean-up of the
 temporary files can be carried out with the single command |makebias|. This
 also saves the frames to a temporary location to avoid polluting the working
-diectory with lots of files. Thus assuming all frames in bias run
+directory with lots of files. Thus assuming all frames in bias run
 :file:`run0002.fits` are OK, the following command will make the combined
 bias frame::
 
@@ -80,7 +80,7 @@ Flat fields with |hiper| are taken at twilight in areas of sky with as few
 stars as possible. One should offset the telescope between images to allow
 stars to be removed. At the GTC, |hiper|'s driving routine, ``hdriver`` can
 drive the telescope as well as the instrument, making spiralling during sky
-flats straightforward. One can normally aquire more than 100 frames in a
+flats straightforward. One can normally acquire more than 100 frames in a
 single run, but the different CCDs will have different count levels on any one
 frame, and will come out of saturation at different times. The count levels
 will also be falling or rising according to whether the flats were taken at
@@ -125,14 +125,17 @@ The pipeline photometry provides straightforward aperture photometry. Many of
 the details can be defined when setting the apertures using |setaper|. Not
 only can you choose your targets, but you can mask nearby stars from the sky
 aperture, and you can to a certain extent sculpt your target apertures which
-can help with blended interlopers by including them in an over-sized aperure.
+can help with blended interlopers by including them in an over-sized aperture.
 
 A key decision to be made at this stage is whether you think your target will
 remain detectable on each frame throughout the run. Detectable means that it's
 position can be measured and thus the relevant aperture re-positioned.  If
 not, then |setaper| gives you the option of ``linking`` any target to another,
 with the idea that a brighter target can define the position shifts which are
-applied to the fainter target.
+applied to the fainter target. Linking is best reserved for the most difficult
+cases because it does have problems: see the sections 
+on :ref:`linked apertures <linked_apertures>` and
+:ref:`aperture positioning <aperture_positioning>` for more details.
 
 An example of a set of apertures showing all these features is shown in
 |fig-1|.
@@ -166,8 +169,10 @@ aperture. Finally, the thick pink arrow pointing from the lower-right (target)
 aperture to the upper-left reference aperture (green circle) *links* the
 target aperture. This means its position is calculated using a fixed offset
 from the reference aperture. This is often useful for very faint targets, or
-those, which like the one shown here, havd close-by objects that can confuse
-the re-positioning code.
+those, which like the one shown here, have close-by objects that can confuse
+the re-positioning code.  See the sections on
+:ref:`linked apertures <linked_apertures>` and
+:ref:`aperture positioning <aperture_positioning>` for more details.
 
 Reduction files
 ===============
@@ -193,7 +198,7 @@ jump beyond it and the reduction is likely to fail as that will set an error
 condition from which it may never recover. On the other hand, too large, and
 you could jump to a nearby object, and you also increase the chance of cosmic
 rays causing problems even though the search uses gaussian smoothing to reduce
-their influence. The mian way to combat this is to choose bright,
+their influence. The main way to combat this is to choose bright,
 well-isolated stars as reference target. The shifts from the reference targets
 are used to place the profile fit boxes and avoid the need to searches over
 non-reference targets. This can be a great help on faint targets. The main
@@ -224,7 +229,7 @@ Customisation
 
 You may well find that your data has particular features that the current
 pipeline does not allow for. An obvious one is with crowded fields, which
-can only roughly be accomodated with judicious application of the options
+can only roughly be accommodated with judicious application of the options
 within |setaper|. The pipeline does not aim to replicate packages designed to
 handle crowded fields, and you are best advised to port the data over into
 single frames using |grab|, remembering that the 'hcm' files are nothing more
@@ -275,7 +280,7 @@ of a target off and you may never recover. This could happen after many
 minutes of reduction have gone by. The 'apertures' section of reduce files has
 multiple parameters designed to help avoid such problems.
 
-As emphasized above, if you identify a star (or stars) as "reference
+As emphasised above, if you identify a star (or stars) as "reference
 apertures", their position is the first to be determined and then used to
 offset the location before carrying out profile fits for other stars. If you
 choose a well-isolated reference star, this can allow you to cope with large
@@ -331,13 +336,15 @@ get a sort of weighted centroid, and you will not get a good profile fit. For
 very defocussed images, it is important to avoid too narrow a FWHM otherwise
 you could end up zeroing in on random peaks in the doughnut-like profile.
 
+.. _linked_apertures:
+
 Linked apertures
 ----------------
 
 Linked apertures can be very useful if your target is simply too faint or near
 others to track well. However, they should only be used as a last resort,
 especially for long runs, because of differential image motion due to
-atmopsheric refraction which can lead to loss of flux. This is particularly
+atmospheric refraction which can lead to loss of flux. This is particularly
 the case in the u-band. If you have to link an aperture, try to do so with a
 nearby object to minimise the distortion. It does not need to be super-bright
 (although preferably it should be brighter than your target), or your main
@@ -365,7 +372,7 @@ what. I recently had another problem where it kept saying::
   %PGPLOT, PGSCH: no graphics device has been selected
 
 and I could not close the PGPLOT windows. In the end the only way I could cure
-this was to kill the PGPLOT X-windows server. (Search for 'pgxin' with 'ps'.)
+this was to kill the PGPLOT X-windows server. (Search for 'pgxwin' with 'ps'.)
 
 Experiment
 ----------
