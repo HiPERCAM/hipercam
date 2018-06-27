@@ -1710,7 +1710,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
     revised and extra stuff added in addition.
 
     It operates by first shifting any reference apertures, then non-linked
-    apertures, and finally linked apertures.
+    apertures, and finally linked apertures. The overall sequence is quite
+    complex and is described elsewhere.
 
     Arguments::
 
@@ -1844,8 +1845,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
                 if height > apsec['fit_height_min_ref']:
                     # The peak height check is probably not required at this
-                    # point since the search routine applies it more stringently
-                    # but I have left it in for safety. 
+                    # point since the search routine applies it more
+                    # stringently but I have left it in for safety.
                     dx = x - aper.x
                     wx = 1./ex**2
                     wxsum += wx
@@ -1948,9 +1949,9 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
             xshift = xsum / wxsum
             yshift = ysum / wysum
 
-            # Finally apply individual shifts to the reference targets
-            # this means we do *not* change any positions if the differential
-            # shift test fails.
+            # Finally apply individual shifts to the reference targets this
+            # means we do *not* change any positions if the differential shift
+            # test fails.
             for apnam, aper in ccdaper.items():
                 if aper.ref:
                     aper.x += store[apnam]['dx']
@@ -2020,11 +2021,29 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     )
 
                 if ref:
-                    # in this case we ignore the position from the search as it is safer
-                    # to use the reference stars for the first position.
+                    shift = np.sqrt((x-aper.x)**2+(y-aper.y)**2)
+                    max_shift = apsec['fit_max_shift'] + \
+                                np.sqrt(swdata.xbin**2+swdata.ybin**2)/2
+
+                    if shift > max_shift:
+                        # check the shift allowing for maximum pixellation
+                        # error in the position
+                        raise hcam.HipercamError(
+                            ('Position of non-reference aperture'
+                             ' shifted by {:.1f} which exceeds '
+                             'fit_max_shift+pix_diam/2 = {:.1f}').format(
+                                 shift, max_shift)
+                        )
+
+                    # we don't actually use the position just determined on
+                    # the principle that is safer to use the shift from the
+                    # reference stars to estimate the first position.
                     xold = x = aper.x+xshift
                     yold = y = aper.y+yshift
-                    peak = swdata.data[int(round(swdata.y_pixel(y))),int(round(swdata.x_pixel(x)))]
+                    peak = swdata.data[
+                        int(round(swdata.y_pixel(y))),
+                        int(round(swdata.x_pixel(x)))
+                    ]
 
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
@@ -2069,13 +2088,15 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
                 # check for overly large shifts in the case that we have
                 # reference apertures
-                if ref and np.sqrt((x-xold)**2+(y-yold)**2) > apsec['fit_max_shift']:
-                    raise hcam.HipercamError(
-                        ('Position of non-reference aperture shifted by '
-                         '{:.1f} which exceeds fit_max_shift = {:.1f}').format(
-                             np.sqrt((x-xold)**2+(y-yold)**2),
-                             apsec['fit_max_shift'])
-                    )
+                if ref:
+                    shift = np.sqrt((x-xold)**2+(y-yold)**2)
+                    if shift > apsec['fit_max_shift']:
+                        raise hcam.HipercamError(
+                            ('Position of non-reference aperture'
+                             ' shifted by {:.1f} which exceeds '
+                             'fit_max_shift = {:.1f}').format(
+                                 shift, apsec['fit_max_shift'])
+                        )
 
                 if height > apsec['fit_height_min_nrf']:
                     # As above, the peak height check is probably not required
