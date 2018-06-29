@@ -1779,20 +1779,20 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
     # next to store shifts
     shifts = []
 
-    for apnam, aper in ccdaper.items():
-        if aper.ref:
-            ref = True
+    try:
+        for apnam, aper in ccdaper.items():
+            if aper.ref:
+                ref = True
 
-            # name of window for this aperture
-            wnam = ccdwin[apnam]
+                # name of window for this aperture
+                wnam = ccdwin[apnam]
 
-            # extract the Window of the processed data, read noise and gain
-            # frames
-            wdata = ccd[wnam]
-            wread = read[wnam]
-            wgain = gain[wnam]
+                # extract the Window of the processed data, read noise and
+                # gain frames
+                wdata = ccd[wnam]
+                wread = read[wnam]
+                wgain = gain[wnam]
 
-            try:
                 # get sub-windat around start position
                 swdata = wdata.window(
                     aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
@@ -1880,34 +1880,31 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                         wbsum += wb
 
                 else:
-                    print(
+                    raise hcam.HipercamError(
                         ('CCD {:s}, reference aperture {:s}'
                          ', peak = {:.1f} < {:.1f}').format(
-                             cnam, apnam, height, apsec['fit_height_min_ref']),
-                        file=sys.stderr
-                    )
+                             cnam, apnam, height, apsec['fit_height_min_ref'])
+                        )
 
-                    store[apnam] = {
-                        'xe' : -1., 'ye' : -1.,
-                        'fwhm' : 0., 'fwhme' : -1.,
-                        'beta' : 0., 'betae' : -1.,
-                        'dx' : 0., 'dy' : 0.
-                    }
+    except hcam.HipercamError as err:
+        # trap problems during the fits
+        print(
+            'CCD {:s}, reference aperture {:s},'
+            ' fit failed, will abort extraction. Error = {!s}'.format(
+                cnam, apnam, err), file=sys.stderr
+            )
 
-            except hcam.HipercamError as err:
-                # trap problems during the fits
-                print(
-                    'CCD {:s}, reference aperture {:s},'
-                    ' fit failed, error = {!s}'.format(
-                        cnam, apnam, err), file=sys.stderr
-                )
-
-                store[apnam] = {
-                    'xe' : -1., 'ye' : -1.,
-                    'fwhm' : 0., 'fwhme' : -1.,
-                    'beta' : 0., 'betae' : -1.,
-                    'dx' : 0., 'dy' : 0.
+        for apnam, aper in ccdaper.items():
+            store[apnam] = {
+                'xe' : -1., 'ye' : -1.,
+                'fwhm' : 0., 'fwhme' : -1.,
+                'beta' : 0., 'betae' : -1.,
+                'dx' : 0., 'dy' : 0.
                 }
+
+        store['mfwhm'] = -1.
+        store['mbeta'] = -1.
+        return
 
     # at this point we are done with measuring the positions of the reference
     # apertures, although their positions have yet to be fixed because another
