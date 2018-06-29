@@ -43,10 +43,23 @@ NUMPY_TO_STRUCT = {
 
 class Hlog(dict):
     """
-    Class to represent a HiPERCAM log as produced by reduce.
-    Based on dictionaries, Hlog files contain numpy structured
-    arrays for each CCD which can be accessed by the CCD label
-    name.
+    Class to represent a HiPERCAM log as produced by reduce.  Based on
+    dictionaries, Hlog files contain numpy structured arrays for each CCD
+    which can be accessed by the CCD label name. Each array contains data that
+    can be accessed by the label of the column. e.g.
+
+       >> import hipercam as hcam
+       >> hlog = hcam.hlog.Hlog.from_ascii('run011.log')
+       >> print(hlog['2']['x_1']
+
+    would print the X-values of aperture '1' from CCD '2'.
+
+    Hlog objects have one attribute 'apnames' which is a dictionary keyed by
+    CCD label giving a list of the aperture labels used for each CCD. i.e.
+
+      >> print(hlog.apnames['2'])
+
+    might return ['1','2','3'].
     """
 
     @classmethod
@@ -79,7 +92,8 @@ class Hlog(dict):
                         cnam = line[1:line.find('=')].strip()
                         cnames[cnam] = line[line.find('=')+1:].strip().split()[1:]
                         hlog.apnames[cnam] = list(set(
-                            [item[item.find('_')+1:] for item in cnames[cnam] if item.find('_') > -1]
+                            [item[item.find('_')+1:] for item in cnames[cnam] \
+                                 if item.find('_') > -1]
                             ))
                         hlog.apnames[cnam].sort()
 
@@ -94,9 +108,10 @@ class Hlog(dict):
                             dtypes[cnam] = np.dtype(
                                 list(zip(cnames[cnam], dtype_defs[cnam]))
                             )
-                            # equivalent struct. Use native byte order but with no alignment
-                            # to match numpy packing.
-                            struct_types[cnam] = '=' + ''.join([NUMPY_TO_STRUCT[dt] for dt in dtype_defs[cnam]])
+                            # equivalent struct. Use native byte order with no alignment
+                            # (initial '=') to match numpy packing.
+                            struct_types[cnam] = '=' + \
+                                ''.join([NUMPY_TO_STRUCT[dt] for dt in dtype_defs[cnam]])
 
                         read_data = True
 
@@ -136,7 +151,8 @@ class Hlog(dict):
                     # so it should cope with quite large log files.
                     hlog[cnam].append(struct.pack(struct_types[cnam], *items))
 
-        # convert lists to numpy arrays
+        # for each CCD convert the list of byte data to a numpy array and then
+        # ro a record array of the right dtype.
         for cnam in hlog:
             hlog[cnam] = np.frombuffer(np.array(hlog[cnam]), dtypes[cnam])
 
@@ -172,6 +188,7 @@ class Hlog(dict):
         """
 
         hlog = cls()
+        hlog.apnames = {}
 
         # CCD labels, number of apertures, numpy dtypes, struct types
         cnames = {}
@@ -217,6 +234,7 @@ class Hlog(dict):
                         names = ['MJD','Tflag','Expose','FWHM','beta']
                         dts = ['f8','?','f4','f4','f4']
                         naps[cnam] = len(arr[7:]) // 14
+                        hlog.apnames[cnam] = [str(i) for i in range(1,naps[cnam]+1)]
                         for nap in range(naps[cnam]):
                             naper, x, y, xm, ym, exm, eym, counts, \
                                 sigma, sky, nsky, nrej, worst, error_flag = arr[7+14*nap:7+14*(nap+1)]
