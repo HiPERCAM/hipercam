@@ -133,7 +133,7 @@ position can be measured and thus the relevant aperture re-positioned.  If
 not, then |setaper| gives you the option of ``linking`` any target to another,
 with the idea that a brighter target can define the position shifts which are
 applied to the fainter target. Linking is best reserved for the most difficult
-cases because it does have problems: see the sections 
+cases because it does bring its own issues: see the sections 
 on :ref:`linked apertures <linked_apertures>` and
 :ref:`aperture positioning <aperture_positioning>` for more details.
 
@@ -280,10 +280,10 @@ of a target off and you may never recover. This could happen after many
 minutes of reduction have gone by. The 'apertures' section of reduce files has
 multiple parameters designed to help avoid such problems.
 
-As emphasised above, if you identify a star (or stars) as "reference
-apertures", their position is the first to be determined and then used to
+As emphasised above, if you identify a star (or stars) as (a) reference
+aperture(s), their position is the first to be determined and then used to
 offset the location before carrying out profile fits for other stars. If you
-choose a well-isolated reference star, this can allow you to cope with large
+choose well-isolated reference stars, this can allow you to cope with large
 changes in position from frame-to-frame, whilst maintaining a tight search on
 non-reference stars which may be close to other objects and be difficult to
 locate using a more wide-ranging search. Sensible use of this can avoid the
@@ -311,12 +311,14 @@ caused the reference aperture positioning to fail after a reduction had run
 successfully for more than 10,000 frames. Very annoying. It was easily fixed
 by shifting the reference to another aperture, but it does highlight the
 importance of choosing a good reference star if at all possible. Choosing
-multiple reference stars is also wise if you can. In this case, a new
-parameter, `fit_diff`, comes in. In this case, if the position shifts of the
-different reference targets from one frame to the next differ by more than
-this number, all apertures are flagged as unreliable and no shift or
-extraction is attempted. This can be effective as a back-stop for a cosmic ray
-affecting the position of one of the reference apertures.
+multiple reference stars can help. In this case, a new parameter, `fit_diff`,
+comes into play. In this case, if the position shifts of the different
+reference targets from one frame to the next differ by more than this number,
+all apertures are flagged as unreliable and no shift or extraction is
+attempted. This can be effective as a back-stop for a cosmic ray affecting the
+position of one of the reference apertures. However, it has the downside of
+requiring all reference stars to be successfully re-located, which could
+introduce a higher drop-out rate from double jeapardy.
 
 In bad cases, nothing you try will work. Then the final fallback is to reduce
 the run in chunks using the `first` parameter (prompted in |reduce|) to skip

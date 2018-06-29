@@ -37,28 +37,37 @@ step process as follows:
     search is carried out by smoothing the image and taking the location of
     whatever local maximum exceeds a pre-defined threshold
     (``fit_height_min_ref``) and lies closest to the last-measured position.
-    the maximum value as the starting position for a 2D profile fit. This
-    method is fairly robust against even bright cosmic rays as long as they
-    lie further from the expected position than the target.  If reference
-    targets are chosen to be bright and isolated, one can carry out broad
-    searches which allow for very poor guiding. Following the search, 2D
-    profile fits are carried out and the mean x,y shift relative to the
-    starting positions calculated. If this stage fails (e.g.  because of
+    The position of this maximum is used as the starting position for a 2D
+    profile fit. This method is fairly robust against even bright cosmic rays
+    as long as they lie further from the expected position than the target.
+    If reference targets are chosen to be bright and isolated, one can carry
+    out broad searches which allow for very poor guiding. Following the
+    search, 2D profile fits are carried out and the mean x,y shift relative to
+    the starting positions calculated. If this stage fails (e.g.  because of
     clouds), then the rest of the frame is skipped on the basis that if the
-    reference targets cannot be located, then no others will be either.
+    reference targets cannot be located, then no others will be
+    either. **All** the reference stars must be successfully relocated each
+    time. This means an increased chance of failure compared to a single
+    reference, but potentially can pay off in being more sensitive to
+    problems: the  parameter ``fit_diff`` is used for this by guarding against
+    mutually discrepant reference positions. Again this acts in a
+    severe all-or-nothing manner. The benefit is a lowered risk of losing the
+    reference position altogether.
 
  #. Next, the positions of non-reference, non-linked apertures are
     determined. This is done through 2D profile fits starting from the shift
-    determined from the reference targets. An search is carried out to check
-    that a sufficiently high maximum (``fit_height_min_nrf``) exists, but is
-    only actually used to change position if there are no reference stars on
-    the basis that it is more reliable to trust the reference stars than a
-    search on a faint (potentially) target.  The idea is that the mean shift
-    from the reference targets should provide a good start. An extra parameter
+    determined from the reference targets. An initial search is carried out to
+    check that a sufficiently high maximum (``fit_height_min_nrf``) exists,
+    but is only actually used to change position if there are no reference
+    stars on the basis that it is more reliable to trust the reference stars
+    than a search on a faint target.  The idea is that the mean shift from the
+    reference targets should provide a good start. An extra parameter
     ``fit_max_shift`` can be used to control how far the profile fits are
-    allowed to wander from the initial positions, and another ``fit_diff`` is
-    effective at weeding out discrepancies when multiple reference stars are
-    used.
+    allowed to wander from the initial positions obtained via the reference
+    stars. If the fits to non-reference stars fail, and there are reference
+    stars available, an extraction will still be carried out. This allows one
+    to cross over deep eclipses while still extracting flux at the known
+    position of your target.
 
 The combination of the options available in |setaper| and the |reduce|
 configuration file are a powerful means to track objects over thousands of
