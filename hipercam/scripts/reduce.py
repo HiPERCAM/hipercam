@@ -1749,6 +1749,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
            finally the change in x and y position. 'nok' stores the number
            of times a successful mean FWHM was measured.
 
+    Returns True or False to indicate whether to move onto extraction or not.
+    If False, extraction will be skipped.
     """
 
     # short-hand that will used a lot
@@ -1762,7 +1764,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 'beta' : 0., 'betae' : -1.,
                 'dx' : 0., 'dy' : 0.
             }
-        return
+        return True
 
     # some initialisations
     xsum, ysum = 0., 0.
@@ -1904,7 +1906,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
         store['mfwhm'] = -1.
         store['mbeta'] = -1.
-        return
+        return False
 
     # at this point we are done with measuring the positions of the reference
     # apertures, although their positions have yet to be fixed because another
@@ -1939,7 +1941,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                              'shift = {:.2f} exceeded limit = {:.2f}').format(
                                 cnam, diff, apsec['fit_diff']), file=sys.stderr
                             )
-                        return
+                        return False
 
         if wxsum > 0. and wysum > 0.:
             # things are OK if we get here. Work out mean shift
@@ -1974,7 +1976,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                  'fit was successful; skipping').format(
                     cnam), file=sys.stderr
             )
-            return
+            return False
 
     else:
         # no reference apertures. All individual
@@ -2194,6 +2196,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
         apsec['fit_beta'] = store['mbeta']
     else:
         store['mbeta'] = -1
+
+    return True
 
 def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
     """This extracts the flux of all apertures of a given CCD.
