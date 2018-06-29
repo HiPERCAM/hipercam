@@ -50,7 +50,7 @@ class Hlog(dict):
 
        >> import hipercam as hcam
        >> hlog = hcam.hlog.Hlog.from_ascii('run011.log')
-       >> print(hlog['2']['x_1']
+       >> print(hlog['2']['x_1'])
 
     would print the X-values of aperture '1' from CCD '2'.
 
@@ -67,7 +67,7 @@ class Hlog(dict):
         """
         Loads a HiPERCAM ASCII log file written by reduce. Each CCD is loaded
         into a separate structured array, returned in a dictionary labelled by
-        the CCD key.
+        the CCD label.
         """
 
         hlog = cls()

@@ -9,7 +9,8 @@ This checklist is designed with the NTT in mind; some only need doing at the
 start of a run. If you are new to ULTRACAM or even experienced, please read
 through this list from start to finish at least once, early in the run, if
 only as a reminder. It contains a mix of statndard procedure and tips for
-better observing practice.
+better observing practice. It's long because it is meant to be fairly
+comprehensive. Ask me (TRM) if you don't follow any of the points.
 
   #. Make sure you have access to the phase II pages. Check the
      finding charts and verbal summaries for problems. Contact the PI if you
@@ -26,12 +27,23 @@ better observing practice.
   #. Check which filters are in place.
 
   #. Always take some biases in day time to check things are OK. Take science
-     biases with the NTT shutter closed, all lights off and the focal plane
-     mask in. Check your biases for problems by running |makebias| on each one.
+     biases with the NTT shutter closed, all lights off, the focal plane mask
+     in, with CLEAR enabled if possible, and NBLUE=1. When taking biases for
+     specific targets and runs, the windows, readout speed and binning factors
+     must all match. A good way to do this is simply to retrieve the setup, so
+     it is always a good idea to save the configuration of every run. Remember
+     however to set the exposure delay to zero and NBLUE=1 if you do
+     this. Check your biases for problems by running |makebias| on each
+     one. Take biases during daylight hours; don't waste valuable observing
+     time unless the dome is closed because of weather.
 
   #. **Always** have the telescope spiralling when taking skyflats. Check that
      it is operating by looking at any stars in the field which should jump
-     around.
+     around. You can take flats in 'fbb' high-speed readout because you should
+     have enough counts to rise above readout. However, don't be tempted to
+     take very short exposures (below 2 seconds), because the fram transfer
+     time will impose a slight slope on the results that gets worse at short
+     exposures.
 
   #. Download the most up-to-date defect file (see :doc:`files`). This is of
      great value when acquiring targets to avoid the main bad spots.
@@ -68,18 +80,25 @@ better observing practice.
   #. Once you start observing, you should try to get the reduction going asap.
      The main reason is to focus using the seeing plot. Make sure you are
      plotting the seeing measured in all CCDs and either use your main target
-     or one nearby to it in case of CCD tilts. Your aim should be to get the
-     seeing values of all CCDs overlapping each other. On the NTT, the focus
-     tends to drift and you should monitor it all the time.
+     or one nearby to it in case of CCD tilts. If using the hipercam pipeline
+     (should do so), if you identify your target first with |setaper|, it will
+     be assigned aperture label '1' and be the one that |genred| selects for
+     the seeing plot by default. Your aim should be to get the seeing values
+     of all CCDs overlapping each other. On the NTT, the focus tends to drift
+     and you should monitor it all the time, and correct it at the start
+     normally.
 
   #. Once you have seen to the focus, double-check your main target for poor
      columns or pixels. Move it if need be. If you have to make a large move,
      then it is often best to stop and re-start the run.
 
-  #. If you have to move the targets, but don't want to break the run, try to
-     move by relatively small amounts in possible a few steps as this will
-     make the reduction simpler. The main requirement is not to move in a huge
-     jump between consecutive frames.
+  #. Keep an eye on the target positions. I know of a run taken in 2017 which
+     drifted in position by more than 50 pixels with no apparent attempt to
+     correct the drift or comment in the log. This was bad enough to lose one
+     of the comparisons altogether. If you have to move the targets, but don't
+     want to break the run, try to move by relatively small amounts in
+     possible a few steps as this will make the reduction simpler. The main
+     requirement is not to move in a huge jump between consecutive frames.
 
   #. If you see different symbols appear in the light curve plot from
      |reduce|, the count levels in one or more of your targets may be too
