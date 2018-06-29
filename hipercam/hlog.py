@@ -131,14 +131,14 @@ class Hlog(dict):
                         elif dt == '?':
                             items[n] = bool(items[n])
 
-                    # store in a list. Although lists are wasteful, they grow quite
-                    # fast and each element here is efficiently packed so it should
-                    # cope with quite large log files.
+                    # store in a list. Although lists are wasteful, they grow
+                    # quite fast and each element here is efficiently packed
+                    # so it should cope with quite large log files.
                     hlog[cnam].append(struct.pack(struct_types[cnam], *items))
 
         # convert lists to numpy arrays
         for cnam in hlog:
-            hlog[cnam] = np.array(hlog[cnam], dtype=dtypes[cnam])
+            hlog[cnam] = np.frombuffer(np.array(hlog[cnam]), dtypes[cnam])
 
         return hlog
 
