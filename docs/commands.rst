@@ -30,7 +30,7 @@
 .. |ol-rtplot|   replace:: plot frames as they come in
 .. |ol-setaper|  replace:: define the photometric apertures
 .. |ol-setdefect| replace:: define a file of CCD defects
-.. |ol-splice|    replace:: splice two frames together
+.. |ol-splice|   replace:: splice two frames together
 .. |ol-stats|    replace:: report statistics of a frame
 .. |ol-sub|      replace:: subtract two frames
 .. |ol-times|    replace:: list times of a run
@@ -373,6 +373,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.rtplot
 .. autofunction:: hipercam.scripts.setaper
 .. autofunction:: hipercam.scripts.setdefect
+.. autofunction:: hipercam.scripts.splice
 .. autofunction:: hipercam.scripts.stats
 .. autofunction:: hipercam.scripts.sub
 .. autofunction:: hipercam.scripts.times

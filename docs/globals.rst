@@ -35,7 +35,7 @@
 .. |rtplot| replace:: :func:`rtplot <hipercam.scripts.rtplot>`
 .. |setaper| replace:: :func:`setaper <hipercam.scripts.setaper>`
 .. |setdefect| replace:: :func:`setdefect <hipercam.scripts.setdefect>`
-.. |splice| replace:: :func:`setdefect <hipercam.scripts.splice>`
+.. |splice| replace:: :func:`splice <hipercam.scripts.splice>`
 .. |stats| replace:: :func:`stats <hipercam.scripts.stats>`
 .. |sub| replace:: :func:`sub <hipercam.scripts.sub>`
 .. |times| replace:: :func:`times <hipercam.scripts.times>`
