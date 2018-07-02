@@ -29,6 +29,7 @@
 .. |ol-rtplot|   replace:: plot frames as they come in
 .. |ol-setaper|  replace:: define the photometric apertures
 .. |ol-setdefect| replace:: define a file of CCD defects
+.. |ol-splice|    replace:: splice two frames together
 .. |ol-stats|    replace:: report statistics of a frame
 .. |ol-sub|      replace:: subtract two frames
 .. |ol-times|    replace:: list times of a run
@@ -115,6 +116,8 @@ useful.
    | |setaper|    | |ol-setaper|   | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |setdefect|  | |ol-setdefect| | Yes      |          |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |splice|     | |ol-splice|    |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |stats|      | |ol-stats|     |          |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+

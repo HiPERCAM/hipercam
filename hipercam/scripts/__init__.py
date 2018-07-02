@@ -31,6 +31,7 @@ from .uls import uls
 from .fits2hcm import fits2hcm
 from .hlog2fits import hlog2fits
 from .redanal import redanal
+from .splice import splice
 
 __all__ = [ \
             'add', 'averun',
@@ -41,7 +42,7 @@ __all__ = [ \
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'pfolder', 'plog',
             'redanal', 'reduce', 'rtplot',
-            'setaper', 'setdefect', 'stats', 'sub',
+            'setaper', 'setdefect', 'splice', 'stats', 'sub',
             'times',
             'uls',
         ]
