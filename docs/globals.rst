@@ -22,6 +22,7 @@
 .. |grab| replace:: :func:`grab <hipercam.scripts.grab>`
 .. |hist| replace:: :func:`hist <hipercam.scripts.hist>`
 .. |hfilter| replace:: :func:`hfilter <hipercam.scripts.hfilter>`
+.. |hlog2fits| replace:: :func:`hlog2fits <hipercam.scripts.hlog2fits>`
 .. |hls| replace:: :func:`hls <hipercam.scripts.hls>`
 .. |hplot| replace:: :func:`hplot <hipercam.scripts.hplot>`
 .. |makebias| replace:: :func:`makebias <hipercam.scripts.makebias>`

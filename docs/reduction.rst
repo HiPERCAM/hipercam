@@ -4,8 +4,8 @@
 
 .. |fig-1| replace:: :numref:`fig-1`
 
-Reducing with the |hiper| pipeline
-**********************************
+Reduction
+*********
 
 This guide assumes that you have got started with the |hiper| pipeline (see
 :doc:`telescope` for a quick start to observing), but now would like a more

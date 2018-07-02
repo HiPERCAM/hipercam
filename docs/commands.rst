@@ -18,6 +18,7 @@
 .. |ol-hfilter|  replace:: filter a HiPERCAM image
 .. |ol-hist|     replace:: plot a histogram of a frame
 .. |ol-hls|      replace:: list the runs on the |hiper| server
+.. |ol-hlog2fits| replace:: convert a reduction log file to FITS
 .. |ol-hplot|    replace:: plot a frame
 .. |ol-makebias| replace:: combine a run to make a bias frame
 .. |ol-makeflat| replace:: combine a list of frames into a flat
@@ -92,6 +93,8 @@ useful.
    | |hfilter|    | |ol-hfilter|   |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hist|       | |ol-hist|      |          |          |  Yes    |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |hlog2fits|  | |ol-hlog2fits| |          | Yes      |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hls|        | |ol-hls|       | Yes      |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+

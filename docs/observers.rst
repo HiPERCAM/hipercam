@@ -22,4 +22,5 @@ the section on photometry which contains further tips on good practice.
    telescope
    reduction
    photometry
+   organisation
    checklists

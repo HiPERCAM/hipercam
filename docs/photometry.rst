@@ -4,8 +4,8 @@
 
 .. |fig-optimal| replace:: :numref:`fig-optimal`
 
-Photometry in |hiper|
-*********************
+Principles
+**********
 
 |hiper|'s |reduce| implements two forms of flux extraction, labelled
 either 'normal' or 'optimal'. Normal extraction is essentially a matter of
