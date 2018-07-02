@@ -36,11 +36,11 @@ def hplot(args=None):
          Plot device name. Uses characters after a final trailing '/' to
          identify the type in PGPLOT style. Thus:
 
-          |  /xs          : PGPLOT xserver interactive plot
-          |  1/xs         : PGPLOT xserver interactive plot called '1'
-          |  plot.ps/cps  : PGPLOT colour postscript called 'plot.ps'
-          |  plot.ps/vps  : PGPLOT B&W portrait oriented plot
-          |  /mpl         : matplotlib interactive plot
+          |  /xs : PGPLOT xserver interactive plot
+          |  1/xs : PGPLOT xserver interactive plot called '1'
+          |  plot.ps/cps : PGPLOT colour postscript called 'plot.ps'
+          |  plot.ps/vps : PGPLOT B&W portrait oriented plot
+          |  /mpl : matplotlib interactive plot
           |  plot.pdf/mpl : matplotlib PDF plot
 
       ccd    : string
@@ -134,7 +134,7 @@ def hplot(args=None):
                              cline.Fname('hcam', hcam.HCAM))
         mccd = hcam.MCCD.read(frame)
 
-        device = cl.get_value('device', 'plot device name', 'term')
+        device = cl.get_value('device', 'plot device name', '/mpl')
 
         # set type of plot (PGPLOT or matplotlib) and the name of the file
         # if any in the case of matplotlib
