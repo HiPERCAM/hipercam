@@ -51,37 +51,33 @@ unlike the equivalent in the ULTRACAM pipeline because this address is used
 with both http and web sockets and the appropriate prefix is tacked on by
 whichever script is being used.  Also note the final '/' on the port number as
 in '8007/', which must be there. When setting up for the first time, assuming
-that the |hiper| file server is going, then the command
-:func:`hipercam.scripts.hls` is a good one to start with to see that you are
-set up correctly.
+that the |hiper| file server is going, then the command |hls| is a good one to start with to see that you are
+set up correctly. Correspondingly, try |uls| if running the |hiper| pipeline
+with the ULTRACAM server.
 
 Matplotlib-based plots
 ----------------------
 
-It seems hard to get set the fontsize of matplotlib plots consistently across
-devices. Therefore the following environment variable should allow the fonts
-to be scaled in size to your preference::
+I have sometimes found matplotlib plots simply do not appear, e.g. the mean
+level plot in |makebias|. If you encounter this problem, have a look at your
+matplotlibrc file, probably located in .config/matplotlib in your home
+directory. Mine say ``backend : Qt4Agg`` at the top, and you may need
+something similar, depending on your matplotlib distribution.
 
-  setenv HIPERCAM_MPL_FSCALE 0.5
-
-which would make them all a factor of 2 smaller.
 
 Environment variables associated with |hiper|
 ---------------------------------------------
 
 Here is a summary table of all environment variables associated with
-|hiper| and their purpose. Only the first is likely to be one that you
-will need for sure at the telescope. Back at place or work, none are
-essential for the software to run. If the second one is not set, the
-default files will be stored in a directory called `.hipercam` in your
-top-level directory.
+|hiper| and their purpose. If you are simply reducing data at your home
+institute, you probably won't need to set any of these.
 
-====================  ================================================
+====================  ============================================================
 Environment variable  Purpose
-====================  ================================================
-HIPERCAM_DEFAULT_URL  URL of the FileServer on the rack PC to access data
+====================  ============================================================
+HIPERCAM_DEFAULT_URL  URL of the |hiper| FileServer on the rack PC to access data
 HIPERCAM_ENV          Directory for storage of default parameter files
                       (~/.hipercam by default) 
-HIPERCAM_MPL_FSCALE   Floating point scale factor for matplotlib plots
-====================  ================================================
+ULTRACAM_DEFAULT_URL  URL of the ULTRACAM FileServer on the rack PC to access data
+====================  ============================================================
 
