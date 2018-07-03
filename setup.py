@@ -146,6 +146,7 @@ setup(
             'mul=hipercam.scripts.arith:mul',
             'pfolder=hipercam.scripts.pfolder:pfolder',
             'plog=hipercam.scripts.plog:plog',
+            'psf_reduce=hipercam.scripts.psf_reduce:psf_reduce',
             'redanal=hipercam.scripts.redanal:redanal',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',

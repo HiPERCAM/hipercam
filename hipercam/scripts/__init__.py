@@ -50,8 +50,14 @@ __all__ = [ \
 try:
     # allow this one to fail
     from .aligntool import aligntool
-
     __all__.append('aligntool')
+except:
+    pass
+
+try:
+    # optional dependency on photutils, so allow failure
+    from .psf_reduce import psf_reduce
+    __all__.append('psf_reduce')
 except:
     pass
 
