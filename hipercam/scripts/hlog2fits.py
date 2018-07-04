@@ -8,6 +8,8 @@ import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
+__all__ = ['hlog2fits',]
+
 ###############################################
 #
 # hlog2fits -- convert reduce log files to FITS
