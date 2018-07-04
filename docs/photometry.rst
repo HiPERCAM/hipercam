@@ -7,14 +7,15 @@
 Principles
 **********
 
-|hiper|'s |reduce| implements two forms of flux extraction, labelled
-either 'normal' or 'optimal'. Normal extraction is essentially a matter of
-adding up the flux above background in the target aperture. Optimal extraction
-refers to a weighted extraction designed to yield the best signal-to-noise for
-background-limited targets `(Naylor 1998)
-<http://adsabs.harvard.edu/abs/1998MNRAS.296..339N>`_. This page discusses some
-details of the implementations and the advantages and disadvantages of the
-various options, and summarises some other aspects of how things work.
+This document lays out the technical background behind the operating
+principles of the |hiper| software.  |hiper|'s |reduce| implements two forms
+of flux extraction, labelled either 'normal' or 'optimal'. Normal extraction
+is essentially a matter of adding up the flux above background in the target
+aperture. Optimal extraction refers to a weighted extraction designed to yield
+the best signal-to-noise for background-limited targets `(Naylor 1998)
+<http://adsabs.harvard.edu/abs/1998MNRAS.296..339N>`_. This page discusses
+some details of the implementations and the advantages and disadvantages of
+the various options, and summarises some other aspects of how things work.
 
 .. contents:: Contents
    :local:
@@ -76,6 +77,90 @@ clouds and cosmic rays cause a target to be too faint to register while a
 cosmic ray does. Multiple reference stars and careful use of ``fit_max_shift``
 and ``fit_diff`` can help in such cases. Once the aperture positions are
 determined, |reduce| moves onto extracting the flux.
+
+Target detection
+================
+
+The first stage of target detection is a search over a smoothed image. The
+peak height thresholds ``fit_height_min_ref`` and ``fit_height_min_nrf`` are
+important at this point. The effect of smoothing on a single pixel can be written as
+
+.. math::
+
+   \hat{y} = \frac{\sum_i w_i y_i}{\sum_i w_i},
+
+where the :math:`w_i` are the gaussian weights 
+
+.. math::
+
+   w_i \propto \exp \left(-r^2/2\sigma^2\right),
+
+with :math:`r` the distance in binned pixels from the particular pixel under
+consideration, and :math:`\sigma` is the RMS of the smoothing being applied
+(:math:`= \mathrm{FWHM}/2.3548`) and :math:`y_i` are the values
+of the contributing surrounding pixels. A quantity of interest is the
+statistical uncertainty of this smoothed value since it is this which sets the
+desirable threshold level. Assuming the contributing pixels are independent,
+the variance is given by
+
+.. math::
+
+   V(\hat{y}) = \frac{\sum_i w^2_i V_i}{\left(\sum_i w_i\right)^2}.
+
+Assuming :math:`\sigma \gg 1`, and that we are in a background-limited case
+(which gives the minimum variance), the sums can be approximated as integrals
+and one finds that
+
+.. math::
+
+   V(\hat{y}) \approx \frac{R^2 + B/G}{4\pi \sigma^2},
+
+where :math:`R` is the RMS readout noise in ADU, :math:`B` is the
+background level in ADU and :math:`G` is the gain in electrons per ADU.
+This relation fails when :math:`4\pi \sigma^2 < 1`, so the denominator should
+not go below this value (such a small smoothing would be an odd choice in any
+case). An obvious threshold would be thus be some multiple of the equivalent
+standard deviation
+
+.. math::
+
+   S = \sqrt{V(\hat{y})} = \frac{\sqrt{R^2+B/G}}{\sqrt{4\pi} \sigma}
+
+
+For example, assuming :math:`R = 4.5`, :math:`B = 20`, :math:`G = 1.2` and a smoothing FWHM of
+10 leads to :math:`S = 0.40`. One would then expect to choose at least 3 times
+this, and probably more because any given search area will include effectively
+a number of "independent trials", not just one, so the threshold will need
+raising as a result. Choosing a lower threshold runs the risk of peaking up on
+spurious noise peaks, especially when clouds are passing. This is not
+desirable, particularly for reference targets. A target of seeing-limited peak
+height :math:`h` in RMS seeing :math:`\sigma_S` binned pixels will end up with
+height
+
+.. math::
+
+   \hat{h} = \frac{\sigma_S^2}{\sigma_S^2 + \sigma^2} h
+
+in the smoothed image, and thus the signal-to-noise of the smoothed peak will
+be
+
+.. math::
+
+   \frac{\hat{h}}{S} = \frac{\sigma_S^2}{\sigma_S^2 + \sigma^2}
+   \frac{\sqrt{4\pi} \sigma}{\sqrt{R^2+B/G}} h
+
+when we are background-limited (the case of most interest). This is maximised
+by choosing :math:`\sigma = \sigma_S`, so the smoothing FWHM ideally should match
+the FWHM of the seeing (in terms of unbinned pixels). The smoothing is acting
+as what is sometimes called a "matched filter".
+
+.. Warning::
+
+   At the moment, the search routine uses fixed height thresholds; I expect to
+   change them to depend upon the background level, so they will in future be
+   specified as a multiplier of the above estimate.
+
+
 
 Sky background estimation
 =========================
