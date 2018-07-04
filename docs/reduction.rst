@@ -97,7 +97,13 @@ As with the biases, it is strongly recommended that you inspect the frames to
 be combined using |rtplot| to avoid including any disastrous ones. Saturated
 frames are spotted using user-defined mean levels at which to reject
 frames. The documentation of |makeflat| has details of how it works, and you
-are referred to this for more information.
+are referred to this for more information. Recommended mean level limits are
+~4000 for each CCD for the lower limits, and (55000, 58000, 58000, 50000 and
+42000) for CCDs 1 to 5 (|hiper|) and (50000, 28000 and 28000) for
+ULTRACAM. The upper in CCD 5 of |hiper| is to avoid a nasty feature that
+develops in the lower-right readout channel at high count levels. The limits
+for ULTRACAM are to stop "peppering" whereby charge transfers between
+neighbouring pixels in the green and blue CCDs especially.
 
 .. Warning::
    It is highly advisable to compute multiple versions of the flat field
@@ -358,6 +364,14 @@ reference targets by a variable amount that averages over the previous
 faint. This for example is an effective way to cope with deep eclipses whilst
 allowing for differential image motion in a way that linked apertures cannot
 manage.
+
+If you do have to use linked apertures, then set them from an average image
+extracted from the middle of the run. This will reduce the problems caused by
+refraction. However, if positions change a lot, it can make the start of
+reduction tricky. If so, then having set the apertures from an image taken
+near the middle of a run, tweak it using one taken from the start of the run
+(basically re-centre each aperture, but leave the linked apertures to follow
+whatever target they are linked to).
 
 Problems with PGPLOT windows
 ----------------------------
