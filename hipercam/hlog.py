@@ -315,6 +315,9 @@ class Tseries:
        mask : (ndarray)
          bitmask propagated through from reduce log
 
+    Errors are set = -1 and values = 0 if some sort of problem occurs. This
+    should be used in addtion to the mask to spot bad values.
+
     """
 
     def __init__(self, t, y, ye, mask):
@@ -322,6 +325,27 @@ class Tseries:
         self.y = y
         self.ye = ye
         self.mask = mask
+
+    def set_mask(self, mvalue, mask):
+        """
+        This updates the internal mask by bitwise_or -ing it with the input mask value
+        'mvalue' for all values for which mask is true
+        """
+        self.mask[mask] = np.bitwise_or(self.mask[mask], mvalue)
+
+    def get_ok(self, mvalue=ANY):
+        """
+        Returns logical array of all point which match the bitmask mvalue
+        """
+        return (np.bitwise_and(self.mask, mvalue) == 0) & (self.ye > 0.)
+
+    def get_data(self, mvalue=ANY):
+        """
+        Returns the data as (times, values, errors). 'mask' is a bitmask
+        to define which to avoid in addition to data with non-positive errors.
+        """
+        ok = self.get_ok(mvalue)
+        return (self.t[ok],self.y[ok],self.ye[ok])
 
     def mplot(self, axes, colour='b', fmt='.', mask=ANY,
               capsize=0, erry=True, **kwargs):
@@ -360,9 +384,12 @@ class Tseries:
             if not all(self.t == other.t):
                 raise ValueError('input times do not match')
 
-            y = self.y / other.y
-            ye = np.empty_like(y)
             ok = (self.ye > 0) & (other.ye > 0)
+
+            y = np.zeros_like(self.y)
+            y[ok] = self.y[ok] / other.y[ok]
+
+            ye = np.empty_like(y)
             ye[ok] = np.sqrt(
                 self.ye[ok]**2 +
                 (other.ye[ok]*self.y[ok]/other.y[ok])**2)/other.y[ok]
@@ -391,9 +418,12 @@ class Tseries:
             if not all(self.t == other.t):
                 raise ValueError('input times do not match')
 
-            y = self.y * other.y
-            ye = np.empty_like(y)
             ok = (self.ye > 0) & (other.ye > 0)
+
+            y = np.zeros_like(self.y)
+            y[ok] = self.y[ok] * other.y[ok]
+
+            ye = np.empty_like(y)
             ye[ok] = np.sqrt(
                 (other.y[ok]*self.ye[ok])**2 +
                 (self.ye[ok]*other.y[ok])**2
@@ -423,9 +453,12 @@ class Tseries:
             if not all(self.t == other.t):
                 raise ValueError('input times do not match')
 
-            y = self.y + other.y
-            ye = np.empty_like(y)
             ok = (self.ye > 0) & (other.ye > 0)
+
+            y = np.ones_like(self.y)
+            y[ok] = self.y[ok] + other.y[ok]
+
+            ye = np.empty_like(y)
             ye[ok] = np.sqrt(self.ye[ok]**2 + other.ye[ok]**2)
             ye[~ok] = -1
             mask = np.bitwise_or(self.mask, other.mask)
@@ -452,9 +485,13 @@ class Tseries:
             if not all(self.t == other.t):
                 raise ValueError('input times do not match')
 
-            y = self.y - other.y
-            ye = np.empty_like(y)
             ok = (self.ye > 0) & (other.ye > 0)
+
+            y = np.ones_like(self.y)
+            y[ok] = self.y[ok] - other.y[ok]
+
+
+            ye = np.empty_like(y)
             ye[ok] = np.sqrt(self.ye[ok]**2 + other.ye[ok]**2)
             ye[~ok] = -1
             mask = np.bitwise_or(self.mask, other.mask)
