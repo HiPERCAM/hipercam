@@ -1860,7 +1860,15 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                                 x,y,swdata.winhead.format()))
                         )
 
-                if height > apsec['fit_height_min_ref']:
+                if ex < 0 or ey < 0:
+                    # flag up this; not sure it will happen.
+                    raise hcam.HipercamError(
+                        ('CCD {:s}, reference aperture {:s}'
+                         ', position uncertainties are negative').format(
+                             cnam, apnam)
+                        )
+
+                elif height > apsec['fit_height_min_ref']:
                     # The peak height check is probably not required at this
                     # point since the search routine applies it more
                     # stringently but I have left it in for safety.
@@ -1938,7 +1946,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 for (x2, y2) in shifts[n+1:]:
                     diff = np.sqrt((x2-x1)**2+(y2-y1)**2)
 
-                    if np.sqrt((x2-x1)**2+(y2-y1)**2) > apsec['fit_diff']:
+                    if diff > apsec['fit_diff']:
                         # have exceeded threshold differential shift
                         for apnam, aper in ccdaper.items():
                             store[apnam] = {
@@ -1970,7 +1978,6 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 if aper.ref:
                     aper.x += store[apnam]['dx']
                     aper.y += store[apnam]['dy']
-
         else:
 
             # all reference fits have failed. Set all others to bad values
@@ -1997,19 +2004,10 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
         # no reference apertures. All individual
         xshift, yshift = 0., 0.
 
-    # now go over non-reference, non-linked apertures. Failed reference
-    # apertures are shifted by the mean shift just determined
+    # now go over non-reference, non-linked apertures.
     for apnam, aper in ccdaper.items():
 
-        if aper.ref and store[apnam]['fwhme'] <= 0.:
-
-            # Move failed reference fit to the mean shift
-            aper.x += xshift
-            aper.y += yshift
-            store[apnam]['dx'] = xshift
-            store[apnam]['dy'] = yshift
-
-        elif not aper.ref and not aper.linked:
+        if not aper.ref and not aper.linked:
 
             # extract Window for data, rflat and flat
             wnam = ccdwin[apnam]
