@@ -687,11 +687,8 @@ def rtplot(args=None):
                         # if the fit is successful to reflect the new position
                         swind = fpar.swind(ccd)
 
-                        # compute the threshold which any local maximum must exceed to count.
-                        sky = np.percentile(swind.data, 50)
-
                         # carry out initial search
-                        x,y,peak = swind.search(smooth, fpar.x, fpar.y, sky, hmin, False)
+                        x,y,peak = swind.search(smooth, fpar.x, fpar.y, hmin, False)
 
                         # now for a more refined fit. First extract fit Window
                         fwind = ccd[fpar.wnam].window(
