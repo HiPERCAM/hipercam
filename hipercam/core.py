@@ -13,7 +13,7 @@ __all__ = (
     'NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
     'TARGET_NONLINEAR', 'TARGET_SATURATED', 'ANY',
     'REDUCE_FILE_VERSION', 'NO_EXTRACTION', 'NO_DATA',
-    'DFCT', 'version', 'CLOUDY', 'JUNK'
+    'DFCT', 'version', 'CLOUDS', 'JUNK'
 )
 
 # Constants for general use
@@ -87,7 +87,7 @@ TARGET_SATURATED  = 1 << 4  # At least one pixel in target above saturation leve
 TARGET_NONLINEAR  = 1 << 5  # At least one pixel in target above non-linear level
 NO_EXTRACTION     = 1 << 6  # No extraction possible
 NO_DATA           = 1 << 7  # No valid pixels in aperture
-CLOUDY            = 1 << 8  # Point affected by clouds
+CLOUDS            = 1 << 8  # Point affected by clouds
 JUNK              = 1 << 9  # Unspecified junk data (e.g. cosmic ray hit)
 
 ANY = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | TARGET_SATURATED | \
