@@ -376,11 +376,11 @@ warn = 1 60000 64000
         )
 
         fwhm = cl.get_value(
-            'fwhm','starting FWHM, unbinned pixels',5.,1.5
+            'fwhm','starting FWHM, unbinned pixels', 5., 1.5
         )
 
         fwhm_min = cl.get_value(
-            'fwhmmin','minimum FWHM, unbinned pixels',1.5,0.
+            'fwhmmin','minimum FWHM, unbinned pixels', 1.5, 0.
         )
 
         search_half_width = cl.get_value(
@@ -392,7 +392,7 @@ warn = 1 60000 64000
         )
 
         fit_max_shift = cl.get_value(
-            'maxshift', 'maximum non-reference shift, unbinned pixels', 15, 0
+            'maxshift', 'maximum non-reference shift, unbinned pixels', 15., 0.
         )
 
         thresh = cl.get_value(
@@ -401,12 +401,12 @@ warn = 1 60000 64000
 
         height_min_ref = cl.get_value(
             'hminref',
-            'minimum peak height for a fit to reference aperture [counts]', 50, 1
+            'minimum peak height for a fit to reference aperture [counts]', 10., 0.
         )
 
         height_min_nrf = cl.get_value(
             'hminnrf',
-            'minimum peak height for a fit to non-reference aperture [counts]', 10, 1
+            'minimum peak height for a fit to non-reference aperture [counts]', 5., 0.
         )
 
         fit_alpha = cl.get_value(
@@ -420,19 +420,19 @@ warn = 1 60000 64000
         )
 
         rfac = cl.get_value(
-            'rfac','target aperture scale factor',1.8,1.0
+            'rfac','target aperture scale factor', 1.8, 1.0
         )
 
         rmin = cl.get_value(
-            'rmin','minimum target aperture radius [unbinned pixels]',6.,1.
+            'rmin','minimum target aperture radius [unbinned pixels]', 6., 1.
         )
 
         rmax = cl.get_value(
-            'rmax','maximum target aperture radius [unbinned pixels]',30.,rmin
+            'rmax','maximum target aperture radius [unbinned pixels]', 30., rmin
         )
 
         sinner = cl.get_value(
-            'sinner','inner sky aperture radius [unbinned pixels]',30.,rmax
+            'sinner','inner sky aperture radius [unbinned pixels]', 30., rmax
         )
 
         souter = cl.get_value(
@@ -849,12 +849,17 @@ error  = variance # 'variance' | 'photon': first uses actual variance of sky
 thresh = 3. # threshold in terms of RMS for 'clipped'
 
 # Calibration frames and constants
+#
+# If you specify "!" for the readout, an attempt to estimate it from +/- 1
+# sigma percentiles will be made. This could help if you have no bias (and
+# hence variance calculation from the count level will be wrong)
+
 [calibration]
 crop = yes # Crop calibrations to match the data
 bias = {bias} # Bias frame, blank to ignore
 flat = {flat} # Flat field frame, blank to ignore
 dark = {dark} # Dark frame, blank to ignore
-readout = {readout} # RMS ADU. Float or string name of a file
+readout = {readout} # RMS ADU. Float or string name of a file or "!" to estimate on the fly
 gain = {gain} # Gain, electrons/ADU. Float or string name of a file
 
 # The light curve plot which consists of light curves, X & Y poistions,

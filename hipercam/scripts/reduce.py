@@ -714,9 +714,14 @@ def reduce(args=None):
                     # create a readout noise frame if none read in
                     if isinstance(rfile.readout, hcam.MCCD):
                         read = rfile.readout
+                        set_read_on_fly = False
                     else:
                         read = mccd.copy()
-                        read.set_const(rfile.readout)
+                        if isinstance(rfile.readout, float):
+                            read.set_const(rfile.readout)
+                            set_read_on_fly = False
+                        else:
+                            set_read_on_fly = True
 
                     # create a gain frame if none read in
                     if isinstance(rfile.gain, hcam.MCCD):
@@ -751,6 +756,15 @@ def reduce(args=None):
                 if rfile.flat is not None:
                     # apply flat field to processed frame
                     pccd /= rfile.flat
+
+                if set_read_on_fly:
+                    # set the readout noise using percentiles at +/- 1 sigma
+                    # or each CCD and the median for the background
+                    for cnam in mccd:
+                        plo,pmed,phi = mccd[cnam].percentile((15.86,50.00,84.13))
+                        read[cnam].set_const(
+                            np.sqrt(max(0,((phi-plo)/2)**2-pmed/gain[cnam].mean()))
+                        )
 
                 results = {}
                 if ncpu > 1:
@@ -1357,8 +1371,9 @@ class Rfile(OrderedDict):
         try:
             rfile.readout = float(calsec['readout'])
         except TypeError:
-            rfile.readout = hcam.MCCD.read(
-                utils.add_extension(calsec['readout'],hcam.HCAM)
+            if rfile.readout != '!':
+                rfile.readout = hcam.MCCD.read(
+                    utils.add_extension(calsec['readout'],hcam.HCAM)
                 )
 
         try:
