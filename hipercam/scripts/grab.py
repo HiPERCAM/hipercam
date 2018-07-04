@@ -226,6 +226,10 @@ def grab(args=None):
 
 
     if temp:
+        if len(fnames) == 0:
+            raise hcam.HipercamError(
+                'no files were grabbed; please check input parameters, especially "first"'
+                )
         # write the file names to a list
         fd, fname = tempfile.mkstemp(suffix=hcam.LIST,dir=tdir)
         with open(fname,'w') as fout:
