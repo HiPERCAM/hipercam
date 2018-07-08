@@ -326,6 +326,9 @@ class Tseries:
         self.ye = ye
         self.mask = mask
 
+    def __len__(self):
+        return len(self.t)
+
     def set_mask(self, mvalue, mask):
         """
         This updates the internal mask by bitwise_or -ing it with the input mask value
@@ -348,26 +351,28 @@ class Tseries:
         return (self.t[ok],self.y[ok],self.ye[ok])
 
     def mplot(self, axes, colour='b', fmt='.', mask=ANY,
-              capsize=0, erry=True, **kwargs):
+              capsize=0, erry=True, trange=None, **kwargs):
         """
         Plots a Tseries to a matplotlib Axes instance, only
         plotting points without any of the same bits set as
         `mask` (see hipercam.core for a full list). Points
         with negative errors are plotted without error bars.
         """
-        ok = np.bitwise_and(self.mask, mask) == 0
-
+        ok = np.bitwise_and(self.mask, mask) == 0 & (self.ye > 0)
+        if trange is not None:
+            t1,t2 = trange
+            ok &= (self.t > t1) & (self.t < t2
+)
         if erry:
-            err = ok & (self.ye > 0.)
             axes.errorbar(
-                self.t[err],self.y[err],self.ye[err],
+                self.t[ok],self.y[ok],self.ye[ok],
                 fmt=fmt, color=colour, capsize=capsize, **kwargs)
 
             nerr = ok & (self.ye <= 0.)
             axes.plot(self.t[nerr], self.y[nerr], fmt, color=colour, **kwargs)
 
         else:
-            axes.plot(self.t, self.y, fmt, color=colour, **kwargs)
+            axes.plot(self.t[ok], self.y[ok], fmt, color=colour, **kwargs)
 
     def __repr__(self):
         return 'Tseries(t={!r}, y={!r}, ye={!r}, mask={!r}'.format(
@@ -381,6 +386,13 @@ class Tseries:
         negative, the equivalent output errors are set = -1.
         """
         if isinstance(other, Tseries):
+            if len(self) != len(other):
+                raise ValueError(
+                    'input lengths [{:d} vs {:d}] do not match'.format(
+                        len(self), len(other)
+                    )
+                )
+
             if not all(self.t == other.t):
                 raise ValueError('input times do not match')
 
@@ -415,6 +427,13 @@ class Tseries:
         negative, the equivalent output errors are set = -1.
         """
         if isinstance(other, Tseries):
+            if len(self) != len(other):
+                raise ValueError(
+                    'input lengths [{:d} vs {:d}] do not match'.format(
+                        len(self), len(other)
+                    )
+                )
+
             if not all(self.t == other.t):
                 raise ValueError('input times do not match')
 
@@ -450,6 +469,13 @@ class Tseries:
         negative, the equivalent output errors are set = -1.
         """
         if isinstance(other, Tseries):
+            if len(self) != len(other):
+                raise ValueError(
+                    'input lengths [{:d} vs {:d}] do not match'.format(
+                        len(self), len(other)
+                    )
+                )
+
             if not all(self.t == other.t):
                 raise ValueError('input times do not match')
 
@@ -482,6 +508,13 @@ class Tseries:
         negative, the equivalent output errors are set = -1.
         """
         if isinstance(other, Tseries):
+            if len(self) != len(other):
+                raise ValueError(
+                    'input lengths [{:d} vs {:d}] do not match'.format(
+                        len(self), len(other)
+                    )
+                )
+
             if not all(self.t == other.t):
                 raise ValueError('input times do not match')
 
@@ -652,3 +685,56 @@ class Tseries:
         lc.ye = lc.ye / median_y
         lc.y = lc.y / median_y
         return lc
+
+    def downsize(self, other):
+        """
+        Bins the Timeseries down to match the times from 'other'.
+        Useful for dealing with data taken with nskips
+
+        Parameters::
+
+          other : Tseries
+            A coarser Tseries object you wish to match. Must have
+            an integer ratio fewer points.
+
+        Returns
+        -------
+          TSeries : Tseries object
+             Binned Timeseries
+        """
+
+        if len(self) % len(other) != 0:
+            raise ValueError(
+                'length of other ({:d}) not a divisor of sel ({:d})'.format(
+                    len(other),len(self))
+            )
+
+        nblock = len(other)
+
+        y = self.y.copy()
+        ye = self.ye.copy()
+        bad = ye <= 0
+        y[bad] = np.nan
+        ye[bad] = np.nan
+
+        y = np.array([np.nanmean(a) for a in np.array_split(y, nblock)])
+        yec = np.array([
+            np.sqrt(np.nansum(a**2))/max(1,np.count_nonzero(~np.isnan(a)))**2
+            for a in np.array_split(ye, nblock)
+        ])
+        bad = np.array([
+            np.count_nonzero(~np.isnan(a)) == 0
+            for a in np.array_split(ye, nblock)
+        ])
+
+        y[bad] = 0
+        yec[bad] = -1
+
+        mask = np.array(
+            [np.bitwise_or.reduce(a) for a in np.array_split(self.mask, nblock)
+         ])
+        return Tseries(other.t, y, yec, mask)
+
+    def ymean(self):
+        ok= self.ye > 0.
+        return np.mean(self.y[ok])
