@@ -542,9 +542,9 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
     """
     Perform initial setup of image and lightcurve plots for reduction outputs
     """
-    xlo, xhi, ylo, yhi = plot_lims
     imdev = lcdev = spanel = tpanel = xpanel = ypanel = lpanel = None
     if implot:
+        xlo, xhi, ylo, yhi = plot_lims
         # image plot
         imdev = hcam.pgp.Device(rfile['general']['idevice'])
         iwidth = rfile['general']['iwidth']

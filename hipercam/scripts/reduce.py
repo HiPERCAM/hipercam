@@ -308,7 +308,10 @@ def reduce(args=None):
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
-    plot_lims = (xlo, xhi, ylo, yhi)
+    if implot:
+        plot_lims = (xlo, xhi, ylo, yhi)
+    else:
+        plot_lims = None
     imdev, lcdev, spanel, tpanel, xpanel, ypanel, lpanel = setup_plots(rfile, ccds, nx, plot_lims, implot, lplot)
 
     # a couple of initialisations
