@@ -979,7 +979,7 @@ class Rdata (Rhead):
                     '   >>> WARNING: frame count mis-match; a frame seems to have been dropped', file=sys.stderr)
             else:
                 print(
-                    'WARNING: frame count mis-match; {:d} frames seem to have been dropped'.format(frameCount-self.nframe), file=sys.stderr)
+                    '   >>> WARNING: frame count mis-match; {:d} frames seem to have been dropped'.format(frameCount-self.nframe), file=sys.stderr)
 
         # set the internal frame pointer to the frame just read
         self.nframe = frameCount
