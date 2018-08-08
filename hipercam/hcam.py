@@ -10,6 +10,7 @@ main work of the code is in disentangling them to produce :class:MCCD objects.
 """
 
 import os
+import sys
 import struct
 import warnings
 import json
@@ -274,7 +275,6 @@ class Rhead:
             self.toff1 = self.toff2 = 1.e-3*E/2.
             self.toff3 = self.toff4 = 1.e-3*E
             self.tdead = 1.e-3*(FR+W)
-
         elif self.drift:
             # Drift mode
             LD = hd['ESO DET DRIFT TLINEDUMP']
@@ -808,6 +808,7 @@ class Rdata (Rhead):
         try:
             return self.__call__()
         except (HendError):
+            print('henderror raised')
             raise StopIteration
 
     def __call__(self, nframe=None):
@@ -973,11 +974,12 @@ class Rdata (Rhead):
             return None
 
         elif not self.server and frameCount != self.nframe:
-            # frameCount failed to match what was expected.; give up
-            raise HendError(
-                'encountered frame {:d} cf expected {:d}; giving up.'.format(
-                    frameCount, self.nframe)
-                )
+            if frameCount == self.nframe + 1:
+                print(
+                    '   >>> WARNING: frame count mis-match; a frame seems to have been dropped', file=sys.stderr)
+            else:
+                print(
+                    'WARNING: frame count mis-match; {:d} frames seem to have been dropped'.format(frameCount-self.nframe), file=sys.stderr)
 
         # set the internal frame pointer to the frame just read
         self.nframe = frameCount
