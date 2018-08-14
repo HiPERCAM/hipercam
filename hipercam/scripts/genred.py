@@ -24,14 +24,14 @@ __all__ = ['genred',]
 def genred(args=None):
     """``genred apfile rfile comment bias flat dark linear inst [ncpu extendx
     ccd location smoothfwhm method beta betamax fwhm fwhmmin searchwidth thresh
-    hminref hminnrf rfac rmin rmax sinner souter scale]``
+    hminref hminnrf rfac rmin rmax sinner souter scale psfgfac psfwidth psfpostweak]``
 
-    Generates a reduce file as needed by |reduce|. You give it the name of an
-    aperture file and a few other parameters and it will write out a reduce
-    file which you can then refine by hand. A few simplifying assumptions are
-    made, e.g. that the target is called '1'; see below for more. This script
-    effectively defines the format of reduce files. The script attempts above
-    all to generate a self-consistent reduce file.  e.g. if there are
+    Generates a reduce file as needed by |reduce| or |psf_reduce|. You give it
+    the name of an aperture file and a few other parameters and it will write
+    out a reduce file which you can then refine by hand. A few simplifying
+    assumptions are made, e.g. that the target is called '1'; see below for more.
+    This script effectively defines the format of reduce files. The script attempts
+    above all to generate a self-consistent reduce file.  e.g. if there are no
     apertures in CCD 5, it does not attempt to plot any corresponding light
     curves.
 
@@ -195,6 +195,16 @@ def genred(args=None):
         scale    : float [hidden]
            image scale in arcsec/pixel
 
+        psfgfac : float [hidden]
+            multiple of FWHM used to group objects together for PSF fitting
+
+        psfwidth : int [hidden]
+            half-width of box used to extract data around objects for PSF fitting
+
+        psfpostweak : string [hidden]
+            During PSF fitting, either hold positions at aperture location ('fixed'),
+            or fit as part of PSF model ('variable')
+
     """
 
 #    print(my_version)
@@ -238,6 +248,9 @@ def genred(args=None):
         cl.register('readout', Cline.LOCAL, Cline.HIDE)
         cl.register('gain', Cline.LOCAL, Cline.HIDE)
         cl.register('scale', Cline.LOCAL, Cline.HIDE)
+        cl.register('psfgfac', Cline.LOCAL, Cline.HIDE)
+        cl.register('psfwidth', Cline.LOCAL, Cline.HIDE)
+        cl.register('psfpostweak', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
 
@@ -452,6 +465,20 @@ warn = 1 60000 64000
             'scale','image scale [arcsec/unbinned pixel]',0.3,0.001
         )
 
+        psfgfac = cl.get_value(
+            'psfgfac','multiple of FWHM used to group objects for PSF fitting', 3, 0.1
+        )
+
+        psfwidth = cl.get_value(
+            'psfwidth', 'half width for PSF fits, unbinned pixels', 15, 5
+        )
+
+        psfpostweak = cl.get_value(
+            'psfpostweak', 'locations during PSF fitting stage, f(ixed) or v(ariable)',
+            'f', lvals=['f', 'v']
+        )
+        psfpostweak = 'variable' if psfpostweak == 'v' else 'fixed'
+
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
@@ -652,7 +679,8 @@ warn = 1 60000 64000
                 height_min_ref=height_min_ref, height_min_nrf=height_min_nrf,
                 beta=beta, beta_max=beta_max, thresh=thresh, readout=readout,
                 gain=gain, fit_max_shift=fit_max_shift, fit_alpha=fit_alpha,
-                fit_diff=fit_diff
+                fit_diff=fit_diff, psfgfac=psfgfac, psfpostweak=psfpostweak,
+                psfwidth=psfwidth
             )
         )
 
@@ -834,9 +862,28 @@ fit_diff = {fit_diff:.2f} # Maximum differential shift of multiple reference ape
 # used to override whatever value comes from the aperture file. A common
 # approach is set them equal to each other to give a fixed value, especially
 # for the sky where one does not necessarily want the radii to vary.
+# For PSF photometry, all these settings have no effect, but this section can
+# still be used to determine which CCDs have fluxes extracted.
 
 [extraction]
 {extraction}
+
+# The next lines are specific to the PSF photometry option. 'gfac' is used
+# to label the sources according to groups, such that stars closer than 'gfac'
+# times the FWHM are labelled in the same group. Each group has a PSF model
+# fit independently. The reason behind the construction of groups is to reduce
+# the dimensionality of the fitting procedure. Usually you want closely seperated
+# stars to be fit simultaneously, but too large a value will mean fitting a model
+# with many free parameters, which can fail to converge. The size of the box over
+# which data is collected for fitting is set by 'fit_half_width'. Finally, 'positions'
+# determines whether the star's positions should be considered variable in the PSF
+# fitting. If this is set to fixed, the positions are held at the locations found
+# in the aperture repositioning step, otherwise the positions are refined during
+# PSF fitting. This step can fail for PSF photometry of faint sources.
+[psf_photom]
+gfac = {psfgfac:.1f}  # multiple of the FWHM to use in grouping objects
+fit_half_width = {psfwidth:d}  # size of window used to collect the data to do the fitting
+positions = {psfpostweak:s}   # 'fixed' or 'variable'
 
 # Next lines determine how the sky background level is calculated. Note
 # you can only set error = variance if method = 'clipped'. 'median' should

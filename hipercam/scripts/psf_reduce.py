@@ -1,10 +1,21 @@
 import sys
 import multiprocessing
+import warnings
+import numpy as np
+
+from photutils.psf import DAOGroup
+from photutils.background import MMMBackground
+from photutils.psf import BasicPSFPhotometry, IntegratedGaussianPRF
+
+from astropy.modeling.fitting import LevMarLSQFitter
+from astropy.modeling import Fittable2DModel, Parameter
+from astropy.stats import SigmaClip, gaussian_fwhm_to_sigma
+from astropy.table import Table
 
 import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
-from hipercam.reduction import (Rfile, initial_checks, extractFlux, moveApers, update_plots,
+from hipercam.reduction import (Rfile, initial_checks, moveApers, update_plots,
                                 process_ccds, setup_plots, setup_plot_buffers, LogWriter)
 
 # get hipercam version to write into the reduce log file
@@ -14,22 +25,27 @@ try:
 except DistributionNotFound:
     hipercam_version = 'not found'
 
-__all__ = ['reduce', ]
+__all__ = ['psf_reduce', ]
 
 
-################################################
+#####################################################################
 #
-# reduce -- reduces multi-CCD imaging photometry
+# psf_reduce -- reduces multi-CCD imaging photometry with PSF fitting
 #
-################################################
-def reduce(args=None):
-    """``reduce [source] rfile (run first twait tmax | flist) log lplot implot
+#####################################################################
+def psf_reduce(args=None):
+    """``psf_reduce [source] rfile (run first twait tmax | flist) log lplot implot
     (ccd nx msub xlo xhi ylo yhi iset (ilo ihi | plo phi))``
 
-    Reduces a sequence of multi-CCD images, plotting lightcurves as images
-    come in. It can extract with either simple aperture photometry or Tim
-    Naylor's optimal photometry, on specific targets defined in an aperture
-    file using |setaper|.
+    Performs PSF photometry on a sequence of multi-CCD images, plotting
+    lightcurves as images come in. It performs PSF photometry on specific
+    targets, defined in an aperture file using |psf_setaper| or |setaper|.
+
+    Aperture repositioning is identical to |reduce|, and the PSF used in photometry
+    is set by fitting well seperated reference stars. For the best results, a
+    suitable strategy is to only reduce data from a small window near the target.
+    Set well seperated bright stars as reference apertures and link fainter, or
+    blended objects to the references.
 
     reduce can source data from both the ULTRACAM and HiPERCAM servers, from
     local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
@@ -37,13 +53,12 @@ def reduce(args=None):
     have data from a different instrument you should convert into the
     FITS-based hcm format.
 
-    reduce is primarily configured from a file with extension ".red". This
-    contains a series of directives, e.g. to say how to re-position and
-    re-size the apertures. An initial reduce file is best generated with
-    the script |genred| after you have created an aperture file. This contains
-    lots of help on what to do.
+    psf_reduce is primarily configured from a file with extension ".red". This
+    contains a series of directives, e.g. to say how to re-position the apertures.
+    An initial reduce file is best generated with the script |genred| after you
+    have created an aperture file. This contains lots of help on what to do.
 
-    A reduce run can be terminated at any point with ctrl-C without doing
+    A psf_reduce run can be terminated at any point with ctrl-C without doing
     any harm. You may often want to do this at the start in order to adjust
     parameters of the reduce file.
 
@@ -142,13 +157,6 @@ def reduce(args=None):
 
         phi : float [if implot and iset='p']
            upper percentile level
-
-    .. Warning::
-
-       The transmission plot generated with reduce is not reliable in the
-       case of optimal photometry since it is highly correlated with the
-       seeing. If you are worried about the transmission during observing,
-       you should always use normal aperture photometry.
     """
 
     command, args = utils.script_args(args)
@@ -377,7 +385,6 @@ def reduce(args=None):
 
                 if not tzset:
                     tzero, read, gain, ok = initial_checks(mccd, rfile)
-
                     # set flag to show we are set
                     if not ok:
                         break
@@ -412,7 +419,307 @@ def reduce(args=None):
 
 # END OF MAIN SECTION
 
+
 # Stuff below here are helper routines that are not exported
+class MoffatPSF(Fittable2DModel):
+    """
+    Standard Moffat model, but with parameter names that work with photutils
+
+    Parameters
+    ----------
+    fwhm : float
+        Full-Width at Half-Maximum of profile
+    beta : float
+        Beta parameter of Moffat profile
+    flux : float (default 1)
+        Total integrated flux over the entire PSF
+    x_0 : float (default 0)
+        Position of peak in x direction
+    y_0 : float (default 0)
+        Position of peak in y direction
+
+    Notes
+    -----
+    This model is evaluated according to the following formula:
+
+        .. math::
+            f(x, y) = f(r) = F [1 + (r/\alpha)**2]**(-beta)
+
+    where ``F`` is the total integrated flux, ``r`` is the distance from the central peak and ``alpha``
+    is chosen so the profile has the appropriate FWHM.
+    """
+
+    flux = Parameter(default=1)
+    x_0 = Parameter(default=0)
+    y_0 = Parameter(default=0)
+    beta = Parameter(default=2.5, fixed=True)
+    fwhm = Parameter(default=12, fixed=True)
+
+    fit_deriv = None
+
+    @property
+    def bounding_box(self):
+        halfwidth = 3 * self.fwhm
+        return ((int(self.y_0 - halfwidth), int(self.y_0 + halfwidth)),
+                (int(self.x_0 - halfwidth), int(self.x_0 + halfwidth)))
+
+    def __init__(self, flux=flux.default, x_0=x_0.default, y_0=y_0.default,
+                 beta=beta.default, fwhm=fwhm.default, **kwargs):
+                super(MoffatPSF, self).__init__(n_models=1, flux=flux, x_0=x_0, y_0=y_0,
+                                                beta=beta, fwhm=fwhm, **kwargs)
+
+    def evaluate(self, x, y, flux, x_0, y_0, beta, fwhm):
+        r = np.sqrt((x-x_0)**2 + (y-y_0)**2)
+        alpha_sq = fwhm**2 / 4 / (2**(1/beta) - 1)
+        prof = flux / (1 + r**2/alpha_sq)**beta
+        return (beta-1) * prof / np.pi / alpha_sq
+
+
+def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
+    """This extracts the flux of all apertures of a given CCD.
+
+    The steps are (1) creation of PSF model, (2) PSF fitting, (3)
+    flux extraction. The apertures are assumed to be correctly positioned.
+
+    It returns the results as a dictionary keyed on the aperture label. Each
+    entry returns a list:
+
+    [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, countse, sky, esky,
+    nsky, nrej, flag]
+
+    flag = bitmask. See hipercam.core to see all the options which are
+    referred to by name in the code e.g. ALL_OK. The various flags can
+    signal that there no sky pixels (NO_SKY), the sky aperture was off
+    the edge of the window (SKY_AT_EDGE), etc.
+
+    This code::
+
+       >> bset = flag & TARGET_SATURATED
+
+    determines whether the data saturation flag is set for example.
+
+    Input arguments:
+
+       cnam     : string
+          CCD identifier label
+
+       ccd       : CCD
+           the debiassed, flat-fielded CCD.
+
+       read      : CCD
+           readnoise divided by the flat-field
+
+       gain      : CCD
+           gain multiplied by the flat field
+
+       rccd     : CCD
+          corresponding raw CCD, used to work out whether data are
+          saturated in target aperture.
+
+       ccdaper  : CcdAper
+          CCD's-worth of Apertures
+
+       ccdwin   : dictionary of strings
+           the Window label corresponding to each Aperture
+
+       rfile     : Rfile
+           reduce file configuration parameters
+
+       store     : dict of dicts
+           see moveApers for what this contains.
+
+    """
+
+    # initialise flag
+    flag = hcam.ALL_OK
+
+    results = {}
+    # get profile params from aperture store
+    mfwhm = store['mfwhm']
+    mbeta = store['mbeta']
+    method = 'm' if mbeta > 0.0 else 'g'
+
+    if mfwhm <= 0:
+        # die hard, die soon as there's nothing we can do.
+        print(
+            (' *** WARNING: CCD {:s}: no measured FWHM to create PSF model'
+                '; no extraction possible').format(cnam)
+        )
+        # set flag to indicate no FWHM
+        flag = hcam.NO_FWHM
+
+        for apnam, aper in ccdaper.items():
+            info = store[apnam]
+            results[apnam] = {
+                'x': aper.x, 'xe': info['xe'],
+                'y': aper.y, 'ye': info['ye'],
+                'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
+                'beta': info['beta'], 'betae': info['betae'],
+                'counts': 0., 'countse': -1,
+                'sky': 0., 'skye': 0., 'nsky': 0, 'nrej': 0,
+                'flag': flag
+            }
+        return results
+
+    # all apertures have to be in the same window, or we can't easily make a
+    # postage stamp of the data
+    wnames = set(ccdwin.values())
+    if len(wnames) != 1:
+        print((' *** WARNING: CCD {:s}: not all apertures'
+              ' lie within the same window; no extraction possible').format(cnam))
+
+        # set flag to indicate no extraction
+        flag = hcam.NO_EXTRACTION
+
+        # return empty results
+        for apnam, aper in ccdaper.items():
+            info = store[apnam]
+            results[apnam] = {
+                'x': aper.x, 'xe': info['xe'],
+                'y': aper.y, 'ye': info['ye'],
+                'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
+                'beta': info['beta'], 'betae': info['betae'],
+                'counts': 0., 'countse': -1,
+                'sky': 0., 'skye': 0., 'nsky': 0, 'nrej': 0,
+                'flag': flag
+            }
+            return results
+    wnam = wnames.pop()
+
+    # PSF params are in binned pixels, so find binning
+    bin_fac = ccd[wnam].xbin
+
+    # create PSF model
+    if method == 'm':
+        psf_model = MoffatPSF(beta=mbeta, fwhm=mfwhm/bin_fac)
+    else:
+        psf_model = IntegratedGaussianPRF(sigma=mfwhm*gaussian_fwhm_to_sigma/bin_fac)
+
+    # force photometry only at aperture positions
+    # this means PSF shape and positions are fixed, we are only fitting flux
+    if rfile['psf_photom']['positions'] == 'fixed':
+        psf_model.x_0.fixed = True
+        psf_model.y_0.fixed = True
+
+    # create instances for PSF photometry
+    gfac = float(rfile['psf_photom']['gfac'])
+    sclip = float(rfile['sky']['thresh'])
+    daogroup = DAOGroup(gfac*mfwhm/bin_fac)
+    mmm_bkg = MMMBackground(sigma_clip=SigmaClip(sclip))
+    fitter = LevMarLSQFitter()
+    fitshape_box_size = int(2*int(rfile['psf_photom']['fit_half_width']) + 1)
+    fitshape = (fitshape_box_size, fitshape_box_size)
+
+    photometry_task = BasicPSFPhotometry(group_maker=daogroup, bkg_estimator=mmm_bkg, psf_model=psf_model,
+                                         fitter=fitter, fitshape=fitshape)
+    # initialise flag
+    flag = hcam.ALL_OK
+
+    # extract Windows relevant for these apertures
+    wdata = ccd[wnam]
+    wraw = rccd[wnam]
+
+    # extract sub-windows that include all of the apertures, plus a little
+    # extra around the edges.
+    x1 = min([ap.x-ap.rsky2-wdata.xbin for ap in ccdaper.values()])
+    x2 = max([ap.x+ap.rsky2+wdata.xbin for ap in ccdaper.values()])
+    y1 = min([ap.y-ap.rsky2-wdata.ybin for ap in ccdaper.values()])
+    y2 = max([ap.y+ap.rsky2+wdata.ybin for ap in ccdaper.values()])
+
+    # extract sub-Windows
+    swdata = wdata.window(x1, x2, y1, y2)
+    swraw = wraw.window(x1, x2, y1, y2)
+
+    # compute pixel positions of apertures in windows
+    xpos, ypos = zip(*((swdata.x_pixel(ap.x), swdata.y_pixel(ap.y)) for ap in ccdaper.values()))
+    positions = Table(names=['x_0', 'y_0'], data=(xpos, ypos))
+
+    # do the PSF photometry
+    photom_results = photometry_task(swdata.data, init_guesses=positions)
+    slevel = mmm_bkg(swdata.data)
+
+    # unpack the results and check apertures
+    for apnam, aper in ccdaper.items():
+        try:
+            # reset flag
+            flag = hcam.ALL_OK
+
+            result_row = photom_results[photom_results['id'] == int(apnam)]
+            if len(result_row) == 0:
+                flag |= hcam.NO_DATA
+                raise hcam.HipercamError('no source in PSF photometry for this aperture')
+            elif len(result_row) > 1:
+                flag |= hcam.NO_EXTRACTION
+                raise hcam.HipercamError('ambiguous lookup for this aperture in PSF photometry')
+            else:
+                result_row = result_row[0]
+
+            # compute X, Y arrays over the sub-window relative to the centre
+            # of the aperture and the distance squared from the centre (Rsq)
+            # to save a little effort.
+            x = swdata.x(np.arange(swdata.nx))-aper.x
+            y = swdata.y(np.arange(swdata.ny))-aper.y
+            X, Y = np.meshgrid(x, y)
+            Rsq = X**2 + Y**2
+
+            # size of a pixel which is used to taper pixels as they approach
+            # the edge of the aperture to reduce pixellation noise
+            size = np.sqrt(wdata.xbin*wdata.ybin)
+
+            # target selection, accounting for extra apertures and allowing
+            # pixels to contribute if their centres are as far as size/2 beyond
+            # the edge of the circle (but with a tapered weight)
+            dok = Rsq < (aper.rtarg+size/2.)**2
+            if not dok.any():
+                # check there are some valid pixels
+                flag |= hcam.NO_DATA
+                raise hcam.HipercamError('no valid pixels in aperture')
+
+            # check for saturation and nonlinearity
+            if cnam in rfile.warn:
+                if swraw.data[dok].max() >= rfile.warn[cnam]['saturation']:
+                    flag |= hcam.TARGET_SATURATED
+
+                if swraw.data[dok].max() >= rfile.warn[cnam]['nonlinear']:
+                    flag |= hcam.TARGET_NONLINEAR
+            else:
+                warnings.warn(
+                    'CCD {:s} has no nonlinearity or saturation levels set'
+                )
+
+            counts = result_row['flux_fit']
+            countse = result_row['flux_unc']
+            info = store[apnam]
+
+            results[apnam] = {
+                'x': aper.x, 'xe': info['xe'],
+                'y': aper.y, 'ye': info['ye'],
+                'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
+                'beta': info['beta'], 'betae': info['betae'],
+                'counts': counts, 'countse': countse,
+                'sky': slevel, 'skye': 0, 'nsky': 0,
+                'nrej': 0, 'flag': flag
+            }
+
+        except hcam.HipercamError as err:
+
+            info = store[apnam]
+            flag |= hcam.NO_EXTRACTION
+
+            results[apnam] = {
+                'x': aper.x, 'xe': info['xe'],
+                'y': aper.y, 'ye': info['ye'],
+                'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
+                'beta': info['beta'], 'betae': info['betae'],
+                'counts': 0., 'countse': -1,
+                'sky': 0., 'skye': 0., 'nsky': 0, 'nrej': 0,
+                'flag': flag
+            }
+
+    # finally, we are done
+    return results
+
+
 def ccdproc(cnam, ccd, flat, rflat, rccd, ccdaper, ccdwins, rfile, store):
     """
     Processing steps for one CCD. This is designed for parallelising the
