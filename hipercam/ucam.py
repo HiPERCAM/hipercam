@@ -1312,40 +1312,50 @@ class Rtime (Rhead):
         return tinfo
 
 def utimer(tbytes, rhead, fnum):
-    """
-    Computes the Time corresponding of the most recently read frame,
+    """Computes the Time corresponding of the most recently read frame,
     None if no frame has been read. For the Time to be reliable
     (Time.good == True), several frames might have needed to
     be read and their times passed through tstamp.
 
-     tbytes  -- string of timing bytes
+     tbytes : string
+        string of timing bytes
 
-     rhead   -- Rhead header of data file
+     rhead : Rhead
+        header of data file
 
-     fnum    -- frame number we think we are on.
+     fnum : int
+        frame number we think we are on.
 
-    Returns (time,info,blueTime,badBlue) for ULTRACAM or (time,info) for ULTRASPEC
+    Returns (time,info,blueTime,badBlue) for ULTRACAM or (time,info) for
+    ULTRASPEC
 
-     time         : the Time as best as can be determined
+     time : Time
+       the time determined
 
-     info         : a dictionary of extras to allow for possible future
-                    updates without breaking code. Currently returns values for the
-                    following keys:
+     info : dict
+       a dictionary of extras to allow for possible future updates
+       without breaking code. Currently returns values for the
+       following keys:
 
-         nsat         -- number of satellites (if set)
-         format       -- the format integer used to translate the timing bytes
-         vclock_frame -- vertical clocking time for a whole frame [ULTRACAM only]
-         whichRun     -- special case run identifier. MAY2002 or nothing
-         defTstamp    -- whether the "default" time stamping cycle was thought to apply
-         gps          -- the raw GPS time associated with the frame, no corrections applied
-         frameError   -- was there a frame numbering clash
-         midnightCorr -- was the midnight bug correction applied
+         nsat : number of satellites (if set)
+
+         format : the format integer used to translate the timing bytes
+
+         vclock_frame : vertical clocking time for a whole frame [ULTRACAM only]
+
+         whichRun : special case run identifier. MAY2002 or nothing
+
+         defTstamp : whether the "default" time stamping cycle was thought to apply
+         gps : the raw GPS time associated with the frame, no corrections applied
+         frameError : was there a frame numbering clash
+
+         midnightCorr : was the midnight bug correction applied
 
      ULTRACAM only:
 
-     blueTime     : different time for the blue frames of ULTRACAM for nblue > 1
+     blueTime : different time for the blue frames of ULTRACAM for nblue > 1
 
-     badBlue      : blue frame is bad for nblue > 1 (nblue-1 out nblue are bad)
+     badBlue : blue frame is bad for nblue > 1 (nblue-1 out nblue are bad)
 
     """
 
@@ -1362,15 +1372,15 @@ def utimer(tbytes, rhead, fnum):
     reason   = ''
 
     if rhead.instrument == 'ULTRASPEC' and rhead.version == -1:
-        format = 2
+        frmat = 2
     elif rhead.version == -1 or rhead.version == 70514 or \
             rhead.version == 80127:
-        format = 1
+        frmat = 1
     elif rhead.version == 100222 or rhead.version == 110921 or \
             rhead.version == 111205 or rhead.version == 120716 or \
             rhead.version == 120813 or rhead.version == 130303 or \
             rhead.version == 130317 or rhead.version == 140331:
-        format = 2
+        frmat = 2
     else:
         raise UltracamError('version = ' + str(rhead.version) + ' unrecognised.')
 
@@ -1386,12 +1396,13 @@ def utimer(tbytes, rhead, fnum):
     # initialize some attributes of utimer which are used as the equivalent
     # of static variables in C++. They are:
     #
-    #  previousFrameNumber  -- frame number of immediately preceding frame read, 0 if none
-    #  tstamp               -- list of raw GPS times of preceding frames, [0] most recent
-    #  blueTimes            -- list of modified times of preceding frames, [0] most recent
+    #  previousFrameNumber : frame number of immediately preceding frame read, 0 if none
+    #  tstamp : list of raw GPS times of preceding frames, [0] most recent
+    #  blueTimes : list of modified times of preceding frames, [0] most recent
 
     if hasattr(utimer,'previousFrameNumber'):
-        if frameNumber != utimer.previousFrameNumber + 1 or utimer.run != rhead.run:
+        if frameNumber != utimer.previousFrameNumber + 1 or \
+           utimer.run != rhead.run:
             utimer.tstamp    = []
             utimer.blueTimes = []
     else:
@@ -1401,17 +1412,17 @@ def utimer(tbytes, rhead, fnum):
 
     utimer.previousFrameNumber = frameNumber
 
-    if format == 1:
+    if frmat == 1:
         nsec, nnsec = struct.unpack('<II', tbytes[9:17])
         nsat = struct.unpack('<h', tbytes[21:23])[0]
         if nsat <= 2:
             goodTime = False
             reason   = 'too few satellites (' + str(nsat) + ')'
-        IMAX = struct.unpack('<I', '\xff\xff\xff\xff')[0]
+        IMAX = struct.unpack('<I', b'\xff\xff\xff\xff')[0]
         if nsec  == IMAX: nsec = 0
         if nnsec == IMAX: nnsec = 0
 
-    elif format == 2:
+    elif frmat == 2:
         nexp  = struct.unpack('<I', tbytes[8:12])[0]
         if nexp*rhead.timeUnits != rhead.exposeTime:
             goodTime = False
@@ -1438,7 +1449,7 @@ def utimer(tbytes, rhead, fnum):
             reason = 'GPS receiver has not verified its position'
 
     else:
-        raise UltracamError('format = ' + str(format) + ' not recognised.')
+        raise UltracamError('format = ' + str(frmat) + ' not recognised.')
 
     def tcon1(offset, nsec, nnsec):
         """
@@ -1458,10 +1469,10 @@ def utimer(tbytes, rhead, fnum):
         # format
         fbyte = tbytes[0]
         badBlue = rhead.nblue > 1 and \
-                  ((format == 1 and bool(fbyte & 1<<3)) or \
-                   (format == 2 and bool(fbyte & 1<<4)))
+                  ((frmat == 1 and bool(fbyte & 1<<3)) or \
+                   (frmat == 2 and bool(fbyte & 1<<4)))
 
-    if format == 1 and nsat == -1:
+    if frmat == 1 and nsat == -1:
         goodTime = False
         reason = 'no satellites.'
         mjd = tcon1(DEFDAT, nsec, nnsec)
@@ -1474,7 +1485,7 @@ def utimer(tbytes, rhead, fnum):
 
     else:
 
-        if rhead.whichRun == 'MAY2002' and format == 1:
+        if rhead.whichRun == 'MAY2002' and frmat == 1:
             # Had no date info in the timestamps of this run
             # nsec was offset from 12 May 2002
             mjd = tcon1(MAY2002, nsec, nnsec)
@@ -1498,7 +1509,7 @@ def utimer(tbytes, rhead, fnum):
 
             # OK now have date info, although we
             # need a stack of special case fixes
-            if format == 1:
+            if frmat == 1:
                 day, month, year = struct.unpack('<BBH',tbytes[17:21])
 
                 if month == 9 and year == 263: year = 2002
@@ -1517,7 +1528,7 @@ def utimer(tbytes, rhead, fnum):
                 else:
                     mjd = tcon2(year, month, day, nsec % DSEC, nnsec)
 
-            elif format == 2:
+            elif frmat == 2:
                 mjd = tcon1(UNIX, nsec, nnsec)
 
             if rhead.instrument == 'ULTRACAM':
@@ -2027,7 +2038,7 @@ def utimer(tbytes, rhead, fnum):
             blueTime = time
 
     # return lots of potentially useful extras in a dictionary
-    info = {'nsat' : nsat, 'format' : format, 'whichRun' : rhead.whichRun,
+    info = {'nsat' : nsat, 'format' : frmat, 'whichRun' : rhead.whichRun,
             'defTstamp' : defTstamp, 'gps' : gps, 'frameError' : frameError,
             'midnightCorr' : midnightCorr, 'ntmin' : ntmin}
 
