@@ -8,10 +8,12 @@ high-speed camera for astrophysical research.
 Installation
 ============
 
-hipercam is written in Python3; it does not support Python2.x It relies on the
-following third-party packages. At the moment I suggest you get these
-installed first (you will very likely have several of them already); in the
-future I might try to make it more automatic:
+hipercam is written in Python3; it does not support Python2.x It
+relies on the following third-party packages. At the moment I suggest
+you get these installed first (you will very likely have several of
+them already); in the future I might try to make it more
+automatic. Most of these are available using 'pip', and I would recommend
+installing them locally e.g. ``pip install cython --user``
 
   astropy :
          astronomical Python package with lots of useful stuff.
@@ -40,7 +42,10 @@ future I might try to make it more automatic:
 
          trm.pgplot is not to be confused with "ppgplot" which although
          very similar, is a more hand-crafted version with some
-         differences in the calls.
+         differences in the calls. This cannot be installed using pip.
+
+  requests :
+         nicest http requiest module
 
   websocket :
          for talking to the hipercam server. You want the Websocket
