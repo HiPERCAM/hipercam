@@ -302,6 +302,10 @@ def reduce(args=None):
             ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
             yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
 
+        else:
+            ccds, nx, msub, iset = None, None, None, None
+            ilo, ihi, plo, phi = None, None, None, None
+
         # save list of parameter values for writing to the reduction file
         plist = cl.list()
 
@@ -312,7 +316,10 @@ def reduce(args=None):
         plot_lims = (xlo, xhi, ylo, yhi)
     else:
         plot_lims = None
-    imdev, lcdev, spanel, tpanel, xpanel, ypanel, lpanel = setup_plots(rfile, ccds, nx, plot_lims, implot, lplot)
+
+    imdev, lcdev, spanel, tpanel, xpanel, ypanel, lpanel = setup_plots(
+        rfile, ccds, nx, plot_lims, implot, lplot
+    )
 
     # a couple of initialisations
     total_time = 0   # time waiting for new frame
@@ -405,10 +412,12 @@ def reduce(args=None):
                 if len(alerts):
                     print('\n'.join(alerts))
 
-                update_plots(results, store, rfile, implot, lplot, imdev, lcdev,
-                             pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
-                             lpanel, xpanel, ypanel, tpanel, spanel,
-                             tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer)
+                update_plots(
+                    results, store, rfile, implot, lplot, imdev, lcdev,
+                    pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
+                    lpanel, xpanel, ypanel, tpanel, spanel,
+                    tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
+                )
 
 # END OF MAIN SECTION
 

@@ -4,10 +4,11 @@ import warnings
 import numpy as np
 import hipercam as hcam
 from hipercam import utils, fitting
-from trm.pgplot import (pgpap, pgsubp, pgsci, pgsch, pgenv, pglab, pgqvp, pgvstd,
-                        pgeras, pgerry, pgpt, pgpanl, pgbbuf, pgebuf, pgsvp, pgswin,
-                        pgbox, pgmove, pgdraw, pgpt1)
-
+from trm.pgplot import (
+    pgpap, pgsubp, pgsci, pgsch, pgenv, pglab, pgqvp, pgvstd,
+    pgeras, pgerry, pgpt, pgpanl, pgbbuf, pgebuf, pgsvp, pgswin,
+    pgbox, pgmove, pgdraw, pgpt1
+)
 
 class Rfile(OrderedDict):
     """
@@ -17,8 +18,9 @@ class Rfile(OrderedDict):
 
     @classmethod
     def read(cls, filename):
-        """
-        Builds an Rfile from a reduce file. A few checks for viability are applied.
+        """Builds an Rfile from a reduce file. A few checks for viability are
+        applied.
+
         """
 
         rfile = cls()
@@ -1256,6 +1258,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                         )
 
                 if height > apsec['fit_height_min_ref']:
+
                     # The peak height check is probably not required at this
                     # point since the search routine applies it more
                     # stringently but I have left it in for safety.
