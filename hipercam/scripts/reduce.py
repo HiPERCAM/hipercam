@@ -329,7 +329,8 @@ def reduce(args=None):
     mccdwins = {}
     if lplot:
         lbuffer, xbuffer, ybuffer, tbuffer, sbuffer = setup_plot_buffers(rfile)
-
+    else:
+        lbuffer, xbuffer, ybuffer, tbuffer, sbuffer = None, None, None, None, None
     ############################################
     #
     # open the log file and write headers

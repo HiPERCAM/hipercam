@@ -710,6 +710,7 @@ def update_plots(results, store, rfile, implot, lplot, imdev, lcdev,
                  pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
                  lpanel, xpanel, ypanel, tpanel, spanel,
                  tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer):
+
     # now the plotting sections
     if implot:
         # image plot
