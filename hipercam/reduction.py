@@ -1069,7 +1069,7 @@ def process_ccds(pccd, mccd, pool, ccdproc, rfile, mccdwins, store, read, gain):
                 )
 
         if not len(arglist):
-            return
+            return results
 
         # Run the reduction in parallel
         allres = pool.starmap(ccdproc, arglist)
@@ -2361,7 +2361,7 @@ class LightCurve(BaseBuffer):
 
         """
 
-        if self.cnam not in results:
+        if results is None or self.cnam not in results:
             return None
 
         res = results[self.cnam]
