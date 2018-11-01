@@ -19,7 +19,7 @@ import websocket
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 
 # temporary
 import matplotlib.pyplot as plt
@@ -671,20 +671,17 @@ class Rhead:
         toffs = []
         ncycs = []
         for nccd, nskip in enumerate(self.nskips):
-            toff, texp, flag = self.timing(0, 2*(nskip+1), nccd)
+            toff, texp, flag = self.timing(2*(nskip+1), nccd)
             toffs.append(DAYSEC*toff)
             texps.append(texp)
             ncycs.append(nskip+1)
 
         return (tuple(texps), tuple(toffs), tuple(ncycs), self.tdead)
 
-    def timing(self, mjd, nframe, nccd):
+    def timing(self, nframe, nccd):
         """Returns timing data for a particular CCD and frame.
 
         Arguments::
-
-           mjd    : float
-              the MJD of the timestamp
 
            nframe : int
               the frame number starting at 1.
@@ -692,9 +689,11 @@ class Rhead:
            nccd : int
               the CCD number, starting at 0
 
-        Returns: (mjd, exptime, flag) where 'mjd' is the MJD at mid-exposure
-        for the CCD, 'exptime' is the exposure time in seconds, and 'flag' is
-        a bool to indicate whether the time is thought good or not.
+        Returns: (tmid, exptime, flag) where 'tmid' is the offset to
+        be applied to the time stamp (in days) to get to the
+        mid-exposure pointof the CCD, 'exptime' is the exposure time
+        in seconds, and 'flag' is a bool to indicate whether the time
+        is thought good or not.
 
         """
 
@@ -703,11 +702,11 @@ class Rhead:
         flag = nframe % (nskip+1) == 0
         if nframe == nskip + 1:
             # special case for first frame of data
-            tmid = mjd + (self.toff1 - self.tdelta*nskip/2)/DAYSEC
+            tmid = (self.toff1 - self.tdelta*nskip/2)/DAYSEC
             texp = self.tdelta*nskip + self.toff3
         else:
             # regular times
-            tmid = mjd + (self.toff2 - self.tdelta*nskip/2)/DAYSEC
+            tmid = (self.toff2 - self.tdelta*nskip/2)/DAYSEC
             texp = self.tdelta*nskip + self.toff4
 
         return (tmid, texp, flag)
@@ -759,10 +758,10 @@ class Rdata (Rhead):
 
         Arguments::
 
-           fname : (string)
+           fname : string
               run name, e.g. 'run036'.
 
-           nframe : (int)
+           nframe : int
               the frame number to read first [1 is the first]. This
               initialises an attribute of the same name that is used when
               reading frames sequentially. nframe=0 is an indication to set an
@@ -770,7 +769,7 @@ class Rdata (Rhead):
               access the last frame. nframe=-10 means try to get the
               10th-from-last frame, a cludge to get round an acquisition bug.
 
-           server : (bool)
+           server : bool
               True/False for server vs local disk access. Server access goes
               through a websocket.  It uses a base URL taken from the
               environment variable "HIPERCAM_DEFAULT_URL", or, if that is not
@@ -984,11 +983,11 @@ class Rdata (Rhead):
         # set the internal frame pointer to the frame just read
         self.nframe = frameCount
 
-        time_string = '{}:{}:{}:{}:{:.7f}'.format(
+        time_string = '{}:{}:{}:{}:{:.9f}'.format(
             years, day_of_year, hours, mins, seconds+nanoseconds/1e9
         )
         try:
-            tstamp = Time(time_string, format='yday', precision=7)
+            tstamp = Time(time_string, format='yday', precision=9)
         except ValueError:
             warnings.warn('Bad timestamp: ' + time_string)
             tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=7)
@@ -1028,9 +1027,15 @@ class Rdata (Rhead):
                 'Valid data (else junk frame)'
             )
 
-            # Get time at centre of exposure
-            tmid, texp, flag = self.timing(tstamp.mjd, frameCount, nccd)
-            ch['MJDUTC'] = (tmid, 'MJD(UTC) at centre of exposure')
+            # Get time at centre of exposure. Some care here to store a super-precise
+            # version of the time as a string along with the MJD -- the latter suffers
+            # round-off at the 0.5 microsecond level in double precision. The precise
+            # one allows better downstream precision by offsetting ('toffset' in reduce).
+            tmid, texp, flag = self.timing(frameCount, nccd)
+            tdelta = TimeDelta(tmid,format='jd')
+            midtime = tstamp + tdelta
+            ch['MIDTIME'] = (midtime.isot, 'Precise mid-exposure UTC string')
+            ch['MJDUTC'] = (midtime.mjd, 'MJD(UTC) at centre of exposure')
             ch['GOODTIME'] = (flag and thead['GOODTIME'], 'Is MJDUTC reliable?')
             ch['EXPTIME'] = (texp, 'Exposure time (secs)')
 
@@ -1399,7 +1404,8 @@ class Rtime (Rhead):
 
         tinfo = []
         for nccd in range(5):
-            tinfo.append(self.timing(tstamp.mjd,self.nframe,nccd))
+            tmid,texp,tflag = self.timing(self.nframe,nccd)
+            tinfo.append((tstamp.mjd+tmid,texp,tflag))
 
         # update the internal frame counter
         self.nframe += 1

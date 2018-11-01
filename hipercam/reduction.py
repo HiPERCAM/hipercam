@@ -2,6 +2,7 @@ from collections import OrderedDict
 import sys
 import warnings
 import numpy as np
+from astropy.time import Time
 import hipercam as hcam
 from hipercam import utils, fitting
 from trm.pgplot import (
@@ -91,6 +92,8 @@ class Rfile(OrderedDict):
         sect['iheight'] = float(sect['iheight'])
         if sect['iheight'] < 0:
             raise hcam.HipercamError('general.iheight must be >= 0')
+
+        sect['toffset'] = int(sect['toffset'])
 
         # handle the count level warnings
         warns = sect.get('warn', [])
@@ -2746,13 +2749,14 @@ FLAG_MESSAGES = {
 
 class LogWriter(object):
     """
-    Context manager to handle opening logfiles, writing headers to logfiles and safe exit
+    Context manager to handle opening logfiles, writing headers to logfiles and safe exit.
     """
     def __init__(self, filename, rfile, hipercam_version, plist):
         self.rfile = rfile
         self.filename = filename
         self.hipercam_version = hipercam_version
         self.plist = plist
+        self.toffset = rfile['general']['toffset']
 
     def __enter__(self):
         # open filehandle, write header
@@ -2776,8 +2780,16 @@ class LogWriter(object):
                     len(self.rfile.aper[cnam]) == 0 or not pccd[cnam].is_data()):
                     continue
 
-            # get time and flag
-            mjd = pccd[cnam].head['MJDUTC']
+            # get time and flag, work out especially precise one if a toffset is supplied.
+            if self.toffset != 0:
+                # compute time difference to high-precision using string timestamp rather than
+                # the MJD to avoid round-off error
+                time = Time(pccd[cnam].head['MIDTIME'],format='isot')
+                mjd = (int(round(time.jd1))-self.toffset-2400000) + time.jd2 - 0.5
+            else:
+                # just get from pre-stored MJD
+                mjd = pccd[cnam].head['MJDUTC']
+
             mjdok = pccd[cnam].head.get('GOODTIME', True)
             if 'EXPTIME' in pccd[cnam].head:
                 exptim = pccd[cnam].head['EXPTIME']
@@ -2790,7 +2802,7 @@ class LogWriter(object):
 
             # write generic data
             self.log.write(
-                '{:s} {:d} {:17.11f} {:b} {:.5f} {:.2f} {:.2f} '.format(
+                '{:s} {:d} {:.14f} {:b} {:.7g} {:.2f} {:.2f} '.format(
                     cnam, nframe, mjd, mjdok, exptim, mfwhm, mbeta)
             )
 
@@ -2932,14 +2944,18 @@ class LogWriter(object):
 # Start of column name definitions:
 #
 """)
-
+        toffset = self.rfile['general']['toffset']
         for cnam, ccdaper in self.rfile.aper.items():
             if len(ccdaper) == 0:
                 # nothing will be written for CCDs without
                 # apertures
                 continue
 
-            cnames = '# {:s} = CCD nframe MJD MJDok Exptim mfwhm mbeta '.format(cnam)
+            if toffset == 0:
+                cnames = '# {:s} = CCD nframe MJD MJDok Exptim mfwhm mbeta '.format(cnam)
+            else:
+                cnames = '# {:s} = CCD nframe MJD-{:d} MJDok Exptim mfwhm mbeta '.format(cnam,toffset)
+
             for apnam in ccdaper:
                 cnames += 'x_{0:s} xe_{0:s} y_{0:s} ye_{0:s} ' \
                           'fwhm_{0:s} fwhme_{0:s} beta_{0:s} betae_{0:s} ' \

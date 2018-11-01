@@ -65,23 +65,23 @@ def genred(args=None):
            comment to add near the top of the reduce file. Obvious things to say
            are the target name and the name of the observer for instance.
 
-        bias    : string
+        bias : string
            Name of bias frame; 'none' to ignore.
 
-        flat    : string
+        flat : string
            Name of flat field frame; 'none' to ignore.
 
-        dark    : string
+        dark : string
            Name of dark frame; 'none' to ignore.
 
         linear  : string
            light curve plot linear (else magnitudes)
 
-        inst    : string
+        inst : string
            the instrument (needed to set nonlinearity and saturation levels for
            warning purposes. Possible options listed.
 
-        ncpu    : int [hidden]
+        ncpu : int [hidden]
            some increase in speed can be obtained by running the reduction in
            parallel. This parameter is the number of CPUs to use. The
            parellisation is over the CCDs, and there is no point having ncpu
@@ -90,11 +90,22 @@ def genred(args=None):
         extendx : float [hidden]
            how many minutes to extend light curve plot by at a time
 
-        ccd     : string [hidden]
+        ccd : string [hidden]
            label of the (single) CCD used for the position plot
 
         location : string [hidden]
            whether to reposition apertures or leave them fixed.
+
+        toffset : int [hidden]
+           integer offset to subtract from the MJD times in order to
+           reduce round-off.  i.e. rather 55678.123456789, if you
+           specified toffset=55600, you would reduce the round-off
+           error by a factor ~1000. With typical MJDs, round off is
+           around the 0.5 microsecond level. If you want to improve on
+           that, set an appropriate offset value. It is set by default
+           to 0, i.e. it will be 0 unless you explicitly set it
+           otherwise. The value used is recorded in the log
+           file. toffset must be >= 0.
 
         smoothfwhm : float [hidden]
            FWHM to use for smoothing during initial search
@@ -226,10 +237,11 @@ def genred(args=None):
         cl.register('extendx', Cline.LOCAL, Cline.HIDE)
         cl.register('ccd', Cline.LOCAL, Cline.HIDE)
         cl.register('location', Cline.LOCAL, Cline.HIDE)
+        cl.register('toffset', Cline.LOCAL, Cline.HIDE)
+        cl.register('smoothfwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('beta', Cline.LOCAL, Cline.HIDE)
         cl.register('betamax', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('smoothfwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhmmin', Cline.LOCAL, Cline.HIDE)
         cl.register('searchwidth', Cline.LOCAL, Cline.HIDE)
@@ -368,6 +380,12 @@ warn = 1 60000 64000
         location = 'variable' if location == 'v' else 'fixed'
         comm_seeing = '#' if location == 'fixed' else ''
         comm_position = '#' if location == 'fixed' else ''
+
+        cl.set_default('toffset',0)
+        toffset = cl.get_value(
+            'toffset',
+            'offset to subtract from the MJD times (to reduce round-off) [days]',0,0
+        )
 
         smooth_fwhm = cl.get_value(
             'smoothfwhm','search smoothing FWHM [binned pixels]',6.,3.
@@ -680,7 +698,7 @@ warn = 1 60000 64000
                 beta=beta, beta_max=beta_max, thresh=thresh, readout=readout,
                 gain=gain, fit_max_shift=fit_max_shift, fit_alpha=fit_alpha,
                 fit_diff=fit_diff, psfgfac=psfgfac, psfpostweak=psfpostweak,
-                psfwidth=psfwidth
+                psfwidth=psfwidth,toffset=toffset
             )
         )
 
@@ -730,6 +748,8 @@ lheight = 0 # light curve plot height, inches
 idevice = 2/xs # PGPLOT plot device for image plots [if implot True]
 iwidth = 0 # image curve plot width, inches, 0 to let program choose
 iheight = 0 # image curve plot height, inches
+
+toffset = {toffset} # offset subtracted from the MJD
 
 # series of count levels at which warnings will be triggered for (a) non
 # linearity and (b) saturation. Each line starts 'warn =', and is then
