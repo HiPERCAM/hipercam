@@ -2802,7 +2802,7 @@ class LogWriter(object):
 
             # write generic data
             self.log.write(
-                '{:s} {:d} {:.14f} {:b} {:.7g} {:.2f} {:.2f} '.format(
+                '{:s} {:d} {:.14f} {:b} {:.8g} {:.2f} {:.2f} '.format(
                     cnam, nframe, mjd, mjdok, exptim, mfwhm, mbeta)
             )
 
