@@ -69,8 +69,14 @@ def reduce(args=None):
            run number to access, e.g. 'run034'
 
         first : int [if source ends 's' or 'l']
-           exposure number to start from. 1 = first frame; set = 0 to
-           always try to get the most recent frame (if it has changed)
+           first frame to reduce. 1 = first frame; set = 0 to always try to
+           get the most recent frame (if it has changed).
+
+        last : int [if source ends 's' or 'l', hidden]
+           last frame to reduce. 0 to just continue until the end.  This is
+           not prompted for by default and must be set explicitly.  It
+           defaults to 0 if not set. Its purpose is to allow accurate
+           profiling tests.
 
         twait : float [if source ends 's'; hidden]
            time to wait between attempts to find a new exposure, seconds.
@@ -149,6 +155,7 @@ def reduce(args=None):
        case of optimal photometry since it is highly correlated with the
        seeing. If you are worried about the transmission during observing,
        you should always use normal aperture photometry.
+
     """
 
     command, args = utils.script_args(args)
@@ -160,6 +167,7 @@ def reduce(args=None):
         cl.register('rfile', Cline.GLOBAL, Cline.PROMPT)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
+        cl.register('last', Cline.LOCAL, Cline.HIDE)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
@@ -198,11 +206,19 @@ def reduce(args=None):
             # abort on failure to read as there are many ways to get reduce
             # files wrong
             print(err, file=sys.stderr)
+            print('*** reduce aborted')
             exit(1)
 
         if server_or_local:
             resource = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to reduce', 1, 0)
+            cl.set_default('last',0)
+            last = cl.get_value('last', 'last frame to reduce', 0, 0)
+            if last and last < first:
+                print('Cannot set last < first unless last == 0')
+                print('*** reduce aborted')
+                exit(1)
+
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
             tmx = cl.get_value(
@@ -365,7 +381,7 @@ def reduce(args=None):
                     )
 
                     if give_up:
-                        print('reduce stopped')
+                        print('reduce finished')
                         break
                     elif try_again:
                         continue
@@ -375,6 +391,13 @@ def reduce(args=None):
                     nframe = mccd.head['NFRAME']
                 else:
                     nframe = nf + 1
+
+                if nframe > last:
+                    print(
+                        'Have reduced up to the last frame set (={:d})'.format(last)
+                    )
+                    print('reduce finished')
+                    break
 
                 print(
                     'Frame {:d}: {:s} [{:s}]'.format(
@@ -422,7 +445,8 @@ def reduce(args=None):
 
 # END OF MAIN SECTION
 
-# Stuff below here are helper routines that are not exported
+# helper routine that is not globally exported
+
 def ccdproc(cnam, ccd, flat, rflat, rccd, ccdaper, ccdwins, rfile, store):
     """
     Processing steps for one CCD. This is designed for parallelising the
