@@ -368,7 +368,7 @@ def reduce(args=None):
         #
         tzset = False
 
-        with spooler.data_source(source, resource, first) as spool:
+        with spooler.data_source(source, resource, first, full=False) as spool:
 
             # 'spool' is an iterable source of MCCDs
             for nf, mccd in enumerate(spool):
@@ -392,9 +392,9 @@ def reduce(args=None):
                 else:
                     nframe = nf + 1
 
-                if nframe > last:
+                if last and nframe > last:
                     print(
-                        'Have reduced up to the last frame set (={:d})'.format(last)
+                        '\nHave reduced up to the last frame set.'
                     )
                     print('reduce finished')
                     break
