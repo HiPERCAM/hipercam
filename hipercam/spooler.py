@@ -150,7 +150,7 @@ class HcamDiskSpool(SpoolerBase):
     a raw HiPERCAM file.
     """
 
-    def __init__(self, run, first=1):
+    def __init__(self, run, first=1, full=True):
         """Attaches the HcamDiskSpool to a run.
 
         Arguments::
@@ -163,7 +163,7 @@ class HcamDiskSpool(SpoolerBase):
               The first frame to access.
 
         """
-        self._iter = hcam.Rdata(run, first, False)
+        self._iter = hcam.Rdata(run, first, False, )
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
@@ -274,15 +274,14 @@ class HcamServSpool(SpoolerBase):
         return self._iter.__next__()
 
 
-def data_source(source, resource, first=1):
+def data_source(source, resource, first=1, **kwargs):
     """Returns a context manager needed to run through a set of exposures.
     This is basically a wrapper around the various context managers that
     hook off the SpoolerBase class.
 
     Arguments::
 
-       source    : (string)
-
+       source : string
           Data source. Options are 'hl', 'hs', 'ul', 'us', 'hf'. The leading
           ('h' | 'u') indicates ULTRA(CAM|SPEC), or HiPERCAM. The trailing
           ('l' | 's' | 'f') refers to access through a local file for 'l'
@@ -291,15 +290,19 @@ def data_source(source, resource, first=1):
           Littlefair's HiPERCAM server), or from a list of fils in HiPERCAM's
           FITS-based hcm format.
 
-       resource : (string)
+       resource : string
           File name. A run number if source=('?l'|'?s') or a file list
           for source='hl'.
 
-       first    : (int)
+       first : int
           If a raw disk file is being read, either locally or via a server,
           this parameter sets where to start in the file. 0 to always try
           to get the last. See also 'hang_about' in this case. This parameter
           is ignored if source=='hf'.
+
+       kwargs : dictionary of keyword arguments
+          some of the spooler classes support extra arguments. e.g. HcamDiskSpool.
+          These are passed via kwargs
 
     Returns::
 
@@ -321,7 +324,7 @@ def data_source(source, resource, first=1):
     elif source == 'hs':
         return HcamServSpool(resource, first)
     elif source == 'hl':
-        return HcamDiskSpool(resource, first)
+        return HcamDiskSpool(resource, first, **kwargs)
     elif source == 'hf':
         return HcamListSpool(resource)
     else:
