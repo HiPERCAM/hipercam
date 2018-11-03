@@ -13,16 +13,16 @@ __all__ = (
     'combFit', 'fitMoffat', 'fitGaussian', 'moffat', 'gaussian'
 )
 
-def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
+def combFit(lwind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
             beta, read, gain, thresh, ndiv=0):
-    """Fits a stellar profile in a :class:Window using either a 2D Gaussian
-    or Moffat profile. This is a convenient wrapper of fitMoffat and 
+    """Fits a stellar profile in a :class:Lwindow using either a 2D Gaussian
+    or Moffat profile. This is a convenient wrapper of fitMoffat and
     fitGaussian because one often wants both options.
 
     Arguments::
 
-        wind      : :class:`Window`
-            the Window containing the stellar profile to fit
+        lwind : :class:`Lwindow`
+            the Lwindow containing the stellar profile to fit.
 
         method    : string
             fitting method 'g' for Gaussian, 'm' for Moffat
@@ -64,15 +64,15 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
 
         ndiv      : int
             Parameter controlling treatment of sub-pixellation. If ndiv > 0,
-            every pixel in `wind` will be sub-divided first into unbinned
+            every pixel in `lwind` will be sub-divided first into unbinned
             pixels, and then each unbinned pixel will be split into a square
             array of ndiv by ndiv points. The profile will be evaluated and
-            averaged over each of these points. Thus if the pixels in `wind`
+            averaged over each of these points. Thus if the pixels in `lwind`
             are binned xbin by ybin, there will be xbin*ybin*ndiv**2
             evaluations per pixel. This is to cope with the case where the
             seeing is becoming small compared to the pixels, but obviously
             will slow things. To simply evaluate the profile once at the
-            centre of each pixel in `wind`, set ndiv = 0.
+            centre of each pixel in `lwind`, set ndiv = 0.
 
     Returns:: (pars, epars, extras)
 
@@ -88,7 +88,7 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
           or it hit the minimum value.
 
        extras : tuple
-          (fit,x,y,sigma,chisq,nok,nrej,npar,message) -- `fit` is a Window
+          (fit,x,y,sigma,chisq,nok,nrej,npar,message) -- `fit` is an Lwindow
           containing the best fit; `x` and `x` are the X and Y coordinates of
           the pixels, sigma are the final uncertainties used for each pixel,
           any negative were rejected; `chisq` is the chi**2 of the fit; `nok`
@@ -106,7 +106,7 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
         (sky, height, x, y, fwhm), \
             (esky, eheight, ex, ey, efwhm), \
             (fit, X, Y, sigma, chisq, nok, nrej, npar) = fitGaussian(
-                wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
+                lwind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
                 read, gain, thresh, ndiv
             )
 
@@ -115,7 +115,7 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
         (sky, height, x, y, fwhm, beta), \
             (esky, eheight, ex, ey, efwhm, ebeta), \
             (fit, X, Y, sigma, chisq, nok, nrej, npar) = fitMoffat(
-                wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
+                lwind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
                 beta, read, gain, thresh, ndiv
             )
 
@@ -151,9 +151,9 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
 #
 ##########################################
 
-def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
+def fitMoffat(lwind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
               beta, read, gain, thresh, ndiv):
-    """Fits the profile of one target in a Window with a symmetric 2D Moffat
+    """Fits the profile of one target in a Lwindow with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
     from the centre of the aperture. The constant alpha is determined by the
     parameters `fwhm` and `beta`. The routine returns the fitted parameters,
@@ -165,27 +165,27 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
     Arguments::
 
-        wind     : Window
-            the Window with the data to be fitted. Ideally should contain
+        lwind : :class:`Lwindow`
+            the Lwindow with the data to be fitted. Ideally should contain
             only one target, so chopping down to a small region around
             the target of interest is usually a good idea.
 
-        sky      : float
+        sky : float
             initial value of the (assumed constant) sky background (counts
             per pixel)
 
-        height   : float
+        height : float
             initial peak height of profile (counts)
 
-        xcen     : float
+        xcen : float
             initial X value at centre of profile (unbinned absolute
             coordinates)
 
-        ycen     : float
+        ycen : float
             initial Y value at centre of profile (unbinned absolute
             coordinates)
 
-        fwhm     : float
+        fwhm : float
             initial FWHM (unbinned pixels).
 
         fwhm_min : float
@@ -199,46 +199,46 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             fix the FWHM at the value `fwhm` during fits. Should be a bit
             faster and more robust.
 
-        read     : float | array
+        read : float | array
             readout noise, from which weights are generated (RMS counts)
 
-        gain     : float | array
+        gain : float | array
             gain, from which weights are generated (e- per count)
 
-        thresh   : float
+        thresh : float
             threshold in terms of RMS for rejection. The RMS is obtained from
             read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
             = 4
 
-        ndiv     : int
+        ndiv : int
             Parameter controlling treatment of sub-pixellation. If ndiv > 0,
             every pixel will be sub-divided first into unbinned pixels, and
             then each unbinned pixels will be split into a square array of
             ndiv by ndiv points. The profile will be evaluated and averaged
-            over each of these points. Thus if the pixels in `wind` are binned
+            over each of these points. Thus if the pixels in `lwind` are binned
             xbin by ybin, there will be xbin*ybin*ndiv**2 evaluations per
             pixel. This is to cope with the case where the seeing is becoming
             small compared to the pixels, but obviously will slow things. To
             simply evaluate the profile once at the centre of each pixel in
-            `wind`, set ndiv = 0.
+            `lwind`, set ndiv = 0.
 
     Returns:: tuple of tuples
 
         (pars, sigs, extras) where::
 
-           pars   : tuple
+           pars : tuple
                 (sky, height, xcen, yce, fwhm, beta), the fitted parameters.
                 fwhm = fwhm_min if initial fit returns an fwhm < fwhm_min,
                 or == initial fwhm if fwhm_fix == True.
 
-           sigs   : tuple
+           sigs : tuple
                 (skye, heighte, xcene, ycene, fwhme, betae), standard errors
                 on the fit parameters. If fwhm defaults to `fwhm_min` or
                 `fwhm_fix` == True, then `fwhme` will come back as -1.
 
            extras : tuple
-                (fit, x, y, sigma, chisq, nok, nrej, npar) where: `fit` is a
-                :class:Window containing the best fit; `x` and `y` are the x
+                (fit, x, y, sigma, chisq, nok, nrej, npar) where: `fit` is an
+                :class:`Lwindow` containing the best fit; `x` and `y` are the x
                 and y positions of all pixels (2D numpy arrays); `sigma` is
                 the final set of RMS uncertainties on each pixel (2D numpy
                 array); `chisq` is the raw chi**2; `nok` is the number of
@@ -258,9 +258,9 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
     # construct function objects of both types from the first because during
     # rejection, we assume both exist. sigma arrays are constructed here all > 0
-    mfit1 = Mfit1(wind, read, gain, ndiv)
+    mfit1 = Mfit1(lwind, read, gain, ndiv)
     dmfit1 = Dmfit1(mfit1)
-    mfit2 = Mfit2(wind, read, gain, fwhm, ndiv)
+    mfit2 = Mfit2(lwind, read, gain, fwhm, ndiv)
     dmfit2 = Dmfit2(mfit2)
 
     while True:
@@ -287,7 +287,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 raise HipercamError('leastsq failed returning covar = None')
 
             # process results
-            fit = Window(wind.winhead, mfit2.model(soln))
+            fit = Lwindow(
+                lwind.llx, lwind.lly, lwind.nx, lwind.ny,
+                lwind.xbin, lwind.ybin, mfit2.model(soln)
+            )
             skyf, heightf, xf, yf, betaf = soln
             covs = np.diag(covar)
             if (covs < 0).any():
@@ -315,7 +318,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
             if fwhmf > fwhm_min:
                 # Free fit is OK
-                fit = Window(wind.winhead, mfit1.model(soln))
+                fit = Lwindow(
+                    lwind.llx, lwind.lly, lwind.nx, lwind.ny,
+                    lwind.xbin, lwind.ybin, mfit1.model(soln)
+                )
                 covs = np.diag(covar)
                 if (covs < 0).any():
                     raise HipercamError('Negative covariance in fitMoffat')
@@ -339,7 +345,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                     raise HipercamError('leastsq failed returning covar = None')
 
                 # process results
-                fit = Window(wind.winhead, mfit2.model(soln))
+                fit = Lwindow(
+                    lwind.llx, lwind.lly, lwind.nx, lwind.ny,
+                    lwind.xbin, lwind.ybin, mfit2.model(soln)
+                )
                 skyf, heightf, xf, yf, betaf = soln
                 covs = np.diag(covar)
                 if (covs < 0).any():
@@ -349,7 +358,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
         # now look for bad outliers
         ok = mfit1.sigma > 0
-        resid = (wind.data - fit.data) / mfit1.sigma
+        resid = (lwind.data - fit.data) / mfit1.sigma
         chisq = (resid[ok]**2).sum()
         nok1 = len(resid[ok])
         sfac = np.sqrt(chisq/(nok1-len(soln)))
@@ -642,31 +651,31 @@ class Mfit1:
     background model with free FWHM.
     """
 
-    def __init__(self, wind, read, gain, ndiv):
+    def __init__(self, lwind, read, gain, ndiv):
         """
         Arguments::
 
-          wind  : Window
-             the Window containing data to fit
+          lwind  : Lwindow
+             the Lwindow containing data to fit
 
           read  : float | array
              readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
           gain  : float | array
              gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
           ndiv  : int
              pixel sub-division factor. See comments in fitMoffat
         """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-        x = wind.x(np.arange(wind.nx))
-        y = wind.y(np.arange(wind.ny))
+        self.sigma = np.sqrt(read**2+np.maximum(0,lwind.data)/gain)
+        x = lwind.x(np.arange(lwind.nx))
+        y = lwind.y(np.arange(lwind.ny))
         self.xy = np.meshgrid(x, y)
-        self.data = wind.data
-        self.xbin = wind.xbin
-        self.ybin = wind.ybin
+        self.data = lwind.data
+        self.xbin = lwind.xbin
+        self.ybin = lwind.ybin
         self.ndiv = ndiv
 
     def __call__(self, param):
@@ -681,7 +690,7 @@ class Mfit1:
 
     def model(self, param):
         """
-        Returns Window with model given a parameter vector.
+        Returns 2D array with model given a parameter vector.
 
         Argument::
 
@@ -695,7 +704,8 @@ class Mfit1:
         """
         sky, height, xcen, ycen, fwhm, beta = param
         return moffat(
-            self.xy, sky, height, xcen, ycen, fwhm, beta, self.xbin, self.ybin, self.ndiv
+            self.xy, sky, height, xcen, ycen, fwhm, beta,
+            self.xbin, self.ybin, self.ndiv
         )
 
 class Dmfit1:
@@ -737,20 +747,20 @@ class Mfit2:
     background model with fixed FWHM
     """
 
-    def __init__(self, wind, read, gain, fwhm, ndiv):
+    def __init__(self, lwind, read, gain, fwhm, ndiv):
         """
         Arguments:
 
-          wind  : Window
-             the Window containing data to fit
+          lwind  : Lwindow
+             the Lwindow containing data to fit
 
           read  : float / array
              readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
           gain  : float / array
              gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
           fwhm  : float
              the fixed FWHM to use
@@ -758,14 +768,14 @@ class Mfit2:
           ndiv  : int
              pixel sub-division factor. See comments in fitMoffat
         """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-        x = wind.x(np.arange(wind.nx))
-        y = wind.y(np.arange(wind.ny))
+        self.sigma = np.sqrt(read**2+np.maximum(0,lwind.data)/gain)
+        x = lwind.x(np.arange(lwind.nx))
+        y = lwind.y(np.arange(lwind.ny))
         self.xy = np.meshgrid(x, y)
-        self.data = wind.data
+        self.data = lwind.data
         self.fwhm = fwhm
-        self.xbin = wind.xbin
-        self.ybin = wind.ybin
+        self.xbin = lwind.xbin
+        self.ybin = lwind.ybin
         self.ndiv = ndiv
 
     def __call__(self, param):
@@ -779,7 +789,7 @@ class Mfit2:
 
     def model(self, param):
         """
-        Returns Window with model given a parameter vector.
+        Returns 2D array with model given a parameter vector.
 
         Argument::
 
@@ -791,7 +801,10 @@ class Mfit2:
               corner of the physical imagine area; 'beta' is the Moffat exponent.
         """
         sky, height, xcen, ycen, beta = param
-        return moffat(self.xy, sky, height, xcen, ycen, self.fwhm, beta, self.xbin, self.ybin, self.ndiv)
+        return moffat(
+            self.xy, sky, height, xcen, ycen, self.fwhm,
+            beta, self.xbin, self.ybin, self.ndiv
+        )
 
 class Dmfit2:
     """
@@ -833,20 +846,20 @@ class Mfit3:
     background model with fixed FWHM and beta
     """
 
-    def __init__(self, wind, read, gain, fwhm, beta, ndiv):
+    def __init__(self, lwind, read, gain, fwhm, beta, ndiv):
         """
         Arguments:
 
-          wind  : Window
-             the Window containing data to fit
+          lwind  : Lwindow
+             the Lwindow containing data to fit
 
           read  : float / array
              readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
           gain  : float / array
              gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
           fwhm  : float
              the fixed FWHM to use
@@ -857,15 +870,15 @@ class Mfit3:
           ndiv  : int
              pixel sub-division factor. See comments in fitMoffat
         """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-        x = wind.x(np.arange(wind.nx))
-        y = wind.y(np.arange(wind.ny))
+        self.sigma = np.sqrt(read**2+np.maximum(0,lwind.data)/gain)
+        x = lwind.x(np.arange(lwind.nx))
+        y = lwind.y(np.arange(lwind.ny))
         self.xy = np.meshgrid(x, y)
-        self.data = wind.data
+        self.data = lwind.data
         self.fwhm = fwhm
         self.beta = beta
-        self.xbin = wind.xbin
-        self.ybin = wind.ybin
+        self.xbin = lwind.xbin
+        self.ybin = lwind.ybin
         self.ndiv = ndiv
 
     def __call__(self, param):
@@ -879,7 +892,7 @@ class Mfit3:
 
     def model(self, param):
         """
-        Returns Window with model given a parameter vector.
+        Returns 2D array with model given a parameter vector.
 
         Argument::
 
@@ -937,9 +950,10 @@ class Dmfit3:
 #
 ##########################################
 
-def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-                read, gain, thresh, ndiv):
-    """Fits the profile of one target in a Window with a 2D symmetric Gaussian
+def fitGaussian(
+        lwind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
+        read, gain, thresh, ndiv):
+    """Fits the profile of one target in an Lwindow with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
     of the aperture. The constant alpha is fixed by the FWHM. The function
     returns the fitted parameters, covariances and a few extras; see below.
@@ -950,27 +964,27 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
     Arguments::
 
-        wind     : Window
-            the Window with the data to be fitted. Ideally should contain only
+        lwind : Lwindow
+            the Lwindow with the data to be fitted. Ideally should contain only
             one target, so chopping down to a small region around the target
             of interest is usually a good idea.
 
-        sky      : float
+        sky : float
             initial value of the (assumed constant) sky background (counts per
             pixel)
 
-        height   : float
+        height : float
             initial peak height of profile (counts)
 
-        xcen     : float
+        xcen : float
             initial X value at centre of profile (unbinned absolute
             coordinates)
 
-        ycen     : float
+        ycen : float
             initial Y value at centre of profile (unbinned absolute
             coordinates)
 
-        fwhm     : float
+        fwhm : float
             initial FWHM (unbinned pixels).
 
         fwhm_min : float
@@ -984,47 +998,47 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             fix the FWHM at the value 'fwhm' during fits. Should be a bit
             faster and more robust.
 
-        read     : float / array
+        read : float / array
             readout noise, from which weights are generated. If an
-            array it must match the dimensions of the Window. (RMS counts)
+            array it must match the dimensions of the Lwindow. (RMS counts)
 
-        gain     : float / array
+        gain : float / array
             gain, from which weights are generated. If an array it
-            must match the dimensions of the Window (e- per count)
+            must match the dimensions of the Lwindow (e- per count)
 
-        thresh    : float
+        thresh : float
             threshold in terms of RMS for rejection. The RMS is obtained from
             read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
             = 4
 
-        ndiv     : int
+        ndiv : int
             Parameter controlling treatment of sub-pixellation. If ndiv > 0,
             every pixel will be sub-divided first into unbinned pixels, and
             then each unbinned pixels will be split into a square array of
             ndiv by ndiv points. The profile will be evaluated and averaged
-            over each of these points. Thus if the pixels in `wind` are binned
+            over each of these points. Thus if the pixels in `lwind` are binned
             xbin by ybin, there will be xbin*ybin*ndiv**2 evaluations per
             pixel. This is to cope with the case where the seeing is becoming
             small compared to the pixels, but obviously will slow things. To
             simply evaluate the profile once at the centre of each pixel in
-            `wind`, set ndiv = 0.
+            `lwind`, set ndiv = 0.
 
     Returns:: tuple of tuples
 
         (pars, sigs, extras) where::
 
-           pars   : tuple
+           pars : tuple
                 (sky, height, xcen, yce, fwhm). Fitted parameters.
                 `fwhm` == `fwhm_min` if fwhm after first fit is < `fwhm_min`,
                 or == initial fwhm if `fwhm_fix` == True.
 
-           sigs   : tuple
+           sigs : tuple
                 (skye, heighte, xcene, ycene, fwhme). Standard errors on
                 the fit parameters. If `fwhm` defaults to `fwhm_min` or
                 `fwhm_fix` == True, then `fwhme` will come back as -1.
 
            extras : tuple
-                (fit, x, y, sigma) where `fit` is a :class:Window containing
+                (fit, x, y, sigma) where `fit` is a :class:`Lwindow` containing
                 the best fit, `x` and `y` are the x and y positions of all
                 pixels (2D numpy arrays) and `sigma` is the final set of RMS
                 uncertainties on each pixels [option for future: some may come
@@ -1036,9 +1050,9 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
     # construct function objects of both types from the first because during
     # rejection, we assume both exist. sigma arrays are constructed here all > 0
-    gfit1 = Gfit1(wind, read, gain, ndiv)
+    gfit1 = Gfit1(lwind, read, gain, ndiv)
     dgfit1 = Dgfit1(gfit1)
-    gfit2 = Gfit2(wind, read, gain, fwhm, ndiv)
+    gfit2 = Gfit2(lwind, read, gain, fwhm, ndiv)
     dgfit2 = Dgfit2(gfit2)
 
     while True:
@@ -1065,7 +1079,10 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 raise HipercamError('leastsq failed returning covar = None')
 
             # process results
-            fit = Window(wind.winhead, gfit2.model(soln))
+            fit = Lwindow(
+                lwind.llx, lwind.lly, lwind.nx, lwind.ny,
+                lwind.xbin, lwind.ybin, gfit2.model(soln)
+            )
             skyf, heightf, xf, yf = soln
             covs = np.diag(covar)
             if (covs < 0).any():
@@ -1097,7 +1114,10 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 if (covs < 0).any():
                     raise HipercamError('Negative covariance in fitGaussian')
                 skyfe, heightfe, xfe, yfe, fwhmfe = np.sqrt(covs)
-                fit = Window(wind.winhead, gfit1.model(soln))
+                fit = Lwindow(
+                    lwind.llx, lwind.lly, lwind.nx, lwind.ny,
+                    lwind.xbin, lwind.ybin, gfit1.model(soln)
+                )
 
             else:
 
@@ -1117,7 +1137,10 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                     raise HipercamError('leastsq failed returning covar = None')
 
                 # process results
-                fit = Window(wind.winhead, gfit2.model(soln))
+                fit = Lwindow(
+                    lwind.llx, lwind.lly, lwind.nx, lwind.ny,
+                    lwind.xbin, lwind.ybin, gfit2.model(soln)
+                )
                 skyf, heightf, xf, yf = soln
                 covs = np.diag(covar)
                 if (covs < 0).any():
@@ -1127,7 +1150,7 @@ def fitGaussian(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
         # now look for bad outliers
         ok = gfit1.sigma > 0
-        resid = (wind.data - fit.data) / gfit1.sigma
+        resid = (lwind.data - fit.data) / gfit1.sigma
         chisq = (resid[ok]**2).sum()
         nok1 = len(resid[ok])
         sfac = np.sqrt(chisq/(nok1-len(soln)))
@@ -1166,38 +1189,38 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     """Returns a numpy array corresponding to the ordinate grids in xy set to a
     symmetric 2D Gaussian plus a constant. The profile is essentially defined
     by sky + height*exp(-alpha*r**2) where r is the distance from the centre
-    and alpha is set to give the desired FWHM, but account is taken of the finite
-    size of the pixels by summing over multiple points in each one.
+    and alpha is set to give the desired FWHM, but account is taken of the
+    finite size of the pixels by summing over multiple points in each one.
 
     Arguments::
 
-      xy    : array like
+      xy  : array like
          x,y = xy sets x and y to the X and Y ordinates over which you want to
-         compute the profile. They should be measured in term of unbinned pixels.
+         compute the profile. They should be measured in term of unbinned
+         pixels.
 
-
-      sky    : float
+      sky : float
          sky background
 
       height : float
          height of central peak
 
-      xcen   : float
+      xcen : float
          X-ordinate of centre
 
-      ycen   : float
+      ycen : float
          Y-ordinate of centre
 
-      fwhm   : float
+      fwhm : float
          FWHM of the profile (unbinned pixels)
 
-      xbin   : int
+      xbin : int
          X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
 
-      ybin   : int
+      ybin : int
          Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
 
-      ndiv   : int
+      ndiv : int
          Parameter controlling treatment of sub-pixellation. If > 0, every
          pixel will be sub-divided first into unbinned pixels, and then each
          unbinned pixels will be split into a square array of ndiv by ndiv
@@ -1245,40 +1268,40 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
         return sky+height*np.exp(-alpha*rsq)
 
 def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
-    """Returns a list of four or five numpy arrays corresponding to the
-    ordinate grids in xy set to the partial derivatives of a symmetric 2D
-    Gaussian plus a constant. Defined by sky + height*exp(-alpha*r**2) where r
-    is the distance from the centre and alpha is set to give the desired FWHM.
-    The partial derivatives are in the order of the parameters.
+    """Returns a list of four or five numpy arrays corresponding to the ordinate
+    grids in xy set to the partial derivatives of a symmetric 2D Gaussian plus
+    a constant. Defined by sky + height*exp(-alpha*r**2) where r is the
+    distance from the centre and alpha is set to give the desired FWHM.  The
+    partial derivatives are in the order of the parameters.
 
     Arguments::
 
-      xy    : array like
+      xy : array like
          x,y = xy sets x and y to the X and Y ordinates over which you want to
          compute the profile. They should be measured in term of unbinned pixels.
 
-      sky    : float
+      sky : float
          sky background
 
       height : float
          height of central peak
 
-      xcen   : float
+      xcen : float
          X-ordinate of centre
 
-      ycen   : float
+      ycen : float
          Y-ordinate of centre
 
-      fwhm   : float
+      fwhm : float
          FWHM of the profile
 
-      xbin   : int
+      xbin : int
          X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
 
-      ybin   : int
+      ybin : int
          Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
 
-      ndiv   : int
+      ndiv : int
          Parameter controlling treatment of sub-pixellation. If > 0, every
          pixel will be sub-divided first into unbinned pixels, and then each
          unbinned pixels will be split into a square array of ndiv by ndiv
@@ -1375,31 +1398,31 @@ class Gfit1:
     background model with free FWHM.
     """
 
-    def __init__(self, wind, read, gain, ndiv):
+    def __init__(self, lwind, read, gain, ndiv):
         """
         Arguments::
 
-          wind  : Window
-             the Window containing data to fit
+          lwind : Lwindow
+             the Lwindow containing data to fit
 
-          read  : float / array
+          read : float / array
              readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
-          gain  : float / array
+          gain : float / array
              gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
-          ndiv  : int
+          ndiv : int
              pixel sub-division factor. See comments in fitGaussian.
         """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-        x = wind.x(np.arange(wind.nx))
-        y = wind.y(np.arange(wind.ny))
+        self.sigma = np.sqrt(read**2+np.maximum(0,lwind.data)/gain)
+        x = lwind.x(np.arange(lwind.nx))
+        y = lwind.y(np.arange(lwind.ny))
         self.xy = np.meshgrid(x, y)
-        self.data = wind.data
-        self.xbin = wind.xbin
-        self.ybin = wind.ybin
+        self.data = lwind.data
+        self.xbin = lwind.xbin
+        self.ybin = lwind.ybin
         self.ndiv = ndiv
 
     def __call__(self, param):
@@ -1413,7 +1436,7 @@ class Gfit1:
         return diff[ok].ravel()
 
     def model(self, param):
-        """Returns Window with model given a parameter vector.
+        """Returns 2D array with model given a parameter vector.
 
         Argument::
 
@@ -1426,7 +1449,10 @@ class Gfit1:
 
         """
         sky, height, xcen, ycen, fwhm = param
-        return gaussian(self.xy, sky, height, xcen, ycen, fwhm, self.xbin, self.ybin, self.ndiv)
+        return gaussian(
+            self.xy, sky, height, xcen, ycen, fwhm,
+            self.xbin, self.ybin, self.ndiv
+        )
 
 class Dgfit1:
     """
@@ -1454,7 +1480,8 @@ class Dgfit1:
         """
         sky, height, xcen, ycen, fwhm = param
         derivs = dgaussian(
-            self.xy, sky, height, xcen, ycen, fwhm, self.xbin, self.ybin, self.ndiv, True
+            self.xy, sky, height, xcen, ycen, fwhm,
+            self.xbin, self.ybin, self.ndiv, True
         )
         ok = self.sigma > 0
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
@@ -1465,33 +1492,33 @@ class Gfit2:
     background model with a fixed FWHM.
     """
 
-    def __init__(self, wind, read, gain, fwhm, ndiv):
+    def __init__(self, lwind, read, gain, fwhm, ndiv):
         """
         Arguments:
 
-          wind  : Window
-             the Window containing data to fit
+          lwind : Lwindow
+             the Lwindow containing data to fit
 
-          read  : float / array
+          read : float / array
              readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
-          gain  : float / array
+          gain : float / array
              gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
+             same as the data in lwind
 
-          fwhm  : float
+          fwhm : float
              the fixed FWHM to use
 
-          ndiv  : int
+          ndiv : int
              sub-pixellation factor. See fitGaussian for more.
 
         """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-        x = wind.x(np.arange(wind.nx))
-        y = wind.y(np.arange(wind.ny))
+        self.sigma = np.sqrt(read**2+np.maximum(0,lwind.data)/gain)
+        x = lwind.x(np.arange(lwind.nx))
+        y = lwind.y(np.arange(lwind.ny))
         self.xy = np.meshgrid(x, y)
-        self.data = wind.data
+        self.data = lwind.data
         self.fwhm = fwhm
         self.xbin = wind.xbin
         self.ybin = wind.ybin
@@ -1508,7 +1535,7 @@ class Gfit2:
         return diff[ok].ravel()
 
     def model(self, param):
-        """Returns Window with model given a parameter vector.
+        """Returns 2D array with model given a parameter vector.
 
         Argument::
 
@@ -1521,7 +1548,10 @@ class Gfit2:
 
         """
         sky, height, xcen, ycen = param
-        return gaussian(self.xy, sky, height, xcen, ycen, self.fwhm, self.xbin, self.ybin, self.ndiv)
+        return gaussian(
+            self.xy, sky, height, xcen, ycen, self.fwhm,
+            self.xbin, self.ybin, self.ndiv
+        )
 
 class Dgfit2:
     """
@@ -1551,7 +1581,8 @@ class Dgfit2:
         """
         sky, height, xcen, ycen = param
         derivs = dgaussian(
-            self.xy, sky, height, xcen, ycen, self.fwhm, self.xbin, self.ybin, self.ndiv, False
+            self.xy, sky, height, xcen, ycen, self.fwhm,
+            self.xbin, self.ybin, self.ndiv, False
         )
         ok = self.sigma > 0
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
