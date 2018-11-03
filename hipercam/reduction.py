@@ -1207,8 +1207,8 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 wread = read[wnam]
                 wgain = gain[wnam]
 
-                # get sub-windat around start position
-                swdata = wdata.window(
+                # get sub-window around start position
+                swdata = wdata.lwindow(
                     aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
                 )
 
@@ -1216,13 +1216,13 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 x, y, peak = swdata.search(
                     apsec['search_smooth_fwhm'], aper.x, aper.y,
                     apsec['fit_height_min_ref'], False
-                    )
+                )
 
                 # Now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
-                fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwdata = wdata.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwread = wread.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwgain = wgain.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
                 # initial estimate of background
                 sky = np.percentile(fwdata.data, 50)
@@ -1241,19 +1241,19 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 (sky, height, x, y, fwhm, beta), \
                     (esky, eheight, ex, ey, efwhm, ebeta), \
                     extras = hcam.fitting.combFit(
-                                 fwdata, rfile.method, sky, peak-sky,
-                                 x, y, fit_fwhm, apsec['fit_fwhm_min'],
-                                 apsec['fit_fwhm_fixed'], fit_beta,
-                                 fwread.data, fwgain.data,
-                                 apsec['fit_thresh'], apsec['fit_ndiv']
-                             )
+                        fwdata, rfile.method, sky, peak-sky,
+                        x, y, fit_fwhm, apsec['fit_fwhm_min'],
+                        apsec['fit_fwhm_fixed'], fit_beta,
+                        fwread.data, fwgain.data,
+                        apsec['fit_thresh'], apsec['fit_ndiv']
+                    )
 
                 # check that x, y are in range of the original search box.
                 if swdata.distance(x, y) < 0.5:
                     raise hcam.HipercamError(
                         ('Fitted position ({:.1f},{:.1f}) too close to or'
                          ' beyond edge of search window = {!s}'.format(
-                                x, y, swdata.winhead.format()))
+                                x, y, swdata.format()))
                         )
 
                 if height > apsec['fit_height_min_ref']:
@@ -1314,7 +1314,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 'fwhm': 0., 'fwhme': -1.,
                 'beta': 0., 'betae': -1.,
                 'dx': 0., 'dy': 0.
-                }
+            }
 
         store['mfwhm'] = -1.
         store['mbeta'] = -1.
@@ -1343,7 +1343,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                                 'fwhm': 0., 'fwhme': -1.,
                                 'beta': 0., 'betae': -1.,
                                 'dx': 0., 'dy': 0.
-                                }
+                            }
 
                         store['mfwhm'] = -1.
                         store['mbeta'] = -1.
@@ -1352,7 +1352,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                             ('CCD {:s}: reference aperture differential '
                              'shift = {:.2f} exceeded limit = {:.2f}').format(
                                 cnam, diff, apsec['fit_diff']), file=sys.stderr
-                            )
+                        )
                         return False
 
         if wxsum > 0. and wysum > 0.:
@@ -1379,7 +1379,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                         'fwhm': 0., 'fwhme': -1.,
                         'beta': 0., 'betae': -1.,
                         'dx': 0., 'dy': 0.
-                        }
+                    }
             store['mfwhm'] = -1.
             store['mbeta'] = -1.
 
@@ -1419,17 +1419,17 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 # extract search sub-window around start position. If there
                 # were reference apertures this is only used to check that the
                 # position remains OK, but it should not be an expensive step
-                swdata = wdata.window(
+                swdata = wdata.lwindow(
                     aper.x+xshift-shbox, aper.x+xshift+shbox,
                     aper.y+yshift-shbox, aper.y+yshift+shbox
-                    )
+                )
 
                 # We carry out a search in either case because it involves a
                 # threshold check and we want that to be applied consistently.
                 x, y, peak = swdata.search(
                     apsec['search_smooth_fwhm'], aper.x, aper.y,
                     apsec['fit_height_min_nrf'], False
-                    )
+                )
 
                 if ref:
                     shift = np.sqrt((x-aper.x)**2+(y-aper.y)**2)
@@ -1458,20 +1458,24 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
-                fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwdata = wdata.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwread = wread.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwgain = wgain.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
                 sky = np.percentile(fwdata.data, 50)
 
                 # get some parameters from previous run where possible
-                fit_fwhm = (store[apnam]['fwhm']
-                            if apnam in store and store[apnam]['fwhme'] > 0.
-                            else apsec['fit_fwhm'])
+                fit_fwhm = (
+                    store[apnam]['fwhm']
+                    if apnam in store and store[apnam]['fwhme'] > 0.
+                    else apsec['fit_fwhm']
+                )
 
-                fit_beta = (store[apnam]['beta']
-                            if apnam in store and store[apnam]['betae'] > 0.
-                            else apsec['fit_beta'])
+                fit_beta = (
+                    store[apnam]['beta']
+                    if apnam in store and store[apnam]['betae'] > 0.
+                    else apsec['fit_beta']
+                )
 
                 # limit the initial value of beta because of tendency
                 # to wander to high values and never come down.
@@ -1481,19 +1485,19 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 (sky, height, x, y, fwhm, beta), \
                     (esky, eheight, ex, ey, efwhm, ebeta), \
                     extras = hcam.fitting.combFit(
-                                 fwdata, rfile.method, sky, peak-sky,
-                                 x, y, fit_fwhm, apsec['fit_fwhm_min'],
-                                 apsec['fit_fwhm_fixed'], fit_beta,
-                                 fwread.data, fwgain.data,
-                                 apsec['fit_thresh'], apsec['fit_ndiv']
-                             )
+                        fwdata, rfile.method, sky, peak-sky,
+                        x, y, fit_fwhm, apsec['fit_fwhm_min'],
+                        apsec['fit_fwhm_fixed'], fit_beta,
+                        fwread.data, fwgain.data,
+                        apsec['fit_thresh'], apsec['fit_ndiv']
+                    )
 
                 # this is where the search window gets used.
                 if swdata.distance(x, y) < 0.5:
                     raise hcam.HipercamError(
                         ('Fitted position ({:.1f},{:.1f}) too close to or'
                          ' beyond edge of search window = {!s}').format(
-                            x, y, swdata.winhead.format())
+                             x, y, swdata.winhead.format())
                     )
 
                 # check for overly large shifts in the case that we have
@@ -1748,16 +1752,18 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
             rmax = max(rmax, np.sqrt(xoff**2+yoff**2) + aper.rtarg)
 
         # this is the region of interest
-        x1, x2, y1, y2 = (aper.x-aper.rsky2-wdata.xbin, aper.x+aper.rsky2+wdata.xbin,
-                          aper.y-aper.rsky2-wdata.ybin, aper.y+aper.rsky2+wdata.ybin)
+        x1, x2, y1, y2 = (
+            aper.x-aper.rsky2-wdata.xbin, aper.x+aper.rsky2+wdata.xbin,
+            aper.y-aper.rsky2-wdata.ybin, aper.y+aper.rsky2+wdata.ybin
+        )
 
         try:
 
             # extract sub-Windows
-            swdata = wdata.window(x1, x2, y1, y2)
-            swread = wread.window(x1, x2, y1, y2)
-            swgain = wgain.window(x1, x2, y1, y2)
-            swraw = wraw.window(x1, x2, y1, y2)
+            swdata = wdata.lwindow(x1, x2, y1, y2)
+            swread = wread.lwindow(x1, x2, y1, y2)
+            swgain = wgain.lwindow(x1, x2, y1, y2)
+            swraw = wraw.lwindow(x1, x2, y1, y2)
 
             # some checks for possible problems. bitmask flags will be set if
             # they are encountered.
@@ -1930,12 +1936,14 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
                     if mbeta > 0.:
                         prof = fitting.moffat(
                             (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm, mbeta,
-                            wdata.xbin, wdata.ybin, rfile['apertures']['fit_ndiv']
+                            wdata.xbin, wdata.ybin,
+                            rfile['apertures']['fit_ndiv']
                         )
                     else:
                         prof = fitting.gaussian(
                             (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm,
-                            wdata.xbin, wdata.ybin, rfile['apertures']['fit_ndiv']
+                            wdata.xbin, wdata.ybin,
+                            rfile['apertures']['fit_ndiv']
                         )
 
                     # multiply weights by the profile
