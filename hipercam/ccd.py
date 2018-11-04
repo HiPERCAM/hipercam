@@ -27,6 +27,7 @@ class CCD(Agroup):
     operations, and file I/O to/from FITS files. Header information is passed
     via the Windows. The first of these is assumed to be the location for any
     data pertaining to the CCD as a whole.
+
     """
 
     def __init__(self, winds, nxtot, nytot, nxpad=0, nypad=0, copy=False):
@@ -45,15 +46,15 @@ class CCD(Agroup):
 
           nxpad : int
               extra padding in the X-direction to define plot limits (accounts
-              for possible prescans / overscans that have to be displayed outside
-              the imaging area)
+              for possible prescans / overscans that have to be displayed
+              outside the imaging area)
 
           nypad : int
               extra padding in the Y-direction to define plot limits (accounts
-              for possible prescans / overscans that have to be displayed outside
-              the imaging area)
+              for possible prescans / overscans that have to be displayed
+              outside the imaging area)
 
-          copy  : bool
+          copy : bool
               if True, copy all the data over, otherwise only references are
               held. Holding references is fine if the calling program keeps
               re-generating the data but could cause problems in some
@@ -154,13 +155,13 @@ class CCD(Agroup):
         Arguments::
 
             hdul : astropy.io.fits.HDUList
-                The HDUList to add to.
+               The HDUList to add to.
 
             cnam : string | None
-                CCD name.
+               CCD name.
 
             xoff : int [if cname is not None]
-                X-offset for mosaicing in ds9. Ignored if cnam is None.
+               X-offset for mosaicing in ds9. Ignored if cnam is None.
 
         Returns:: an :class:`HDUList`.
 
@@ -184,9 +185,9 @@ class CCD(Agroup):
                 # to be written for a given CCD.
                 head['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
                 head['NYTOT'] = (self.nytot, 'Total unbinned Y dimension')
+                head['NUMWIN'] = (len(self), 'Total number of windows')
                 head['NXPAD'] = (self.nxpad, 'X-padding for display purposes')
                 head['NYPAD'] = (self.nypad, 'Y-padding for display purposes')
-                head['NUMWIN'] = (len(self), 'Total number of windows')
 
             head['WINDOW'] = (wnam, 'Window label')
             hdul.append(wind.whdu(head, xoff, yoff, extnam))
