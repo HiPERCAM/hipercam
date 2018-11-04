@@ -142,6 +142,7 @@ class Rfile(OrderedDict):
 
         # type conversions
         toBool(rfile, 'apertures', 'fit_fwhm_fixed')
+        toBool(rfile, 'apertures', 'search_smooth_fft')
 
         apsec['search_half_width'] = int(apsec['search_half_width'])
         apsec['search_smooth_fwhm'] = float(apsec['search_smooth_fwhm'])

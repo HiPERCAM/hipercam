@@ -186,6 +186,7 @@ class Rhead:
         # store the file name and whether server being used
         self.fname = fname
         self.server = server
+        self.full = full
 
         if server:
             # open socket connection to server
@@ -526,7 +527,7 @@ class Rhead:
         self.ntbytes = self._framesize - (bitpix*npixels) // 8
 
         # Build (more) header info
-        if full:
+        if self.full:
             if 'DATE' in hd:
                 self.thead['DATE'] = (
                     hd['DATE'], hd.comments['DATE']
@@ -603,7 +604,7 @@ class Rhead:
             )
 
             # Nice-if-you-can-get-them items
-            if full:
+            if self.full:
 
                 # whether this CCD has gone through a reflection
                 hnam = 'ESO DET REFLECT{:d}'.format(n+1)
@@ -777,9 +778,9 @@ class Rdata (Rhead):
               Python-based server that defaults to port 8007.
 
            full : bool
-              Controls the amount of header info returned with the data. True for
-              as much detail as possible; False for minimal headers which require
-              less resources downstream.
+              Controls the amount of header info returned with the data. True
+              for as much detail as possible; False for minimal headers which
+              require less resources downstream.
 
         """
 
@@ -1005,9 +1006,9 @@ class Rdata (Rhead):
         thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
         thead['MJDUTC'] = (tstamp.mjd, 'MJD(UTC) equivalent')
         if (nsats == -1 and synced == -1) or synced == 0:
-            thead['GOODTIME'] = (False, 'Is TIMSTAMP thought to be OK?')
+            thead['GOODTIME'] = (False, 'TIMSTAMP OK?')
         else:
-            thead['GOODTIME'] = (True, 'Is TIMSTAMP thought to be OK?')
+            thead['GOODTIME'] = (True, 'TIMSTAMP OK?')
         thead['NFRAME'] = (frameCount, 'Frame number')
 
         # second, the data bytes
@@ -1032,23 +1033,26 @@ class Rdata (Rhead):
                 'Valid data (else junk frame)'
             )
 
-            # Get time at centre of exposure. Some care here to store a super-precise
-            # version of the time as a string along with the MJD -- the latter suffers
-            # round-off at the 0.5 microsecond level in double precision. The precise
-            # one allows better downstream precision by offsetting ('toffset' in reduce).
+            # Get time at centre of exposure. Some care here to store a
+            # super-precise version of the time as a string along with the MJD
+            # -- the latter suffers round-off at the 0.5 microsecond level in
+            # double precision. The precise one allows better downstream
+            # precision by offsetting ('toffset' in reduce).
             tmid, texp, flag = self.timing(frameCount, nccd)
             tdelta = TimeDelta(tmid,format='jd')
             midtime = tstamp + tdelta
-            ch['MIDTIME'] = (midtime.isot, 'Precise mid-exposure UTC string')
-            ch['MJDUTC'] = (midtime.mjd, 'MJD(UTC) at centre of exposure')
-            ch['GOODTIME'] = (flag and thead['GOODTIME'], 'Is MJDUTC reliable?')
+            ch['MIDTIME'] = (midtime.isot, 'Precise mid-exposure UTC')
+            ch['MJDUTC'] = (midtime.mjd, 'MJD(UTC) mid-exposure')
+            ch['GOODTIME'] = (flag and thead['GOODTIME'], 'MJDUTC OK?')
             ch['EXPTIME'] = (texp, 'Exposure time (secs)')
 
             # store for later recovery when creating the Windows
             cheads[cnam] = ch
 
             # Create the CCDs
-            ccds[cnam] = CCD(Group(Window), HCM_NXTOT, HCM_NYTOT)
+            ccds[cnam] = CCD(
+                Group(Window), HCM_NXTOT, HCM_NYTOT
+            )
 
         # npixel points to the start pixel of the set of windows under
         # consideration
@@ -1121,8 +1125,8 @@ class Rdata (Rhead):
                         # Generate name for the prescan Window
                         wpnam = '{:s}P'.format(wnam)
 
-                        # work out lly-value of bottom of pre-scan windows which
-                        # needs adjusting if the overscan is also on
+                        # work out lly-value of bottom of pre-scan windows
+                        # which needs adjusting if the overscan is also on
                         if self.oscan and (qnam == 'E' or qnam == 'F'):
                             plly = 1-HCM_NOSCAN
                         else:
@@ -1197,8 +1201,8 @@ class Rdata (Rhead):
                                 win.xbin, win.ybin, win
                             )
 
-                            # Create the Window with the over-scan from top part
-                            # of data frame
+                            # Create the Window with the over-scan from top
+                            # part of data frame
                             ccds[cnam][wonam] = Window(
                                 wino, win.data[-self.noscan:,:]
                             )

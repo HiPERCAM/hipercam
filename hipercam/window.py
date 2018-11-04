@@ -740,14 +740,14 @@ class Window(Winhead):
 
         Arguments::
 
-          head   : astropy.io.fits.Header
+          head : astropy.io.fits.Header
               Extra header items to add at the start of header in addition to
               those already contained in the :class:`Window`.
 
-          xoff   : int
+          xoff : int
               Offset in X-direction to use for mosaicing.
 
-          yoff   : int
+          yoff : int
               Offset in Y-direction to use for mosaicing.
 
           extnam : None | string
@@ -832,6 +832,7 @@ class Window(Winhead):
         #        cards.append(('CD2_2', float(self.ybin), 'y/y scale'))
         #        cards.append(('CD1_2', 0., 'no rotation or shear'))
         #        cards.append(('CD2_1', 0., 'no rotation or shear'))
+
         if extnam:
             cards.append(('EXTNAME', extnam, 'name of this image extension'))
         head.update(cards)
