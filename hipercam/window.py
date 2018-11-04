@@ -1204,10 +1204,11 @@ class Window(Winhead):
 
         if fwhm > 0:
             kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
+            fedge = self.data.min()
             if fft:
-                cimg = convolve_fft(self.data, kern, 'wrap')
+                cimg = convolve_fft(self.data, kern, 'fill', fedge)
             else:
-                cimg = convolve(self.data, kern, 'extend')
+                cimg = convolve(self.data, kern, 'fill', fedge)
         else:
             cimg = self.data
 
@@ -1670,8 +1671,8 @@ class Lwindow:
         Arguments::
 
           fwhm : float
-            Gaussian FWHM in pixels. If <= 0, there will be no convolution, although
-            this is not advisable as a useful strategy.
+            Gaussian FWHM in pixels. If <= 0, there will be no convolution,
+            although this is not advisable as a useful strategy.
 
           x0 : float
             x-position to judge position from (CCD-coordinates). The closest
@@ -1694,11 +1695,11 @@ class Lwindow:
             edges where it extends value with the nearest pixel while the FFT
             wraps values.
 
-         max : bool
+          max : bool
             If True, just go for the highest peak, i.e. ignore x0, y0. The peak
             should still exceed the background by `thresh`
 
-         percent : float
+          percent : float
             percentile to use to compute the background value. < 0 and it will
             be set to the minimum. 50% = median by default.
 
@@ -1715,10 +1716,11 @@ class Lwindow:
 
         if fwhm > 0:
             kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
+            fedge = self.data.min()
             if fft:
-                cimg = convolve_fft(self.data, kern, 'wrap')
+                cimg = convolve_fft(self.data, kern, 'fill', fedge)
             else:
-                cimg = convolve(self.data, kern, 'extend')
+                cimg = convolve(self.data, kern, 'fill', fedge)
         else:
             cimg = self.data
 
