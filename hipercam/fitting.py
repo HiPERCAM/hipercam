@@ -1520,8 +1520,8 @@ class Gfit2:
         self.xy = np.meshgrid(x, y)
         self.data = lwind.data
         self.fwhm = fwhm
-        self.xbin = wind.xbin
-        self.ybin = wind.ybin
+        self.xbin = lwind.xbin
+        self.ybin = lwind.ybin
         self.ndiv = ndiv
 
     def __call__(self, param):

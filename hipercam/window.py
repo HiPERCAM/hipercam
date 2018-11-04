@@ -1063,8 +1063,8 @@ class Window(Winhead):
         if self.data is None:
             return Lwindow(llx, lly, nx, ny, self.xbin, self.ybin)
         else:
-            x1 = (winh.llx-self.llx)//self.xbin
-            y1 = (winh.lly-self.lly)//self.ybin
+            x1 = (llx-self.llx)//self.xbin
+            y1 = (lly-self.lly)//self.ybin
             return Lwindow(
                 llx, lly, nx, ny, self.xbin, self.ybin,
                 self.data[y1:y1+ny, x1:x1+nx]
@@ -1545,6 +1545,48 @@ class Lwindow:
             'cannot set ny directly; change data array instead'
         )
 
+    @property
+    def urx(self):
+        """
+        Returns (unbinned) X pixel at upper-right of :class:`Lwindow`
+        """
+        return self.llx-1+self.nx*self.xbin
+
+    @property
+    def ury(self):
+        """
+        Returns (unbinned) Y pixel at upper-right of :class:`Lwindow`
+        """
+        return self.lly-1+self.ny*self.ybin
+
+    @property
+    def xlo(self):
+        """
+        Returns left-hand edge of window (llx-0.5)
+        """
+        return self.llx-0.5
+
+    @property
+    def xhi(self):
+        """
+        Returns right-hand edge of window (urx+0.5)
+        """
+        return self.llx-1+self.nx*self.xbin+0.5
+
+    @property
+    def ylo(self):
+        """
+        Returns bottom edge of window (lly-0.5)
+        """
+        return self.lly-0.5
+
+    @property
+    def yhi(self):
+        """
+        Returns top edge of window (ury+0.5)
+        """
+        return self.lly-1+self.ny*self.ybin+0.5
+
     def x(self, xpix):
         """Given an X-pixel position, returns the physical X in the CCD.
 
@@ -1604,6 +1646,14 @@ class Lwindow:
 
         """
         return (y+0.5-self.lly)/self.ybin-0.5
+
+    def extent(self):
+
+        """
+        Returns (left,right,bottom,top) boundaries of :class:`Lwindow`
+        i.e. (xlo,xhi,ylo,yhi)
+        """
+        return (self.xlo,self.xhi,self.ylo,self.yhi)
 
     def search(self, fwhm, x0, y0, thresh, fft, max=False, percent=50.):
         """Search for a target in a :class:`Lwindow`. Works by convolving the image
@@ -1709,6 +1759,48 @@ class Lwindow:
 
         # return with the device coords and the value
         return (self.x(ix),self.y(iy),self.data[iy,ix])
+
+    def sum(self):
+        """
+        Returns the sum of the :class:`Lwindow`.
+        """
+        return self.data.sum()
+
+    def distance(self, x, y):
+        """Calculates the minimum distance of a point from the edge of the
+        Lwindow. If the point is outside the Lwindow the distance will
+        be negative; if inside it will be positive. The edge is
+        defined as the line running around the outside of the outer
+        set of pixels. For a point outside the box in both x and y,
+        the value returned is a lower limit to the distance.
+
+        """
+        if x < self.xlo:
+            if y < self.ylo:
+                dist = -min(self.xlo-x, self.ylo-y)
+            elif y > self.yhi:
+                dist = -min(self.xlo-x, y-self.yhi)
+            else:
+                dist = x-self.xlo
+
+        elif x > self.xhi:
+            if y < self.ylo:
+                dist = -min(x-self.xhi, self.ylo-y)
+            elif y > self.yhi:
+                dist = -min(x-self.xhi, y-self.yhi)
+            else:
+                dist = self.xhi-x
+
+        else:
+            if y < self.ylo:
+                dist = y-self.ylo
+            elif y > self.yhi:
+                dist = self.yhi-y
+            else:
+                # we are *in* the box
+                dist = min(x-self.xlo, self.xhi-x, y-self.ylo, self.yhi-y)
+
+        return dist
 
     def __repr__(self):
         return 'Lwindow(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, data={!r})'.format(
