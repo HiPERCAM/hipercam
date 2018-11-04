@@ -1123,8 +1123,8 @@ def process_ccds(pccd, mccd, pool, ccdproc, rfile, mccdwins, store, read, gain):
 def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results
     that will be used to start the fits from one frame to the next. It must
-    start as {'mfwhm': -1., 'mbeta': -1.}. The values of these will be
-    revised and extra stuff added in addition.
+    start as {'mfwhm': -1., 'mbeta': -1.}. The values of these will be revised
+    and extra stuff added in addition.
 
     It operates by first shifting any reference apertures, then non-linked
     apertures, and finally linked apertures. The overall sequence is quite
@@ -1166,7 +1166,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
            finally the change in x and y position. 'nok' stores the number
            of times a successful mean FWHM was measured.
 
-    Returns True or False to indicate whether to move onto extraction or not.
+    Returns: True or False to indicate whether to move onto extraction or not.
     If False, extraction will be skipped.
     """
 
@@ -1220,7 +1220,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 # carry out initial search
                 x, y, peak = swdata.search(
                     apsec['search_smooth_fwhm'], aper.x, aper.y,
-                    apsec['fit_height_min_ref'], False
+                    apsec['fit_height_min_ref'], apsec['search_smooth_fft']
                 )
 
                 # Now for a more refined fit. First extract fit Window
@@ -1433,7 +1433,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 # threshold check and we want that to be applied consistently.
                 x, y, peak = swdata.search(
                     apsec['search_smooth_fwhm'], aper.x, aper.y,
-                    apsec['fit_height_min_nrf'], False
+                    apsec['fit_height_min_nrf'], apsec['search_smooth_fft']
                 )
 
                 if ref:

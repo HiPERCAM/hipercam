@@ -108,7 +108,12 @@ def genred(args=None):
            file. toffset must be >= 0.
 
         smoothfwhm : float [hidden]
-           FWHM to use for smoothing during initial search
+           FWHM to use for smoothing during initial search [binned pixels]
+
+        fft : bool [hidden]
+           whether or not to use FFTs when carrying out the convolution
+           operation used in the initial search. No effect on results,
+           but could be faster for large values of smoothfwhm.
 
         method   : string
            profile fitting method. 'g' for gaussian, 'm' for moffat
@@ -121,10 +126,10 @@ def genred(args=None):
            it wandering to silly values which can happen.
 
         fwhm     : float [hidden]
-           the default FWHM to use when fitting, unbinned pixels.
+           the default FWHM to use when fitting [unbinned pixels].
 
         fwhmmin  : float [hidden]
-           the default FWHM to use when fitting, unbinned pixels.
+           the default FWHM to use when fitting [unbinned pixels].
 
         searchwidth : int [hidden]
            half width in (binned) pixels for the target searches
@@ -389,6 +394,10 @@ warn = 1 60000 64000
 
         smooth_fwhm = cl.get_value(
             'smoothfwhm','search smoothing FWHM [binned pixels]',6.,3.
+        )
+
+        smooth_fft = cl.get_value(
+            'fft','use FFT when smoothing',False
         )
 
         profile_type = cl.get_value(
@@ -698,7 +707,8 @@ warn = 1 60000 64000
                 beta=beta, beta_max=beta_max, thresh=thresh, readout=readout,
                 gain=gain, fit_max_shift=fit_max_shift, fit_alpha=fit_alpha,
                 fit_diff=fit_diff, psfgfac=psfgfac, psfpostweak=psfpostweak,
-                psfwidth=psfwidth,toffset=toffset
+                psfwidth=psfwidth,toffset=toffset,
+                smooth_fft='yes' if smooth_fft else 'no'
             )
         )
 
@@ -749,7 +759,7 @@ idevice = 2/xs # PGPLOT plot device for image plots [if implot True]
 iwidth = 0 # image curve plot width, inches, 0 to let program choose
 iheight = 0 # image curve plot height, inches
 
-toffset = {toffset} # offset subtracted from the MJD
+toffset = {toffset:d} # offset subtracted from the MJD
 
 # series of count levels at which warnings will be triggered for (a) non
 # linearity and (b) saturation. Each line starts 'warn =', and is then
@@ -774,21 +784,26 @@ ncpu = {ncpu}
 # shift. This is used to avoid the initial search for any non-reference
 # apertures which has the advantage of reducing the chance of problems. The
 # search is carried out by first extracting a sub-window centred on the last
-# good position of a target. This is then smoothed by a gaussian, and the
-# closest peak to the last valid position higher than 'fit_height_min_ref'
-# above background (median of the square box) is taken as the initial position
-# for later profile fits. The smoothing serves to make the process more robust
-# against cosmic rays. The width of the search box ('search_half_width')
-# depends on how good the telescope guiding is. It should be large enough to
-# cope with the largest likely shift in position between any two consecutive
-# frames. Well-chosen reference targets, which should be isolated and bright,
-# can help this process a great deal. The threshold is applied to the
-# *smoothed* image. This typically means that it can be significantly lower
-# than simply the typical peak height. i.e. a target might have a typical peak
-# height around 100, in seeing of 4 pixels FWHM. If you smooth by 10 pixels,
-# the peak height will drop to 100*4**2/(4**2+10**2) = 14 counts. It will be
-# much more stable as a result, but you should then probably choose a threshold of
-# 7 when you might have thought 50 was appropriate.
+# good position of a target. This is then smoothed by a gaussian (width
+# 'search_smooth_fwhm'), and the closest peak to the last valid position
+# higher than 'fit_height_min_ref' above background (median of the square box)
+# is taken as the initial position for later profile fits. The smoothing
+# serves to make the process more robust against cosmic rays. The width of the
+# search box ('search_half_width') depends on how good the telescope guiding
+# is. It should be large enough to cope with the largest likely shift in
+# position between any two consecutive frames. Well-chosen reference targets,
+# which should be isolated and bright, can help this process a great deal. The
+# threshold is applied to the *smoothed* image. This typically means that it
+# can be significantly lower than simply the typical peak height. i.e. a
+# target might have a typical peak height around 100, in seeing of 4 pixels
+# FWHM. If you smooth by 10 pixels, the peak height will drop to
+# 100*4**2/(4**2+10**2) = 14 counts. It will be much more stable as a result,
+# but you should then probably choose a threshold of 7 when you might have
+# thought 50 was appropriate. The smoothing itself can be carried out by
+# direct convolution or by an FFT-based method. The end-result is the same
+# either way but for large values of 'search_smooth_fwhm', i.e. >> 1, FFTs may
+# offer an advantage speed-wise. But the only wat to tell is my explicity
+# running with 'search_smooth_fft' switched from 'no' to 'yes'.
 #
 # The boxes for the fits ('fit_half_width') need to be large enough to include
 # the target and a bit of sky to ensure that the FWHM is accurately measured,
@@ -844,7 +859,8 @@ aperfile = {apfile} # file of software apertures for each CCD
 location = {location} # aperture locations: 'fixed' or 'variable'
 
 search_half_width = {search_half_width:d} # for initial search for objects around previous position, unbinned pixels
-search_smooth_fwhm = {smooth_fwhm:.1f}    # smoothing FWHM, binned pixels
+search_smooth_fwhm = {smooth_fwhm:.1f} # smoothing FWHM, binned pixels
+search_smooth_fft = {smooth_fft} # use FFTs for smoothing, 'yes' or 'no'.
 
 fit_method = {profile_type} # gaussian or moffat
 fit_beta = {beta:.1f} # Moffat exponent
