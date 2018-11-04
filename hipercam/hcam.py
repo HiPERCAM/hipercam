@@ -230,7 +230,8 @@ class Rhead:
         # set the mode, one or two windows per quadrant, drift etc.  This is
         # essential.
         self.mode = hd['ESO DET READ CURNAME']
-        self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
+        if self.full:
+            self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
         self.drift = self.mode.startswith('Drift')
         if self.drift:
             self.ndwins = hd.get('ESO DET DRIFT NWINS',0)
@@ -582,12 +583,15 @@ class Rhead:
                 self.thead['EXPTIME'] = (
                     hd['EXPTIME'], hd.comments['EXPTIME']
                 )
+
             self.thead['XBIN'] = (
                 self.xbin, hd.comments['ESO DET BINX1']
             )
+
             self.thead['YBIN'] = (
                 self.ybin, hd.comments['ESO DET BINY1']
             )
+
             self.thead['SPEED'] = (
                 hd['ESO DET SPEED'], hd.comments['ESO DET SPEED']
             )
@@ -1041,6 +1045,7 @@ class Rdata (Rhead):
             tmid, texp, flag = self.timing(frameCount, nccd)
             tdelta = TimeDelta(tmid,format='jd')
             midtime = tstamp + tdelta
+
             ch['MIDTIME'] = (midtime.isot, 'Precise mid-exposure UTC')
             ch['MJDUTC'] = (midtime.mjd, 'MJD(UTC) mid-exposure')
             ch['GOODTIME'] = (flag and thead['GOODTIME'], 'MJDUTC OK?')
@@ -1462,9 +1467,11 @@ def decode_timing_bytes(tbytes):
 
     # format with 36 timing bytes (last two of which are ignored).
     # The -36 is to try to cope with cases where more than 36 bytes come through.
-    buf = struct.pack('<HHHHHHHHHHHHHHHHH',
-                     *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
-                                                             tbytes[-36:-2])))
+    buf = struct.pack(
+        '<HHHHHHHHHHHHHHHHH',
+        *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
+                                               tbytes[-36:-2]))
+    )
     return struct.unpack('<IIIIIIIIbb', buf)
 
 class HendError(HipercamError):

@@ -1644,34 +1644,34 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
 
     determines whether the data saturation flag is set for example.
 
-    Input arguments:
+    Input arguments::
 
-       cnam     : string
+       cnam : string
           CCD identifier label
 
-       ccd       : CCD
+       ccd : CCD
            the debiassed, flat-fielded CCD.
 
-       read      : CCD
+       read : CCD
            readnoise divided by the flat-field
 
-       gain      : CCD
+       gain : CCD
            gain multiplied by the flat field
 
-       rccd     : CCD
+       rccd : CCD
           corresponding raw CCD, used to work out whether data are
           saturated in target aperture.
 
-       ccdaper  : CcdAper
+       ccdaper : CcdAper
           CCD's-worth of Apertures
 
-       ccdwin   : dictionary of strings
+       ccdwin : dictionary of strings
            the Window label corresponding to each Aperture
 
-       rfile     : Rfile
+       rfile : Rfile
            reduce file configuration parameters
 
-       store     : dict of dicts
+       store : dict of dicts
            see moveApers for what this contains.
 
     """
