@@ -1497,7 +1497,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                     raise hcam.HipercamError(
                         ('Fitted position ({:.1f},{:.1f}) too close to or'
                          ' beyond edge of search window = {!s}').format(
-                             x, y, swdata.winhead.format())
+                             x, y, swdata.format())
                     )
 
                 # check for overly large shifts in the case that we have
