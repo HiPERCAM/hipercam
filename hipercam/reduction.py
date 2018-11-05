@@ -1214,7 +1214,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 wgain = gain[wnam]
 
                 # get sub-window around start position
-                swdata = wdata.lwindow(
+                swdata = wdata.window(
                     aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
                 )
 
@@ -1226,9 +1226,9 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
                 # Now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
-                fwdata = wdata.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwread = wread.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwgain = wgain.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
                 # initial estimate of background
                 sky = np.percentile(fwdata.data, 50)
@@ -1425,7 +1425,7 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
                 # extract search sub-window around start position. If there
                 # were reference apertures this is only used to check that the
                 # position remains OK, but it should not be an expensive step
-                swdata = wdata.lwindow(
+                swdata = wdata.window(
                     aper.x+xshift-shbox, aper.x+xshift+shbox,
                     aper.y+yshift-shbox, aper.y+yshift+shbox
                 )
@@ -1464,9 +1464,9 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
 
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec['fit_half_width']
-                fwdata = wdata.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwread = wread.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwgain = wgain.lwindow(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
 
                 sky = np.percentile(fwdata.data, 50)
 
@@ -1766,10 +1766,10 @@ def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
         try:
 
             # extract sub-Windows
-            swdata = wdata.lwindow(x1, x2, y1, y2)
-            swread = wread.lwindow(x1, x2, y1, y2)
-            swgain = wgain.lwindow(x1, x2, y1, y2)
-            swraw = wraw.lwindow(x1, x2, y1, y2)
+            swdata = wdata.window(x1, x2, y1, y2)
+            swread = wread.window(x1, x2, y1, y2)
+            swgain = wgain.window(x1, x2, y1, y2)
+            swraw = wraw.window(x1, x2, y1, y2)
 
             # some checks for possible problems. bitmask flags will be set if
             # they are encountered.
@@ -2791,10 +2791,10 @@ class LogWriter(object):
 
             # get time and flag, work out especially precise one if a toffset is supplied.
             if self.toffset != 0:
-                # compute time difference to high-precision using string timestamp rather than
-                # the MJD to avoid round-off error
-                time = Time(pccd[cnam].head['MIDTIME'],format='isot')
-                mjd = (int(round(time.jd1))-self.toffset-2400000) + time.jd2 - 0.5
+                # compute time difference to high-precision using
+                # integer and fractional parts rather than the straight
+                # MJD to avoid round-off error
+                mjd = (pccd[cnam].head['MJDINT']-self.toffset) + pccd[cnam].head['MJDFRAC']
             else:
                 # just get from pre-stored MJD
                 mjd = pccd[cnam].head['MJDUTC']

@@ -384,7 +384,7 @@ class Winhead(fits.Header):
 
         return dist
 
-    def window(self, xlo, xhi, ylo, yhi):
+    def window(self, xlo, xhi, ylo, yhi, copy=False):
         """Generates a new Winhead by windowing it to match the complete pixels
         visible within the range xlo to xhi, ylo to yhi.
 
@@ -402,6 +402,11 @@ class Winhead(fits.Header):
 
            yhi : float
               maximum Y, unbinned pixels
+
+           copy : bool
+              controls whether the FITS header is copied over, or just referenced.
+              The latter is more efficient, but if you later want to change the
+              header could propogate those changes to whatever you copied.
 
         Returns the windowed Winhead. Raises a ValueError if there are no
         visible pixels.
@@ -424,13 +429,13 @@ class Winhead(fits.Header):
                     self.format(), xlo, xhi, ylo, yhi)
                 )
 
-        winhc = self.copy()
-        winhc.llx = llx
-        winhc.lly = lly
-        winhc.nx = nx
-        winhc.ny = ny
-
-        return winhc
+        if copy:
+            # headers are copied over as an independent object
+            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin, super().copy())
+        else:
+            # headers are copied by reference.
+            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin, self)
+        return wh
 
     @classmethod
     def from_lwindow(cls, lwin, head=fits.Header()):
@@ -980,31 +985,37 @@ class Window(Winhead):
 
         copy.copy and copy.deepcopy of a `Window` use this method
         """
-        return Window(self.winhead.copy(), self.data.copy())
+        return Window(super().copy(), self.data.copy())
 
-    def window(self, xlo, xhi, ylo, yhi):
-        """Creates a new Window by windowing it down to whatever complete pixels are
-        visible in the region xlo to xhi, ylo to yhi.
+    def window(self, xlo, xhi, ylo, yhi, copy=False):
+        """Creates a new Window by windowing it down to whatever complete
+        pixels are visible in the region xlo to xhi, ylo to yhi.
 
         Arguments::
 
-           xlo : (float)
+           xlo : float
               minimum X, unbinned pixels (extreme left pixels of CCD centred on 1)
 
-           xhi : (float)
+           xhi : float
               maximum X, unbinned pixels
 
-           ylo : (float)
+           ylo : float
               minimum Y, unbinned pixels (bottom pixels of CCD centred on 1)
 
-           yhi : (float)
+           yhi : float
               maximum Y, unbinned pixels
+
+           copy : bool
+              controls whether the headers in the Windhead associated with this
+              are copied by value or reference. True=copy by value which can carry
+              significant overheads, but has the virtue of creating an independent
+              object.
 
         Returns the windowed Window.
 
         """
         # construct a chopped down Winhead
-        winh = self.winhead.window(xlo, xhi, ylo, yhi)
+        winh = super().window(xlo, xhi, ylo, yhi, copy)
 
         # we know the Winhead generated is in step with the current Winhead
         # which saves some checks that would be applied if 'crop' was used at
@@ -1111,7 +1122,7 @@ class Window(Winhead):
         else:
             raise ValueError(
                 'Cannot crop {!r} to {!r}'.format(
-                    self.winhead.format(),win.winhead.format())
+                    self.format(), win.format())
             )
 
     def float32(self):
@@ -1364,7 +1375,7 @@ class Window(Winhead):
         # carry out addition to a float type
         data = self.data + num
 
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
 
     def __radd__(self, other):
@@ -1375,7 +1386,7 @@ class Window(Winhead):
 
         # carry out addition to a float type
         data = self.data + other
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __sub__(self, other):
         """Subtracts `other` from a :class:`Window` as `wind - other`.  Here `other`
@@ -1392,7 +1403,7 @@ class Window(Winhead):
 
         # carry out addition to a float type
         data = self.data - num
-        return Window(self.winhead, data)
+        return Window(super.copy(), data)
 
     def __rsub__(self, other):
         """Subtracts a :class:`Window` from `other` as `other - wind`.  Here `other`
@@ -1401,7 +1412,7 @@ class Window(Winhead):
         """
         # carry out subtraction to a float type
         data = other - self.data
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __mul__(self, other):
         """Multiplies a :class:`Window` by `other` as `wind * other`.  Here `other`
@@ -1419,7 +1430,7 @@ class Window(Winhead):
 
         # carry out multiplication to a float type
         data = self.data*num
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __rmul__(self, other):
         """Multiplies a :class:`Window` by `other` as `other * wind`.  Here `other` is
@@ -1429,7 +1440,7 @@ class Window(Winhead):
         """
         # carry out multiplication to a float type
         data = self.data*other
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __truediv__(self, other):
         """Divides a :class:`Window` by `other` as `wind / other`.  Here `other`
@@ -1448,7 +1459,7 @@ class Window(Winhead):
 
         # carry out division
         data = self.data / num
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __rtruediv__(self, other):
         """Divides `other` by a :class:`Window` as `other / wind`.  Here `other` is
@@ -1457,7 +1468,7 @@ class Window(Winhead):
         """
         # carry out division
         data = other / self.data
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
 class Lwindow:
     """Lightweight version of Window lacking a FITS header. Several
