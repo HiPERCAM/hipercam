@@ -15,18 +15,19 @@ from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
 from scipy.ndimage.filters import maximum_filter
+from scipy.ndimage import gaussian_filter
 
 import matplotlib.pyplot as plt
 from .core import *
 from .group import *
+from .header import *
 
 __all__ = (
     'Winhead', 'Window',
     'CcdWin', 'MccdWin',
-    'Lwindow'
 )
 
-class Winhead(fits.Header):
+class Winhead(Header):
     """Class representing the header parts of a CCD window, i.e. everything
     needed to represent a window other than its data. This represents an
     arbitrary rectangular region of binned pixels. The lower-left pixel of the
@@ -37,12 +38,12 @@ class Winhead(fits.Header):
         >>> win = Winhead(12, 6, 100, 150, 2, 3)
         >>> print(win)
 
-    :class:`Winhead`s are inherited from :class:`astropy.io.fits.Header`
-    objects and thus represent data-less HDUs.
+    :class:`Winhead`s are inherited from :class:`hipercam.Header`
+    objects
 
     """
 
-    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=fits.Header()):
+    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=Header()):
         """
         Constructor. Arguments::
 
@@ -64,7 +65,7 @@ class Winhead(fits.Header):
           ybin : int
               Binning factor in Y
 
-          head : astropy.io.fits.Header
+          head : Header
               Arbitrary header items (excluding ones such as LLX reserved
               for containing the above parameters when reading and writing
               Winhead objects).
@@ -404,9 +405,10 @@ class Winhead(fits.Header):
               maximum Y, unbinned pixels
 
            copy : bool
-              controls whether the FITS header is copied over, or just referenced.
-              The latter is more efficient, but if you later want to change the
-              header could propogate those changes to whatever you copied.
+              controls whether the header is copied over, or just
+              referenced.  The latter is more efficient, but if you later want
+              to change the header could propogate those changes to whatever
+              you copied.
 
         Returns the windowed Winhead. Raises a ValueError if there are no
         visible pixels.
@@ -436,24 +438,6 @@ class Winhead(fits.Header):
             # headers are copied by reference.
             wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin, self)
         return wh
-
-    @classmethod
-    def from_lwindow(cls, lwin, head=fits.Header()):
-        """Generate a :class:`Winhead` from an :class:`Lwindow`.
-
-        Arguments::
-
-           lwin : Lwindow
-              an Lwindow object. Window dimensions will be extracted.
-
-           head : astropy.io.fits.Header
-              a FITS header.
-
-        Returns a Winhead
-        """
-        return Winhead(
-            lwin.llx, lwin.lly, lwin.nx, lwin.ny, lwin.xbin, lwin.ybin, head
-        )
 
     def __copy__(self):
         return self.copy()
@@ -518,7 +502,7 @@ class _Decoder(json.JSONDecoder):
             return Winhead(
                 obj['llx'], obj['lly'], obj['nx'], obj['ny'],
                 obj['xbin'], obj['ybin'],
-                fits.Header.fromstring(obj['head'])
+                Header.fromstring(obj['head'])
             )
 
         return obj
@@ -740,7 +724,7 @@ class Window(Winhead):
 
         return cls(win, data)
 
-    def whdu(self, head=fits.Header(), xoff=0, yoff=0, extnam=None):
+    def whdu(self, head=Header(), xoff=0, yoff=0, extnam=None):
         """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU`
 
         Arguments::
@@ -776,52 +760,46 @@ class Window(Winhead):
 
         # Now a set of parameters to facilitate ds9 display
         # using the IRAF mosaic option
-        cards = []
-
-        cards.append(('CCDSUM','{:d} {:d}'.format(self.xbin,self.ybin)))
+        head['CCDSUM'] = '{:d} {:d}'.format(self.xbin,self.ybin)
 
         # sections
         nx,ny = self.nx, self.ny
-        cards.append(('CCDSEC','[1:{:d},1:{:d}]'.format(nx,ny)))
-        cards.append(('AMPSEC','[1:{:d},1:{:d}]'.format(nx,ny)))
-        cards.append(
-            ('DATASEC','[{:d}:{:d},{:d}:{:d}]'.format(
-                self.llx,self.urx,self.lly,self.ury))
-        )
-        cards.append(
-            ('DETSEC','[{:d}:{:d},{:d}:{:d}]'.format(
-                xoff+self.llx,xoff+self.urx,yoff+self.lly,yoff+self.ury))
-        )
+        head['CCDSEC'] = '[1:{:d},1:{:d}]'.format(nx,ny)
+        head['AMPSEC'] = '[1:{:d},1:{:d}]'.format(nx,ny)
+        head['DATASEC'] = '[{:d}:{:d},{:d}:{:d}]'.format(
+            self.llx,self.urx,self.lly,self.ury)
+        head['DETSEC'] = '[{:d}:{:d},{:d}:{:d}]'.format(
+            xoff+self.llx,xoff+self.urx,yoff+self.lly,yoff+self.ury)
 
         # transforms
 
         # amplifier coords
-        cards.append(('ATM1_1', 1.))
-        cards.append(('ATM2_2', 1.))
-        cards.append(('ATV1', 0.))
-        cards.append(('ATV2', 0.))
+        head['ATM1_1'] = 1.
+        head['ATM2_2'] = 1.
+        head['ATV1'] = 0.
+        head['ATV2'] = 0.
 
         # image coords
-        cards.append(('LTM1_1', 1./self.xbin))
-        cards.append(('LTM2_2', 1./self.ybin))
-        cards.append(('LTV1', 1-(self.llx+(self.xbin-1)/2)/self.xbin))
-        cards.append(('LTV2', 1-(self.lly+(self.ybin-1)/2)/self.ybin))
+        head['LTM1_1'] = 1./self.xbin
+        head['LTM2_2'] = 1./self.ybin
+        head['LTV1'] = 1-(self.llx+(self.xbin-1)/2)/self.xbin
+        head['LTV2'] = 1-(self.lly+(self.ybin-1)/2)/self.ybin
 
         # detector coords
-        cards.append(('DTM1_1', 1.))
-        cards.append(('DTM2_2', 1.))
-        cards.append(('DTV1', float(xoff)))
-        cards.append(('DTV2', float(yoff)))
+        head['DTM1_1'] = 1.
+        head['DTM2_2'] = 1.
+        head['DTV1'] = float(xoff)
+        head['DTV2'] = float(yoff)
 
-        cards.append(('WCSNAMEP', 'PHYSICAL'))
-        cards.append(('CTYPE1', 'PIXEL'))
-        cards.append(('CTYPE2', 'PIXEL'))
-        cards.append(('CRPIX1', 1.))
-        cards.append(('CRPIX2', 1.))
-        cards.append(('CRVAL1', float(xoff+self.llx)))
-        cards.append(('CRVAL2', float(yoff+self.lly)))
-        cards.append(('CD1_1', float(self.xbin)))
-        cards.append(('CD2_2', float(self.ybin)))
+        head['WCSNAMEP'] = 'PHYSICAL'
+        head['CTYPE1'] = 'PIXEL'
+        head['CTYPE2'] = 'PIXEL'
+        head['CRPIX1'] = 1.
+        head['CRPIX2'] = 1.
+        head['CRVAL1'] = float(xoff+self.llx)
+        head['CRVAL2'] = float(yoff+self.lly)
+        head['CD1_1'] = float(self.xbin)
+        head['CD2_2'] = float(self.ybin)
 
         # WCS mosaic
         #        cards.append(('WCSNAME', 'mosaic', 'HiPERCAM mosaic coordinates'))
@@ -839,11 +817,10 @@ class Window(Winhead):
         #        cards.append(('CD2_1', 0., 'no rotation or shear'))
 
         if extnam:
-            cards.append(('EXTNAME', extnam, 'name of this image extension'))
-        head.update(cards)
+            head['EXTNAME'] = (extnam, 'name of this image extension')
 
         # Return the HDU
-        return fits.ImageHDU(self.data, head)
+        return fits.ImageHDU(self.data, head.to_fits)
 
     @property
     def size(self):
@@ -855,7 +832,10 @@ class Window(Winhead):
     @property
     def winhead(self):
         """A copy of the :class:`Winhead` underlying the :class:`Window` This is to
-        allow simpler reporting of problems with the format without the data as well"""
+        allow simpler reporting of problems with the format without the data
+        as well
+
+        """
         return super().copy()
 
     def set_const(self, val):
@@ -1027,61 +1007,6 @@ class Window(Winhead):
             y1 = (winh.lly-self.lly)//self.ybin
             return Window(winh, self.data[y1:y1+winh.ny, x1:x1+winh.nx])
 
-    def lwindow(self, xlo, xhi, ylo, yhi):
-        """Creates a new Lwindow by windowing it down to whatever complete
-        pixels are visible in the region xlo to xhi, ylo to yhi. This is
-        identical to :method:`window` but does not incurr any overhead copying
-        (possibly extensive) headers. Obviously, only use it if you don't need
-        headers.
-
-        Arguments::
-
-           xlo : float
-              minimum X, unbinned pixels (extreme left pixels of CCD centred on 1)
-
-           xhi : float
-              maximum X, unbinned pixels
-
-           ylo : float
-              minimum Y, unbinned pixels (bottom pixels of CCD centred on 1)
-
-           yhi : float
-              maximum Y, unbinned pixels
-
-        Returns the windowed Lwindow.
-
-        """
-
-        llx = max(
-            self.llx, self.llx +
-            self.xbin*int(math.ceil((xlo-self.xlo)/self.xbin))
-        )
-        lly = max(
-            self.lly, self.lly +
-            self.ybin*int(math.ceil((ylo-self.ylo)/self.ybin))
-        )
-        nx = self.nx - (llx-self.llx)//self.xbin - \
-             max(0,int(math.ceil((self.xhi-xhi)/self.xbin)))
-        ny = self.ny - (lly-self.lly)//self.ybin - \
-             max(0,int(math.ceil((self.yhi-yhi)/self.ybin)))
-
-        if nx <= 0 or ny <= 0:
-            raise HipercamError(
-                '{:!r} has no overlap with region = '
-                '({:.2f},{:.2f},{:.2f},{:.2f})'.format(
-                    self.format(), xlo, xhi, ylo, yhi)
-                )
-
-        if self.data is None:
-            return Lwindow(llx, lly, nx, ny, self.xbin, self.ybin)
-        else:
-            x1 = (llx-self.llx)//self.xbin
-            y1 = (lly-self.lly)//self.ybin
-            return Lwindow(
-                llx, lly, nx, ny, self.xbin, self.ybin,
-                self.data[y1:y1+ny, x1:x1+nx]
-            )
-
     def crop(self, win):
         """Creates a new :class:Window by cropping the current :class:Window to the
         format defined by :class:Winhead `win`. Will throw a ValueError if the
@@ -1156,8 +1081,7 @@ class Window(Winhead):
             self.data = self.data.astype(np.uint16)
 
     def search(self, fwhm, x0, y0, thresh, fft, max=False, percent=50.):
-        """
-        Search for a target in a :class:Window. Works by convolving the image
+        """Search for a target in a :class:Window. Works by convolving the image
         with a gaussian of FWHM = fwhm, and returns the location of the
         maximum in the smoothed image which exceeds a level `thresh` and lies
         closest to the expected position. The convolution improves the
@@ -1171,8 +1095,8 @@ class Window(Winhead):
         Arguments::
 
           fwhm : float
-            Gaussian FWHM in pixels. If <= 0, there will be no convolution, although
-            this is not advisable as a useful strategy.
+            Gaussian FWHM in pixels. If <= 0, there will be no convolution,
+            although this is not advisable as a useful strategy.
 
           x0 : float
             x-position to judge position from (CCD-coordinates). The closest
@@ -1215,12 +1139,16 @@ class Window(Winhead):
         """
 
         if fwhm > 0:
-            kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
+            sigma = fwhm/np.sqrt(8*np.log(2))
             fedge = self.data.min()
             if fft:
+                kern = Gaussian2DKernel(sigma)
                 cimg = convolve_fft(self.data, kern, 'fill', fedge)
             else:
-                cimg = convolve(self.data, kern, 'fill', fedge)
+                cimg = gaussian_filter(
+                    self.data, sigma, mode='constant', cval=fedge
+                )
+
         else:
             cimg = self.data
 
@@ -1241,8 +1169,8 @@ class Window(Winhead):
                     )
 
         else:
-            # in this case we will search for the maximum > thresh and closest to x0,y0
-            # Find local maxima in smoothed image
+            # in this case we will search for the maximum > thresh and closest
+            # to x0,y0 Find local maxima in smoothed image
             dmax = maximum_filter(cimg, 3, mode='nearest')
             iys, ixs = np.nonzero((dmax == cimg) & (cimg > back+thresh))
 
@@ -1252,8 +1180,10 @@ class Window(Winhead):
                 # Locate the pixel of the global maximum
                 cmax = cimg.max()
                 raise HipercamError(
-                    'no peak higher than {:.1f} found; highest = {:.1f} (background = {:.1f})'.format(thresh, cmax, back)
-                    )
+                    ('no peak higher than {:.1f} found; highest'
+                     ' = {:.1f} (background = {:.1f})').format(
+                         thresh, cmax, back)
+                )
 
             ix0, iy0 = self.x_pixel(x0), self.y_pixel(y0)
             imin = ((ixs-ix0)**2 + (iys-iy0)**2).argmin()
@@ -1261,23 +1191,6 @@ class Window(Winhead):
 
         # return with the device coords and the value
         return (self.x(ix),self.y(iy),self.data[iy,ix])
-
-    @classmethod
-    def from_lwindow(cls, lwin, head=fits.Header()):
-        """Generate a :class:`Window` from an :class:`Lwindow`.
-
-        Arguments::
-
-           lwin : Lwindow
-              an Lwindow object. Window dimensions will be extracted.
-
-           head : astropy.io.fits.Header
-              a FITS header.
-
-        Returns a Window
-        """
-        winh = Winhead.from_lwindow(lwin, head)
-        return Window(winh, lwin.data)
 
     def __copy__(self):
         return self.copy()
@@ -1296,6 +1209,7 @@ class Window(Winhead):
         """Adds `other` to the :class:`Window` as 'wind += other'. `other` can be
         another :class:`Window`, or any object that can be added to a
         :class:`numpy.ndarray`.
+
         """
         if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
@@ -1312,6 +1226,7 @@ class Window(Winhead):
         """Subtracts `other` from the :class:`Window` as 'wind -= other`. `other` can
         be another Window, or any object that can be subtracted from a
         :class:`numpy.ndarray`.
+
         """
         if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
@@ -1362,7 +1277,7 @@ class Window(Winhead):
         """Adds `other` to a :class:`Window` as `wind + other`.  Here `other` can be a
         compatible :class:`Window` (identical window) or any object that can
         be added to a :class:`numpy.ndarray`, e.g. a float, another matching
-        array, etc. 
+        array, etc.
 
         """
         if isinstance(other, Window):
@@ -1407,8 +1322,9 @@ class Window(Winhead):
 
     def __rsub__(self, other):
         """Subtracts a :class:`Window` from `other` as `other - wind`.  Here `other`
-        is any object that can have a :class:`numpy.ndarray` subtracted from it, e.g. a
-        float, another matching array, etc.
+        is any object that can have a :class:`numpy.ndarray` subtracted from
+        it, e.g. a float, another matching array, etc.
+
         """
         # carry out subtraction to a float type
         data = other - self.data
@@ -1470,364 +1386,3 @@ class Window(Winhead):
         data = other / self.data
         return Window(super().copy(), data)
 
-class Lwindow:
-    """Lightweight version of Window lacking a FITS header. Several
-    steps in 'reduce' return sub-windows of each CCD window. Particularly
-    for small windows, this can incur a significant overhead copying FITS
-    header which can be significantly larger in terms of memory than the
-    data array itself. :class:`Lwindow` objects can be used when there is
-    no need to propagate the header.
-    """
-
-    def __init__(self, llx, lly, nx, ny, xbin, ybin, data):
-        """
-        Constructor. Arguments::
-
-          llx : int
-              X position of lower-left pixel of window (unbinned pixels)
-
-          lly : int
-              Y position of lower-left pixel of window (unbinned pixels)
-
-          nx : int
-              X dimension of window, binned pixels
-
-          ny : int
-              Y dimension of window, binned pixels
-
-          xbin : int
-              Binning factor in X
-
-          ybin : int
-              Binning factor in Y
-
-          data : numpy.array (2D)
-              A 2D numpy array with dimensions that should match nx, ny.
-              If None, a zeroed array will be created with the right
-              dimensions.
-        """
-
-        # Store the window format attributes
-        self.llx = llx
-        self.lly = lly
-        self.xbin = xbin
-        self.ybin = ybin
-
-        # Have to take care with the next two since in
-        # Window they are connected to the array size
-        self._nx = nx
-        self._ny = ny
-
-        if data is None:
-            self.data = np.zeros((ny,nx))
-        else:
-            # Run a couple of checks
-            if data.ndim != 2:
-                raise ValueError(
-                    'data must be 2D. Found {0:d}'.format(data.ndim))
-            nyt, nxt = data.shape
-            if nxt != nx or nyt != ny:
-                raise ValueError(
-                    '(nx,ny) vs data dimension conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(nx,nxt,ny,nyt))
-
-            self.data = data
-
-    @property
-    def nx(self):
-        """
-        Returns binned X-dimension of the :class:`Window`.
-        """
-        return self.data.shape[1]
-
-    @nx.setter
-    def nx(self, nx):
-        raise NotImplementedError(
-            'cannot set nx directly; change data array instead'
-        )
-
-    @property
-    def ny(self):
-        """
-        Returns binned Y-dimension of the :class:`Window`.
-        """
-        return self.data.shape[0]
-
-    @ny.setter
-    def ny(self, ny):
-        raise NotImplementedError(
-            'cannot set ny directly; change data array instead'
-        )
-
-    @property
-    def urx(self):
-        """
-        Returns (unbinned) X pixel at upper-right of :class:`Lwindow`
-        """
-        return self.llx-1+self.nx*self.xbin
-
-    @property
-    def ury(self):
-        """
-        Returns (unbinned) Y pixel at upper-right of :class:`Lwindow`
-        """
-        return self.lly-1+self.ny*self.ybin
-
-    @property
-    def xlo(self):
-        """
-        Returns left-hand edge of window (llx-0.5)
-        """
-        return self.llx-0.5
-
-    @property
-    def xhi(self):
-        """
-        Returns right-hand edge of window (urx+0.5)
-        """
-        return self.llx-1+self.nx*self.xbin+0.5
-
-    @property
-    def ylo(self):
-        """
-        Returns bottom edge of window (lly-0.5)
-        """
-        return self.lly-0.5
-
-    @property
-    def yhi(self):
-        """
-        Returns top edge of window (ury+0.5)
-        """
-        return self.lly-1+self.ny*self.ybin+0.5
-
-    def x(self, xpix):
-        """Given an X-pixel position, returns the physical X in the CCD.
-
-        Arguments::
-
-          xpix : (float / ndarray)
-            X-pixel position in terms of binned pixels. Centre of left-most
-            pixel is 0.
-
-        Returns the physical location measured in unbinned pixels, with the
-        centre of left-most pixels of the CCD = 1.0
-        """
-        return self.llx + self.xbin*(xpix+0.5) - 0.5
-
-    def y(self, ypix):
-        """Given a Y-pixel position, returns the physical Y in the CCD.
-
-        Arguments::
-
-          ypix : (float / ndarray)
-            Y-pixel position in terms of binned pixels. Centre of lowest
-            pixel is 0.
-
-        Returns the physical location measured in unbinned pixels, with the
-        centre of lowest pixels of the CCD = 1.0
-        """
-        return self.lly + self.ybin*(ypix+0.5) - 0.5
-
-    def x_pixel(self, x):
-        """The inverse of `x`: returns the X-pixel position given a physical
-        X location.
-
-        Arguments::
-
-          x : (float)
-            the physical location measured in unbinned pixels, with the centre
-            of left-most pixels of the CCD = 1.0
-
-        Returns the X-pixel position in terms of binned pixels. Centre of the
-        left-most pixel is 0.
-
-        """
-        return (x+0.5-self.llx)/self.xbin-0.5
-
-    def y_pixel(self, y):
-        """The inverse of `y`: returns the Y-pixel position given a physical
-        Y location.
-
-        Arguments::
-
-          Y : (float)
-            the physical location measured in unbinned pixels, with the centre
-            of lowest pixels of the CCD = 1.0
-
-        Returns the Y-pixel position in terms of binned pixels. Centre of the
-        lowest pixel is 0.
-
-        """
-        return (y+0.5-self.lly)/self.ybin-0.5
-
-    def extent(self):
-
-        """
-        Returns (left,right,bottom,top) boundaries of :class:`Lwindow`
-        i.e. (xlo,xhi,ylo,yhi)
-        """
-        return (self.xlo,self.xhi,self.ylo,self.yhi)
-
-    def search(self, fwhm, x0, y0, thresh, fft, max=False, percent=50.):
-        """Search for a target in a :class:`Lwindow`. Works by convolving the image
-        with a gaussian of FWHM = fwhm, and returns the location of the
-        maximum in the smoothed image which exceeds a level `thresh` and lies
-        closest to the expected position. The convolution improves the
-        reliability of the identification of the object position and reduces
-        the chance of problems being caused by cosmic rays, although if there
-        is more overall flux in a cosmic ray than the star, it could go wrong.
-
-        This routine is intended to provide a first cut in position for more
-        precise methods to polish.
-
-        Arguments::
-
-          fwhm : float
-            Gaussian FWHM in pixels. If <= 0, there will be no convolution,
-            although this is not advisable as a useful strategy.
-
-          x0 : float
-            x-position to judge position from (CCD-coordinates). The closest
-            sufficiently high maximum will be taken.
-
-          y0 : float
-            y-position to judge position from (CCD-coordinates). The closest
-            sufficiently high maximum will be taken.
-
-          thresh : float
-            The peak counts above background in the maximum of the *smoothed*
-            image must exceed this value for a maximum to count. Use this to
-            filter out noise.
-
-          fft : bool
-            The astropy.convolution routines are used. By default FFT-based
-            convolution is applied as it scales better with fwhm, especially
-            for fwhm >> 1, however the direct method (fft=False) may be faster
-            for small fwhm values and images and has a better behaviour at the
-            edges where it extends value with the nearest pixel while the FFT
-            wraps values.
-
-          max : bool
-            If True, just go for the highest peak, i.e. ignore x0, y0. The peak
-            should still exceed the background by `thresh`
-
-          percent : float
-            percentile to use to compute the background value. < 0 and it will
-            be set to the minimum. 50% = median by default.
-
-        Returns::
-
-            a tuple of (x,y,peak): x,y is the location of the
-            brightest pixel measured in terms of CCD coordinates
-            (i.e. lower-left pixel is at (1,1)) and `peak` is the image value
-            at the peak pixel, in the *unconvolved* image. It might be useful
-            for initial estimates of peak height. If no peak is found, a
-            HipercamError will be raised.
-
-        """
-
-        if fwhm > 0:
-            kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
-            fedge = self.data.min()
-            if fft:
-                cimg = convolve_fft(self.data, kern, 'fill', fedge)
-            else:
-                cimg = convolve(self.data, kern, 'fill', fedge)
-        else:
-            cimg = self.data
-
-        # compute the background for judging peak heights
-        if percent <= 0:
-            back = self.data.min()
-        else:
-            back = np.percentile(self.data, percent)
-
-        if max:
-            # Locate the pixel of the global maximum
-            iy,ix = np.unravel_index(cimg.argmax(),cimg.shape)
-
-            # it must exceed thresh to count
-            if cimg[iy,ix] <= back+thresh:
-                raise HipercamError(
-                    'no peak higher than {:.1f} found; highest = {:.1f} (background = {:.1f})'.format(thresh, cimg[iy,ix], back)
-                    )
-
-        else:
-            # in this case we will search for the maximum > thresh and closest to x0,y0
-            # Find local maxima in smoothed image
-            dmax = maximum_filter(cimg, 3, mode='nearest')
-            iys, ixs = np.nonzero((dmax == cimg) & (cimg > back+thresh))
-
-            # Find the maximum (if there is one) nearest to the expected
-            # position
-            if len(iys) == 0:
-                # Locate the pixel of the global maximum
-                cmax = cimg.max()
-                raise HipercamError(
-                    'no peak higher than {:.1f} found; highest = {:.1f} (background = {:.1f})'.format(thresh, cmax, back)
-                    )
-
-            ix0, iy0 = self.x_pixel(x0), self.y_pixel(y0)
-            imin = ((ixs-ix0)**2 + (iys-iy0)**2).argmin()
-            iy, ix = iys[imin], ixs[imin]
-
-        # return with the device coords and the value
-        return (self.x(ix),self.y(iy),self.data[iy,ix])
-
-    def sum(self):
-        """
-        Returns the sum of the :class:`Lwindow`.
-        """
-        return self.data.sum()
-
-    def distance(self, x, y):
-        """Calculates the minimum distance of a point from the edge of the
-        Lwindow. If the point is outside the Lwindow the distance will
-        be negative; if inside it will be positive. The edge is
-        defined as the line running around the outside of the outer
-        set of pixels. For a point outside the box in both x and y,
-        the value returned is a lower limit to the distance.
-
-        """
-        if x < self.xlo:
-            if y < self.ylo:
-                dist = -min(self.xlo-x, self.ylo-y)
-            elif y > self.yhi:
-                dist = -min(self.xlo-x, y-self.yhi)
-            else:
-                dist = x-self.xlo
-
-        elif x > self.xhi:
-            if y < self.ylo:
-                dist = -min(x-self.xhi, self.ylo-y)
-            elif y > self.yhi:
-                dist = -min(x-self.xhi, y-self.yhi)
-            else:
-                dist = self.xhi-x
-
-        else:
-            if y < self.ylo:
-                dist = y-self.ylo
-            elif y > self.yhi:
-                dist = self.yhi-y
-            else:
-                # we are *in* the box
-                dist = min(x-self.xlo, self.xhi-x, y-self.ylo, self.yhi-y)
-
-        return dist
-
-    def __repr__(self):
-        return 'Lwindow(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, data={!r})'.format(
-            self.llx, self.lly, self.nx, self.ny,
-            self.xbin, self.ybin, self.data
-        )
-
-    def __str__(self):
-        return self.__repr__()
-
-    def format(self):
-        """Just returns the format, not the data"""
-
-        return 'Lwindow(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, data=<...>)'.format(
-            self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin
-        )

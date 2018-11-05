@@ -73,7 +73,8 @@ class Header(odict):
         if key == 'COMMENT' or key == 'HISTORY':
             if not isinstance(item,str):
                 raise ValueError(
-                    'Can only use string values for key = COMMENT or HISTORY'
+                    ('Can only use string values for key ='
+                     ' COMMENT or HISTORY. Item = {!s}').format(item)
                 )
             if key == 'COMMENT':
                 self.comments.append(item)
