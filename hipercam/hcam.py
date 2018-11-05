@@ -970,11 +970,12 @@ class Rdata (Rhead):
         )
         try:
             imjd = gregorian_to_mjd(years, 1, 1) + day_of_year - 1
-            fday = (hours+mins/60+(seconds+nanoseconds/1e9)/3600)/DAYSEC
+            fday = (hours+mins/60+(seconds+nanoseconds/1e9)/3600)/24
         except ValueError:
             warnings.warn('Bad timestamp: ' + time_string)
             imjd = 51544
             fday = self.nframe/DAYSEC
+
             # this will mark it as unreliable down below
             synced = 0
 
