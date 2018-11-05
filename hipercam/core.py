@@ -176,8 +176,8 @@ def fday_to_hms(fday):
     fday should lie in the interval [0,1)
     """
     hours = int(24*fday)
-    minutes = int(1440*(fday-hours/24))
-    seconds = 86400*(fday-hours/24-minutes/1440)
+    minutes = int(60*(24*fday-hours))
+    seconds = 86400*fday-3600*hours-60*minutes
     return (hours,minutes,seconds)
 
 class HipercamError (Exception):
