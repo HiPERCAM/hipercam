@@ -1105,14 +1105,14 @@ class Rdata (Rhead):
                     if self.pscan:
                         # pre-scan present. Reduce the size of the data window
                         # in preparation for removal of prescan data.
-                        wind = Winhead(
+                        winh = Winhead(
                             win.llx, win.lly, win.nx-self.npscan, win.ny,
                             win.xbin, win.ybin, win
                         )
 
                         if nwin == 0 and nquad == 0:
                             # store CCD header in the first Winhead
-                            wind.update(cheads[cnam])
+                            winh.update(cheads[cnam])
 
                         # Generate name for the prescan Window
                         wpnam = '{:s}P'.format(wnam)
@@ -1129,7 +1129,7 @@ class Rdata (Rhead):
                             # (outputs are on the left). Create the Window
                             # with the image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                wind, windata[:,self.npscan:].astype(
+                                winh, windata[:,self.npscan:].astype(
                                     np.float32)
                             )
 
@@ -1149,7 +1149,7 @@ class Rdata (Rhead):
                             # Prescan on the right. Create the Window with the
                             # image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                wind, windata[:,:-self.npscan].astype(
+                                winh, windata[:,:-self.npscan].astype(
                                     np.float32)
                             )
 
