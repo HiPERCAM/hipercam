@@ -503,6 +503,7 @@ def ccdproc(cnam, ccd, flat, rflat, rccd, ccdaper, ccdwins, rfile, store):
 
     # move the apertures
     moveApers(cnam, ccd, flat, rflat, ccdaper, ccdwins, rfile, store)
+    print(cnam, store)
 
     # extract flux from all apertures of each CCD. Return with the CCD
     # name, the store dictionary, ccdaper and then the results from
