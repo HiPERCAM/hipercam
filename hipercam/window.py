@@ -704,7 +704,7 @@ class Window(Winhead):
         place conversion which would lose precision.
 
         """
-        head = Header.from_fits(hdu.header)
+        head = Header(hdu.header)
 
         # data converted to float32 unless already float64.
         # this prevents problems down the line with arithematic
