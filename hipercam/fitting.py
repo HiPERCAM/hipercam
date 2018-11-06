@@ -1,13 +1,15 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
 Code for profile fitting. Currently supports symmetric 2D Gaussian and
-Moffat profiles plus constants.
+Moffat profiles plus constants. 
 """
 
+from numba import jit
 import numpy as np
 from scipy.optimize import leastsq
 from .core import *
 from .window import *
+from . import support
 
 __all__ = (
     'combFit', 'fitMoffat', 'fitGaussian', 'moffat', 'gaussian'
@@ -385,7 +387,8 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
         (fit,mfit1.xy[0],mfit1.xy[1],mfit1.sigma,chisq,nok,nrej,len(soln))
     )
 
-def moffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
+@jit(nopython=True,cache=True)
+def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     """
     Returns a numpy array corresponding to the ordinate grids in xy
     set to a Moffat profile plus a constant. Defined by
@@ -396,9 +399,13 @@ def moffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
 
     Parameters:
 
-      xy    : array like
-         x,y = xy sets x and y to the X and Y ordinates over which you want to
-         compute the profile. They should be measured in term of unbinned pixels.
+      x  : 2D numpy array
+         the X ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
+
+      y  : 2D numpy array
+         the Y ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
 
       sky    : float
          sky background
@@ -472,21 +479,26 @@ def moffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
         rsq = (x-xcen)**2+(y-ycen)**2
         return height*(1+alpha*rsq)**(-tbeta) + sky
 
-def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
+@jit(nopython=True,cache=True)
+def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
             comp_dfwhm, comp_dbeta):
-    """Returns a list of numpy arrays corresponding to the ordinate grids in xy
-    set to the partial derivatives of a Moffat profile plus a
-    constant. Defined by sky + height/(1+alpha*r**2)**beta where r is the
-    distance from the centre and alpha is set to give the desired FWHM given
-    the exponent beta. As beta becomes large, this tends to a Gaussian shape
-    but has more extended wings at low beta. The partial derivatives are in
-    the order of the parameters.
+    """Returns a list of numpy arrays corresponding to the ordinate grids
+    in xy set to the partial derivatives of a Moffat profile plus a
+    constant. Defined by sky + height/(1+alpha*r**2)**beta where r is
+    the distance from the centre and alpha is set to give the desired
+    FWHM given the exponent beta. As beta becomes large, this tends to
+    a Gaussian shape but has more extended wings at low beta. The
+    partial derivatives are in the order of the parameters.
 
     Parameters:
 
-      xy    : array like
-         x,y = xy sets x and y to the X and Y ordinates over which you want to
-         compute the profile. They should be measured in term of unbinned pixels.
+      x  : 2D numpy array
+         the X ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
+
+      y  : 2D numpy array
+         the Y ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
 
       sky    : float
          sky background
@@ -524,18 +536,19 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
          the centre of each pixel, set ndiv = 0.
 
       comp_dfwhm : bool
-         compute derivative wrt FWHM (or not). If True, 6 derivs are returned,
-         else 5 or 4, depending on next one.
+         compute derivative wrt FWHM (or not). If True, then derivatives with respect
+         to (sky, height, xcen, ycen, fwhm, beta) are returned in a 6-element tuple.
 
       comp_dbeta : bool [only operative if comp_dfwhm=False]
          compute derivative wrt beta (or not). Only has an effect if comp_dfwhm=False.
-         If True, 5 derivs are returned, else 4.
+         If True, 5 derivatives (sky, height, xcen, ycen, beta) are returned, if False
+         4 derivatives (sky, height, xcen, ycen) come back.
 
-    Returns:: a list of 6, 5, or 4 2D numpy arrays containing the partial derivatives
-    of a Moffat profile plus constant evaluated on the ordinate grids in xy.
+    Returns:: in all cases a 6-element tuple is returned, but depending upon the comp flags
+    only the first 4, 5 or 6 elements may be useful. 6-elements always come back because this
+    helps the numba just-in-time compiler function better.
 
     """
-    x,y = xy
     tbeta = max(0.01, beta)
     alpha = 4*(2**(1/tbeta)-1)/fwhm**2
 
@@ -596,18 +609,20 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
         dxcen /= nadd
         dycen /= nadd
 
+        # in the next lines we return the same number of arrays in all cases
+        # to help 'numba'
         if comp_dfwhm:
             # full set of derivs
             dfwhm /= nadd
             dbeta /= nadd
-            return [dsky, dheight, dxcen, dycen, dfwhm, dbeta]
+            return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
         elif comp_dbeta:
             # miss out dfwhm
             dbeta /= nadd
-            return [dsky, dheight, dxcen, dycen, dbeta]
+            return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
         else:
             # miss out dbeta well
-            return [dsky, dheight, dxcen, dycen]
+            return (dsky, dheight, dxcen, dycen, dycen, dycen)
 
     else:
         # fast as possible, only compute at centre of pixels
@@ -629,12 +644,12 @@ def dmoffat(xy, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
         if comp_dfwhm:
             dfwhm = (2*alpha*tbeta/fwhm)*save2
             dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
-            return [dsky, dheight, dxcen, dycen, dfwhm, dbeta]
+            return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
         elif comp_dbeta:
             dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
-            return [dsky, dheight, dxcen, dycen, dbeta]
+            return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
         else:
-            return [dsky, dheight, dxcen, dycen]
+            return (dsky, dheight, dxcen, dycen, dycen, dycen)
 
 class Mfit1:
     """
@@ -663,7 +678,7 @@ class Mfit1:
         self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
-        self.xy = np.meshgrid(x, y)
+        self.x, self.y = np.meshgrid(x, y)
         self.data = wind.data
         self.xbin = wind.xbin
         self.ybin = wind.ybin
@@ -695,7 +710,7 @@ class Mfit1:
         """
         sky, height, xcen, ycen, fwhm, beta = param
         return moffat(
-            self.xy, sky, height, xcen, ycen, fwhm, beta,
+            self.x, self.y, sky, height, xcen, ycen, fwhm, beta,
             self.xbin, self.ybin, self.ndiv
         )
 
@@ -713,7 +728,7 @@ class Dmfit1:
              the Mfit1 object passed as 'func' to leastsq
         """
         self.sigma = mfit1.sigma
-        self.xy = mfit1.xy
+        self.x, self.y = mfit1.x, mfit1.y
         self.xbin = mfit1.xbin
         self.ybin = mfit1.ybin
         self.ndiv = mfit1.ndiv
@@ -726,7 +741,7 @@ class Dmfit1:
         """
         sky, height, xcen, ycen, fwhm, beta = param
         derivs = dmoffat(
-            self.xy, sky, height, xcen, ycen, fwhm, beta,
+            self.x, self.y, sky, height, xcen, ycen, fwhm, beta,
             self.xbin, self.ybin, self.ndiv, True, True
         )
         ok = self.sigma > 0
@@ -762,7 +777,7 @@ class Mfit2:
         self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
-        self.xy = np.meshgrid(x, y)
+        self.x, self.y = np.meshgrid(x, y)
         self.data = wind.data
         self.fwhm = fwhm
         self.xbin = wind.xbin
@@ -793,7 +808,7 @@ class Mfit2:
         """
         sky, height, xcen, ycen, beta = param
         return moffat(
-            self.xy, sky, height, xcen, ycen, self.fwhm,
+            self.x, self.y, sky, height, xcen, ycen, self.fwhm,
             beta, self.xbin, self.ybin, self.ndiv
         )
 
@@ -811,7 +826,7 @@ class Dmfit2:
              the Mfit2 object passed as 'func' to leastsq
         """
         self.sigma = mfit2.sigma
-        self.xy = mfit2.xy
+        self.x, self.y = mfit2.x, mfit2.y
         self.fwhm = mfit2.fwhm
         self.xbin = mfit2.xbin
         self.ybin = mfit2.ybin
@@ -825,11 +840,11 @@ class Dmfit2:
         """
         sky, height, xcen, ycen, beta = param
         derivs = dmoffat(
-            self.xy, sky, height, xcen, ycen, self.fwhm, beta,
+            self.x, self.y, sky, height, xcen, ycen, self.fwhm, beta,
             self.xbin, self.ybin, self.ndiv, False, True
         )
         ok = self.sigma > 0
-        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
+        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs[:-1]]
 
 class Mfit3:
     """
@@ -864,7 +879,7 @@ class Mfit3:
         self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
-        self.xy = np.meshgrid(x, y)
+        self.x, self.y = np.meshgrid(x, y)
         self.data = wind.data
         self.fwhm = fwhm
         self.beta = beta
@@ -896,7 +911,7 @@ class Mfit3:
         """
         sky, height, xcen, ycen = param
         return moffat(
-            self.xy, sky, height, xcen, ycen, self.fwhm,
+            self.x, self.y, sky, height, xcen, ycen, self.fwhm,
             self.beta, self.xbin, self.ybin, self.ndiv
         )
 
@@ -914,7 +929,7 @@ class Dmfit3:
              the Mfit3 object passed as 'func' to leastsq
         """
         self.sigma = mfit3.sigma
-        self.xy = mfit3.xy
+        self.x, self.y = mfit3.x, mfit3.y
         self.fwhm = mfit3.fwhm
         self.beta = mfit3.beta
         self.xbin = mfit3.xbin
@@ -929,11 +944,11 @@ class Dmfit3:
         """
         sky, height, xcen, ycen = param
         derivs = dmoffat(
-            self.xy, sky, height, xcen, ycen, self.fwhm, self.beta,
+            self.x, self.y, sky, height, xcen, ycen, self.fwhm, self.beta,
             self.xbin, self.ybin, self.ndiv, False, False
         )
         ok = self.sigma > 0
-        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
+        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs[:-2]]
 
 ##########################################
 #
@@ -1164,10 +1179,11 @@ def fitGaussian(
     return (
         (skyf,heightf,xf,yf,fwhmf),
         (skyfe,heightfe,xfe,yfe,fwhmfe),
-        (fit,gfit1.xy[0],gfit1.xy[1],gfit1.sigma,chisq,nok,nrej,len(soln))
+        (fit,gfit1.x,gfit1.y,gfit1.sigma,chisq,nok,nrej,len(soln))
     )
 
-def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
+@jit(nopython=True,cache=True)
+def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     """Returns a numpy array corresponding to the ordinate grids in xy set to a
     symmetric 2D Gaussian plus a constant. The profile is essentially defined
     by sky + height*exp(-alpha*r**2) where r is the distance from the centre
@@ -1176,10 +1192,13 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
 
     Arguments::
 
-      xy  : array like
-         x,y = xy sets x and y to the X and Y ordinates over which you want to
-         compute the profile. They should be measured in term of unbinned
-         pixels.
+      x  : 2D numpy array
+         the X ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
+
+      y  : 2D numpy array
+         the Y ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
 
       sky : float
          sky background
@@ -1217,7 +1236,7 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     on the ordinate grids in xy.
 
     """
-    x,y = xy
+
     alpha = 4.*np.log(2.)/fwhm**2
 
     if ndiv > 0:
@@ -1249,7 +1268,8 @@ def gaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
         rsq = (x-xcen)**2+(y-ycen)**2
         return sky+height*np.exp(-alpha*rsq)
 
-def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
+@jit(nopython=True,cache=True)
+def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     """Returns a list of four or five numpy arrays corresponding to the ordinate
     grids in xy set to the partial derivatives of a symmetric 2D Gaussian plus
     a constant. Defined by sky + height*exp(-alpha*r**2) where r is the
@@ -1258,9 +1278,13 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
 
     Arguments::
 
-      xy : array like
-         x,y = xy sets x and y to the X and Y ordinates over which you want to
-         compute the profile. They should be measured in term of unbinned pixels.
+      x  : 2D numpy array
+         the X ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
+
+      y  : 2D numpy array
+         the Y ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
 
       sky : float
          sky background
@@ -1294,17 +1318,12 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
          obviously will slow things. To simply evaluate the profile once at
          the centre of each pixel, set ndiv = 0.
 
-      comp_dfwhm : bool
-         compute derivative wrt FWHM (or not). If True, 5 derivs are returned,
-         else 4.
-
-    Returns:: a list of four or five 2D numpy arrays containing the partial
-    derivatives of a symmetric 2D Gaussian plus constant evaluated on the
-    ordinate grids in xy. They come in the same order as they appear in
-    the function call.
+    Returns:: a list of five 2D numpy arrays containing the partial
+    derivatives of a symmetric 2D Gaussian plus constant evaluated on
+    the ordinate grids in xy. They come in the same order as they
+    appear in the function call.
 
     """
-    x,y = xy
     alpha = 4.*np.log(2.)/fwhm**2
 
     dsky = np.ones_like(x)
@@ -1314,9 +1333,7 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
         dheight = np.zeros_like(x)
         dxcen = np.zeros_like(x)
         dycen = np.zeros_like(x)
-
-        if comp_dfwhm:
-            dfwhm = np.zeros_like(x)
+        dfwhm = np.zeros_like(x)
 
         # mean offset within sub-pixels
         soff = (ndiv-1)/(2*ndiv)
@@ -1343,8 +1360,7 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
                         dheight += dh
                         dxcen += (2*alpha*height)*dh*dx
                         dycen += (2*alpha*height)*dh*dy
-                        if comp_dfwhm:
-                            dfwhm += (2*alpha*height/fwhm)*dh*rsq
+                        dfwhm += (2*alpha*height/fwhm)*dh*rsq
 
         # Normalise by number of evaluations
         nadd = xbin*ybin*ndiv**2
@@ -1352,11 +1368,9 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
         dxcen /= nadd
         dycen /= nadd
 
-        if comp_dfwhm:
-            dfwhm /= nadd
-            return [dsky, dheight, dxcen, dycen, dfwhm]
-        else:
-            return [dsky, dheight, dxcen, dycen]
+        dfwhm /= nadd
+        #            return np.dstack((dsky, dheight, dxcen, dycen, dfwhm))
+        return (dsky, dheight, dxcen, dycen, dfwhm)
 
     else:
         # fast as possible, only compute at centre of pixels
@@ -1367,12 +1381,9 @@ def dgaussian(xy, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
         dheight = np.exp(-alpha*rsq)
         dxcen = (2*alpha*height)*dheight*dx
         dycen = (2*alpha*height)*dheight*dy
-        if comp_dfwhm:
-            dfwhm = (2*alpha*height/fwhm)*dheight*rsq
-            return [dsky, dheight, dxcen, dycen, dfwhm]
-        else:
-            return [dsky, dheight, dxcen, dycen]
-
+        dfwhm = (2*alpha*height/fwhm)*dheight*rsq
+        #            return np.dstack((dsky, dheight, dxcen, dycen, dfwhm))
+        return (dsky, dheight, dxcen, dycen, dfwhm)
 
 class Gfit1:
     """
@@ -1401,7 +1412,7 @@ class Gfit1:
         self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
-        self.xy = np.meshgrid(x, y)
+        self.x, self.y = np.meshgrid(x, y)
         self.data = wind.data
         self.xbin = wind.xbin
         self.ybin = wind.ybin
@@ -1431,8 +1442,8 @@ class Gfit1:
 
         """
         sky, height, xcen, ycen, fwhm = param
-        return gaussian(
-            self.xy, sky, height, xcen, ycen, fwhm,
+        return support.gaussian(
+            self.x, self.y, sky, height, xcen, ycen, fwhm,
             self.xbin, self.ybin, self.ndiv
         )
 
@@ -1450,7 +1461,7 @@ class Dgfit1:
              the Gfit1 object passed as 'func' to leastsq
         """
         self.sigma = gfit1.sigma
-        self.xy = gfit1.xy
+        self.x, self.y = gfit1.x, gfit1.y
         self.xbin = gfit1.xbin
         self.ybin = gfit1.ybin
         self.ndiv = gfit1.ndiv
@@ -1462,8 +1473,8 @@ class Dgfit1:
         """
         sky, height, xcen, ycen, fwhm = param
         derivs = dgaussian(
-            self.xy, sky, height, xcen, ycen, fwhm,
-            self.xbin, self.ybin, self.ndiv, True
+            self.x, self.y, sky, height, xcen, ycen, fwhm,
+            self.xbin, self.ybin, self.ndiv
         )
         ok = self.sigma > 0
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
@@ -1499,7 +1510,7 @@ class Gfit2:
         self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
-        self.xy = np.meshgrid(x, y)
+        self.x, self.y = np.meshgrid(x, y)
         self.data = wind.data
         self.fwhm = fwhm
         self.xbin = wind.xbin
@@ -1513,8 +1524,7 @@ class Gfit2:
 
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        ok = self.sigma > 0
-        return diff[ok].ravel()
+        return diff[self.sigma > 0].ravel()
 
     def model(self, param):
         """Returns 2D array with model given a parameter vector.
@@ -1531,7 +1541,7 @@ class Gfit2:
         """
         sky, height, xcen, ycen = param
         return gaussian(
-            self.xy, sky, height, xcen, ycen, self.fwhm,
+            self.x, self.y, sky, height, xcen, ycen, self.fwhm,
             self.xbin, self.ybin, self.ndiv
         )
 
@@ -1549,7 +1559,7 @@ class Dgfit2:
              the Gfit2 object passed as 'func' to leastsq
         """
         self.sigma = gfit2.sigma
-        self.xy = gfit2.xy
+        self.x, self.y = gfit2.x, gfit2.y
         self.fwhm = gfit2.fwhm
         self.xbin = gfit2.xbin
         self.ybin = gfit2.ybin
@@ -1563,8 +1573,12 @@ class Dgfit2:
         """
         sky, height, xcen, ycen = param
         derivs = dgaussian(
-            self.xy, sky, height, xcen, ycen, self.fwhm,
-            self.xbin, self.ybin, self.ndiv, False
+            self.x, self.y, sky, height, xcen, ycen, self.fwhm,
+            self.xbin, self.ybin, self.ndiv
         )
+
+        # note one more derivative is resturned than we need, so
+        # we cut it out (the last one)
         ok = self.sigma > 0
-        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
+        sigs = self.sigma[ok]
+        return [(-deriv[ok]/sigs).ravel() for deriv in derivs[:-1]]
