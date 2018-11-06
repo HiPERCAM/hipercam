@@ -5,40 +5,46 @@ The aim is to provide a faster replacement for astropy.io.fits.Header
 """
 
 from collections import OrderedDict as odict
-from astropy.io import fits
+from astropy.io.fits import Header as FITS_Header
 
 __all__ = ('Header',)
 
 class Header:
 
-    """Simulates basic functionality of astropy.io.fits.Header objects
-    while trying to be more efficient. The idea is to allow headers
-    that are compatible with writing to and reading from FITS files,
-    i.e.  that have (uppercase) keywords, values, comments and allows
-    for 'HIERARCH' long keywords. History and comments are added at the
-    end of the header. There is no attempt to replicate all the methods
-    of astropy.io.fits.Header although some are similar in nature.
+    """Simulates some basic functionality of astropy.io.fits.Header
+    objects while trying to be more efficient. The idea is to allow
+    headers that are compatible with writing to and reading from FITS
+    files, i.e.  that have (uppercase) keywords, values, comments and
+    allows for 'HIERARCH' long keywords. History and comments are
+    added at the end of the header. There is no attempt to replicate
+    all the methods of astropy.io.fits.Header, although may are
+    similar in nature to reduce the number of changes to the code
+    required to implement this.
 
     """
 
     SPECIAL_KEYWORDS = ('COMMENT', 'HISTORY', '')
 
     def __init__(self, head=[], copy=False):
-        """Initialiser. 'head' can be another Header or an ordered dictionary
-        with values set to 2-element tuples containing (value,comment)
-        pairs, or a list of (key,value,comment) tuples similar to
-        astropy.io.fits.Header 'cards'. No comments, history or blank
-        lines can be passed via the ordered dictionary option, i.e. it
-        is for genuine header only.
+        """Initialiser. 'head' can be (i) another Header, (ii) an ordered
+        dictionary with values set to 2-element tuples containing
+        (value,comment) pairs, (iii) a list of (key,value,comment) tuples
+        similar to astropy.io.fits.Header 'cards' or (iv) an
+        astropy.io.fits.Header object.
+
+        No comments, history or blank lines can be passed via the ordered
+        dictionary option, i.e. it is for genuine header only.
 
         Arguments::
 
-          head : list of cards | Header | OrderedDict
+          head : list of (k,v,c) tuples | Header | OrderedDict : fits.Header
             initial data to set the header.
 
           copy : bool
-            if 'head' is a Header or a set of cards, this controls
-            whether it is copied by value (copy=True) or reference.
+            if 'head' is a Header or a list of (key,value,comment) tuples,
+            this controls whether it the data are copied by value (copy=True)
+            or reference.
+
         """
 
         # Data is held in a list of three-element tuples (key,value,comment)
@@ -75,8 +81,23 @@ class Header:
                              ' (case-insensitive)').format(ukey)
                         )
 
+        elif isinstance(head, FITS_Header):
+            # Build from an astropy.io.fits.HEADER
+            for n, card in enumerate(head.cards):
+                key = card.keyword
+                self.cards.append((key,card.value,card.comment))
+
+                ukey = key.upper()
+                if ukey not in Header.SPECIAL_KEYWORDS:
+                    if ukey not in self._lookup:
+                        self._lookup[ukey] = n
+                    else:
+                        raise ValueError(
+                            ('key = {:s} appears more than once'
+                             ' (case-insensitive)').format(ukey)
+                        )
         else:
-            # A set of cards
+            # A list of (key,value,comment) tuples.
             if copy:
                 self.cards = head.copy()
             else:
@@ -114,23 +135,6 @@ class Header:
         if self._hstart == -1:
             self._hstart = self._hstop = len(self.cards)
 
-    @classmethod
-    def from_fits(cls, fhead):
-        """Sets a Header from a FITS header
-
-        Arguments::
-
-          fhead : astropy.io.fits.Header
-            the FITS header to copy.
-
-        """
-        # Translate the FITS cards
-        cards = []
-        for card in fhead.cards:
-            key = card.keyword
-            cards.append((key,card.value,card.comment))
-        return cls(cards)
-
     @property
     def to_fits(self):
         """Returns the Header as an astropy.io.fits.Header
@@ -143,7 +147,7 @@ class Header:
                 key = 'HIERARCH ' + key
             cards.append((key,value,comment))
 
-        return fits.Header(cards)
+        return FITS_Header(cards)
 
     @staticmethod
     def _process_key(key):
@@ -255,10 +259,16 @@ class Header:
         return 'Header(head={!r})'.format(self.cards)
 
     def __delitem__(self, key):
+        """Deletes a particular header item when called e.g. as 
+        'del head[key]'."""
+
         key = Header._process_key(key)
         index = self._lookup[key]
         del self.cards[index]
         del self._lookup[key]
+
+        # Now need to correct comment and history pointers
+        # along with any later index pointers.
         self._hstart -= 1
         self._hstop -= 1
         self._cstart -= 1

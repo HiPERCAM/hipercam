@@ -199,7 +199,7 @@ class Rhead:
             # read the header from the server
             data = json.dumps(dict(action='get_hdr'))
             self._ws.send(data)
-            hd = self.header = Header.from_fits(
+            hd = self.header = Header(
                 fits.Header.fromstring(self._ws.recv())
             )
 
@@ -212,7 +212,7 @@ class Rhead:
             self._ffile = open(add_extension(fname, HRAW),'rb')
 
             # read the header
-            hd = self.header = Header.from_fits(
+            hd = self.header = Header(
                 fits.Header.fromfile(self._ffile)
             )
 
