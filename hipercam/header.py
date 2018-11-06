@@ -263,6 +263,9 @@ class Header:
         self._hstop -= 1
         self._cstart -= 1
         self._cstop -= 1
+        for key,ind in self._lookup.items():
+            if ind > index:
+                self._lookup[key] = ind-1
 
     def __contains__(self, key):
         """Defines the operation 'in' for a Header. Look up whether
@@ -282,8 +285,16 @@ if __name__ == '__main__':
     hd = Header()
     hd['a'] = (1.2,'a test')
     hd['b'] = (1.4,'another test')
+    hd['c'] = (1.5,'another test')
+    hd['d'] = (1.6,'another test')
+    hd['e'] = (1.7,'another test')
     print(hd)
     del hd['a']
     print(hd)
+    print(hd['b'])
+    del hd['c']
+    print(hd['d'])
     print('a' in hd)
     print('b' in hd)
+    print(hd)
+
