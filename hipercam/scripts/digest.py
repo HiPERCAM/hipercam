@@ -6,6 +6,7 @@ import glob
 import re
 import subprocess
 import getpass
+import argparse
 
 import numpy as np
 from astropy.time import Time, TimeDelta
@@ -23,8 +24,9 @@ __all__ = ['digest',]
 #######################################################
 
 def digest(args=None):
-    """Ingests hipercam/ultra(cam|spec) data from the telescope for archiving
-purposes.
+    description= \
+    """Ingests hipercam/ultra(cam|spec) data from the telescope for
+archiving purposes.
 
     This should be of little interest to most users. It does what the scripts
     checker, import_data, make_log_dirs and make_derived_dirs did for ULTRACAM
@@ -44,10 +46,8 @@ purposes.
     file. Assuming these initial checks are past, it will then run 'md5sum -c'
     to check that the file md5sums match.
 
-    The script has no arguments; its purpose is do a series of mundane and
-    irritating tasks with minimal input from the user. It stops on problems
-    and tries to report in enough detail to help them to get fixed.
-
+    This program uses standard unix command-line switches. Run with '-h' to
+    see help.
     """
 
     username = getpass.getuser()
@@ -57,6 +57,14 @@ purposes.
             'meant for general use'
         )
         return
+
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        '-f', dest='full', action='store_true',
+        help='to a full (slow) search for newly imported data directories of the form YYYY_MM_DD'
+    )
+    args = parser.parse_args()
+    full_search = args.full
 
     RAW = 'raw_data'
     DERIVED = 'derived_data'
@@ -78,10 +86,16 @@ purposes.
         print('digest aborted',file=sys.stderr)
         return
 
-    # regular expressions to match runs, nights & files
+    # regular expression to match run directory, e.g. 2018-10
     rdre = re.compile('^\d\d\d\d-\d\d$')
+
+    # regular expression to match input night directory, e.g. 2018_10_30
     ndre = re.compile('^\d\d\d\d_\d\d_\d\d$')
+
+    # regular expression to match hipercam raw data file
     rhre = re.compile('^run\d\d\d\d\.fits$')
+
+    # regular expression to match ultra(cam|spec) raw data file
     rure = re.compile('^run\d\d\d\.dat$')
 
     # get the run directories
@@ -100,16 +114,20 @@ purposes.
 
     for rdir in rdirs:
 
-        # test whether we might have done this already
-        rd = os.path.basename(rdir)
-        lrdir = os.path.join(LOGS, rd)
-        drdir = os.path.join(DERIVED, rd)
-        if os.path.exists(lrdir) or os.path.exists(drdir):
-            continue
+        # test whether we might have done this already to save time
+        # unless
+        if not full_search:
+            rd = os.path.basename(rdir)
+            lrdir = os.path.join(LOGS, rd)
+            drdir = os.path.join(DERIVED, rd)
+            if os.path.exists(lrdir) or os.path.exists(drdir):
+                continue
 
         print('Run directory = {:s}'.format(rdir))
 
-        # get the night-by-night directories
+        # get the imported night-by-night directories. These are
+        # distinguished from the processed directories by having names
+        # like 2018_10_31 rather than 2018-10-31
         ndirs = [os.path.join(rdir, ndir) for ndir in os.listdir(rdir) if \
                      os.path.isdir(os.path.join(rdir, ndir)) and \
                      ndre.match(ndir)
