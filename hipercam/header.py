@@ -11,16 +11,26 @@ __all__ = ('Header',)
 
 class Header:
 
-    """Simulates some basic functionality of astropy.io.fits.Header
-    objects while trying to be more efficient. The idea is to allow
-    headers that are compatible with writing to and reading from FITS
-    files, i.e.  that have (uppercase) keywords, values, comments and
-    allows for 'HIERARCH' long keywords. History and comments are
-    added at the end of the header. There is no attempt to replicate
-    all the methods of astropy.io.fits.Header, although may are
-    similar in nature to reduce the number of changes to the code
-    required to implement this.
+    """Simulates the basic functionality of astropy.io.fits.Header objects while
+    being lighter weight and thus more efficient. The idea is to allow headers
+    that are compatible with writing to and reading from FITS files, i.e.
+    that have (uppercase) keywords, values, comments and allows for 'HIERARCH'
+    long keywords. History and comments are added at the end of the
+    header. There is no attempt to replicate all the methods of
+    astropy.io.fits.Header, although many are similar in nature to reduce the
+    number of changes to the code required to implement this. This class has
+    does not have all the checks of astropy.io.fits.Header objects so it is
+    possible to create invalid headers, but this should become obvious when
+    attempting conversion to FITS. Some example code::
 
+      >> import Header from hipercam
+      >> head = Header()
+      >> head['a'] = (1.23, 'a comment')
+      >> head['object'] = 'IP Peg'
+
+    :class:`Header` objects are used as the base class of :class:`Winhead` and
+    :class:`Window` objects which build into :class:`CCD` and :class:`MCCD`
+    objects.
     """
 
     SPECIAL_KEYWORDS = ('COMMENT', 'HISTORY', '')
@@ -160,19 +170,19 @@ class Header:
         return key
 
     def __setitem__(self, key, item):
-        """Sets the value of a header item using the [] form.
-        Reserved keywords 'COMMENT', 'HISTORY' and '' (blank)
-        are trapped. The key is converted to uppercase and if
-        it starts with 'HIERARCH ', that is stripped off.
+        """Sets the value of a header item using the [] form, e.g. `head['NREC'] =
+        2345`.  Reserved keywords 'COMMENT', 'HISTORY' and '' (blank) are
+        trapped. 
 
         Arguments::
 
           key : string
-             the keyword to store
+             the name of the header item.
 
           item : tuple | string | int | float
              the (value,comment) pair or just the value (in which
              case the comment will be blank.
+
         """
         key = Header._process_key(key)
 
@@ -191,7 +201,8 @@ class Header:
         if ukey in self._lookup:
             # Overwrite pre-existing value, re-covering the old comment if
             # no new one supplied
-            comment = self.cards[self._lookup[ukey]][2] if comment is None else comment
+            comment = self.cards[self._lookup[ukey]][2] if \
+                      comment is None else comment
             self.cards[self._lookup[ukey]] = (key,value,comment)
         else:
             # Insert new item before the history or comments start
@@ -205,7 +216,7 @@ class Header:
 
     def __getitem__(self, key):
         """Returns the value associated with header item 'key' using the
-        [] form."""
+        [] form, e.g. `nrec = head['NRECORD']`."""
         key = Header._process_key(key)
         return self.cards[self._lookup[key]][1]
 
@@ -259,8 +270,8 @@ class Header:
         return 'Header(head={!r})'.format(self.cards)
 
     def __delitem__(self, key):
-        """Deletes a particular header item when called e.g. as 
-        'del head[key]'."""
+        """Deletes a particular header item when called e.g. as
+        `del head[key]`."""
 
         key = Header._process_key(key)
         index = self._lookup[key]
@@ -284,27 +295,9 @@ class Header:
         return key in self._lookup
 
     def update(self, head):
-        """Update the Header with the contents of another header (excluding comments and history)"""
+        """Update the Header with the contents of another header (excluding comments
+and history)"""
         nadded = 0
         for key,value,comment in head.cards:
             if key.upper() not in Header.SPECIAL_KEYWORDS:
                 self[key] = (value,comment)
-
-if __name__ == '__main__':
-
-    hd = Header()
-    hd['a'] = (1.2,'a test')
-    hd['b'] = (1.4,'another test')
-    hd['c'] = (1.5,'another test')
-    hd['d'] = (1.6,'another test')
-    hd['e'] = (1.7,'another test')
-    print(hd)
-    del hd['a']
-    print(hd)
-    print(hd['b'])
-    del hd['c']
-    print(hd['d'])
-    print('a' in hd)
-    print('b' in hd)
-    print(hd)
-

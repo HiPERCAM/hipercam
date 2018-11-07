@@ -4,8 +4,10 @@ import multiprocessing
 import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
-from hipercam.reduction import (Rfile, initial_checks, extractFlux, moveApers, update_plots,
-                                process_ccds, setup_plots, setup_plot_buffers, LogWriter)
+from hipercam.reduction import (
+    Rfile, initial_checks, extractFlux, moveApers, update_plots,
+    process_ccds, setup_plots, setup_plot_buffers, LogWriter
+)
 
 # get hipercam version to write into the reduce log file
 from pkg_resources import get_distribution, DistributionNotFound
@@ -427,8 +429,10 @@ def reduce(args=None):
                     # apply flat field to processed frame
                     pccd /= rfile.flat
 
-                results = process_ccds(pccd, mccd, pool, ccdproc, rfile,
-                                       mccdwins, store, read, gain)
+                results = process_ccds(
+                    pccd, mccd, pool, ccdproc, rfile,
+                    mccdwins, store, read, gain
+                )
 
                 # write out results to the log file
                 alerts = logfile.write_results(nframe, results, pccd, store)
