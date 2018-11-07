@@ -259,14 +259,16 @@ archiving purposes.
         rd = os.path.basename(rdir)
         lrdir = os.path.join(LOGS, rd)
 
-        os.mkdir(lrdir)
-        print('mkdir {:s}'.format(lrdir))
+        if not os.path.exists(lrdir):
+            os.mkdir(lrdir)
+            print('mkdir {:s}'.format(lrdir))
 
         # make a link to the telescope file
-        file = os.path.join('..','..',RAW,rd,'telescope')
+        tfile = os.path.join('..','..',RAW,rd,'telescope')
         link = os.path.join(lrdir, 'telescope')
-        os.symlink(file,link)
-        print('ln -s {:s} {:s}'.format(file, link))
+        if not os.path.exists(link):
+            os.symlink(tfile,link)
+            print('ln -s {:s} {:s}'.format(tfile, link))
 
         for ndir in ndirs:
             night = os.path.basename(ndir)
