@@ -659,7 +659,7 @@ class Tseries:
             A new ``Tseries`` in which the data are folded and sorted by
             phase.
         """
-        fold_time = (((self.t - t0 * period) / period) % 1)
+        fold_time = (((self.t - t0) / period) % 1)
         # fold time domain from -.5 to .5
         fold_time[fold_time > 0.5] -= 1
         sorted_args = np.argsort(fold_time)
