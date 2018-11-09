@@ -403,8 +403,10 @@ def psf_reduce(args=None):
                     # apply flat field to processed frame
                     pccd /= rfile.flat
 
-                results = process_ccds(pccd, mccd, pool, ccdproc, rfile,
-                                       mccdwins, store, read, gain)
+                results = process_ccds(
+                    pccd, mccd, pool, ccdproc, rfile,
+                    mccdwins, store, read, gain
+                )
 
                 # write out results to the log file
                 alerts = logfile.write_results(nframe, results, pccd, store)
