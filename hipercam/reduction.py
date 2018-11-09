@@ -1,3 +1,6 @@
+"""
+This contains code used in common by the scripts reduce.py and psf_reduce.py
+"""
 from collections import OrderedDict
 import sys
 import warnings
@@ -13,8 +16,11 @@ from trm.pgplot import (
 
 class Rfile(OrderedDict):
     """
-    Class to read and interpret reduce files. Similar
-    to configparser but a bit freer.
+    Class to read and interpret reduce setup files. Similar
+    to configparser but a bit freer. Basically reads lots of lines
+    like 'ncpu = 1' with sections defined by lines like '[general]'.
+
+    The script genred writes out such files.
     """
 
     @classmethod
@@ -115,6 +121,10 @@ class Rfile(OrderedDict):
         sect['ncpu'] = int(sect['ncpu'])
         if sect['ncpu'] < 1:
             raise hcam.HipercamError('general.ncpu must be >= 1')
+
+        sect['ngroup'] = int(sect['ngroup']) if sect['ncpu'] > 1 else 1
+        if sect['ngroup'] < 1:
+            raise hcam.HipercamError('general.ngroup must be >= 1')
 
         #
         # apertures section
@@ -705,10 +715,73 @@ def setup_plot_buffers(rfile):
     return lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
 
 
-def update_plots(results, store, rfile, implot, lplot, imdev, lcdev,
-                 pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
-                 lpanel, xpanel, ypanel, tpanel, spanel,
-                 tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer):
+def update_plots(
+        results, rfile, implot, lplot, imdev, lcdev,
+        pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
+        lpanel, xpanel, ypanel, tpanel, spanel,
+        tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer):
+    """Plot updater routine.
+
+    Arguments::
+
+       results : list
+          contains tuples with the results for groups of frames for
+          each CCD. See LogWriter.write for more details on its
+          structure.
+
+       rfile : Rfile
+          reduce file parameters
+
+       implot : bool
+          whether to plot images
+
+       lplot : bool
+          whether to plot light curves
+
+       imdev : hipercam.pgp.Device
+          represents the image plot device (if any)
+
+       lcdev : hipercam.pgp.Device
+          represents the light curve plot device (if any)
+
+       pccd : MCCD [only matters if imdev]
+          current debiassed, flat-fielded frame. In the case of frame
+          groups, this will be the last one added.
+
+       ccds : list [only matters if imdev]
+          list of CCD labels to be plotted
+
+       msub : bool [only matters if imdev]
+          True to force subtraction of median value
+
+       nx : int [only matters if imdev]
+          Number of panels in X for image display
+
+       iset : character [only matters if imdev]
+          'a', 'd', or 'p' to define image display levels
+
+       plo : float [only matters if imdev and iset =='p']
+          Lower percentile level
+
+       phi : float [only matters if imdev and iset =='p']
+          Upper percentile level
+
+       ilo : float [only matters if imdev and iset =='d']
+          Lower intensity level
+
+       ihi : float [only matters if imdev and iset =='d']
+          Upper intensity level
+
+
+       tzero : float
+          time offset for plots
+
+       lpanel, xpanel, ypanel, tpanel, spanel, tkeep, lbuffer,
+        xbuffer, ybuffer, tbuffer, sbuffer -- need doing.
+
+       lbuffer : list of LightCurve
+
+    """
 
     # now the plotting sections
     if implot:
@@ -756,20 +829,17 @@ def update_plots(results, store, rfile, implot, lplot, imdev, lcdev,
 
         # plot the light curve
 
-        # time in minutes since start
-        t = hcam.DMINS*(pccd.head['MJDUTC']-tzero)
-
         # track the maximum time
         tmax = None
 
-        replot, ltmax = plotLight(lpanel, t, results, rfile, tkeep, lbuffer)
+        replot, ltmax = plotLight(lpanel, tzero, results, rfile, tkeep, lbuffer)
         tmax = tmax if ltmax is None else \
             ltmax if tmax is None else max(tmax, ltmax)
 
         if rfile.position:
             # plot the positions
             rep, ptmax = plotPosition(
-                xpanel, ypanel, t, results, rfile, tkeep, xbuffer, ybuffer
+                xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer
                 )
             replot |= rep
             tmax = tmax if ptmax is None else \
@@ -777,14 +847,14 @@ def update_plots(results, store, rfile, implot, lplot, imdev, lcdev,
 
         if rfile.transmission:
             # plot the transmission
-            rep, ttmax = plotTrans(tpanel, t, results, rfile, tkeep, tbuffer)
+            rep, ttmax = plotTrans(tpanel, tzero, results, rfile, tkeep, tbuffer)
             replot |= rep
             tmax = tmax if ttmax is None else \
                 ttmax if tmax is None else max(tmax, ttmax)
 
         if rfile.seeing:
             # plot the seeing
-            rep, stmax = plotSeeing(spanel, t, results, rfile, tkeep, sbuffer)
+            rep, stmax = plotSeeing(spanel, tzero, results, rfile, tkeep, sbuffer)
             replot |= rep
             tmax = tmax if stmax is None else \
                 stmax if tmax is None else max(tmax, stmax)
@@ -1021,102 +1091,146 @@ def initial_checks(mccd, rfile):
 
     # reference the times relative to the start frame.
     tzero = mccd.head['MJDUTC']
-    return tzero, read, gain, ok
+    return (tzero, read, gain, ok)
 
 
-def process_ccds(pccd, mccd, pool, ccdproc, rfile, mccdwins, store, read, gain):
+class ProcessCCDs:
+    """Function object replacing old "process_ccds" function. It
+    handles some of the persistent objects & arguemts required by
+    that routine more gracefully.
+    """
 
-    results = {}
-    if pool is not None:
-        # container for the arguments to send to ccdproc
-        # for each CCD
-        arglist = []
-        for cnam in pccd:
+    def __init__(self, rfile, read, gain, ccdproc, pool):
+        """Arguments::
+
+           rfile : Rfile
+              reduce file settings
+
+           read : MCCD
+              CCD representing readout noise divided by the flat field
+
+           gain : MCCD
+              CCD representing the gain multiplied by the flat field
+
+           ccdproc : function
+              function that carries out the per-CCD processing needed for the
+              parallelisation step.  See 'scripts/reduce.py' for its calling
+              signature.
+
+           ccdproc : function
+              function that carries out the per-CCD processing needed for the
+              parallelisation step.  See 'scripts/reduce.py' for its calling
+              signature.
+
+           pool : multiprocessing.Pool | None
+              for parallel processing. If 'None', it will be done in serial
+              mode.
+
+        """
+
+        self.rfile = rfile
+        self.read = read
+        self.gain = gain
+        self.ccdproc = ccdproc
+        self.pool = pool
+
+        # mwins: a persistent storage container that is set up in the
+        # first call to this object and retained for later access. It
+        # is a dictionary of dictionaries such that mwin[cnam][apnam]
+        # = the window name containing the aperture. It is assumed
+        # that the apertures do not drift from one window to another,
+        # so this is only created once.
+        self.mwins = {}
+
+        # store: another container to hold some of the results that need
+        # propagating between one group of frames and the next
+        self.store = {}
+
+    def __call__(self, pccds, mccds, nframes):
+
+        """Carries out the multi-processing reuction of a set of frames
+
+        Arguments::
+
+           pccds : list of MCCDs
+              processed frames (debiassed, flat-fielded). The idea is
+              to read in a few frames before sending them off to
+              parallel processing in order to reduce the overheads
+              that are incurred by processing each frame as it comes
+              in (old method). All frames should have an identical set
+              of CCDs in them.
+
+           mccds : list of MCCDs
+              their unprocessed counterparts, used to determine saturation.
+
+        Returns with list of ccdproc results, one set for each CCD.
+        See 'ccdproc' in reduce.py for definition.
+
+        """
+
+        arglist, allres = [], []
+
+        for cnam in pccds[0]:
 
             # get the apertures
-            if cnam not in rfile.aper or \
-                    cnam not in rfile['extraction'] or \
-                    len(rfile.aper[cnam]) == 0 or \
-                    not pccd[cnam].is_data():
+            if cnam not in self.rfile.aper or \
+               cnam not in self.rfile['extraction'] or \
+               len(self.rfile.aper[cnam]) == 0:
                 continue
 
-            if cnam not in mccdwins:
-                # first time through, work out an array of which
-                # window each aperture lies in we will assume this
-                # is fixed for the whole run, i.e. that apertures
-                # do not drift from one window to another. Set to
-                # None if no window found
-                mccdwins[cnam] = {}
-                for apnam, aper in rfile.aper[cnam].items():
-                    for wnam, wind in mccd[cnam].items():
-                        if wind.distance(aper.x, aper.y) > 0:
-                            mccdwins[cnam][apnam] = wnam
-                            break
-                        else:
-                            mccdwins[cnam][apnam] = None
+            # build lists of specific CCDs from each frame as opposed to lists
+            # of frames. Only accumulate ones marked as having data (i.e. skip
+            # NSKIP frames).  this is where the parellisation split is made.
+            pcds, mcds, nfrs = [], [], []
+            for pccd, mccd, nframe in zip(pccds, mccds, nframes):
+                if pccd[cnam].is_data():
+                    pcds.append(pccd[cnam])
+                    mcds.append(mccd[cnam])
+                    nfrs.append(nframe)
 
-            if cnam not in store:
-                # initialisation
-                store[cnam] = {'mfwhm': -1., 'mbeta': -1., 'nok': 0}
-
-            # compile list of arguments to send to parallelisable
-            # routine
-            arglist.append(
-                (cnam, pccd[cnam], read[cnam], gain[cnam],
-                    mccd[cnam], rfile.aper[cnam], mccdwins[cnam],
-                    rfile, store[cnam])
-                )
-
-        if not len(arglist):
-            return results
-
-        # Run the reduction in parallel
-        allres = pool.starmap(ccdproc, arglist)
-
-        # Save the results
-        for cnam, st, ccdaper, res in allres:
-            store[cnam] = st
-            rfile.aper[cnam] = ccdaper
-            results[cnam] = res
-
-    else:
-        # single processor
-        for cnam in pccd:
-
-            # get the apertures
-            if cnam not in rfile.aper or cnam not in rfile['extraction'] or \
-                    len(rfile.aper[cnam]) == 0 or not pccd[cnam].is_data():
+            if len(pcds) == 0:
                 continue
 
-            if cnam not in mccdwins:
-                # first time through, work out an array of which
-                # window each aperture lies in we will assume this
-                # is fixed for the whole run, i.e. that apertures
-                # do not drift from one window to another. Set to
-                # None if no window found
-                mccdwins[cnam] = {}
-                for apnam, aper in rfile.aper[cnam].items():
+            if cnam not in self.mwins:
+                # first time through, work out an array of which window each
+                # aperture lies in. we will assume this is fixed for the whole
+                # run, i.e. that apertures do not drift from one window to
+                # another. Set to None if no window found
+                self.mwins[cnam] = {}
+                for apnam, aper in self.rfile.aper[cnam].items():
                     for wnam, wind in mccd[cnam].items():
                         if wind.distance(aper.x, aper.y) > 0:
-                            mccdwins[cnam][apnam] = wnam
+                            self.mwins[cnam][apnam] = wnam
                             break
                         else:
-                            mccdwins[cnam][apnam] = None
+                            self.mwins[cnam][apnam] = None
 
-            if cnam not in store:
+            if cnam not in self.store:
                 # initialisation
-                store[cnam] = {'mfwhm': -1., 'mbeta': -1., 'nok': 0}
+                self.store[cnam] = {'mfwhm': -1., 'mbeta': -1., 'nok': 0}
 
-            # run the reduction using the parallelisable routine but in serial mode
-            cn, store[cnam], rfile.aper[cnam], results[cnam] = \
-                ccdproc(
-                cnam, pccd[cnam], read[cnam], gain[cnam], mccd[cnam],
-                rfile.aper[cnam], mccdwins[cnam], rfile, store[cnam]
+            if self.pool is None:
+                # carry out processing serially, store results
+                res = ccdproc(
+                    cnam, pcds, mcds, nfrs, self.read[cnam], self.gain[cnam],
+                    self.mwins[cnam], self.rfile, self.store[cnam]
                 )
-    return results
+                allres.append(res)
 
+            else:
+                # store arguments lists for later parallel processing
+                arglist.append(
+                    (cnam, pcds, mcds, nfrs, self.read[cnam], self.gain[cnam],
+                     self.mwins[cnam], self.rfile, self.store[cnam])
+                )
 
-def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
+        if len(arglist):
+            # delayed reduction now carried out in parallel
+            allres = self.pool.starmap(self.ccdproc, arglist)
+
+        return allres
+
+def moveApers(cnam, ccd, read, gain, rfile, ccdwin, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results
     that will be used to start the fits from one frame to the next. It must
     start as {'mfwhm': -1., 'mbeta': -1.}. The values of these will be revised
@@ -1140,10 +1254,6 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
        gain : CCD
            gain multiplied by the flat field
 
-       ccdaper : CcdAper
-           the Apertures. These are modified on exit, in particular the
-           positions.
-
        ccdwin : dictionary
            the Window label corresponding to each Aperture
 
@@ -1154,17 +1264,19 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
            used to store various parameters needed further down the line.
            Initialise to {'mfwhm': -1., 'mbeta': -1., 'nok': 0}. For each
            aperture in ccdaper, parameters `xe`, `ye`, `fwhm`, `fwhme`,
-           `beta`, `betae`, `dx`, `dy` will be added (these are basically
-           parameters that are not stored in ccdaper but will be needed for
-           the log file output). They represent: the uncertainty in the fitted
-           X, Y position (ex, ey), the fitted FWHM and its uncertainty (fwhm,
-           fwhme), the same for beta and its uncertainty (beta, betae), and
-           finally the change in x and y position. 'nok' stores the number
-           of times a successful mean FWHM was measured.
+           `beta`, `betae`, `dx`, `dy` will be added. They represent: the
+           uncertainty in the fitted X, Y position (ex, ey), the fitted FWHM
+           and its uncertainty (fwhm, fwhme), the same for beta and its
+           uncertainty (beta, betae), and finally the change in x and y
+           position. 'nok' stores the number of times a successful mean FWHM
+           was measured.
 
     Returns: True or False to indicate whether to move onto extraction or not.
     If False, extraction will be skipped.
+
     """
+
+    ccdaper = rfile.aper[cnam]
 
     # short-hand that will used a lot
     apsec = rfile['apertures']
@@ -1616,396 +1728,6 @@ def moveApers(cnam, ccd, read, gain, ccdaper, ccdwin, rfile, store):
     return True
 
 
-def extractFlux(cnam, ccd, read, gain, rccd, ccdaper, ccdwin, rfile, store):
-    """This extracts the flux of all apertures of a given CCD.
-
-    The steps are (1) aperture resizing, (2) sky background estimation, (3)
-    flux extraction. The apertures are assumed to be correctly positioned.
-
-    It returns the results as a dictionary keyed on the aperture label. Each
-    entry returns a list:
-
-    [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, countse, sky, esky,
-    nsky, nrej, flag]
-
-    flag = bitmask. See hipercam.core to see all the options which are
-    referred to by name in the code e.g. ALL_OK. The various flags can
-    signal that there no sky pixels (NO_SKY), the sky aperture was off
-    the edge of the window (SKY_AT_EDGE), etc.
-
-    This code::
-
-       >> bset = flag & TARGET_SATURATED
-
-    determines whether the data saturation flag is set for example.
-
-    Input arguments::
-
-       cnam : string
-          CCD identifier label
-
-       ccd : CCD
-           the debiassed, flat-fielded CCD.
-
-       read : CCD
-           readnoise divided by the flat-field
-
-       gain : CCD
-           gain multiplied by the flat field
-
-       rccd : CCD
-          corresponding raw CCD, used to work out whether data are
-          saturated in target aperture.
-
-       ccdaper : CcdAper
-          CCD's-worth of Apertures
-
-       ccdwin : dictionary of strings
-           the Window label corresponding to each Aperture
-
-       rfile : Rfile
-           reduce file configuration parameters
-
-       store : dict of dicts
-           see moveApers for what this contains.
-
-    """
-
-    # initialise flag
-    flag = hcam.ALL_OK
-
-    # get the control parameters
-    resize, extype, r1fac, r1min, r1max, r2fac, r2min, r2max, \
-        r3fac, r3min, r3max = rfile['extraction'][cnam]
-
-    results = {}
-    mfwhm = store['mfwhm']
-
-    if resize == 'variable' or extype == 'optimal':
-
-        if mfwhm <= 0:
-            # return early here as there is nothing we can do.
-            print(
-                (' *** WARNING: CCD {:s}: no measured FWHM to re-size'
-                 ' apertures or carry out optimal extraction; no'
-                 ' extraction possible').format(cnam)
-            )
-            # set flag to indicate no FWHM
-            flag = hcam.NO_FWHM
-
-            for apnam, aper in ccdaper.items():
-                info = store[apnam]
-                results[apnam] = {
-                    'x': aper.x, 'xe': info['xe'],
-                    'y': aper.y, 'ye': info['ye'],
-                    'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
-                    'beta': info['beta'], 'betae': info['betae'],
-                    'counts': 0., 'countse': -1,
-                    'sky': 0., 'skye': 0., 'nsky': 0, 'nrej': 0,
-                    'flag': flag
-                }
-            return results
-
-        else:
-
-            # Re-size the apertures
-            for aper in ccdaper.values():
-                aper.rtarg = max(r1min, min(r1max, r1fac*mfwhm))
-                aper.rsky1 = max(r2min, min(r2max, r2fac*mfwhm))
-                aper.rsky2 = max(r3min, min(r3max, r3fac*mfwhm))
-
-    elif resize == 'fixed':
-
-        # just apply the max and min limits
-        for aper in ccdaper.values():
-            aper.rtarg = max(r1min, min(r1max, aper.rtarg))
-            aper.rsky1 = max(r2min, min(r2max, aper.rsky1))
-            aper.rsky2 = max(r3min, min(r3max, aper.rsky2))
-
-    else:
-        raise hcam.HipercamError(
-            "CCD {:s}: 'variable' and 'fixed' are the only"
-            " aperture resizing options".format(
-                cnam)
-        )
-
-    # apertures have been positioned in moveApers and now re-sized. Finally
-    # we can extract something.
-    for apnam, aper in ccdaper.items():
-
-        # initialise flag
-        flag = hcam.ALL_OK
-
-        # extract Windows relevant for this aperture
-        wnam = ccdwin[apnam]
-
-        wdata = ccd[wnam]
-        wread = read[wnam]
-        wgain = gain[wnam]
-        wraw = rccd[wnam]
-
-        # extract sub-windows that include all of the pixels that could
-        # conceivably affect the aperture. We have to check that 'extra'
-        # apertures do not go beyond rsky2 which would normally be expected to
-        # be the default outer radius
-        rmax = aper.rsky2
-        for xoff, yoff in aper.extra:
-            rmax = max(rmax, np.sqrt(xoff**2+yoff**2) + aper.rtarg)
-
-        # this is the region of interest
-        x1, x2, y1, y2 = (
-            aper.x-aper.rsky2-wdata.xbin, aper.x+aper.rsky2+wdata.xbin,
-            aper.y-aper.rsky2-wdata.ybin, aper.y+aper.rsky2+wdata.ybin
-        )
-
-        try:
-
-            # extract sub-Windows
-            swdata = wdata.window(x1, x2, y1, y2)
-            swread = wread.window(x1, x2, y1, y2)
-            swgain = wgain.window(x1, x2, y1, y2)
-            swraw = wraw.window(x1, x2, y1, y2)
-
-            # some checks for possible problems. bitmask flags will be set if
-            # they are encountered.
-            xlo, xhi, ylo, yhi = swdata.extent()
-            if xlo > aper.x-aper.rsky2 or xhi < aper.x+aper.rsky2 or \
-               ylo > aper.y-aper.rsky2 or yhi < aper.y+aper.rsky2:
-                # the sky aperture overlaps the edge of the window
-                flag |= hcam.SKY_AT_EDGE
-
-            if xlo > aper.x-aper.rtarg or xhi < aper.x+aper.rtarg or \
-               ylo > aper.y-aper.rtarg or yhi < aper.y+aper.rtarg:
-                # the target aperture overlaps the edge of the window
-                flag |= hcam.TARGET_AT_EDGE
-
-            for xoff, yoff in aper.extra:
-                rout = np.sqrt(xoff**2+yoff**2) + aper.rtarg
-                if xlo > aper.x-rout or xhi < aper.x+rout or \
-                   ylo > aper.y-rout or yhi < aper.y+rout:
-                    # an extra target aperture overlaps the edge of the window
-                    flag |= hcam.TARGET_AT_EDGE
-
-            # compute X, Y arrays over the sub-window relative to the centre
-            # of the aperture and the distance squared from the centre (Rsq)
-            # to save a little effort.
-            x = swdata.x(np.arange(swdata.nx))-aper.x
-            y = swdata.y(np.arange(swdata.ny))-aper.y
-            X, Y = np.meshgrid(x, y)
-            Rsq = X**2 + Y**2
-
-            # squared aperture radii for comparison
-            R1sq, R2sq, R3sq = aper.rtarg**2, aper.rsky1**2, aper.rsky2**2
-
-            # sky selection, accounting for masks and extra (which we assume
-            # acts like a sky mask as well)
-            sok = (Rsq > R2sq) & (Rsq < R3sq)
-            for xoff, yoff, radius in aper.mask:
-                sok &= (X-xoff)**2 + (Y-yoff)**2 > radius**2
-            for xoff, yoff in aper.extra:
-                sok &= (X-xoff)**2 + (Y-yoff)**2 > R1sq
-
-            # sky data
-            dsky = swdata.data[sok]
-
-            if len(dsky):
-
-                # we have some sky!
-
-                if rfile['sky']['method'] == 'clipped':
-
-                    # clipped mean. Take average, compute RMS,
-                    # reject pixels > thresh*rms from the mean.
-                    # repeat until no new pixels are rejected.
-
-                    thresh = rfile['sky']['thresh']
-                    ok = np.ones_like(dsky, dtype=bool)
-                    nrej = 1
-                    while nrej:
-                        slevel = dsky[ok].mean()
-                        srms = dsky[ok].std()
-                        nold = len(dsky[ok])
-                        ok = ok & (np.abs(dsky-slevel) < thresh*srms)
-                        nrej = nold - len(dsky[ok])
-
-                    nsky = len(dsky[ok])
-
-                    # serror -- error in the sky estimate.
-                    serror = srms/np.sqrt(nsky)
-
-                else:
-
-                    # 'median' goes with 'photon'
-                    slevel = dsky.median()
-                    nsky = len(dsky)
-                    nrej = 0
-
-                    # read*gain/flat and flat over sky region
-                    dread = swread.data[sok]
-                    dgain = swgain.data[sok]
-
-                    serror = np.sqrt(
-                        (dread**2 + np.max(0, dsky)/dgain).sum()/nsky**2
-                    )
-
-            else:
-                # no sky. will still return the flux in the aperture but set
-                # flag and the sky uncertainty to -1
-                flag |= hcam.NO_SKY
-                slevel = 0
-                serror = -1
-                nsky = 0
-                nrej = 0
-
-            # size of a pixel which is used to taper pixels as they approach
-            # the edge of the aperture to reduce pixellation noise
-            size = np.sqrt(wdata.xbin*wdata.ybin)
-
-            # target selection, accounting for extra apertures and allowing
-            # pixels to contribute if their centres are as far as size/2 beyond
-            # the edge of the circle (but with a tapered weight)
-            dok = Rsq < (aper.rtarg+size/2.)**2
-
-            if not dok.any():
-                # check there are some valid pixels
-                flag |= hcam.NO_DATA
-                raise hcam.HipercamError('no valid pixels in aperture')
-
-            # check for saturation and nonlinearity
-            if cnam in rfile.warn:
-                if swraw.data[dok].max() >= rfile.warn[cnam]['saturation']:
-                    flag |= hcam.TARGET_SATURATED
-
-                if swraw.data[dok].max() >= rfile.warn[cnam]['nonlinear']:
-                    flag |= hcam.TARGET_NONLINEAR
-
-            else:
-                warnings.warn(
-                    'CCD {:s} has no nonlinearity or saturation levels set'
-                )
-
-            # Pixellation amelioration:
-            #
-            # The weight of a pixel is set to 1 at the most and then linearly
-            # declines as it approaches the edge of the aperture. The scale over
-            # which it declines is set by 'size', the geometric mean of the
-            # binning factors. A pixel with its centre exactly on the edge
-            # gets a weight of 0.5.
-            wgt = np.minimum(
-                1, np.maximum(
-                    0, (aper.rtarg+size/2.-np.sqrt(Rsq))/size
-                )
-            )
-            for xoff, yoff in aper.extra:
-                rsq = (X-xoff)**2 + (Y-yoff)**2
-                dok |= rsq < (aper.rtarg+size/2.)**2
-                wg = np.minimum(
-                    1, np.maximum(
-                        0, (aper.rtarg+size/2.-np.sqrt(rsq))/size
-                    )
-                )
-                wgt = np.maximum(wgt, wg)
-
-            # the values needed to extract the flux.
-            dtarg = swdata.data[dok]
-            dread = swread.data[dok]
-            dgain = swgain.data[dok]
-            wtarg = wgt[dok]
-
-            # 'override' to indicate we want to override the readout noise.
-            if nsky and rfile['sky']['error'] == 'variance':
-                # from sky variance
-                rd = srms
-                override = True
-            else:
-                rd = dread
-                override = False
-
-            # count above sky
-            diff = dtarg - slevel
-
-            if extype == 'normal' or extype == 'optimal':
-
-                if extype == 'optimal':
-                    # optimal extraction. Need the profile
-                    warnings.warn(
-                        'Transmission plot is not reliable'
-                        ' with optimal extraction'
-                    )
-
-                    mbeta = store['mbeta']
-                    if mbeta > 0.:
-                        prof = fitting.moffat(
-                            (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm, mbeta,
-                            wdata.xbin, wdata.ybin,
-                            rfile['apertures']['fit_ndiv']
-                        )
-                    else:
-                        prof = fitting.gaussian(
-                            (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm,
-                            wdata.xbin, wdata.ybin,
-                            rfile['apertures']['fit_ndiv']
-                        )
-
-                    # multiply weights by the profile
-                    wtarg *= prof
-
-                # now extract
-                counts = (wtarg*diff).sum()
-
-                if override:
-                    # in this case, the "readout noise" includes the component
-                    # due to the sky background so we use the sky-subtracted
-                    # counts above sky for the object contribution.
-                    var = (wtarg**2*(rd**2 + np.maximum(0, diff)/dgain)).sum()
-                else:
-                    # in this case we are using the true readout noise and we
-                    # just use the data (which should be debiassed) without
-                    # removal of the sky.
-                    var = (wtarg**2*(rd**2 + np.maximum(0, dtarg)/dgain)).sum()
-
-                if serror > 0:
-                    # add in factor due to uncertainty in sky estimate
-                    var += (wtarg.sum()*serror)**2
-
-                countse = np.sqrt(var)
-
-            else:
-                raise hcam.HipercamError(
-                    'extraction type = {:s} not recognised'.format(extype)
-                )
-
-            info = store[apnam]
-
-            results[apnam] = {
-                'x': aper.x, 'xe': info['xe'],
-                'y': aper.y, 'ye': info['ye'],
-                'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
-                'beta': info['beta'], 'betae': info['betae'],
-                'counts': counts, 'countse': countse,
-                'sky': slevel, 'skye': serror, 'nsky': nsky,
-                'nrej': nrej, 'flag': flag
-            }
-
-        except hcam.HipercamError as err:
-
-            info = store[apnam]
-            flag |= hcam.NO_EXTRACTION
-
-            results[apnam] = {
-                'x': aper.x, 'xe': info['xe'],
-                'y': aper.y, 'ye': info['ye'],
-                'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
-                'beta': info['beta'], 'betae': info['betae'],
-                'counts': 0., 'countse': -1,
-                'sky': 0., 'skye': 0., 'nsky': 0, 'nrej': 0,
-                'flag': flag
-            }
-
-    # finally, we are done
-    return results
-
-
 class Panel:
     """
     Keeps track of the configuration of particular panels of plots so that
@@ -2096,7 +1818,7 @@ class Panel:
         pgswin(x1, x2, y1, y2)
 
 
-def plotLight(panel, t, results, rfile, tkeep, lbuffer):
+def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
     """Plots one set of results in the light curve panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
 
@@ -2122,16 +1844,11 @@ def plotLight(panel, t, results, rfile, tkeep, lbuffer):
     if ymin > ymax:
         ymin, ymax = ymax, ymin
 
-    # add points to the plot and buffers, tracking the minimum and maximum
-    # values
+    # add points to the plot and buffers, tracking the minimum and
+    # maximum values
     tmax = fmin = fmax = None
     for lc in lbuffer:
-        f = lc.add_point(t, results)
-        if f is not None:
-            fmin = f if fmin is None else min(fmin, f)
-            fmax = f if fmax is None else max(fmax, f)
-            tmax = t if tmax is None else max(tmax, t)
-
+        tmax, fmin, fmax = lc.add_point(results, tzero, tmax, fmin, fmax)
         lc.trim(tkeep)
 
     if not sect['y_fixed'] and fmin is not None and \
@@ -2169,7 +1886,7 @@ def plotLight(panel, t, results, rfile, tkeep, lbuffer):
     return (replot, tmax)
 
 
-def plotPosition(xpanel, ypanel, t, results, rfile, tkeep, xbuffer, ybuffer):
+def plotPosition(xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer):
     """Plots one set of results in the seeing panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
 
@@ -2190,12 +1907,7 @@ def plotPosition(xpanel, ypanel, t, results, rfile, tkeep, xbuffer, ybuffer):
     # add points to the plot and buffers
     tmax = xmin = xmax = None
     for xpos in xbuffer:
-        x = xpos.add_point(t, results)
-        if x is not None:
-            tmax = t if tmax is None else max(t, tmax)
-            xmin = x if xmin is None else min(x, xmin)
-            xmax = x if xmax is None else max(x, xmax)
-
+        tmax, xmin, xmax = xpos.add_point(results, tzero, tmax, xmin, xmax)
         xpos.trim(tkeep)
 
     if xmin is not None and (xmin < xpanel.y1 or xmax > xpanel.y2) and \
@@ -2214,12 +1926,7 @@ def plotPosition(xpanel, ypanel, t, results, rfile, tkeep, xbuffer, ybuffer):
     # add points to the plot and buffers
     ymin = ymax = None
     for ypos in ybuffer:
-        y = ypos.add_point(t, results)
-        if y is not None:
-            tmax = t if tmax is None else max(t, tmax)
-            ymin = y if ymin is None else min(y, ymin)
-            ymax = y if ymax is None else max(y, ymax)
-
+        tmax, ymin, ymax = ypos.add_point(results, tzero, tmax, ymin, ymax)
         ypos.trim(tkeep)
 
     if ymin is not None and (ymin < ypanel.y1 or ymax > ypanel.y2) and \
@@ -2234,8 +1941,7 @@ def plotPosition(xpanel, ypanel, t, results, rfile, tkeep, xbuffer, ybuffer):
 
     return (replot, tmax)
 
-
-def plotTrans(panel, t, results, rfile, tkeep, tbuffer):
+def plotTrans(panel, tzero, results, rfile, tkeep, tbuffer):
     """Plots one set of results in the transmission panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
 
@@ -2254,19 +1960,16 @@ def plotTrans(panel, t, results, rfile, tkeep, tbuffer):
     # transmission where necessary
     tmax = None
     for trans in tbuffer:
-        f = trans.add_point(t, results)
-        if f is not None:
-            tmax = t if tmax is None else max(t, tmax)
-            if f > panel.y2:
-                trans.fmax *= f/100
-                replot = True
-
+        tmax, fmax = trans.add_point(results, tzero, tmax)
+        if fmax is not None and fmax > panel.y2:
+            trans.fmax *= fmax/100
+            replot = True
         trans.trim(tkeep)
 
     return (replot, tmax)
 
 
-def plotSeeing(panel, t, results, rfile, tkeep, sbuffer):
+def plotSeeing(panel, tzero, results, rfile, tkeep, sbuffer):
     """Plots one set of results in the seeing panel. Handles storage of
     points for future re-plots, computing new plot limits where needed.
 
@@ -2288,11 +1991,7 @@ def plotSeeing(panel, t, results, rfile, tkeep, sbuffer):
     # transmission where necessary
     tmax = fmax = None
     for see in sbuffer:
-        f = see.add_point(t, results)
-        if f is not None:
-            tmax = t if tmax is None else max(t, tmax)
-            fmax = f if fmax is None else max(f, fmax)
-
+        tmax, fmax = see.add_point(results, tzero, tmax, fmax)
         see.trim(tkeep)
 
     if fmax is not None and fmax > panel.y2 and not sect['y_fixed']:
@@ -2359,84 +2058,119 @@ class LightCurve(BaseBuffer):
         self.fac = plot_config['fac']
         self.linear = linear
 
-    def add_point(self, t, results):
-        """Extracts the data to be plotted on the light curve plot for the given the
-        time and the results (for all CCDs, as returned by
-        extractFlux. Assuming all is OK (errors > 0 for both comparison and
-        target), it stores (t, f, fe) for possible re-plotting, plots the
-        point and returns the value of 'f' plotted to help with re-scaling or
-        None if nothing was plotted.  't' is the time in minutes since the
-        start of the run
+    def add_point(self, results, tzero, tmax, fmin, fmax):
+        """Extracts the data to be plotted on the light curve plot for the
+        given the results of a CCD group reduction as returned by a
+        ProcessCCDs object. Assuming all is OK (errors > 0 for both
+        comparison and target), it stores (t, f, fe) for possible
+        re-plotting, plots the point and returns the value of 'f'
+        plotted to help with re-scaling or None if nothing was
+        plotted.
+
+        Arguments::
+
+           results : list of results for each CCD group
+              see reduce.py for usage, ProcessCCDs for more insight
+
+           tzero : float
+              time offset zero point
+
+           tmax : float
+              the maximum time plotted so far (minutes). None if not yet set.
+
+           fmin : float
+              minimum flux plotted so far. None if not yet set.
+
+           fmax : float
+              maximum flux plotted so far. None if not yet set.
+
+        Returns (potentially) new values of (tmax, fmin, fmax), according to
+        what was plotted.
 
         """
 
-        if results is None or self.cnam not in results:
-            return None
+        for cnam, res in results:
+            # loop over the CCD groups. We are only interested in the
+            # one that matches the CCD defined for this buffer
+            if cnam == self.cnam:
+                break
+        else:
+            return (tmax, fmin, fmax)
 
-        res = results[self.cnam]
+        for nframe, store, ccdaper, reses, mjdint, \
+            mjdfrac, mjdok, expose in res:
 
-        targ = res[self.targ]
-        ft = targ['counts']
-        fte = targ['countse']
-        saturated = targ['flag'] & hcam.TARGET_SATURATED
+            # loop over each frame of the group
 
-        if fte > 0:
+            targ = reses[self.targ]
+            ft = targ['counts']
+            fte = targ['countse']
+            saturated = targ['flag'] & hcam.TARGET_SATURATED
 
-            if self.comp != '!':
-                comp = res[self.comp]
-                fc = comp['counts']
-                fce = comp['countse']
-                saturated |= comp['flag'] & hcam.TARGET_SATURATED
+            if fte > 0:
 
-                if fc > 0:
-                    if fce > 0.:
-                        f = ft / fc
-                        fe = np.sqrt((fte/fc)**2+(t*fce/fc**2)**2)
+                if self.comp != '!':
+                    comp = reses[self.comp]
+                    fc = comp['counts']
+                    fce = comp['countse']
+                    saturated |= comp['flag'] & hcam.TARGET_SATURATED
+
+                    if fc > 0:
+                        if fce > 0.:
+                            f = ft / fc
+                            fe = np.sqrt((fte/fc)**2+(t*fce/fc**2)**2)
+                        else:
+                            continue
                     else:
-                        return None
+                        continue
                 else:
-                    return None
+                    f = ft
+                    fe = fte
             else:
-                f = ft
-                fe = fte
-        else:
-            return None
+                continue
 
-        if not self.linear:
-            if f <= 0.:
-                return None
+            if not self.linear:
+                if f <= 0.:
+                    continue
 
-            fe = 2.5/np.log(10)*(fe/f)
-            f = -2.5*np.log10(f)
+                fe = 2.5/np.log(10)*(fe/f)
+                f = -2.5*np.log10(f)
 
-        # apply scaling factor and offset
-        f *= self.fac
-        fe *= self.fac
-        f += self.off
+            # apply scaling factor and offset
+            f *= self.fac
+            fe *= self.fac
+            f += self.off
 
-        # OK, we are done. Store new point
-        self.t.append(t)
-        self.f.append(f)
-        self.fe.append(fe)
-        if saturated:
-            # mark saturated data with cross
-            self.symb.append(5)
-        else:
-            # blob if OK
-            self.symb.append(17)
+            # compute time in terms of minutes from the zeropoint
+            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
 
-        # Plot the point in minutes from start point
-        pgsch(0.5)
-        if self.ecol is not None:
-            pgsci(self.ecol)
-            pgmove(t, f-fe)
-            pgdraw(t, f+fe)
+            # OK, we are done for this frame. Store new point
+            self.t.append(tmins)
+            self.f.append(f)
+            self.fe.append(fe)
+            if saturated:
+                # mark saturated data with cross
+                self.symb.append(5)
+            else:
+                # blob if OK
+                self.symb.append(17)
 
-        pgsci(self.dcol)
-        pgpt1(t, f, self.symb[-1])
+            # Plot the point in minutes from start point
+            pgsch(0.5)
+            if self.ecol is not None:
+                pgsci(self.ecol)
+                pgmove(tmins, f-fe)
+                pgdraw(tmins, f+fe)
 
-        # return f up the line
-        return f
+            pgsci(self.dcol)
+            pgpt1(tmins, f, self.symb[-1])
+
+            # track the limits
+            tmax = tmins if tmax is None else max(tmins,tmax)
+            fmin = f if fmin is None else min(f, fmin)
+            fmax = f if fmax is None else max(f, fmax)
+
+        return (tmax, fmin, fmax)
 
 
 class Xposition(BaseBuffer):
@@ -2448,57 +2182,87 @@ class Xposition(BaseBuffer):
         super().__init__(plot_config)
         self.xzero = None
 
-    def add_point(self, t, results):
+    def add_point(self, results, tzero, tmax, xmin, xmax):
         """
-        Extracts the data to be plotted on the position plot for given the
-        time and the results (for all CCDs, as returned by
-        extractFlux. Assuming all is OK (errors > 0), it stores (t, f, fe) for
-        possible re-plotting, plots the point and returns the value of 'f'
-        plotted to help with re-scaling or None if nothing was plotted.  't'
-        is the time in minutes since the start of the run
+        Extracts the data to be plotted on the position plot.
+
+        Arguments::
+
+           results : list of results for each CCD group
+              see reduce.py for usage, ProcessCCDs for more insight
+
+           tzero : float
+              time offset zero point
+
+           tmax : float
+              the maximum time plotted so far (minutes). None if not yet set.
+
+           xmin : float
+              minimum X plotted so far. None if not yet set.
+
+           xmax : float
+              maximum X plotted so far. None if not yet set.
+
+        Returns (potentially) new values of (tmax, xmin, xmax), according to
+        what was plotted.
         """
 
-        if self.cnam not in results:
-            return None
-
-        res = results[self.cnam]
-
-        targ = res[self.targ]
-        x = targ['x']
-        xe = targ['xe']
-
-        if xe <= 0:
-            # skip junk
-            return None
-
-        if self.xzero is None:
-            # initialise the start Y position
-            self.xzero = x
-
-        x -= self.xzero
-
-        # Store new point
-        self.t.append(t)
-        self.f.append(x)
-        self.fe.append(xe)
-        if targ['flag'] & hcam.TARGET_SATURATED:
-            # mark saturated data with cross
-            self.symb.append(5)
+        for cnam, res in results:
+            # loop over the CCD groups. We are only interested in the
+            # one that matches the CCD defined for this buffer
+            if cnam == self.cnam:
+                break
         else:
-            # blob if OK
-            self.symb.append(17)
+            return (tmax, xmin, xmax)
 
-        # Plot the point in minutes from start point
-        pgsch(0.5)
-        if self.ecol is not None:
-            pgsci(self.ecol)
-            pgmove(t, x-xe)
-            pgdraw(t, x+xe)
-        pgsci(self.dcol)
-        pgpt1(t, x, self.symb[-1])
+        for nframe, store, ccdaper, reses, mjdint, \
+            mjdfrac, mjdok, expose in res:
 
-        # return x up the line
-        return x
+            # loop over each frame of the group
+
+            targ = reses[self.targ]
+            x = targ['x']
+            xe = targ['xe']
+
+            if xe <= 0:
+                # skip junk
+                continue
+
+            if self.xzero is None:
+                # initialise the start X position
+                self.xzero = x
+
+            x -= self.xzero
+
+            # compute time in terms of minutes from the zeropoint
+            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+
+            # Store new point
+            self.t.append(tmins)
+            self.f.append(x)
+            self.fe.append(xe)
+            if targ['flag'] & hcam.TARGET_SATURATED:
+                # mark saturated data with cross
+                self.symb.append(5)
+            else:
+                # blob if OK
+                self.symb.append(17)
+
+            # Plot the point in minutes from start point
+            pgsch(0.5)
+            if self.ecol is not None:
+                pgsci(self.ecol)
+                pgmove(tmins, x-xe)
+                pgdraw(tmins, x+xe)
+            pgsci(self.dcol)
+            pgpt1(tmins, x, self.symb[-1])
+
+            # track the limits
+            tmax = tmins if tmax is None else max(tmins,tmax)
+            xmin = x if xmin is None else min(x, xmin)
+            xmax = x if xmax is None else max(x, xmax)
+
+        return (tmax, xmin, xmax)
 
 
 class Yposition(BaseBuffer):
@@ -2510,57 +2274,87 @@ class Yposition(BaseBuffer):
         super().__init__(plot_config)
         self.yzero = None
 
-    def add_point(self, t, results):
+    def add_point(self, results, tzero, tmax, ymin, ymax):
         """
-        Extracts the data to be plotted on the position plot for given the
-        time and the results (for all CCDs, as returned by
-        extractFlux. Assuming all is OK (errors > 0), it stores (t, f, fe) for
-        possible re-plotting, plots the point and returns the value of 'f'
-        plotted to help with re-scaling or None if nothing was plotted.  't'
-        is the time in minutes since the start of the run
+        Extracts the data to be plotted on the position plot.
+
+        Arguments::
+
+           results : list of results for each CCD group
+              see reduce.py for usage, ProcessCCDs for more insight
+
+           tzero : float
+              time offset zero point
+
+           tmax : float
+              the maximum time plotted so far (minutes). None if not yet set.
+
+           ymin : float
+              minimum Y plotted so far. None if not yet set.
+
+           ymax : float
+              maximum Y plotted so far. None if not yet set.
+
+        Returns (potentially) new values of (tmax, ymin, ymax), according to
+        what was plotted.
         """
 
-        if self.cnam not in results:
-            return None
-
-        res = results[self.cnam]
-
-        targ = res[self.targ]
-        y = targ['y']
-        ye = targ['ye']
-
-        if ye <= 0:
-            # skip junk
-            return None
-
-        if self.yzero is None:
-            # initialise the start Y position
-            self.yzero = y
-
-        y -= self.yzero
-
-        # Store new point
-        self.t.append(t)
-        self.f.append(y)
-        self.fe.append(ye)
-        if targ['flag'] & hcam.TARGET_SATURATED:
-            # mark saturated data with cross
-            self.symb.append(5)
+        for cnam, res in results:
+            # loop over the CCD groups. We are only interested in the
+            # one that matches the CCD defined for this buffer
+            if cnam == self.cnam:
+                break
         else:
-            # blob if OK
-            self.symb.append(17)
+            return (tmax, ymin, ymax)
 
-        # Plot the point in minutes from start point
-        pgsch(0.5)
-        if self.ecol is not None:
-            pgsci(self.ecol)
-            pgmove(t, y-ye)
-            pgdraw(t, y+ye)
-        pgsci(self.dcol)
-        pgpt1(t, y, self.symb[-1])
+        for nframe, store, ccdaper, reses, mjdint, \
+            mjdfrac, mjdok, expose in res:
 
-        # return y up the line
-        return y
+            # loop over each frame of the group
+
+            targ = reses[self.targ]
+            y = targ['y']
+            ye = targ['ye']
+
+            if ye <= 0:
+                # skip junk
+                continue
+
+            if self.yzero is None:
+                # initialise the start Y position
+                self.yzero = y
+
+            y -= self.yzero
+
+            # compute time in terms of minutes from the zeropoint
+            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+
+            # Store new point
+            self.t.append(tmins)
+            self.f.append(y)
+            self.fe.append(ye)
+            if targ['flag'] & hcam.TARGET_SATURATED:
+                # mark saturated data with cross
+                self.symb.append(5)
+            else:
+                # blob if OK
+                self.symb.append(17)
+
+            # Plot the point in minutes from start point
+            pgsch(0.5)
+            if self.ecol is not None:
+                pgsci(self.ecol)
+                pgmove(tmins, y-ye)
+                pgdraw(tmins, y+ye)
+            pgsci(self.dcol)
+            pgpt1(tmins, y, self.symb[-1])
+
+            # track the limits
+            tmax = tmins if tmax is None else max(tmins,tmax)
+            ymin = y if ymin is None else min(y, ymin)
+            ymax = y if ymax is None else max(y, ymax)
+
+        return (tmax, ymin, ymax)
 
 
 class Transmission(BaseBuffer):
@@ -2572,7 +2366,7 @@ class Transmission(BaseBuffer):
         super().__init__(plot_config)
         self.fmax = None   # Maximum to scale the transmission
 
-    def add_point(self, t, results):
+    def add_point(self, results, tzero, tmax):
         """
         Extracts the data to be plotted on the transmission plot for given the
         time and the results (for all CCDs, as returned by
@@ -2581,49 +2375,62 @@ class Transmission(BaseBuffer):
         plotted to help with re-scaling or None if nothing was plotted.  't'
         is the time in minutes since the start of the run
         """
-
-        if self.cnam not in results:
-            return None
-
-        res = results[self.cnam]
-
-        targ = res[self.targ]
-        f = targ['counts']
-        fe = targ['countse']
-
-        if f <= 0 or fe <= 0:
-            # skip junk
-            return None
-
-        # Store new point
-        self.t.append(t)
-        self.f.append(f)
-        self.fe.append(fe)
-        if targ['flag'] & hcam.TARGET_SATURATED:
-            # mark saturated data with cross
-            self.symb.append(5)
+        fmax = None
+        for cnam, res in results:
+            # loop over the CCD groups. We are only interested in the
+            # one that matches the CCD defined for this buffer
+            if cnam == self.cnam:
+                break
         else:
-            # blob if OK
-            self.symb.append(17)
+            return (tmax, fmax)
 
-        if self.fmax is None:
-            # initialise the maximum flux
-            self.fmax = f
+        for nframe, store, ccdaper, reses, mjdint, \
+            mjdfrac, mjdok, expose in res:
 
-        f *= 100/self.fmax
-        fe *= 100/self.fmax
+            # loop over each frame of the group
+            targ = reses[self.targ]
+            f = targ['counts']
+            fe = targ['countse']
 
-        # Plot the point in minutes from start point
-        pgsch(0.5)
-        if self.ecol is not None:
-            pgsci(self.ecol)
-            pgmove(t, f-fe)
-            pgdraw(t, f+fe)
-        pgsci(self.dcol)
-        pgpt1(t, f, self.symb[-1])
+            if f <= 0 or fe <= 0:
+                # skip junk
+                continue
 
-        # return f up the line
-        return f
+            # compute time in terms of minutes from the zeropoint
+            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+
+            # Store new point
+            self.t.append(tmins)
+            self.f.append(f)
+            self.fe.append(fe)
+            if targ['flag'] & hcam.TARGET_SATURATED:
+                # mark saturated data with cross
+                self.symb.append(5)
+            else:
+                # blob if OK
+                self.symb.append(17)
+
+            if self.fmax is None:
+                # initialise the maximum flux
+                self.fmax = f
+
+            f *= 100/self.fmax
+            fe *= 100/self.fmax
+
+            # Plot the point in minutes from start point
+            pgsch(0.5)
+            if self.ecol is not None:
+                pgsci(self.ecol)
+                pgmove(tmins, f-fe)
+                pgdraw(tmins, f+fe)
+            pgsci(self.dcol)
+            pgpt1(tmins, f, self.symb[-1])
+
+            # track the limits
+            tmax = tmins if tmax is None else max(tmins,tmax)
+            fmax = f if fmax is None else max(f, fmax)
+
+        return (tmax, fmax)
 
 
 class Seeing(BaseBuffer):
@@ -2635,7 +2442,7 @@ class Seeing(BaseBuffer):
         super().__init__(plot_config)
         self.scale = scale
 
-    def add_point(self, t, results):
+    def add_point(self, results, tzero, tmax, fmax):
         """
         Extracts the data to be plotted on the transmission plot for given the
         time and the results (for all CCDs, as returned by
@@ -2644,46 +2451,57 @@ class Seeing(BaseBuffer):
         plotted to help with re-scaling or None if nothing was plotted.  't'
         is the time in minutes since the start of the run
         """
-
-        if self.cnam not in results:
-            return None
-
-        res = results[self.cnam]
-
-        targ = res[self.targ]
-        f = targ['fwhm']
-        fe = targ['fwhme']
-
-        if f <= 0 or fe <= 0:
-            # skip junk
-            return None
-
-        f *= self.scale
-        fe *= self.scale
-
-        # Store new point
-        self.t.append(t)
-        self.f.append(f)
-        self.fe.append(fe)
-        if targ['flag'] & hcam.TARGET_SATURATED:
-            # mark saturated data with cross
-            self.symb.append(5)
+        for cnam, res in results:
+            # loop over the CCD groups. We are only interested in the
+            # one that matches the CCD defined for this buffer
+            if cnam == self.cnam:
+                break
         else:
-            # blob if OK
-            self.symb.append(17)
+            return (tmax, fmax)
 
-        # Plot the point in minutes from start point
-        pgsch(0.5)
-        if self.ecol is not None:
-            pgsci(self.ecol)
-            pgmove(t, f-fe)
-            pgdraw(t, f+fe)
-        pgsci(self.dcol)
-        pgpt1(t, f, self.symb[-1])
+        for nframe, store, ccdaper, reses, mjdint, \
+            mjdfrac, mjdok, expose in res:
 
-        # return f up the line
-        return f
+            # loop over each frame of the group
+            targ = reses[self.targ]
+            f = targ['fwhm']
+            fe = targ['fwhme']
 
+            if f <= 0 or fe <= 0:
+                # skip junk
+                continue
+
+            f *= self.scale
+            fe *= self.scale
+
+            # compute time in terms of minutes from the zeropoint
+            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+
+            # Store new point
+            self.t.append(tmins)
+            self.f.append(f)
+            self.fe.append(fe)
+            if targ['flag'] & hcam.TARGET_SATURATED:
+                # mark saturated data with cross
+                self.symb.append(5)
+            else:
+                # blob if OK
+                self.symb.append(17)
+
+            # Plot the point in minutes from start point
+            pgsch(0.5)
+            if self.ecol is not None:
+                pgsci(self.ecol)
+                pgmove(tmins, f-fe)
+                pgdraw(tmins, f+fe)
+            pgsci(self.dcol)
+            pgpt1(tmins, f, self.symb[-1])
+
+            # track the limits
+            tmax = tmins if tmax is None else max(tmins,tmax)
+            fmax = f if fmax is None else max(f, fmax)
+
+        return (tmax, fmax)
 
 def ctrans(cname):
     """
@@ -2773,80 +2591,82 @@ class LogWriter(object):
     def __exit__(self, *args):
         self.log.close()
 
-    def write_results(self, nframe, results, pccd, store):
+    def write_results(self, allres):
         """
-        Append results to open logfile
+        Append results to open logfile.
+
+        Arguments::
+
+           allres : list of 2-element tuples.
+              each tuple is composed of (cnam, list) where cnam is a CCD label
+              and list is a list of 8-element tuples each of which is composed
+              of (nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose)
+              storing all the relevant data for the CCD / exposure in question.
         """
         monitor = self.rfile['monitor']
-        self.log.write('#\n')
+
         alerts = []
-        for cnam in pccd:
-            # get the apertures
-            if (cnam not in self.rfile.aper or cnam not in self.rfile['extraction'] or
-                    len(self.rfile.aper[cnam]) == 0 or not pccd[cnam].is_data()):
-                    continue
+        for cnam, res in results:
+            # Loop over all CCDs
 
-            # get time and flag, work out especially precise one if a toffset is supplied.
-            if self.toffset != 0:
-                # compute time difference to high-precision using
-                # integer and fractional parts rather than the straight
-                # MJD to avoid round-off error
-                mjd = (pccd[cnam].head['MJDINT']-self.toffset) + pccd[cnam].head['MJDFRAC']
-            else:
-                # just get from pre-stored MJD
-                mjd = pccd[cnam].head['MJDUTC']
+            for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
+                # Loop over all frames for the specific CCD group in question
 
-            mjdok = pccd[cnam].head.get('GOODTIME', True)
-            if 'EXPTIME' in pccd[cnam].head:
-                exptim = pccd[cnam].head['EXPTIME']
-            else:
-                exptim = 1.0
+                # A spacer because the lines are long
+                self.log.write('#\n')
 
-            # get mean profile parameters
-            mfwhm = store[cnam]['mfwhm']
-            mbeta = store[cnam]['mbeta']
+                # The time is worked out so that it can especially accurate if a suitable
+                # integer offset is applied. The parentheses are important here.
+                mjd = (mjdint - self.toffset) + mjdfrac
 
-            # write generic data
-            self.log.write(
-                '{:s} {:d} {:.14f} {:b} {:.8g} {:.2f} {:.2f} '.format(
-                    cnam, nframe, mjd, mjdok, exptim, mfwhm, mbeta)
-            )
+                # get mean profile parameters
+                mfwhm = store['mfwhm']
+                mbeta = store['mbeta']
 
-            # now for data per aperture
-            for apnam in self.rfile.aper[cnam]:
-                r = results[cnam][apnam]
+                # write generic data
                 self.log.write(
-                    '{:.3f} {:.3f} {:.3f} {:.3f} '
-                    '{:.2f} {:.2f} {:.2f} {:.2f} '
-                    '{:.1f} {:.1f} {:.2f} {:.2f} '
-                    '{:d} {:d} {:d} '.format(
-                        r['x'], r['xe'], r['y'], r['ye'],
-                        r['fwhm'], r['fwhme'], r['beta'], r['betae'],
-                        r['counts'], r['countse'], r['sky'], r['skye'],
-                        r['nsky'], r['nrej'], r['flag']
-                    )
+                    '{:s} {:d} {:.14f} {:b} {:.8g} {:.2f} {:.2f} '.format(
+                        cnam, nframe, mjd, mjdok, exptim, mfwhm, mbeta)
                 )
 
-                if apnam in monitor:
-                    # accumulate any problems with particular targets
-                    bitmasks = monitor[apnam]
-                    flag = r['flag']
-                    messes = []
-                    for bitmask in bitmasks:
-                        if (flag & bitmask) and bitmask in FLAG_MESSAGES:
-                            messes.append(FLAG_MESSAGES[bitmask])
-
-                    if len(messes):
-                        alerts.append(
-                            ' *** WARNING: CCD {:s}, aperture {:s}: {:s}'.format(
-                                cnam, apnam, ', '.join(messes)
-                            )
+                # now for data per aperture
+                for apnam in ccdaper:
+                    r = reses[apnam]
+                    self.log.write(
+                        '{:.3f} {:.3f} {:.3f} {:.3f} '
+                        '{:.2f} {:.2f} {:.2f} {:.2f} '
+                        '{:.1f} {:.1f} {:.2f} {:.2f} '
+                        '{:d} {:d} {:d} '.format(
+                            r['x'], r['xe'], r['y'], r['ye'],
+                            r['fwhm'], r['fwhme'], r['beta'], r['betae'],
+                            r['counts'], r['countse'], r['sky'], r['skye'],
+                            r['nsky'], r['nrej'], r['flag']
                         )
+                    )
 
-            self.log.write('\n')
+                    if apnam in monitor:
+                        # accumulate any problems with particular targets
+                        bitmasks = monitor[apnam]
+                        flag = r['flag']
+                        messes = []
+                        for bitmask in bitmasks:
+                            if (flag & bitmask) and bitmask in FLAG_MESSAGES:
+                                messes.append(FLAG_MESSAGES[bitmask])
 
-        # make sure we have complete lines
+                        if len(messes):
+                            alerts.append(
+                                ' *** WARNING: Frame {:d}, CCD {:s}, aperture {:s}: {:s}'.format(
+                                    nframe, cnam, apnam, ', '.join(messes)
+                                )
+                            )
+
+                # finish the line
+                self.log.write('\n')
+
+        # flush the buffer to ensure that we have complete lines if we hit ctrl-C
         self.log.flush()
+
+        # Return with the accumulated list of alerts.
         return alerts
 
     def write_header(self):

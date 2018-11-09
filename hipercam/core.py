@@ -22,7 +22,7 @@ __all__ = (
 # Version of the reduce file in operation (used by 'reduce' and 'genred')
 # Format: YYYYMMDD(.#) where the optional .# part is an integer to allow for
 # multiple versions in a day, although that should be rare I hope.
-REDUCE_FILE_VERSION = '20181104'
+REDUCE_FILE_VERSION = '20181107'
 
 # Standard file extensions
 FIELD = '.fld'
