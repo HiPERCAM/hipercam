@@ -989,7 +989,7 @@ class Rdata (Rhead):
             '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Raw frame timestamp, UTC'
         )
         thead['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
-        thead['MJDFRACT'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
+        thead['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
         thead['MJDUTC'] = (imjd+fday, 'MJD(UTC)')
         if (nsats == -1 and synced == -1) or synced == 0:
             thead['GOODTIME'] = (False, 'TIMSTAMP OK?')
@@ -1033,7 +1033,7 @@ class Rdata (Rhead):
                 imjdmid = imjd
 
             ch['MJDINT'] = (imjdmid, 'Integer part of MJD(UTC), mid-exposure')
-            ch['MJDFRACT'] = (fdaymid, 'Fractional part of MJD(UTC), mid-exposure')
+            ch['MJDFRAC'] = (fdaymid, 'Fractional part of MJD(UTC), mid-exposure')
             ch['MJDUTC'] = (imjdmid+fdaymid, 'MJD(UTC) mid-exposure')
             ch['GOODTIME'] = (flag and thead['GOODTIME'], 'MJDs OK?')
             ch['EXPTIME'] = (texp, 'Exposure time (secs)')

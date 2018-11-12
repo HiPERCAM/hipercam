@@ -1164,7 +1164,8 @@ class ProcessCCDs:
               their unprocessed counterparts, used to determine saturation.
 
         Returns with list of ccdproc results, one set for each CCD.
-        See 'ccdproc' in reduce.py for definition.
+        See 'ccdproc' in reduce.py for definition of the return which
+        should be the same for any version.
 
         """
 
@@ -1211,7 +1212,7 @@ class ProcessCCDs:
 
             if self.pool is None:
                 # carry out processing serially, store results
-                res = ccdproc(
+                res = self.ccdproc(
                     cnam, pcds, mcds, nfrs, self.read[cnam], self.gain[cnam],
                     self.mwins[cnam], self.rfile, self.store[cnam]
                 )
@@ -1230,7 +1231,7 @@ class ProcessCCDs:
 
         return allres
 
-def moveApers(cnam, ccd, read, gain, rfile, ccdwin, store):
+def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results
     that will be used to start the fits from one frame to the next. It must
     start as {'mfwhm': -1., 'mbeta': -1.}. The values of these will be revised
@@ -2534,13 +2535,13 @@ def toBool(rfile, section, param):
 
     Arguments::
 
-       rfile  : (Rfile)
+       rfile  : Rfile
          the reduce file, an Odict of Odicts
 
-      section : (str)
+      section : str
          the section name
 
-      param   : (str)
+      param   : str
          the parameter
 
     Returns nothing; rfile modified on exit. A ValueError is
@@ -2591,13 +2592,13 @@ class LogWriter(object):
     def __exit__(self, *args):
         self.log.close()
 
-    def write_results(self, allres):
+    def write_results(self, results):
         """
         Append results to open logfile.
 
         Arguments::
 
-           allres : list of 2-element tuples.
+           results : list of 2-element tuples.
               each tuple is composed of (cnam, list) where cnam is a CCD label
               and list is a list of 8-element tuples each of which is composed
               of (nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose)
