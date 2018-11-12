@@ -8,11 +8,15 @@ import numpy as np
 from astropy.time import Time
 import hipercam as hcam
 from hipercam import utils, fitting
+
 from trm.pgplot import (
     pgpap, pgsubp, pgsci, pgsch, pgenv, pglab, pgqvp, pgvstd,
     pgeras, pgerry, pgpt, pgpanl, pgbbuf, pgebuf, pgsvp, pgswin,
     pgbox, pgmove, pgdraw, pgpt1
 )
+
+import matplotlib.pyplot as plt
+from hipercam import mpl
 
 class Rfile(OrderedDict):
     """
@@ -1372,7 +1376,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     raise hcam.HipercamError(
                         ('Fitted position ({:.1f},{:.1f}) too close to or'
                          ' beyond edge of search window = {!s}'.format(
-                                x, y, swdata.format()))
+                                x, y, swdata.format(True)))
                         )
 
                 if height > apsec['fit_height_min_ref']:
@@ -1549,6 +1553,12 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     apsec['search_smooth_fwhm'], aper.x, aper.y,
                     apsec['fit_height_min_nrf'], apsec['search_smooth_fft']
                 )
+#                print('check ',swdata.format(True))
+#                print('check ',aper.x,aper.y,x,y)
+#                mpl.pWind(plt, swdata, swdata.min(), swdata.max())
+#                plt.plot(x,y,'or')
+#                plt.title('CCD = {:s}, Aperture = {:s}, Window = {:s}'.format(cnam,apnam,wnam))
+#                plt.show()
 
                 if ref:
                     shift = np.sqrt((x-aper.x)**2+(y-aper.y)**2)
@@ -1616,7 +1626,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     raise hcam.HipercamError(
                         ('Fitted position ({:.1f},{:.1f}) too close to or'
                          ' beyond edge of search window = {!s}').format(
-                             x, y, swdata.format())
+                             x, y, swdata.format(True))
                     )
 
                 # check for overly large shifts in the case that we have
@@ -2122,7 +2132,7 @@ class LightCurve(BaseBuffer):
                     if fc > 0:
                         if fce > 0.:
                             f = ft / fc
-                            fe = np.sqrt((fte/fc)**2+(t*fce/fc**2)**2)
+                            fe = np.sqrt((fte/fc)**2+(ft*fce/fc**2)**2)
                         else:
                             continue
                     else:
