@@ -2627,7 +2627,7 @@ class LogWriter(object):
                 # write generic data
                 self.log.write(
                     '{:s} {:d} {:.14f} {:b} {:.8g} {:.2f} {:.2f} '.format(
-                        cnam, nframe, mjd, mjdok, exptim, mfwhm, mbeta)
+                        cnam, nframe, mjd, mjdok, expose, mfwhm, mbeta)
                 )
 
                 # now for data per aperture

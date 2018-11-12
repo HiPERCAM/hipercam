@@ -1,5 +1,6 @@
 import sys
 import multiprocessing
+import numpy as np
 
 import hipercam as hcam
 from hipercam import cline, utils, spooler
@@ -594,7 +595,6 @@ def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
         )
 
         # Save the essentials
-        print(ccd)
         res.append((
             nframe, store, rfile.aper[cnam], results, ccd.head['MJDINT'],
             ccd.head['MJDFRAC'], ccd.head.get('GOODTIME',True),
