@@ -7,7 +7,7 @@ from hipercam.cline import Cline
 from hipercam.reduction import (
     Rfile, initial_checks, update_plots,
     ProcessCCDs, setup_plots, setup_plot_buffers,
-    LogWriter
+    LogWriter, moveApers
 )
 
 # get hipercam version to write into the reduce log file
@@ -489,7 +489,7 @@ def reduce(args=None):
                 mccds.append(mccd)
                 nframes.append(nframe)
 
-                if len(pccds) == ngroup:
+                if len(pccds) == rfile['general']['ngroup']:
                     # parallel processing. This should usually be the first
                     # points at which it takes place
                     results = processor(pccds, mccds, nframes)
@@ -587,6 +587,7 @@ def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
         )
 
         # Save the essentials
+        print(ccd)
         res.append((
             nframe, store, rfile.aper[cnam], results, ccd.head['MJDINT'],
             ccd.head['MJDFRAC'], ccd.head.get('GOODTIME',True),
@@ -649,6 +650,8 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
 
     # initialise flag
     flag = hcam.ALL_OK
+
+    ccdaper = rfile.aper[cnam]
 
     # get the control parameters
     resize, extype, r1fac, r1min, r1max, r2fac, r2min, r2max, \

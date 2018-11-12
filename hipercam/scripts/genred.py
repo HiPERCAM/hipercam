@@ -251,6 +251,7 @@ def genred(args=None):
         cl.register('location', Cline.LOCAL, Cline.HIDE)
         cl.register('toffset', Cline.LOCAL, Cline.HIDE)
         cl.register('smoothfwhm', Cline.LOCAL, Cline.HIDE)
+        cl.register('fft', Cline.LOCAL, Cline.HIDE)
         cl.register('beta', Cline.LOCAL, Cline.HIDE)
         cl.register('betamax', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
