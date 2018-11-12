@@ -583,7 +583,7 @@ def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
         # name, the store dictionary, ccdaper and then the results from
         # extractFlux for compatibility with multiprocessing. Note
         results = extractFlux(
-            cnam, ccd, rccd, read, gain, ccdwin, rfile, store),
+            cnam, ccd, rccd, read, gain, ccdwin, rfile, store
         )
 
         # Save the essentials
