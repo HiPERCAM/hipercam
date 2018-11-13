@@ -619,7 +619,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
 
     determines whether the data saturation flag is set for example.
 
-    Input arguments::
+    Arguments::
 
        cnam : string
           CCD identifier label
