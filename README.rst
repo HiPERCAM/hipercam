@@ -14,7 +14,9 @@ you get these installed first (you will very likely have several of
 them already); in the future I might try to make it more
 automatic. Most of these are available using 'pip', and if you can't
 get your sys admin to install them for you, I recommend installing
-them locally e.g. ``pip install cython --user``
+them locally e.g. ``pip install cython --user``. Note that some of
+them use others, e.g. 'astropy' uses matplotlib, numpy and scipy,
+so if you install it, you will have the others as well.
 
   astropy :
          astronomical Python package with lots of useful stuff.
@@ -36,6 +38,9 @@ them locally e.g. ``pip install cython --user``
          Python's numerical data package. Highly likely you will have
          it, but note that you need at least version 1.12 to provide
          `numpy.flip`.
+
+  scipy :
+         Scientific software for Python, closely linked to numpy.
 
   trm.pgplot :
          my own Cython-ised wrapper for PGPLOT which I wrote specifically
