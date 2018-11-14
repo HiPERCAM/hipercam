@@ -35,7 +35,7 @@ class Header:
 
     SPECIAL_KEYWORDS = ('COMMENT', 'HISTORY', '')
 
-    def __init__(self, head=[], copy=False):
+    def __init__(self, head=None, copy=False):
         """Initialiser. 'head' can be (i) another Header, (ii) an ordered
         dictionary with values set to 2-element tuples containing
         (value,comment) pairs, (iii) a list of (key,value,comment) tuples
@@ -108,6 +108,9 @@ class Header:
                         )
         else:
             # A list of (key,value,comment) tuples.
+            if head is None:
+                head = []
+
             if copy:
                 self.cards = head.copy()
             else:
@@ -172,7 +175,7 @@ class Header:
     def __setitem__(self, key, item):
         """Sets the value of a header item using the [] form, e.g. `head['NREC'] =
         2345`.  Reserved keywords 'COMMENT', 'HISTORY' and '' (blank) are
-        trapped. 
+        trapped.
 
         Arguments::
 
