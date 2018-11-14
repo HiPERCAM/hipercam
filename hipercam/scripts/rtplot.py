@@ -497,7 +497,7 @@ def rtplot(args=None):
     fframe = True   # waiting for first valid frame with profit
 
     # plot images
-    with spooler.data_source(source, resource, first) as spool:
+    with spooler.data_source(source, resource, first, full=False) as spool:
 
         # 'spool' is an iterable source of MCCDs
         n = 0

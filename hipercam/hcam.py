@@ -80,6 +80,8 @@ QNAMS = ('E', 'F', 'G', 'H')
 QNAMS_REFLECT = {'E': 'F', 'F': 'E', 'G': 'H', 'H': 'G'}
 QNAMS_ROTATED = {'E': 'G', 'F': 'H', 'G': 'E', 'H': 'F'}
 
+ESSENTIAL = ('MODE')
+
 class Rhead:
     """Reads an interprets header information from a HiPERCAM run (3D FITS file)
     and generates the window formats needed to interpret the data. The file is
@@ -564,12 +566,12 @@ class Rhead:
             if 'ESO DET GPS' in hd:
                 self.thead['GPS'] = hd.get_full('ESO DET GPS')
 
-            if 'EXPTIME' in hd:
-                self.thead['EXPTIME'] = hd.get_full('EXPTIME')
-
             self.thead['XBIN'] = hd.get_full('ESO DET BINX1')
             self.thead['YBIN'] = hd.get_full('ESO DET BINY1')
             self.thead['SPEED'] = hd.get_full('ESO DET SPEED')
+
+        if 'EXPTIME' in hd:
+            self.thead['EXPTIME'] = hd.get_full('EXPTIME')
 
         # Header per CCD. These are modified per CCD in Rdata
         self.cheads = []
