@@ -42,23 +42,23 @@ def psf_reduce(args=None):
     targets, defined in an aperture file using |psf_setaper| or |setaper|.
 
     Aperture repositioning is identical to |reduce|, and the PSF used in photometry
-    is set by fitting well seperated reference stars. For the best results, a
+    is set by fitting well separated reference stars. For the best results, a
     suitable strategy is to only reduce data from a small window near the target.
-    Set well seperated bright stars as reference apertures and link fainter, or
+    Set well separated bright stars as reference apertures and link fainter, or
     blended objects to the references.
 
-    reduce can source data from both the ULTRACAM and HiPERCAM servers, from
+    |psf_reduce| can source data from both the ULTRACAM and HiPERCAM servers, from
     local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
     FITS files for HiPERCAM) and from lists of HiPERCAM '.hcm' files. If you
     have data from a different instrument you should convert into the
     FITS-based hcm format.
 
-    psf_reduce is primarily configured from a file with extension ".red". This
+    |psf_reduce| is primarily configured from a file with extension ".red". This
     contains a series of directives, e.g. to say how to re-position the apertures.
     An initial reduce file is best generated with the script |genred| after you
     have created an aperture file. This contains lots of help on what to do.
 
-    A psf_reduce run can be terminated at any point with ctrl-C without doing
+    A |psf_reduce| run can be terminated at any point with ctrl-C without doing
     any harm. You may often want to do this at the start in order to adjust
     parameters of the reduce file.
 
@@ -78,7 +78,8 @@ def psf_reduce(args=None):
 
         rfile : string
            the "reduce" file, i.e. ASCII text file suitable for reading by
-           ConfigParser. Best seen by example as it has many parts.
+           ConfigParser. Best seen by example as it has many parts. Generate
+           a starter file with |genred|.
 
         run : string [if source ends 's' or 'l']
            run number to access, e.g. 'run034'
@@ -86,6 +87,12 @@ def psf_reduce(args=None):
         first : int [if source ends 's' or 'l']
            exposure number to start from. 1 = first frame; set = 0 to
            always try to get the most recent frame (if it has changed)
+
+        last : int [if source ends 's' or 'l', hidden]
+           last frame to reduce. 0 to just continue until the end.  This is
+           not prompted for by default and must be set explicitly.  It
+           defaults to 0 if not set. Its purpose is to allow accurate
+           profiling tests.
 
         twait : float [if source ends 's'; hidden]
            time to wait between attempts to find a new exposure, seconds.
@@ -168,6 +175,7 @@ def psf_reduce(args=None):
         cl.register('rfile', Cline.GLOBAL, Cline.PROMPT)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
+        cl.register('last', Cline.LOCAL, Cline.HIDE)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
@@ -818,66 +826,81 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
     # finally, we are done
     return results
 
-# ??? got here ???
-
-def ccdproc(cnam, ccd, flat, rflat, rccd, ccdaper, ccdwins, rfile, store):
-    """
-    Processing steps for one CCD. This is designed for parallelising the
-    processing across CCDs using multiprocessing. To be called *after*
-    checking that any processing is needed.
+def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
+    """Processing steps for a sequential set of images from the same
+    CCD. This is designed for parallelising the processing across CCDs
+    of multiarm cameras like ULTRACAM and HiPERCAM using
+    multiprocessing. To be called *after* checking that any processing
+    is needed.
 
     Arguments::
 
-       cnam     : string
-          name of CCD
+       cnam : string
+          name of CCD, for information purposes (e.g. 'red', '3', etc)
 
-       ccd      : CCD
-          the CCD under processing which should have been debiassed, flat
+       ccds : List of CCDs
+          the CCDs for processing which should have been debiassed, flat
           fielded and multiplied by the gain to get into electrons.
 
-       flat     : CCD
-          the corresponding flat field, needed for getting errors right.
+       rccds : List of CCDs
+          unprocessed CCDs, one-to-one correspondence with 'ccds', used
+          to measure saturation
 
-       rflat     : CCD
-          readnoise in electrons, divided by the flat
+       nframes : List of ints
+          frame numbers for each CCD
 
-       rccd     : CCD
-          unprocessed CCD, used to measure saturation
+       read : CCD
+          readnoise frame divided by the flatfield
 
-       ccdaper  : hcam.CCDAper
-          all apertures of the CCD in question
+       gain : CCD
+          gain frame dmultiplied by the flatfield
 
-       ccdwins  : ?
+       ccdwin : dict
           label of the Window enclosing each aperture
 
-       rfile    :
-          reduction control parameters
+       rfile : Rfile object
+          reduction control parameters. rfile.aper used to store the aperture
+          parameters.
 
-       store    :
+       store : dict
           dictionary of results
 
+    Returns: (cnam, list[res]) where 'res' represents a tuple
+    of results for each input CCD and contains the following:
 
-    Returns:: (cnam, store, ccdaper, results)
+    (nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose)
 
     """
+    # At this point 'ccds' contains a list of CCD each of which
+    # contains all the Windows of a CCD, 'ccdaper' all of its
+    # apertures, 'ccdwin' the label of the Window enclosing each
+    # aperture, 'rfile' contains control parameters, 'rflat' contains
+    # the readout noise in electrons and divided by the flat as a CCD,
+    # 'store' is a dictionary initially with jus 'mfwhm' and 'mbeta'
+    # set = -1, but will pick up extra stuff from moveApers for use by
+    # extractFlux along with revised values of mfwhm and mbeta which
+    # are used to initialise profile fits next time.
 
-    # At this point 'ccd' contains all the Windows of a CCD, 'ccdaper' all of
-    # its apertures, 'ccdwins' the label of the Window enclosing each
-    # aperture, 'rfile' contains control parameters, 'rflat' contains the
-    # readout noise in electrons and divided by the flat as a CCD, 'store' is
-    # a dictionary initially with jus 'mfwhm' and 'mbeta' set = -1, but will
-    # pick up extra stuff from moveApers for use by extractFlux along with
-    # revised values of mfwhm and mbeta which are used to initialise profile
-    # fits next time.
+    res = []
+    for ccd, rccd, nframe in zip(ccds, rccds, nframes):
+        # Loop through the CCDs supplied
 
-    # move the apertures
-    moveApers(cnam, ccd, flat, rflat, ccdaper, ccdwins, rfile, store)
+        # move the apertures
+        moveApers(cnam, ccd, read, gain, ccdwin, rfile, store)
 
-    # extract flux from all apertures of each CCD. Return with the CCD
-    # name, the store dictionary, ccdaper and then the results from
-    # extractFlux for compatibility with multiprocessing. Note
-    return (
-        cnam, store, ccdaper,
-        extractFlux(
-            cnam, ccd, flat, rflat, rccd, ccdaper, ccdwins, rfile, store),
-    )
+        # extract flux from all apertures of each CCD. Return with the CCD
+        # name, the store dictionary, ccdaper and then the results from
+        # extractFlux for compatibility with multiprocessing. Note
+        results = extractFlux(
+            cnam, ccd, rccd, read, gain, ccdwin, rfile, store
+        )
+
+        # Save the essentials
+        res.append((
+            nframe, store, rfile.aper[cnam], results, ccd.head['MJDINT'],
+            ccd.head['MJDFRAC'], ccd.head.get('GOODTIME',True),
+            ccd.head.get('EXPTIME',1.)
+        ))
+
+    return (cnam, res)
+
