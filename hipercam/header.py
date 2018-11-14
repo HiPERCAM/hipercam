@@ -187,41 +187,46 @@ class Header:
              case the comment will be blank.
 
         """
-        key = Header._process_key(key)
-
-        if key in Header.SPECIAL_KEYWORDS:
-            raise ValueError(
-                "Keywords 'COMMENT', 'HISTORY' and '' are reserved"
-            )
-
-        elif isinstance(item,tuple):
+        if isinstance(item, tuple):
             value, comment = item
-
         else:
             value, comment = item, None
 
-        ukey = key.upper()
-        if ukey in self._lookup:
-            # Overwrite pre-existing value, re-covering the old comment if
-            # no new one supplied
-            comment = self.cards[self._lookup[ukey]][2] if \
-                      comment is None else comment
-            self.cards[self._lookup[ukey]] = (key,value,comment)
+        if isinstance(key, int):
+            index = key
+            self.cards[index] = (key, value, comment)
         else:
-            # Insert new item before the history or comments start
-            index = min(self._hstart,self._cstart)
-            self.cards.insert(index, (key,value,comment))
-            self._lookup[key] = index
-            self._hstart += 1
-            self._hstop += 1
-            self._cstart += 1
-            self._cstop += 1
+            key = Header._process_key(key)
+
+            if key in Header.SPECIAL_KEYWORDS:
+                raise ValueError(
+                    "Keywords 'COMMENT', 'HISTORY' and '' are reserved"
+                )
+            ukey = key.upper()
+            if ukey in self._lookup:
+                # Overwrite pre-existing value, re-covering the old comment if
+                # no new one supplied
+                index = self._lookup[ukey]
+                comment = self.cards[index][2] if comment is None else comment
+                self.cards[index] = (key, value, comment)
+            else:
+                # Insert new item before the history or comments start
+                index = min(self._hstart, self._cstart)
+                self.cards.insert(index, (key, value, comment))
+                self._lookup[key] = index
+                self._hstart += 1
+                self._hstop += 1
+                self._cstart += 1
+                self._cstop += 1
 
     def __getitem__(self, key):
         """Returns the value associated with header item 'key' using the
         [] form, e.g. `nrec = head['NRECORD']`."""
-        key = Header._process_key(key)
-        return self.cards[self._lookup[key]][1]
+        if isinstance(key, int) or isinstance(key, slice):
+            return self.cards[key][1]
+        else:
+            key = Header._process_key(key)
+            return self.cards[self._lookup[key]][1]
 
     def get(self, key, default):
         """Returns the value associated with header item 'key', returning
@@ -276,10 +281,16 @@ class Header:
         """Deletes a particular header item when called e.g. as
         `del head[key]`."""
 
-        key = Header._process_key(key)
-        index = self._lookup[key]
+        if isinstance(key, int):
+            index = key
+        else:
+            key = Header._process_key(key)
+            index = self._lookup[key]
         del self.cards[index]
-        del self._lookup[key]
+        try:
+            del self._lookup[key]
+        except KeyError:
+            pass
 
         # Now need to correct comment and history pointers
         # along with any later index pointers.
@@ -287,7 +298,7 @@ class Header:
         self._hstop -= 1
         self._cstart -= 1
         self._cstop -= 1
-        for key,ind in self._lookup.items():
+        for key, ind in self._lookup.items():
             if ind > index:
                 self._lookup[key] = ind-1
 
