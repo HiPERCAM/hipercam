@@ -11,6 +11,7 @@ from astropy.io import fits
 from .core import *
 from .group import *
 from .window import *
+from .header import *
 
 __all__ = ('CCD', 'MCCD', 'get_ccd_info')
 
@@ -148,7 +149,7 @@ class CCD(Agroup):
         # Then compute percentiles
         return np.percentile(arr, q)
 
-    def whdul(self, hdul=fits.HDUList(), cnam=None, xoff=0, yoff=0):
+    def whdul(self, hdul=None, cnam=None, xoff=0, yoff=0):
         """Write the :class:`CCD` as a series of HDUs, one per :class:`Window`, adding
         to and returning an :class:`HDUList`.
 
@@ -166,6 +167,8 @@ class CCD(Agroup):
         Returns:: an :class:`HDUList`.
 
         """
+        if hdul is None:
+            hdul = fits.HDUList()
 
         # Now 1 HDU per Window
         for n, (wnam, wind) in enumerate(self.items()):
@@ -176,7 +179,7 @@ class CCD(Agroup):
                 extnam = 'C:{:s}, W:{:s}'.format(cnam, wnam)
 
             # Generate a few extra items to add to the header
-            head = fits.Header()
+            head = Header()
             if cnam:
                 head['CCD'] = (cnam, 'CCD label')
 
@@ -383,7 +386,7 @@ class CCD(Agroup):
             phead.add_comment('display purposes, and NUMWIN the number of windows which should match')
             phead.add_comment('the number of HDUs following the first.')
 
-        hdul.writeto(fname,overwrite=overwrite)
+        hdul.writeto(fname, overwrite=overwrite)
 
     @classmethod
     def read(cls, fname, cnam=None):
@@ -544,7 +547,7 @@ class MCCD(Agroup):
 
     """
 
-    def __init__(self, ccds, head=fits.Header(), copy=False):
+    def __init__(self, ccds, head=None, copy=False):
         """Constructs a :class:`MCCD`
 
         Arguments::
@@ -564,7 +567,8 @@ class MCCD(Agroup):
 
         """
         super().__init__(CCD, ccds)
-
+        if head is None:
+            head = fits.Header()
         self.head = head
         if copy:
             self = self.copy()
@@ -604,7 +608,7 @@ class MCCD(Agroup):
         comm1 = 'Data representing multiple CCDs written by hipercam.MCCD.write.'
         if 'COMMENT' not in phead or str(phead['COMMENT']).find(comm1) == -1:
             phead.add_comment(comm1)
-            phead.add_comment('Each window of each CCD is written in a series of HDUs following an') 
+            phead.add_comment('Each window of each CCD is written in a series of HDUs following an')
             phead.add_comment('HDU containing only the header. These follow an overall header for the')
             phead.add_comment('MCCD containing top-level information. The headers of the data window')
             phead.add_comment('HDUs have keywords LLX, LLY giving the pixel location in unbinned')
@@ -615,7 +619,7 @@ class MCCD(Agroup):
 
         # make the first HDU
         hdul = fits.HDUList()
-        hdul.append(fits.PrimaryHDU(header=phead))
+        hdul.append(fits.PrimaryHDU(header=fits.Header(phead.cards)))
 
         # add in the HDUs of all the CCDs NX = 3 specific to HiPERCAM but
         # should do reasonably generally I think.
@@ -625,11 +629,11 @@ class MCCD(Agroup):
             ccd.whdul(hdul, cnam, xoff, yoff)
             noff += 1
             if noff % NX == 0:
-                xoff  = 0
+                xoff = 0
                 yoff -= (ccd.nytot+2*ccd.nypad) + ygap
             else:
                 xoff += (ccd.nxtot+2*ccd.nxpad) + xgap
-        hdul.writeto(fname,overwrite=overwrite)
+        hdul.writeto(fname, overwrite=overwrite)
 
     @classmethod
     def read(cls, fname):

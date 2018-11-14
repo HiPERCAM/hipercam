@@ -43,7 +43,7 @@ class Winhead(Header):
 
     """
 
-    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=Header()):
+    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=None):
         """
         Constructor. Arguments::
 
@@ -70,6 +70,8 @@ class Winhead(Header):
               for containing the above parameters when reading and writing
               Winhead objects).
         """
+        if head is None:
+            head = Header()
 
         # Store the header
         super().__init__(head)
@@ -724,7 +726,7 @@ class Window(Winhead):
 
         return cls(win, data)
 
-    def whdu(self, head=Header(), xoff=0, yoff=0, extnam=None):
+    def whdu(self, head=None, xoff=0, yoff=0, extnam=None):
         """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU`
 
         Arguments::
@@ -748,6 +750,8 @@ class Window(Winhead):
               The HDU containing the data and the header.
 
         """
+        if head is None:
+            head = Header()
 
         # Add self's header to the extras
         head.update(self)
