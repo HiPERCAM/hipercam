@@ -384,7 +384,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
     return (
         (skyf,heightf,xf,yf,fwhmf,betaf),
         (skyfe,heightfe,xfe,yfe,fwhmfe,betafe),
-        (fit,mfit1.xy[0],mfit1.xy[1],mfit1.sigma,chisq,nok,nrej,len(soln))
+        (fit,mfit1.x,mfit1.y,mfit1.sigma,chisq,nok,nrej,len(soln))
     )
 
 @jit(nopython=True,cache=True)
@@ -446,7 +446,6 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     on the ordinate grids in xy.
 
     """
-    x,y = xy
     tbeta = max(0.01,beta)
     alpha = 4*(2**(1./tbeta)-1)/fwhm**2
 

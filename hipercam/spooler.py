@@ -163,7 +163,7 @@ class HcamDiskSpool(SpoolerBase):
               The first frame to access.
 
         """
-        self._iter = hcam.Rdata(run, first, False, )
+        self._iter = hcam.Rdata(run, first, False, full)
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
