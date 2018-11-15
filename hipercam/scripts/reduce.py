@@ -1,9 +1,10 @@
 import sys
 import multiprocessing
 import numpy as np
+import warnings
 
 import hipercam as hcam
-from hipercam import cline, utils, spooler
+from hipercam import cline, utils, spooler, fitting
 from hipercam.cline import Cline
 from hipercam.reduction import (
     Rfile, initial_checks, update_plots,
@@ -915,13 +916,13 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                     mbeta = store['mbeta']
                     if mbeta > 0.:
                         prof = fitting.moffat(
-                            (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm, mbeta,
+                            X[dok], Y[dok], 0., 1., 0., 0., mfwhm, mbeta,
                             wdata.xbin, wdata.ybin,
                             rfile['apertures']['fit_ndiv']
                         )
                     else:
                         prof = fitting.gaussian(
-                            (X[dok], Y[dok]), 0., 1., 0., 0., mfwhm,
+                            X[dok], Y[dok], 0., 1., 0., 0., mfwhm,
                             wdata.xbin, wdata.ybin,
                             rfile['apertures']['fit_ndiv']
                         )
