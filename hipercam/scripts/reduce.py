@@ -235,6 +235,7 @@ def reduce(args=None):
                 'flist', 'file list', cline.Fname('files.lis', hcam.LIST)
             )
             first = 1
+            last = 0
 
         log = cl.get_value(
             'log', 'name of log file to store results',
