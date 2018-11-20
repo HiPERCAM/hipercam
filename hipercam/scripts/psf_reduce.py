@@ -15,8 +15,11 @@ from astropy.table import Table
 import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
-from hipercam.reduction import (Rfile, initial_checks, moveApers, update_plots,
-                                process_ccds, setup_plots, setup_plot_buffers, LogWriter)
+from hipercam.reduction import (
+    Rfile, initial_checks, update_plots,
+    ProcessCCDs, setup_plots, setup_plot_buffers,
+    LogWriter, moveApers
+)
 
 # get hipercam version to write into the reduce log file
 from pkg_resources import get_distribution, DistributionNotFound
