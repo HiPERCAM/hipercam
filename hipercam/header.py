@@ -62,8 +62,6 @@ class Header:
         # dictionary. cards can also contain blank lines (all elements = '')
         # comments: key='COMMENTS', value=the comment, comment='', and
         # history:  key='HISTORY', value=the history, comment=''.
-        self.cards = []
-        self._lookup = {}
 
         if isinstance(head, Header):
             # Another Header
@@ -77,7 +75,7 @@ class Header:
         elif isinstance(head, odict):
             # OrderedDict
             self.cards = []
-            self.keys = {}
+            self._lookup = {}
             for key, (value, comment) in head.items():
                 key = Header._process_key(key)
                 if key not in Header.SPECIAL_KEYWORDS:
@@ -92,7 +90,9 @@ class Header:
                         )
 
         elif isinstance(head, FITS_Header):
-            # Build from an astropy.io.fits.HEADER
+            # Build from an astropy.io.fits.HEADE
+            self.cards = []
+            self._lookup = {}
             for n, card in enumerate(head.cards):
                 key = card.keyword
                 self.cards.append((key,card.value,card.comment))
@@ -108,6 +108,8 @@ class Header:
                         )
         else:
             # A list of (key,value,comment) tuples.
+            self.cards = []
+            self._lookup = {}
             if head is None:
                 head = []
 
