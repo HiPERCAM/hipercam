@@ -13,7 +13,7 @@ from .group import *
 
 __all__ = ('Aperture', 'CcdAper', 'MccdAper')
 
-class Aperture(object):
+class Aperture:
 
     """Class representing a photometric aperture for measuring the flux of a
     star. At its most basic this consists of 3 circles representing the

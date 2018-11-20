@@ -2582,9 +2582,10 @@ FLAG_MESSAGES = {
 }
 
 
-class LogWriter(object):
-    """
-    Context manager to handle opening logfiles, writing headers to logfiles and safe exit.
+class LogWriter:
+    """Context manager to handle opening logfiles, writing headers to logfiles
+    and safe exit.
+
     """
     def __init__(self, filename, rfile, hipercam_version, plist):
         self.rfile = rfile

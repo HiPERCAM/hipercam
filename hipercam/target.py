@@ -13,7 +13,7 @@ from .core import *
 
 __all__ = ('Target','Field')
 
-class Target(object):
+class Target:
     """Object to represent an astronomical target in terms of its appearance in a
     CCD image. The representation chosen is 2D "Moffat" function, which takes
     the form h/(1+(r/r0)**2)**beta, where 'h' is the central height, 'r' is
