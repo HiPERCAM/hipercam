@@ -230,7 +230,7 @@ class Hlog(dict):
 
                     else:
                         # first time for this CCD
-                        hlog[cnam] = []
+                        hlog[cnam] = bytearray()
                         names = ['MJD','Tflag','Expose','FWHM','beta']
                         dts = ['f8','?','f4','f4','f4']
                         naps[cnam] = len(arr[7:]) // 14
@@ -263,14 +263,12 @@ class Hlog(dict):
                         dtypes[cnam] = np.dtype(list(zip(names, dts)))
                         stypes[cnam] = '=' + ''.join([NUMPY_TO_STRUCT[dt] for dt in dts])
 
-                    # store in a list. Although lists are wasteful, they grow quite
-                    # fast and each element here is efficiently packed so it should
-                    # cope with quite large log files.
-                    hlog[cnam].append(struct.pack(stypes[cnam], *values))
+                    # store in a bytearray
+                    hlog[cnam].extend(struct.pack(stypes[cnam], *values))
 
         # convert lists to numpy arrays
         for cnam in hlog:
-            hlog[cnam] = np.array(hlog[cnam], dtype=dtypes[cnam])
+            hlog[cnam] = np.frombuffer(hlog[cnam], dtype=dtypes[cnam])
 
         return hlog
 
