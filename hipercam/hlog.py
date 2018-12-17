@@ -121,7 +121,7 @@ class Hlog(dict):
                         dtype_defs[cnam] = line[line.find('=')+1:].strip().split()[1:]
 
                         # get ready for the data
-                        hlog[cnam] = []
+                        hlog[cnam] = bytearray()
 
                 elif line.find('Start of column name definitions') > -1:
                     read_cnames = True
@@ -149,12 +149,12 @@ class Hlog(dict):
                     # store in a list. Although lists are wasteful, they grow
                     # quite fast and each element here is efficiently packed
                     # so it should cope with quite large log files.
-                    hlog[cnam].append(struct.pack(struct_types[cnam], *items))
+                    hlog[cnam].extend(struct.pack(struct_types[cnam], *items))
 
         # for each CCD convert the list of byte data to a numpy array and then
         # ro a record array of the right dtype.
         for cnam in hlog:
-            hlog[cnam] = np.frombuffer(np.array(hlog[cnam]), dtypes[cnam])
+            hlog[cnam] = np.frombuffer(hlog[cnam], dtypes[cnam])
 
         return hlog
 
