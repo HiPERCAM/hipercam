@@ -39,7 +39,8 @@ def fits2hcm(args=None):
              not work, let me know.
 
            INTWFC :
-             Wide field Camera on the INT.
+             Wide field Camera on the INT. Just operates on a single CCD's-worth
+             of data.
 
       overwrite : bool
          overwrite files on output
@@ -127,11 +128,13 @@ def fits2hcm(args=None):
                     # Copy main header into primary data-less HDU
                     ihead = hdul[0].header
                     ophdu = fits.PrimaryHDU(header=ihead)
-                    ophdu.header['NUMCCD'] = (1, 'Number of CCDs')
+                    ophdu.header['NUMCCD'] = (1, 'CCD number; fits2hcm')
                     mjd = ihead['MJD-OBS']
                     exptime = ihead['EXPTIME']
                     time = Time(mjd+exptime/2/86400,format='mjd')
-                    ophdu.header['TIMSTAMP'] = time.isot
+                    ophdu.header['TIMSTAMP'] = (
+                        time.isot, 'Time stamp; fits2hcm'
+                    )
 
                     # Copy data into first HDU
                     ofhdu = fits.ImageHDU(hdul[0].data)
@@ -150,7 +153,7 @@ def fits2hcm(args=None):
                         mjd+exptime/2/86400,'MJD at centre of exposure'
                     )
                     ophdu.header['MJDUTC'] = (
-                        mjd+exptime/2/86400,'MJD at centre of exposure'
+                        mjd+exptime/2/86400,'MJD at centre of exposure; fits2hcm'
                     )
                     ofhdu.header['EXPTIME'] = (
                         exptime, 'Exposure time, seconds'
