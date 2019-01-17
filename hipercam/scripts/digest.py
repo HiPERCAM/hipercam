@@ -207,10 +207,7 @@ archiving purposes.
             with open(md5) as fin:
                 for line in fin:
                     hash, name = line.split()
-                    if basename.startswith('hiper'):
-                        mruns.append(name[:-5])
-                    else:
-                        mruns.append(name[:-4])
+                    mruns.append(name[:name.rfind('.')])
 
             if set(runs) != set(mruns):
                 print('The runs in the md5sum file do not match '
