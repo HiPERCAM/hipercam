@@ -1,0 +1,21 @@
+Following is a fancy command for opening up a bandwidth-limited ssh tunnel
+for testing. The ip address may need changing.
+
+   ssh -o "ProxyCommand pv -q -L 32k | nc %h %p" -L5900:localhost:5900 phsaap@137.205.62.205
+
+The procedure for testing is then
+
+1) Issue command 
+
+   x11vnc -shared -many -display :0
+
+   on the laptop.
+
+2) Check ip with /sbin/ifconfig
+
+3) Issue ssh command as above on desktop
+
+4) Get Downloads/VNC-Viewer-6.18.907-Linux-x64 going on desktop
+
+5) Start trying hipercam pipeline on laptop from desktop.
+
