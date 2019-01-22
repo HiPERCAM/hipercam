@@ -392,7 +392,7 @@ def reduce(args=None):
                 else:
                     nframe = nf + 1
 
-                if last and nframe > last:
+                if source != 'hf' and last and nframe > last:
                     print(
                         'Have reduced up to the last frame set (={:d})'.format(last)
                     )
