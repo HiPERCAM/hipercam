@@ -2052,11 +2052,11 @@ class Panel:
 
         # avoid invalid limits warnings from PGPLOT
         if self.x1 == self.x2:
-            x1, x2 = 0, 1
+            x1, x2 = 0, 1.e-5
         else:
             x1, x2 = self.x1, self.x2
         if self.y1 == self.y2:
-            y1, y2 = 0, 1
+            y1, y2 = 0, 1.e-5
         else:
             y1, y2 = self.y1, self.y2
         pgswin(x1, x2, y1, y2)
@@ -2086,11 +2086,11 @@ class Panel:
 
         # avoid invalid limits warnings from PGPLOT
         if self.x1 == self.x2:
-            x1, x2 = 0, 1
+            x1, x2 = 0, 1.e-5
         else:
             x1, x2 = self.x1, self.x2
         if self.y1 == self.y2:
-            y1, y2 = 0, 1
+            y1, y2 = 0, 1.e-5
         else:
             y1, y2 = self.y1, self.y2
         pgswin(x1, x2, y1, y2)
