@@ -2127,6 +2127,7 @@ def plotLight(panel, t, results, rfile, tkeep, lbuffer):
 
     if not sect['y_fixed'] and fmin is not None and \
        ((ymin == ymax) or (fmin < ymin or fmax > ymax)):
+
         # we are going to have to replot because we have moved
         # outside the y-limits of the panel. We extend a little bit
         # more than necessary according to extend_y in order to
@@ -2136,6 +2137,11 @@ def plotLight(panel, t, results, rfile, tkeep, lbuffer):
         if ymin == ymax:
             # First time through just use data
             extend = sect['extend_y']*(fmax-fmin)
+            # for one CCD, fmin==fmax after first frame,
+            # and we never get out of ymin==ymax and the scale
+            # is never reset
+            if extend == 0:
+                extend = 0.001*fmax if sect['linear'] else 0.001
             ymin = fmin - extend
             ymax = fmax + extend
         else:
@@ -2145,7 +2151,7 @@ def plotLight(panel, t, results, rfile, tkeep, lbuffer):
                 ymin = fmin - extend
             if fmax > ymax:
                 ymax = fmax + extend
-
+        
         if sect['linear']:
             panel.y1, panel.y2 = ymin, ymax
         else:
