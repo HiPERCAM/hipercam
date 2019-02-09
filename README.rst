@@ -23,7 +23,9 @@ installing them locally e.g. ``pip install cython --user``
          to C-libraries and to enable faster code when critical.
 
   matplotlib :
-         standard plotting package for Python.
+         standard plotting package for Python. You will also need
+	 a Qt backend. In opensuse the package python3-matplotib-qt5
+	 allowing the Qt5Agg backend
 
   numpy :
          Python's numerical data package. Highly likely you will have
@@ -91,6 +93,10 @@ the last line should use pip3.
 
 If you have already installed but want to update, then go to the directory
 created at step ** above and type ``git pull`` and then re-install.
+
+To get the command |setaper| working, make sure to use the Qt5Agg matplotlib
+backend. I have this set as the default in my .config/matplotlib/matplotlibrc
+file with the line `backend: Qt5Agg`
 
 For more information see:
 
