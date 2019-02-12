@@ -444,7 +444,6 @@ def reduce(args=None):
                             tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
                         )
 
->>>>>>> huge series of changes restructuring how reduce proceeds
                     print(
                         '\nHave reduced up to the last frame set.'
                     )
