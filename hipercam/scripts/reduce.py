@@ -425,14 +425,7 @@ def reduce(args=None):
                 else:
                     nframe = nf + 1
 
-<<<<<<< HEAD
                 if source != 'hf' and last and nframe > last:
-=======
-                if last and nframe > last:
-<<<<<<< HEAD
->>>>>>> added 'full' flag to deliver stripped down headers
-=======
-
                     if len(mccds):
                         # finish processing remaining frames
                         results = processor(pccds, mccds, nframes)
