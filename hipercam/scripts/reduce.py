@@ -505,7 +505,7 @@ def reduce(args=None):
 
                     update_plots(
                         results, rfile, implot, lplot, imdev, lcdev,
-                        pccds, ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
+                        pccds[-1], ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
                         lpanel, xpanel, ypanel, tpanel, spanel, tkeep,
                         lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
                     )
