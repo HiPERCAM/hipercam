@@ -207,7 +207,8 @@ archiving purposes.
             with open(md5) as fin:
                 for line in fin:
                     hash, name = line.split()
-                    mruns.append(name[:name.rfind('.')])
+                    if not name.endswith('.old'):
+                        mruns.append(name[:name.rfind('.')])
 
             if set(runs) != set(mruns):
                 print('The runs in the md5sum file do not match '
