@@ -42,13 +42,25 @@ def fits2hcm(args=None):
              Wide field Camera on the INT. Just operates on a single CCD's-worth
              of data.
 
+           PT5M :
+             University of Sheffield/Durham pt5m telescope on La Palma
+             QSI 532 CCD
+
+           HICKS :
+             University of Sheffield 16" Hicks Telescope
+             SBIG ST10-XME CCD
+
+           ROSA :
+             University of Sheffield 10" Hicks Telescope
+             ATIK ONE 6.0 CCD
+
       overwrite : bool
          overwrite files on output
     """
 
     command, args = utils.script_args(args)
 
-    FORMATS = ['LTRISE','INTWFC']
+    FORMATS = ['LTRISE','INTWFC','PT5M','HICKS','ROSA']
 
     # get input section
     with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
@@ -73,8 +85,10 @@ def fits2hcm(args=None):
         )
 
     with open(flist) as fin:
+        counter = 0
         for line in fin:
             fname = line.strip()
+            counter += 1
             with fits.open(fname) as hdul:
                 bname = os.path.basename(fname)
                 if bname.find('.') > -1:
@@ -149,6 +163,129 @@ def fits2hcm(args=None):
                     ofhdu.header['LLY'] = (1,'Y-ordinate of lower-left pixel')
                     ofhdu.header['XBIN'] = (ihead['CCDXBIN'],'X-binning factor')
                     ofhdu.header['YBIN'] = (ihead['CCDYBIN'],'Y-binning factor')
+                    ofhdu.header['MJDUTC'] = (
+                        mjd+exptime/2/86400,'MJD at centre of exposure'
+                    )
+                    ophdu.header['MJDUTC'] = (
+                        mjd+exptime/2/86400,'MJD at centre of exposure; fits2hcm'
+                    )
+                    ofhdu.header['EXPTIME'] = (
+                        exptime, 'Exposure time, seconds'
+                    )
+                    ohdul = fits.HDUList([ophdu, ofhdu])
+                    ohdul.writeto(oname, overwrite=overwrite)
+
+                elif origin == 'PT5M':
+
+                    # Copy main header into primary data-less HDU
+                    ihead = hdul[0].header
+                    ophdu = fits.PrimaryHDU(header=ihead)
+                    ophdu.header['NUMCCD'] = (1, 'CCD number; fits2hcm')
+                    ophdu.header['NFRAME'] = (counter, 'NFRAME number; fits2hcm')
+                    date_obs = ihead['DATE-OBS']
+                    t = Time(date_obs, format='isot', scale='utc')
+                    mjd = t.mjd
+                    exptime = ihead['EXPTIME']
+                    time = Time(mjd+exptime/2/86400,format='mjd')
+                    ophdu.header['TIMSTAMP'] = (
+                        time.isot, 'Time stamp; fits2hcm'
+                    )
+
+                    # Copy data into first HDU
+                    ofhdu = fits.ImageHDU(hdul[0].data)
+
+                    # Get header into right format
+                    ofhdu.header['CCD'] = ('1','CCD label')
+                    ofhdu.header['NXTOT'] = (2184, 'Total unbinned X dimension')
+                    ofhdu.header['NYTOT'] = (1472, 'Total unbinned Y dimension')
+                    ofhdu.header['NUMWIN'] = (1, 'Total number of windows')
+                    ofhdu.header['WINDOW'] = ('1', 'Window label')
+                    ofhdu.header['LLX'] = (1,'X-ordinate of lower-left pixel')
+                    ofhdu.header['LLY'] = (1,'Y-ordinate of lower-left pixel')
+                    ofhdu.header['XBIN'] = (ihead['XBINNING'],'X-binning factor')
+                    ofhdu.header['YBIN'] = (ihead['YBINNING'],'Y-binning factor')
+                    ofhdu.header['MJDUTC'] = (
+                        mjd+exptime/2/86400,'MJD at centre of exposure'
+                    )
+                    ophdu.header['MJDUTC'] = (
+                        mjd+exptime/2/86400,'MJD at centre of exposure; fits2hcm'
+                    )
+                    ofhdu.header['EXPTIME'] = (
+                        exptime, 'Exposure time, seconds'
+                    )
+                    ohdul = fits.HDUList([ophdu, ofhdu])
+                    ohdul.writeto(oname, overwrite=overwrite)
+
+                elif origin == 'HICKS':
+
+                    # Copy main header into primary data-less HDU
+                    ihead = hdul[0].header
+                    ophdu = fits.PrimaryHDU(header=ihead)
+                    ophdu.header['NUMCCD'] = (1, 'CCD number; fits2hcm')
+                    ophdu.header['NFRAME'] = (counter, 'NFRAME number; fits2hcm')
+                    date_obs = ihead['DATE-OBS']
+                    t = Time(date_obs, format='isot', scale='utc')
+                    mjd = t.mjd
+                    exptime = ihead['EXPTIME']
+                    time = Time(mjd+exptime/2/86400,format='mjd')
+                    ophdu.header['TIMSTAMP'] = (
+                        time.isot, 'Time stamp; fits2hcm'
+                    )
+
+                    # Copy data into first HDU
+                    ofhdu = fits.ImageHDU(hdul[0].data)
+
+                    # Get header into right format
+                    ofhdu.header['CCD'] = ('1','CCD label')
+                    ofhdu.header['NXTOT'] = (2184, 'Total unbinned X dimension')
+                    ofhdu.header['NYTOT'] = (1472, 'Total unbinned Y dimension')
+                    ofhdu.header['NUMWIN'] = (1, 'Total number of windows')
+                    ofhdu.header['WINDOW'] = ('1', 'Window label')
+                    ofhdu.header['LLX'] = (1,'X-ordinate of lower-left pixel')
+                    ofhdu.header['LLY'] = (1,'Y-ordinate of lower-left pixel')
+                    ofhdu.header['XBIN'] = (ihead['XBINNING'],'X-binning factor')
+                    ofhdu.header['YBIN'] = (ihead['YBINNING'],'Y-binning factor')
+                    ofhdu.header['MJDUTC'] = (
+                        mjd+exptime/2/86400,'MJD at centre of exposure'
+                    )
+                    ophdu.header['MJDUTC'] = (
+                        mjd+exptime/2/86400,'MJD at centre of exposure; fits2hcm'
+                    )
+                    ofhdu.header['EXPTIME'] = (
+                        exptime, 'Exposure time, seconds'
+                    )
+                    ohdul = fits.HDUList([ophdu, ofhdu])
+                    ohdul.writeto(oname, overwrite=overwrite)
+
+                elif origin == 'ROSA':
+
+                    # Copy main header into primary data-less HDU
+                    ihead = hdul[0].header
+                    ophdu = fits.PrimaryHDU(header=ihead)
+                    ophdu.header['NUMCCD'] = (1, 'CCD number; fits2hcm')
+                    ophdu.header['NFRAME'] = (counter, 'NFRAME number; fits2hcm')
+                    date_obs = ihead['DATE-OBS']
+                    t = Time(date_obs, format='isot', scale='utc')
+                    mjd = t.mjd
+                    exptime = ihead['EXPTIME']
+                    time = Time(mjd+exptime/2/86400,format='mjd')
+                    ophdu.header['TIMSTAMP'] = (
+                        time.isot, 'Time stamp; fits2hcm'
+                    )
+
+                    # Copy data into first HDU
+                    ofhdu = fits.ImageHDU(hdul[0].data)
+
+                    # Get header into right format
+                    ofhdu.header['CCD'] = ('1','CCD label')
+                    ofhdu.header['NXTOT'] = (2748, 'Total unbinned X dimension')
+                    ofhdu.header['NYTOT'] = (2198, 'Total unbinned Y dimension')
+                    ofhdu.header['NUMWIN'] = (1, 'Total number of windows')
+                    ofhdu.header['WINDOW'] = ('1', 'Window label')
+                    ofhdu.header['LLX'] = (1,'X-ordinate of lower-left pixel')
+                    ofhdu.header['LLY'] = (1,'Y-ordinate of lower-left pixel')
+                    ofhdu.header['XBIN'] = (ihead['XBINNING'],'X-binning factor')
+                    ofhdu.header['YBIN'] = (ihead['YBINNING'],'Y-binning factor')
                     ofhdu.header['MJDUTC'] = (
                         mjd+exptime/2/86400,'MJD at centre of exposure'
                     )
