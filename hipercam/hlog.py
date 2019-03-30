@@ -348,30 +348,53 @@ class Tseries:
         ok = self.get_ok(mvalue)
         return (self.t[ok],self.y[ok],self.ye[ok])
 
-    def mplot(self, axes, colour='b', fmt='.', mask=ANY,
-              capsize=0, erry=True, trange=None, **kwargs):
-        """
-        Plots a Tseries to a matplotlib Axes instance, only
-        plotting points without any of the same bits set as
-        `mask` (see hipercam.core for a full list). Points
-        with negative errors are plotted without error bars.
+    def mplot(self, axes, colour='b', fmt='.', mask=ANY, capsize=0,
+              erry=True, trange=None, **kwargs):
+        """Plots a Tseries to a matplotlib Axes instance, only plotting points
+        without any of the same bits set as `mask` (see hipercam.core for a
+        full list) and positive errors.
+
+        Arguments::
+
+           axes : Axes
+              the axis instance to plot to. Can just be matplotlib.pyplot
+
+           colour : valid matplotlib colour
+              the colour to use
+
+           fmt : string
+              marker to use for points or style for line plots, e.g. ',',
+              '.', 'o' give different points while '-' and '--' give
+              different lines.
+
+           mask : bitmask
+              used to mask points
+
+           capsize : float
+              if error bars are plotted with points, this sets
+              the length of terminals
+
+           erry : boolean
+              True / False for error bars or not
+
+           trange : None | (t1,t2)
+              Two element tuple to limit the time range
+
         """
         ok = np.bitwise_and(self.mask, mask) == 0 & (self.ye > 0)
         if trange is not None:
             t1,t2 = trange
-            ok &= (self.t > t1) & (self.t < t2
-)
+            ok &= (self.t > t1) & (self.t < t2)
+            
+        ymasked = np.ma.masked_array(self.y, ~ok)
         if erry:
             axes.errorbar(
-                self.t[ok],self.y[ok],self.ye[ok],
-                fmt=fmt, color=colour, capsize=capsize, **kwargs)
-
-            nerr = ok & (self.ye <= 0.)
-            axes.plot(self.t[nerr], self.y[nerr], fmt, color=colour, **kwargs)
-
+                self.t, ymasked, self.ye,
+                fmt=fmt, color=colour, capsize=capsize, **kwargs
+            )
         else:
-            axes.plot(self.t[ok], self.y[ok], fmt, color=colour, **kwargs)
-
+            axes.plot(self.t, ymasked, fmt, color=colour, **kwargs)
+            
     def __repr__(self):
         return 'Tseries(t={!r}, y={!r}, ye={!r}, mask={!r}'.format(
             self.t, self.y, self.ye, self.mask)
@@ -736,3 +759,107 @@ class Tseries:
     def ymean(self):
         ok= self.ye > 0.
         return np.mean(self.y[ok])
+
+    def clip_ends(self, nstart, nend):
+        """
+        Clips points off either end of Tseries, returns a new Tseries,
+        leaves old one unchanged.
+        
+        Arguments::
+
+           nstart : int
+              number to remove from start
+
+           nstart : int
+              number to remove from end
+        """
+        if nstart < 0 or nend < 0:
+            raise ValueError(
+                'nstart and nend must be >= 0'
+            )
+        if nend:
+            return Tseries(
+                self.t[nstart:-nend], self.y[nstart:-nend],
+                self.ye[nstart:-nend], self.mask[nstart:-nend]
+            )
+        elif nstart:
+            return Tseries(
+                self.t[nstart:], self.y[nstart:],
+                self.ye[nstart:], self.mask[nstart:]
+            )
+        else:
+            return Tseries(
+                self.t[:], self.y[:],
+                self.ye[:], self.mask[:]
+            )
+
+    def set_clouds(self, nwin, vmax, tmin):
+        """This tries automatically to flag points as being affected by clouds using
+        two criteria: (1) is a measure of the fractional RMS measured in a
+        moving window of width nwin, (2) is a minimum transmission limit
+        defined relative to the maximum value of the Tseries.
+
+        It modifies the mask of the Tseries by bitwise OR-ing it with the flag
+        hipercam.CLOUDS. No substitute for doing it by hand mind you as it
+        tends to spread the period of clouds out to neighbouring points
+        rather. It's main use is probably to clean up quick look plots.
+
+        Arguments::
+
+           nwin : int
+              moving average window width. Must be odd
+
+           vlim : float
+              maximum relative variability (RMS/mean) above
+              which a point will be flagged as cloud.
+
+           tmin : float
+              minimum transmission below which a point will
+              be flagged as cloud.
+
+        Modifies Tseries in place; returns three element tuple
+        (clouds,rvar,trans) containing the logical cloud mask, the running
+        relative variability and the running transmission. The "clouds"
+        array can be used to transfer the clouds to other Tseries of
+        the same length.
+
+        For ULTRACAM / HIPERCAM / ULTRASPEC data it is often advisable
+        to clip a point off the start and end to avoid end effects before
+        applying this routine.
+
+        """
+        if nwin % 2 == 0:
+            raise ValueError('nwin must be odd')
+        WINDOW = np.ones(nwin)/nwin
+
+        # extend ends with end values to get around end
+        # effects
+        y = np.concatenate(
+            [self.y[0]*np.ones(nwin//2),
+             self.y,
+             self.y[-1]*np.ones(nwin//2)]
+        )
+
+        # apply running mean
+        y_mave = np.convolve(y, WINDOW, 'valid')
+
+        # form squared differences
+        ydsq = (self.y-y_mave)**2
+
+        # extend at ends again
+        ydsq = np.concatenate(
+            [ydsq[0]*np.ones(nwin//2),
+             ydsq,
+             ydsq[-1]*np.ones(nwin//2)]
+        )
+
+        # compute running relative variability array
+        rvar = np.sqrt(np.convolve(ydsq, WINDOW, 'valid')) / y_mave
+        trans = y_mave / y_mave.max()
+        clouds = (rvar > vmax) | (trans < tmin)
+
+        # modify Tseries mask
+        self.set_mask(CLOUDS, clouds)
+
+        return (clouds,rvar,trans)
+    
