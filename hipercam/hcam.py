@@ -241,7 +241,8 @@ class Rhead:
         self.dummy = hd['ESO DET DUMMY']
         self.oscan = hd['ESO DET INCOVSCY']
         self.pscan = hd['ESO DET INCPRSCX']
-
+        self.thead['CLEAR'] = (self.clear,'Clear enabled')
+        
         # store the NSKIP values for each CCD. These are needed for exact
         # timing for each CCD.
         self.nskips = (
