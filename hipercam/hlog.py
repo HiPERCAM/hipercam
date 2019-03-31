@@ -855,7 +855,7 @@ class Tseries:
 
         # compute running relative variability array
         rvar = np.sqrt(np.convolve(ydsq, WINDOW, 'valid')) / y_mave
-        trans = y_mave / y_mave.max()
+        trans = self.y / self.y.max()
         clouds = (rvar > vmax) | (trans < tmin)
 
         # modify Tseries mask
