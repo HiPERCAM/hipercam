@@ -4,7 +4,7 @@ import sys
 import os
 import time
 import tempfile
-
+import warnings
 import numpy as np
 
 import hipercam as hcam
@@ -140,6 +140,29 @@ def makebias(args=None):
     ]
     flist = hcam.scripts.grab(args)
 
+    if first == 1:
+        # test readout mode if the first == 1 as, with non clear modes, the
+        # first file is different from all others. A warning is issued.
+        mccd = hcam.MCCD.read(flist[0])
+        instrument = mccd.head.get('INSTRUME','UNKNOWN')
+        if instrument == 'ULTRACAM' or instrument == 'HIPERCAM' or \
+           instrument == 'ULTRASPEC':
+            if 'CLEAR' in mccd.head:
+                if not mccd.head['CLEAR']:
+                    warnings.warn(
+                        """You should not include the first frame of a run when making a bias from
+readout modes which do not have clear enabled since the first frame is
+different from all others."""
+                    )
+            else:
+                warnings.warn(
+                        """Instrument = {:s} has readout modes with both clears enabled or not
+between exposures. When no clear is enabled, the first frame is different
+from all others and should normally not be included when making a bias.
+This message is a temporary stop gap until the nature of the readout mode
+has been determined with respect to clears."""
+                    )
+                
     try:
 
         print("\nCalling 'combine' ...")
