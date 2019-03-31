@@ -235,6 +235,7 @@ class Rhead(fits.Header):
 
         # Translate applications into meaningful mode names
         app = application
+        clear = False
         if app == 'ap8_250_driftscan' or app == 'ap8_driftscan' or \
                 app == 'ap_drift_bin2' or app == 'appl8_driftscan_cfg':
             mode = 'DRIFT'
@@ -244,6 +245,7 @@ class Rhead(fits.Header):
             mode    = '1-PAIR'
         elif app == 'ap5b_250_window1pair' or app == 'appl5b_window1pair_cfg':
             mode    = '1-PCLR'
+            clear = True
         elif app == 'ap6_250_window2pair' or app == 'ap6_window2pair' or \
              app == 'ap_win4_bin1' or app == 'ap_win4_bin8' or \
              app == 'appl6_window2pair_cfg':
@@ -254,8 +256,10 @@ class Rhead(fits.Header):
         elif app == 'ap3_250_fullframe' or app == 'ap3_fullframe' or \
              app == 'appl3_fullframe_cfg':
             mode    = 'FFCLR'
+            clear = True
         elif app == 'appl4_frameover_cfg' or app == 'ap4_frameover':
             mode    = 'FFOVER'
+            clear = True
         elif app == 'appl10_frameover_mindead_cfg':
             mode    = 'FFOVNC'
         elif app == 'ap9_250_fullframe_mindead' or \
@@ -289,6 +293,7 @@ class Rhead(fits.Header):
         self['INSTRUME'] = (instrument, 'Instrument')
         self['APPLICAT'] = (application, 'ULTRA*** acquisition template')
         self['MODE'] = (mode, 'Readout mode')
+        self['CLEAR'] = (clear,'Clear enabled')
 
         if mode == 'PONOFF': return
 
