@@ -11,11 +11,13 @@ from .combine import combine
 from .grab import grab
 from .genred import genred
 from .hist import hist
+from .hinfo import hinfo
 from .hfilter import hfilter
 from .hlogger import hlogger
 from .hls import hls
 from .hplot import hplot
 from .makebias import makebias
+from .makedark import makedark
 from .makeflat import makeflat
 from .makestuff import makedata, makefield
 from .plog import plog
