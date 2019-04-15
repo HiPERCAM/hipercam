@@ -26,7 +26,13 @@ so if you install it, you will have the others as well.
          to C-libraries and to enable faster code when critical.
 
   matplotlib :
-         standard plotting package for Python.
+         standard plotting package for Python. You will also need
+	 a Qt backend. In opensuse the package python3-matplotib-qt5
+	 allowing the Qt5Agg backend
+
+  numba :
+        Another package along with Cythong to suuport faster numerics. Uses
+        "just-in-time" compilation of selected routines.
 
   numba :
         Another package along with Cythong to suuport faster numerics. Uses
@@ -103,6 +109,10 @@ the last lines should use pip3.
 
 If you have already installed but want to update, then go to the directory
 created at step ** above and type ``git pull`` and then re-install.
+
+To get the command |setaper| working, make sure to use the Qt5Agg matplotlib
+backend. I have this set as the default in my .config/matplotlib/matplotlibrc
+file with the line `backend: Qt5Agg`
 
 For more information see:
 

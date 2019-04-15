@@ -363,7 +363,9 @@ def get_ccd_pars(source, resource):
 
         elif rhead.instrument == 'ULTRASPEC':
             # ULTRASPEC raw data file: fixed data
-            return OrderedDict(('1',(1056,1072)))
+            return OrderedDict(
+                (('1',(1056,1072,0,0)),)
+            )
 
         else:
             raise ValueError(

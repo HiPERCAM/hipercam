@@ -413,18 +413,18 @@ class Rhead(fits.Header):
             speed = ('S' if param['SPEED'] == '0' else \
                      ('M' if param['SPEED'] == '1' else 'F')) \
                 if 'SPEED' in param else None
-            en_clr = (True if param['EN_CLR'] == '1' else False) \
-                     if 'EN_CLR' in param else None
+            self.en_clr = (True if param['EN_CLR'] == '1' else False) \
+                          if 'EN_CLR' in param else None
             hv_gain = int(param['HV_GAIN']) if 'HV_GAIN' \
                       in param else None
-            output = ('N' if param['OUTPUT'] == '0' else 'A') \
-                     if 'OUTPUT' in param else None
+            self.output = ('N' if param['OUTPUT'] == '0' else 'A') \
+                          if 'OUTPUT' in param else None
 
             self['NUMEXP'] = (numexp, 'Number of exposures [-1 = infinity]')
             self['SPEED'] = (speed, 'Readout speed [ULTRASPEC]')
-            self['ENBLCLR'] = (en_clr, 'Clear enabled [ULTRASPEC]')
+            self['ENBLCLR'] = (self.en_clr, 'Clear enabled [ULTRASPEC]')
             self['HVGAIN'] = (hv_gain, 'High-voltage gain [ULTRASPEC]')
-            self['OUTPUT'] = (output, 'Readout output [ULTRASPEC]')
+            self['OUTPUT'] = (self.output, 'Readout output [ULTRASPEC]')
 
             xstart = int(param['X1_START'])
             ystart = int(param['Y1_START'])
@@ -864,6 +864,9 @@ class Rdata (Rhead):
         # move frame counter on by one
         self.nframe += 1
 
+        # set binning factors
+        xbin, ybin = self.xbin, self.ybin
+
         # interpret data
         if self.instrument == 'ULTRACAM':
 
@@ -1107,19 +1110,25 @@ class Rdata (Rhead):
                     nchop = nchop // xbin if nchop % xbin == 0 else nchop // xbin + 1
 
                     llx = max(1, w.llx + nchop*xbin - 16) if self.output == 'N' else \
-                        max(1, 1074 - w.llx - w.nx*xbin)
+                          max(1, 1074 - w.llx - w.nx*xbin)
+
+                    wmod = Winhead(llx, w.lly, w.nx-nchop, w.ny, xbin, ybin)
 
                     if self.output == 'N':
                         # normal output, multi windows.
                         wins[str(nwin)] = \
-                            Winhead(np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop:],
-                                   llx,w.lly,xbin,ybin)
+                            Window(
+                                wmod,
+                                np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop:]
+                            )
 
                     elif self.output == 'A':
                         # avalanche output, multi windows.
                         wins[str(nwin)] = \
-                            Winhead(np.reshape(buff[noff:noff+npix],
-                                              (w.ny,w.nx))[:,nchop::-1],llx,w.lly,xbin,ybin)
+                            Winhead(
+                                wmod,
+                                np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop::-1]
+                            )
                     nwin += 1
                     noff += npix
 
@@ -1149,20 +1158,38 @@ class Rdata (Rhead):
                     # avalanche output, drift
                     comb = np.reshape(buff[:npix],(wl.ny,wl.nx+wr.nx)[:,::-1])
 
-                wins[str(nwin)] = Winhead(comb[:,nchopl:wl.nx],llxl,wl.lly,xbin,ybin)
+                wmodl = Winhead(llxl, wl.lly, wl.nx-nchopl, wl.ny, xbin, ybin)
+                wins[str(nwin)] = Window(wmodl,comb[:,nchopl:wl.nx])
                 nwin += 1
-                wins[str(nwin)] = Winhead(comb[:,wl.nx+nchopr:],llxr,wl.lly,xbin,ybin)
+                wmodr = Winhead(llxr, wr.lly, wr.nx-nchopr, wr.ny, xbin, ybin)
+                wins[str(nwin)] = Winhead(wmodr,comb[:,wl.nx+nchopr:])
                 nwin += 1
 
             # data type conversions
-            for win in wins:
-                win.data = win.data.astype(np.float32)
+            for wind in wins.values():
+                wind.data = wind.data.astype(np.float32)
+
+            # Add header to first Window
+            head = fits.Header()
+            head['CCDNAME'] = 'ULTRASPEC'
+            # timing data
+            tstamp = Time(time.mjd, format='mjd')
+            head['TIMSTAMP'] = (tstamp.isot, 'Time at mid exposure, UTC')
+            head['MJDUTC'] = (time.mjd, 'MJD(UTC) at centre of exposure')
+            head['EXPTIME'] = (time.expose, 'Exposure time (sec)')
+            head['GOODTIME'] = (time.good,'flag indicating reliability of time')
+            head['MJDOKWHY'] = time.reason
+            head.update(self)
+
+            wfirst = next(iter(wins.values()))
+            wfirst.update(head)
+
+            ccd = CCD(wins, self.nxmax, self.nymax)
 
             if self._ccd:
-                return CCD(wins, time, self.nxmax, self.nymax, True, head)
+                return ccd
             else:
-                return MCCD({'1' : CCD(wins, time, self.nxmax, self.nymax,
-                                       True, head),}, head)
+                return MCCD({'1' : ccd}, head)
 
         else:
             raise UltracamError(

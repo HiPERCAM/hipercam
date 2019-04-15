@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 from astropy.io import fits
+from astropy.time import Time
 
 import hipercam as hcam
 from hipercam import cline, utils
@@ -37,11 +38,17 @@ def fits2hcm(args=None):
              code is in this case. I assume XBIN=YBIN=2. If you find it does
              not work, let me know.
 
+           INTWFC :
+             Wide field Camera on the INT. Just operates on a single CCD's-worth
+             of data.
+
       overwrite : bool
          overwrite files on output
     """
 
     command, args = utils.script_args(args)
+
+    FORMATS = ['LTRISE','INTWFC']
 
     # get input section
     with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
@@ -58,8 +65,7 @@ def fits2hcm(args=None):
         )
 
         origin = cl.get_value(
-            'origin', 'origin of data', 'LTRISE',
-            lvals=['LTRISE',]
+            'origin', 'origin of data', 'LTRISE', lvals=FORMATS
         )
 
         overwrite = cl.get_value(
@@ -117,9 +123,50 @@ def fits2hcm(args=None):
                     ohdul = fits.HDUList([ophdu, ofhdu])
                     ohdul.writeto(oname, overwrite=overwrite)
 
+                elif origin == 'INTWFC':
+
+                    # Copy main header into primary data-less HDU
+                    ihead = hdul[0].header
+                    ophdu = fits.PrimaryHDU(header=ihead)
+                    ophdu.header['NUMCCD'] = (1, 'CCD number; fits2hcm')
+                    mjd = ihead['MJD-OBS']
+                    exptime = ihead['EXPTIME']
+                    time = Time(mjd+exptime/2/86400,format='mjd')
+                    ophdu.header['TIMSTAMP'] = (
+                        time.isot, 'Time stamp; fits2hcm'
+                    )
+
+                    # Copy data into first HDU
+                    ofhdu = fits.ImageHDU(hdul[0].data)
+
+                    # Get header into right format
+                    ofhdu.header['CCD'] = ('1','CCD label')
+                    ofhdu.header['NXTOT'] = (2154, 'Total unbinned X dimension')
+                    ofhdu.header['NYTOT'] = (4200, 'Total unbinned X dimension')
+                    ofhdu.header['NUMWIN'] = (1, 'Total number of windows')
+                    ofhdu.header['WINDOW'] = ('1', 'Window label')
+                    ofhdu.header['LLX'] = (1,'X-ordinate of lower-left pixel')
+                    ofhdu.header['LLY'] = (1,'Y-ordinate of lower-left pixel')
+                    ofhdu.header['XBIN'] = (ihead['CCDXBIN'],'X-binning factor')
+                    ofhdu.header['YBIN'] = (ihead['CCDYBIN'],'Y-binning factor')
+                    ofhdu.header['MJDUTC'] = (
+                        mjd+exptime/2/86400,'MJD at centre of exposure'
+                    )
+                    ophdu.header['MJDUTC'] = (
+                        mjd+exptime/2/86400,'MJD at centre of exposure; fits2hcm'
+                    )
+                    ofhdu.header['EXPTIME'] = (
+                        exptime, 'Exposure time, seconds'
+                    )
+                    ohdul = fits.HDUList([ophdu, ofhdu])
+                    ohdul.writeto(oname, overwrite=overwrite)
+
                 else:
                     raise HipercamError(
-                        'Origin = {:s} unrecognised'.format(origin)
+                        ('Origin = {:s} unrecognised. Codes '
+                         'recognised: {:s}').format(
+                             origin,', '.join(FORMATS)
+                         )
                     )
 
                 print(fname,'-->',oname)

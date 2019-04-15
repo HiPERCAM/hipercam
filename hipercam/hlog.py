@@ -124,7 +124,7 @@ class Hlog(dict):
                         dtype_defs[cnam] = line[line.find('=')+1:].strip().split()[1:]
 
                         # get ready for the data
-                        hlog[cnam] = []
+                        hlog[cnam] = bytearray()
 
                 elif line.find('Start of column name definitions') > -1:
                     read_cnames = True
@@ -152,12 +152,12 @@ class Hlog(dict):
                     # store in a list. Although lists are wasteful, they grow
                     # quite fast and each element here is efficiently packed
                     # so it should cope with quite large log files.
-                    hlog[cnam].append(struct.pack(struct_types[cnam], *items))
+                    hlog[cnam].extend(struct.pack(struct_types[cnam], *items))
 
         # for each CCD convert the list of byte data to a numpy array and then
         # ro a record array of the right dtype.
         for cnam in hlog:
-            hlog[cnam] = np.frombuffer(np.array(hlog[cnam]), dtypes[cnam])
+            hlog[cnam] = np.frombuffer(hlog[cnam], dtypes[cnam])
 
         return hlog
 
@@ -233,7 +233,7 @@ class Hlog(dict):
 
                     else:
                         # first time for this CCD
-                        hlog[cnam] = []
+                        hlog[cnam] = bytearray()
                         names = ['MJD','Tflag','Expose','FWHM','beta']
                         dts = ['f8','?','f4','f4','f4']
                         naps[cnam] = len(arr[7:]) // 14
@@ -266,14 +266,12 @@ class Hlog(dict):
                         dtypes[cnam] = np.dtype(list(zip(names, dts)))
                         stypes[cnam] = '=' + ''.join([NUMPY_TO_STRUCT[dt] for dt in dts])
 
-                    # store in a list. Although lists are wasteful, they grow quite
-                    # fast and each element here is efficiently packed so it should
-                    # cope with quite large log files.
-                    hlog[cnam].append(struct.pack(stypes[cnam], *values))
+                    # store in a bytearray
+                    hlog[cnam].extend(struct.pack(stypes[cnam], *values))
 
         # convert lists to numpy arrays
         for cnam in hlog:
-            hlog[cnam] = np.array(hlog[cnam], dtype=dtypes[cnam])
+            hlog[cnam] = np.frombuffer(hlog[cnam], dtype=dtypes[cnam])
 
         return hlog
 
@@ -662,7 +660,7 @@ class Tseries:
             A new ``Tseries`` in which the data are folded and sorted by
             phase.
         """
-        fold_time = (((self.t - t0 * period) / period) % 1)
+        fold_time = (((self.t - t0) / period) % 1)
         # fold time domain from -.5 to .5
         fold_time[fold_time > 0.5] -= 1
         sorted_args = np.argsort(fold_time)

@@ -639,7 +639,6 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
                 lcdev, xv1, xv2, yv1, yv2, xlabel, 'FWHM (")',
                 '', xopt, 'bcnst', x1, x2, 0, rfile['seeing']['ymax']
                 )
-            spanel.plot()
 
             xlabel = ''
             xopt = 'bcst'
@@ -652,7 +651,6 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
                 lcdev, xv1, xv2, yv1, yv2, xlabel, '% trans',
                 '', xopt, 'bcnst', x1, x2, 0, rfile['transmission']['ymax']
                 )
-            tpanel.plot()
 
             xlabel = ''
             xopt = 'bcst'
@@ -666,7 +664,6 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
                 '', xopt, 'bcnst', x1, x2,
                 rfile['position']['y_min'], rfile['position']['y_max'],
                 )
-            ypanel.plot()
 
             xlabel = ''
             xopt = 'bcst'
@@ -679,7 +676,6 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
                 '', xopt, 'bcnst', x1, x2,
                 rfile['position']['x_min'], rfile['position']['x_max'],
                 )
-            xpanel.plot()
 
             xlabel = ''
             xopt = 'bcst'
@@ -694,7 +690,6 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
                 xopt, 'bcnst', x1, x2,
                 rfile['light']['y1'], rfile['light']['y2']
                 )
-            lpanel.plot()
 
     return imdev, lcdev, spanel, tpanel, xpanel, ypanel, lpanel
 
@@ -1775,8 +1770,8 @@ class Panel:
         self.y1 = y1
         self.y2 = y2
 
-        # to indicate whether this has been used yet
-        self.used = False
+        # Plot it
+        self.plot()
 
     def plot(self):
         """Plot the Panel. After running this you can plot to the Panel. If you plot
@@ -1810,15 +1805,11 @@ class Panel:
         pgsch(hcam.pgp.Params['axis.label.ch'])
         pglab(self.xlabel, self.ylabel, self.tlabel)
 
-        self.used = True
-
     def select(self):
         """
         Selects this panel as the one to plot to. You can only use this if you
         have plotted the panel.
         """
-        if not self.used:
-            raise hcam.HipercamError('You must plot a panel before slecting it')
 
         # select the device
         self.device.select()
@@ -1828,11 +1819,11 @@ class Panel:
 
         # avoid invalid limits warnings from PGPLOT
         if self.x1 == self.x2:
-            x1, x2 = 0, 1
+            x1, x2 = 0, 1.
         else:
             x1, x2 = self.x1, self.x2
         if self.y1 == self.y2:
-            y1, y2 = 0, 1
+            y1, y2 = 0, 1.
         else:
             y1, y2 = self.y1, self.y2
         pgswin(x1, x2, y1, y2)
@@ -1872,7 +1863,8 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
         lc.trim(tkeep)
 
     if not sect['y_fixed'] and fmin is not None and \
-       (fmin < ymin or fmax > ymax):
+       ((ymin == ymax) or (fmin < ymin or fmax > ymax)):
+
         # we are going to have to replot because we have moved
         # outside the y-limits of the panel. We extend a little bit
         # more than necessary according to extend_y in order to
@@ -1882,6 +1874,11 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
         if ymin == ymax:
             # First time through just use data
             extend = sect['extend_y']*(fmax-fmin)
+            # for one CCD, fmin==fmax after first frame,
+            # and we never get out of ymin==ymax and the scale
+            # is never reset
+            if extend == 0:
+                extend = 0.001*fmax if sect['linear'] else 0.001
             ymin = fmin - extend
             ymax = fmax + extend
         else:
@@ -1891,7 +1888,7 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
                 ymin = fmin - extend
             if fmax > ymax:
                 ymax = fmax + extend
-
+        
         if sect['linear']:
             panel.y1, panel.y2 = ymin, ymax
         else:
