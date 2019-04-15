@@ -58,5 +58,5 @@ dev
 
 # hipercam files
 *.hcm
-data/LT
-data/ultracam
+data
+data/*
