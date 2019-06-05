@@ -15,17 +15,19 @@ from numpy.lib.stride_tricks import as_strided
 from astropy.io import fits
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
 from scipy.ndimage.filters import maximum_filter
+from scipy.ndimage import gaussian_filter
 
 import matplotlib.pyplot as plt
 from .core import *
 from .group import *
+from .header import *
 
 __all__ = (
     'Winhead', 'Window',
     'CcdWin', 'MccdWin',
 )
 
-class Winhead(fits.Header):
+class Winhead(Header):
     """Class representing the header parts of a CCD window, i.e. everything
     needed to represent a window other than its data. This represents an
     arbitrary rectangular region of binned pixels. The lower-left pixel of the
@@ -36,12 +38,12 @@ class Winhead(fits.Header):
         >>> win = Winhead(12, 6, 100, 150, 2, 3)
         >>> print(win)
 
-    :class:`Winhead`s are inherited from :class:`astropy.io.fits.Header`
-    objects and thus represent data-less HDUs.
+    :class:`Winhead`s are inherited from :class:`hipercam.Header`
+    objects
 
     """
 
-    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=fits.Header()):
+    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=None):
         """
         Constructor. Arguments::
 
@@ -63,11 +65,13 @@ class Winhead(fits.Header):
           ybin : int
               Binning factor in Y
 
-          head : astropy.io.fits.Header
+          head : Header
               Arbitrary header items (excluding ones such as LLX reserved
               for containing the above parameters when reading and writing
               Winhead objects).
         """
+        if head is None:
+            head = Header()
 
         # Store the header
         super().__init__(head)
@@ -77,6 +81,7 @@ class Winhead(fits.Header):
         self.lly = lly
         self.xbin = xbin
         self.ybin = ybin
+
         # Have to take care with the next two since in
         # Window they are connected to the array size
         self._nx = nx
@@ -245,10 +250,10 @@ class Winhead(fits.Header):
         return (self.xlo,self.xhi,self.ylo,self.yhi)
 
     def outside(self, win):
-        """Returns True if `self` contains the :class:Winhead `win` in such a way that
-        it could be cut down to it. This implies that even if binned, its
-        pixels are "in step", aka "synchronised", and that its binning factors
-        are integer divisors of those of `win`.
+        """Returns True if `self` contains the :class:Winhead `win` in such a
+        way that it could be cut down to it. This implies that even if
+        binned, its pixels are "in step", aka "synchronised", and that
+        its binning factors are integer divisors of those of `win`.
 
         Arguments::
 
@@ -266,10 +271,10 @@ class Winhead(fits.Header):
             (win.lly-self.lly) % self.ybin == 0
 
     def inside(self, win):
-        """Returns True if `win` contains `self` in such a way that it could be cut
-        down to it. This implies that even if binned, its pixels are "in
-        step", aka "synchronised", and that its bin factors are integer
-        divisors of those of `self`.
+        """Returns True if `win` contains `self` in such a way that it could
+        be cut down to it. This implies that even if binned, its
+        pixels are "in step", aka "synchronised", and that its bin
+        factors are integer divisors of those of `self`.
 
         Arguments::
 
@@ -287,9 +292,9 @@ class Winhead(fits.Header):
             (self.lly-win.lly) % win.ybin == 0
 
     def xy(self):
-        """Returns two 2D arrays containing the x and y values at the centre of each
-        pixel defined by the :class:`Winhead`. See numpy.meshgrid to see what
-        this means.
+        """Returns two 2D arrays containing the x and y values at the centre
+        of each pixel defined by the :class:`Winhead`. See
+        numpy.meshgrid to see what this means.
 
         """
         # generate 1D x and y arrays along the edges
@@ -299,10 +304,11 @@ class Winhead(fits.Header):
         return np.meshgrid(x,y)
 
     def clash(self, win):
-        """Raises a ValueError if two :class: `Winhead`s are considered to 'clash'.
-        In this case this means if they have any pixels in common.  This
-        method is used in the 'check' method of the :class:`Group` class to
-        check the mutual validity of a set of :class:`Winhead`.
+        """Raises a ValueError if two :class: `Winhead`s are considered to
+        'clash'.  In this case this means if they have any pixels in
+        common.  This method is used in the 'check' method of the
+        :class:`Group` class to check the mutual validity of a set of
+        :class:`Winhead`.
 
         Arguments::
 
@@ -346,12 +352,12 @@ class Winhead(fits.Header):
         )
 
     def distance(self, x, y):
-        """Calculates the minimum distance of a point from the edge of the Winhead. If
-        the point is outside the Winhead the distance will be negative; if
-        inside it will be positive. The edge is defined as the line running
-        around the outside of the outer set of pixels. For a point outside the
-        box in both x and y, the value returned is a lower limit to the
-        distance.
+        """Calculates the minimum distance of a point from the edge of the
+        Winhead. If the point is outside the Winhead the distance will
+        be negative; if inside it will be positive. The edge is
+        defined as the line running around the outside of the outer
+        set of pixels. For a point outside the box in both x and y,
+        the value returned is a lower limit to the distance.
 
         """
         if x < self.xlo:
@@ -381,7 +387,7 @@ class Winhead(fits.Header):
 
         return dist
 
-    def window(self, xlo, xhi, ylo, yhi):
+    def window(self, xlo, xhi, ylo, yhi, copy=False):
         """Generates a new Winhead by windowing it to match the complete pixels
         visible within the range xlo to xhi, ylo to yhi.
 
@@ -399,6 +405,12 @@ class Winhead(fits.Header):
 
            yhi : float
               maximum Y, unbinned pixels
+
+           copy : bool
+              controls whether the header is copied over, or just
+              referenced.  The latter is more efficient, but if you later want
+              to change the header could propogate those changes to whatever
+              you copied.
 
         Returns the windowed Winhead. Raises a ValueError if there are no
         visible pixels.
@@ -421,13 +433,13 @@ class Winhead(fits.Header):
                     self.format(), xlo, xhi, ylo, yhi)
                 )
 
-        winhc = self.copy()
-        winhc.llx = llx
-        winhc.lly = lly
-        winhc.nx = nx
-        winhc.ny = ny
-
-        return winhc
+        if copy:
+            # headers are copied over as an independent object
+            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin, super().copy())
+        else:
+            # headers are copied by reference.
+            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin, self)
+        return wh
 
     def __copy__(self):
         return self.copy()
@@ -492,7 +504,7 @@ class _Decoder(json.JSONDecoder):
             return Winhead(
                 obj['llx'], obj['lly'], obj['nx'], obj['ny'],
                 obj['xbin'], obj['ybin'],
-                fits.Header.fromstring(obj['head'])
+                Header.fromstring(obj['head'])
             )
 
         return obj
@@ -540,6 +552,7 @@ class CcdWin(Group):
         with open(fname) as fp:
             obj = json.load(fp, cls=_Decoder)
         return CcdWin(obj[1:])
+
 
 class MccdWin(Group):
     """Class representing all the :class:`Winhead`s for multiple CCDs.
@@ -693,7 +706,7 @@ class Window(Winhead):
         place conversion which would lose precision.
 
         """
-        head = hdu.header
+        head = Header(hdu.header)
 
         # data converted to float32 unless already float64.
         # this prevents problems down the line with arithematic
@@ -713,19 +726,19 @@ class Window(Winhead):
 
         return cls(win, data)
 
-    def whdu(self, head=fits.Header(), xoff=0, yoff=0, extnam=None):
+    def whdu(self, head=None, xoff=0, yoff=0, extnam=None):
         """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU`
 
         Arguments::
 
-          head   : astropy.io.fits.Header
+          head : astropy.io.fits.Header
               Extra header items to add at the start of header in addition to
               those already contained in the :class:`Window`.
 
-          xoff   : int
+          xoff : int
               Offset in X-direction to use for mosaicing.
 
-          yoff   : int
+          yoff : int
               Offset in Y-direction to use for mosaicing.
 
           extnam : None | string
@@ -737,6 +750,8 @@ class Window(Winhead):
               The HDU containing the data and the header.
 
         """
+        if head is None:
+            head = Header()
 
         # Add self's header to the extras
         head.update(self)
@@ -749,52 +764,46 @@ class Window(Winhead):
 
         # Now a set of parameters to facilitate ds9 display
         # using the IRAF mosaic option
-        cards = []
-
-        cards.append(('CCDSUM','{:d} {:d}'.format(self.xbin,self.ybin)))
+        head['CCDSUM'] = '{:d} {:d}'.format(self.xbin,self.ybin)
 
         # sections
         nx,ny = self.nx, self.ny
-        cards.append(('CCDSEC','[1:{:d},1:{:d}]'.format(nx,ny)))
-        cards.append(('AMPSEC','[1:{:d},1:{:d}]'.format(nx,ny)))
-        cards.append(
-            ('DATASEC','[{:d}:{:d},{:d}:{:d}]'.format(
-                self.llx,self.urx,self.lly,self.ury))
-        )
-        cards.append(
-            ('DETSEC','[{:d}:{:d},{:d}:{:d}]'.format(
-                xoff+self.llx,xoff+self.urx,yoff+self.lly,yoff+self.ury))
-        )
+        head['CCDSEC'] = '[1:{:d},1:{:d}]'.format(nx,ny)
+        head['AMPSEC'] = '[1:{:d},1:{:d}]'.format(nx,ny)
+        head['DATASEC'] = '[{:d}:{:d},{:d}:{:d}]'.format(
+            self.llx,self.urx,self.lly,self.ury)
+        head['DETSEC'] = '[{:d}:{:d},{:d}:{:d}]'.format(
+            xoff+self.llx,xoff+self.urx,yoff+self.lly,yoff+self.ury)
 
         # transforms
 
         # amplifier coords
-        cards.append(('ATM1_1', 1.))
-        cards.append(('ATM2_2', 1.))
-        cards.append(('ATV1', 0.))
-        cards.append(('ATV2', 0.))
+        head['ATM1_1'] = 1.
+        head['ATM2_2'] = 1.
+        head['ATV1'] = 0.
+        head['ATV2'] = 0.
 
         # image coords
-        cards.append(('LTM1_1', 1./self.xbin))
-        cards.append(('LTM2_2', 1./self.ybin))
-        cards.append(('LTV1', 1-(self.llx+(self.xbin-1)/2)/self.xbin))
-        cards.append(('LTV2', 1-(self.lly+(self.ybin-1)/2)/self.ybin))
+        head['LTM1_1'] = 1./self.xbin
+        head['LTM2_2'] = 1./self.ybin
+        head['LTV1'] = 1-(self.llx+(self.xbin-1)/2)/self.xbin
+        head['LTV2'] = 1-(self.lly+(self.ybin-1)/2)/self.ybin
 
         # detector coords
-        cards.append(('DTM1_1', 1.))
-        cards.append(('DTM2_2', 1.))
-        cards.append(('DTV1', float(xoff)))
-        cards.append(('DTV2', float(yoff)))
+        head['DTM1_1'] = 1.
+        head['DTM2_2'] = 1.
+        head['DTV1'] = float(xoff)
+        head['DTV2'] = float(yoff)
 
-        cards.append(('WCSNAMEP', 'PHYSICAL'))
-        cards.append(('CTYPE1', 'PIXEL'))
-        cards.append(('CTYPE2', 'PIXEL'))
-        cards.append(('CRPIX1', 1.))
-        cards.append(('CRPIX2', 1.))
-        cards.append(('CRVAL1', float(xoff+self.llx)))
-        cards.append(('CRVAL2', float(yoff+self.lly)))
-        cards.append(('CD1_1', float(self.xbin)))
-        cards.append(('CD2_2', float(self.ybin)))
+        head['WCSNAMEP'] = 'PHYSICAL'
+        head['CTYPE1'] = 'PIXEL'
+        head['CTYPE2'] = 'PIXEL'
+        head['CRPIX1'] = 1.
+        head['CRPIX2'] = 1.
+        head['CRVAL1'] = float(xoff+self.llx)
+        head['CRVAL2'] = float(yoff+self.lly)
+        head['CD1_1'] = float(self.xbin)
+        head['CD2_2'] = float(self.ybin)
 
         # WCS mosaic
         #        cards.append(('WCSNAME', 'mosaic', 'HiPERCAM mosaic coordinates'))
@@ -810,12 +819,12 @@ class Window(Winhead):
         #        cards.append(('CD2_2', float(self.ybin), 'y/y scale'))
         #        cards.append(('CD1_2', 0., 'no rotation or shear'))
         #        cards.append(('CD2_1', 0., 'no rotation or shear'))
+
         if extnam:
-            cards.append(('EXTNAME', extnam, 'name of this image extension'))
-        head.update(cards)
+            head['EXTNAME'] = (extnam, 'name of this image extension')
 
         # Return the HDU
-        return fits.ImageHDU(self.data, head)
+        return fits.ImageHDU(self.data, head.to_fits)
 
     @property
     def size(self):
@@ -827,7 +836,10 @@ class Window(Winhead):
     @property
     def winhead(self):
         """A copy of the :class:`Winhead` underlying the :class:`Window` This is to
-        allow simpler reporting of problems with the format without the data as well"""
+        allow simpler reporting of problems with the format without the data
+        as well
+
+        """
         return super().copy()
 
     def set_const(self, val):
@@ -957,40 +969,46 @@ class Window(Winhead):
 
         copy.copy and copy.deepcopy of a `Window` use this method
         """
-        return Window(self.winhead.copy(), self.data.copy())
+        return Window(super().copy(), self.data.copy())
 
-    def window(self, xlo, xhi, ylo, yhi):
-        """Creates a new Window by windowing it down to whatever complete pixels are
-        visible in the region xlo to xhi, ylo to yhi.
+    def window(self, xlo, xhi, ylo, yhi, copy=False):
+        """Creates a new Window by windowing it down to whatever complete
+        pixels are visible in the region xlo to xhi, ylo to yhi.
 
         Arguments::
 
-           xlo : (float)
+           xlo : float
               minimum X, unbinned pixels (extreme left pixels of CCD centred on 1)
 
-           xhi : (float)
+           xhi : float
               maximum X, unbinned pixels
 
-           ylo : (float)
+           ylo : float
               minimum Y, unbinned pixels (bottom pixels of CCD centred on 1)
 
-           yhi : (float)
+           yhi : float
               maximum Y, unbinned pixels
+
+           copy : bool
+              controls whether the headers in the Windhead associated with this
+              are copied by value or reference. True=copy by value which can carry
+              significant overheads, but has the virtue of creating an independent
+              object.
 
         Returns the windowed Window.
 
         """
         # construct a chopped down Winhead
-        winh = self.winhead.window(xlo, xhi, ylo, yhi)
+        winh = super().window(xlo, xhi, ylo, yhi, copy)
 
         # we know the Winhead generated is in step with the current Winhead
         # which saves some checks that would be applied if 'crop' was used at
         # this point
-        x1 = (winh.llx-self.llx)//self.xbin
-        y1 = (winh.lly-self.lly)//self.ybin
         if self.data is None:
             return Window(winh)
         else:
+            x1 = (winh.llx-self.llx)//self.xbin
+            y1 = (winh.lly-self.lly)//self.ybin
             return Window(winh, self.data[y1:y1+winh.ny, x1:x1+winh.nx])
 
     def crop(self, win):
@@ -1033,7 +1051,7 @@ class Window(Winhead):
         else:
             raise ValueError(
                 'Cannot crop {!r} to {!r}'.format(
-                    self.winhead.format(),win.winhead.format())
+                    self.format(), win.format())
             )
 
     def float32(self):
@@ -1067,8 +1085,7 @@ class Window(Winhead):
             self.data = self.data.astype(np.uint16)
 
     def search(self, fwhm, x0, y0, thresh, fft, max=False, percent=50.):
-        """
-        Search for a target in a :class:Window. Works by convolving the image
+        """Search for a target in a :class:Window. Works by convolving the image
         with a gaussian of FWHM = fwhm, and returns the location of the
         maximum in the smoothed image which exceeds a level `thresh` and lies
         closest to the expected position. The convolution improves the
@@ -1082,8 +1099,8 @@ class Window(Winhead):
         Arguments::
 
           fwhm : float
-            Gaussian FWHM in pixels. If <= 0, there will be no convolution, although
-            this is not advisable as a useful strategy.
+            Gaussian FWHM in pixels. If <= 0, there will be no convolution,
+            although this is not advisable as a useful strategy.
 
           x0 : float
             x-position to judge position from (CCD-coordinates). The closest
@@ -1126,11 +1143,16 @@ class Window(Winhead):
         """
 
         if fwhm > 0:
-            kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
+            sigma = fwhm/np.sqrt(8*np.log(2))
+            fedge = self.data.min()
             if fft:
-                cimg = convolve_fft(self.data, kern, 'wrap')
+                kern = Gaussian2DKernel(sigma)
+                cimg = convolve_fft(self.data, kern, 'fill', fedge)
             else:
-                cimg = convolve(self.data, kern, 'extend')
+                cimg = gaussian_filter(
+                    self.data, sigma, mode='constant', cval=fedge
+                )
+
         else:
             cimg = self.data
 
@@ -1151,8 +1173,8 @@ class Window(Winhead):
                     )
 
         else:
-            # in this case we will search for the maximum > thresh and closest to x0,y0
-            # Find local maxima in smoothed image
+            # in this case we will search for the maximum > thresh and closest
+            # to x0,y0 Find local maxima in smoothed image
             dmax = maximum_filter(cimg, 3, mode='nearest')
             iys, ixs = np.nonzero((dmax == cimg) & (cimg > back+thresh))
 
@@ -1162,8 +1184,10 @@ class Window(Winhead):
                 # Locate the pixel of the global maximum
                 cmax = cimg.max()
                 raise HipercamError(
-                    'no peak higher than {:.1f} found; highest = {:.1f} (background = {:.1f})'.format(thresh, cmax, back)
-                    )
+                    ('no peak higher than {:.1f} found; highest'
+                     ' = {:.1f} (background = {:.1f})').format(
+                         thresh, cmax, back)
+                )
 
             ix0, iy0 = self.x_pixel(x0), self.y_pixel(y0)
             imin = ((ixs-ix0)**2 + (iys-iy0)**2).argmin()
@@ -1189,6 +1213,7 @@ class Window(Winhead):
         """Adds `other` to the :class:`Window` as 'wind += other'. `other` can be
         another :class:`Window`, or any object that can be added to a
         :class:`numpy.ndarray`.
+
         """
         if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
@@ -1205,6 +1230,7 @@ class Window(Winhead):
         """Subtracts `other` from the :class:`Window` as 'wind -= other`. `other` can
         be another Window, or any object that can be subtracted from a
         :class:`numpy.ndarray`.
+
         """
         if isinstance(other, Window):
             # test compatibility between the windows (raises an exception)
@@ -1255,7 +1281,7 @@ class Window(Winhead):
         """Adds `other` to a :class:`Window` as `wind + other`.  Here `other` can be a
         compatible :class:`Window` (identical window) or any object that can
         be added to a :class:`numpy.ndarray`, e.g. a float, another matching
-        array, etc. 
+        array, etc.
 
         """
         if isinstance(other, Window):
@@ -1268,7 +1294,7 @@ class Window(Winhead):
         # carry out addition to a float type
         data = self.data + num
 
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
 
     def __radd__(self, other):
@@ -1279,7 +1305,7 @@ class Window(Winhead):
 
         # carry out addition to a float type
         data = self.data + other
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __sub__(self, other):
         """Subtracts `other` from a :class:`Window` as `wind - other`.  Here `other`
@@ -1296,16 +1322,17 @@ class Window(Winhead):
 
         # carry out addition to a float type
         data = self.data - num
-        return Window(self.winhead, data)
+        return Window(super.copy(), data)
 
     def __rsub__(self, other):
         """Subtracts a :class:`Window` from `other` as `other - wind`.  Here `other`
-        is any object that can have a :class:`numpy.ndarray` subtracted from it, e.g. a
-        float, another matching array, etc.
+        is any object that can have a :class:`numpy.ndarray` subtracted from
+        it, e.g. a float, another matching array, etc.
+
         """
         # carry out subtraction to a float type
         data = other - self.data
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __mul__(self, other):
         """Multiplies a :class:`Window` by `other` as `wind * other`.  Here `other`
@@ -1323,7 +1350,7 @@ class Window(Winhead):
 
         # carry out multiplication to a float type
         data = self.data*num
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __rmul__(self, other):
         """Multiplies a :class:`Window` by `other` as `other * wind`.  Here `other` is
@@ -1333,7 +1360,7 @@ class Window(Winhead):
         """
         # carry out multiplication to a float type
         data = self.data*other
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __truediv__(self, other):
         """Divides a :class:`Window` by `other` as `wind / other`.  Here `other`
@@ -1352,7 +1379,7 @@ class Window(Winhead):
 
         # carry out division
         data = self.data / num
-        return Window(self.winhead, data)
+        return Window(super().copy(), data)
 
     def __rtruediv__(self, other):
         """Divides `other` by a :class:`Window` as `other / wind`.  Here `other` is
@@ -1361,6 +1388,5 @@ class Window(Winhead):
         """
         # carry out division
         data = other / self.data
-        return Window(self.winhead, data)
-
+        return Window(super().copy(), data)
 

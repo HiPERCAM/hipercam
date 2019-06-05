@@ -24,7 +24,8 @@ from astropy.time import Time, TimeDelta
 # temporary
 import matplotlib.pyplot as plt
 
-from hipercam import (CCD, Group, MCCD, Window, Winhead, HRAW, HipercamError)
+from hipercam import (CCD, Group, MCCD, Window, Winhead, HRAW, HipercamError, Header,
+                      gregorian_to_mjd, mjd_to_gregorian, fday_to_hms)
 from hipercam.utils import add_extension
 
 __all__ = [
@@ -78,6 +79,8 @@ REFLECTED = (1, 4)
 QNAMS = ('E', 'F', 'G', 'H')
 QNAMS_REFLECT = {'E': 'F', 'F': 'E', 'G': 'H', 'H': 'G'}
 QNAMS_ROTATED = {'E': 'G', 'F': 'H', 'G': 'E', 'H': 'F'}
+
+ESSENTIAL = ('MODE')
 
 class Rhead:
     """Reads an interprets header information from a HiPERCAM run (3D FITS file)
@@ -186,6 +189,7 @@ class Rhead:
         # store the file name and whether server being used
         self.fname = fname
         self.server = server
+        self.full = full
 
         if server:
             # open socket connection to server
@@ -197,7 +201,9 @@ class Rhead:
             # read the header from the server
             data = json.dumps(dict(action='get_hdr'))
             self._ws.send(data)
-            hd = self.header = fits.Header.fromstring(self._ws.recv())
+            hd = self.header = Header(
+                fits.Header.fromstring(self._ws.recv())
+            )
 
             nsamps = self.header.get('ESO DET NSAMP', 1)
             self._framesize = 18 + (
@@ -208,7 +214,9 @@ class Rhead:
             self._ffile = open(add_extension(fname, HRAW),'rb')
 
             # read the header
-            hd = self.header = fits.Header.fromfile(self._ffile)
+            hd = self.header = Header(
+                fits.Header.fromfile(self._ffile)
+            )
 
             # store number of bytes read from header. used to offset later
             # requests for data
@@ -224,12 +232,13 @@ class Rhead:
         self._bzero = hd['BZERO']
 
         # create the top-level header
-        self.thead = fits.Header()
+        self.thead = Header()
 
         # set the mode, one or two windows per quadrant, drift etc.  This is
         # essential.
         self.mode = hd['ESO DET READ CURNAME']
-        self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
+        if self.full:
+            self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
         self.drift = self.mode.startswith('Drift')
         if self.drift:
             self.ndwins = hd.get('ESO DET DRIFT NWINS',0)
@@ -251,7 +260,7 @@ class Rhead:
             hd['ESO DET NSKIPS3'],
             hd['ESO DET NSKIPS4'],
             hd['ESO DET NSKIPS5']
-            )
+        )
 
         # set timing parameters toff1, toff2, toff3, toff4, tdelta, tdead
         # which are also needed for exact timing. Meanings:
@@ -527,75 +536,48 @@ class Rhead:
         self.ntbytes = self._framesize - (bitpix*npixels) // 8
 
         # Build (more) header info
-        if 'DATE' in hd:
-            self.thead['DATE'] = (
-                hd['DATE'], hd.comments['DATE']
-            )
+        if self.full:
+            if 'DATE' in hd:
+                self.thead['DATE'] = hd.get_full('DATE')
 
-        if 'OBJECT' in hd:
-            self.thead['OBJECT'] = (
-                hd['OBJECT'], hd.comments['OBJECT']
-            )
+            if 'OBJECT' in hd:
+                self.thead['OBJECT'] = hd.get_full('OBJECT')
 
-        if 'FILTERS' in hd:
-            self.thead['FILTERS'] = (
-                hd['FILTERS'], hd.comments['FILTERS']
-            )
+            if 'FILTERS' in hd:
+                self.thead['FILTERS'] = hd.get_full('FILTERS')
 
-        if 'PI' in hd:
-            self.thead['PI'] = (
-                hd['PI'], hd.comments['PI']
-            )
+            if 'PI' in hd:
+                self.thead['PI'] = hd.get_full('PI')
 
-        if 'OBSERVER' in hd:
-            self.thead['OBSERVER'] = (
-                hd['OBSERVER'], hd.comments['OBSERVER']
-            )
+            if 'OBSERVER' in hd:
+                self.thead['OBSERVER'] = hd.get_full('OBSERVER')
 
-        if 'RA' in hd:
-            self.thead['RA'] = (
-                hd['RA'], hd.comments['RA']
-            )
+            if 'RA' in hd:
+                self.thead['RA'] = hd.get_full('RA')
 
-        if 'DEC' in hd:
-            self.thead['DEC'] = (
-                hd['DEC'], hd.comments['DEC']
-            )
+            if 'DEC' in hd:
+                self.thead['DEC'] = hd.get_full('DEC')
 
-        if 'INSTRPA' in hd:
-            self.thead['INSTRPA'] = (
-                hd['INSTRPA'], hd.comments['INSTRPA']
-            )
+            if 'INSTRPA' in hd:
+                self.thead['INSTRPA'] = hd.get_full('INSTRPA')
 
-        if 'IMAGETYP' in hd:
-            self.thead['IMAGETYP'] = (
-                hd['IMAGETYP'], hd.comments['IMAGETYP']
-            )
+            if 'IMAGETYP' in hd:
+                self.thead['IMAGETYP'] = hd.get_full('IMAGETYP')
 
-        if full and 'ESO DET GPS' in hd:
-            self.thead['GPS'] = (
-                hd['ESO DET GPS'], hd.comments['ESO DET GPS']
-            )
+            if 'ESO DET GPS' in hd:
+                self.thead['GPS'] = hd.get_full('ESO DET GPS')
 
-        if full:
-            if 'EXPTIME' in hd:
-                self.thead['EXPTIME'] = (
-                    hd['EXPTIME'], hd.comments['EXPTIME']
-                )
-            self.thead['XBIN'] = (
-                self.xbin, hd.comments['ESO DET BINX1']
-            )
-            self.thead['YBIN'] = (
-                self.ybin, hd.comments['ESO DET BINY1']
-            )
-            self.thead['SPEED'] = (
-                hd['ESO DET SPEED'], hd.comments['ESO DET SPEED']
-            )
+            self.thead['XBIN'] = hd.get_full('ESO DET BINX1')
+            self.thead['YBIN'] = hd.get_full('ESO DET BINY1')
+            self.thead['SPEED'] = hd.get_full('ESO DET SPEED')
+
+        if 'EXPTIME' in hd:
+            self.thead['EXPTIME'] = hd.get_full('EXPTIME')
 
         # Header per CCD. These are modified per CCD in Rdata
         self.cheads = []
         for n in range(5):
-            chead = fits.Header()
+            chead = Header()
 
             # Essential items
             hnam = 'ESO DET NSKIPS{:d}'.format(n+1)
@@ -604,7 +586,7 @@ class Rhead:
             )
 
             # Nice-if-you-can-get-them items
-            if full:
+            if self.full:
 
                 # whether this CCD has gone through a reflection
                 hnam = 'ESO DET REFLECT{:d}'.format(n+1)
@@ -614,14 +596,12 @@ class Rhead:
                 # readout noise
                 hnam = 'ESO DET CHIP{:d} RON'.format(n+1)
                 if hnam in hd:
-                    chead['RONOISE'] = (self.header[hnam],
-                                        self.header.comments[hnam])
+                    chead['RONOISE'] = self.header.get_full(hnam)
 
                 # gain
                 hnam = 'ESO DET CHIP{:d} GAIN'.format(n+1)
                 if hnam in self.header:
-                    chead['GAIN'] = (self.header[hnam],
-                                     self.header.comments[hnam])
+                    chead['GAIN'] = self.header.get_full(hnam)
 
             self.cheads.append(chead)
 
@@ -726,7 +706,6 @@ class Rhead:
     def __exit__(self, *args):
         self.__del__()
 
-
 class Rdata (Rhead):
     """Callable, iterable object to represent HiPERCAM raw data files.
 
@@ -752,7 +731,7 @@ class Rdata (Rhead):
 
     """
 
-    def __init__(self, fname, nframe=1, server=False):
+    def __init__(self, fname, nframe=1, server=False, full=True):
         """Connects to a raw HiPERCAM FITS file for reading. The file is kept
         open.  The Rdata object can then generate MCCD objects through being
         called as a function or iterator.
@@ -777,10 +756,15 @@ class Rdata (Rhead):
               set, "ws://localhost:8007/".  The server here is Stu Littlefair's
               Python-based server that defaults to port 8007.
 
+           full : bool
+              Controls the amount of header info returned with the data. True
+              for as much detail as possible; False for minimal headers which
+              require less resources downstream.
+
         """
 
         # read the header
-        Rhead.__init__(self, fname, server)
+        Rhead.__init__(self, fname, server, full)
 
         # flag to indicate should always try to get the last frame
         self.last = (nframe == 0)
@@ -988,22 +972,32 @@ class Rdata (Rhead):
             years, day_of_year, hours, mins, seconds+nanoseconds/1e9
         )
         try:
-            tstamp = Time(time_string, format='yday', precision=9)
+            imjd = gregorian_to_mjd(years, 1, 1) + day_of_year - 1
+            fday = (hours+mins/60+(seconds+nanoseconds/1e9)/3600)/24
         except ValueError:
             warnings.warn('Bad timestamp: ' + time_string)
-            tstamp = Time(51544 + self.nframe/DAYSEC, format='mjd', precision=7)
+            imjd = 51544
+            fday = self.nframe/DAYSEC
+
             # this will mark it as unreliable down below
             synced = 0
 
         # copy over the top-level header to avoid it becoming a reference
         # common to all MCCDs produced by the routine
         thead = self.thead.copy()
-        thead['TIMSTAMP'] = (tstamp.isot, 'Raw frame timestamp, UTC')
-        thead['MJDUTC'] = (tstamp.mjd, 'MJD(UTC) equivalent')
+
+        year,month,day = mjd_to_gregorian(imjd)
+        hour,minute,second = fday_to_hms(fday)
+        thead['TIMSTAMP'] = (
+            '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Raw frame timestamp, UTC'
+        )
+        thead['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
+        thead['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
+        thead['MJDUTC'] = (imjd+fday, 'MJD(UTC)')
         if (nsats == -1 and synced == -1) or synced == 0:
-            thead['GOODTIME'] = (False, 'Is TIMSTAMP thought to be OK?')
+            thead['GOODTIME'] = (False, 'TIMSTAMP OK?')
         else:
-            thead['GOODTIME'] = (True, 'Is TIMSTAMP thought to be OK?')
+            thead['GOODTIME'] = (True, 'TIMSTAMP OK?')
         thead['NFRAME'] = (frameCount, 'Frame number')
 
         # second, the data bytes
@@ -1028,23 +1022,32 @@ class Rdata (Rhead):
                 'Valid data (else junk frame)'
             )
 
-            # Get time at centre of exposure. Some care here to store a super-precise
-            # version of the time as a string along with the MJD -- the latter suffers
-            # round-off at the 0.5 microsecond level in double precision. The precise
-            # one allows better downstream precision by offsetting ('toffset' in reduce).
+            # Get time at centre of exposure. Some care here to store a
+            # super-precise version of the time as a string along with the MJD
+            # -- the latter suffers round-off at the 0.5 microsecond level in
+            # double precision. The precise one allows better downstream
+            # precision by offsetting ('toffset' in reduce).
             tmid, texp, flag = self.timing(frameCount, nccd)
-            tdelta = TimeDelta(tmid,format='jd')
-            midtime = tstamp + tdelta
-            ch['MIDTIME'] = (midtime.isot, 'Precise mid-exposure UTC string')
-            ch['MJDUTC'] = (midtime.mjd, 'MJD(UTC) at centre of exposure')
-            ch['GOODTIME'] = (flag and thead['GOODTIME'], 'Is MJDUTC reliable?')
+            fdaymid = fday + tmid
+            if fdaymid >= 1.:
+                fdaymid -= 1
+                imjdmid = imjd + 1
+            else:
+                imjdmid = imjd
+
+            ch['MJDINT'] = (imjdmid, 'Integer part of MJD(UTC), mid-exposure')
+            ch['MJDFRAC'] = (fdaymid, 'Fractional part of MJD(UTC), mid-exposure')
+            ch['MJDUTC'] = (imjdmid+fdaymid, 'MJD(UTC) mid-exposure')
+            ch['GOODTIME'] = (flag and thead['GOODTIME'], 'MJDs OK?')
             ch['EXPTIME'] = (texp, 'Exposure time (secs)')
 
             # store for later recovery when creating the Windows
             cheads[cnam] = ch
 
             # Create the CCDs
-            ccds[cnam] = CCD(Group(Window), HCM_NXTOT, HCM_NYTOT)
+            ccds[cnam] = CCD(
+                Group(Window), HCM_NXTOT, HCM_NYTOT
+            )
 
         # npixel points to the start pixel of the set of windows under
         # consideration
@@ -1105,20 +1108,20 @@ class Rdata (Rhead):
                     if self.pscan:
                         # pre-scan present. Reduce the size of the data window
                         # in preparation for removal of prescan data.
-                        wind = Winhead(
+                        winh = Winhead(
                             win.llx, win.lly, win.nx-self.npscan, win.ny,
                             win.xbin, win.ybin, win
                         )
 
                         if nwin == 0 and nquad == 0:
                             # store CCD header in the first Winhead
-                            wind.update(cheads[cnam])
+                            winh.update(cheads[cnam])
 
                         # Generate name for the prescan Window
                         wpnam = '{:s}P'.format(wnam)
 
-                        # work out lly-value of bottom of pre-scan windows which
-                        # needs adjusting if the overscan is also on
+                        # work out lly-value of bottom of pre-scan windows
+                        # which needs adjusting if the overscan is also on
                         if self.oscan and (qnam == 'E' or qnam == 'F'):
                             plly = 1-HCM_NOSCAN
                         else:
@@ -1129,7 +1132,7 @@ class Rdata (Rhead):
                             # (outputs are on the left). Create the Window
                             # with the image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                wind, windata[:,self.npscan:].astype(
+                                winh, windata[:,self.npscan:].astype(
                                     np.float32)
                             )
 
@@ -1149,7 +1152,7 @@ class Rdata (Rhead):
                             # Prescan on the right. Create the Window with the
                             # image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                wind, windata[:,:-self.npscan].astype(
+                                winh, windata[:,:-self.npscan].astype(
                                     np.float32)
                             )
 
@@ -1193,8 +1196,8 @@ class Rdata (Rhead):
                                 win.xbin, win.ybin, win
                             )
 
-                            # Create the Window with the over-scan from top part
-                            # of data frame
+                            # Create the Window with the over-scan from top
+                            # part of data frame
                             ccds[cnam][wonam] = Window(
                                 wino, win.data[-self.noscan:,:]
                             )
@@ -1266,6 +1269,7 @@ class Rdata (Rhead):
             self.seek_frame(ntot)
 
         return ntot
+
 
 class Rtime (Rhead):
     """Callable, iterable object to generate timing data only from HiPERCAM raw data files.
@@ -1454,9 +1458,11 @@ def decode_timing_bytes(tbytes):
 
     # format with 36 timing bytes (last two of which are ignored).
     # The -36 is to try to cope with cases where more than 36 bytes come through.
-    buf = struct.pack('<HHHHHHHHHHHHHHHHH',
-                     *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
-                                                             tbytes[-36:-2])))
+    buf = struct.pack(
+        '<HHHHHHHHHHHHHHHHH',
+        *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
+                                               tbytes[-36:-2]))
+    )
     return struct.unpack('<IIIIIIIIbb', buf)
 
 class HendError(HipercamError):

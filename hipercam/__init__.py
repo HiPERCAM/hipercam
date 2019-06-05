@@ -54,6 +54,7 @@ from .window import *
 from .ccd import *
 from .aperture import *
 from .target import *
+from .header import *
 from . import spooler
 from . import cline
 from . import mpl
@@ -68,4 +69,4 @@ from . import defect
 from . import scripts
 
 __all__ = core.__all__ + group.__all__ + window.__all__ + ccd.__all__ + \
-    aperture.__all__ + target.__all__
+    aperture.__all__ + target.__all__ + header.__all__

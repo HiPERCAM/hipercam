@@ -8,17 +8,17 @@ cimport cython
 
 from libc.math cimport sqrt
 
-ITYPE = np.float32
-ctypedef np.float32_t ITYPE_t
+FTYPE = np.float32
+ctypedef np.float32_t FTYPE_t
 
-OTYPE = np.float32
-ctypedef np.float32_t OTYPE_t
+DTYPE = np.float64
+ctypedef np.float64_t DTYPE_t
 
 # Next two decorators reduce time from 108ms to 75ms
 # in the test I carried out.
 @cython.cdivision(True)
 @cython.boundscheck(False)
-def avgstd(np.ndarray[ITYPE_t, ndim=3] cube, float sigma):
+def avgstd(np.ndarray[FTYPE_t, ndim=3] cube, float sigma):
     """
     Given a 3D cube of dimensions (nf,ny,nx) which can be thought of as 'nf'
     frames each of dimension (ny,nx), avgstd computes the mean, standard
@@ -50,19 +50,19 @@ def avgstd(np.ndarray[ITYPE_t, ndim=3] cube, float sigma):
     cdef unsigned int ix, iy, iz
 
     # Sanity checks
-    assert (cube.dtype == ITYPE) and (sigma > 1.)
+    assert (cube.dtype == FTYPE) and (sigma > 1.)
 
     # Output arrays: average, standard deviation and numbers of frames
-    cdef np.ndarray[OTYPE_t, ndim=2] avg = np.empty((ny,nx), dtype=OTYPE)
-    cdef np.ndarray[OTYPE_t, ndim=2] std = np.empty((ny,nx), dtype=OTYPE)
+    cdef np.ndarray[FTYPE_t, ndim=2] avg = np.empty((ny,nx), dtype=FTYPE)
+    cdef np.ndarray[FTYPE_t, ndim=2] std = np.empty((ny,nx), dtype=FTYPE)
     cdef np.ndarray[int, ndim=2] nfm = np.empty((ny,nx), dtype=np.int32)
 
     # Temporary arrays for storing values and rejection flags
-    cdef np.ndarray[ITYPE_t, ndim=1] vals = np.empty((nf,), dtype=ITYPE)
+    cdef np.ndarray[FTYPE_t, ndim=1] vals = np.empty((nf,), dtype=FTYPE)
     cdef np.ndarray[int, ndim=1] ok = np.empty((nf,), dtype=np.int32)
 
     # Other temporaries
-    cdef OTYPE_t tavg, tstd, thresh
+    cdef FTYPE_t tavg, tstd, thresh
     cdef unsigned int num, numt
     cdef double sum
 
@@ -129,3 +129,95 @@ def avgstd(np.ndarray[ITYPE_t, ndim=3] cube, float sigma):
     # return the frames
     return (avg,std,nfm)
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+def gaussian(
+        np.ndarray[DTYPE_t, ndim=2] x, np.ndarray[DTYPE_t, ndim=2] y,
+        double sky, double height, double xcen, double ycen, double fwhm,
+        int xbin, int ybin, int ndiv):
+    """Returns a numpy array corresponding to the ordinate grids in xy set to a
+    symmetric 2D Gaussian plus a constant. The profile is essentially defined
+    by sky + height*exp(-alpha*r**2) where r is the distance from the centre
+    and alpha is set to give the desired FWHM, but account is taken of the
+    finite size of the pixels by summing over multiple points in each one.
+
+    Arguments::
+
+      x  : 2D numpy array
+         the X ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
+
+      y  : 2D numpy array
+         the Y ordinates over which you want to compute the
+         profile. They should be measured in term of unbinned pixels.
+
+      sky : float
+         sky background
+
+      height : float
+         height of central peak
+
+      xcen : float
+         X-ordinate of centre
+
+      ycen : float
+         Y-ordinate of centre
+
+      fwhm : float
+         FWHM of the profile (unbinned pixels)
+
+      xbin : int
+         X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
+
+      ybin : int
+         Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
+
+      ndiv : int
+         Parameter controlling treatment of sub-pixellation. If > 0, every
+         pixel will be sub-divided first into unbinned pixels, and then each
+         unbinned pixels will be split into a square array of ndiv by ndiv
+         points. The profile will be evaluated and averaged over each of these
+         points. Thus if the pixels are binned xbin by ybin, there will be
+         xbin*ybin*ndiv**2 evaluations per pixel. This is to cope with the
+         case where the seeing is becoming small compared to the pixels, but
+         obviously will slow things. To simply evaluate the profile once at
+         the centre of each pixel, set ndiv = 0.
+
+    Returns:: 2D numpy array containing the Gaussian plus constant evaluated
+    on the ordinate grids in xy.
+
+    """
+
+    # Dimensions and indices
+    cdef unsigned int ny = x.shape[0]
+    cdef unsigned int nx = x.shape[1]
+    cdef double alpha = 4.*np.log(2.)/fwhm**2
+    cdef np.ndarray[DTYPE_t, ndim=2] rsq = np.empty((ny,nx), dtype=DTYPE)
+    cdef np.ndarray[DTYPE_t, ndim=2] prof = np.zeros((ny,nx), dtype=DTYPE)
+    cdef unsigned int ix, iy, isx, isy
+    cdef double xoff, yoff, xsoff, ysoff, soff
+
+    if ndiv > 0:
+        # Complicated case with sub-pixellation allowed for
+        soff = (ndiv-1)/(2*ndiv)
+        for iy in range(ybin):
+            # loop over unbinned pixels in Y
+            yoff = iy-(ybin-1)/2 - soff
+            for ix in range(xbin):
+                # loop over unbinned pixels in X
+                xoff = ix-(xbin-1)/2 - soff
+                for isy in range(ndiv):
+                    # loop over sub-pixels in y
+                    ysoff = yoff + isy/ndiv
+                    for isx in range(ndiv):
+                        # loop over sub-pixels in x
+                        xsoff = xoff + isx/ndiv
+                        rsq = (x+xsoff-xcen)**2+(y+ysoff-ycen)**2
+                        prof += np.exp(-alpha*rsq)
+
+        return sky+(height/xbin/ybin/ndiv**2)*prof
+
+    else:
+        # Fast as possible, compute profile at pixel centres only
+        rsq = (x-xcen)**2+(y-ycen)**2
+        return sky+height*np.exp(-alpha*rsq)

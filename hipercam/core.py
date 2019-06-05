@@ -13,7 +13,8 @@ __all__ = (
     'NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
     'TARGET_NONLINEAR', 'TARGET_SATURATED', 'ANY',
     'REDUCE_FILE_VERSION', 'NO_EXTRACTION', 'NO_DATA',
-    'DFCT', 'version', 'CLOUDS', 'JUNK'
+    'DFCT', 'version', 'CLOUDS', 'JUNK',
+    'gregorian_to_mjd', 'mjd_to_gregorian', 'fday_to_hms'
 )
 
 # Constants for general use
@@ -21,7 +22,7 @@ __all__ = (
 # Version of the reduce file in operation (used by 'reduce' and 'genred')
 # Format: YYYYMMDD(.#) where the optional .# part is an integer to allow for
 # multiple versions in a day, although that should be rare I hope.
-REDUCE_FILE_VERSION = '20181101'
+REDUCE_FILE_VERSION = '20181107'
 
 # Standard file extensions
 FIELD = '.fld'
@@ -97,6 +98,87 @@ def version():
     """Returns version number of installed |hiper| pipeline"""
     import pkg_resources
     return pkg_resources.require("hipercam")[0].version
+
+def gregorian_to_mjd(year, month, day):
+    """
+    This returns the Modified Julian Day number corresponding to
+    the start of the Gregorian date supplied. Algorithm taken from
+    Duffet-Smith. Tested against astropy.time.Time. Designed to be
+    simple and I hope fast. 
+
+    Arguments::
+
+      year : int
+        Valid range: 1582 onwards
+
+      month : int
+        Month of year, 1 to 12 inclusive.
+
+      day : int
+        day of month (1 to 31; will not check month by month)
+    """
+
+    if year < 1582 or month < 1 or month > 12 or day < 1 or day > 31:
+        raise ValueError(
+            'Supplied date ({:d}-{:d}-{:d}) is not valid'.format(year,month,day)
+        )
+
+    if month < 3:
+        month += 12
+        year -= 1
+    A = year // 100
+    B = 2 - A + A // 4
+    C = int(365.25*year)
+    D = int(30.6001*(month+1))
+
+    return B + C + D - 679006 + day
+
+def mjd_to_gregorian(mjd):
+    """
+    This returns the (year,month,day) corresponding to the supplied
+    MJD. From Duffet-Smith. Checked against gregorian_to_mjd
+
+    Arguments::
+
+      mjd : int
+        Modified Julian Day number, an integer
+
+    Returns (year,month,day)
+
+    """
+
+    jd = mjd + 2400001
+    if jd > 2299160:
+        A = int((jd-1867216.25) / 36524.25)
+    else:
+        A = jd
+    B = jd + 1 + A - A//4
+    C = B + 1524
+    D = int((C-122.1)/365.25)
+    E = int(365.25*D)
+    G = int((C-E)/30.6001)
+    day = C-E-int(30.6001*G)
+    if G < 13.5:
+        month = G-1
+    else:
+        month = G-13
+    if month > 2.5:
+        year = D-4716
+    else:
+        year = D-4715
+    return (year,month,day)
+
+def fday_to_hms(fday):
+    """Returns a tuple of (hours, minutes, seconds) given a fraction of a
+    day.  The hours and minutes are integers, the seconds are floating
+    point.
+
+    fday should lie in the interval [0,1)
+    """
+    hours = int(24*fday)
+    minutes = int(60*(24*fday-hours))
+    seconds = 86400*fday-3600*hours-60*minutes
+    return (hours,minutes,seconds)
 
 class HipercamError (Exception):
     """

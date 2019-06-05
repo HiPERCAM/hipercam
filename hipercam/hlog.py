@@ -98,8 +98,9 @@ class Hlog(dict):
                         hlog.apnames[cnam].sort()
 
                 elif read_dtypes:
-                    # reading the data types. We build anump.dtype objects and strings
-                    # for packing the data with struct.pack to save memory.
+                    # reading the data types. We build numpy.dtype objects and
+                    # strings for packing the data with struct.pack to save
+                    # memory.
                     if line.find('End of data type definitions') > -1:
                         read_dtypes = False
                         # can now create the record array dtype
@@ -111,7 +112,9 @@ class Hlog(dict):
                             # equivalent struct. Use native byte order with no alignment
                             # (initial '=') to match numpy packing.
                             struct_types[cnam] = '=' + \
-                                ''.join([NUMPY_TO_STRUCT[dt] for dt in dtype_defs[cnam]])
+                                ''.join(
+                                    [NUMPY_TO_STRUCT[dt]
+                                     for dt in dtype_defs[cnam]])
 
                         read_data = True
 
