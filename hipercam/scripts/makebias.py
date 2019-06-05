@@ -143,7 +143,10 @@ def makebias(args=None):
     if first == 1:
         # test readout mode if the first == 1 as, with non clear modes, the
         # first file is different from all others. A warning is issued.
-        mccd = hcam.MCCD.read(flist[0])
+        with open(flist) as f:
+            first_frame = f.readline().strip()
+
+        mccd = hcam.MCCD.read(first_frame)
         instrument = mccd.head.get('INSTRUME','UNKNOWN')
         if instrument == 'ULTRACAM' or instrument == 'HIPERCAM' or \
            instrument == 'ULTRASPEC':
