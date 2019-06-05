@@ -153,7 +153,10 @@ def makedark(args=None):
     if first == 1:
         # test readout mode if the first == 1 as, with non clear modes, the
         # first file is different from all others. A warning is issued.
-        mccd = hcam.MCCD.read(flist[0])
+        with open(flist) as f:
+            first_frame = f.readline().strip()
+
+        mccd = hcam.MCCD.read(first_frame)
         instrument = mccd.head.get('INSTRUME','UNKNOWN')
         if instrument == 'ULTRACAM' or instrument == 'HIPERCAM' or \
            instrument == 'ULTRASPEC':
@@ -190,8 +193,8 @@ has been determined with respect to clears."""
         os.remove(flist)
         print('temporary files have been deleted')
 
-        # correct exposure time of dark frame by the exposure time of the bias
-        # frame used
+        # correct exposure time of dark frame by the exposure time of
+        # the bias frame used
         dark = hcam.MCCD.read(output)
         bias = hcam.MCCD.read(bias)
         if 'EXPTIME' in dark.head and 'EXPTIME' in bias.head:
