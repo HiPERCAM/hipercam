@@ -14,9 +14,9 @@ import requests
 import datetime
 
 from astropy.io import fits
-from astropy.time import Time
 
-from hipercam import (CCD, Group, MCCD, Window, Winhead)
+from hipercam import (CCD, Group, MCCD, Window, Winhead,
+                      gregorian_to_mjd, mjd_to_gregorian, fday_to_hms)
 
 __all__ = ['Rhead', 'Rdata', 'Rtime']
 
@@ -550,9 +550,9 @@ class Utime:
           if good == False, this is the reason.
     """
     def __init__(self, mjd, expose, good, reason):
-        self.mjd    = mjd
+        self.mjd = mjd
         self.expose = expose
-        self.good   = good
+        self.good = good
         self.reason = reason
 
     def __repr__(self):
@@ -1052,9 +1052,16 @@ class Rdata (Rhead):
             # Build the CCDs
             rhead = fits.Header()
             rhead['CCDNAME'] = 'Red CCD'
-            tstamp = Time(time.mjd, format='mjd')
-            rhead['TIMSTAMP'] = (tstamp.isot, 'Time at mid exposure, UTC')
-            rhead['MJDUTC'] = (time.mjd, 'MJD(UTC) at centre of exposure')
+            imjd = int(time.mjd)
+            fday = time.mjd-imjd
+            year,month,day = mjd_to_gregorian(imjd)
+            hour,minute,second = fday_to_hms(fday)
+            rhead['TIMSTAMP'] = (
+                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Raw frame timestamp, UTC'
+            )
+            rhead['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
+            rhead['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
+            rhead['MJDUTC'] = (imjd+fday, 'MJD(UTC) at centre of exposure')
             rhead['EXPTIME'] = (time.expose, 'Exposure time (sec)')
             rhead['GOODTIME'] = (time.good,'flag indicating reliability of time')
             rhead['MJDOKWHY'] = time.reason
@@ -1073,21 +1080,27 @@ class Rdata (Rhead):
             ccd2 = CCD(wins2, self.nxmax, self.nymax)
 
             # transfer red/green time info to the general header
-            self['TIMSTAMP'] = (tstamp.isot,
-                                'Red/Green time at mid exposure, UTC')
-            self['MJDUTC'] = (time.mjd,
-                              'Red/Green time at mid exposure, UTC')
+            self['TIMSTAMP'] = (rhead['TIMSTAMP'], 'Red/Green time at mid exposure, UTC')
+            self['MJDUTC'] = (time.mjd, 'Red/Green time at mid exposure, UTC')
             self['GOODTIME'] = (time.good,'flag indicating reliability of time')
             self['EXPTIME'] = (time.expose, 'Exposure time (sec)')
 
             # blue
             bhead = rhead.copy()
             bhead['CCDNAME'] = 'Blue CCD'
-            tstamp = Time(blueTime.mjd, format='mjd')
-            bhead['TIMSTAMP'] = (tstamp.isot, 'Time at mid exposure, UTC')
-            bhead['MJDUTC'] = (blueTime.mjd, 'MJD(UTC) at centre of exposure')
+
+            imjd = int(blueTime.mjd)
+            fday = blueTime.mjd-imjd
+            year,month,day = mjd_to_gregorian(imjd)
+            hour,minute,second = fday_to_hms(fday)
+            bhead['TIMSTAMP'] = (
+                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Time at mid-exposure, UTC'
+            )
+            bhead['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
+            bhead['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
+            bhead['MJDUTC'] = (imjd+fday, 'MJD(UTC) at centre of exposure')
             bhead['EXPTIME'] = (blueTime.expose, 'Exposure time (sec)')
-            bhead['GOODTIME'] = (blueTime.good,'Is MJDUTC reliable?')
+            bhead['GOODTIME'] = (blueTime.good,'flag indicating reliability of time')
             bhead['MJDOKWHY'] = blueTime.reason
             bhead['DSTATUS'] = (not badBlue,'blue data status flag')
 
@@ -1178,9 +1191,16 @@ class Rdata (Rhead):
             head = fits.Header()
             head['CCDNAME'] = 'ULTRASPEC'
             # timing data
-            tstamp = Time(time.mjd, format='mjd')
-            head['TIMSTAMP'] = (tstamp.isot, 'Time at mid exposure, UTC')
-            head['MJDUTC'] = (time.mjd, 'MJD(UTC) at centre of exposure')
+            imjd = int(time.mjd)
+            fday = time.mjd-imjd
+            year,month,day = mjd_to_gregorian(imjd)
+            hour,minute,second = fday_to_hms(fday)
+            head['TIMSTAMP'] = (
+                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Time at mid-exposure, UTC'
+            )
+            head['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
+            head['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
+            head['MJDUTC'] = (imjd+fday, 'MJD(UTC) at centre of exposure')
             head['EXPTIME'] = (time.expose, 'Exposure time (sec)')
             head['GOODTIME'] = (time.good,'flag indicating reliability of time')
             head['MJDOKWHY'] = time.reason
@@ -1344,7 +1364,7 @@ class Rtime (Rhead):
         return tinfo
 
 def utimer(tbytes, rhead, fnum):
-    """Computes the Time corresponding of the most recently read frame,
+    """Computes the MJD corresponding of the most recently read frame,
     None if no frame has been read. For the Time to be reliable
     (Time.good == True), several frames might have needed to
     be read and their times passed through tstamp.
@@ -1621,9 +1641,9 @@ def utimer(tbytes, rhead, fnum):
         ntmin = 2
 
         if defTstamp:
-            mjdCentre  = utimer.tstamp[0]
+            mjdCentre = utimer.tstamp[0]
             mjdCentre += rhead.exposeTime/DSEC/2.
-            exposure   = rhead.exposeTime
+            exposure = rhead.exposeTime
 
         else:
 
@@ -1767,8 +1787,8 @@ def utimer(tbytes, rhead, fnum):
 
         else:
             if frameNumber == 1:
-                mjdCentre  = utimer.tstamp[0]
-                exposure   = rhead.exposeTime
+                mjdCentre = utimer.tstamp[0]
+                exposure = rhead.exposeTime
                 mjdCentre -= (frameTransfer+readoutTime+exposure/2.)/DSEC
 
                 if goodTime:
@@ -1778,26 +1798,26 @@ def utimer(tbytes, rhead, fnum):
             else:
 
                 if len(utimer.tstamp) > 2:
-                    texp       = DSEC*(utimer.tstamp[1] - utimer.tstamp[2]) - frameTransfer
-                    mjdCentre  = utimer.tstamp[1]
+                    texp = DSEC*(utimer.tstamp[1] - utimer.tstamp[2]) - frameTransfer
+                    mjdCentre = utimer.tstamp[1]
                     mjdCentre += (rhead.exposeTime - texp/2.)/DSEC
-                    exposure   = texp
+                    exposure = texp
 
                 elif len(utimer.tstamp) == 2:
                     texp = DSEC*(utimer.tstamp[0] - utimer.tstamp[1]) - frameTransfer
-                    mjdCentre  = utimer.tstamp[1]
+                    mjdCentre = utimer.tstamp[1]
                     mjdCentre += (rhead.exposeTime - texp/2.)/DSEC
-                    exposure   = texp
+                    exposure = texp
 
                     if goodTime:
                         goodTime = False
                         reason = 'cannot establish an accurate time with only two prior timestamps'
 
                 else:
-                    texp       = readoutTime + rhead.exposeTime
+                    texp = readoutTime + rhead.exposeTime
                     mjdCentre  = utimer.tstamp[0]
                     mjdCentre += (rhead.exposeTime-texp-frameTransfer-texp/2.)/DSEC
-                    exposure   = texp
+                    exposure = texp
 
                     if goodTime:
                         goodTime = False
@@ -1805,14 +1825,14 @@ def utimer(tbytes, rhead, fnum):
 
     elif rhead.instrument == 'ULTRACAM' and rhead.mode == 'DRIFT':
 
-        wl     = rhead.win[0]
-        xbin   = rhead.xbin
-        ybin   = rhead.ybin
-        nxu    = xbin*wl.nx
-        nyu    = ybin*wl.ny
+        wl = rhead.win[0]
+        xbin = rhead.xbin
+        ybin = rhead.ybin
+        nxu = xbin*wl.nx
+        nyu = ybin*wl.ny
         ystart = wl.lly
-        xleft  = wl.llx
-        wr     = rhead.win[1]
+        xleft = wl.llx
+        wr = rhead.win[1]
         xright = wr.llx + nxu -1
 
         # Maximum number of windows in pipeline
