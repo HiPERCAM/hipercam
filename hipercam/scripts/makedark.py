@@ -58,12 +58,6 @@ def makedark(args=None):
            The value of 'sigma' to pass to the clipped mean combination in
            'combine'
 
-       plot    : bool
-           make a plot of the mean level versus frame number for each
-           CCD. This can provide a quick check that the frames are not too
-           different. You will need explicitly to close the plot generated at
-           the end of the script
-
        twait   : float [hidden]
            time to wait between attempts to find a new exposure, seconds.
 
@@ -96,7 +90,6 @@ def makedark(args=None):
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
         cl.register('sigma', Cline.LOCAL, Cline.PROMPT)
-        cl.register('plot', Cline.LOCAL, Cline.PROMPT)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('output', Cline.GLOBAL, Cline.PROMPT)
@@ -117,11 +110,6 @@ def makedark(args=None):
         
         sigma = cl.get_value(
             'sigma', 'number of RMS deviations to clip', 3., 1.
-            )
-
-        plot = cl.get_value(
-            'plot', 'plot mean levels versus frame number?',
-            False
             )
 
         twait = cl.get_value(
@@ -181,7 +169,7 @@ has been determined with respect to clears."""
         print("\nCalling 'combine' ...")
         args = [
             None, 'prompt', flist, 'none', 'c', str(sigma),
-            'i', 'yes' if plot else 'no', 'yes', output
+            'i', 'yes', output
         ]
         hcam.scripts.combine(args)
 
@@ -195,15 +183,13 @@ has been determined with respect to clears."""
 
         # correct exposure time of dark frame by the exposure time of
         # the bias frame used
-        print(output,bias)
         dark = hcam.MCCD.read(utils.add_extension(output,hcam.HCAM))
         bias = hcam.MCCD.read(utils.add_extension(bias,hcam.HCAM))
         if 'EXPTIME' in dark.head and 'EXPTIME' in bias.head:
             dexpose = dark.head['EXPTIME']
             bexpose = bias.head['EXPTIME']
             dark.head['EXPTIME'] = dexpose-bexpose
-            print(dexpose,bexpose)
-            print('Corrected dark exposure time from {:.3f} to {:.3f}'.format(
+            print('Corrected dark exposure time from {:.4f} to {:.4f}'.format(
                 dexpose,dexpose-bexpose)
             )
             dark.write(utils.add_extension(output,hcam.HCAM), True)
