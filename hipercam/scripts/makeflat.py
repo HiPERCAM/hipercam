@@ -129,7 +129,7 @@ def makeflat(args=None):
            same order. Use this to eliminate saturated, peppered or non-linear
            frames. Suggested hipercam values: 58000, 58000, 58000, 40000 and
            40000 for CCDs 1, 2, 3, 4 and 5. Enter values with spaces. ULTRACAM
-           values 52000, 30000, 27000 for CCDs 1, 2 and 3.
+           values 49000, 29000, 27000 for CCDs 1, 2 and 3.
 
         clobber : bool [hidden]
            clobber any pre-existing output files
