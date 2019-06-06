@@ -170,7 +170,7 @@ has been determined with respect to clears."""
 
         print("\nCalling 'combine' ...")
         args = [
-            None, 'prompt', flist, 'none', 'c', str(sigma),
+            None, 'prompt', flist, 'none', 'none', 'c', str(sigma),
             'b', 'yes', 'yes' if plot else 'no', 'yes', output
         ]
         hcam.scripts.combine(args)
