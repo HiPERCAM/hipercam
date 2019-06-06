@@ -19,7 +19,7 @@ __all__ = ['makeflat',]
 
 def makeflat(args=None):
     """``makeflat [source] (run first last [twait tmax] | flist) ngroup bias
-    ccd [clobber] output``
+    dark ccd [clobber] output``
 
     Averages a set of images to make a flat field.
 
@@ -105,6 +105,11 @@ def makeflat(args=None):
         bias    : string
            Name of bias frame to subtract, 'none' to ignore.
 
+        dark    : string
+           Name of dark frame to subtract, 'none' to ignore. Note that
+           it is assumed all CCDs have the same exposure time when making
+           a dark correction.
+
         ccd     : string
            CCD(s) to process, '0' for all, '1 3' for '1' and '3' only, etc.
 
@@ -149,6 +154,7 @@ def makeflat(args=None):
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('ngroup', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
+        cl.register('dark', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('lower', Cline.LOCAL, Cline.PROMPT)
         cl.register('upper', Cline.LOCAL, Cline.PROMPT)
@@ -186,6 +192,12 @@ def makeflat(args=None):
         bias = cl.get_value(
             'bias', "bias frame ['none' to ignore]",
             cline.Fname('bias', hcam.HCAM), ignore='none'
+        )
+
+        # dark frame (if any)
+        dark = cl.get_value(
+            'dark', "dark frame ['none' to ignore]",
+            cline.Fname('dark', hcam.HCAM), ignore='none'
         )
 
         ccdinf = spooler.get_ccd_pars(source, resource)
@@ -263,12 +275,32 @@ def makeflat(args=None):
             for mccd in spool:
 
                 if bias is not None:
+
                     # bias subtraction
                     if bframe is None:
                         bframe = hcam.MCCD.read(bias)
                         bframe = bframe.crop(mccd)
 
                     mccd -= bframe
+                    bexpose = bias.head.get('EXPTIME',0.)
+
+                else:
+                    bexpose = 0.
+
+                if dark is not None:
+
+                    # dark subtraction
+                    if dframe is None:
+                        dframe = hcam.MCCD.read(dark)
+                        dframe = dframe.crop(mccd)
+
+                    # Factor to scale the dark frame by before
+                    # subtracting from flat. Assumes that all
+                    # frames have same exposure time.
+                    scale = (mccd.head['EXPTIME']-bexpose)/dframe.head['EXPTIME']
+
+                    # make dark correction
+                    mccd -= scale*dframe
 
                 # here we determine the mean levels, store them
                 # then normalise the CCDs by them and save the files
