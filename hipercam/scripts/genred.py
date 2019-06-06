@@ -542,13 +542,26 @@ warn = 1 60000 64000
             )
 
     # standard colours for CCDs
-    CCD_COLS = {
-        '1' : 'purple',
-        '2' : 'green',
-        '3' : 'orange',
-        '4' : 'red',
-        '5' : 'darkred'
-    }
+    if inst == 'hipercam':
+        CCD_COLS = {
+            '1' : 'purple',
+            '2' : 'green',
+            '3' : 'orange',
+            '4' : 'red',
+            '5' : 'darkred'
+        }
+
+    elif inst == 'ultracam':
+        CCD_COLS = {
+            '1' : 'red',
+            '2' : 'green',
+            '3' : 'blue',
+        }
+
+    elif inst == 'ultraspec':
+        CCD_COLS = {
+            '1' : 'green',
+        }
 
     # Generate the light curve plot lines
     light_plot = ''
