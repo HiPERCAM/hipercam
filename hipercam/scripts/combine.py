@@ -17,7 +17,7 @@ __all__ = ['combine',]
 ############################
 
 def combine(args=None):
-    """``combine list bias method (sigma) adjust (usemean) [plot clobber]
+    """``combine list bias dark flat method (sigma) adjust (usemean) [plot clobber]
     output``
 
     Combines a series of images defined by a list using median or clipped
@@ -35,6 +35,9 @@ def combine(args=None):
 
         dark : string
            Name of dark frame to subtract, 'none' to ignore.
+
+        flat : string
+           Name of flat field frame to subtract, 'none' to ignore.
 
         method  : string
            'm' for median, 'c' for clipped mean. See below for pros and cons.
@@ -91,6 +94,7 @@ def combine(args=None):
         cl.register('list', Cline.GLOBAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
         cl.register('dark', Cline.LOCAL, Cline.PROMPT)
+        cl.register('flat', Cline.LOCAL, Cline.PROMPT)
         cl.register('method', Cline.LOCAL, Cline.PROMPT)
         cl.register('sigma', Cline.LOCAL, Cline.PROMPT)
         cl.register('adjust', Cline.LOCAL, Cline.PROMPT)
@@ -114,7 +118,6 @@ def combine(args=None):
             # read the bias frame
             bias = hcam.MCCD.read(bias)
 
-
         # dark frame (if any)
         dark = cl.get_value(
             'dark', "dark frame ['none' to ignore]",
@@ -123,6 +126,15 @@ def combine(args=None):
         if dark is not None:
             # read the dark frame
             dark = hcam.MCCD.read(dark)
+
+        # flat frame (if any)
+        flat = cl.get_value(
+            'flat', "flat frame ['none' to ignore]",
+            cline.Fname('flat', hcam.HCAM), ignore='none'
+        )
+        if flat is not None:
+            # read the flat frame
+            flat = hcam.MCCD.read(flat)
 
         method = cl.get_value(
             'method', 'c(lipped mean), m(edian)', 'c', lvals=('c','m')
@@ -195,6 +207,10 @@ def combine(args=None):
         # crop the dark
         dark = dark.crop(template)
 
+    if flat is not None:
+        # crop the flat
+        flat = flat.crop(template)
+
     # Now process each file CCD by CCD to reduce the memory
     # footprint
     for cnam in template:
@@ -221,6 +237,10 @@ def combine(args=None):
                 dccd = dark[cnam]
                 dexpose = dark.head['EXPTIME']
 
+            if flat is not None:
+                # extract relevant CCD from the flat
+                fccd = flat[cnam]
+
             mean = None
             for ccd in spool:
 
@@ -234,6 +254,10 @@ def combine(args=None):
                         # subtract dark
                         scale = (ccd.head['EXPTIME']-bexpose)/dexpose
                         ccd -= scale*dccd
+
+                    if flat is not None:
+                        # apply flat
+                        ccd /= fccd
 
                     # keep the result
                     ccds.append(ccd)

@@ -258,7 +258,7 @@ def makeflat(args=None):
         # save the bias-subtracted, mean-level normalised results to temporary
         # files
         print('Reading all files in to determine their mean levels')
-        bframe = None
+        bframe, dframe = None, None
         means = {}
         for cnam in ccds:
             means[cnam] = {}
@@ -282,7 +282,7 @@ def makeflat(args=None):
                         bframe = bframe.crop(mccd)
 
                     mccd -= bframe
-                    bexpose = bias.head.get('EXPTIME',0.)
+                    bexpose = bframe.head.get('EXPTIME',0.)
 
                 else:
                     bexpose = 0.
