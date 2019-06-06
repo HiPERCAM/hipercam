@@ -181,7 +181,7 @@ has been determined with respect to clears."""
         print("\nCalling 'combine' ...")
         args = [
             None, 'prompt', flist, 'none', 'c', str(sigma),
-            'i', 'yes', 'yes' if plot else 'no', 'yes', output
+            'i', 'yes' if plot else 'no', 'yes', output
         ]
         hcam.scripts.combine(args)
 
@@ -195,16 +195,18 @@ has been determined with respect to clears."""
 
         # correct exposure time of dark frame by the exposure time of
         # the bias frame used
-        dark = hcam.MCCD.read(add_extension(output,hcam.HCAM))
-        bias = hcam.MCCD.read(add_extension(bias,hcam.HCAM))
+        print(output,bias)
+        dark = hcam.MCCD.read(utils.add_extension(output,hcam.HCAM))
+        bias = hcam.MCCD.read(utils.add_extension(bias,hcam.HCAM))
         if 'EXPTIME' in dark.head and 'EXPTIME' in bias.head:
             dexpose = dark.head['EXPTIME']
             bexpose = bias.head['EXPTIME']
             dark.head['EXPTIME'] = dexpose-bexpose
-            print('Corrected dark exposure time from {:.2f} to {:.2f}'.format(
-                dexpose,bexpose)
+            print(dexpose,bexpose)
+            print('Corrected dark exposure time from {:.3f} to {:.3f}'.format(
+                dexpose,dexpose-bexpose)
             )
-            dark.write(add_extension(output,hcam.HCAM), True)
+            dark.write(utils.add_extension(output,hcam.HCAM), True)
         else:
             warnings.warn(
                 'Could not find exposure time (EXPTIME) in the dark and/or'
