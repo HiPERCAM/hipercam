@@ -16,17 +16,19 @@
 .. |ol-genred|   replace:: create a reduce file
 .. |ol-grab|     replace:: split frames out of a run
 .. |ol-hfilter|  replace:: filter a HiPERCAM image
+.. |ol-hinfo|    replace:: lists information on a HiPERCAM image
 .. |ol-hist|     replace:: plot a histogram of a frame
-.. |ol-hls|      replace:: list the runs on the |hiper| server
 .. |ol-hlog2fits| replace:: convert a reduction log file to FITS
+.. |ol-hls|      replace:: list the runs on the |hiper| server
 .. |ol-hplot|    replace:: plot a frame
 .. |ol-makebias| replace:: combine a run to make a bias frame
+.. |ol-makedark| replace:: combine a run to make a dark frame
 .. |ol-makeflat| replace:: combine a list of frames into a flat
 .. |ol-mstats|   replace:: list stats of multiple frames from a run
 .. |ol-mul|      replace:: multiply two frames
 .. |ol-plog|     replace:: plot output log from |reduce|
-.. |ol-reduce|   replace:: carry out photometric reduction
 .. |ol-redanal|  replace:: analyse a reduction log file
+.. |ol-reduce|   replace:: carry out photometric reduction
 .. |ol-rtplot|   replace:: plot frames as they come in
 .. |ol-setaper|  replace:: define the photometric apertures
 .. |ol-setdefect| replace:: define a file of CCD defects
@@ -92,6 +94,8 @@ useful.
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hfilter|    | |ol-hfilter|   |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |hinfo|      | |ol-hinfo|     |          |          |         |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hist|       | |ol-hist|      |          |          |  Yes    |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hlog2fits|  | |ol-hlog2fits| |          | Yes      |  Yes    |           |            |
@@ -101,6 +105,8 @@ useful.
    | |hplot|      | |ol-hplot|     | Yes      | Yes      |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |makebias|   | |ol-makebias|  | Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |makedark|   | |ol-makedark|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |makeflat|   | |ol-makeflat|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -359,11 +365,13 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.genred
 .. autofunction:: hipercam.scripts.grab
 .. autofunction:: hipercam.scripts.hfilter
+.. autofunction:: hipercam.scripts.hinfo
 .. autofunction:: hipercam.scripts.hist
 .. autofunction:: hipercam.scripts.hlog2fits
 .. autofunction:: hipercam.scripts.hls
 .. autofunction:: hipercam.scripts.hplot
 .. autofunction:: hipercam.scripts.makebias
+.. autofunction:: hipercam.scripts.makedark
 .. autofunction:: hipercam.scripts.makeflat
 .. autofunction:: hipercam.scripts.mstats
 .. autofunction:: hipercam.scripts.mul
