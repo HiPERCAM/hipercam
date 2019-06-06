@@ -140,7 +140,7 @@ setup(
             'hls=hipercam.scripts.hls:hls',
             'hplot=hipercam.scripts.hplot:hplot',
             'makebias=hipercam.scripts.makebias:makebias',
-            'makedark=hipercam.scripts.makestuff:makedark',
+            'makedark=hipercam.scripts.makedark:makedark',
             'makedata=hipercam.scripts.makestuff:makedata',
             'makefield=hipercam.scripts.makestuff:makefield',
             'makeflat=hipercam.scripts.makeflat:makeflat',
