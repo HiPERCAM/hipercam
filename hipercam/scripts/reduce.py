@@ -487,9 +487,11 @@ def reduce(args=None):
                 if rfile.dark is not None:
                     # subtract dark, CCD by CCD
                     dexpose = rfile.dark.head['EXPTIME']
-                    for ccd,dccd in zip(pccd,rfile.dark):
-                        scale = (ccd.head['EXPTIME']-bexpose)/dexpose
-                        ccd -= scale*dccd
+                    for cnam in pccd:
+                        ccd = pccd[cnam]
+                        cexpose = ccd.head['EXPTIME']
+                        scale = (cexpose-bexpose)/dexpose
+                        ccd -= scale*rfile.dark[cnam]
 
                 if rfile.flat is not None:
                     # apply flat field to processed frame
