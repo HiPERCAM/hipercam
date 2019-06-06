@@ -478,9 +478,18 @@ def reduce(args=None):
                 if rfile.bias is not None:
                     # subtract bias
                     pccd = mccd - rfile.bias
+                    bexpose = rfile.bias.head.get('EXPTIME',0.)
                 else:
                     # no bias subtraction
                     pccd = mccd.copy()
+                    bexpose = 0.
+
+                if rfile.dark is not None:
+                    # subtract dark, CCD by CCD
+                    dexpose = rfile.dark.head['EXPTIME']
+                    for ccd,dccd in zip(pccd,rfile.dark):
+                        scale = (ccd.head['EXPTIME']-bexpose)/dexpose
+                        ccd -= scale*dccd
 
                 if rfile.flat is not None:
                     # apply flat field to processed frame
