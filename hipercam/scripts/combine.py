@@ -26,12 +26,15 @@ def combine(args=None):
 
     Parameters:
 
-        list   : string
+        list : string
            list of hcm files with images to combine. The formats of the
            images should all match
 
-        bias    : string
+        bias : string
            Name of bias frame to subtract, 'none' to ignore.
+
+        dark : string
+           Name of dark frame to subtract, 'none' to ignore.
 
         method  : string
            'm' for median, 'c' for clipped mean. See below for pros and cons.
@@ -87,6 +90,7 @@ def combine(args=None):
         # register parameters
         cl.register('list', Cline.GLOBAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
+        cl.register('dark', Cline.LOCAL, Cline.PROMPT)
         cl.register('method', Cline.LOCAL, Cline.PROMPT)
         cl.register('sigma', Cline.LOCAL, Cline.PROMPT)
         cl.register('adjust', Cline.LOCAL, Cline.PROMPT)
@@ -109,6 +113,16 @@ def combine(args=None):
         if bias is not None:
             # read the bias frame
             bias = hcam.MCCD.read(bias)
+
+
+        # dark frame (if any)
+        dark = cl.get_value(
+            'dark', "dark frame ['none' to ignore]",
+            cline.Fname('dark', hcam.HCAM), ignore='none'
+        )
+        if dark is not None:
+            # read the dark frame
+            dark = hcam.MCCD.read(dark)
 
         method = cl.get_value(
             'method', 'c(lipped mean), m(edian)', 'c', lvals=('c','m')
@@ -177,6 +191,10 @@ def combine(args=None):
         # crop the bias
         bias = bias.crop(template)
 
+    if dark is not None:
+        # crop the dark
+        dark = dark.crop(template)
+
     # Now process each file CCD by CCD to reduce the memory
     # footprint
     for cnam in template:
@@ -194,14 +212,28 @@ def combine(args=None):
             if bias is not None:
                 # extract relevant CCD from the bias
                 bccd = bias[cnam]
+                bexpose = bias.head.get('EXPTIME',0.)
+            else:
+                bexpose = 0.
+
+            if dark is not None:
+                # extract relevant CCD from the dark
+                dccd = dark[cnam]
+                dexpose = dark.head['EXPTIME']
 
             mean = None
             for ccd in spool:
 
                 if ccd.is_data():
+
                     if bias is not None:
                         # subtract bias
                         ccd -= bccd
+
+                    if dark is not None:
+                        # subtract dark
+                        scale = (ccd.head['EXPTIME']-bexpose)/dexpose
+                        ccd -= scale*dccd
 
                     # keep the result
                     ccds.append(ccd)
