@@ -15,7 +15,7 @@ import datetime
 
 from astropy.io import fits
 
-from hipercam import (CCD, Group, MCCD, Window, Winhead,
+from hipercam import (CCD, Group, MCCD, Window, Winhead, Header,
                       gregorian_to_mjd, mjd_to_gregorian, fday_to_hms)
 
 __all__ = ['Rhead', 'Rdata', 'Rtime']
@@ -897,57 +897,69 @@ class Rdata (Rhead):
                     if strip_outer:
                         wins1[str(nwin+1)] = Window(
                             wl, np.reshape(
-                                buff[noff:noff+npix:6],shape)[:,1:]
+                                buff[noff:noff+npix:6],shape)[:,1:],
+                            True
                         )
                         wins1[str(nwin+2)] = Window(
                             wr, np.reshape(
-                                buff[noff+1:noff+npix:6],shape)[:,-2::-1]
+                                buff[noff+1:noff+npix:6],shape)[:,-2::-1],
+                            True
                         )
 
                         wins2[str(nwin+1)] = Window(
                             wl, np.reshape(
-                                buff[noff+2:noff+npix:6],shape)[:,1:]
+                                buff[noff+2:noff+npix:6],shape)[:,1:],
+                            True
                         )
                         wins2[str(nwin+2)] = Window(
                             wr, np.reshape(
-                                buff[noff+3:noff+npix:6],shape)[:,-2::-1]
+                                buff[noff+3:noff+npix:6],shape)[:,-2::-1],
+                            True
                         )
 
                         wins3[str(nwin+1)] = Window(
                             wl, np.reshape(
-                                buff[noff+4:noff+npix:6],shape)[:,1:]
+                                buff[noff+4:noff+npix:6],shape)[:,1:],
+                            True
                         )
                         wins3[str(nwin+2)] = Window(
                             wr, np.reshape(
-                                buff[noff+5:noff+npix:6],shape)[:,-2::-1]
+                                buff[noff+5:noff+npix:6],shape)[:,-2::-1],
+                            True
                         )
 
                     else:
                         wins1[str(nwin+1)] = Window(
                             wl, np.reshape(
-                                buff[noff:noff+npix:6],shape)
+                                buff[noff:noff+npix:6],shape),
+                            True
                         )
                         wins1[str(nwin+2)] = Window(
                             wr, np.reshape(
-                                buff[noff+1:noff+npix:6],shape)[:,::-1]
+                                buff[noff+1:noff+npix:6],shape)[:,::-1],
+                            True
                         )
 
                         wins2[str(nwin+1)] = Window(
                             wl, np.reshape(
-                                buff[noff+2:noff+npix:6],shape)
+                                buff[noff+2:noff+npix:6],shape),
+                            True
                         )
                         wins2[str(nwin+2)] = Window(
                             wr, np.reshape(
-                                buff[noff+3:noff+npix:6],shape)[:,::-1]
+                                buff[noff+3:noff+npix:6],shape)[:,::-1],
+                            True
                         )
 
                         wins3[str(nwin+1)] = Window(
                             wl, np.reshape(
-                                buff[noff+4:noff+npix:6],shape)
+                                buff[noff+4:noff+npix:6],shape),
+                            True
                         )
                         wins3[str(nwin+2)] = Window(
                             wr, np.reshape(
-                                buff[noff+5:noff+npix:6],shape)[:,::-1]
+                                buff[noff+5:noff+npix:6],shape)[:,::-1],
+                            True
                         )
 
                     noff += npix
@@ -986,17 +998,17 @@ class Rdata (Rhead):
                 w = self.win[0]
                 xoff = 24 // xbin
                 nwin = '1'
-                wins1[nwin] = Window(w, winl1[:w.ny,xoff:xoff+w.nx])
-                wins2[nwin] = Window(w, winl2[:w.ny,xoff:xoff+w.nx])
-                wins3[nwin] = Window(w, winl3[:w.ny,xoff:xoff+w.nx])
+                wins1[nwin] = Window(w, winl1[:w.ny,xoff:xoff+w.nx], True)
+                wins2[nwin] = Window(w, winl2[:w.ny,xoff:xoff+w.nx], True)
+                wins3[nwin] = Window(w, winl3[:w.ny,xoff:xoff+w.nx], True)
 
                 # Window 2 comes from lower-right of right-hand data window
                 nwin = '2'
                 w = self.win[1]
                 xoff = 4 // xbin
-                wins1[nwin] = Window(w, winr1[:w.ny,xoff:xoff+w.nx])
-                wins2[nwin] = Window(w, winr2[:w.ny,xoff:xoff+w.nx])
-                wins3[nwin] = Window(w, winr3[:w.ny,xoff:xoff+w.nx])
+                wins1[nwin] = Window(w, winr1[:w.ny,xoff:xoff+w.nx], True)
+                wins2[nwin] = Window(w, winr2[:w.ny,xoff:xoff+w.nx], True)
+                wins3[nwin] = Window(w, winr3[:w.ny,xoff:xoff+w.nx], True)
 
                 # Window 3 is bias associated with left-hand data window
                 # (leftmost 24 and rightmost 4)
@@ -1005,11 +1017,11 @@ class Rdata (Rhead):
                 lh = 24 // xbin
                 rh = 4 // xbin
                 wins1[nwin] = Window(w, np.concatenate(
-                    (winl1[:w.ny,:lh], winl1[:w.ny,-rh:]),axis=1))
+                    (winl1[:w.ny,:lh], winl1[:w.ny,-rh:]),axis=1), True)
                 wins2[nwin] = Window(w, np.concatenate(
-                    (winl2[:w.ny,:lh], winl2[:w.ny,-rh:]),axis=1))
+                    (winl2[:w.ny,:lh], winl2[:w.ny,-rh:]),axis=1), True)
                 wins3[nwin] = Window(w, np.concatenate(
-                    (winl3[:w.ny,:lh], winl3[:w.ny,-rh:]),axis=1))
+                    (winl3[:w.ny,:lh], winl3[:w.ny,-rh:]),axis=1), True)
 
                 # Window 4 is bias associated with right-hand data window
                 # (leftmost 4 and rightmost 24)
@@ -1018,29 +1030,29 @@ class Rdata (Rhead):
                 lh = 4 // xbin
                 rh = 24 // xbin
                 wins1[nwin] = Window(w, np.concatenate(
-                    (winr1[:w.ny,:lh], winr1[:w.ny,-rh:]),axis=1))
+                    (winr1[:w.ny,:lh], winr1[:w.ny,-rh:]),axis=1), True)
                 wins2[nwin] = Window(w, np.concatenate(
-                    (winr2[:w.ny,:lh], winr2[:w.ny,-rh:]),axis=1))
+                    (winr2[:w.ny,:lh], winr2[:w.ny,-rh:]),axis=1), True)
                 wins3[nwin] = Window(w, np.concatenate(
-                    (winr3[:w.ny,:lh], winr3[:w.ny,-rh:]),axis=1))
+                    (winr3[:w.ny,:lh], winr3[:w.ny,-rh:]),axis=1), True)
 
                 # Window 5 comes from top strip of left-hand data window
                 nwin = '5'
                 w = self.win[4]
                 xoff = 24 // xbin
                 yoff = 1024 // ybin
-                wins1[nwin] = Window(w, winl1[yoff:yoff+w.ny,xoff:xoff+w.nx])
-                wins2[nwin] = Window(w, winl2[yoff:yoff+w.ny,xoff:xoff+w.nx])
-                wins3[nwin] = Window(w, winl3[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins1[nwin] = Window(w, winl1[yoff:yoff+w.ny,xoff:xoff+w.nx], True)
+                wins2[nwin] = Window(w, winl2[yoff:yoff+w.ny,xoff:xoff+w.nx], True)
+                wins3[nwin] = Window(w, winl3[yoff:yoff+w.ny,xoff:xoff+w.nx], True)
 
                 # Window 6 comes from top of right-hand data window
                 nwin = '6'
                 w = self.win[5]
                 xoff = 4 // xbin
                 yoff = 1024 // ybin
-                wins1[nwin] = Window(w, winr1[yoff:yoff+w.ny,xoff:xoff+w.nx])
-                wins2[nwin] = Window(w, winr2[yoff:yoff+w.ny,xoff:xoff+w.nx])
-                wins3[nwin] = Window(w, winr3[yoff:yoff+w.ny,xoff:xoff+w.nx])
+                wins1[nwin] = Window(w, winr1[yoff:yoff+w.ny,xoff:xoff+w.nx], True)
+                wins2[nwin] = Window(w, winr2[yoff:yoff+w.ny,xoff:xoff+w.nx], True)
+                wins3[nwin] = Window(w, winr3[yoff:yoff+w.ny,xoff:xoff+w.nx], True)
 
             # data type conversions
             for win1, win2, win3 in zip(wins1.values(), wins2.values(),
@@ -1050,7 +1062,7 @@ class Rdata (Rhead):
                 win3.data = win3.data.astype(np.float32)
 
             # Build the CCDs
-            rhead = fits.Header()
+            rhead = Header()
             rhead['CCDNAME'] = 'Red CCD'
             imjd = int(time.mjd)
             fday = time.mjd-imjd
@@ -1073,11 +1085,27 @@ class Rdata (Rhead):
             ccd1 = CCD(wins1, self.nxmax, self.nymax)
 
             # green
-            ghead = rhead.copy()
+            ghead = Header()
             ghead['CCDNAME'] = 'Green CCD'
+            imjd = int(time.mjd)
+            fday = time.mjd-imjd
+            year,month,day = mjd_to_gregorian(imjd)
+            hour,minute,second = fday_to_hms(fday)
+            ghead['TIMSTAMP'] = (
+                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Raw frame timestamp, UTC'
+            )
+            ghead['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
+            ghead['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
+            ghead['MJDUTC'] = (imjd+fday, 'MJD(UTC) at centre of exposure')
+            ghead['EXPTIME'] = (time.expose, 'Exposure time (sec)')
+            ghead['GOODTIME'] = (time.good,'flag indicating reliability of time')
+            ghead['MJDOKWHY'] = time.reason
 
             wins2['1'].update(ghead)
             ccd2 = CCD(wins2, self.nxmax, self.nymax)
+
+            print(type(ghead))
+            print('\nccd1(1) =',ccd1)
 
             # transfer red/green time info to the general header
             self['TIMSTAMP'] = (rhead['TIMSTAMP'], 'Red/Green time at mid exposure, UTC')
@@ -1086,7 +1114,7 @@ class Rdata (Rhead):
             self['EXPTIME'] = (time.expose, 'Exposure time (sec)')
 
             # blue
-            bhead = rhead.copy()
+            bhead = Header()
             bhead['CCDNAME'] = 'Blue CCD'
 
             imjd = int(blueTime.mjd)
@@ -1104,8 +1132,12 @@ class Rdata (Rhead):
             bhead['MJDOKWHY'] = blueTime.reason
             bhead['DSTATUS'] = (not badBlue,'blue data status flag')
 
+            print('\nccd1(2) =',ccd1)
+
             wins3['1'].update(bhead)
             ccd3 = CCD(wins3, self.nxmax, self.nymax)
+
+            print('\nccd1(3) =',ccd1)
 
             # Finally, return an MCCD
             return MCCD(
@@ -1143,7 +1175,7 @@ class Rdata (Rhead):
                     elif self.output == 'A':
                         # avalanche output, multi windows.
                         wins[str(nwin)] = \
-                            Winhead(
+                            Window(
                                 wmod,
                                 np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop::-1]
                             )
@@ -1180,7 +1212,7 @@ class Rdata (Rhead):
                 wins[str(nwin)] = Window(wmodl,comb[:,nchopl:wl.nx])
                 nwin += 1
                 wmodr = Winhead(llxr, wr.lly, wr.nx-nchopr, wr.ny, xbin, ybin)
-                wins[str(nwin)] = Winhead(wmodr,comb[:,wl.nx+nchopr:])
+                wins[str(nwin)] = Window(wmodr,comb[:,wl.nx+nchopr:])
                 nwin += 1
 
             # data type conversions
