@@ -1133,7 +1133,7 @@ class Rdata (Rhead):
                             # with the image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
                                 winh, windata[:,self.npscan:].astype(
-                                    np.float32)
+                                    np.float32), True
                             )
 
                             # Store the prescan itself
@@ -1145,7 +1145,7 @@ class Rdata (Rhead):
                             # Create the Window with the pre-scan
                             ccds[cnam][wpnam] = Window(
                                 winp, windata[:,:self.npscan].astype(
-                                    np.float32)
+                                    np.float32), True
                             )
 
                         else:
@@ -1153,7 +1153,7 @@ class Rdata (Rhead):
                             # image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
                                 winh, windata[:,:-self.npscan].astype(
-                                    np.float32)
+                                    np.float32), True
                             )
 
                             # Now save the prescan itself
@@ -1165,7 +1165,7 @@ class Rdata (Rhead):
                             # Create the Window with the pre-scan
                             ccds[cnam][wpnam] = Window(
                                 winp, windata[:,-self.npscan:].astype(
-                                    np.float32)
+                                    np.float32), True
                             )
 
                     else:
@@ -1176,7 +1176,7 @@ class Rdata (Rhead):
                             win.update(cheads[cnam])
 
                         ccds[cnam][wnam] = Window(
-                            win, windata.astype(np.float32)
+                            win, windata.astype(np.float32), True
                         )
 
                     if self.oscan:
@@ -1199,7 +1199,7 @@ class Rdata (Rhead):
                             # Create the Window with the over-scan from top
                             # part of data frame
                             ccds[cnam][wonam] = Window(
-                                wino, win.data[-self.noscan:,:]
+                                wino, win.data[-self.noscan:,:], True
                             )
 
                             # Chop overscan off data array
@@ -1215,7 +1215,7 @@ class Rdata (Rhead):
 
                             # Create the Window with the over-scan
                             ccds[cnam][wonam] = Window(
-                                wino, win.data[:self.noscan,:]
+                                wino, win.data[:self.noscan,:], True
                             )
 
                             # Chop overscan off data array
