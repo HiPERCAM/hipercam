@@ -43,20 +43,20 @@ class Winhead(Header):
 
     """
 
-    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=None):
+    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=None, copy=False):
         """
         Constructor. Arguments::
 
-          llx  : int
+          llx : int
               X position of lower-left pixel of window (unbinned pixels)
 
-          lly  : int
+          lly : int
               Y position of lower-left pixel of window (unbinned pixels)
 
-          nx   : int
+          nx : int
               X dimension of window, binned pixels
 
-          ny   : int
+          ny : int
               Y dimension of window, binned pixels
 
           xbin : int
@@ -68,13 +68,21 @@ class Winhead(Header):
           head : Header
               Arbitrary header items (excluding ones such as LLX reserved
               for containing the above parameters when reading and writing
-              Winhead objects).
+              Winhead objects). This will be deep copied to avoid different
+              Winheads sharing the same header. See 'copy' for how the header
+              is tranferred into the Windhead
+
+          copy : bool
+              Controls whether the header is copied by value (True) or
+              simply by reference (False). The latter is lightweight and
+              faster but can cause unexpected behaviour especially when
+              constructing multiple Winhead (or Window) objects if one
+              repeatedly sends the same Header to each of them.
         """
         if head is None:
-            head = Header()
-
-        # Store the header
-        super().__init__(head)
+            super().__init__()
+        else:
+            super().__init__(head, copy=copy)
 
         # And the window format attributes
         self.llx = llx
