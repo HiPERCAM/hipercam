@@ -311,8 +311,9 @@ class Header:
         return key in self._lookup
 
     def update(self, head):
-        """Update the Header with the contents of another header (excluding comments
-and history)"""
+        """Update the Header with the contents of another header (excluding
+        comments and history)
+        """
         nadded = 0
         for key,value,comment in head.cards:
             if key.upper() not in Header.SPECIAL_KEYWORDS:
