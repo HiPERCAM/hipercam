@@ -643,7 +643,7 @@ class Window(Winhead):
 
     """
 
-    def __init__(self, win, data=None):
+    def __init__(self, win, data=None, copy=False):
         """Constructs a :class:`Window`
 
         Arguments::
@@ -656,10 +656,16 @@ class Window(Winhead):
               data is None in which case a zero array of the correct size will
               be created. A ValueError will be raised if not.
 
+          copy : bool
+              flag sent to :class:`Winhead` controlling whether the header is 
+              copied by value or reference. 'False' is lightweight and faster
+              but when building up CCDs from multiple Windows, you should 
+              probably use 'True' unless you are careful to make 'win' a
+              different object every time.
         """
         super().__init__(
             win.llx, win.lly, win.nx, win.ny,
-            win.xbin, win.ybin, win
+            win.xbin, win.ybin, win, copy=copy
         )
 
         if data is None:
