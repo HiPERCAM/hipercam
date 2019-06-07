@@ -1104,9 +1104,6 @@ class Rdata (Rhead):
             wins2['1'].update(ghead)
             ccd2 = CCD(wins2, self.nxmax, self.nymax)
 
-            print(type(ghead))
-            print('\nccd1(1) =',ccd1)
-
             # transfer red/green time info to the general header
             self['TIMSTAMP'] = (rhead['TIMSTAMP'], 'Red/Green time at mid exposure, UTC')
             self['MJDUTC'] = (time.mjd, 'Red/Green time at mid exposure, UTC')
@@ -1132,12 +1129,8 @@ class Rdata (Rhead):
             bhead['MJDOKWHY'] = blueTime.reason
             bhead['DSTATUS'] = (not badBlue,'blue data status flag')
 
-            print('\nccd1(2) =',ccd1)
-
             wins3['1'].update(bhead)
             ccd3 = CCD(wins3, self.nxmax, self.nymax)
-
-            print('\nccd1(3) =',ccd1)
 
             # Finally, return an MCCD
             return MCCD(
