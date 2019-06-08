@@ -412,6 +412,7 @@ def reduce(args=None):
                                 tpanel, spanel, tkeep, lbuffer, xbuffer,
                                 ybuffer, tbuffer, sbuffer
                             )
+                            mccds = []
 
                         print('reduce finished')
                         break
@@ -426,6 +427,7 @@ def reduce(args=None):
                     nframe = nf + 1
 
                 if source != 'hf' and last and nframe > last:
+                    # finite last frame number
 
                     if len(mccds):
                         # finish processing remaining frames
@@ -444,6 +446,7 @@ def reduce(args=None):
                             tzero, lpanel, xpanel, ypanel, tpanel, spanel,
                             tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
                         )
+                        mccds = []
 
                     print(
                         '\nHave reduced up to the last frame set.'
@@ -524,6 +527,29 @@ def reduce(args=None):
 
                     # Reset the frame buffers
                     pccds, mccds, nframes = [], [], []
+
+        if len(mccds):
+            # out of loop now. Finish processing any remaining
+            # frames.
+            results = processor(pccds, mccds, nframes)
+
+            # write out results to the log file
+            alerts = logfile.write_results(results)
+
+            # print out any accumulated alert messages
+            if len(alerts):
+                print('\n'.join(alerts))
+
+            update_plots(
+                results, rfile, implot, lplot, imdev,
+                lcdev, pccd, ccds, msub, nx, iset, plo, phi,
+                ilo, ihi, tzero, lpanel, xpanel, ypanel,
+                tpanel, spanel, tkeep, lbuffer, xbuffer,
+                ybuffer, tbuffer, sbuffer
+            )
+
+            print('reduce finished')
+
 
 ###################################################################
 #
