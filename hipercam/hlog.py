@@ -371,7 +371,12 @@ class Tseries:
               different lines.
 
            mask : bitmask
-              used to mask points
+              used to mask points. There are a set of mask values
+              defined with names in hipercam.core which can be used to
+              select against points matching particular masks. e.g.
+              mask=TARGET_SATURATED would remove any flagged as such,
+              or mask=ANY (the default) would exclude all but perfect
+              ones, while mask=ALL_OK accepts everything.
 
            capsize : float
               if error bars are plotted with points, this sets
