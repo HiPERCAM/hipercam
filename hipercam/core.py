@@ -91,8 +91,9 @@ NO_DATA           = 1 << 7  # No valid pixels in aperture
 CLOUDS            = 1 << 8  # Point affected by clouds
 JUNK              = 1 << 9  # Unspecified junk data (e.g. cosmic ray hit)
 
-ANY = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | TARGET_SATURATED | \
-      TARGET_NONLINEAR | NO_EXTRACTION | NO_DATA | CLOUDS | JUNK
+ANY = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | \
+      TARGET_SATURATED | TARGET_NONLINEAR | NO_EXTRACTION | NO_DATA | \
+      CLOUDS | JUNK
 
 def version():
     """Returns version number of installed |hiper| pipeline"""
