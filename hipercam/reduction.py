@@ -1545,7 +1545,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 # We carry out a search in either case because it involves a
                 # threshold check and we want that to be applied consistently.
                 x, y, peak = swdata.search(
-                    apsec['search_smooth_fwhm'], aper.x, aper.y,
+                    apsec['search_smooth_fwhm'], aper.x+xshift, aper.y+yshift,
                     apsec['fit_height_min_nrf'], apsec['search_smooth_fft']
                 )
 #                print('check ',swdata.format(True))
@@ -1556,10 +1556,9 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 #                plt.show()
 
                 if ref:
-                    shift = np.sqrt((x-aper.x)**2+(y-aper.y)**2)
+                    shift = np.sqrt((x-aper.x-xshift)**2+(y-aper.y-yshift)**2)
                     max_shift = (apsec['fit_max_shift'] +
                                  np.sqrt(swdata.xbin**2+swdata.ybin**2)/2)
-
                     if shift > max_shift:
                         # check the shift allowing for maximum pixellation
                         # error in the position
