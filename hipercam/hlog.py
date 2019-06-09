@@ -317,7 +317,9 @@ class Tseries:
          bitmask propagated through from reduce log
 
     Errors are set = -1 and values = 0 if some sort of problem occurs. This
-    should be used in addtion to the mask to spot bad values.
+    should be used in addition to the mask to spot bad values. The bitmask
+    valued are OR-ed when an operation on two Tseries is performed. Thus the
+    child of two Tseries inherits all the problems of each of its parents.
 
     """
 
@@ -337,21 +339,48 @@ class Tseries:
         """
         self.mask[mask] = np.bitwise_or(self.mask[mask], mvalue)
 
-    def get_ok(self, mvalue=ANY):
-        """
-        Returns logical array of all point which match the bitmask mvalue
-        """
-        return (np.bitwise_and(self.mask, mvalue) == 0) & (self.ye > 0.)
+    def get_mask(self, mvalue=None):
+        """Returns logical array of all points with positive errors which
+        also match the given bitmask mvalue. NB The array returned is not
+        the same as the internal property 'mask'.
 
-    def get_data(self, mvalue=ANY):
+        Arguments::
+
+           mvalue : bitmask
+             bitmask to select points according to the internal mask
+             array.  A match is made if any of the bits in the mask
+             array value for a given point match the set bits in
+             mvalue. e.g. if mvalue=(NO_FWHM | NO_SKY) would select
+             all points without a FWHM or sky, while mvalue=ALL_OK
+             would select perfect points only. See Tseries.report for
+             how to get a full list of possible flags. A value of 
+             None makes no selection and picks points with positive errors.
+        """
+        if mvalue is not None:
+            if mvalue == ALL_OK:
+                # special case: no bits set at all.
+                return (self.mask == mvalue) & (self.ye > 0.)
+            else:
+                # any case with set bits
+                return (np.bitwise_and(self.mask, mvalue) > 0) & (self.ye > 0.)
+        else:
+            # no selection other than positive errors
+            return (self.ye > 0.)
+
+    def get_data(self, mvalue=None):
         """
         Returns the data as (times, values, errors). 'mask' is a bitmask
-        to define which to avoid in addition to data with non-positive errors.
+        to define which to select in addition to data with non-positive errors.
+
+        Arguments::
+
+           mvalue : bitmask
+             bitmask to select points according to the internal mask array.
         """
-        ok = self.get_ok(mvalue)
+        ok = self.get_mask(mvalue)
         return (self.t[ok],self.y[ok],self.ye[ok])
 
-    def mplot(self, axes, colour='b', fmt='.', mask=ALL, capsize=0,
+    def mplot(self, axes, colour='b', fmt='.', mvalue=None, capsize=0,
               erry=True, trange=None, **kwargs):
         """Plots a Tseries to a matplotlib Axes instance, only plotting points
         that match the bitmask `mask` and have positive errors.
@@ -369,12 +398,8 @@ class Tseries:
               '.', 'o' give different points while '-' and '--' give
               different lines.
 
-           mask : bitmask
-              used to select the points to plot. A point is selected if
-              any of the bits set in `mask` are also set in the corresponding
-              bitmask for the point. See bitmasks in hipercam.core for full
-              details, but ALL, ALL_OK, ANY_BAD are some useful ones. See 
-              Tseries.report for more.
+           mvalue : bitmask
+              used to select the points to plot. See 'get_mask'
 
            capsize : float
               if error bars are plotted with points, this sets
@@ -388,7 +413,7 @@ class Tseries:
 
         """
         # Select points 
-        ok = (np.bitwise_and(self.mask, mask) > 0) & (self.ye > 0)
+        ok = self.get_mask(mvalue)
 
         if trange is not None:
             t1,t2 = trange
