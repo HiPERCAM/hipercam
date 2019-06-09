@@ -351,11 +351,10 @@ class Tseries:
         ok = self.get_ok(mvalue)
         return (self.t[ok],self.y[ok],self.ye[ok])
 
-    def mplot(self, axes, colour='b', fmt='.', mask=ANY, capsize=0,
+    def mplot(self, axes, colour='b', fmt='.', mask=ALL, capsize=0,
               erry=True, trange=None, **kwargs):
         """Plots a Tseries to a matplotlib Axes instance, only plotting points
-        without any of the same bits set as `mask` (see hipercam.core for a
-        full list) and positive errors.
+        that match the bitmask `mask` and have positive errors.
 
         Arguments::
 
@@ -371,12 +370,11 @@ class Tseries:
               different lines.
 
            mask : bitmask
-              used to mask points. There are a set of mask values
-              defined with names in hipercam.core which can be used to
-              select against points matching particular masks. e.g.
-              mask=TARGET_SATURATED would remove any flagged as such,
-              or mask=ANY (the default) would exclude all but perfect
-              ones, while mask=ALL_OK accepts everything.
+              used to select the points to plot. A point is selected if
+              any of the bits set in `mask` are also set in the corresponding
+              bitmask for the point. See bitmasks in hipercam.core for full
+              details, but ALL, ALL_OK, ANY_BAD are some useful ones. See 
+              Tseries.report for more.
 
            capsize : float
               if error bars are plotted with points, this sets
@@ -389,7 +387,9 @@ class Tseries:
               Two element tuple to limit the time range
 
         """
-        ok = np.bitwise_and(self.mask, mask) == 0 & (self.ye > 0)
+        # Select points 
+        ok = (np.bitwise_and(self.mask, mask) > 0) & (self.ye > 0)
+
         if trange is not None:
             t1,t2 = trange
             ok &= (self.t > t1) & (self.t < t2)
@@ -871,3 +871,17 @@ class Tseries:
 
         return (clouds,rvar,trans)
     
+    def report(self):
+        """Reports numbers and types of bad points"""
+        
+        for fname, flag in FLAGS:
+            match = np.bitwise_and(self.mask, flag) == flag
+            print(
+                'Flag = {:s} raised in {:d} points out of {:d}'.format(
+                    fname, int(round(match.sum())), len(self))
+            )
+
+        print(
+            'There were {:d} non-positive y-errors'.format(
+                len(self.ye[self.ye <= 0]))
+        )
