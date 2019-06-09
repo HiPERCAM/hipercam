@@ -1388,7 +1388,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     wy = 1./ey**2
                     wysum += wy
                     ysum += wy*dy
-
+                
                     shifts.append((dx, dy))
 
                     # store stuff
@@ -1396,7 +1396,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         'xe': ex, 'ye': ey,
                         'fwhm': fwhm, 'fwhme': efwhm,
                         'beta': beta, 'betae': ebeta,
-                        'dx': x-aper.x, 'dy': y-aper.y
+                        'dx': dx, 'dy': dy
                     }
 
                     if efwhm > 0.:
@@ -1516,7 +1516,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     # apertures are shifted by the mean shift just determined
     for apnam, aper in ccdaper.items():
 
-        if aper.ref and store[apnam]['fwhme'] <= 0.:
+        if aper.ref and store[apnam]['xe'] <= 0.:
 
             # Move failed reference fit to the mean shift
             aper.x += xshift
@@ -1548,12 +1548,6 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     apsec['search_smooth_fwhm'], aper.x+xshift, aper.y+yshift,
                     apsec['fit_height_min_nrf'], apsec['search_smooth_fft']
                 )
-#                print('check ',swdata.format(True))
-#                print('check ',aper.x,aper.y,x,y)
-#                mpl.pWind(plt, swdata, swdata.min(), swdata.max())
-#                plt.plot(x,y,'or')
-#                plt.title('CCD = {:s}, Aperture = {:s}, Window = {:s}'.format(cnam,apnam,wnam))
-#                plt.show()
 
                 if ref:
                     shift = np.sqrt((x-aper.x-xshift)**2+(y-aper.y-yshift)**2)
@@ -1564,7 +1558,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         # error in the position
                         raise hcam.HipercamError(
                             ('Position of non-reference aperture'
-                             ' shifted by {:.1f} which exceeds '
+                             ' shifted by {:.1f} relative to prediction from reference which exceeds '
                              'fit_max_shift+pix_diam/2 = {:.1f}').format(
                                  shift, max_shift)
                         )
@@ -1655,6 +1649,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         # made to cope with large initial shifts.
                         aper.x = xold + apsec['fit_alpha']*(x-xold)
                         aper.y = yold + apsec['fit_alpha']*(y-yold)
+
                     else:
                         aper.x = x
                         aper.y = y
@@ -2644,8 +2639,8 @@ class LogWriter:
                 for apnam in ccdaper:
                     r = reses[apnam]
                     self.log.write(
+                        '{:.4f} {:.4f} {:.4f} {:.4f} '
                         '{:.3f} {:.3f} {:.3f} {:.3f} '
-                        '{:.2f} {:.2f} {:.2f} {:.2f} '
                         '{:.1f} {:.1f} {:.2f} {:.2f} '
                         '{:d} {:d} {:d} '.format(
                             r['x'], r['xe'], r['y'], r['ye'],
