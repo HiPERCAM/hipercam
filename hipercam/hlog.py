@@ -910,3 +910,15 @@ class Tseries:
             'There were {:d} non-positive y-errors'.format(
                 len(self.ye[self.ye <= 0]))
         )
+
+    def to_mag(self):
+        """
+        Convert to magnitudes, i.e. take -2.5*log10(y)
+        """
+        ok = (self.y > 0) & (self.ye > 0)
+        new_ts = copy.copy(self)
+        new_ts.y[ok] = -2.5*np.log10(self.y[ok])        
+        new_ts.y[~ok] = 0
+        new_ts.ye[ok] = 2.5/np.log(10)*self.ye[ok]/self.y[ok]
+        new_ts.ye[~ok] = -1
+        return new_ts
