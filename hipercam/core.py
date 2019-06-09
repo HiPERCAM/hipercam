@@ -9,12 +9,13 @@ import numpy as np
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
     'HipercamError', 'HipercamWarning', 'DMINS',
-    'LOG', 'CNAMS', 'CIS', 'ALL_OK', 'NO_FWHM',
-    'NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
-    'TARGET_NONLINEAR', 'TARGET_SATURATED', 'ANY',
+    'LOG', 'CNAMS', 'CIS', 'DFCT', 'version', 
+    'gregorian_to_mjd', 'mjd_to_gregorian', 'fday_to_hms',
+    'ALL_OK', 'NO_FWHM','NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
+    'TARGET_NONLINEAR', 'TARGET_SATURATED', 
     'REDUCE_FILE_VERSION', 'NO_EXTRACTION', 'NO_DATA',
-    'DFCT', 'version', 'CLOUDS', 'JUNK',
-    'gregorian_to_mjd', 'mjd_to_gregorian', 'fday_to_hms'
+    'CLOUDS', 'JUNK', 'ANY_BAD', 'ALL',
+    'FLAGS',
 )
 
 # Constants for general use
@@ -79,21 +80,42 @@ CNAMS = {
 }
 
 # Bit masks (used in reduce.py and hlog.py)
-ALL_OK            = 0       # No bit flags set (good)
-NO_FWHM           = 1 << 0  # No FWHM, even though variable apertures are being used
-NO_SKY            = 1 << 1  # No sky pixels at all
-SKY_AT_EDGE       = 1 << 2  # Sky aperture overlaps edge of window
-TARGET_AT_EDGE    = 1 << 3  # Target aperture overlaps edge of window
-TARGET_SATURATED  = 1 << 4  # At least one pixel in target above saturation level
-TARGET_NONLINEAR  = 1 << 5  # At least one pixel in target above non-linear level
-NO_EXTRACTION     = 1 << 6  # No extraction possible
-NO_DATA           = 1 << 7  # No valid pixels in aperture
-CLOUDS            = 1 << 8  # Point affected by clouds
-JUNK              = 1 << 9  # Unspecified junk data (e.g. cosmic ray hit)
+ALL_OK            = 1 << 0   # No problems detected
+NO_FWHM           = 1 << 1   # No FWHM, even though variable apertures are being used
+NO_SKY            = 1 << 2   # No sky pixels at all
+SKY_AT_EDGE       = 1 << 3   # Sky aperture edge of window
+TARGET_AT_EDGE    = 1 << 4   # Target aperture overlaps edge of window
+TARGET_SATURATED  = 1 << 5   # At least one pixel in target above saturation level
+TARGET_NONLINEAR  = 1 << 6   # At least one pixel in target above non-linear level
+NO_EXTRACTION     = 1 << 7   # No extraction possible
+NO_DATA           = 1 << 8   # No valid pixels in aperture
+CLOUDS            = 1 << 9   # Point affected by clouds
+JUNK              = 1 << 10  # Unspecified junk data (e.g. cosmic ray hit)
 
-ANY = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | \
-      TARGET_SATURATED | TARGET_NONLINEAR | NO_EXTRACTION | NO_DATA | \
-      CLOUDS | JUNK
+# Matches any bad point
+ANY_BAD = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | \
+          TARGET_SATURATED | TARGET_NONLINEAR | NO_EXTRACTION | NO_DATA | \
+          CLOUDS | JUNK
+
+# Matches all points (default used in hlog)
+ALL = ALL_OK | ANY_BAD
+
+# all flags for useful reference in other places
+FLAGS = (
+    ('ALL_OK', ALL_OK),
+    ('NO_FWHM', NO_FWHM),
+    ('NO_SKY', NO_SKY),
+    ('SKY_AT_EDGE', SKY_AT_EDGE),
+    ('TARGET_AT_EDGE', TARGET_AT_EDGE),
+    ('TARGET_SATURATED', TARGET_SATURATED),
+    ('TARGET_NONLINEAR', TARGET_NONLINEAR),
+    ('NO_EXTRACTION', NO_EXTRACTION),
+    ('NO_DATA', NO_DATA),
+    ('CLOUDS', CLOUDS),
+    ('JUNK', JUNK),
+    ('ANY', ANY),
+)
+
 
 def version():
     """Returns version number of installed |hiper| pipeline"""
