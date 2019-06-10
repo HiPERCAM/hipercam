@@ -36,6 +36,9 @@ def hlog2fits(args=None):
          will have the same root name but end .fits. The routine will abort
          if there is a pre-existing file of the same name.
 
+    NB Because of the danger of over-writing raw data (also ends .fits), this 
+    routine will not over-write pre-existing files. You should delete clashing
+    files if you really want to proceed.
     """
 
     command, args = utils.script_args(args)
@@ -59,7 +62,7 @@ def hlog2fits(args=None):
         )
 
     oname = os.path.basename(log)
-    oname = oname[:oname.find('.')] + '.fits'
+    oname = oname[:oname.rfind('.')] + '.fits'
     if os.path.exists(oname):
         raise hcam.HipercamError(
             ('A file called {:s} already exists and'
