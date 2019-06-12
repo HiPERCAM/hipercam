@@ -294,7 +294,7 @@ class Hlog(dict):
         """
         ccd = self[str(cnam)]
         return Tseries(
-            ccd['MJD'], ccd['{:s}_{:s}'.format(name,str(apnam))],
+            ccd['MJD'].copy(), ccd['{:s}_{:s}'.format(name,str(apnam))],
             ccd['{:s}e_{!s}'.format(name,apnam)],
             ccd['flag_{!s}'.format(apnam)]
         )
@@ -471,7 +471,7 @@ class Tseries:
             ye[~ok] = -1
             mask = self.mask.copy()
 
-        return Tseries(self.t, y, ye, mask)
+        return Tseries(self.t.copy(), y, ye, mask)
 
     def __mul__(self, other):
         """Multiplies the Tseries by 'other' returning the result as another
@@ -513,7 +513,7 @@ class Tseries:
             ye[~ok] = -1
             mask = self.mask.copy()
 
-        return Tseries(self.t, y, ye, mask)
+        return Tseries(self.t.copy(), y, ye, mask)
 
     def __add__(self, other):
         """Add 'other' to the Tseries returning the result as another
@@ -552,7 +552,7 @@ class Tseries:
             ye[~ok] = -1
             mask = self.mask.copy()
 
-        return Tseries(self.t, y, ye, mask)
+        return Tseries(self.t.copy(), y, ye, mask)
 
     def __sub__(self, other):
         """Subtracts 'other' from the Tseries returning the result as another
@@ -592,7 +592,7 @@ class Tseries:
             ye[~ok] = -1
             mask = self.mask.copy()
 
-        return Tseries(self.t, y, ye, mask)
+        return Tseries(self.t.copy(), y, ye, mask)
 
     def __getitem__(self, key):
         copy_self = copy.copy(self)
@@ -821,10 +821,7 @@ class Tseries:
                 self.ye[nstart:], self.mask[nstart:]
             )
         else:
-            return Tseries(
-                self.t[:], self.y[:],
-                self.ye[:], self.mask[:]
-            )
+            return copy.copy(self)
 
     def set_clouds(self, nwin, vmax, tmin):
         """This tries automatically to flag points as being affected by clouds using
