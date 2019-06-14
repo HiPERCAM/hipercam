@@ -889,75 +889,81 @@ class Rdata (Rhead):
                 noff = 0
                 nwin = 0
                 for wl, wr in zip(self.win[::2],self.win[1::2]):
-                    # wl and wr have the same dimensions
                     npix = 6*wl.nx*wl.ny
                     shape = (wl.ny,wl.nx)
+
+                    # wl and wr have the same dimensions, but need
+                    # re-jigging to account for stripped pixel
+                    wlc = wl.copy()
+                    wrc = wr.copy()
+                    wlc.nx -= 1
+                    wrc.nx -= 1
 
                     # keep as 2-byte ints
                     if strip_outer:
                         wins1[str(nwin+1)] = Window(
-                            wl, np.reshape(
+                            wlc, np.reshape(
                                 buff[noff:noff+npix:6],shape)[:,1:],
                             True
                         )
                         wins1[str(nwin+2)] = Window(
-                            wr, np.reshape(
+                            wrc, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,-2::-1],
                             True
                         )
 
                         wins2[str(nwin+1)] = Window(
-                            wl, np.reshape(
+                            wlc, np.reshape(
                                 buff[noff+2:noff+npix:6],shape)[:,1:],
                             True
                         )
                         wins2[str(nwin+2)] = Window(
-                            wr, np.reshape(
+                            wrc, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,-2::-1],
                             True
                         )
 
                         wins3[str(nwin+1)] = Window(
-                            wl, np.reshape(
+                            wlc, np.reshape(
                                 buff[noff+4:noff+npix:6],shape)[:,1:],
                             True
                         )
                         wins3[str(nwin+2)] = Window(
-                            wr, np.reshape(
+                            wrc, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,-2::-1],
                             True
                         )
 
                     else:
                         wins1[str(nwin+1)] = Window(
-                            wl, np.reshape(
+                            wlc, np.reshape(
                                 buff[noff:noff+npix:6],shape),
                             True
                         )
                         wins1[str(nwin+2)] = Window(
-                            wr, np.reshape(
+                            wrc, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,::-1],
                             True
                         )
 
                         wins2[str(nwin+1)] = Window(
-                            wl, np.reshape(
+                            wlc, np.reshape(
                                 buff[noff+2:noff+npix:6],shape),
                             True
                         )
                         wins2[str(nwin+2)] = Window(
-                            wr, np.reshape(
+                            wrc, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,::-1],
                             True
                         )
 
                         wins3[str(nwin+1)] = Window(
-                            wl, np.reshape(
+                            wlc, np.reshape(
                                 buff[noff+4:noff+npix:6],shape),
                             True
                         )
                         wins3[str(nwin+2)] = Window(
-                            wr, np.reshape(
+                            wrc, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,::-1],
                             True
                         )
