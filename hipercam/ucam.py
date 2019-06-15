@@ -892,15 +892,17 @@ class Rdata (Rhead):
                     npix = 6*wl.nx*wl.ny
                     shape = (wl.ny,wl.nx)
 
-                    # wl and wr have the same dimensions, but need
-                    # re-jigging to account for stripped pixel
+                    # Copy to avoid nasty issues of references that occur
+                    # when stripping pixels
                     wlc = wl.copy()
                     wrc = wr.copy()
-                    wlc.nx -= 1
-                    wrc.nx -= 1
 
                     # keep as 2-byte ints
                     if strip_outer:
+                        # re-jig windows to strip pixel in X
+                        wlc.nx -= 1
+                        wrc.nx -= 1
+
                         wins1[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff:noff+npix:6],shape)[:,1:],
@@ -935,6 +937,7 @@ class Rdata (Rhead):
                         )
 
                     else:
+                        # no window mod needed in this case
                         wins1[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff:noff+npix:6],shape),
