@@ -10,13 +10,15 @@ Installation
 
 hipercam is written in Python3; it does not support Python2.x It
 relies on the following third-party packages. At the moment I suggest
-you get these installed first (you will very likely have several of
-them already); in the future I might try to make it more
-automatic. Most of these are available using 'pip', and if you can't
-get your sys admin to install them for you, I recommend installing
-them locally e.g. ``pip install cython --user``. Note that some of
-them use others, e.g. 'astropy' uses matplotlib, numpy and scipy,
-so if you install it, you will have the others as well.
+you get these, or at the very least trm.pgplot, installed first (you
+will very likely have several of them already). Most of these are
+available using 'pip', and if you can't get your sys admin to install
+them for you, I recommend installing them locally e.g. ``pip install
+cython --user``. Note that some of them use others, e.g. 'astropy'
+uses matplotlib, numpy and scipy, so if you install it, you will have
+the others as well. If you install with 'pip' (which may have to specify
+as 'pip3' if the python2.XX version of pip is your default), many of
+these may be installed for you by pip as part of the process.
 
   astropy :
          astronomical Python package with lots of useful stuff.
@@ -27,8 +29,8 @@ so if you install it, you will have the others as well.
 
   matplotlib :
          standard plotting package for Python. You will also need
-	 a Qt backend. In opensuse the package python3-matplotib-qt5
-	 allowing the Qt5Agg backend
+         a Qt backend. In opensuse for instance the package
+         python3-matplotib-qt5 allows the Qt5Agg backend
 
   numba :
         Another package along with Cythong to suuport faster numerics. Uses
@@ -67,7 +69,7 @@ so if you install it, you will have the others as well.
          for talking to the hipercam server. You want the Websocket
          client library which you can get from::
 
-             git clone https://github.com/websocket-client/websocket-client
+          git clone https://github.com/websocket-client/websocket-client
 
   sep :
          astronomical source extractor for the aligntool script
@@ -95,7 +97,7 @@ or
 
   python setup.py --user
 
-or
+or, best of all,
 
   pip install . --user
 

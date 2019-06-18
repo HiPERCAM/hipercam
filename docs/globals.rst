@@ -20,12 +20,14 @@
 .. |fits2hcm| replace:: :func:`fits2hcm <hipercam.scripts.fits2hcm>`
 .. |genred| replace:: :func:`genred <hipercam.scripts.genred>`
 .. |grab| replace:: :func:`grab <hipercam.scripts.grab>`
+.. |hinfo| replace:: :func:`hinfo <hipercam.scripts.hinfo>`
 .. |hist| replace:: :func:`hist <hipercam.scripts.hist>`
 .. |hfilter| replace:: :func:`hfilter <hipercam.scripts.hfilter>`
 .. |hlog2fits| replace:: :func:`hlog2fits <hipercam.scripts.hlog2fits>`
 .. |hls| replace:: :func:`hls <hipercam.scripts.hls>`
 .. |hplot| replace:: :func:`hplot <hipercam.scripts.hplot>`
 .. |makebias| replace:: :func:`makebias <hipercam.scripts.makebias>`
+.. |makedark| replace:: :func:`makedark <hipercam.scripts.makedark>`
 .. |makeflat| replace:: :func:`makeflat <hipercam.scripts.makeflat>`
 .. |mstats| replace:: :func:`mstats <hipercam.scripts.mstats>`
 .. |mul| replace:: :func:`mul <hipercam.scripts.mul>`

@@ -23,6 +23,14 @@ detailed guide to reducing your data.  It covers the following steps:
 Bias frames
 ===========
 
+All CCD images come with a near-constant electronic offset called the
+bias which ensures that the counts are always positive and helps
+ensure optimum readout properties. This offset does not represent
+genuine detected light and must be subtracted off any image. The
+standard approach is to take a set of zero illumination frames quickly
+to avoid the build-up of counts either from light leakage or thermal
+noise.
+
 Bias frames can be quickly taken with |hiper|. All dome lights should be off,
 the focal plane slide should be in to block light, and ideally the telescope
 mirrors closed. Bias frames should be taken in clear mode with the shortest
@@ -56,7 +64,9 @@ upon the particular type of bias::
 
   ln -s run0002.hcm bias-ff-slow.hcm
 
-for example, for a full frame bias in slow readout mode.
+for example, for a full frame bias in slow readout mode. I like this
+approach because one can quickly see (e.g. 'ls -l') which run a given
+calibration frame came from.
 
 Once you have a bias frame, then it can be used by editing in its name in the
 calibration section of the reduce file.
@@ -73,12 +83,43 @@ calibration section of the reduce file.
    include a plot option to check this. Make sure to look at this if the bias
    is taken not long after a power on.
 
+Darks
+=====
+
+If a CCD is left exposing in complete darkness, counts accumulate
+through thermal excitation, which is known as dark current. Correction
+for this is particularly important for long exposure images. Both
+|hiper| and ULTRASPEC are kept quite cold and have relatively little
+dark current so it is often safe to ignore it. It is also very often
+not at all easy to take dark calibration frames because of light
+leakage. At minimum they typically need to be taken at night with the
+dome closed, so they are a good bad weather calibration. One should
+normally take a set of biases before and after as well to allow for
+bias level drift.  Dark current is particularly important for ULTRACAM
+where the CCDs run relatively warm. In particular there are multiple
+"hot pixels" with dark currents significantly above the background.
+The program |makedark| handles making dark calibration frames
+including correction for whatever exposure is included in the bias. If
+dark current is significant, then the flat fields should also be
+corrected. Note that correcting for dark current does not mean that
+you should not try to avoid hot pixels; the worst of these could add
+significant noise and the very worst are poorly behaved and do not
+correct well.
+
 Flat fields
 ===========
 
-Flat fields with |hiper| are taken at twilight in areas of sky with as few
-stars as possible. One should offset the telescope between images to allow
-stars to be removed. At the GTC, |hiper|'s driving routine, ``hdriver`` can
+CCDs are not of uniform sensitivity. There are pixel-to-pixel
+variations, there may be dust on the optics, and there may be overall
+vigetting which typically causes a fall in sensitivity at the edge of
+the field. To account for this the standard approach is to take images
+of the twilight sky just after sunset or before sunrise. Best of all
+if the sky is free of many stars, but in any case one should always
+offset the (multiple) sky field frames taken so that the starts can be
+medianed out of the flat field. Normally we move in a spiral pattern to
+accomplish this.
+
+At the GTC, |hiper|'s driving routine, ``hdriver`` can
 drive the telescope as well as the instrument, making spiralling during sky
 flats straightforward. One can normally acquire more than 100 frames in a
 single run, but the different CCDs will have different count levels on any one
@@ -111,8 +152,8 @@ neighbouring pixels in the green and blue CCDs especially.
    significant effect on the removal of stars from the final frame and
    then to compare the results against each other. See |makeflat|.
 
-Fringing / darks
-================
+Fringing
+========
 
 With |hiper| there is some fringing in the z-band and to a much
 smaller extent in the i-band. Fringing does not flat-field away because it is
@@ -121,8 +162,15 @@ twilight flats come from broad-band illumination. It should be possible to
 correct for it, but I have yet to do so. This is mostly here for warning.
 
 .. Warning::
-   I have yet to implement corrections for fringing or dark current in the
-   |hiper| pipeline.
+   I have yet to implement correction for fringing in the
+   |hiper| pipeline but it is high on the to-do list.
+
+Bad pixels
+==========
+
+Some pixels and columns of pixels are to be avoided at all costs. They may
+however still fall near to some targets. My intention is that these bad pixels
+will be flagged if they fall into the target aperture or ignored if they fall into the sky aperture. This, like fringing, is TBD.
 
 Aperture files
 ==============
