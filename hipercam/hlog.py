@@ -418,7 +418,7 @@ class Tseries:
         if trange is not None:
             t1,t2 = trange
             ok &= (self.t > t1) & (self.t < t2)
-            
+
         ymasked = np.ma.masked_array(self.y, ~ok)
         if erry:
             axes.errorbar(
@@ -914,8 +914,35 @@ class Tseries:
         """
         ok = (self.y > 0) & (self.ye > 0)
         new_ts = copy.copy(self)
-        new_ts.y[ok] = -2.5*np.log10(self.y[ok])        
+        new_ts.y[ok] = -2.5*np.log10(self.y[ok])
         new_ts.y[~ok] = 0
         new_ts.ye[ok] = 2.5/np.log(10)*self.ye[ok]/self.y[ok]
         new_ts.ye[~ok] = -1
         return new_ts
+
+    def write(self, fname, fmt='%.14e %.6e %.2e  %d', **kwargs):
+        """
+        Writes out the Tseries to an ASCII file using numpy.savetxt
+        Other arguments to savetxt can be passed via kwargs
+        """
+        header = kwargs.get('header','') + \
+"""
+
+Data written by hipercam.hlog.Tseries.write.
+Four columns:
+times    y-values  y-errors  integer mask
+"""
+        kwargs['header'] = header
+        np.savetxt(
+            fname, np.column_stack([self.t, self.y, self.ye, self.mask]),
+            fmt=fmt, **kwargs
+        )
+
+    @classmethod
+    def read(cls, fname):
+        """
+        Creates a Tseries from an ASCII column data file
+        """
+        t,y,ye,mask = np.loadtxt(fname,unpack=True)
+        return Tseries(t,y,ye,mask)
+
