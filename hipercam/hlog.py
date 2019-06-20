@@ -412,7 +412,7 @@ class Tseries:
               Two element tuple to limit the time range
 
         """
-        # Select points 
+        # Select points
         ok = self.get_mask(mvalue)
 
         if trange is not None:
@@ -427,7 +427,7 @@ class Tseries:
             )
         else:
             axes.plot(self.t, ymasked, fmt, color=colour, **kwargs)
-            
+
     def __repr__(self):
         return 'Tseries(t={!r}, y={!r}, ye={!r}, mask={!r}'.format(
             self.t, self.y, self.ye, self.mask)
@@ -797,7 +797,7 @@ class Tseries:
         """
         Clips points off either end of Tseries, returns a new Tseries,
         leaves old one unchanged.
-        
+
         Arguments::
 
            nstart : int
