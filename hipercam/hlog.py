@@ -41,6 +41,34 @@ NUMPY_TO_STRUCT = {
     'u4' : 'I',
 }
 
+# Map of column names to output format for the Hlog.write method.
+# Will need adapting if log files are changed. Designed to replicate
+# the output in reduction.py
+
+CNAME_TO_FMT = {
+    'nframe' : '{:d}',
+    'MJD' : '{:.14f}',
+    'MJDok' : '{:b}',
+    'Exptim' : '{:.8g}',
+    'mfwhm' : '{:.2f}',
+    'mbeta' : '{:.2f}',
+    'x' : '{:.4f}',
+    'xe' : '{:.4f}',
+    'y' : '{:.4f}',
+    'ye' : '{:.4f}',
+    'fwhm' : '{:.3f}',
+    'fwhme' : '{:.3f}',
+    'beta' : '{:.3f}',
+    'betae' : '{:.3f}',
+    'counts' : '{:.1f}',
+    'countse' : '{:.1f}',
+    'sky' : '{:.2f}',
+    'skye' : '{:.2f}',
+    'nsky' : '{:d}',
+    'nrej' : '{:d}',
+    'flag' : '{:d}',
+}
+
 class Hlog(dict):
     """
     Class to represent a HiPERCAM log as produced by reduce.  Based on
@@ -54,19 +82,32 @@ class Hlog(dict):
 
     would print the X-values of aperture '1' from CCD '2'.
 
-    Hlog objects have one attribute 'apnames' which is a dictionary keyed by
-    CCD label giving a list of the aperture labels used for each CCD. i.e.
+    Hlog objects have four attributes:
 
-      >> print(hlog.apnames['2'])
+     1) 'apnames', a dictionary keyed by CCD label giving a list of the 
+        aperture labels used for each CCD. i.e.
 
-    might return ['1','2','3'].
+        >> print(hlog.apnames['2'])
+
+        might return ['1','2','3'].
+
+    2) 'cnames', a dictionary keyed by CCD label giving a list of the column 
+        names in the order they appeared in the original file. This is to
+        help write out the data
+
+    3) 'comments', a list of strings storing the header comments to allow the Hlog
+       to be written out with full information if read from an ASCII log.
+
+    4) 'writable', a flag to say whether the Hlog can be written which at the moment
+       is only true if it has been read from an ASCII |hipercam| log file. Potentially
+       fixable in the future.
     """
 
     @classmethod
-    def from_ascii(cls, fname):
+    def read(cls, fname):
         """
         Loads a HiPERCAM ASCII log file written by reduce. Each CCD is loaded
-        into a separate structured array, returned in a dictionary labelled by
+        into a separate structured array, returned in a dictionary keyed by
         the CCD label.
         """
 
@@ -74,65 +115,74 @@ class Hlog(dict):
         read_cnames = False
         read_dtypes = False
         read_data = False
-        cnames = {}
         dtype_defs = {}
         dtypes = {}
         struct_types = {}
         hlog.apnames = {}
+        hlog.cnames = {}
+        hlog.comments = []
+        start = True
 
         with open(fname) as fin:
             for line in fin:
 
-                if read_cnames:
-                    # reading the column names
-                    if line.find('End of column name definitions') > -1:
-                        read_cnames = False
-                    elif line.find('=') > -1:
-                        # store the column names
-                        cnam = line[1:line.find('=')].strip()
-                        cnames[cnam] = line[line.find('=')+1:].strip().split()[1:]
-                        hlog.apnames[cnam] = list(set(
-                            [item[item.find('_')+1:] for item in cnames[cnam] \
+                if line.startswith('#'):
+
+                    if start:
+                        hlog.comments.append(line)
+
+                    if line.find('Start of column name definitions') > -1:
+                        read_cnames = True
+
+                    elif line.find('Start of data type definitions') > -1:
+                        read_dtypes = True
+
+                    elif read_cnames:
+                        # reading the column names
+                        if line.find('End of column name definitions') > -1:
+                            read_cnames = False
+                        elif line.find('=') > -1:
+                            # store the column names
+                            cnam = line[1:line.find('=')].strip()
+                            hlog.cnames[cnam] = line[line.find('=')+1:].strip().split()[1:]
+                            hlog.apnames[cnam] = list(set(
+                                [item[item.find('_')+1:] for item in hlog.cnames[cnam] \
                                  if item.find('_') > -1]
                             ))
-                        hlog.apnames[cnam].sort()
+                            hlog.apnames[cnam].sort()
 
-                elif read_dtypes:
-                    # reading the data types. We build numpy.dtype objects and
-                    # strings for packing the data with struct.pack to save
-                    # memory.
-                    if line.find('End of data type definitions') > -1:
-                        read_dtypes = False
-                        # can now create the record array dtype
-                        for cnam in cnames:
-                            # numpy dtype
-                            dtypes[cnam] = np.dtype(
-                                list(zip(cnames[cnam], dtype_defs[cnam]))
-                            )
-                            # equivalent struct. Use native byte order with no alignment
-                            # (initial '=') to match numpy packing.
-                            struct_types[cnam] = '=' + \
-                                ''.join(
-                                    [NUMPY_TO_STRUCT[dt]
-                                     for dt in dtype_defs[cnam]])
+                    elif read_dtypes:
+                        # reading the data types. We build numpy.dtype objects and
+                        # strings for packing the data with struct.pack to save
+                        # memory.
+                        if line.find('End of data type definitions') > -1:
+                            read_dtypes = False
+                            # can now create the record array dtype
+                            for cnam in hlog.cnames:
+                                # numpy dtype
+                                dtypes[cnam] = np.dtype(
+                                    list(zip(hlog.cnames[cnam], dtype_defs[cnam]))
+                                )
+                                # equivalent struct. Use native byte order with no alignment
+                                # (initial '=') to match numpy packing.
+                                struct_types[cnam] = '=' + \
+                                                     ''.join(
+                                                         [NUMPY_TO_STRUCT[dt]
+                                                          for dt in dtype_defs[cnam]])
 
-                        read_data = True
+                                read_data = True
 
-                    elif line.find('=') > -1:
-                        # store the data types
-                        cnam = line[1:line.find('=')].strip()
-                        dtype_defs[cnam] = line[line.find('=')+1:].strip().split()[1:]
+                        elif line.find('=') > -1:
+                            # store the data types
+                            cnam = line[1:line.find('=')].strip()
+                            dtype_defs[cnam] = line[line.find('=')+1:].strip().split()[1:]
 
-                        # get ready for the data
-                        hlog[cnam] = bytearray()
+                            # get ready for the data
+                            hlog[cnam] = bytearray()
 
-                elif line.find('Start of column name definitions') > -1:
-                    read_cnames = True
-
-                elif line.find('Start of data type definitions') > -1:
-                    read_dtypes = True
-
-                elif read_data and not line.startswith('#'):
+                elif read_data:
+                    # No more storage of comment lines
+                    start = False
 
                     # read a data line
                     items = line.strip().split()
@@ -159,10 +209,11 @@ class Hlog(dict):
         for cnam in hlog:
             hlog[cnam] = np.frombuffer(hlog[cnam], dtypes[cnam])
 
+        hlog.writable = True
         return hlog
 
     @classmethod
-    def from_fits(cls, fname):
+    def rfits(cls, fname):
         """
         Loads a HiPERCAM FITS log file written by |reduce| and subsequently
         converted by |hlog2fits|. Each CCD is loaded into a separate
@@ -181,10 +232,11 @@ class Hlog(dict):
                         ))
                 hlog.apnames[cnam].sort()
 
+        hlog.writable = False
         return hlog
 
     @classmethod
-    def from_ulog(cls, fname):
+    def rulog(cls, fname):
         """
         Creates an Hlog from an ASCII file produced by the C++ ULTRACAM 
         pipeline.
@@ -273,6 +325,7 @@ class Hlog(dict):
         for cnam in hlog:
             hlog[cnam] = np.frombuffer(hlog[cnam], dtype=dtypes[cnam])
 
+        hlog.writable = False
         return hlog
 
     def tseries(self, cnam, apnam, name='counts'):
@@ -298,6 +351,35 @@ class Hlog(dict):
             ccd['{:s}e_{!s}'.format(name,apnam)],
             ccd['flag_{!s}'.format(apnam)]
         )
+
+    def write(self, fname):
+        """
+        Writes out the Hlog to an ASCII file. This is to allow one to read in
+        a log file, modify it and then write it out, useful for example to flag
+        cloudy data. At the moment, it will only work for an Hlog read from a
+        |hipercam| ASCII log file. NB It won't exactly replicate the log file
+        input since it writes out in CCD order.
+        """
+        if self.writable:
+            with open(fname,'w') as fout:
+                # write out the comments
+                for line in self.comments:
+                    fout.write(line)
+
+                # write out the data
+                for cnam, data in self.items():
+                    # generate format string
+                    fmts = ['{:s}',]
+                    for name in data.dtype.names:
+                        nam = name[:name.find('_')] if name.find('_') > -1 else name
+                        fmts.append(CNAME_TO_FMT[nam])
+                    fmt = ' '.join(fmts) + '\n#\n'
+                    for row in data:
+                        fout.write(fmt.format(cnam,*row))
+        else:
+            raise Hipercam_Error('Hlog not writable')
+
+
 
 class Tseries:
     """
@@ -419,13 +501,13 @@ class Tseries:
             t1,t2 = trange
             ok &= (self.t > t1) & (self.t < t2)
 
-        ymasked = np.ma.masked_array(self.y, ~ok)
         if erry:
             axes.errorbar(
-                self.t, ymasked, self.ye,
+                self.t[ok], self.y[ok], self.ye[ok],
                 fmt=fmt, color=colour, capsize=capsize, **kwargs
             )
         else:
+            ymasked = np.ma.masked_array(self.y, ~ok)
             axes.plot(self.t, ymasked, fmt, color=colour, **kwargs)
 
     def __repr__(self):
