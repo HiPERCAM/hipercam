@@ -824,7 +824,12 @@ def update_plots(
                     )
 
                 if cnam in rfile.aper:
-                    hcam.pgp.pCcdAper(rfile.aper[cnam])
+                    # find the result for this ccd name
+                    res = next(res for (this_cnam, res) in results if this_cnam == cnam)
+                    # we always use the last result in the parallel group
+                    last_res = res[-1]
+                    ccd_aper = last_res[2]
+                    hcam.pgp.pCcdAper(ccd_aper)
 
         # end of CCD display loop
         print(message)
@@ -1388,7 +1393,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     wy = 1./ey**2
                     wysum += wy
                     ysum += wy*dy
-                
+
                     shifts.append((dx, dy))
 
                     # store stuff
@@ -1882,7 +1887,7 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
                 ymin = fmin - extend
             if fmax > ymax:
                 ymax = fmax + extend
-        
+
         if sect['linear']:
             panel.y1, panel.y2 = ymin, ymax
         else:
