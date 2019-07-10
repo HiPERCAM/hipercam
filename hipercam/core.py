@@ -14,7 +14,7 @@ __all__ = (
     'ALL_OK', 'NO_FWHM','NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
     'TARGET_NONLINEAR', 'TARGET_SATURATED', 
     'REDUCE_FILE_VERSION', 'NO_EXTRACTION', 'NO_DATA',
-    'CLOUDS', 'JUNK', 'ANY_BAD',
+    'CLOUDS', 'JUNK', 'ANY_BAD', 'BAD_FLAT', 'BAD_COLUMN',
     'FLAGS',
 )
 
@@ -80,7 +80,7 @@ CNAMS = {
 }
 
 # Bit masks (used in reduce.py and hlog.py)
-ALL_OK            = 0   # No problems detected (no bits set)
+ALL_OK            = 0        # No problems detected (no bits set)
 NO_FWHM           = 1 << 0   # No FWHM, even though variable apertures are being used
 NO_SKY            = 1 << 1   # No sky pixels at all
 SKY_AT_EDGE       = 1 << 2   # Sky aperture edge of window
@@ -90,12 +90,14 @@ TARGET_NONLINEAR  = 1 << 5   # At least one pixel in target above non-linear lev
 NO_EXTRACTION     = 1 << 6   # No extraction possible
 NO_DATA           = 1 << 7   # No valid pixels in aperture
 CLOUDS            = 1 << 8   # Point affected by clouds
-JUNK              = 1 << 9  # Unspecified junk data (e.g. cosmic ray hit)
+JUNK              = 1 << 9   # Unspecified junk data (e.g. cosmic ray hit)
+BAD_FLAT          = 1 << 10  # Bad flat field pixel (e.g. deep dust speck)
+BAD_COLUMN        = 1 << 11  # Bad column (e.g. target aperture includes such data)
 
 # Matches any bad point
 ANY_BAD = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | \
           TARGET_SATURATED | TARGET_NONLINEAR | NO_EXTRACTION | NO_DATA | \
-          CLOUDS | JUNK
+          CLOUDS | JUNK | BAD_FLAT | BAD_COLUMN
 
 # all flags for useful reference in other places
 FLAGS = (
@@ -110,6 +112,8 @@ FLAGS = (
     ('NO_DATA', NO_DATA),
     ('CLOUDS', CLOUDS),
     ('JUNK', JUNK),
+    ('BAD_FLAT', BAD_FLAT),
+    ('BAD_COLUMN', BAD_COLUMN),
     ('ANY_BAD', ANY_BAD),
 )
 
