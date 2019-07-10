@@ -130,6 +130,7 @@ setup(
             'digest=hipercam.scripts.digest:digest',
             'div=hipercam.scripts.arith:div',
             'fits2hcm=hipercam.scripts.fits2hcm:fits2hcm',
+            'flagcloud=hipercam.scripts.flagcloud:flagcloud',
             'genred=hipercam.scripts.genred:genred',
             'grab=hipercam.scripts.grab:grab',
             'hfilter=hipercam.scripts.hfilter:hfilter',
