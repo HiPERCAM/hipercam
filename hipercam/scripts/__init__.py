@@ -8,6 +8,7 @@ from .arith import add, div, mul, sub
 from .averun import averun
 from .carith import cadd, cdiv, cmul, csub
 from .combine import combine
+from .flagcloud import flagcloud
 from .grab import grab
 from .genred import genred
 from .hist import hist
