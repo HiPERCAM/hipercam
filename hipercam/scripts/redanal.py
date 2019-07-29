@@ -56,7 +56,7 @@ def redanal(args=None):
             'log', 'ASCII reduction log file to analyse',
             cline.Fname('run001', hcam.LOG)
             )
-        log = hcam.hlog.Hlog.from_ascii(log_file)
+        log = hcam.hlog.Hlog.read(log_file)
 
     for cnam in sorted(log):
         print()

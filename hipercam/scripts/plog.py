@@ -139,7 +139,7 @@ def plog(args=None):
             )
 
     # load the reduce log
-    hlog = hcam.hlog.Hlog.from_ascii(log)
+    hlog = hcam.hlog.Hlog.read(log)
 
     if width > 0 and height > 0:
         fig = plt.figure(figsize=(width,height))
