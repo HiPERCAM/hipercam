@@ -240,6 +240,7 @@ def psf_reduce(args=None):
                 'flist', 'file list', cline.Fname('files.lis', hcam.LIST)
             )
             first = 1
+            last = 0
 
         log = cl.get_value(
             'log', 'name of log file to store results',
@@ -507,7 +508,7 @@ def psf_reduce(args=None):
 
                     update_plots(
                         results, rfile, implot, lplot, imdev, lcdev,
-                        pccds, ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
+                        pccds[-1], ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
                         lpanel, xpanel, ypanel, tpanel, spanel, tkeep,
                         lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
                     )
