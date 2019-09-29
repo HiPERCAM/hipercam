@@ -10,7 +10,7 @@ and plot the result with matplotlib:
   >> import matplotlib.pyplot as plt
   >> import hipercam as hcam
   >>
-  >> hlog = hcam.hlog.Hlog.from_ascii('ts.log')
+  >> hlog = hcam.hlog.Hlog.read('ts.log')
   >> targ = hlog.tseries('2','t')
   >> comp = hlog.tseries('2','c')
   >>
