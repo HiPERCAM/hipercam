@@ -55,7 +55,7 @@ Params = {
     'aper.sky.col' : CIS[2],
 
     # aperture label colour
-    'aper.label.col' : CIS[6],
+    'aper.label.col' : CIS[4],
 
     # aperture link colour
     'aper.link.col' : CIS[5],
@@ -301,7 +301,8 @@ def pAper(axes, aper, label='', ccdAper=None):
         objs.append(
             axes.text(
                 aper.x-aper.rsky2,aper.y-aper.rsky2,label,
-                color=Params['aper.label.col'],ha='right',va='top'
+                color=Params['aper.label.col'],ha='right',va='top',
+                bbox=dict(ec='0.8',fc='0.8',alpha=0.5)
             )
         )
 
