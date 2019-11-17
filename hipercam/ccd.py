@@ -787,3 +787,36 @@ def get_ccd_info(fname):
                 first = False
 
     return info
+
+def trim_ultracam(mccd, ncol, nrow):
+    """Trims columns and rows from ULTRACAM data. The rows are trimmed
+    from the bottom of each windo, the columns are taken from the left
+    of the left-hand windows and the right of the right-hand
+    windows. This is becuase these regions are sometimes corrupted by
+    bad data.
+
+    Arguments::
+
+       mccd : MCCD
+         the MCCD to be trimmed. Modified in place, i.e. it's changed on
+         output.
+
+       ncol : int
+         number of columns (nearest output of respective window) to
+         be trimmed.
+
+       nrow : int
+         number of rows (nearest output of respective window) to
+         be trimmed.
+
+    """
+    for ccd in mccd:
+        for i,win in enumerate(ccd):
+            if i % 2 == 0:
+                # left-hand of window pair, trim from left
+                win.data = win.data[nrow:,ncol:]
+                win.llx += ncol
+            else:
+                # right-hand of window pair, trim fomr right
+                win.data = wind.data[nrow:,:-ncol]
+            win.lly += nrow

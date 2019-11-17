@@ -22,10 +22,11 @@ __all__ = ['rtplot',]
 ######################################
 
 def rtplot(args=None):
-    """``rtplot [source device width height] (run first twait tmax | flist)
-    [pause plotall] ccd (nx) bias defect setup [hurl] msub iset
-    (ilo ihi | plo phi) xlo xhi ylo yhi (profit [fdevice fwidth fheight
-    method beta fwhm fwhm_min shbox smooth splot fhbox hmin read gain thresh])``
+    """``rtplot [source device width height] (run first (trim ncol nrow)
+    twait tmax | flist) [pause plotall] ccd (nx) bias defect setup
+    [hurl] msub iset (ilo ihi | plo phi) xlo xhi ylo yhi (profit
+    [fdevice fwidth fheight method beta fwhm fwhm_min shbox smooth
+    splot fhbox hmin read gain thresh])``
 
     Plots a sequence of images as a movie in near 'real time', hence
     'rt'. Designed to be used to look at images coming in while at the
@@ -82,6 +83,18 @@ def rtplot(args=None):
            quite at the end.  i.e. -10 will try to get 10 from the last
            frame. This is mainly to sidestep a difficult bug with the
            acquisition system.
+
+        trim : bool [if source starts with 'u']
+           True to trim columns and/or rows off the edges of windows nearest
+           the readout. This is particularly for ULTRACAM windowed data where
+           the first few rows and columns can contain bad data.
+
+        ncol : int [if trim]
+           Number of columns to remove (on left of left-hand window, and right
+           of right-hand windows)
+
+        nrow : int [if trim]
+           Number of rows to remove (bottom of windows)
 
         twait : float [if source ends 's' or 'l'; hidden]
            time to wait between attempts to find a new exposure, seconds.
@@ -244,6 +257,9 @@ def rtplot(args=None):
         cl.register('height', Cline.LOCAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
+        cl.register('trim', Cline.LOCAL, Cline.HIDE)
+        cl.register('ncol', Cline.LOCAL, Cline.HIDE)
+        cl.register('nrow', Cline.LOCAL, Cline.HIDE)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
