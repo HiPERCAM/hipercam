@@ -244,14 +244,13 @@ def reduce(args=None):
                 trim = cl.get_value(
                     'trim', 'do you want to trim edges of windows? (ULTRACAM only)', True
                 )
-                ncol = cl.get_value(
-                    'ncol', 'number of columns to trim from windows', 0)
-                nrow = cl.get_value(
-                    'nrow', 'number of rows to trim from windows', 0)
+                if trim:
+                    ncol = cl.get_value(
+                        'ncol', 'number of columns to trim from windows', 0)
+                    nrow = cl.get_value(
+                        'nrow', 'number of rows to trim from windows', 0)
             else:
                 trim = False
-
-            cl.set_default('last',0)
 
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
@@ -449,11 +448,12 @@ def reduce(args=None):
                     elif try_again:
                         continue
 
-                # Trim the frames: ULTRACAM windowed data has bad columns and rows on the sides
-                # of windows closest to the readout which can badly affect reduction. This option
-                # strips them.
+                # Trim the frames: ULTRACAM windowed data has bad
+                # columns and rows on the sides of windows closest to
+                # the readout which can badly affect reduction. This
+                # option strips them.
                 if trim:
-                    trim_ultracam(mccd, ncol, nrow)
+                    hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
                 # indicate progress
                 if 'NFRAME' in mccd.head:
