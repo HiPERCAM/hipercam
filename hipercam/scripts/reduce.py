@@ -28,9 +28,9 @@ __all__ = ['reduce', ]
 #
 ################################################
 def reduce(args=None):
-    """``reduce [source] rfile (run first last (trim ncol nrow) twait tmax
-    | flist) log lplot implot (ccd nx msub xlo xhi ylo yhi iset (ilo
-    ihi | plo phi))``
+    """``reduce [source] rfile (run first last (trim [ncol nrow]) twait
+    tmax | flist) log lplot implot (ccd nx msub xlo xhi ylo yhi iset
+    (ilo ihi | plo phi))``
 
     Reduces a sequence of multi-CCD images, plotting lightcurves as images
     come in. It can extract with either simple aperture photometry or Tim
@@ -186,9 +186,9 @@ def reduce(args=None):
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.HIDE)
-        cl.register('trim', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ncol', Cline.LOCAL, Cline.PROMPT)
-        cl.register('nrow', Cline.LOCAL, Cline.PROMPT)
+        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
+        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)

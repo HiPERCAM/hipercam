@@ -22,7 +22,7 @@ __all__ = ['rtplot',]
 ######################################
 
 def rtplot(args=None):
-    """``rtplot [source device width height] (run first (trim ncol nrow)
+    """``rtplot [source device width height] (run first (trim [ncol nrow])
     twait tmax | flist) [pause plotall] ccd (nx) bias defect setup
     [hurl] msub iset (ilo ihi | plo phi) xlo xhi ylo yhi (profit
     [fdevice fwidth fheight method beta fwhm fwhm_min shbox smooth
@@ -89,11 +89,11 @@ def rtplot(args=None):
            the readout. This is particularly for ULTRACAM windowed data where
            the first few rows and columns can contain bad data.
 
-        ncol : int [if trim]
+        ncol : int [if trim, hidden]
            Number of columns to remove (on left of left-hand window, and right
            of right-hand windows)
 
-        nrow : int [if trim]
+        nrow : int [if trim, hidden]
            Number of rows to remove (bottom of windows)
 
         twait : float [if source ends 's' or 'l'; hidden]
@@ -257,9 +257,9 @@ def rtplot(args=None):
         cl.register('height', Cline.LOCAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('trim', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ncol', Cline.LOCAL, Cline.PROMPT)
-        cl.register('nrow', Cline.LOCAL, Cline.PROMPT)
+        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
+        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)

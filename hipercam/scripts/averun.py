@@ -16,8 +16,8 @@ __all__ = ['averun',]
 #################################
 
 def averun(args=None):
-    """``averun [source] (run first last twait tmax | flist) bias dark flat
-    [method sigma adjust clobber] output``
+    """``averun [source] (run first last (trim [ncol nrow]) twait tmax |
+    flist) bias dark flat [method sigma adjust clobber] output``
 
     Averages images from a run using median combination, skipping the junk
     frames that result from NSKIP / NBLUE options in HiPERCAM and ULTRACAM
@@ -52,6 +52,18 @@ def averun(args=None):
 
         last : int [if source ends 's' or 'l']
            last exposure number must be >= first.
+
+        trim : bool [if source starts with 'u']
+           True to trim columns and/or rows off the edges of windows nearest
+           the readout. This is particularly for ULTRACAM windowed data where
+           the first few rows and columns can contain bad data.
+
+        ncol : int [if trim, hidden]
+           Number of columns to remove (on left of left-hand window, and right
+           of right-hand windows)
+
+        nrow : int [if trim, hidden]
+           Number of rows to remove (bottom of windows)
 
         twait : float [if source ends 's' or 'l'; hidden]
            time to wait between attempts to find a new exposure, seconds.
@@ -102,6 +114,9 @@ def averun(args=None):
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
+        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
+        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
@@ -127,6 +142,21 @@ def averun(args=None):
             run = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to average', 1, 1)
             last = cl.get_value('last', 'last frame to average', first, first)
+
+            if source.startswith('u'):
+                trim = cl.get_value(
+                    'trim',
+                    'do you want to trim edges of windows? (ULTRACAM only)',
+                    True
+                )
+                if trim:
+                    ncol = cl.get_value(
+                        'ncol', 'number of columns to trim from windows', 0)
+                    nrow = cl.get_value(
+                        'nrow', 'number of rows to trim from windows', 0)
+            else:
+                trim = False
+
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
             tmax = cl.get_value(
@@ -161,7 +191,9 @@ def averun(args=None):
         )
 
         if method == 'c':
-            sigma = cl.get_value('sigma', 'number of RMS deviations to clip', 3.)
+            sigma = cl.get_value(
+                'sigma', 'number of RMS deviations to clip', 3.
+            )
 
         cl.set_default('adjust','i')
         adjust = cl.get_value(
@@ -186,11 +218,19 @@ def averun(args=None):
 
     if server_or_local:
         print("\nCalling 'grab' ...")
-        args = [
-            None,'prompt',source,run,'yes',
-            str(first),str(last),str(twait),
-            str(tmax),'none','f32'
-        ]
+        if trim:
+            args = [
+                None,'prompt',source,run,'yes',
+                str(first),str(last),'yes',str(ncol),
+                str(nrow),str(twait),str(tmax),
+                'none','f32'
+            ]
+        else:
+            args = [
+                None,'prompt',source,run,'yes',
+                str(first),str(last),'no',str(twait),
+                str(tmax),'none','f32'
+            ]
         flist = hcam.scripts.grab(args)
 
     try:
@@ -198,16 +238,21 @@ def averun(args=None):
         if method == 'm':
             args = [
                 None, 'prompt', flist,
-                'none' if bias is None else bias, 'none' if dark is None else dark, 
-                'none' if flat is None else flat, 
-                method, adjust, 'usemean=yes', 'plot=no', 'yes' if clobber else 'no', output
+                'none' if bias is None else bias,
+                'none' if dark is None else dark,
+                'none' if flat is None else flat,
+                method, adjust, 'usemean=yes',
+                'plot=no',
+                'yes' if clobber else 'no', output
             ]
         else:
             args = [
                 None, 'prompt', flist,
-                'none' if bias is None else bias, 'none' if dark is None else dark, 
-                'none' if flat is None else flat, 
-                method, str(sigma), adjust, 'usemean=yes', 'plot=no',
+                'none' if bias is None else bias,
+                'none' if dark is None else dark,
+                'none' if flat is None else flat,
+                method, str(sigma), adjust,
+                'usemean=yes', 'plot=no',
                 'yes' if clobber else 'no', output
             ]
         hcam.scripts.combine(args)
@@ -230,5 +275,3 @@ def averun(args=None):
         os.remove(flist)
         print('\ntemporary files have been deleted')
         print('averun aborted')
-
-

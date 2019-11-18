@@ -21,7 +21,7 @@ __all__ =  ['grab',]
 ###########################################################
 
 def grab(args=None):
-    """``grab [source] run [temp] (ndigit) first last (trim ncol nrow)
+    """``grab [source] run [temp] (ndigit) first last (trim [ncol nrow])
     [twait tmax] bias [dtype]``
 
     This downloads a sequence of images from a raw data file and writes them
@@ -108,9 +108,9 @@ def grab(args=None):
         cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
-        cl.register('trim', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ncol', Cline.LOCAL, Cline.PROMPT)
-        cl.register('nrow', Cline.LOCAL, Cline.PROMPT)
+        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
+        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
