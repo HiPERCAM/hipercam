@@ -810,13 +810,16 @@ def trim_ultracam(mccd, ncol, nrow):
          be trimmed.
 
     """
-    for ccd in mccd:
-        for i,win in enumerate(ccd):
+    for cnam, ccd in mccd.items():
+        for i, (wlab, win) in enumerate(ccd.items()):
             if i % 2 == 0:
                 # left-hand of window pair, trim from left
                 win.data = win.data[nrow:,ncol:]
-                win.llx += ncol
+                win.llx += ncol*win.xbin
             else:
-                # right-hand of window pair, trim fomr right
-                win.data = wind.data[nrow:,:-ncol]
-            win.lly += nrow
+                # right-hand of window pair, trim from right
+                if ncol:
+                    win.data = win.data[nrow:,:-ncol]
+                else:
+                    win.data = win.data[nrow:,:]
+            win.lly += nrow*win.ybin
