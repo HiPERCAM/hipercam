@@ -911,7 +911,7 @@ class Rdata (Rhead):
                         )
                         wins1[str(nwin+2)] = Window(
                             wrc, np.reshape(
-                                buff[noff+1:noff+npix:6],shape)[:,-2::-1],
+                                buff[noff+1:noff+npix:6],shape)[:,-1:0:-1],
                             True
                         )
 
@@ -922,7 +922,7 @@ class Rdata (Rhead):
                         )
                         wins2[str(nwin+2)] = Window(
                             wrc, np.reshape(
-                                buff[noff+3:noff+npix:6],shape)[:,-2::-1],
+                                buff[noff+3:noff+npix:6],shape)[:,-1:0:-1],
                             True
                         )
 
@@ -933,7 +933,7 @@ class Rdata (Rhead):
                         )
                         wins3[str(nwin+2)] = Window(
                             wrc, np.reshape(
-                                buff[noff+5:noff+npix:6],shape)[:,-2::-1],
+                                buff[noff+5:noff+npix:6],shape)[:,-1:0:-1],
                             True
                         )
 
