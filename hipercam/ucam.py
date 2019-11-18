@@ -902,6 +902,7 @@ class Rdata (Rhead):
                         # re-jig windows to strip pixel in X
                         wlc.nx -= 1
                         wrc.nx -= 1
+                        wrc.llx += wrc.xbin
 
                         wins1[str(nwin+1)] = Window(
                             wlc, np.reshape(
