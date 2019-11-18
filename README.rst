@@ -36,10 +36,6 @@ these may be installed for you by pip as part of the process.
         Another package along with Cythong to suuport faster numerics. Uses
         "just-in-time" compilation of selected routines.
 
-  numba :
-        Another package along with Cythong to suuport faster numerics. Uses
-        "just-in-time" compilation of selected routines.
-
   numpy :
          Python's numerical data package. Highly likely you will have
          it, but note that you need at least version 1.12 to provide
