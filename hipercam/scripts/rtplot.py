@@ -257,9 +257,9 @@ def rtplot(args=None):
         cl.register('height', Cline.LOCAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('trim', Cline.LOCAL, Cline.HIDE)
-        cl.register('ncol', Cline.LOCAL, Cline.HIDE)
-        cl.register('nrow', Cline.LOCAL, Cline.HIDE)
+        cl.register('trim', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ncol', Cline.LOCAL, Cline.PROMPT)
+        cl.register('nrow', Cline.LOCAL, Cline.PROMPT)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
@@ -316,6 +316,20 @@ def rtplot(args=None):
                 first = cl.get_value('first', 'first frame to plot', 1)
             else:
                 first = cl.get_value('first', 'first frame to plot', 1, 0)
+
+            if source.startswith('u'):
+                trim = cl.get_value(
+                    'trim',
+                    'do you want to trim edges of windows? (ULTRACAM only)',
+                    True
+                )
+                if trim:
+                    ncol = cl.get_value(
+                        'ncol', 'number of columns to trim from windows', 0)
+                    nrow = cl.get_value(
+                        'nrow', 'number of rows to trim from windows', 0)
+            else:
+                trim = False
 
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
@@ -530,6 +544,13 @@ def rtplot(args=None):
                     break
                 elif try_again:
                     continue
+
+            # Trim the frames: ULTRACAM windowed data has bad columns
+            # and rows on the sides of windows closest to the readout
+            # which can badly affect reduction. This option strips
+            # them.
+            if trim:
+                hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
             # indicate progress
             tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
