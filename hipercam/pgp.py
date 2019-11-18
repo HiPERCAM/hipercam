@@ -132,7 +132,8 @@ def pWind(wind, vmin, vmax, label=''):
     """
     tr = [wind.llx+(wind.xbin-1)/2,wind.xbin,0,
           wind.lly+(wind.ybin-1)/2,0,wind.ybin]
-    pggray(wind.data, vmax, vmin, tr)
+    pdata = np.ascontiguousarray(wind.data,np.float32)
+    pggray(pdata, vmax, vmin, tr)
     pWin(wind, label)
 
 def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
