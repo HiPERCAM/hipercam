@@ -77,8 +77,9 @@ Params = {
 }
 
 class Device(PGdevice):
-    """Sub-class of PGdevice that after opening the plot device, re-defines colour
-    indices according to a standardised set in core.CIS
+    """Sub-class of PGdevice that after opening the plot device,
+    re-defines colour indices according to a standardised set in
+    core.CIS
 
     """
 
@@ -132,8 +133,7 @@ def pWind(wind, vmin, vmax, label=''):
     """
     tr = [wind.llx+(wind.xbin-1)/2,wind.xbin,0,
           wind.lly+(wind.ybin-1)/2,0,wind.ybin]
-    pdata = np.ascontiguousarray(wind.data,np.float32)
-    pggray(pdata, vmax, vmin, tr)
+    pggray(wind.data, vmax, vmin, tr)
     pWin(wind, label)
 
 def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
