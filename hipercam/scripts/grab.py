@@ -21,8 +21,8 @@ __all__ =  ['grab',]
 ###########################################################
 
 def grab(args=None):
-    """``grab [source] run [temp] (ndigit) first last [twait tmax] bias
-    [dtype]``
+    """``grab [source] run [temp] (ndigit) first last (trim ncol nrow)
+    [twait tmax] bias [dtype]``
 
     This downloads a sequence of images from a raw data file and writes them
     out to a series CCD / MCCD files.
@@ -61,6 +61,18 @@ def grab(args=None):
        last    : int
            Last frame to access, 0 for the lot
 
+       trim : bool [if source starts with 'u']
+           True to trim columns and/or rows off the edges of windows nearest
+           the readout. This is particularly for ULTRACAM windowed data where
+           the first few rows and columns can contain bad data.
+
+       ncol : int [if trim]
+           Number of columns to remove (on left of left-hand window, and right
+           of right-hand windows)
+
+       nrow : int [if trim]
+           Number of rows to remove (bottom of windows)
+
        twait   : float [hidden]
            time to wait between attempts to find a new exposure, seconds.
 
@@ -96,6 +108,9 @@ def grab(args=None):
         cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
+        cl.register('trim', Cline.LOCAL, Cline.PROMPT)
+        cl.register('ncol', Cline.LOCAL, Cline.PROMPT)
+        cl.register('nrow', Cline.LOCAL, Cline.PROMPT)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
@@ -120,6 +135,20 @@ def grab(args=None):
         if last < first and last != 0:
             sys.stderr.write('last must be >= first or 0')
             sys.exit(1)
+
+        if source.startswith('u'):
+            trim = cl.get_value(
+                'trim',
+                'do you want to trim edges of windows? (ULTRACAM only)',
+                True
+            )
+            if trim:
+                ncol = cl.get_value(
+                    'ncol', 'number of columns to trim from windows', 0)
+                nrow = cl.get_value(
+                    'nrow', 'number of rows to trim from windows', 0)
+            else:
+                trim = False
 
         twait = cl.get_value(
             'twait', 'time to wait for a new frame [secs]', 1., 0.)
@@ -173,6 +202,13 @@ def grab(args=None):
                     break
                 elif try_again:
                     continue
+
+                # Trim the frames: ULTRACAM windowed data has bad
+                # columns and rows on the sides of windows closest to
+                # the readout which can badly affect reduction. This
+                # option strips them.
+                if trim:
+                    hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
                 if bias is not None:
                     # read bias after first frame so we can
