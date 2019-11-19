@@ -436,6 +436,7 @@ class Rhead(fits.Header):
             nx = int(param['X1_SIZE'])
             ny = int(param['Y1_SIZE'])
             self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin))
+
             fsize += 2*nx*ny
 
             if mode == 'USPEC-2' or mode == 'USPEC-3' or \
@@ -1177,11 +1178,11 @@ class Rdata (Rhead):
 
                     elif self.output == 'A':
                         # avalanche output, multi windows.
-                        wins[str(nwin)] = \
-                            Window(
-                                wmod,
-                                np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop::-1]
-                            )
+                        wins[str(nwin)] = Window(
+                            wmod,
+                            np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,-nchop-1::-1]
+                        )
+
                     nwin += 1
                     noff += npix
 
