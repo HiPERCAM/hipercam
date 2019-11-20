@@ -147,8 +147,8 @@ def grab(args=None):
                     'ncol', 'number of columns to trim from windows', 0)
                 nrow = cl.get_value(
                     'nrow', 'number of rows to trim from windows', 0)
-            else:
-                trim = False
+        else:
+            trim = False
 
         twait = cl.get_value(
             'twait', 'time to wait for a new frame [secs]', 1., 0.)

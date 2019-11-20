@@ -264,6 +264,7 @@ def reduce(args=None):
             )
             first = 1
             last = 0
+            trim = False
 
         log = cl.get_value(
             'log', 'name of log file to store results',

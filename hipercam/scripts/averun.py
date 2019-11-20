@@ -166,6 +166,7 @@ def averun(args=None):
             flist = cl.get_value('flist', 'file list',
                                cline.Fname('files.lis',hcam.LIST))
             first = 1
+            trim = False
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -228,7 +229,7 @@ def averun(args=None):
         else:
             args = [
                 None,'prompt',source,run,'yes',
-                str(first),str(last),'no',str(twait),
+                str(first),str(last),str(twait),
                 str(tmax),'none','f32'
             ]
         flist = hcam.scripts.grab(args)

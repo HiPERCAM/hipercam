@@ -341,6 +341,7 @@ def rtplot(args=None):
                 'flist', 'file list', cline.Fname('files.lis',hcam.LIST)
             )
             first = 1
+            trim = False
 
         # define the panel grid. first get the labels and maximum dimensions
         ccdinf = spooler.get_ccd_pars(source, resource)
