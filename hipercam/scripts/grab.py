@@ -124,7 +124,10 @@ def grab(args=None):
         resource = cl.get_value('run', 'run name', 'run005')
 
         cl.set_default('temp', False)
-        temp = cl.get_value('temp', 'save to temporary automatically-generated file names?', True)
+        temp = cl.get_value(
+            'temp', 'save to temporary automatically-generated file names?',
+            True
+        )
 
         if not temp:
             ndigit = cl.get_value(

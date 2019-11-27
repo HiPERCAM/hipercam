@@ -241,14 +241,21 @@ def makeflat(args=None):
         # files to be deleted. First make a directory for the temporary files
 
         if server_or_local:
-            # save ourselves a bit of effort by using grab to get the files if
-            # from a local file or server
             print("\nCalling 'grab' ...")
-            args = [
-                None, 'prompt', source, resource, 'yes',
-                str(first), str(last), str(twait), str(tmax),
-                'none', 'f32'
-            ]
+            if poss:
+                # trim will be prompted
+                args = [
+                    None,'prompt',source,run,'yes',
+                    str(first),str(last),'no',str(twait),
+                    str(tmax),'none','f32'
+                ]
+            else:
+                # trim will not be prompted
+                args = [
+                    None,'prompt',source,run,'yes',
+                    str(first),str(last),str(twait),
+                    str(tmax),'none','f32'
+                ]
             resource = hcam.scripts.grab(args)
 
         # at this point 'resource' is a list of files, no matter the input

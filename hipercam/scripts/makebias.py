@@ -105,6 +105,9 @@ def makebias(args=None):
             sys.stderr.write('last must be >= first or 0')
             sys.exit(1)
 
+        # grab will prompt for 'trim' option
+        poss = source.startswith('u')
+
         sigma = cl.get_value(
             'sigma', 'number of RMS deviations to clip', 3., 1.
             )
@@ -133,11 +136,20 @@ def makebias(args=None):
     # use 'prompt', 'list'
 
     print("\nCalling 'grab' ...")
-    args = [
-        None, 'prompt', source, run, 'yes',
-        str(first), str(last), str(twait), str(tmax),
-        'none', 'f32'
-    ]
+    if poss:
+        # trim will be prompted
+        args = [
+            None,'prompt',source,run,'yes',
+            str(first),str(last),'no',str(twait),
+            str(tmax),'none','f32'
+        ]
+    else:
+        # trim will not be prompted
+        args = [
+            None,'prompt',source,run,'yes',
+            str(first),str(last),str(twait),
+            str(tmax),'none','f32'
+        ]
     flist = hcam.scripts.grab(args)
 
     if first == 1:

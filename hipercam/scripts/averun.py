@@ -144,6 +144,7 @@ def averun(args=None):
             last = cl.get_value('last', 'last frame to average', first, first)
 
             if source.startswith('u'):
+                poss = True
                 trim = cl.get_value(
                     'trim',
                     'do you want to trim edges of windows? (ULTRACAM only)',
@@ -155,6 +156,7 @@ def averun(args=None):
                     nrow = cl.get_value(
                         'nrow', 'number of rows to trim from windows', 0)
             else:
+                poss = False
                 trim = False
 
             twait = cl.get_value(
@@ -166,6 +168,7 @@ def averun(args=None):
             flist = cl.get_value('flist', 'file list',
                                cline.Fname('files.lis',hcam.LIST))
             first = 1
+            poss = False
             trim = False
 
         # bias frame (if any)
@@ -219,14 +222,23 @@ def averun(args=None):
 
     if server_or_local:
         print("\nCalling 'grab' ...")
-        if trim:
-            args = [
-                None,'prompt',source,run,'yes',
-                str(first),str(last),'yes',str(ncol),
-                str(nrow),str(twait),str(tmax),
-                'none','f32'
-            ]
+        if poss:
+            # trim will be prompted
+            if trim:
+                args = [
+                    None,'prompt',source,run,'yes',
+                    str(first),str(last),'yes',str(ncol),
+                    str(nrow),str(twait),str(tmax),
+                    'none','f32'
+                ]
+            else:
+                args = [
+                    None,'prompt',source,run,'yes',
+                    str(first),str(last),'no',str(twait),
+                    str(tmax),'none','f32'
+                ]
         else:
+            # trim will not be prompted
             args = [
                 None,'prompt',source,run,'yes',
                 str(first),str(last),str(twait),
