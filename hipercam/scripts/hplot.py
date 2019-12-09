@@ -19,7 +19,7 @@ from hipercam.cline import Cline
 
 def hplot(args=None):
     """``hplot input [device] ccd nx msub hsbox iset (ilo ihi | plo phi)
-    (xlo xhi ylo yhi) [width height]``
+    xlo xhi ylo yhi [width height]``
 
     Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
     version is slightly clunky in its choice of the viewing area but has some
@@ -29,7 +29,7 @@ def hplot(args=None):
 
     Parameters:
 
-      input  : string
+      input : string
          name of MCCD file
 
       device : string [hidden]
@@ -43,57 +43,59 @@ def hplot(args=None):
           |  /mpl : matplotlib interactive plot
           |  plot.pdf/mpl : matplotlib PDF plot
 
-      ccd    : string
+      ccd : string
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
          are possible inputs (without the quotes). '3 4' will plot CCD '3' and
          CCD '4'. If you want to plot more than one CCD, then you will be
          prompted for the number of panels in the X direction. This parameter
          will not be prompted if there is only one CCD in the file.
 
-      nx     : int
+      nx : int
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
 
-      msub   : bool
+      msub : bool
          True/False to subtract median from each window before scaling
 
-      hsbox  : int [if device = '/mpl'; hidden]
+      hsbox : int [if device = '/mpl'; hidden]
          half-width in binned pixels of stats box as offset from central pixel
          hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc.
 
-      iset   : string [single character]
+      iset : string [single character]
          determines how the intensities are determined. There are three
          options: 'a' for automatic simply scales from the minimum to the
          maximum value found on a per CCD basis. 'd' for direct just takes two
          numbers from the user. 'p' for percentile dtermines levels based upon
          percentiles determined from the entire CCD on a per CCD bais.
 
-      ilo    : float [if iset=='d']
+      ilo : float [if iset=='d']
          lower intensity level
 
-      ihi    : float [if iset=='d']
+      ihi : float [if iset=='d']
          upper intensity level
 
-      plo    : float [if iset=='p']
+      plo : float [if iset=='p']
          lower percentile level
 
-      phi    : float [if iset=='p']
+      phi : float [if iset=='p']
          upper percentile level
 
-      xlo    : float
-         left X-limit, for PGPLOT and matplotlib harcopy plots only as the
-         matplotlib interactive plot is zoomable
+      xlo : float
+         left X-limit, for PGPLOT plots. Applies to matplotlib plots
+         to restrict region used to compute percentile limits. This is
+         useful in case where bias strips otherwise distort the plot
+         limits (e.g. ultraspec full frame images)
 
-      xhi    : float
-         right X-limit
+      xhi : float
+         right X-limit. See comments for xlo as well.
 
-      ylo    : float
-         bottom Y-limit
+      ylo : float
+         bottom Y-limit. See comments for xlo as well.
 
-      yhi    : float
-         top Y-limit
+      yhi : float
+         top Y-limit. See comments for xlo as well.
 
-      width  : float [hidden]
+      width : float [hidden]
          plot width (inches). Set = 0 to let the program choose.
 
       height : float [hidden]
@@ -207,14 +209,10 @@ def hplot(args=None):
                 ymin = min(ymin, float(-nypad))
                 ymax = max(ymax, float(nytot + nypad + 1))
 
-        if ptype == 'PGP' or hard != '':
-            xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
-            xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
-            ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
-            yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
-        else:
-            xlo, xhi, ylo, yhi = xmin, xmax, ymin, ymax
-
+        xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
+        xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
+        ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
+        yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
         width = cl.get_value('width', 'plot width (inches)', 0.)
         height = cl.get_value('height', 'plot height (inches)', 0.)
 
@@ -239,11 +237,16 @@ def hplot(args=None):
                 axes.set_aspect('equal', adjustable='box')
             else:
                 axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-#                axes.set_aspect('equal', adjustable='datalim')
                 axes.set_aspect('equal')
 
             # store the CCD associated with these axes for the cursor callback
             caxes[axes] = cnam
+
+            # commented out next because plotting window labels seems to
+            # interact with them in unpleasant ways
+            #
+            #            axes.set_xlim(xlo,xhi)
+            #            axes.set_ylim(ylo,yhi)
 
             if msub:
                 # subtract median from each window
@@ -251,8 +254,9 @@ def hplot(args=None):
                     wind -= wind.median()
 
             vmin, vmax = hcam.mpl.pCcd(
-                axes,mccd[cnam],iset,plo,phi,ilo,ihi,'CCD {:s}'.format(cnam)
-                )
+                axes,mccd[cnam],iset,plo,phi,ilo,ihi,
+                'CCD {:s}'.format(cnam),xlo,xhi,ylo,yhi
+            )
             print('CCD =',cnam,'plot range =',vmin,'to',vmax)
 
         try:
