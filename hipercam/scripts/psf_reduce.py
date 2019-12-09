@@ -411,9 +411,9 @@ def psf_reduce(args=None):
                             update_plots(
                                 results, rfile, implot, lplot, imdev,
                                 lcdev, pccd, ccds, msub, nx, iset, plo, phi,
-                                ilo, ihi, tzero, lpanel, xpanel, ypanel,
-                                tpanel, spanel, tkeep, lbuffer, xbuffer,
-                                ybuffer, tbuffer, sbuffer
+                                ilo, ihi, xlo, xhi, ylo, yhi, tzero, lpanel,
+                                xpanel, ypanel, tpanel, spanel, tkeep,
+                                lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
                             )
 
                         print('psf_reduce stopped')
@@ -443,8 +443,9 @@ def psf_reduce(args=None):
                         update_plots(
                             results, rfile, implot, lplot, imdev, lcdev,
                             pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi,
-                            tzero, lpanel, xpanel, ypanel, tpanel, spanel,
-                            tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
+                            xlo, xhi, ylo, yhi, tzero, lpanel, xpanel,
+                            ypanel, tpanel, spanel, tkeep, lbuffer,
+                            xbuffer, ybuffer, tbuffer, sbuffer
                         )
 
                     print(
@@ -508,7 +509,8 @@ def psf_reduce(args=None):
 
                     update_plots(
                         results, rfile, implot, lplot, imdev, lcdev,
-                        pccds[-1], ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
+                        pccds[-1], ccds, msub, nx, iset, plo, phi, 
+                        ilo, ihi, xlo, xhi, ylo, yhi, tzero,
                         lpanel, xpanel, ypanel, tpanel, spanel, tkeep,
                         lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
                     )

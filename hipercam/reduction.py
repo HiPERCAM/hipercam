@@ -721,7 +721,8 @@ def setup_plot_buffers(rfile):
 
 def update_plots(
         results, rfile, implot, lplot, imdev, lcdev,
-        pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi, tzero,
+        pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi, 
+        xlo, xhi, ylo, yhi, tzero,
         lpanel, xpanel, ypanel, tpanel, spanel,
         tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer):
     """Plot updater routine.
@@ -776,6 +777,17 @@ def update_plots(
        ihi : float [only matters if imdev and iset =='d']
           Upper intensity level
 
+       xlo : int
+          left X-limit for determination of percentiles
+
+       xhi : int
+          right X-limit for determination of percentiles
+
+       ylo : int
+          lower Y-limit for determination of percentiles
+
+       yhi : int
+          upper Y-limit for determination of percentiles
 
        tzero : float
           time offset for plots
@@ -811,7 +823,10 @@ def update_plots(
                 ix = (nc % nx) + 1
                 iy = nc // nx + 1
                 pgpanl(ix, iy)
-                vmin, vmax = hcam.pgp.pCcd(ccd, iset, plo, phi, ilo, ihi)
+                vmin, vmax = hcam.pgp.pCcd(
+                    ccd, iset, plo, phi, ilo, ihi,
+                    xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
+                )
 
                 # accumulate string of image scalings
                 if nc:
