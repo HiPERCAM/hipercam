@@ -132,7 +132,7 @@ class CCD(Agroup):
         # Then compute median
         return np.median(arr)
 
-    def percentile(self, q):
+    def percentile(self, q, xlo=None, xhi=None, ylo=None, yhi=None):
         """
         Computes percentile(s) of the :class:`CCD`.
 
@@ -140,18 +140,43 @@ class CCD(Agroup):
 
           q : float or sequence of floats
             Percentile(s) to use, in range [0,100]
+
+          xlo : int | None
+            To restrict range of pixels
+
+          xhi : int | None
+            To restrict range of pixels
+
+          ylo : int | None
+            To restrict range of pixels
+
+          yhi : int | None
+            To restrict range of pixels
         """
 
-        # Flatten into a single 1D array
-        arrs = [wind.data.flatten() for wind in self.values()]
+        # Flatten into a single 1D array, accounting
+        # for the sub-region defined by xlo etc
+        arrs = []
+        for wind in self.values():
+            try:
+                wind_small = wind.window(xlo,xhi,ylo,yhi)
+                arrs.append(wind_small.data.flatten())
+            except ValueError as err:
+                # could get errors if window not aligned
+                # with xlo/xhi/ylo/yhi
+                pass
+        if len(arrs) == 0:
+            return ValueError('supplied region has no visible pixels')
+
+        # concatenate into 1D array
         arr = np.concatenate(arrs)
 
         # Then compute percentiles
         return np.percentile(arr, q)
 
     def whdul(self, hdul=None, cnam=None, xoff=0, yoff=0):
-        """Write the :class:`CCD` as a series of HDUs, one per :class:`Window`, adding
-        to and returning an :class:`HDUList`.
+        """Write the :class:`CCD` as a series of HDUs, one per
+        :class:`Window`, adding to and returning an :class:`HDUList`.
 
         Arguments::
 
