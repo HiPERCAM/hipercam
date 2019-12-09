@@ -42,9 +42,9 @@ __all__ = ['setaper',]
 #############################################
 
 def setaper(args=None):
-    """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 nx
-    msub iset (ilo ihi | plo phi) [profit method beta fwmin fwhm fwfix
-    shbox smooth splot fhbox read gain thresh]``
+    """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 
+    xlo xhi ylo yhi nx msub iset (ilo ihi | plo phi) [profit method beta
+    fwmin fwhm fwfix shbox smooth splot fhbox read gain thresh]``
 
     Interactive definition of photometric extraction apertures. This is
     a matplotlib-based routine allowing you to place apertures on targets
@@ -94,6 +94,21 @@ def setaper(args=None):
 
       rsky2  : float [unbinned pixels]
          radius of target aperture
+
+      xlo : float
+         left X-limit to restrict region used to compute percentile
+         limits. This allows you to only consider useful data if for
+         example there are bias strips, and makes setting the percentile
+         limits less fiddly.
+
+      xhi : float
+         right X-limit. See comments for xlo as well.
+
+      ylo : float
+         bottom Y-limit. See comments for xlo as well.
+
+      yhi : float
+         top Y-limit. See comments for xlo as well.
 
       nx     : int
          number of panels across to display, prompted if more than one CCD is
@@ -245,6 +260,10 @@ def setaper(args=None):
         cl.register('rtarg', Cline.LOCAL, Cline.PROMPT)
         cl.register('rsky1', Cline.LOCAL, Cline.PROMPT)
         cl.register('rsky2', Cline.LOCAL, Cline.PROMPT)
+        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
@@ -252,8 +271,6 @@ def setaper(args=None):
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
         cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('phi', Cline.GLOBAL, Cline.PROMPT)
-#       cl.register('fwidth', Cline.LOCAL, Cline.HIDE)
-#       cl.register('fheight', Cline.LOCAL, Cline.HIDE)
         cl.register('profit', Cline.LOCAL, Cline.HIDE)
         cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('beta', Cline.LOCAL, Cline.HIDE)
@@ -319,6 +336,24 @@ def setaper(args=None):
         rsky2 = cl.get_value(
             'rsky2', 'outer sky aperture radius [unbinned pixels]', 25., 0.)
 
+        # region to plot
+        for i, cnam in enumerate(ccds):
+            ccd = mccd[cnam]
+            nxtot, nytot, nxpad, nypad = ccd.nxtot, ccd.nytot, ccd.nxpad, ccd.nypad
+            if i == 0:
+                xmin, xmax = float(-nxpad), float(nxtot + nxpad + 1)
+                ymin, ymax = float(-nypad), float(nytot + nypad + 1)
+            else:
+                xmin = min(xmin, float(-nxpad))
+                xmax = max(xmax, float(nxtot + nxpad + 1))
+                ymin = min(ymin, float(-nypad))
+                ymax = max(ymax, float(nytot + nypad + 1))
+
+        xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
+        xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
+        ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
+        yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
+
         # number of panels in X
         if len(ccds) > 1:
             nxdef = min(len(ccds), nxdef)
@@ -352,11 +387,6 @@ def setaper(args=None):
             nxmax = max(nxmax, mccd[cnam].nxtot)
             nymax = max(nymax, mccd[cnam].nytot)
 
-        # might be worth trying to improve this at some point
-        xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
-
-#        fwidth = cl.get_value('fwidth', 'fit plot width (inches)', 0.)
-#        fheight = cl.get_value('fheight', 'fit plot height (inches)', 0.)
         profit = cl.get_value(
             'profit', 'use profile fits to refine'
             ' the aperture positions?', True
@@ -385,8 +415,7 @@ def setaper(args=None):
             'smooth', 'FWHM for smoothing for initial object'
             ' detection [binned pixels]', 6.
         )
-#        splot = cl.get_value(
-#            'splot', 'plot outline of search box?', True)
+
         fhbox = cl.get_value(
             'fhbox', 'half width of box for profile fit'
             ' [unbinned pixels]', 21., 3.)
@@ -449,7 +478,6 @@ def setaper(args=None):
             axes.set_ylim(ylo,yhi)
         else:
             axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-#            axes.set_aspect('equal', adjustable='datalim')
             axes.set_aspect('equal')
 
         if msub:
@@ -458,8 +486,9 @@ def setaper(args=None):
                 wind -= wind.median()
 
         hcam.mpl.pCcd(
-            axes,mccd[cnam],iset,plo,phi,ilo,ihi,'CCD {:s}'.format(cnam)
-            )
+            axes,mccd[cnam],iset,plo,phi,ilo,ihi,
+            'CCD {:s}'.format(cnam),xlo,xhi,ylo,yhi
+        )
 
         # keep track of the CCDs associated with each axes
         cnams[axes] = cnam
