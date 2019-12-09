@@ -332,9 +332,9 @@ class Winhead(Header):
             )
 
     def matches(self, win):
-        """Tests that the :class:`Winhead` matches another. If all OK, returns None,
-        otherwise raises a ValueError reporting the two :class:`Winhead`s. See
-        also `__eq__`
+        """Tests that the :class:`Winhead` matches another. If all OK, returns
+        None, otherwise raises a ValueError reporting the two
+        :class:`Winhead`s. See also `__eq__`
 
         Arguments::
 
@@ -396,23 +396,24 @@ class Winhead(Header):
         return dist
 
     def window(self, xlo, xhi, ylo, yhi, copy=False):
-        """Generates a new Winhead by windowing it to match the complete pixels
-        visible within the range xlo to xhi, ylo to yhi.
+        """Generates a new Winhead by windowing it to match the complete
+        pixels visible within the range xlo to xhi, ylo to yhi.
 
         Arguments::
 
            xlo : float
               minimum X, unbinned pixels (extreme left pixels of CCD centred
-              on 1)
+              on 1). None to ignore.
 
            xhi : float
-              maximum X, unbinned pixels
+              maximum X, unbinned pixels. None to ignore.
 
            ylo : float
               minimum Y, unbinned pixels (bottom pixels of CCD centred on 1)
+              None to ignore.
 
            yhi : float
-              maximum Y, unbinned pixels
+              maximum Y, unbinned pixels. None to ignore
 
            copy : bool
               controls whether the header is copied over, or just
@@ -424,6 +425,12 @@ class Winhead(Header):
         visible pixels.
 
         """
+
+        # account for 'None' inputs
+        xlo = xlo if xlo is not None else self.xlo
+        xhi = xhi if xhi is not None else self.xhi
+        ylo = ylo if ylo is not None else self.ylo
+        yhi = yhi if yhi is not None else self.yhi
 
         llx = max(self.llx, self.llx +
                   self.xbin*int(math.ceil((xlo-self.xlo)/self.xbin)))
@@ -470,13 +477,15 @@ class Winhead(Header):
             self.xbin == win.xbin and self.ybin == win.ybin
 
     def __ne__(self, win):
-        """Defines equality. Two :class:`Winhead`s are equal if they match exactly
-        (same lower left corner, dimensions and binning factors)
+        """Defines equality. Two :class:`Winhead`s are equal if they match
+        exactly (same lower left corner, dimensions and binning
+        factors)
 
         Arguments::
 
           win : :class:`Winhead`
              the :class:Winhead that we are testing self against.
+
         """
         return not (self == win)
 
@@ -620,9 +629,10 @@ class MccdWin(Group):
         return mccdwin
 
 class Window(Winhead):
-    """Class representing a CCD window, including its position, binning and data.
-    Constructed from a :class:`Winhead` and a :class:`numpy.ndarray` which is
-    stored in an attribute called `data`.
+    """Class representing a CCD window, including its position, binning
+    and data.  Constructed from a :class:`Winhead` and a
+    :class:`numpy.ndarray` which is stored in an attribute called
+    `data`.
 
         >>> import numpy as np
         >>> from hipercam import Winhead, Window
@@ -714,10 +724,11 @@ class Window(Winhead):
 
     @classmethod
     def rhdu(cls, hdu):
-        """Constructs a :class:`Window` from an ImageHdu. Requires header parameters
-        'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.  This converts the data
-        to float32 internally, unless it is read in as float64 in the first
-        place conversion which would lose precision.
+        """Constructs a :class:`Window` from an ImageHdu. Requires header
+        parameters 'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.
+        This converts the data to float32 internally, unless it is
+        read in as float64 in the first place conversion which would
+        lose precision.
 
         """
         head = Header(hdu.header)
@@ -987,12 +998,14 @@ class Window(Winhead):
 
     def window(self, xlo, xhi, ylo, yhi, copy=False):
         """Creates a new Window by windowing it down to whatever complete
-        pixels are visible in the region xlo to xhi, ylo to yhi.
+        pixels are visible in the region xlo to xhi, ylo to yhi. ValueError
+        raised if no Window left.
 
         Arguments::
 
            xlo : float
-              minimum X, unbinned pixels (extreme left pixels of CCD centred on 1)
+              minimum X, unbinned pixels (extreme left pixels of CCD
+              centred on 1)
 
            xhi : float
               maximum X, unbinned pixels
@@ -1004,10 +1017,10 @@ class Window(Winhead):
               maximum Y, unbinned pixels
 
            copy : bool
-              controls whether the headers in the Windhead associated with this
-              are copied by value or reference. True=copy by value which can carry
-              significant overheads, but has the virtue of creating an independent
-              object.
+              controls whether the headers in the Windhead associated
+              with this are copied by value or reference. True=copy by
+              value which can carry significant overheads, but has the
+              virtue of creating an independent object.
 
         Returns the windowed Window.
 
@@ -1015,9 +1028,9 @@ class Window(Winhead):
         # construct a chopped down Winhead
         winh = super().window(xlo, xhi, ylo, yhi, copy)
 
-        # we know the Winhead generated is in step with the current Winhead
-        # which saves some checks that would be applied if 'crop' was used at
-        # this point
+        # we know the Winhead generated is in step with the current
+        # Winhead which saves some checks that would be applied if
+        # 'crop' was used at this point
         if self.data is None:
             return Window(winh)
         else:
