@@ -128,44 +128,58 @@ def pWind(axes, wind,  vmin, vmax, label=''):
     # plot window border
     pWin(axes, wind, label)
 
-def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
+def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel='',
+         xlo=None, xhi=None, ylo=None, yhi=None):
     """Plots :class:`CCD` as a set of :class:`Window` objects correctly
     positioned with respect to each other.
 
     Arguments::
 
-      axes : (:class:`matplotlib.axes.Axes`)
+      axes : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
-      ccd : (CCD)
+      ccd : CCD
            the :class:`CCD` to plot
 
-      iset : (string)
+      iset : string
            how to set the intensity scale to be used. 'p' for percentiles (set
            using plo and phi); 'a' for automatic min/max range; 'd' for direct
            value set using dlo and dhi.
 
-      plo : (float)
+      plo : float
            lower percentile limit to use (if iset='p')
 
-      phi : (float)
+      phi : float
            upper percentile limit to use (if iset='p')
 
-      dlo : (float)
+      dlo : float
            value to use for lower intensity limit (if iset='d')
 
-      dhi : (float)
+      dhi : float
            value to use for upper intensity limit (if iset='d')
 
-      tlabel : (string)
-           label to use for top of plot; 'X' and 'Y' will also be added if this is
-           not blank.
+      tlabel : string
+           label to use for top of plot; 'X' and 'Y' will also be
+           added if this is not blank.
+
+      xlo : int | None
+           left-hand limit to define region for computing percentile
+
+      xhi : int | None
+           right-hand limit to define region for computing percentile
+
+      ylo : int | None
+           lower limit to define region for computing percentile
+
+      yhi : int | None
+           upper limit to define region for computing percentile
 
     Returns: (vmin,vmax), the intensity limits used.
+
     """
     if iset == 'p':
         # Set intensities from percentiles
-        vmin,vmax = ccd.percentile((plo,phi))
+        vmin,vmax = ccd.percentile((plo,phi),xlo,xhi,ylo,yhi)
 
     elif iset == 'a':
         # Set intensities from min/max range
