@@ -23,8 +23,8 @@ __all__ = ['rtplot',]
 
 def rtplot(args=None):
     """``rtplot [source device width height] (run first (trim [ncol nrow])
-    twait tmax | flist) [pause plotall] ccd (nx) bias defect setup
-    [hurl] msub iset (ilo ihi | plo phi) xlo xhi ylo yhi (profit
+    twait tmax | flist) [pause plotall] ccd (nx) bias flat defect
+    setup [hurl] msub iset (ilo ihi | plo phi) xlo xhi ylo yhi (profit
     [fdevice fwidth fheight method beta fwhm fwhm_min shbox smooth
     splot fhbox hmin read gain thresh])``
 
@@ -119,6 +119,11 @@ def rtplot(args=None):
 
         bias : string
            Name of bias frame to subtract, 'none' to ignore.
+
+        flat : string
+           Name of flat field to divide by, 'none' to ignore. Should normally
+           only be used in conjunction with a bias, although it does allow you
+           to specify a flat even if you haven't specified a bias.
 
         defect : string
            Name of defect file, 'none' to ignore.
@@ -269,6 +274,7 @@ def rtplot(args=None):
         cl.register('plotall', Cline.LOCAL, Cline.HIDE)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
         cl.register('defect', Cline.GLOBAL, Cline.PROMPT)
         cl.register('setup', Cline.GLOBAL, Cline.PROMPT)
         cl.register('hurl', Cline.GLOBAL, Cline.HIDE)
@@ -392,6 +398,18 @@ def rtplot(args=None):
         if bias is not None:
             # read the bias frame
             bias = hcam.MCCD.read(bias)
+            fprompt = "flat frame ['none' to ignore]"
+        else:
+            fprompt = "flat frame ['none' is normal choice with no bias]"
+
+        # flat (if any)
+        flat = cl.get_value(
+            'flat', fprompt,
+            cline.Fname('flat', hcam.HCAM), ignore='none'
+        )
+        if flat is not None:
+            # read the flat frame
+            flat = hcam.MCCD.read(flat)
 
         # defect file (if any)
         dfct = cl.get_value(
@@ -399,7 +417,7 @@ def rtplot(args=None):
             cline.Fname('defect', hcam.DFCT), ignore='none'
         )
         if dfct is not None:
-            # read the bias frame
+            # read the defect frame
             dfct = defect.MccdDefect.read(dfct)
 
         # Get windows from hdriver
@@ -564,9 +582,14 @@ def rtplot(args=None):
             # accumulate errors
             emessages = []
 
-            if n == 0 and bias is not None:
-                # crop the bias on the first frame only
-                bias = bias.crop(mccd)
+            if n == 0:
+                if bias is not None:
+                    # crop the bias on the first frame only
+                    bias = bias.crop(mccd)
+
+                if flat is not None:
+                    # crop the flat on the first frame only
+                    flat = flat.crop(mccd)
 
             if setup:
                 # Get windows from hdriver. Fair bit of error checking
@@ -630,6 +653,10 @@ def rtplot(args=None):
                     # subtract the bias
                     if bias is not None:
                         ccd -= bias[cnam]
+
+                    # divide out the flat
+                    if flat is not None:
+                        ccd /= flat[cnam]
 
                     if msub:
                         # subtract median from each window
