@@ -136,7 +136,8 @@ def pWind(wind, vmin, vmax, label=''):
     pggray(wind.data, vmax, vmin, tr)
     pWin(wind, label)
 
-def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
+def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel='',
+         xlo=None, xhi=None, ylo=None, yhi=None):
     """Plots :class:`CCD` as a set of :class:`Window` objects correctly
     positioned with respect to each other.
 
@@ -166,11 +167,30 @@ def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel=''):
            label to use for top of plot; 'X' and 'Y' will also be added if
            this is not blank.
 
+      xlo : (int | None)
+           use to restrict the range for computing plot limits as 
+           percentiles.
+
+      xhi : (int | None)
+           use to restrict the range for computing plot limits as 
+           percentiles.
+
+      ylo : (int | None)
+           use to restrict the range for computing plot limits as 
+           percentiles.
+
+      yhi : (int | None)
+           use to restrict the range for computing plot limits as 
+           percentiles.
+
     Returns: (vmin,vmax), the intensity limits used.
     """
     if iset == 'p':
         # Set intensities from percentiles
-        vmin, vmax = ccd.percentile((plo,phi))
+        vmin, vmax = ccd.percentile((plo,phi),xlo,xhi,ylo,yhi)
+        if vmin is None:
+            # no intensity limits calculated
+            return (vmin,vmax)
 
     elif iset == 'a':
         # Set intensities from min/max range
