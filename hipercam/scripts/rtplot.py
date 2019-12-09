@@ -124,11 +124,12 @@ def rtplot(args=None):
            Name of defect file, 'none' to ignore.
 
         setup : bool
-           True/yes to access the current windows from hdriver. Useful during
-           observing when seeting up windows, but not normally otherwise. Next
-           argument (hidden) is the URL to get to hdriver. Once setup, you should
-           probably turn this off to avoid overloading hdriver, especially if in
-           drift mode as it makes a request for the windows for every frame.
+           True/yes to access the current windows from hdriver. Useful
+           during observing when seeting up windows, but not normally
+           otherwise. Next argument (hidden) is the URL to get to
+           hdriver. Once setup, you should probably turn this off to
+           avoid overloading hdriver, especially if in drift mode as
+           it makes a request for the windows for every frame.
 
         hurl : string [if setup; hidden]
            URL needed to access window setting from hdriver. The internal
@@ -639,7 +640,10 @@ def rtplot(args=None):
                     ix = (nc % nx) + 1
                     iy = nc // nx + 1
                     pgpanl(ix,iy)
-                    vmin, vmax = hcam.pgp.pCcd(ccd,iset,plo,phi,ilo,ihi)
+                    vmin, vmax = hcam.pgp.pCcd(
+                        ccd,iset,plo,phi,ilo,ihi,
+                        xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
+                    )
 
                     if got_windows:
                         # plot the current hdriver windows
