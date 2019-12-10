@@ -356,6 +356,7 @@ def reduce(args=None):
         else:
             ccds, nx, msub, iset = None, None, None, None
             ilo, ihi, plo, phi = None, None, None, None
+            xlo, xhi, ylo, yhi = None, None, None, None
 
         # save list of parameter values for writing to the reduction file
         plist = cl.list()

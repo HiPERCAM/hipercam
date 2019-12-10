@@ -329,6 +329,9 @@ def psf_reduce(args=None):
             ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
             yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
 
+        else:
+            xlo, xhi, ylo, yhi = None, None, None, None
+
         # save list of parameter values for writing to the reduction file
         plist = cl.list()
 
