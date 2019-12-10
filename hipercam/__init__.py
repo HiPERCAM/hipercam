@@ -48,6 +48,13 @@ container class :class:`Group`). It then sets this pixel to zero and writes
 out the result to a new file.
 """
 
+from pkg_resources import get_distribution, DistributionNotFound
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    # package is not installed
+    pass
+
 from .core import *
 from .group import *
 from .window import *
