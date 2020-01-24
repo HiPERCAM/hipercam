@@ -242,7 +242,9 @@ def reduce(args=None):
 
             if source.startswith('u'):
                 trim = cl.get_value(
-                    'trim', 'do you want to trim edges of windows? (ULTRACAM only)', True
+                    'trim', 
+                    'do you want to trim edges of windows? (ULTRACAM only)',
+                    True
                 )
                 if trim:
                     ncol = cl.get_value(
@@ -538,6 +540,26 @@ def reduce(args=None):
                 if rfile.flat is not None:
                     # apply flat field to processed frame
                     pccd /= rfile.flat
+
+                if rfile.demask:
+                    # attempt to correct for poorly placed frame
+                    # transfer mask causing a step illumination
+                    # in the y-direction. Loop through all windows
+                    # of all CCDs
+                    for cnam, ccd in pccd.items():
+                        for wnam, wind in ccd.items():
+                            # form median in X direction
+                            xmedian = np.median(wind.dat,1)
+
+                            # subtract it's median to avoid removing
+                            # general background
+                            xmedian -= np.median(xmedian)
+
+                            # now subtract from 2D image using
+                            # broadcasting rules
+                            wind.dat -= xmedian.reshape(
+                                (len(xmedian),1)
+                            )
 
                 # Acummulate frames into processing groups for faster
                 # parallelisation

@@ -19,12 +19,12 @@ import matplotlib.pyplot as plt
 from hipercam import mpl
 
 class Rfile(OrderedDict):
-    """
-    Class to read and interpret reduce setup files. Similar
-    to configparser but a bit freer. Basically reads lots of lines
-    like 'ncpu = 1' with sections defined by lines like '[general]'.
+    """Class to read and interpret reduce setup files. Similar to
+    configparser but a bit freer. Basically reads lots of lines like
+    'ncpu = 1' with sections defined by lines like '[general]'.
 
     The script genred writes out such files.
+
     """
 
     @classmethod
@@ -522,6 +522,9 @@ class Rfile(OrderedDict):
             if sect['extend_y'] <= 0:
                 raise hcam.HipercamError('seeing.extend_y must be > 0')
 
+        # focal plane mask section
+        toBool(rfile, 'focal_mask', 'demask')
+
         # Monitor section
         monsec = rfile['monitor']
         for apnam in monsec:
@@ -538,8 +541,8 @@ class Rfile(OrderedDict):
         return rfile
 
     def crop(self, mccd):
-        """This uses a template file 'mccd' to try to get the calibration files into
-        the same format.
+        """This uses a template file 'mccd' to try to get the calibration
+        files into the same format.
 
         """
         if self.bias is not None:
@@ -597,9 +600,10 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
         if lwidth > 0 and lheight > 0:
             pgpap(lwidth, lheight/lwidth)
 
-        # define and draw panels. 'total' is the total height of all panel
-        # which will be used to work out the fraction occupied by each
-        # one. There is always a light curve panel of unit height.
+        # define and draw panels. 'total' is the total height of all
+        # panel which will be used to work out the fraction occupied
+        # by each one. There is always a light curve panel of unit
+        # height.
         lheight = 1.0
         total = lheight
 
@@ -626,9 +630,9 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
         # scale = vertical height of LC panel in device coordinates
         scale = (yv2-yv1) / total
 
-        # Work from the bottom up to get the X-axis labelling right since
-        # it has to be turned off for the upper panels.  at each step yv1,
-        # yv2 is the Panel's vertical range
+        # Work from the bottom up to get the X-axis labelling right
+        # since it has to be turned off for the upper panels.  at each
+        # step yv1, yv2 is the Panel's vertical range
         xlabel = 'Time [mins]'
         xopt = 'bcnst'
 

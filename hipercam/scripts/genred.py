@@ -22,29 +22,32 @@ __all__ = ['genred',]
 ################################################
 
 def genred(args=None):
-    """``genred apfile rfile comment bias flat dark linear inst [ncpu extendx
-    ccd location smoothfwhm method beta betamax fwhm fwhmmin searchwidth thresh
-    hminref hminnrf rfac rmin rmax sinner souter scale psfgfac psfwidth psfpostweak]``
+    """``genred apfile rfile comment bias flat dark linear inst [ncpu
+    extendx ccd location smoothfwhm method beta betamax fwhm fwhmmin
+    searchwidth thresh hminref hminnrf rfac rmin rmax sinner souter
+    scale psfgfac psfwidth psfpostweak]``
 
-    Generates a reduce file as needed by |reduce| or |psf_reduce|. You give it
-    the name of an aperture file and a few other parameters and it will write
-    out a reduce file which you can then refine by hand. A few simplifying
-    assumptions are made, e.g. that the target is called '1'; see below for more.
-    This script effectively defines the format of reduce files. The script attempts
-    above all to generate a self-consistent reduce file.  e.g. if there are no
-    apertures in CCD 5, it does not attempt to plot any corresponding light
-    curves.
+    Generates a reduce file as needed by |reduce| or |psf_reduce|. You
+    give it the name of an aperture file and a few other parameters
+    and it will write out a reduce file which you can then refine by
+    hand. A few simplifying assumptions are made, e.g. that the target
+    is called '1'; see below for more.  This script effectively
+    defines the format of reduce files. The script attempts above all
+    to generate a self-consistent reduce file.  e.g. if there are no
+    apertures in CCD 5, it does not attempt to plot any corresponding
+    light curves.
 
-    To avoid excessive prompting, |genred| has many hidden parameters. The
-    very first time you use it on a run, specify ``prompt`` on the command line
-    to see all of these.  They are chosen to be the parameters most likely to
-    vary with telescope or conditions; many others are left at default values
-    and require editing to change. If you find yourself repeatedly editing a
+    To avoid excessive prompting, |genred| has many hidden
+    parameters. The very first time you use it on a run, specify
+    ``prompt`` on the command line to see all of these.  They are
+    chosen to be the parameters most likely to vary with telescope or
+    conditions; many others are left at default values and require
+    editing to change. If you find yourself repeatedly editing a
     parameter, let me know and I will add it to this routine.
 
     Parameters:
 
-        apfile   : string
+        apfile : string
            the input aperture file created using |setaper| (default extension
            .ape). This will be read for the targets. The main target will be
            assumed to have been called '1', the main comparison '2'. If there
@@ -54,7 +57,7 @@ def genred(args=None):
            definable]. Target '1' will be used for the seeing plot unless it
            is linked when target '2' will be used instead.
 
-        rfile    : string
+        rfile : string
            the output reduce file created using |setaper|. This will be read
            for the targets. The main target will be assumed to have been
            called '1', the main comparison '2'. If there is a '3' it will be
@@ -74,7 +77,7 @@ def genred(args=None):
         dark : string
            Name of dark frame; 'none' to ignore.
 
-        linear  : string
+        linear : string
            light curve plot linear (else magnitudes)
 
         inst : string
@@ -90,8 +93,9 @@ def genred(args=None):
            for single CCD reduction.
 
         ngroup : int [hidden, if ncpu > 1]
-           to reduce parallelisation overheads, this parameter means that ngroup
-           frames are read before being split up for the parallisation step is applied.
+           to reduce parallelisation overheads, this parameter means
+           that ngroup frames are read before being split up for the
+           parallisation step is applied.
 
         extendx : float [hidden]
            how many minutes to extend light curve plot by at a time
@@ -121,20 +125,20 @@ def genred(args=None):
            operation used in the initial search. No effect on results,
            but could be faster for large values of smoothfwhm.
 
-        method   : string
+        method : string
            profile fitting method. 'g' for gaussian, 'm' for moffat
 
-        beta     : float [hidden]
+        beta : float [hidden]
            default Moffat exponent to use to start fitting
 
-        betamax  : float [hidden]
+        betamax : float [hidden]
            maximum Moffat exponent to pass on to subsequent fits. Prevents
            it wandering to silly values which can happen.
 
-        fwhm     : float [hidden]
+        fwhm : float [hidden]
            the default FWHM to use when fitting [unbinned pixels].
 
-        fwhmmin  : float [hidden]
+        fwhmmin : float [hidden]
            the default FWHM to use when fitting [unbinned pixels].
 
         searchwidth : int [hidden]
@@ -155,7 +159,6 @@ def genred(args=None):
            RMS rejection threshold for profile fits.
 
         hminref : float [hidden]
-
            minimum peak height for a fit to a reference aperture to be
            accepted. This applies to the peak height in the *smoothed* image
            used during the initial search as well as the peak height after
@@ -199,13 +202,13 @@ def genred(args=None):
         rmin : float [hidden]
            minimum target aperture radius [unbinned pixels]
 
-        rmax     : float [hidden]
+        rmax : float [hidden]
            maximum target aperture radius [unbinned pixels]
 
-        sinner   : float [hidden]
+        sinner : float [hidden]
            inner sky aperture radius [unbinned pixels]
 
-        souter   : float [hidden]
+        souter : float [hidden]
            outer sky aperture radius [unbinned pixels]
 
         readout : float | string [hidden]
@@ -224,9 +227,15 @@ def genred(args=None):
             half-width of box used to extract data around objects for PSF fitting
 
         psfpostweak : string [hidden]
-            During PSF fitting, either hold positions at aperture location ('fixed'),
-            or fit as part of PSF model ('variable')
+            During PSF fitting, either hold positions at aperture
+            location ('fixed'), or fit as part of PSF model
+            ('variable')
 
+        demask: bool [hidden]
+            True to attempt to correct for a misplaced frame transfer mask
+            that can affect drift mode data. Sympton is a step in the 
+            illumination with Y. This will attempt to subtract the median
+            in X from each window. Do not use unless you need to.
     """
 
 #    print(my_version)
@@ -276,6 +285,7 @@ def genred(args=None):
         cl.register('psfgfac', Cline.LOCAL, Cline.HIDE)
         cl.register('psfwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('psfpostweak', Cline.LOCAL, Cline.HIDE)
+        cl.register('demask', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
 
@@ -369,7 +379,9 @@ warn = 1 60000 64000
 
         if ncpu > 1:
             ngroup = cl.get_value(
-                'ngroup', 'number of frames per group to reduce parallelisation overheads', 1, 1
+                'ngroup', 
+                'number of frames per group to reduce parallelisation overheads',
+                1, 1
             )
         else:
             ngroup = 1
@@ -523,6 +535,11 @@ warn = 1 60000 64000
         )
         psfpostweak = 'variable' if psfpostweak == 'v' else 'fixed'
 
+        demask = cl.get_value(
+            'demask', 'correct for badly located focal plane mask?',
+            False
+        )
+
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
@@ -594,7 +611,8 @@ warn = 1 60000 64000
 
     if no_light:
         raise hcam.HipercamError(
-            'Found no targets for light curve plots in any CCD; cannot make light curve plot'
+            'Found no targets for light curve plots in any'
+            ' CCD; cannot make light curve plot'
         )
 
     # Generate the position plot lines
@@ -738,7 +756,8 @@ warn = 1 60000 64000
                 gain=gain, fit_max_shift=fit_max_shift, fit_alpha=fit_alpha,
                 fit_diff=fit_diff, psfgfac=psfgfac, psfpostweak=psfpostweak,
                 psfwidth=psfwidth,toffset=toffset,
-                smooth_fft='yes' if smooth_fft else 'no'
+                smooth_fft='yes' if smooth_fft else 'no',
+                demask='yes' if demask else 'no
             )
         )
 
@@ -1075,6 +1094,13 @@ ymax = 110 # Maximum transmission to plot (>= 100 to slow replotting)
 
 # line or lines defining the targets to plot
 {seeing_plot}
+
+# This option attempts to correct for a badly-positioned focal plane
+# mask which combined with a high background can lead to steps in illumination
+# in the Y direction. This tries to subtract the median in the X-direction
+# of each window
+[focal_mask]
+demask = {demask}
 
 # Monitor section. This section allows you to monitor particular
 # targets for problems. If they occur, then messages will be printed
