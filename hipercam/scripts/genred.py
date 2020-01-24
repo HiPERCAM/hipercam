@@ -236,9 +236,13 @@ def genred(args=None):
             that can affect drift mode data. Sympton is a step in the 
             illumination with Y. This will attempt to subtract the median
             in X from each window. Do not use unless you need to.
-    """
 
-#    print(my_version)
+        dthresh: float [hidden, if demask]
+            Threshold (in RMS) to reject pixels in X before taking the
+            median to reduce the effect of bright stars on the median
+            profile. It does this by takeing the average in the Y direction
+            and then rejecting overly bright pixels.
+    """
 
     command, args = utils.script_args(args)
 
@@ -286,6 +290,7 @@ def genred(args=None):
         cl.register('psfwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('psfpostweak', Cline.LOCAL, Cline.HIDE)
         cl.register('demask', Cline.LOCAL, Cline.HIDE)
+        cl.register('dthresh', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
 
@@ -540,6 +545,14 @@ warn = 1 60000 64000
             False
         )
 
+        if demask:
+            dthresh = cl.get_value(
+                'dthresh', 'RMS threshold for rejection in X before median',
+                3., 0.1
+            )
+        else:
+            dthresh = 3.
+
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
@@ -757,7 +770,8 @@ warn = 1 60000 64000
                 fit_diff=fit_diff, psfgfac=psfgfac, psfpostweak=psfpostweak,
                 psfwidth=psfwidth,toffset=toffset,
                 smooth_fft='yes' if smooth_fft else 'no',
-                demask='yes' if demask else 'no'
+                demask='yes' if demask else 'no',
+                dthresh=dthresh,
             )
         )
 
@@ -1098,9 +1112,13 @@ ymax = 110 # Maximum transmission to plot (>= 100 to slow replotting)
 # This option attempts to correct for a badly-positioned focal plane
 # mask which combined with a high background can lead to steps in illumination
 # in the Y direction. This tries to subtract the median in the X-direction
-# of each window
+# of each window. 'dthresh' is a threshold used to reject X pixels prior to
+# taking the median.
+#
+
 [focal_mask]
 demask = {demask}
+dthresh = {dthresh}
 
 # Monitor section. This section allows you to monitor particular
 # targets for problems. If they occur, then messages will be printed

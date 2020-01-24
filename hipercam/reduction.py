@@ -524,6 +524,8 @@ class Rfile(OrderedDict):
 
         # focal plane mask section
         toBool(rfile, 'focal_mask', 'demask')
+        sect = rfile['focal_mask']
+        sect['dthresh'] = float(sect['dthresh'])
 
         # Monitor section
         monsec = rfile['monitor']
