@@ -757,7 +757,7 @@ warn = 1 60000 64000
                 fit_diff=fit_diff, psfgfac=psfgfac, psfpostweak=psfpostweak,
                 psfwidth=psfwidth,toffset=toffset,
                 smooth_fft='yes' if smooth_fft else 'no',
-                demask='yes' if demask else 'no
+                demask='yes' if demask else 'no'
             )
         )
 
