@@ -26,7 +26,7 @@ __all__ = ['digest',]
 def digest(args=None):
     description= \
     """Ingests hipercam/ultra(cam|spec) data from the telescope for
-archiving purposes.
+    archiving purposes.
 
     This should be of little interest to most users. It does what the scripts
     checker, import_data, make_log_dirs and make_derived_dirs did for ULTRACAM
