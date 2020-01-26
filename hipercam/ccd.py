@@ -161,12 +161,13 @@ class CCD(Agroup):
             try:
                 wind_small = wind.window(xlo,xhi,ylo,yhi)
                 arrs.append(wind_small.data.flatten())
-            except ValueError as err:
+            except HipercamError as err:
                 # could get errors if window not aligned
                 # with xlo/xhi/ylo/yhi
                 pass
+
         if len(arrs) == 0:
-            return ValueError('supplied region has no visible pixels')
+            raise ValueError('supplied xlo,xhi,ylo,yhi region contains no pixels')
 
         # concatenate into 1D array
         arr = np.concatenate(arrs)
