@@ -32,7 +32,7 @@ class Vec2D:
             y = self.y / dist
             return Vec2D(x,y)
         else:
-            return ValueError('cannot normalise a zero vector')
+            raise ValueError('cannot normalise a zero vector')
 
     def __iadd__(self, vec):
         """+=: in place addition"""
