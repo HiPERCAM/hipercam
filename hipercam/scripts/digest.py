@@ -293,6 +293,7 @@ def digest(args=None):
             # make an equivalent night directory for log stuff
             logndir = os.path.join(LOGS, nnight)
             os.mkdir(logndir)
+            os.chmod(logndir, 0755)
             print('mkdir {:s}'.format(logndir))
 
             # create a link to the log night directory in the log run directory
@@ -314,13 +315,4 @@ def digest(args=None):
             os.symlink(file,link)
             print('ln -s {:s} {:s}'.format(file, link))
 
-            # make a directory for derived data
-            derndir = os.path.join(DERIVED, nnight)
-            os.mkdir(derndir)
-            print('mkdir {:s}'.format(derndir))
 
-            # create a link to the data directory in the derived directory
-            file = os.path.join('..','..',nndir)
-            link = os.path.join(derndir,'data')
-            os.symlink(file,link)
-            print('ln -s {:s} {:s}'.format(file, link))
