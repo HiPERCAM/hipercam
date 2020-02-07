@@ -153,6 +153,7 @@ setup(
             'redanal=hipercam.scripts.redanal:redanal',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
+            'rupdate=hipercam.scripts.rupdate:rupdate',
             'setaper=hipercam.scripts.setaper:setaper',
             'setdefect=hipercam.scripts.setdefect:setdefect',
             'splice=hipercam.scripts.splice:splice',

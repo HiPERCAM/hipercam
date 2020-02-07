@@ -24,6 +24,7 @@ from .makestuff import makedata, makefield
 from .plog import plog
 from .reduce import reduce
 from .rtplot import rtplot
+from .rupdate import rupdate
 from .setaper import setaper
 from .setdefect import setdefect
 from .stats import stats
@@ -44,7 +45,7 @@ __all__ = [ \
             'hist', 'hfilter', 'hlog2fits', 'hlogger', 'hls', 'hplot',
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'pfolder', 'plog',
-            'redanal', 'reduce', 'rtplot',
+            'redanal', 'reduce', 'rtplot', 'rupdate',
             'setaper', 'setdefect', 'splice', 'stats', 'sub',
             'times',
             'uls',
