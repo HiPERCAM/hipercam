@@ -105,6 +105,8 @@ class Rfile(OrderedDict):
 
         sect['toffset'] = int(sect['toffset'])
 
+        toBool(rfile, 'general', 'skipbadt')
+
         # handle the count level warnings
         warns = sect.get('warn', [])
         if isinstance(warns, str):
@@ -721,7 +723,7 @@ def setup_plot_buffers(rfile):
 
 def update_plots(
         results, rfile, implot, lplot, imdev, lcdev,
-        pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi, 
+        pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi,
         xlo, xhi, ylo, yhi, tzero,
         lpanel, xpanel, ypanel, tpanel, spanel,
         tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer):
@@ -1858,6 +1860,8 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
     # by default, don't re-plot
     replot = False
 
+    skipbadt = rfile['general']['skipbadt']
+
     # shorthand
     sect = rfile['light']
 
@@ -1873,7 +1877,7 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
     # maximum values
     tmax = fmin = fmax = None
     for lc in lbuffer:
-        tmax, fmin, fmax = lc.add_point(results, tzero, tmax, fmin, fmax)
+        tmax, fmin, fmax = lc.add_point(results, tzero, tmax, fmin, fmax, skipbadt)
         lc.trim(tkeep)
 
     if not sect['y_fixed'] and fmin is not None and \
@@ -1923,6 +1927,8 @@ def plotPosition(xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer)
     # by default, don't re-plot
     replot = False
 
+    skipbadt = rfile['general']['skipbadt']
+
     # shorthand
     sect = rfile['position']
 
@@ -1932,7 +1938,7 @@ def plotPosition(xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer)
     # add points to the plot and buffers
     tmax = xmin = xmax = None
     for xpos in xbuffer:
-        tmax, xmin, xmax = xpos.add_point(results, tzero, tmax, xmin, xmax)
+        tmax, xmin, xmax = xpos.add_point(results, tzero, tmax, xmin, xmax, skipbadt)
         xpos.trim(tkeep)
 
     if xmin is not None and (xmin < xpanel.y1 or xmax > xpanel.y2) and \
@@ -1951,7 +1957,7 @@ def plotPosition(xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer)
     # add points to the plot and buffers
     ymin = ymax = None
     for ypos in ybuffer:
-        tmax, ymin, ymax = ypos.add_point(results, tzero, tmax, ymin, ymax)
+        tmax, ymin, ymax = ypos.add_point(results, tzero, tmax, ymin, ymax, skipbadt)
         ypos.trim(tkeep)
 
     if ymin is not None and (ymin < ypanel.y1 or ymax > ypanel.y2) and \
@@ -1978,6 +1984,8 @@ def plotTrans(panel, tzero, results, rfile, tkeep, tbuffer):
     # by default, don't re-plot
     replot = False
 
+    skipbadt = rfile['general']['skipbadt']
+
     # select the light curve panel
     panel.select()
 
@@ -1985,7 +1993,7 @@ def plotTrans(panel, tzero, results, rfile, tkeep, tbuffer):
     # transmission where necessary
     tmax = None
     for trans in tbuffer:
-        tmax, fmax = trans.add_point(results, tzero, tmax)
+        tmax, fmax = trans.add_point(results, tzero, tmax, skipbadt)
         if fmax is not None and fmax > panel.y2:
             trans.fmax *= fmax/100
             replot = True
@@ -2006,6 +2014,8 @@ def plotSeeing(panel, tzero, results, rfile, tkeep, sbuffer):
     # by default, don't re-plot
     replot = False
 
+    skipbadt = rfile['general']['skipbadt']
+
     # shorthand
     sect = rfile['seeing']
 
@@ -2016,7 +2026,7 @@ def plotSeeing(panel, tzero, results, rfile, tkeep, sbuffer):
     # transmission where necessary
     tmax = fmax = None
     for see in sbuffer:
-        tmax, fmax = see.add_point(results, tzero, tmax, fmax)
+        tmax, fmax = see.add_point(results, tzero, tmax, fmax, skipbadt)
         see.trim(tkeep)
 
     if fmax is not None and fmax > panel.y2 and not sect['y_fixed']:
@@ -2083,7 +2093,7 @@ class LightCurve(BaseBuffer):
         self.fac = plot_config['fac']
         self.linear = linear
 
-    def add_point(self, results, tzero, tmax, fmin, fmax):
+    def add_point(self, results, tzero, tmax, fmin, fmax, skipbadt):
         """Extracts the data to be plotted on the light curve plot for the
         given the results of a CCD group reduction as returned by a
         ProcessCCDs object. Assuming all is OK (errors > 0 for both
@@ -2109,6 +2119,10 @@ class LightCurve(BaseBuffer):
            fmax : float
               maximum flux plotted so far. None if not yet set.
 
+           skipbadt : bool
+              controls whether points with bad times are skipped or included.
+              Unfortunately, hipercam flags times as bad even when they are not.
+
         Returns (potentially) new values of (tmax, fmin, fmax), according to
         what was plotted.
 
@@ -2125,75 +2139,77 @@ class LightCurve(BaseBuffer):
         for nframe, store, ccdaper, reses, mjdint, \
             mjdfrac, mjdok, expose in res:
 
-            # loop over each frame of the group
+            if mjdok or not skipbadt:
 
-            targ = reses[self.targ]
-            ft = targ['counts']
-            fte = targ['countse']
-            saturated = targ['flag'] & hcam.TARGET_SATURATED
+                # loop over each frame of the group
 
-            if fte > 0:
+                targ = reses[self.targ]
+                ft = targ['counts']
+                fte = targ['countse']
+                saturated = targ['flag'] & hcam.TARGET_SATURATED
 
-                if self.comp != '!':
-                    comp = reses[self.comp]
-                    fc = comp['counts']
-                    fce = comp['countse']
-                    saturated |= comp['flag'] & hcam.TARGET_SATURATED
+                if fte > 0:
 
-                    if fc > 0:
-                        if fce > 0.:
-                            f = ft / fc
-                            fe = np.sqrt((fte/fc)**2+(ft*fce/fc**2)**2)
+                    if self.comp != '!':
+                        comp = reses[self.comp]
+                        fc = comp['counts']
+                        fce = comp['countse']
+                        saturated |= comp['flag'] & hcam.TARGET_SATURATED
+
+                        if fc > 0:
+                            if fce > 0.:
+                                f = ft / fc
+                                fe = np.sqrt((fte/fc)**2+(ft*fce/fc**2)**2)
+                            else:
+                                continue
                         else:
                             continue
                     else:
-                        continue
+                        f = ft
+                        fe = fte
                 else:
-                    f = ft
-                    fe = fte
-            else:
-                continue
-
-            if not self.linear:
-                if f <= 0.:
                     continue
 
-                fe = 2.5/np.log(10)*(fe/f)
-                f = -2.5*np.log10(f)
+                if not self.linear:
+                    if f <= 0.:
+                        continue
 
-            # apply scaling factor and offset
-            f *= self.fac
-            fe *= self.fac
-            f += self.off
+                    fe = 2.5/np.log(10)*(fe/f)
+                    f = -2.5*np.log10(f)
 
-            # compute time in terms of minutes from the zeropoint
-            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                # apply scaling factor and offset
+                f *= self.fac
+                fe *= self.fac
+                f += self.off
 
-            # OK, we are done for this frame. Store new point
-            self.t.append(tmins)
-            self.f.append(f)
-            self.fe.append(fe)
-            if saturated:
-                # mark saturated data with cross
-                self.symb.append(5)
-            else:
-                # blob if OK
-                self.symb.append(17)
+                # compute time in terms of minutes from the zeropoint
+                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
 
-            # Plot the point in minutes from start point
-            pgsch(0.5)
-            if self.ecol is not None:
-                pgsci(self.ecol)
-                pgmove(tmins, f-fe)
-                pgdraw(tmins, f+fe)
+                # OK, we are done for this frame. Store new point
+                self.t.append(tmins)
+                self.f.append(f)
+                self.fe.append(fe)
+                if saturated:
+                    # mark saturated data with cross
+                    self.symb.append(5)
+                else:
+                    # blob if OK
+                    self.symb.append(17)
 
-            pgsci(self.dcol)
-            pgpt1(tmins, f, self.symb[-1])
+                # Plot the point in minutes from start point
+                pgsch(0.5)
+                if self.ecol is not None:
+                    pgsci(self.ecol)
+                    pgmove(tmins, f-fe)
+                    pgdraw(tmins, f+fe)
 
-            # track the limits
-            tmax = tmins if tmax is None else max(tmins,tmax)
-            fmin = f if fmin is None else min(f, fmin)
-            fmax = f if fmax is None else max(f, fmax)
+                pgsci(self.dcol)
+                pgpt1(tmins, f, self.symb[-1])
+
+                # track the limits
+                tmax = tmins if tmax is None else max(tmins,tmax)
+                fmin = f if fmin is None else min(f, fmin)
+                fmax = f if fmax is None else max(f, fmax)
 
         return (tmax, fmin, fmax)
 
@@ -2207,7 +2223,7 @@ class Xposition(BaseBuffer):
         super().__init__(plot_config)
         self.xzero = None
 
-    def add_point(self, results, tzero, tmax, xmin, xmax):
+    def add_point(self, results, tzero, tmax, xmin, xmax, skipbadt):
         """
         Extracts the data to be plotted on the position plot.
 
@@ -2243,49 +2259,51 @@ class Xposition(BaseBuffer):
         for nframe, store, ccdaper, reses, mjdint, \
             mjdfrac, mjdok, expose in res:
 
-            # loop over each frame of the group
+            if mjdok or not skipbadt:
 
-            targ = reses[self.targ]
-            x = targ['x']
-            xe = targ['xe']
+                # loop over each frame of the group
 
-            if xe <= 0:
-                # skip junk
-                continue
+                targ = reses[self.targ]
+                x = targ['x']
+                xe = targ['xe']
 
-            if self.xzero is None:
-                # initialise the start X position
-                self.xzero = x
+                if xe <= 0:
+                    # skip junk
+                    continue
 
-            x -= self.xzero
+                if self.xzero is None:
+                    # initialise the start X position
+                    self.xzero = x
 
-            # compute time in terms of minutes from the zeropoint
-            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                x -= self.xzero
 
-            # Store new point
-            self.t.append(tmins)
-            self.f.append(x)
-            self.fe.append(xe)
-            if targ['flag'] & hcam.TARGET_SATURATED:
-                # mark saturated data with cross
-                self.symb.append(5)
-            else:
-                # blob if OK
-                self.symb.append(17)
+                # compute time in terms of minutes from the zeropoint
+                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
 
-            # Plot the point in minutes from start point
-            pgsch(0.5)
-            if self.ecol is not None:
-                pgsci(self.ecol)
-                pgmove(tmins, x-xe)
-                pgdraw(tmins, x+xe)
-            pgsci(self.dcol)
-            pgpt1(tmins, x, self.symb[-1])
+                # Store new point
+                self.t.append(tmins)
+                self.f.append(x)
+                self.fe.append(xe)
+                if targ['flag'] & hcam.TARGET_SATURATED:
+                    # mark saturated data with cross
+                    self.symb.append(5)
+                else:
+                    # blob if OK
+                    self.symb.append(17)
 
-            # track the limits
-            tmax = tmins if tmax is None else max(tmins,tmax)
-            xmin = x if xmin is None else min(x, xmin)
-            xmax = x if xmax is None else max(x, xmax)
+                # Plot the point in minutes from start point
+                pgsch(0.5)
+                if self.ecol is not None:
+                    pgsci(self.ecol)
+                    pgmove(tmins, x-xe)
+                    pgdraw(tmins, x+xe)
+                pgsci(self.dcol)
+                pgpt1(tmins, x, self.symb[-1])
+
+                # track the limits
+                tmax = tmins if tmax is None else max(tmins,tmax)
+                xmin = x if xmin is None else min(x, xmin)
+                xmax = x if xmax is None else max(x, xmax)
 
         return (tmax, xmin, xmax)
 
@@ -2299,7 +2317,7 @@ class Yposition(BaseBuffer):
         super().__init__(plot_config)
         self.yzero = None
 
-    def add_point(self, results, tzero, tmax, ymin, ymax):
+    def add_point(self, results, tzero, tmax, ymin, ymax, skipbadt):
         """
         Extracts the data to be plotted on the position plot.
 
@@ -2335,49 +2353,51 @@ class Yposition(BaseBuffer):
         for nframe, store, ccdaper, reses, mjdint, \
             mjdfrac, mjdok, expose in res:
 
-            # loop over each frame of the group
+            if mjdok or not skipbadt:
 
-            targ = reses[self.targ]
-            y = targ['y']
-            ye = targ['ye']
+                # loop over each frame of the group
 
-            if ye <= 0:
-                # skip junk
-                continue
+                targ = reses[self.targ]
+                y = targ['y']
+                ye = targ['ye']
 
-            if self.yzero is None:
-                # initialise the start Y position
-                self.yzero = y
+                if ye <= 0:
+                    # skip junk
+                    continue
 
-            y -= self.yzero
+                if self.yzero is None:
+                    # initialise the start Y position
+                    self.yzero = y
 
-            # compute time in terms of minutes from the zeropoint
-            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                y -= self.yzero
 
-            # Store new point
-            self.t.append(tmins)
-            self.f.append(y)
-            self.fe.append(ye)
-            if targ['flag'] & hcam.TARGET_SATURATED:
-                # mark saturated data with cross
-                self.symb.append(5)
-            else:
-                # blob if OK
-                self.symb.append(17)
+                # compute time in terms of minutes from the zeropoint
+                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
 
-            # Plot the point in minutes from start point
-            pgsch(0.5)
-            if self.ecol is not None:
-                pgsci(self.ecol)
-                pgmove(tmins, y-ye)
-                pgdraw(tmins, y+ye)
-            pgsci(self.dcol)
-            pgpt1(tmins, y, self.symb[-1])
+                # Store new point
+                self.t.append(tmins)
+                self.f.append(y)
+                self.fe.append(ye)
+                if targ['flag'] & hcam.TARGET_SATURATED:
+                    # mark saturated data with cross
+                    self.symb.append(5)
+                else:
+                    # blob if OK
+                    self.symb.append(17)
 
-            # track the limits
-            tmax = tmins if tmax is None else max(tmins,tmax)
-            ymin = y if ymin is None else min(y, ymin)
-            ymax = y if ymax is None else max(y, ymax)
+                # Plot the point in minutes from start point
+                pgsch(0.5)
+                if self.ecol is not None:
+                    pgsci(self.ecol)
+                    pgmove(tmins, y-ye)
+                    pgdraw(tmins, y+ye)
+                pgsci(self.dcol)
+                pgpt1(tmins, y, self.symb[-1])
+
+                # track the limits
+                tmax = tmins if tmax is None else max(tmins,tmax)
+                ymin = y if ymin is None else min(y, ymin)
+                ymax = y if ymax is None else max(y, ymax)
 
         return (tmax, ymin, ymax)
 
@@ -2391,7 +2411,7 @@ class Transmission(BaseBuffer):
         super().__init__(plot_config)
         self.fmax = None   # Maximum to scale the transmission
 
-    def add_point(self, results, tzero, tmax):
+    def add_point(self, results, tzero, tmax, skipbadt):
         """
         Extracts the data to be plotted on the transmission plot for given the
         time and the results (for all CCDs, as returned by
@@ -2412,48 +2432,50 @@ class Transmission(BaseBuffer):
         for nframe, store, ccdaper, reses, mjdint, \
             mjdfrac, mjdok, expose in res:
 
-            # loop over each frame of the group
-            targ = reses[self.targ]
-            f = targ['counts']
-            fe = targ['countse']
+            if mjdok or not skipbadt:
 
-            if f <= 0 or fe <= 0:
-                # skip junk
-                continue
+                # loop over each frame of the group
+                targ = reses[self.targ]
+                f = targ['counts']
+                fe = targ['countse']
 
-            # compute time in terms of minutes from the zeropoint
-            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                if f <= 0 or fe <= 0:
+                    # skip junk
+                    continue
 
-            # Store new point
-            self.t.append(tmins)
-            self.f.append(f)
-            self.fe.append(fe)
-            if targ['flag'] & hcam.TARGET_SATURATED:
-                # mark saturated data with cross
-                self.symb.append(5)
-            else:
-                # blob if OK
-                self.symb.append(17)
+                # compute time in terms of minutes from the zeropoint
+                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
 
-            if self.fmax is None:
-                # initialise the maximum flux
-                self.fmax = f
+                # Store new point
+                self.t.append(tmins)
+                self.f.append(f)
+                self.fe.append(fe)
+                if targ['flag'] & hcam.TARGET_SATURATED:
+                    # mark saturated data with cross
+                    self.symb.append(5)
+                else:
+                    # blob if OK
+                    self.symb.append(17)
 
-            f *= 100/self.fmax
-            fe *= 100/self.fmax
+                if self.fmax is None:
+                    # initialise the maximum flux
+                    self.fmax = f
 
-            # Plot the point in minutes from start point
-            pgsch(0.5)
-            if self.ecol is not None:
-                pgsci(self.ecol)
-                pgmove(tmins, f-fe)
-                pgdraw(tmins, f+fe)
-            pgsci(self.dcol)
-            pgpt1(tmins, f, self.symb[-1])
+                f *= 100/self.fmax
+                fe *= 100/self.fmax
 
-            # track the limits
-            tmax = tmins if tmax is None else max(tmins,tmax)
-            fmax = f if fmax is None else max(f, fmax)
+                # Plot the point in minutes from start point
+                pgsch(0.5)
+                if self.ecol is not None:
+                    pgsci(self.ecol)
+                    pgmove(tmins, f-fe)
+                    pgdraw(tmins, f+fe)
+                pgsci(self.dcol)
+                pgpt1(tmins, f, self.symb[-1])
+
+                # track the limits
+                tmax = tmins if tmax is None else max(tmins,tmax)
+                fmax = f if fmax is None else max(f, fmax)
 
         return (tmax, fmax)
 
@@ -2467,7 +2489,7 @@ class Seeing(BaseBuffer):
         super().__init__(plot_config)
         self.scale = scale
 
-    def add_point(self, results, tzero, tmax, fmax):
+    def add_point(self, results, tzero, tmax, fmax, skipbadt):
         """
         Extracts the data to be plotted on the transmission plot for given the
         time and the results (for all CCDs, as returned by
@@ -2487,44 +2509,46 @@ class Seeing(BaseBuffer):
         for nframe, store, ccdaper, reses, mjdint, \
             mjdfrac, mjdok, expose in res:
 
-            # loop over each frame of the group
-            targ = reses[self.targ]
-            f = targ['fwhm']
-            fe = targ['fwhme']
+            if mjdok or not skipbadt:
 
-            if f <= 0 or fe <= 0:
-                # skip junk
-                continue
+                # loop over each frame of the group
+                targ = reses[self.targ]
+                f = targ['fwhm']
+                fe = targ['fwhme']
 
-            f *= self.scale
-            fe *= self.scale
+                if f <= 0 or fe <= 0:
+                    # skip junk
+                    continue
 
-            # compute time in terms of minutes from the zeropoint
-            tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                f *= self.scale
+                fe *= self.scale
 
-            # Store new point
-            self.t.append(tmins)
-            self.f.append(f)
-            self.fe.append(fe)
-            if targ['flag'] & hcam.TARGET_SATURATED:
-                # mark saturated data with cross
-                self.symb.append(5)
-            else:
-                # blob if OK
-                self.symb.append(17)
+                # compute time in terms of minutes from the zeropoint
+                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
 
-            # Plot the point in minutes from start point
-            pgsch(0.5)
-            if self.ecol is not None:
-                pgsci(self.ecol)
-                pgmove(tmins, f-fe)
-                pgdraw(tmins, f+fe)
-            pgsci(self.dcol)
-            pgpt1(tmins, f, self.symb[-1])
+                # Store new point
+                self.t.append(tmins)
+                self.f.append(f)
+                self.fe.append(fe)
+                if targ['flag'] & hcam.TARGET_SATURATED:
+                    # mark saturated data with cross
+                    self.symb.append(5)
+                else:
+                    # blob if OK
+                    self.symb.append(17)
 
-            # track the limits
-            tmax = tmins if tmax is None else max(tmins,tmax)
-            fmax = f if fmax is None else max(f, fmax)
+                # Plot the point in minutes from start point
+                pgsch(0.5)
+                if self.ecol is not None:
+                    pgsci(self.ecol)
+                    pgmove(tmins, f-fe)
+                    pgdraw(tmins, f+fe)
+                pgsci(self.dcol)
+                pgpt1(tmins, f, self.symb[-1])
+
+                # track the limits
+                tmax = tmins if tmax is None else max(tmins,tmax)
+                fmax = f if fmax is None else max(f, fmax)
 
         return (tmax, fmax)
 
