@@ -44,7 +44,7 @@ def genred(args=None):
 
     Parameters:
 
-        apfile   : string
+        apfile : string
            the input aperture file created using |setaper| (default extension
            .ape). This will be read for the targets. The main target will be
            assumed to have been called '1', the main comparison '2'. If there
@@ -54,11 +54,11 @@ def genred(args=None):
            definable]. Target '1' will be used for the seeing plot unless it
            is linked when target '2' will be used instead.
 
-        rfile    : string
-           the output reduce file created using |setaper|. This will be read
-           for the targets. The main target will be assumed to have been
-           called '1', the main comparison '2'. If there is a '3' it will be
-           plotted relative to '2'; all others will be ignored for plotting
+        rfile : string
+           the output reduce file created by this script. The main
+           target will be assumed to have been called '1', the main
+           comparison '2'. If there is a '3' it will be plotted
+           relative to '2'; all others will be ignored for plotting
            purposes.
 
         comment : string
@@ -74,12 +74,16 @@ def genred(args=None):
         dark : string
            Name of dark frame; 'none' to ignore.
 
-        linear  : string
+        linear : string
            light curve plot linear (else magnitudes)
 
         inst : string
            the instrument (needed to set nonlinearity and saturation levels for
            warning purposes. Possible options listed.
+
+        skipbadt : bool
+           whether to skip data with bad times or not. Should be True for ULTRACAM
+           and ULTRASPEC; False for HiPERCAM.
 
         ncpu : int [hidden]
            some increase in speed can be obtained by running the
@@ -124,17 +128,17 @@ def genred(args=None):
         method   : string
            profile fitting method. 'g' for gaussian, 'm' for moffat
 
-        beta     : float [hidden]
+        beta : float [hidden]
            default Moffat exponent to use to start fitting
 
-        betamax  : float [hidden]
+        betamax : float [hidden]
            maximum Moffat exponent to pass on to subsequent fits. Prevents
            it wandering to silly values which can happen.
 
-        fwhm     : float [hidden]
+        fwhm : float [hidden]
            the default FWHM to use when fitting [unbinned pixels].
 
-        fwhmmin  : float [hidden]
+        fwhmmin : float [hidden]
            the default FWHM to use when fitting [unbinned pixels].
 
         searchwidth : int [hidden]
@@ -199,13 +203,13 @@ def genred(args=None):
         rmin : float [hidden]
            minimum target aperture radius [unbinned pixels]
 
-        rmax     : float [hidden]
+        rmax : float [hidden]
            maximum target aperture radius [unbinned pixels]
 
-        sinner   : float [hidden]
+        sinner : float [hidden]
            inner sky aperture radius [unbinned pixels]
 
-        souter   : float [hidden]
+        souter : float [hidden]
            outer sky aperture radius [unbinned pixels]
 
         readout : float | string [hidden]
@@ -214,7 +218,7 @@ def genred(args=None):
         gain : float [hidden]
            gain, electrons per ADU. Can either be a single value or an hcm file.
 
-        scale    : float [hidden]
+        scale : float [hidden]
            image scale in arcsec/pixel
 
         psfgfac : float [hidden]
@@ -244,6 +248,7 @@ def genred(args=None):
         cl.register('dark', Cline.LOCAL, Cline.PROMPT)
         cl.register('linear', Cline.LOCAL, Cline.PROMPT)
         cl.register('inst', Cline.LOCAL, Cline.HIDE)
+        cl.register('skipbadt', Cline.LOCAL, Cline.HIDE)
         cl.register('ncpu', Cline.LOCAL, Cline.HIDE)
         cl.register('ngroup', Cline.LOCAL, Cline.HIDE)
         cl.register('extendx', Cline.LOCAL, Cline.HIDE)
@@ -327,8 +332,8 @@ def genred(args=None):
         dark = '' if dark is None else dark
 
         inst = cl.get_value(
-            'inst', 'instrument (hipercam, ultracam, ultraspec)',
-            'hipercam', lvals=['hipercam', 'ultracam', 'ultraspec','ignore']
+            'inst', 'instrument (hipercam, ultracam, ultraspec, other)',
+            'hipercam', lvals=['hipercam', 'ultracam', 'ultraspec','other']
         )
 
         if inst == 'hipercam':
@@ -340,6 +345,7 @@ warn = 4 50000 64000
 warn = 5 50000 64000
 """
             maxcpu = 5
+            cl.set_default('skipbadt', False)
 
         elif inst == 'ultracam':
             warn_levels = """# Warning levels for instrument = ULTRACAM
@@ -348,12 +354,15 @@ warn = 2 28000 64000
 warn = 3 50000 64000
 """
             maxcpu = 3
+            cl.set_default('skipbadt', True)
 
         elif inst == 'ultraspec':
             warn_levels = """# Warning levels for instrument = ULTRASPEC
 warn = 1 60000 64000
 """
             maxcpu = 1
+            cl.set_default('skipbadt', True)
+
 
         else:
             warn_levels = """# No warning levels have been set!!"""
@@ -373,6 +382,10 @@ warn = 1 60000 64000
             )
         else:
             ngroup = 1
+
+        skipbadt = cl.get_value(
+            'skipbadt', 'skip points with bad times or not', True
+        )
 
         linear = cl.get_value(
             'linear', 'linear light curve plot?', False
@@ -738,7 +751,8 @@ warn = 1 60000 64000
                 gain=gain, fit_max_shift=fit_max_shift, fit_alpha=fit_alpha,
                 fit_diff=fit_diff, psfgfac=psfgfac, psfpostweak=psfpostweak,
                 psfwidth=psfwidth,toffset=toffset,
-                smooth_fft='yes' if smooth_fft else 'no'
+                smooth_fft='yes' if smooth_fft else 'no',
+                skipbadt='yes' if skipbadt else 'no',
             )
         )
 
@@ -791,6 +805,11 @@ iwidth = 0 # image curve plot width, inches, 0 to let program choose
 iheight = 0 # image curve plot height, inches
 
 toffset = {toffset:d} # offset subtracted from the MJD
+
+# skip points with bad times in plots. HiPERCAM has a problem in not
+# correcting indicating bad times so one does not usually want to
+# skip "bad time" points, whereas one should for ULTRACAM and ULTRASPEC.
+skipbadt = {skipbadt}
 
 # series of count levels at which warnings will be triggered for (a)
 # non linearity and (b) saturation. Each line starts 'warn =', and is
