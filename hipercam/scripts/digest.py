@@ -191,14 +191,14 @@ def digest(args=None):
                     except IndexError:
                         pass
 
-            if set(runs) != set(lruns):
+            if set(lruns) < set(runs):
+                # complain if the log does not cover some of the runs
                 print(
-                    '** the runs in {:s} do not '
-                    'match those in the directory'.format(log),
+                    '** {:s} has missing runs cf the directory'.format(log),
                     file=sys.stderr
                 )
-                print('Runs not in common are: {!s}'.format(
-                    set(runs) ^ set(lruns)))
+                print('Missing runs are: {!s}'.format(
+                    set(runs) - set(lruns)))
                 print('digest aborted',file=sys.stderr)
                 return
 
