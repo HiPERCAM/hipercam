@@ -84,6 +84,6 @@ def rupdate(args=None):
 """)
 
         if nversion == 1:
-            fout.write('skipbadt = no\n")
+            fout.write('skipbadt = no\n')
 
     print('Updated reduce file = {:s}'.format(rfile))
