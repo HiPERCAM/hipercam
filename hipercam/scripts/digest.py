@@ -63,8 +63,13 @@ def digest(args=None):
         '-f', dest='full', action='store_true',
         help='to a full (slow) search for newly imported data directories of the form YYYY_MM_DD'
     )
+    parser.add_argument(
+        '-i', dest='ignore', action='store_true',
+        help='ignore runs not mentioned in the log but found in the directory'
+    )
     args = parser.parse_args()
     full_search = args.full
+    ignore = args.ignore
 
     RAW = 'raw_data'
     DERIVED = 'derived_data'
@@ -199,8 +204,11 @@ def digest(args=None):
                 )
                 print('Missing runs are: {!s}'.format(
                     set(runs) - set(lruns)))
-                print('digest aborted',file=sys.stderr)
-                return
+                if ignore:
+                    print('ignoring problem and continuing.')
+                else:
+                    print('digest aborted',file=sys.stderr)
+                    return
 
             # extract runs from the MD5SUM file
             mruns = []
@@ -210,13 +218,12 @@ def digest(args=None):
                     if not name.endswith('.old'):
                         mruns.append(name[:name.rfind('.')])
 
-            if set(runs) != set(mruns):
+            if set(mruns) != set(runs):
                 print('The runs in the md5sum file do not match '
                       'those in the directory',file=sys.stderr)
                 print('Runs not in common are: {!s}'.format(
                     set(runs) ^ set(mruns)))
                 print('digest aborted',file=sys.stderr)
-                return
 
             print('... found all the runs listed in the md5sum file')
 
