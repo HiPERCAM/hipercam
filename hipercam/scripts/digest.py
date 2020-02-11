@@ -47,7 +47,9 @@ def digest(args=None):
     to check that the file md5sums match.
 
     This program uses standard unix command-line switches. Run with '-h' to
-    see help.
+    see help. It is not uncommon for there to be more log entries that there
+    are runs if people pre-populate the log file but never take the runs. This
+    causes an error that can be skipped with the '-i' option.
     """
 
     username = getpass.getuser()
