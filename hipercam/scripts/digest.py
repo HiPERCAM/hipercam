@@ -293,7 +293,7 @@ def digest(args=None):
             # make an equivalent night directory for log stuff
             logndir = os.path.join(LOGS, nnight)
             os.mkdir(logndir)
-            os.chmod(logndir, 0755)
+            os.chmod(logndir, 0o755)
             print('mkdir {:s}'.format(logndir))
 
             # create a link to the log night directory in the log run directory
