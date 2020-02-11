@@ -24,10 +24,10 @@ __all__ = ['rupdate',]
 def rupdate(args=None):
     """``rupdate rfile``
 
-    As changes are made to reduce, the reduce files can become obsolete. This
-    script tries to bring old reduce files up to date by adding in the new
-    options but in a way that should give the old behaviour. The file is modified
-    in place.
+    As changes are made to reduce, the reduce files can become
+    obsolete. This script tries to bring old reduce files up to date
+    by adding in the new options but in a way that should give the old
+    behaviour. The file is modified in place.
 
     Parameters:
 
@@ -57,7 +57,7 @@ def rupdate(args=None):
     lines = []
     fversion = False
     nversion = 0
-    while open(rfile) as fin:
+    with open(rfile) as fin:
         for line in fin:
             if line.startswith('version ='):
                 version = line[9:].strip()
@@ -74,7 +74,7 @@ def rupdate(args=None):
             lines.append(line)
 
     # Write out modified file
-    while open(rfile,'w') as fout:
+    with open(rfile,'w') as fout:
         for line in lines:
             fout.write(line)
 
