@@ -70,8 +70,7 @@ CNAME_TO_FMT = {
 }
 
 class Hlog(dict):
-    """
-    Class to represent a HiPERCAM log as produced by reduce.  Based on
+    """Class to represent a HiPERCAM log as produced by reduce.  Based on
     dictionaries, Hlog files contain numpy structured arrays for each CCD
     which can be accessed by the CCD label name. Each array contains data that
     can be accessed by the label of the column. e.g.
@@ -95,12 +94,14 @@ class Hlog(dict):
         names in the order they appeared in the original file. This is to
         help write out the data
 
-    3) 'comments', a list of strings storing the header comments to allow the Hlog
-       to be written out with full information if read from an ASCII log.
+    3) 'comments', a list of strings storing the header comments to
+       allow the Hlog to be written out with full information if read
+       from an ASCII log.
 
-    4) 'writable', a flag to say whether the Hlog can be written which at the moment
-       is only true if it has been read from an ASCII |hipercam| log file. Potentially
-       fixable in the future.
+    4) 'writable', a flag to say whether the Hlog can be written which
+       at the moment is only true if it has been read from an ASCII
+       |hipercam| log file. Potentially fixable in the future.
+
     """
 
     @classmethod
@@ -109,6 +110,15 @@ class Hlog(dict):
         Loads a HiPERCAM ASCII log file written by reduce. Each CCD is loaded
         into a separate structured array, returned in a dictionary keyed by
         the CCD label.
+
+        Argument::
+
+           fname : string | list
+              Can be a single log file name or a list of log file names. If a list,
+              just the first file's comments will be read, the others ignored, and 
+              it will be assumed, but not checked, that the later files have the
+              same number and order of columns.
+
         """
 
         hlog = cls()
@@ -123,86 +133,104 @@ class Hlog(dict):
         hlog.comments = []
         start = True
 
-        with open(fname) as fin:
-            for line in fin:
+        if isinstance(fname, (list, tuple, np.ndarray)):
+            fnames = fname
+        else:
+            fnames = [fname,]
 
-                if line.startswith('#'):
+        first = True
 
-                    if start:
-                        hlog.comments.append(line)
+        for fnam in fnames:
+            with open(fnam) as fin:
+                for line in fin:
 
-                    if line.find('Start of column name definitions') > -1:
-                        read_cnames = True
+                    if line.startswith('#'):
 
-                    elif line.find('Start of data type definitions') > -1:
-                        read_dtypes = True
+                        if first:
+                            if start:
+                                hlog.comments.append(line)
 
-                    elif read_cnames:
-                        # reading the column names
-                        if line.find('End of column name definitions') > -1:
-                            read_cnames = False
-                        elif line.find('=') > -1:
-                            # store the column names
-                            cnam = line[1:line.find('=')].strip()
-                            hlog.cnames[cnam] = line[line.find('=')+1:].strip().split()[1:]
-                            hlog.apnames[cnam] = list(set(
-                                [item[item.find('_')+1:] for item in hlog.cnames[cnam] \
-                                 if item.find('_') > -1]
-                            ))
-                            hlog.apnames[cnam].sort()
+                            if line.find('Start of column name definitions') > -1:
+                                read_cnames = True
 
-                    elif read_dtypes:
-                        # reading the data types. We build numpy.dtype objects and
-                        # strings for packing the data with struct.pack to save
-                        # memory.
-                        if line.find('End of data type definitions') > -1:
-                            read_dtypes = False
-                            # can now create the record array dtype
-                            for cnam in hlog.cnames:
-                                # numpy dtype
-                                dtypes[cnam] = np.dtype(
-                                    list(zip(hlog.cnames[cnam], dtype_defs[cnam]))
-                                )
-                                # equivalent struct. Use native byte order with no alignment
-                                # (initial '=') to match numpy packing.
-                                struct_types[cnam] = '=' + \
-                                                     ''.join(
-                                                         [NUMPY_TO_STRUCT[dt]
-                                                          for dt in dtype_defs[cnam]])
+                            elif line.find('Start of data type definitions') > -1:
+                                read_dtypes = True
 
-                                read_data = True
+                            elif read_cnames:
+                                # reading the column names
+                                if line.find('End of column name definitions') > -1:
+                                    read_cnames = False
 
-                        elif line.find('=') > -1:
-                            # store the data types
-                            cnam = line[1:line.find('=')].strip()
-                            dtype_defs[cnam] = line[line.find('=')+1:].strip().split()[1:]
+                                elif line.find('=') > -1:
+                                    # store the column names
+                                    cnam = line[1:line.find('=')].strip()
+                                    hlog.cnames[cnam] = line[line.find('=')+1:].strip().split()[1:]
+                                    hlog.apnames[cnam] = list(set(
+                                        [item[item.find('_')+1:] for item in hlog.cnames[cnam] \
+                                         if item.find('_') > -1]
+                                    ))
+                                    hlog.apnames[cnam].sort()
 
-                            # get ready for the data
-                            hlog[cnam] = bytearray()
+                            elif read_dtypes:
+                                # reading the data types. We build
+                                # numpy.dtype objects and strings for
+                                # packing the data with struct.pack to
+                                # save memory.
+                                if line.find('End of data type definitions') > -1:
+                                    read_dtypes = False
 
-                elif read_data:
-                    # No more storage of comment lines
-                    start = False
+                                    # can now create the record array dtype
+                                    for cnam in hlog.cnames:
+                                        # numpy dtype
+                                        dtypes[cnam] = np.dtype(
+                                            list(zip(hlog.cnames[cnam], dtype_defs[cnam]))
+                                        )
+                                        # equivalent struct. Use
+                                        # native byte order with no
+                                        # alignment (initial '=') to
+                                        # match numpy packing.
+                                        struct_types[cnam] = '=' + \
+                                                             ''.join(
+                                                                 [NUMPY_TO_STRUCT[dt]
+                                                                  for dt in dtype_defs[cnam]])
 
-                    # read a data line
-                    items = line.strip().split()
-                    cnam = items.pop(0)
-                    dts = dtype_defs[cnam]
+                                    read_data = True
 
-                    # convert types
-                    for n in range(len(items)):
-                        dt = dts[n]
-                        if dt.startswith('f'):
-                            items[n] = float(items[n])
-                        elif dt.startswith('i') or dt.startswith('u'):
-                            items[n] = int(items[n])
-                        elif dt == '?':
-                            items[n] = bool(items[n])
+                                elif line.find('=') > -1:
+                                    # store the data types
+                                    cnam = line[1:line.find('=')].strip()
+                                    dtype_defs[cnam] = line[line.find('=')+1:].strip().split()[1:]
 
-                    # store in a list. Although lists are wasteful, they grow
-                    # quite fast and each element here is efficiently packed
-                    # so it should cope with quite large log files.
-                    hlog[cnam].extend(struct.pack(struct_types[cnam], *items))
+                                    # get ready for the data
+                                    hlog[cnam] = bytearray()
+
+                    elif read_data:
+
+                        # No more storage of comment lines
+                        start = False
+
+                        # read a data line
+                        items = line.strip().split()
+                        cnam = items.pop(0)
+                        dts = dtype_defs[cnam]
+
+                        # convert types
+                        for n in range(len(items)):
+                            dt = dts[n]
+                            if dt.startswith('f'):
+                                items[n] = float(items[n])
+                            elif dt.startswith('i') or dt.startswith('u'):
+                                items[n] = int(items[n])
+                            elif dt == '?':
+                                items[n] = bool(items[n])
+
+                        # store in a list. Although lists are wasteful, they grow
+                        # quite fast and each element here is efficiently packed
+                        # so it should cope with quite large log files.
+                        hlog[cnam].extend(struct.pack(struct_types[cnam], *items))
+
+            # flag up subsequent runs
+            first = False
 
         # for each CCD convert the list of byte data to a numpy array and then
         # ro a record array of the right dtype.
