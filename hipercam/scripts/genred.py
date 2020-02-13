@@ -791,7 +791,10 @@ TEMPLATE = """#
 # the reduce file may become incompatible with later versions of
 # reduce. Either they will require updating to be used, or the
 # software version can be rolled back to give a compatible version of
-# reduce using 'git'.
+# reduce using 'git'. The script 'rupdate', which attempts automatic
+# update, may be worth trying if you need to update. It attempts to make
+# the minimum changes needed to an old reduce file to run with later
+# version dates.
 
 [general]
 version = {version} # must be compatible with the version in reduce
