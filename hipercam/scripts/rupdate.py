@@ -60,30 +60,49 @@ def rupdate(args=None):
     with open(rfile) as fin:
         for line in fin:
             if line.startswith('version ='):
+                # extract the version number
                 version = line[9:].strip()
+                if version.find(' ') > -1:
+                    version = version[:version.find(' ')]
+                if version.find('#') > -1:
+                    version = version[:version.find('#')]
+
                 if version == hcam.REDUCE_FILE_VERSION:
                     print('reduce file = {:s} is up to date'.format(file))
                     exit(0)
+
                 elif version == '20181107':
                     # update version number
-                    line = 'version = {:s}\n'.format(hcam.REDUCE_FILE_VERSION)
+                    line = ('version = {:s} # must be'
+                            ' compatible with the'
+                            ' version in reduce\n').format(hcam.REDUCE_FILE_VERSION)
 
-                    # record version
+                    # Insert modified version and extra lines which go into the 'general'
+                    # section along with the version number.
+                    lines.append(line)
+                    lines.append('\n# The next section was automatically added by rupdate to update\n')
+                    lines.append('# from an old version of reduce file.\n\n')
+                    lines.append('skipbadt = no\n\n')
+                    lines.append('# End of added section\n')
+
+                    # record version in case we need other actions later
                     nversion = 1
+                else:
+                    print('Version = {:s} not recognised'.format(version))
+                    print('Aborting update; nothing changed.')
+                    exit(1)
 
-            lines.append(line)
+            else:
+                # Default action is just to store save the line
+                lines.append(line)
 
     # Write out modified file
     with open(rfile,'w') as fout:
         for line in lines:
             fout.write(line)
 
-        fout.write("""
-# The next section was automatically added by rupdate to update
-# from an old version of reduce file.
-""")
-
-        if nversion == 1:
-            fout.write('skipbadt = no\n')
+        # This could be the point at which extra lines are tacked
+        # on to the end of the file.
+        # if nversion == XX etc
 
     print('Updated reduce file = {:s}'.format(rfile))
