@@ -1635,7 +1635,8 @@ def utimer(tbytes, rhead, fnum):
     # 'midnight bug' correction
     if (int(mjd-3) % 7) == ((nsec // DSEC) % 7):
         warnings.warn(
-            'ultracam.utimer: run {:d}  midnight bug detected and corrected'.format(rhead.run))
+            'ultracam.utimer: run {:s}  midnight bug detected and corrected'.format(rhead.run)
+        )
         mjd += 1
         midnightCorr = True
     else:
