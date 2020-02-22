@@ -760,7 +760,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                     'beta': info['beta'], 'betae': info['betae'],
                     'counts': 0., 'countse': -1,
                     'sky': 0., 'skye': 0., 'nsky': 0, 'nrej': 0,
-                    'flag': flag
+                    'flag': flag, 'cmax' : 0
                 }
             return results
 
@@ -930,11 +930,12 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 raise hcam.HipercamError('no valid pixels in aperture')
 
             # check for saturation and nonlinearity
+            cmax = int(swraw.data[dok].max())
             if cnam in rfile.warn:
-                if swraw.data[dok].max() >= rfile.warn[cnam]['saturation']:
+                if cmax >= rfile.warn[cnam]['saturation']:
                     flag |= hcam.TARGET_SATURATED
 
-                if swraw.data[dok].max() >= rfile.warn[cnam]['nonlinear']:
+                if cmax >= rfile.warn[cnam]['nonlinear']:
                     flag |= hcam.TARGET_NONLINEAR
 
             else:
@@ -1042,7 +1043,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 'beta': info['beta'], 'betae': info['betae'],
                 'counts': counts, 'countse': countse,
                 'sky': slevel, 'skye': serror, 'nsky': nsky,
-                'nrej': nrej, 'flag': flag
+                'nrej': nrej, 'flag': flag, 'cmax' : cmax
             }
 
         except hcam.HipercamError as err:
@@ -1057,7 +1058,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 'beta': info['beta'], 'betae': info['betae'],
                 'counts': 0., 'countse': -1,
                 'sky': 0., 'skye': 0., 'nsky': 0, 'nrej': 0,
-                'flag': flag
+                'flag': flag, 'cmax' : 0
             }
 
     # finally, we are done

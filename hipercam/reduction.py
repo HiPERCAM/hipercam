@@ -2686,11 +2686,11 @@ class LogWriter:
                         '{:.4f} {:.4f} {:.4f} {:.4f} '
                         '{:.3f} {:.3f} {:.3f} {:.3f} '
                         '{:.1f} {:.1f} {:.2f} {:.2f} '
-                        '{:d} {:d} {:d} '.format(
+                        '{:d} {:d} {:d} {:d} '.format(
                             r['x'], r['xe'], r['y'], r['ye'],
                             r['fwhm'], r['fwhme'], r['beta'], r['betae'],
                             r['counts'], r['countse'], r['sky'], r['skye'],
-                            r['nsky'], r['nrej'], r['flag']
+                            r['nsky'], r['nrej'], r['cmax'], r['flag']
                         )
                     )
 
@@ -2796,7 +2796,7 @@ class LogWriter:
 #    mfwhm  : the mean FWHM used to determine the aperture scale (-1 if none)
 #    mbeta  : the mean Moffat beta exponent (-1 if none)
 #
-# Then a set of 15 items that is repeated for each aperture and will
+# Then a set of 16 items that is repeated for each aperture and will
 # have '_<apnam>' added to them. The 'errors' are RMS uncertainties, and
 # may often be set to -1 if no direct measurement is made. This can happen
 # through problems that occur or because an aperture is linked for instance.
@@ -2815,6 +2815,7 @@ class LogWriter:
 #    skye    : sky level error, counts per pixel
 #    nsky    : number of contributing sky pixels (those not rejected)
 #    nrej    : number of sky pixels rejected
+#    cmax    : maximum raw counts in aperture
 #    flag    : status flag, 0 = all OK.
 #
 # Start of column name definitions:
@@ -2836,7 +2837,7 @@ class LogWriter:
                 cnames += 'x_{0:s} xe_{0:s} y_{0:s} ye_{0:s} ' \
                           'fwhm_{0:s} fwhme_{0:s} beta_{0:s} betae_{0:s} ' \
                           'counts_{0:s} countse_{0:s} sky_{0:s} skye_{0:s} ' \
-                          'nsky_{0:s} nrej_{0:s} flag_{0:s} '.format(
+                          'nsky_{0:s} nrej_{0:s} cmax_{0:s} flag_{0:s} '.format(
                               apnam)
             self.log.write(cnames + '\n')
 
@@ -2851,7 +2852,7 @@ class LogWriter:
 # Start of data type definitions:
 #
 """)
-        atypes = 'f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 i4 i4 u4 '
+        atypes = 'f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 i4 i4 i4 u4 '
         for cnam, ccdaper in self.rfile.aper.items():
             if len(ccdaper) == 0:
                 # nothing will be written for CCDs without
