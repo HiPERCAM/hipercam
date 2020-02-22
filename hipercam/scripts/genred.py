@@ -22,18 +22,20 @@ __all__ = ['genred',]
 ################################################
 
 def genred(args=None):
-    """``genred apfile rfile comment bias flat dark linear inst [ncpu extendx
-    ccd location smoothfwhm method beta betamax fwhm fwhmmin searchwidth thresh
-    hminref hminnrf rfac rmin rmax sinner souter scale psfgfac psfwidth psfpostweak]``
+    """``genred apfile rfile comment bias flat dark linear [inst skipbadt
+    ncpu extendx ccd location smoothfwhm method beta betamax fwhm
+    fwhmmin searchwidth thresh hminref hminnrf rfac rmin rmax sinner
+    souter scale psfgfac psfwidth psfpostweak]``
 
-    Generates a reduce file as needed by |reduce| or |psf_reduce|. You give it
-    the name of an aperture file and a few other parameters and it will write
-    out a reduce file which you can then refine by hand. A few simplifying
-    assumptions are made, e.g. that the target is called '1'; see below for more.
-    This script effectively defines the format of reduce files. The script attempts
-    above all to generate a self-consistent reduce file.  e.g. if there are no
-    apertures in CCD 5, it does not attempt to plot any corresponding light
-    curves.
+    Generates a reduce file as needed by |reduce| or |psf_reduce|. You
+    give it the name of an aperture file and a few other parameters
+    and it will write out a reduce file which you can then refine by
+    hand. A few simplifying assumptions are made, e.g. that the target
+    is called '1'; see below for more.  This script effectively
+    defines the format of reduce files. The script attempts above all
+    to generate a self-consistent reduce file.  e.g. if there are no
+    apertures in CCD 5, it does not attempt to plot any corresponding
+    light curves.
 
     To avoid excessive prompting, |genred| has many hidden parameters. The
     very first time you use it on a run, specify ``prompt`` on the command line
@@ -77,13 +79,13 @@ def genred(args=None):
         linear : string
            light curve plot linear (else magnitudes)
 
-        inst : string
+        inst : string [hidden]
            the instrument (needed to set nonlinearity and saturation levels for
            warning purposes. Possible options listed.
 
-        skipbadt : bool
-           whether to skip data with bad times or not. Should be True for ULTRACAM
-           and ULTRASPEC; False for HiPERCAM.
+        skipbadt : bool [hidden]
+           whether to skip data with bad times or not. Should be True
+           for ULTRACAM and ULTRASPEC; False for HiPERCAM.
 
         ncpu : int [hidden]
            some increase in speed can be obtained by running the
@@ -94,8 +96,9 @@ def genred(args=None):
            for single CCD reduction.
 
         ngroup : int [hidden, if ncpu > 1]
-           to reduce parallelisation overheads, this parameter means that ngroup
-           frames are read before being split up for the parallisation step is applied.
+           to reduce parallelisation overheads, this parameter means
+           that ngroup frames are read before being split up for the
+           parallisation step is applied.
 
         extendx : float [hidden]
            how many minutes to extend light curve plot by at a time
@@ -331,6 +334,7 @@ def genred(args=None):
         )
         dark = '' if dark is None else dark
 
+        # hidden parameters
         inst = cl.get_value(
             'inst', 'instrument (hipercam, ultracam, ultraspec, other)',
             'hipercam', lvals=['hipercam', 'ultracam', 'ultraspec','other']
@@ -365,7 +369,10 @@ warn = 1 60000 64000
 
 
         else:
-            warn_levels = """# No warning levels have been set!!"""
+            warn_levels = """# No warning levels have been set!!
+# Format: warn = ccd nonlinear saturated, e.g.
+# warn = 1 50000 64000
+"""
             maxcpu = 20
 
         if maxcpu > 1:
@@ -392,22 +399,24 @@ warn = 1 60000 64000
         )
         linear = 'yes' if linear else 'no'
 
-        # hidden parameters
-
         extendx = cl.get_value(
             'extendx', 'how much to extend light curve plot [mins]',
             10.,0.01
         )
 
-        ccd = cl.get_value(
-            'ccd', 'label for the CCD used for the position plot','2'
-        )
-        if ccd not in aper:
-            raise hcam.HipercamError(
-                'CCD {:s} not found in aperture file {:s}'.format(ccd,apfile)
+        if inst == 'ultraspec':
+            # only one CCD for ULTRASPEC
+            ccd = '1'
+        else:
+            ccd = cl.get_value(
+                'ccd', 'label for the CCD used for the position plot','2'
             )
+            if ccd not in aper:
+                raise hcam.HipercamError(
+                    'CCD {:s} not found in aperture file {:s}'.format(
+                        ccd,apfile)
+                )
 
-        # hidden parameters
         location = cl.get_value(
             'location', 'aperture location, f(ixed) or v(ariable)',
             'v', lvals=['f','v']
