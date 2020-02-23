@@ -242,7 +242,9 @@ def reduce(args=None):
 
             if source.startswith('u'):
                 trim = cl.get_value(
-                    'trim', 'do you want to trim edges of windows? (ULTRACAM only)', True
+                    'trim', 
+                    'do you want to trim edges of windows? (ULTRACAM only)',
+                    True
                 )
                 if trim:
                     ncol = cl.get_value(
@@ -538,6 +540,47 @@ def reduce(args=None):
                 if rfile.flat is not None:
                     # apply flat field to processed frame
                     pccd /= rfile.flat
+
+                if rfile['focal_mask']['demask']:
+                    # attempt to correct for poorly placed frame
+                    # transfer mask causing a step illumination in the
+                    # y-direction. Loop through all windows of all
+                    # CCDs. Also include a stage where we average in
+                    # the Y direction to try to eliminate high pixels.
+                    dthresh = rfile['focal_mask']['dthresh']
+
+                    for cnam, ccd in pccd.items():
+                        for wnam, wind in ccd.items():
+
+                            # form mean in Y direction, then try to
+                            # mask out high pixels
+                            ymean = np.mean(wind.data,0)
+                            xmask = (ymean == ymean)
+                            while 1:
+                                # rejection cycle, rejecting
+                                # overly positive pixels
+                                ave = ymean[xmask].mean()
+                                rms = ymean[xmask].std()
+                                diff = ymean-ave
+                                diff[~xmask] = 0
+                                imax = np.argmax(diff)
+                                if diff[imax] > dthresh*rms:
+                                    xmask[imax] = False
+                                else:
+                                    break
+
+                            # form median in X direction
+                            xmedian = np.median(wind.data[:,xmask],1)
+
+                            # subtract it's median to avoid removing
+                            # general background
+                            xmedian -= np.median(xmedian)
+
+                            # now subtract from 2D image using
+                            # broadcasting rules
+                            wind.data -= xmedian.reshape(
+                                (len(xmedian),1)
+                            )
 
                 # Acummulate frames into processing groups for faster
                 # parallelisation
