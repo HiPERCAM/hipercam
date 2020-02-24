@@ -222,7 +222,7 @@ class Hlog(dict):
                             elif dt.startswith('i') or dt.startswith('u'):
                                 items[n] = int(items[n])
                             elif dt == '?':
-                                items[n] = bool(items[n])
+                                items[n] = bool(int(items[n]))
 
                         # store in a list. Although lists are wasteful, they grow
                         # quite fast and each element here is efficiently packed
@@ -266,7 +266,7 @@ class Hlog(dict):
     @classmethod
     def rulog(cls, fname):
         """
-        Creates an Hlog from an ASCII file produced by the C++ ULTRACAM 
+        Creates an Hlog from an ASCII file produced by the C++ ULTRACAM
         pipeline.
         """
 
@@ -314,7 +314,7 @@ class Hlog(dict):
                     else:
                         # first time for this CCD
                         hlog[cnam] = bytearray()
-                        names = ['MJD','Tflag','Expose','FWHM','beta']
+                        names = ['MJD','MJDok','Expose','FWHM','beta']
                         dts = ['f8','?','f4','f4','f4']
                         naps[cnam] = len(arr[7:]) // 14
                         hlog.apnames[cnam] = [str(i) for i in range(1,naps[cnam]+1)]
@@ -374,10 +374,17 @@ class Hlog(dict):
               entries.
         """
         ccd = self[str(cnam)]
+
+        # Work out bad times which will be OR-ed onto the aperture
+        # specific mask array
+        mjdok = ccd['MJDok']
+        tmask = np.zeros_like(mjdok, dtype=np.uint)
+        tmask[~mjdok] = BAD_TIME
+
         return Tseries(
             ccd['MJD'].copy(), ccd['{:s}_{:s}'.format(name,str(apnam))],
             ccd['{:s}e_{!s}'.format(name,apnam)],
-            ccd['flag_{!s}'.format(apnam)]
+            np.bitwise_or(ccd['flag_{!s}'.format(apnam)], tmask)
         )
 
     def write(self, fname):
@@ -449,7 +456,7 @@ class Tseries:
         """
         self.mask[mask] = np.bitwise_or(self.mask[mask], mvalue)
 
-    def get_mask(self, mvalue=None):
+    def get_mask(self, mvalue=None, invert=False):
         """Returns logical array of all points with positive errors which
         also match the given bitmask mvalue. NB The array returned is not
         the same as the internal property 'mask'.
@@ -457,27 +464,41 @@ class Tseries:
         Arguments::
 
            mvalue : bitmask
-             bitmask to select points according to the internal mask
-             array.  A match is made if any of the bits in the mask
+             use to select points according to the internal mask
+             array. A match is made if any of the bits in the mask
              array value for a given point match the set bits in
              mvalue. e.g. if mvalue=(NO_FWHM | NO_SKY) would select
-             all points without a FWHM or sky, while mvalue=ALL_OK
-             would select perfect points only. See Tseries.report for
-             how to get a full list of possible flags. A value of 
-             None makes no selection and picks points with positive errors.
+             all points without a FWHM or sky aperture, while
+             mvalue=ALL_OK selects perfect points only. Everything BUT
+             the matching points can be selected using the 'invert'
+             flag. See Tseries.report for how to get a full list of
+             possible flags. A value of None makes no selection and
+             just picks points with positive errors.
+
+           invert : bool
+             set True to return everything that does NOT match the supplied
+             mvalue. Points with negative errors still ignored. Thus
+             'mvalue=BAD_TIME, invert=True' will only plot points with good
+             times.
+
         """
         if mvalue is not None:
             if mvalue == ALL_OK:
                 # special case: no bits set at all.
-                return (self.mask == mvalue) & (self.ye > 0.)
+                if invert:
+                    return (self.mask != mvalue) & (self.ye > 0.)
+                else:
+                    return (self.mask == mvalue) & (self.ye > 0.)
             else:
-                # any case with set bits
-                return (np.bitwise_and(self.mask, mvalue) > 0) & (self.ye > 0.)
+                if invert:
+                    return (np.bitwise_and(self.mask, mvalue) == 0) & (self.ye > 0.)
+                else:
+                    return (np.bitwise_and(self.mask, mvalue) > 0) & (self.ye > 0.)
         else:
             # no selection other than positive errors
             return (self.ye > 0.)
 
-    def get_data(self, mvalue=None):
+    def get_data(self, mvalue=None, invert=False):
         """
         Returns the data as (times, values, errors). 'mask' is a bitmask
         to define which to select in addition to data with non-positive errors.
@@ -486,12 +507,16 @@ class Tseries:
 
            mvalue : bitmask
              bitmask to select points according to the internal mask array.
+
+           invert : bool
+             set True to return everything that does NOT match the supplied
+             mvalue. Points with negative errors still ignored.
         """
-        ok = self.get_mask(mvalue)
+        ok = self.get_mask(mvalue, invert)
         return (self.t[ok],self.y[ok],self.ye[ok])
 
-    def mplot(self, axes, colour='b', fmt='.', mvalue=None, capsize=0,
-              erry=True, trange=None, **kwargs):
+    def mplot(self, axes, colour='b', fmt='.', mvalue=None, invert=False,
+              capsize=0, erry=True, trange=None, **kwargs):
         """Plots a Tseries to a matplotlib Axes instance, only plotting points
         that match the bitmask `mask` and have positive errors.
 
@@ -511,6 +536,10 @@ class Tseries:
            mvalue : bitmask
               used to select the points to plot. See 'get_mask'
 
+           invert : bool
+             set True to return everything BUT the points selected
+             by the mvalue
+
            capsize : float
               if error bars are plotted with points, this sets
               the length of terminals
@@ -523,7 +552,7 @@ class Tseries:
 
         """
         # Select points
-        ok = self.get_mask(mvalue)
+        ok = self.get_mask(mvalue, invert)
 
         if trange is not None:
             t1,t2 = trange
@@ -1002,10 +1031,10 @@ class Tseries:
         self.set_mask(CLOUDS, clouds)
 
         return (clouds,rvar,trans)
-    
+
     def report(self):
         """Reports numbers and types of bad points"""
-        
+
         for fname, flag in FLAGS:
             match = np.bitwise_and(self.mask, flag) == flag
             print(
