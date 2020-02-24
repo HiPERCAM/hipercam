@@ -30,10 +30,10 @@ many of these may be installed for you by pip as part of the process.
   matplotlib :
          standard plotting package for Python. You will also need
          a Qt backend. In opensuse for instance the package
-         python3-matplotib-qt5 allows the Qt5Agg backend
+         python3-matplotib-qt5 enables the Qt5Agg backend
 
   numba :
-        Another package along with Cythong to suuport faster numerics. Uses
+        Another package along with Cython to support faster numerics. Uses
         "just-in-time" compilation of selected routines.
 
   numpy :
@@ -41,8 +41,17 @@ many of these may be installed for you by pip as part of the process.
          it, but note that you need at least version 1.12 to provide
          `numpy.flip`.
 
+  requests :
+         nicest http request module. It may well be installed.
+
   scipy :
          Scientific software for Python, closely linked to numpy.
+
+  sep :
+         astronomical source extractor for the aligntool script
+
+  setuptools_scm :
+         package to manage version numbers from the git repository
 
   trm.pgplot :
          my own Cython-ised wrapper for PGPLOT which I wrote specifically
@@ -56,19 +65,12 @@ many of these may be installed for you by pip as part of the process.
 
          trm.pgplot is not to be confused with "ppgplot" which although
          very similar, is a more hand-crafted version with some
-         differences in the calls. This cannot be installed using pip.
-
-  requests :
-         nicest http request module. It may well be installed.
+         differences in the calls. Once you have cloned it, you can
+         enter trm-pgplot and install with pip
 
   websocket-client :
          for talking to the hipercam server.
 
-  sep :
-         astronomical source extractor for the aligntool script
-
-  setuptools_scm :
-         package to manage version numbers from the git repository
 
 In each case if you are not sure whether you have a given component, a
 quick check is to type e.g. `pydoc numba`. Once you have all these,
