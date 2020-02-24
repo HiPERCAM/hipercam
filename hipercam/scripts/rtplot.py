@@ -23,10 +23,10 @@ __all__ = ['rtplot',]
 
 def rtplot(args=None):
     """``rtplot [source device width height] (run first (trim [ncol nrow])
-    twait tmax | flist) [pause plotall] ccd (nx) bias flat defect
-    setup [drurl] msub iset (ilo ihi | plo phi) xlo xhi ylo yhi (profit
-    [fdevice fwidth fheight method beta fwhm fwhm_min shbox smooth
-    splot fhbox hmin read gain thresh])``
+    [twait tmax] | flist) (ccd (nx)) [pause plotall] bias [lowlevel
+    highlevel] flat defect setup [drurl] msub iset (ilo ihi | plo phi)
+    xlo xhi ylo yhi (profit [fdevice fwidth fheight method beta fwhm
+    fwhm_min shbox smooth splot fhbox hmin read gain thresh])``
 
     Plots a sequence of images as a movie in near 'real time', hence
     'rt'. Designed to be used to look at images coming in while at the
@@ -119,6 +119,16 @@ def rtplot(args=None):
 
         bias : string
            Name of bias frame to subtract, 'none' to ignore.
+
+        lowlevel : float [hidden]
+           Level below which a warning about low bias levels is warned. Set=0
+           to ignore. Applied to first window of first CCD. 2000 about
+           right for ULTRACAM.
+
+        highlevel : float [hidden]
+           Level above which a warning about high bias levels is warned. Set=0
+           to ignore. Applied to first window of first CCD. 3500 about
+           right for ULTRACAM.
 
         flat : string
            Name of flat field to divide by, 'none' to ignore. Should normally
@@ -271,10 +281,12 @@ def rtplot(args=None):
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('pause', Cline.LOCAL, Cline.HIDE)
         cl.register('plotall', Cline.LOCAL, Cline.HIDE)
-        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('lowlevel', Cline.GLOBAL, Cline.HIDE)
+        cl.register('highlevel', Cline.GLOBAL, Cline.HIDE)
         cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
         cl.register('defect', Cline.GLOBAL, Cline.PROMPT)
         cl.register('setup', Cline.GLOBAL, Cline.PROMPT)
@@ -402,6 +414,16 @@ def rtplot(args=None):
             fprompt = "flat frame ['none' to ignore]"
         else:
             fprompt = "flat frame ['none' is normal choice with no bias]"
+
+        lowlevel = cl.get_value(
+            'lowlevel', 'bias level lower limit for warnings',
+            2000.
+        )
+
+        highlevel = cl.get_value(
+            'highlevel', 'bias level upper limit for warnings',
+            3500.
+        )
 
         # flat (if any)
         flat = cl.get_value(
@@ -589,6 +611,27 @@ def rtplot(args=None):
 
             # accumulate errors
             emessages = []
+
+            # bias level checks
+            if lowlevel != 0.:
+                median = mccd.get_num(1).get_num(1)
+                if median < lowlevel:
+                    emessages.append(
+                        '** low bias level, median vs limit: {:.1f} vs {:.1f}'.format(
+                            median,lowlevel)
+                    )
+
+            if highlevel != 0.:
+                try:
+                    median = mccd.get_num(1).get_num(2)
+                except:
+                    median = mccd.get_num(1).get_num(1)
+
+                if median > highlevel:
+                    emessages.append(
+                        '** high bias level, median vs limit: {:.1f} vs {:.1f}'.format(
+                            median,lowlevel)
+                    )
 
             if n == 0:
                 if bias is not None:
