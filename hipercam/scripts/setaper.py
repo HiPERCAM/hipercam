@@ -454,7 +454,8 @@ def setaper(args=None):
     # get the navigation toolbar. Go straight into pan mode where we want to
     # stay.
     toolbar = fig.canvas.manager.toolbar
-    toolbar.pan()
+    if backend != 'TkAgg':
+        toolbar.pan()
 
     nccd = len(ccds)
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
