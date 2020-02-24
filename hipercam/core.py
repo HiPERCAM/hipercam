@@ -9,13 +9,13 @@ import numpy as np
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
     'HipercamError', 'HipercamWarning', 'DMINS',
-    'LOG', 'CNAMS', 'CIS', 'DFCT', 'version', 
+    'LOG', 'CNAMS', 'CIS', 'DFCT', 'version',
     'gregorian_to_mjd', 'mjd_to_gregorian', 'fday_to_hms',
     'ALL_OK', 'NO_FWHM','NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
-    'TARGET_NONLINEAR', 'TARGET_SATURATED', 
+    'TARGET_NONLINEAR', 'TARGET_SATURATED',
     'REDUCE_FILE_VERSION', 'NO_EXTRACTION', 'NO_DATA',
     'CLOUDS', 'JUNK', 'ANY_BAD', 'BAD_FLAT', 'BAD_COLUMN',
-    'FLAGS',
+    'BAD_TIME', 'FLAGS',
 )
 
 # Constants for general use
@@ -80,20 +80,21 @@ CNAMS = {
 }
 
 # Bit masks (used in reduce.py and hlog.py)
-ALL_OK            = 0        # No problems detected (no bits set)
-NO_FWHM           = 1 << 0   # No FWHM, even though variable apertures are being used
-NO_SKY            = 1 << 1   # No sky pixels at all
-SKY_AT_EDGE       = 1 << 2   # Sky aperture edge of window
-TARGET_AT_EDGE    = 1 << 3   # Target aperture overlaps edge of window
-TARGET_SATURATED  = 1 << 4   # At least one pixel in target above saturation level
-TARGET_NONLINEAR  = 1 << 5   # At least one pixel in target above non-linear level
-NO_EXTRACTION     = 1 << 6   # No extraction possible
-NO_DATA           = 1 << 7   # No valid pixels in aperture
-CLOUDS            = 1 << 8   # Point affected by clouds
-JUNK              = 1 << 9   # Unspecified junk data (e.g. cosmic ray hit)
-BAD_FLAT          = 1 << 10  # Bad flat field pixel (e.g. deep dust speck)
-BAD_COLUMN        = 1 << 11  # Bad column (e.g. target aperture includes such data)
-BAD_TIME          = 1 << 12  # Bad time
+bmask = np.uint32
+ALL_OK            = bmask(0)       # No problems detected (no bits set)
+NO_FWHM           = bmask(1 << 0)  # No FWHM, even though variable apertures are being used
+NO_SKY            = bmask(1 << 1)  # No sky pixels at all
+SKY_AT_EDGE       = bmask(1 << 2)  # Sky aperture edge of window
+TARGET_AT_EDGE    = bmask(1 << 3)  # Target aperture overlaps edge of window
+TARGET_SATURATED  = bmask(1 << 4)  # At least one pixel in target above saturation level
+TARGET_NONLINEAR  = bmask(1 << 5)  # At least one pixel in target above non-linear level
+NO_EXTRACTION     = bmask(1 << 6)  # No extraction possible
+NO_DATA           = bmask(1 << 7)  # No valid pixels in aperture
+CLOUDS            = bmask(1 << 8)  # Point affected by clouds
+JUNK              = bmask(1 << 9)  # Unspecified junk data (e.g. cosmic ray hit)
+BAD_FLAT          = bmask(1 << 10) # Bad flat field pixel (e.g. deep dust speck)
+BAD_COLUMN        = bmask(1 << 11) # Bad column (e.g. target aperture includes such data)
+BAD_TIME          = bmask(1 << 12) # Bad time
 
 # Matches any bad point
 ANY_BAD = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | \
