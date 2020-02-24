@@ -24,7 +24,7 @@ __all__ = ['rupdate',]
 def rupdate(args=None):
     """``rupdate rfile``
 
-    As changes are made to reduce, the reduce files can become
+    As changes are made to 'reduce', old reduce files can become
     obsolete. This script tries to bring old reduce files up to date
     by adding in the new options but in a way that should give the old
     behaviour. The file is modified in place.
@@ -87,6 +87,17 @@ def rupdate(args=None):
 
                     # record version in case we need other actions later
                     nversion = 1
+
+                elif version == '20200207':
+                    # update version number
+                    line = ('version = {:s} # must be'
+                            ' compatible with the'
+                            ' version in reduce\n').format(hcam.REDUCE_FILE_VERSION)
+                    lines.append(line)
+
+                    # record version in case we need other actions later
+                    nversion = 2
+
                 else:
                     print('Version = {:s} not recognised'.format(version))
                     print('Aborting update; nothing changed.')
@@ -104,5 +115,15 @@ def rupdate(args=None):
         # This could be the point at which extra lines are tacked
         # on to the end of the file.
         # if nversion == XX etc
+        if nversion == 1 or nversion == 2:
+            fout.write("""#
+# Next lines were added automatically by 'rupdate' to bring this reduce file
+# up to date. The changes are designed to produce the same behaviour as the
+# old version of the reduce file as far as is possible.
+
+[focal_mask]
+demask = no
+dthresh = 4
+""")
 
     print('Updated reduce file = {:s}'.format(rfile))

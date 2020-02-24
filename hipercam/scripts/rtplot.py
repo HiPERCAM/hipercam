@@ -573,11 +573,18 @@ def rtplot(args=None):
                 hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
             # indicate progress
-            tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
-            print(
-                '{:d}, utc = {:s}, '.format(
-                    mccd.head['NFRAME'], tstamp.iso), end=''
-            )
+            try:
+                tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
+                print(
+                    '{:d}, utc = {:s}, '.format(
+                        mccd.head['NFRAME'], tstamp.iso), end=''
+                )
+            except:
+                # sometimes times are junk.
+                print(
+                    '{:d}, utc = {:s}, '.format(
+                        mccd.head['NFRAME'], '2000-01-01 00:00:00.000'), end=''
+                )
 
             # accumulate errors
             emessages = []

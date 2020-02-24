@@ -37,11 +37,12 @@ def genred(args=None):
     apertures in CCD 5, it does not attempt to plot any corresponding
     light curves.
 
-    To avoid excessive prompting, |genred| has many hidden parameters. The
-    very first time you use it on a run, specify ``prompt`` on the command line
-    to see all of these.  They are chosen to be the parameters most likely to
-    vary with telescope or conditions; many others are left at default values
-    and require editing to change. If you find yourself repeatedly editing a
+    To avoid excessive prompting, |genred| has many hidden
+    parameters. The very first time you use it on a run, specify
+    ``prompt`` on the command line to see all of these.  They are
+    chosen to be the parameters most likely to vary with telescope or
+    conditions; many others are left at default values and require
+    editing to change. If you find yourself repeatedly editing a
     parameter, let me know and I will add it to this routine.
 
     Parameters:
@@ -128,7 +129,7 @@ def genred(args=None):
            operation used in the initial search. No effect on results,
            but could be faster for large values of smoothfwhm.
 
-        method   : string
+        method : string
            profile fitting method. 'g' for gaussian, 'm' for moffat
 
         beta : float [hidden]
@@ -162,7 +163,6 @@ def genred(args=None):
            RMS rejection threshold for profile fits.
 
         hminref : float [hidden]
-
            minimum peak height for a fit to a reference aperture to be
            accepted. This applies to the peak height in the *smoothed* image
            used during the initial search as well as the peak height after
@@ -231,12 +231,22 @@ def genred(args=None):
             half-width of box used to extract data around objects for PSF fitting
 
         psfpostweak : string [hidden]
-            During PSF fitting, either hold positions at aperture location ('fixed'),
-            or fit as part of PSF model ('variable')
+            During PSF fitting, either hold positions at aperture
+            location ('fixed'), or fit as part of PSF model
+            ('variable')
 
+        demask: bool [hidden]
+            True to attempt to correct for a misplaced frame transfer mask
+            that can affect drift mode data. Sympton is a step in the 
+            illumination with Y. This will attempt to subtract the median
+            in X from each window. Do not use unless you need to.
+
+        dthresh: float [hidden, if demask]
+            Threshold (in RMS) to reject pixels in X before taking the
+            median to reduce the effect of bright stars on the median
+            profile. It does this by takeing the average in the Y direction
+            and then rejecting overly bright pixels.
     """
-
-#    print(my_version)
 
     command, args = utils.script_args(args)
 
@@ -284,6 +294,8 @@ def genred(args=None):
         cl.register('psfgfac', Cline.LOCAL, Cline.HIDE)
         cl.register('psfwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('psfpostweak', Cline.LOCAL, Cline.HIDE)
+        cl.register('demask', Cline.LOCAL, Cline.HIDE)
+        cl.register('dthresh', Cline.LOCAL, Cline.HIDE)
 
         # get inputs
 
@@ -385,7 +397,9 @@ warn = 1 60000 64000
 
         if ncpu > 1:
             ngroup = cl.get_value(
-                'ngroup', 'number of frames per group to reduce parallelisation overheads', 1, 1
+                'ngroup', 
+                'number of frames per group to reduce parallelisation overheads',
+                1, 1
             )
         else:
             ngroup = 1
@@ -545,6 +559,19 @@ warn = 1 60000 64000
         )
         psfpostweak = 'variable' if psfpostweak == 'v' else 'fixed'
 
+        demask = cl.get_value(
+            'demask', 'correct for badly located focal plane mask?',
+            False
+        )
+
+        if demask:
+            dthresh = cl.get_value(
+                'dthresh', 'RMS threshold for rejection in X before median',
+                3., 0.1
+            )
+        else:
+            dthresh = 3.
+
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
@@ -616,7 +643,8 @@ warn = 1 60000 64000
 
     if no_light:
         raise hcam.HipercamError(
-            'Found no targets for light curve plots in any CCD; cannot make light curve plot'
+            'Found no targets for light curve plots in any'
+            ' CCD; cannot make light curve plot'
         )
 
     # Generate the position plot lines
@@ -762,6 +790,8 @@ warn = 1 60000 64000
                 psfwidth=psfwidth,toffset=toffset,
                 smooth_fft='yes' if smooth_fft else 'no',
                 skipbadt='yes' if skipbadt else 'no',
+                demask='yes' if demask else 'no',
+                dthresh=dthresh,
             )
         )
 
@@ -819,7 +849,7 @@ iheight = 0 # image curve plot height, inches
 toffset = {toffset:d} # offset subtracted from the MJD
 
 # skip points with bad times in plots. HiPERCAM has a problem in not
-# correcting indicating bad times so one does not usually want to
+# correctly indicating bad times so one does not usually want to
 # skip "bad time" points, whereas one should for ULTRACAM and ULTRASPEC.
 skipbadt = {skipbadt}
 
@@ -1106,6 +1136,17 @@ ymax = 110 # Maximum transmission to plot (>= 100 to slow replotting)
 
 # line or lines defining the targets to plot
 {seeing_plot}
+
+# This option attempts to correct for a badly-positioned focal plane mask
+# in drift mode which combined with a high background can lead to steps in 
+# illumination in the Y direction. This tries to subtract the median in the
+# X-direction of each window. 'dthresh' is a threshold used to reject X
+# pixels prior to taking the median. The purpose is to prevent the stars
+# from distorting the median. Take care with this option which is experimental.
+
+[focal_mask]
+demask = {demask}
+dthresh = {dthresh}
 
 # Monitor section. This section allows you to monitor particular
 # targets for problems. If they occur, then messages will be printed
