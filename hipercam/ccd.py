@@ -537,7 +537,7 @@ class CCD(Agroup):
     @property
     def head(self):
         """Returns the first Window or an empty fits.Header if there is
-        no first Window. The headerof the first Window is where general
+        no first Window. The header of the first Window is where general
         header items of the CCD are stored."""
         return next(iter(self.values()), fits.Header())
 
