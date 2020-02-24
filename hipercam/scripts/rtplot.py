@@ -600,7 +600,7 @@ def rtplot(args=None):
                     flat = flat.crop(mccd)
 
             if setup:
-                # Get windows from hdriver. Fair bit of error checking
+                # Get windows from driver. Fair bit of error checking
                 # needed. 'got_windows' indicates if anything useful
                 # found, 'hwindows' is a list of (llx,lly,nx,ny) tuples
                 # if somthing is found.
@@ -615,7 +615,8 @@ def rtplot(args=None):
                         got_windows = False
 
                     elif r.text.strip() == 'fullframe':
-                        # to help Stu out a bit, effectively just ignore this one
+                        # to help Stu out a bit, effectively just
+                        # ignore this one
                         got_windows = False
 
                     else:
@@ -681,7 +682,7 @@ def rtplot(args=None):
 
                     if got_windows:
                         # plot the current hdriver windows
-                        pgsci(hcam.CNAMS['yellow'])
+                        pgsci(hcam.CNAMS['green'])
                         pgsls(2)
                         for llxh,llyh,nxh,nyh in hwindows:
                             pgrect(llxh-0.5,llxh+nxh-0.5,llyh-0.5,llyh+nyh-0.5)
