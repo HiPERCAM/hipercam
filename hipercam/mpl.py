@@ -231,25 +231,29 @@ def pAper(axes, aper, label='', ccdAper=None):
     # draw circles to represent the aperture. 'objs' is a list of the
     # objects that we keep to return for possible later deletion.
     objs = []
-    if aper.ref:
-        objs.append(
-            axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
-                                  color=Params['aper.reference.col']))
-        )
-    else:
-        objs.append(
-            axes.add_patch(Circle((aper.x,aper.y),aper.rtarg,fill=False,
-                                  color=Params['aper.target.col']))
-        )
+
+    # target
+    objs.append(
+        axes.add_patch(Circle(
+            (aper.x,aper.y),aper.rtarg,fill=False,
+            color=Params['aper.reference.col'] if aper.ref else
+            Params['aper.target.col']
+    )))
+
+    # sky
+    objs.append(
+        axes.add_patch(Circle(
+            (aper.x,aper.y),aper.rsky1,fill=False,
+            color=Params['aper.reference.col'] if aper.ref else
+            Params['aper.sky.col']
+    )))
 
     objs.append(
-        axes.add_patch(Circle((aper.x,aper.y),aper.rsky1,fill=False,
-                              color=Params['aper.sky.col']))
-    )
-    objs.append(
-        axes.add_patch(Circle((aper.x,aper.y),aper.rsky2,fill=False,
-                              color=Params['aper.sky.col']))
-    )
+        axes.add_patch(Circle(
+            (aper.x,aper.y),aper.rsky2,fill=False,
+            color=Params['aper.reference.col'] if aper.ref else
+            Params['aper.sky.col']
+    )))
 
     if aper.link != '':
         # indicate a link with an arrow
