@@ -93,6 +93,7 @@ def rupdate(args=None):
                     line = ('version = {:s} # must be'
                             ' compatible with the'
                             ' version in reduce\n').format(hcam.REDUCE_FILE_VERSION)
+                    lines.append(line)
 
                     # record version in case we need other actions later
                     nversion = 2
