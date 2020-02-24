@@ -689,15 +689,15 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
             xopt = 'bcst'
             yv1 = yv2
 
-            # Light curve is not an option and is always at the top
-            yv2 = yv1 + scale*lheight
+        # Light curve is not an option and is always at the top
+        yv2 = yv1 + scale*lheight
 
-            lpanel = Panel(
-                lcdev, xv1, xv2, yv1, yv2, xlabel,
-                'Flux' if rfile['light']['linear'] else 'Magnitudes', '',
-                xopt, 'bcnst', x1, x2,
-                rfile['light']['y1'], rfile['light']['y2']
-                )
+        lpanel = Panel(
+            lcdev, xv1, xv2, yv1, yv2, xlabel,
+            'Flux' if rfile['light']['linear'] else 'Magnitudes', '',
+            xopt, 'bcnst', x1, x2,
+            rfile['light']['y1'], rfile['light']['y2']
+        )
 
     return imdev, lcdev, spanel, tpanel, xpanel, ypanel, lpanel
 
@@ -708,30 +708,37 @@ def setup_plot_buffers(rfile):
     for plot_config in rfile['light']['plot']:
         lbuffer.append(LightCurve(plot_config, rfile['light']['linear']))
 
+    xbuffer, ybuffer = [], []
     if rfile.position:
-        xbuffer, ybuffer = [], []
         for plot_config in rfile['position']['plot']:
             xbuffer.append(Xposition(plot_config))
             ybuffer.append(Yposition(plot_config))
 
+    tbuffer = []
     if rfile.transmission:
-        tbuffer = []
         for plot_config in rfile['transmission']['plot']:
             tbuffer.append(Transmission(plot_config))
 
+    sbuffer = []
     if rfile.seeing:
-        sbuffer = []
         for plot_config in rfile['seeing']['plot']:
             sbuffer.append(Seeing(plot_config, rfile['seeing']['scale']))
 
     return lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
 
+# Some fancy stuff to keep tzero internal to update_plots
+def static_vars(**kwargs):
+    def decorate(func):
+        for k in kwargs:
+            setattr(func, k, kwargs[k])
+        return func
+    return decorate
 
+@static_vars(tzero=None)
 def update_plots(
         results, rfile, implot, lplot, imdev, lcdev,
         pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi,
-        xlo, xhi, ylo, yhi, tzero,
-        lpanel, xpanel, ypanel, tpanel, spanel,
+        xlo, xhi, ylo, yhi, lpanel, xpanel, ypanel, tpanel, spanel,
         tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer):
     """Plot updater routine.
 
@@ -797,9 +804,6 @@ def update_plots(
        yhi : int
           upper Y-limit for determination of percentiles
 
-       tzero : float
-          time offset for plots
-
        lpanel, xpanel, ypanel, tpanel, spanel, tkeep, lbuffer,
         xbuffer, ybuffer, tbuffer, sbuffer -- need doing.
 
@@ -861,35 +865,55 @@ def update_plots(
 
         # plot the light curve
 
+        if update_plots.tzero is None:
+
+            # first set the tzero if it is not set yet
+
+            skipbadt = rfile['general']['skipbadt']
+            for cnam, res in results:
+                for nframe, store, ccdaper, reses, mjdint, \
+                    mjdfrac, mjdok, expose in res:
+                    if mjdok or not skipbadt:
+                        update_plots.tzero = mjdint+mjdfrac
+                        break
+                if update_plots.tzero is not None:
+                    break
+
+        if update_plots.tzero is None:
+            # Must have a tzero to get going at all
+            return
+
+        tzero = update_plots.tzero
+
         # track the maximum time
         tmax = None
 
         replot, ltmax = plotLight(lpanel, tzero, results, rfile, tkeep, lbuffer)
         tmax = tmax if ltmax is None else \
-            ltmax if tmax is None else max(tmax, ltmax)
+               ltmax if tmax is None else max(tmax, ltmax)
 
         if rfile.position:
             # plot the positions
             rep, ptmax = plotPosition(
                 xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer
-                )
+            )
             replot |= rep
             tmax = tmax if ptmax is None else \
-                ptmax if tmax is None else max(tmax, ptmax)
+                   ptmax if tmax is None else max(tmax, ptmax)
 
         if rfile.transmission:
             # plot the transmission
             rep, ttmax = plotTrans(tpanel, tzero, results, rfile, tkeep, tbuffer)
             replot |= rep
             tmax = tmax if ttmax is None else \
-                ttmax if tmax is None else max(tmax, ttmax)
+                   ttmax if tmax is None else max(tmax, ttmax)
 
         if rfile.seeing:
             # plot the seeing
             rep, stmax = plotSeeing(spanel, tzero, results, rfile, tkeep, sbuffer)
             replot |= rep
             tmax = tmax if stmax is None else \
-                stmax if tmax is None else max(tmax, stmax)
+                   stmax if tmax is None else max(tmax, stmax)
 
         # check the time
         if tmax is not None and tmax > lpanel.x2:
@@ -1121,9 +1145,7 @@ def initial_checks(mccd, rfile):
         read /= rfile.flat
         gain *= rfile.flat
 
-    # reference the times relative to the start frame.
-    tzero = mccd.head['MJDUTC']
-    return (tzero, read, gain, ok)
+    return (read, gain, ok)
 
 
 class ProcessCCDs:
@@ -2145,9 +2167,9 @@ class LightCurve(BaseBuffer):
         for nframe, store, ccdaper, reses, mjdint, \
             mjdfrac, mjdok, expose in res:
 
-            if mjdok or not skipbadt:
+            # loop over each frame of the group
 
-                # loop over each frame of the group
+            if mjdok or not skipbadt:
 
                 targ = reses[self.targ]
                 ft = targ['counts']

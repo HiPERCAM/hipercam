@@ -395,8 +395,8 @@ def reduce(args=None):
         else:
             pool = None
 
-        # whether a tzero has been set
-        tzset = False
+        # whether some parameters have been initialised
+        initialised = False
 
         # containers for the processed and raw MCCD groups
         # and their frame numbers
@@ -440,7 +440,7 @@ def reduce(args=None):
                             update_plots(
                                 results, rfile, implot, lplot, imdev,
                                 lcdev, pccd, ccds, msub, nx, iset, plo, phi,
-                                ilo, ihi, xlo, xhi, ylo, yhi, tzero,
+                                ilo, ihi, xlo, xhi, ylo, yhi,
                                 lpanel, xpanel, ypanel, tpanel, spanel,
                                 tkeep, lbuffer, xbuffer, ybuffer, tbuffer,
                                 sbuffer
@@ -483,7 +483,7 @@ def reduce(args=None):
                         update_plots(
                             results, rfile, implot, lplot, imdev, lcdev,
                             pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi,
-                            xlo, xhi, ylo, yhi, tzero, lpanel, xpanel,
+                            xlo, xhi, ylo, yhi, lpanel, xpanel,
                             ypanel, tpanel, spanel, tkeep, lbuffer,
                             xbuffer, ybuffer, tbuffer, sbuffer
                         )
@@ -502,10 +502,10 @@ def reduce(args=None):
                     end='' if implot else '\n'
                 )
 
-                if not tzset:
+                if not initialised:
                     # This is the first frame  which allows us to make
                     # some checks and initialisations.
-                    tzero, read, gain, ok = initial_checks(mccd, rfile)
+                    read, gain, ok = initial_checks(mccd, rfile)
 
                     # Define the CCD processor function object
                     processor = ProcessCCDs(
@@ -515,7 +515,7 @@ def reduce(args=None):
                     # set flag to show we are set
                     if not ok:
                         break
-                    tzset = True
+                    initialised = True
 
                 # De-bias the data. Retain a copy of the raw data as 'mccd'
                 # in order to judge saturation. Processed data called 'pccd'
@@ -603,7 +603,7 @@ def reduce(args=None):
                     update_plots(
                         results, rfile, implot, lplot, imdev, lcdev,
                         pccds[-1], ccds, msub, nx, iset, plo, phi, 
-                        ilo, ihi, xlo, xhi, ylo, yhi, tzero,
+                        ilo, ihi, xlo, xhi, ylo, yhi,
                         lpanel, xpanel, ypanel, tpanel, spanel, tkeep,
                         lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
                     )
@@ -626,7 +626,7 @@ def reduce(args=None):
             update_plots(
                 results, rfile, implot, lplot, imdev,
                 lcdev, pccd, ccds, msub, nx, iset, plo, phi,
-                ilo, ihi, xlo, xhi, ylo, yhi, tzero, lpanel,
+                ilo, ihi, xlo, xhi, ylo, yhi, lpanel,
                 xpanel, ypanel, tpanel, spanel, tkeep,
                 lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
             )
