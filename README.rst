@@ -13,12 +13,12 @@ relies on the following third-party packages. At the moment I suggest
 you get these, or at the very least trm.pgplot, installed first (you
 will very likely have several of them already). Most of these are
 available using 'pip', and if you can't get your sys admin to install
-them for you, I recommend installing them locally e.g. ``pip install
-cython --user``. Note that some of them use others, e.g. 'astropy'
-uses matplotlib, numpy and scipy, so if you install it, you will have
-the others as well. If you install with 'pip' (which may have to specify
-as 'pip3' if the python2.XX version of pip is your default), many of
-these may be installed for you by pip as part of the process.
+them for you, I recommend you install them in your own account (--user
+option on pip). Note that some of them use others, e.g. 'astropy' uses
+matplotlib, numpy and scipy, so if you install it, you will have the
+others as well. If you install with 'pip' (which you may have to
+specify as 'pip3' if the python2.XX version of pip is your default),
+many of these may be installed for you by pip as part of the process.
 
   astropy :
          astronomical Python package with lots of useful stuff.
@@ -61,18 +61,14 @@ these may be installed for you by pip as part of the process.
   requests :
          nicest http request module. It may well be installed.
 
-  websocket :
-         for talking to the hipercam server. You want the Websocket
-         client library which you can get from::
-
-          git clone https://github.com/websocket-client/websocket-client
+  websocket-client :
+         for talking to the hipercam server.
 
   sep :
          astronomical source extractor for the aligntool script
 
   setuptools_scm :
          package to manage version numbers from the git repository
-
 
 In each case if you are not sure whether you have a given component, a
 quick check is to type e.g. `pydoc numba`. Once you have all these,
