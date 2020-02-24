@@ -93,11 +93,12 @@ CLOUDS            = 1 << 8   # Point affected by clouds
 JUNK              = 1 << 9   # Unspecified junk data (e.g. cosmic ray hit)
 BAD_FLAT          = 1 << 10  # Bad flat field pixel (e.g. deep dust speck)
 BAD_COLUMN        = 1 << 11  # Bad column (e.g. target aperture includes such data)
+BAD_TIME          = 1 << 12  # Bad time
 
 # Matches any bad point
 ANY_BAD = NO_FWHM | NO_SKY | SKY_AT_EDGE | TARGET_AT_EDGE | \
           TARGET_SATURATED | TARGET_NONLINEAR | NO_EXTRACTION | NO_DATA | \
-          CLOUDS | JUNK | BAD_FLAT | BAD_COLUMN
+          CLOUDS | JUNK | BAD_FLAT | BAD_COLUMN | BAD_TIME
 
 # all flags for useful reference in other places
 FLAGS = (
@@ -114,6 +115,7 @@ FLAGS = (
     ('JUNK', JUNK),
     ('BAD_FLAT', BAD_FLAT),
     ('BAD_COLUMN', BAD_COLUMN),
+    ('BAD_TIME', BAD_TIME),
     ('ANY_BAD', ANY_BAD),
 )
 
