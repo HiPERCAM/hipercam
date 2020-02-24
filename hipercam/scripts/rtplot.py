@@ -24,7 +24,7 @@ __all__ = ['rtplot',]
 def rtplot(args=None):
     """``rtplot [source device width height] (run first (trim [ncol nrow])
     twait tmax | flist) [pause plotall] ccd (nx) bias flat defect
-    setup [hurl] msub iset (ilo ihi | plo phi) xlo xhi ylo yhi (profit
+    setup [drurl] msub iset (ilo ihi | plo phi) xlo xhi ylo yhi (profit
     [fdevice fwidth fheight method beta fwhm fwhm_min shbox smooth
     splot fhbox hmin read gain thresh])``
 
@@ -136,10 +136,11 @@ def rtplot(args=None):
            avoid overloading hdriver, especially if in drift mode as
            it makes a request for the windows for every frame.
 
-        hurl : string [if setup; hidden]
-           URL needed to access window setting from hdriver. The internal
-           server in hdriver must be switched on using rtplot_server_on
-           in the hdriver config file.
+        drurl : string [if setup; hidden]
+           URL needed to access window setting from the camera
+           driver (ultracam, ultraspec, hipercam). The internal server 
+           in the camera driver must be switched on which can be done
+           from the GUI.    
 
         msub : bool
            subtract the median from each window before scaling for the
@@ -277,7 +278,7 @@ def rtplot(args=None):
         cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
         cl.register('defect', Cline.GLOBAL, Cline.PROMPT)
         cl.register('setup', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('hurl', Cline.GLOBAL, Cline.HIDE)
+        cl.register('drurl', Cline.GLOBAL, Cline.HIDE)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
@@ -426,8 +427,8 @@ def rtplot(args=None):
         )
 
         if setup:
-            hurl = cl.get_value(
-                'hurl', 'URL for hdriver windows', 'http://192.168.1.2:5100'
+            drurl = cl.get_value(
+                'drurl', 'URL for driver windows', 'http://192.168.1.2:5100'
             )
 
         # define the display intensities
@@ -604,13 +605,12 @@ def rtplot(args=None):
                 # found, 'hwindows' is a list of (llx,lly,nx,ny) tuples
                 # if somthing is found.
                 try:
-                    r = requests.get(
-                        'http://192.168.1.2:5100',timeout=0.2
-                    )
+                    r = requests.get(drurl,timeout=0.2)
 
                     if r.text.strip() == 'No valid data available':
                         emessages.append(
-                            '** bad return from hdriver = {:s}'.format(r.text.strip())
+                            '** bad return from hdriver = {:s}'.format(
+                                r.text.strip())
                         )
                         got_windows = False
 
