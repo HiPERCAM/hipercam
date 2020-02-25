@@ -24,17 +24,20 @@ Bias frames
 ===========
 
 All CCD images come with a near-constant electronic offset called the
-bias which ensures that the counts are always positive and helps
+"bias" which ensures that the counts are always positive and helps
 ensure optimum readout properties. This offset does not represent
 genuine detected light and must be subtracted off any image. The
 standard approach is to take a set of zero illumination frames quickly
 to avoid the build-up of counts either from light leakage or thermal
 noise.
 
-Bias frames can be quickly taken with |hiper|. All dome lights should be off,
-the focal plane slide should be in to block light, and ideally the telescope
-mirrors closed. Bias frames should be taken in clear mode with the shortest
-possible exposures to minimise the time spent accumulating photons.
+Bias frames can be quickly taken with |hiper|, ULTRACAM and
+ULTRASPEC. All dome lights should be off, the focal plane slide should
+be in to block light, and ideally the telescope mirrors closed (in the
+case of ULTRASPEC point the M4 mirror towards the 4k camera). You may
+also want to put a low transmission filter in. Bias frames should be
+taken in clear mode with the shortest possible exposures to minimise
+the time spent accumulating photons.
 
 We standardly take 50 or 100 bias exposures. These can be combined by
 averaging pixel-by-pixel with rejection of outliers to remove cosmic rays, or
@@ -53,18 +56,18 @@ The two operations of |grab| followed by |combine|, along with clean-up of the
 temporary files can be carried out with the single command |makebias|. This
 also saves the frames to a temporary location to avoid polluting the working
 directory with lots of files. Thus assuming all frames in bias run
-:file:`run0002.fits` are OK, the following command will make the combined
+:file:`run0002` are OK, the following command will make the combined
 bias frame::
 
   makebias run0002 1 0 3.0 yes run0002
 
-rejecting pixels deviating by more that 3.0 sigma from the mean.  You might
-also want to create a more memorable link to the output hcm file, depending
-upon the particular type of bias::
+rejecting pixels deviating by more that 3.0 sigma from the mean.  You
+might also want to create a more memorable name as a soft link to the
+output hcm file, depending upon the particular type of bias::
 
   ln -s run0002.hcm bias-ff-slow.hcm
 
-for example, for a full frame bias in slow readout mode. I like this
+for example, for a full-frame bias in slow readout mode. I like this
 approach because one can quickly see (e.g. 'ls -l') which run a given
 calibration frame came from.
 
@@ -78,10 +81,13 @@ calibration section of the reduce file.
    for |hiper|.
 
 .. Warning::
-   Do not take bias frames too soon after (within less than 20 minutes)
-   powering on the CCDs to avoid higher than normal dark current. |makebias|
-   include a plot option to check this. Make sure to look at this if the bias
-   is taken not long after a power on.
+   For |hiper|, do not take bias frames too soon after (within less
+   than 20 minutes) powering on the CCDs to avoid higher than normal
+   dark current. |makebias| include a plot option to check this. Make
+   sure to look at this if the bias is taken not long after a power
+   on. ULTRACAM|SPEC are better behaved in this respect, but it is
+   always worth plotting the mean levels which ideally should drift by
+   at most a few counts.
 
 Darks
 =====
@@ -90,12 +96,12 @@ If a CCD is left exposing in complete darkness, counts accumulate
 through thermal excitation, which is known as dark current. Correction
 for this is particularly important for long exposure images. Both
 |hiper| and ULTRASPEC are kept quite cold and have relatively little
-dark current so it is often safe to ignore it. It is also very often
+dark current, so it is often safe to ignore it. It is also very often
 not at all easy to take dark calibration frames because of light
 leakage. At minimum they typically need to be taken at night with the
 dome closed, so they are a good bad weather calibration. One should
 normally take a set of biases before and after as well to allow for
-bias level drift.  Dark current is particularly important for ULTRACAM
+bias level drift. Dark current is particularly important for ULTRACAM
 where the CCDs run relatively warm. In particular there are multiple
 "hot pixels" with dark currents significantly above the background.
 The program |makedark| handles making dark calibration frames
@@ -112,39 +118,44 @@ Flat fields
 CCDs are not of uniform sensitivity. There are pixel-to-pixel
 variations, there may be dust on the optics, and there may be overall
 vigetting which typically causes a fall in sensitivity at the edge of
-the field. To account for this the standard approach is to take images
-of the twilight sky just after sunset or before sunrise. Best of all
-if the sky is free of many stars, but in any case one should always
-offset the (multiple) sky field frames taken so that the starts can be
-medianed out of the flat field. Normally we move in a spiral pattern to
-accomplish this.
+the field. These are all reasons while observing to keep your targets
+as fixed in position as possible. However, in addition, it helps to
+try to correct for such variations. To account for this the standard
+approach is to take images of the twilight sky just after sunset or
+before sunrise. Best of all if the sky is free of many stars, but in
+any case one should always offset the (multiple) sky field frames
+taken so that the starts can be medianed out of the flat
+field. Normally we move in a spiral pattern to accomplish this.
 
-At the GTC, |hiper|'s driving routine, ``hdriver`` can
-drive the telescope as well as the instrument, making spiralling during sky
-flats straightforward. One can normally acquire more than 100 frames in a
-single run, but the different CCDs will have different count levels on any one
-frame, and will come out of saturation at different times. The count levels
-will also be falling or rising according to whether the flats were taken at
-evening or morning twilight.
+At the GTC, |hiper|'s driving routine, ``hdriver`` can drive the
+telescope as well as the instrument, making spiralling during sky
+flats straightforward. One can normally acquire more than 100 frames
+in a single run, but the different CCDs will have different count
+levels on any one frame, and will come out of saturation at different
+times. The count levels will also be falling or rising according to
+whether the flats were taken at evening or morning twilight. At the
+NTT and TNT, we ask the TO to spiral the telescope.
 
-The task of making the flat fields is thus to combine a series of frames with
-differing count levels while removing features that vary between images. In
-order to do this, one must normalise the images by their mean levels, but
-weight them appropriately in the final combination to avoid giving too much
-weight to under-exposed images. This is tedious by hand, and therefore the
-command |makeflat| was written to carry out all the necessary tasks.
+The task of making the flat fields is to combine a series of frames
+with differing count levels, while removing features that vary between
+images. In order to do this, one must normalise the images by their
+mean levels, but weight them appropriately in the final combination to
+avoid giving too much weight to under-exposed images. This is tedious
+by hand, and therefore the command |makeflat| was written to carry out
+all the necessary tasks.
 
 As with the biases, it is strongly recommended that you inspect the frames to
 be combined using |rtplot| to avoid including any disastrous ones. Saturated
-frames are spotted using user-defined mean levels at which to reject
+frames can be spotted using user-defined mean levels at which to reject
 frames. The documentation of |makeflat| has details of how it works, and you
 are referred to this for more information. Recommended mean level limits are
 ~4000 for each CCD for the lower limits, and (55000, 58000, 58000, 50000 and
-42000) for CCDs 1 to 5 (|hiper|) and (50000, 28000 and 28000) for
-ULTRACAM. The upper in CCD 5 of |hiper| is to avoid a nasty feature that
-develops in the lower-right readout channel at high count levels. The limits
-for ULTRACAM are to stop "peppering" whereby charge transfers between
-neighbouring pixels in the green and blue CCDs especially.
+42000) for CCDs 1 to 5 (|hiper|), (50000, 28000 and 28000) for
+ULTRACAM and 50000 for ULTRASPEC. The low upper level for CCD 5 of
+|hiper| is to avoid a nasty feature that develops in the lower-right
+readout channel at high count levels. The limits for ULTRACAM are to
+stop "peppering" whereby charge transfers between neighbouring pixels
+in the green and blue CCDs especially.
 
 .. Warning::
    It is highly advisable to compute multiple versions of the flat field
@@ -168,9 +179,11 @@ correct for it, but I have yet to do so. This is mostly here for warning.
 Bad pixels
 ==========
 
-Some pixels and columns of pixels are to be avoided at all costs. They may
-however still fall near to some targets. My intention is that these bad pixels
-will be flagged if they fall into the target aperture or ignored if they fall into the sky aperture. This, like fringing, is TBD.
+Some pixels and columns of pixels are to be avoided at all costs. They
+may however still fall near to some targets. My intention is that
+these bad pixels will be flagged if they fall into the target aperture
+or ignored if they fall into the sky aperture. This, like fringing, is
+TBD.
 
 Aperture files
 ==============
@@ -270,12 +283,13 @@ depend upon the nature of the field and conditions.
 Plotting results
 ================
 
-|reduce| delivers a basic view of your data as it comes in, which is usually
-enough at the telescope. If you want to look at particular features, then you
-should investigate the command |plog|. This allows you to plot one parameter
-versus another, including division by comparison stars. The |plog| code is a
-good place to start from when analysing your data in more detail. In
-particular it shows you how to load in the rather human-unreadable |hiper| log
+|reduce| delivers a basic view of your data as it comes in, which is
+usually enough at the telescope. If you want to look at particular
+features, then you should investigate the command |plog|. This allows
+you to plot one parameter versus another, including division by
+comparison stars. If you use Python, the |plog| code is a good place
+to start from when analysing your data in more detail. In particular
+it shows you how to load in the rather human-unreadable |hiper| log
 files (huge numbers of columns and rows).
 
 Customisation
@@ -300,23 +314,27 @@ start when looking for examples.
 The reduce log files
 ====================
 
-|reduce| writes all results to an ASCII log file. This can be pretty enormous
-with many columns. The log file is self-documenting with an extensive header
-section which is worth a look through. In particular the columns are named and
-given data types to aid ingestion into numpy recarrays. The pipeline command
-|plog| provides a crude interface to plotting these files, and module
-:mod:`hipercam.hlog` should allow you to develop scripts to access the data
-and to make your own plots.
+|reduce| writes all results to an ASCII log file. This can be pretty
+enormous with many columns. The log file is self-documenting with an
+extensive header section which is worth a look through. In particular
+the columns are named and given data types to aid ingestion into numpy
+recarrays. The pipeline command |plog| provides a crude interface to
+plotting these files, and module :mod:`hipercam.hlog` should allow you
+to develop scripts to access the data and to make your own
+plots. |hlog2fits| can convert the ASCII logs into rather more
+comprehensible FITS versions, with one HDU per CCD. These can be
+easily explored with standard FITS utilities like ``fv''.
 
-ULTRACAM vs |hiper|
-===================
+ULTRACAM|SPEC vs |hiper|
+========================
 
-The |hiper| pipeline is designed to be usable with ULTRACAM as well as
-|hiper|. You will need a different set of CCD defects, otherwise the two are
-very similar. One extra ULTRACAM needs is proper dark subtraction which I have
-yet to implement. Finally, at the telescope you can access the ULTRACAM server
-using |uls| versus |hls| for |hiper|, and you will need the environment
-variable ``ULTRACAM_DEFAULT_URL`` to have been set.
+The |hiper| pipeline is designed to be usable with ULTRACAM|SPEC data
+as well as data from |hiper| itself. You will need a different set of
+CCD defects, otherwise the two are very similar. One extra ULTRACAM
+needs is proper dark subtraction. Finally, at the telescope you can
+access the ULTRACAM server using |uls| versus |hls| for |hiper|, and
+you will need the environment variable ``ULTRACAM_DEFAULT_URL`` to
+have been set (standard on the "observer" accounts at the TNT and NTT).
 
 Trouble shooting reduction
 ==========================
@@ -328,14 +346,15 @@ comparison stars.
 Aperture positioning
 --------------------
 
-Tracking multiple targets in multiple CCDs over potentially tens of thousands
-of frames is a challenge. A single meteor or cosmic ray can throw the position
-of a target off and you may never recover. This could happen after many
-minutes of reduction have gone by. The 'apertures' section of reduce files has
-multiple parameters designed to help avoid such problems.
+Tracking multiple targets in multiple CCDs over potentially tens of
+thousands of frames is a challenge. A single meteor or cosmic ray can
+throw the position of a target off and you may never recover. This
+could happen after many minutes of reduction have gone by, which can be
+annoying. The 'apertures' section of reduce files has multiple
+parameters designed to help avoid such problems.
 
 As emphasised above, if you identify a star (or stars) as (a) reference
-aperture(s), their position is the first to be determined and then used to
+aperture(s), their position are the first to be determined and then used to
 offset the location before carrying out profile fits for other stars. If you
 choose well-isolated reference stars, this can allow you to cope with large
 changes in position from frame-to-frame, whilst maintaining a tight search on
@@ -343,22 +362,23 @@ non-reference stars which may be close to other objects and be difficult to
 locate using a more wide-ranging search. Sensible use of this can avoid the
 need to link apertures in some cases. Reference targets don't have to be ones
 that you will use for photometry, although they usually are of course. As you
-get a feel for your data, be alert for reducing the size of the search box as
+get a feel for your data, be alert to reducing the size of the search box as
 the smaller the region you search over, the less likely are you to be affected
 by cosmic rays and similar problems. However, it is not unusual to make
 position shifts during observation and if these are large, you could lose your
 targets.
 
-Cloudy conditions can be hard to cope with: clouds may come completely wipe
-out your targets, only for them to re-appear after a few seconds or perhaps a
-few minutes. In this case, careful use of the `fit_height_min_ref` and
-`fit_height_min_nrf` parameters in the reduce file might get you through.  The
-idea is that if the target gets too faint, you don't want to trust any
-position from it, so that no attempt is made to update the position. Provided
-the telescope is not moving too much, you should have a chance of re-locating
-apertures successfully when the target re-appears. If conditions are good, the
-aperture location can work without problem for many thousands of images in a
-row.
+Cloudy conditions can be hard to cope with: clouds may come completely
+wipe out your targets, only for them to re-appear after a few seconds
+or perhaps a few minutes. In this case, careful use of the
+`fit_height_min_ref` and `fit_height_min_nrf` parameters in the reduce
+file might get you through.  The idea is that if the target gets too
+faint, you don't want to trust any position from it, so that no
+attempt is made to update the position. Provided the telescope is not
+moving too much, you should have a chance of re-locating apertures
+successfully when the target re-appears. If conditions are good, the
+aperture location can work without problem for many thousands of
+images in a row.
 
 I have had a case where a particularly bright and badly-placed cosmic ray
 caused the reference aperture positioning to fail after a reduction had run
@@ -431,17 +451,20 @@ running a process (e.g. |rtplot|) plotting to either of these you might
 encounter problems. Usually shutting down the other process and/or killing
 PGPLOT windows will fix things.  You can also use "/xs" to automate the
 numbering, but you will then lose control of which plot window is used for
-what. I recently had another problem where it kept saying::
+what. I have once had a problem where it kept saying::
 
   %PGPLOT, PGSCH: no graphics device has been selected
 
-and I could not close the PGPLOT windows. In the end the only way I could cure
-this was to kill the PGPLOT X-windows server. (Search for 'pgxwin' with 'ps'.)
+and I could not close the PGPLOT windows. In the end the only way I
+could cure this was to kill the PGPLOT X-windows server
+explicitly. (Search for 'pgxwin' with 'ps'.)
 
 Experiment
 ----------
 
-Try different settings. Especially the extraction settings can make a
+Try different settings. The extraction settings in particular can make a
 significant difference to the results. Compare the results visually. There is
 no one prescription that works for all cases. Faint targets normally require
-different setting from bright ones for the best results.
+different settings from bright ones for the best results (e.g. smaller target
+aperture radii). Very faint target may benefit from optimal extraction, while
+brighter ones can look worse.
