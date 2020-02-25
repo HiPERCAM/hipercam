@@ -719,9 +719,9 @@ class Rdata (Rhead):
         return ntot
 
     def time(self, nframe=None):
-        """Returns timing information of frame nframe (starts from 1). This saves
-        effort reading the data in some cases. Once done, it moves to the next
-        frame.
+        """Returns timing information of frame nframe (starts from 1). This
+        saves effort reading the data in some cases. Once done, it
+        moves to the next frame.
 
         Arguments::
 
@@ -738,9 +738,10 @@ class Rdata (Rhead):
         self.set(nframe)
 
         if self.server:
-            # somewhat inefficiently in the server case, we have to read the whole
-            # frame because there are no options for timing data alone, although
-            # at least no data re-formatting is required.
+            # somewhat inefficiently in the server case, we have to
+            # read the whole frame because there are no options for
+            # timing data alone, although at least no data
+            # re-formatting is required.
             full_url = '{:s}{:s}?action=get_frame&frame={:d}'.format(
                 URL,self.run,self.nframe-1)
             buff = urllib.request.urlopen(full_url).read()
@@ -918,34 +919,34 @@ class Rdata (Rhead):
                         wins1[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff:noff+npix:6],shape)[:,1:],
-                            True
+                            True, outamp='LL'
                         )
                         wins1[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,-1:0:-1],
-                            True
+                            True, outamp='LR'
                         )
 
                         wins2[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff+2:noff+npix:6],shape)[:,1:],
-                            True
+                            True, outamp='LL'
                         )
                         wins2[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,-1:0:-1],
-                            True
+                            True, outamp='LR'
                         )
 
                         wins3[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff+4:noff+npix:6],shape)[:,1:],
-                            True
+                            True, outamp='LL'
                         )
                         wins3[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,-1:0:-1],
-                            True
+                            True, outamp='LR'
                         )
 
                     else:
@@ -953,34 +954,34 @@ class Rdata (Rhead):
                         wins1[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff:noff+npix:6],shape),
-                            True
+                            True, outamp='LL'
                         )
                         wins1[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,::-1],
-                            True
+                            True, outamp='LR'
                         )
 
                         wins2[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff+2:noff+npix:6],shape),
-                            True
+                            True, outamp='LL'
                         )
                         wins2[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,::-1],
-                            True
+                            True, outamp='LR'
                         )
 
                         wins3[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff+4:noff+npix:6],shape),
-                            True
+                            True, outamp='LL'
                         )
                         wins3[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,::-1],
-                            True
+                            True, outamp='LR'
                         )
 
                     noff += npix
@@ -1186,14 +1187,16 @@ class Rdata (Rhead):
                         wins[str(nwin)] = \
                             Window(
                                 wmod,
-                                np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop:]
+                                np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop:],
+                                outamp='LL'
                             )
 
                     elif self.output == 'A':
                         # avalanche output, multi windows.
                         wins[str(nwin)] = Window(
                             wmod,
-                            np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,-nchop-1::-1]
+                            np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,-nchop-1::-1],
+                            outamp='LR'
                         )
 
                     nwin += 1
@@ -1220,16 +1223,18 @@ class Rdata (Rhead):
                 if self.output == 'N':
                     # normal output, drift
                     comb = np.reshape(buff[:npix],(wl.ny,wl.nx+wr.nx))
+                    outamp = 'LL'
 
                 elif self.output == 'A':
                     # avalanche output, drift
                     comb = np.reshape(buff[:npix],(wl.ny,wl.nx+wr.nx)[:,::-1])
+                    outamp = 'LR'
 
                 wmodl = Winhead(llxl, wl.lly, wl.nx-nchopl, wl.ny, xbin, ybin)
-                wins[str(nwin)] = Window(wmodl,comb[:,nchopl:wl.nx])
+                wins[str(nwin)] = Window(wmodl,comb[:,nchopl:wl.nx],outamp=outamp)
                 nwin += 1
                 wmodr = Winhead(llxr, wr.lly, wr.nx-nchopr, wr.ny, xbin, ybin)
-                wins[str(nwin)] = Window(wmodr,comb[:,wl.nx+nchopr:])
+                wins[str(nwin)] = Window(wmodr,comb[:,wl.nx+nchopr:],outamp=outamp)
                 nwin += 1
 
             # data type conversions
