@@ -15,7 +15,7 @@ class Group(OrderedDict):
     """A specialized OrderedDict that enforces string keys only and a
     single class for the values. The objects stored as values should
     support a `copy` method to return a deepcopy for use in the
-    :class:`Group`s copy operation.
+   :class:`Group`s copy operation.
 
     :class:`Group` is designed to amalgamate several of the classes used for
     objects associated with CCDs such as :class:`Window` (see :class:`CCD`),
@@ -100,9 +100,9 @@ class Group(OrderedDict):
                     break
 
     def get_num(self, num):
-        """Returns the num element of the Group"""
+        """Returns the num element of the Group (starting from 0)"""
         keys = list(self.keys())
-        return keys[num]
+        return self[keys[num]]
 
     def __copy__(self):
         """Copy operation for copy.copy

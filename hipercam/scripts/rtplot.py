@@ -614,7 +614,8 @@ def rtplot(args=None):
 
             # bias level checks
             if lowlevel != 0.:
-                median = mccd.get_num(1).get_num(1)
+                print(type(mccd))
+                median = mccd.get_num(0).get_num(0).median()
                 if median < lowlevel:
                     emessages.append(
                         '** low bias level, median vs limit: {:.1f} vs {:.1f}'.format(
@@ -623,9 +624,9 @@ def rtplot(args=None):
 
             if highlevel != 0.:
                 try:
-                    median = mccd.get_num(1).get_num(2)
+                    median = mccd.get_num(0).get_num(1).median()
                 except:
-                    median = mccd.get_num(1).get_num(1)
+                    median = mccd.get_num(0).get_num(0).median()
 
                 if median > highlevel:
                     emessages.append(
