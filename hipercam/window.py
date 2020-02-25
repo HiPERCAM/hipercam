@@ -653,7 +653,7 @@ class Window(Winhead):
 
     """
 
-    def __init__(self, win, data=None, copy=False):
+    def __init__(self, win, data=None, copy=False, output=''):
         """Constructs a :class:`Window`
 
         Arguments::
@@ -672,6 +672,13 @@ class Window(Winhead):
               but when building up CCDs from multiple Windows, you should 
               probably use 'True' unless you are careful to make 'win' a
               different object every time.
+
+          output : string
+             Location of output amplifier. Options: '', unknown; 'LL',
+             lower-left; 'LR', lower-right; 'UL', upper-left; 'UR',
+             upper-right. Used when trimming to remove the correct
+             part of the window.
+
         """
         super().__init__(
             win.llx, win.lly, win.nx, win.ny,
@@ -691,6 +698,13 @@ class Window(Winhead):
                     'win vs data dimension conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
 
             self.data = data
+
+        if output in ('','LL','LR','UL','UR'):
+            self.output = output
+        else:
+            raise ValueError(
+                'output={:s} not an option for the output amplifier location'.format(output)
+            )
 
     @property
     def nx(self):
