@@ -90,7 +90,7 @@ class Rhead:
 
     The following attributes are set::
 
-       cheads    : list of astropy.io.fits.Header
+       cheads : list of Header objects
            the headers for each CCD which contain any info needed per CCD, above
            all the 'skip' numbers, which are used when creating MCCD frames.
 
@@ -101,24 +101,24 @@ class Rhead:
                overscan (extra pixels in Y)
                prescan (extra pixels in X)
 
-       fname     : string
+       fname : string
            the file name
 
-       header    : astropy.io.fits.Header
+       header : astropy.io.fits.Header
            the header of the FITS file.
 
-       mode      : string
+       mode : string
            the readout mode used, read from 'ESO DET READ CURNAME'
 
-       nskips    : tuple
+       nskips : tuple
            the NSKIP parameters for each CCD (5 of them)
 
-       ntbytes   : int
+       ntbytes : int
            number of timing bytes, deduced from the dimensions of the FITS cube
            (NAXIS1 contains all pixels and timing bytes) compared to the window
            dimensions.
 
-       nwins     : tuple
+       nwins : tuple
            integer indices of the windows for any one quadrant. This is (0,) for
            one window modes, (0,1) for two window modes.
 
@@ -128,10 +128,10 @@ class Rhead:
            for each CCD; toff1 etc are offsets and lengths used to get the
            mid-exposure times and exposure durations.
 
-       thead     : astropy.io.fits.Header
+       thead : Header
            the top-level header that will be used to create MCCDs.
 
-       windows   : list of list of list of (Winhead, flip) tuples
+       windows : list of list of list of (Winhead, flip) tuples
            windows[nccd][nquad][nwin] returns the Winhead and set of axes for
            window nwin of quadrant nquad of CCD nccd. nwin indexes the windows
            of a given quadrant (at most there are 2, so nwin = 0 or 1). nquad
@@ -141,14 +141,14 @@ class Rhead:
            final windows that will end in the MCCD because if there are pre-scan
            or over-scan present, we need to split them off making more windows.
 
-       wforms    : tuple of strings
+       wforms : tuple of strings
            formats of each set of windows as strings designed to match the input
            expected for hdriver.
 
-       xbin      : int
+       xbin : int
            X-binning factor
 
-       ybin      : int
+       ybin : int
            Y-binning factor
 
     """
@@ -251,7 +251,7 @@ class Rhead:
         self.oscan = hd['ESO DET INCOVSCY']
         self.pscan = hd['ESO DET INCPRSCX']
         self.thead['CLEAR'] = (self.clear,'Clear enabled')
-        
+
         # store the NSKIP values for each CCD. These are needed for exact
         # timing for each CCD.
         self.nskips = (
