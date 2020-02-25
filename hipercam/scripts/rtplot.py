@@ -86,8 +86,7 @@ def rtplot(args=None):
 
         trim : bool [if source starts with 'u']
            True to trim columns and/or rows off the edges of windows nearest
-           the readout. This is particularly for ULTRACAM windowed data where
-           the first few rows and columns can contain bad data.
+           the readout which can sometimes contain bad data.
 
         ncol : int [if trim, hidden]
            Number of columns to remove (on left of left-hand window, and right
