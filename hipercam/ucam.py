@@ -573,42 +573,6 @@ class Utime:
         return ret
 
 
-def caller_name(skip=2):
-    """Get a name of a caller in the format module.class.method
-
-       `skip` specifies how many levels of stack to skip while getting caller
-       name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
-
-       An empty string is returned if skipped levels exceed stack height
-    """
-    stack = inspect.stack()
-    start = 0 + skip
-    if len(stack) < start + 1:
-      return ''
-    parentframe = stack[start][0]    
-
-    name = []
-    module = inspect.getmodule(parentframe)
-    # `modname` can be None when frame is executed directly in console
-    # TODO(techtonik): consider using __main__
-    if module:
-        name.append(module.__name__)
-    # detect classname
-    if 'self' in parentframe.f_locals:
-        # I don't know any way to detect call from the object method
-        # XXX: there seems to be no way to detect static method call - it will
-        #      be just a function call
-        name.append(parentframe.f_locals['self'].__class__.__name__)
-    codename = parentframe.f_code.co_name
-    if codename != '<module>':  # top level usually
-        name.append( codename ) # function or a method
-
-    ## Avoid circular refs and frame leaks
-    #  https://docs.python.org/2.7/library/inspect.html#the-interpreter-stack
-    del parentframe, stack
-
-    return ".".join(name)
-
 class Rdata (Rhead):
     """Callable, iterable object to represent ULTRACAM/SPEC raw data files.
 
@@ -637,7 +601,7 @@ class Rdata (Rhead):
       rdat = Rdata('run045',server=True)
 
     Rdata converts all incoming data into float32 rather than 2-byte ints.
-    This is much safer for code that accesses the data
+    This is much safer for code that accesses the data.
     """
 
     def __init__(self, run, nframe=1, server=False, ccd=False):
@@ -663,11 +627,7 @@ class Rdata (Rhead):
               frame. Default is always to read as an MCCD.
 
         """
-        print(caller_name(skip=4))
-        print(caller_name(skip=3))
-        print(caller_name(skip=2))
 
-        print('Rdata run=',run)
         Rhead.__init__(self, run, server)
         if self.isPonoff():
             raise PowerOnOffError(
@@ -812,32 +772,36 @@ class Rdata (Rhead):
         return tinfo
 
     def __call__(self, nframe=None):
-        """Reads one exposure from the run the :class:`Rdata` is attached to. It works
-        on the assumption that the internal file pointer in the :class:`Rdata`
-        is positioned at the start of a frame. If `nframe` is None, then it
-        will read the frame it is positioned at. If nframe is an integer > 0,
-        it will try to read that particular frame; if self.nframe == 0, it
-        reads the last complete frame.  nframe == 1 gives the first
-        frame. This returns either a CCD or MCCD object for ULTRASPEC and
-        ULTRACAM respectively. It raises an exception if it fails to read data
-        and resets to the start of the file in this case. The data are stored
-        internally as either 4-byte floats or 2-byte unsigned ints.
+        """Reads one exposure from the run the :class:`Rdata` is attached
+        to. It works on the assumption that the internal file pointer
+        in the :class:`Rdata` is positioned at the start of a
+        frame. If `nframe` is None, then it will read the frame it is
+        positioned at. If nframe is an integer > 0, it will try to
+        read that particular frame; if self.nframe == 0, it reads the
+        last complete frame.  nframe == 1 gives the first frame. This
+        returns either a CCD or MCCD object for ULTRASPEC and ULTRACAM
+        respectively. It raises an exception if it fails to read data
+        and resets to the start of the file in this case. The data are
+        stored internally as either 4-byte floats or 2-byte unsigned
+        ints.
 
         Arguments::
 
-           nframe : (int)
+           nframe : int | None
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted.
 
-        Returns an MCCD for ULTRACAM, a CCD for ULTRASPEC. When reading from
-        the server, if a read fails, it is assumed to be because we are at the
-        end of a file that might grow and None is returned. It is left up to
-        the calling program to handle this.
+        Returns an MCCD for ULTRACAM, a CCD for ULTRASPEC. When
+        reading from the server, if a read fails, it is assumed to be
+        because we are at the end of a file that might grow and None
+        is returned. It is left up to the calling program to handle
+        this.
 
-        Apart from reading the raw bytes, the main job of this routine is to
-        divide up and re-package the bytes read into Windows suitable for
-        constructing CCD objects. It converts all incoming data into 32-bit
-        floats.
+        Apart from reading the raw bytes, the main job of this routine
+        is to divide up and re-package the bytes read into Windows
+        suitable for constructing CCD objects. It converts all
+        incoming data into 32-bit floats which avoids problems
+        associated with unsigned ints.
 
         """
 
@@ -904,12 +868,12 @@ class Rdata (Rhead):
             time,info = utimer(tbytes, self, self.nframe)
 
         # add some specifics for the frame to the header
-        self['RUN'] = (self.run, 'run number')
-        self['NFRAME'] = (self.nframe, 'frame number within run')
-        self['MIDNIGHT'] = (
+        self.header['RUN'] = (self.run, 'run number')
+        self.header['NFRAME'] = (self.nframe, 'frame number within run')
+        self.header['MIDNIGHT'] = (
             info['midnightCorr'], 'midnight bug correction applied'
         )
-        self['FRAMEERR'] = (
+        self.header['FRAMEERR'] = (
             info['frameError'],'problem with frame numbers found'
         )
 
@@ -1118,7 +1082,7 @@ class Rdata (Rhead):
                 win2.data = win2.data.astype(np.float32)
                 win3.data = win3.data.astype(np.float32)
 
-            # Build the CCDs
+            # Build the CCDs. First the red CCD.
             rhead = Header()
             rhead['CCDNAME'] = 'Red CCD'
             imjd = int(time.mjd)
@@ -1126,7 +1090,8 @@ class Rdata (Rhead):
             year,month,day = mjd_to_gregorian(imjd)
             hour,minute,second = fday_to_hms(fday)
             rhead['TIMSTAMP'] = (
-                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Raw frame timestamp, UTC'
+                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second),
+                'Raw frame timestamp, UTC'
             )
             rhead['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
             rhead['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
@@ -1149,7 +1114,8 @@ class Rdata (Rhead):
             year,month,day = mjd_to_gregorian(imjd)
             hour,minute,second = fday_to_hms(fday)
             ghead['TIMSTAMP'] = (
-                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Raw frame timestamp, UTC'
+                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second),
+                'Raw frame timestamp, UTC'
             )
             ghead['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
             ghead['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
@@ -1162,10 +1128,10 @@ class Rdata (Rhead):
             ccd2 = CCD(wins2, self.nxmax, self.nymax)
 
             # transfer red/green time info to the general header
-            self['TIMSTAMP'] = (rhead['TIMSTAMP'], 'Red/Green time at mid exposure, UTC')
-            self['MJDUTC'] = (time.mjd, 'Red/Green time at mid exposure, UTC')
-            self['GOODTIME'] = (time.good,'flag indicating reliability of time')
-            self['EXPTIME'] = (time.expose, 'Exposure time (sec)')
+            self.header['TIMSTAMP'] = (rhead['TIMSTAMP'], 'Red/Green time at mid exposure, UTC')
+            self.header['MJDUTC'] = (time.mjd, 'Red/Green time at mid exposure, UTC')
+            self.header['GOODTIME'] = (time.good,'flag indicating reliability of time')
+            self.header['EXPTIME'] = (time.expose, 'Exposure time (sec)')
 
             # blue
             bhead = Header()
@@ -1176,7 +1142,8 @@ class Rdata (Rhead):
             year,month,day = mjd_to_gregorian(imjd)
             hour,minute,second = fday_to_hms(fday)
             bhead['TIMSTAMP'] = (
-                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Time at mid-exposure, UTC'
+                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second),
+                'Time at mid-exposure, UTC'
             )
             bhead['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
             bhead['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
@@ -1192,7 +1159,7 @@ class Rdata (Rhead):
             # Finally, return an MCCD
             return MCCD(
                 [('1',ccd1),('2',ccd2),('3',ccd3)],
-                super().copy()
+                self.header.copy()
             )
 
         elif self.instrument == 'ULTRASPEC':
@@ -1270,7 +1237,7 @@ class Rdata (Rhead):
                 wind.data = wind.data.astype(np.float32)
 
             # Add header to first Window
-            head = fits.Header()
+            head = Header()
             head['CCDNAME'] = 'ULTRASPEC'
             # timing data
             imjd = int(time.mjd)
@@ -1278,7 +1245,8 @@ class Rdata (Rhead):
             year,month,day = mjd_to_gregorian(imjd)
             hour,minute,second = fday_to_hms(fday)
             head['TIMSTAMP'] = (
-                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Time at mid-exposure, UTC'
+                '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second),
+                'Time at mid-exposure, UTC'
             )
             head['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
             head['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
@@ -1286,7 +1254,7 @@ class Rdata (Rhead):
             head['EXPTIME'] = (time.expose, 'Exposure time (sec)')
             head['GOODTIME'] = (time.good,'flag indicating reliability of time')
             head['MJDOKWHY'] = time.reason
-            head.update(self)
+            head.update(self.header)
 
             wfirst = next(iter(wins.values()))
             wfirst.update(head)
@@ -1423,7 +1391,8 @@ class Rtime (Rhead):
             if len(buff) != self.framesize:
                 self.nframe = 1
                 raise UltracamError(
-                    'failed to read frame {:d} from FileServer. Buffer length vs expected = {:d} vs {:d} byes'.format(self.nframe, len(buff), self.framesize)
+                    ('failed to read frame {:d} from FileServer.'
+                     ' Buffer length vs expected = {:d} vs {:d} byes').format(self.nframe, len(buff), self.framesize)
                 )
 
             # have data. Re-format into the timing bytes and unsigned 2 byte int data buffer
@@ -1742,12 +1711,12 @@ def utimer(tbytes, rhead, fnum):
                 readoutTime = (1032/rhead.ybin)*(VCLOCK_STORAGE*rhead.ybin +
                                                  540*HCLOCK + (540/rhead.xbin+2)*VIDEO)/1.e6
             else:
-                nxb          = rhead.win[1].nx
-                nxu          = rhead.xbin*nxb
-                nyb          = rhead.win[1].ny
-                xleft        = rhead.win[0].llx
-                xright       = rhead.win[1].llx + nxu - 1
-                diff_shift   = abs(xleft - 1 - (1024 - xright) )
+                nxb = rhead.win[1].nx
+                nxu = rhead.xbin*nxb
+                nyb = rhead.win[1].ny
+                xleft = rhead.win[0].llx
+                xright = rhead.win[1].llx + nxu - 1
+                diff_shift = abs(xleft - 1 - (1024 - xright) )
                 num_hclocks  =  nxu + diff_shift + (1024 - xright) + 8 \
                     if (xleft - 1 > 1024 - xright) else nxu + diff_shift + (xleft - 1) + 8
                 readoutTime = nyb*(VCLOCK_STORAGE*rhead.ybin +
@@ -2015,22 +1984,22 @@ def utimer(tbytes, rhead, fnum):
             if rhead.en_clr or frameNumber == 1:
 
                 mjdCentre -= rhead.exposeTime/2./DSEC
-                exposure   = rhead.exposeTime
+                exposure = rhead.exposeTime
 
             elif len(utimer.tstamp) > 1:
 
                 texp = DSEC*(utimer.tstamp[0] - utimer.tstamp[1]) - USPEC_FT_TIME
                 mjdCentre -= texp/2./DSEC
-                exposure   = texp
+                exposure = texp
 
             else:
 
                 # Could be improved with an estimate of the read time
                 mjdCentre -= rhead.exposeTime/2./DSEC
-                exposure   = rhead.exposeTime
+                exposure = rhead.exposeTime
 
                 if goodTime:
-                    reason   = 'too few stored timestamps'
+                    reason = 'too few stored timestamps'
                     goodTime = False
 
         else:
@@ -2054,7 +2023,7 @@ def utimer(tbytes, rhead, fnum):
                 texp = DSEC*(utimer.tstamp[1] - utimer.tstamp[2]) - USPEC_FT_TIME
                 mjdCentre  = utimer.tstamp[1]
                 mjdCentre += (rhead.exposeTime-texp/2.)/DSEC
-                exposure   = texp
+                exposure = texp
 
             elif len(utimer.tstamp) == 2:
 
@@ -2063,9 +2032,9 @@ def utimer(tbytes, rhead, fnum):
                 # interest. Probably not too bad, but technically unreliable
                 # as a time.
                 texp = DSEC*(utimer.tstamp[0] - utimer.tstamp[1]) - USPEC_FT_TIME
-                mjdCentre  = utimer.tstamp[1]
+                mjdCentre = utimer.tstamp[1]
                 mjdCentre += (rhead.exposeTime-texp/2.)/DSEC
-                exposure   = texp
+                exposure = texp
 
                 if goodTime:
                     reason = 'cannot establish an accurate time without at least 2 prior timestamps'
@@ -2074,9 +2043,9 @@ def utimer(tbytes, rhead, fnum):
             else:
 
                 # Only one time
-                mjdCentre  = utimer.tstamp[0]
+                mjdCentre = utimer.tstamp[0]
                 mjdCentre -= (rhead.exposeTime/2.+rhead.exposeTime)/DSEC
-                exposure   = rhead.exposeTime
+                exposure = rhead.exposeTime
 
                 if goodTime:
                     reason = 'too few stored timestamps'
@@ -2084,10 +2053,10 @@ def utimer(tbytes, rhead, fnum):
 
     elif rhead.instrument == 'ULTRASPEC' and rhead.mode == 'UDRIFT':
 
-        ybin   = rhead.ybin
-        nyu    = ybin*rhead.win[0].ny
+        ybin = rhead.ybin
+        nyu  = ybin*rhead.win[0].ny
         ystart = rhead.win[0].lly
-        nwins  = int(((1037. / nyu) + 1.)/2.)
+        nwins = int(((1037. / nyu) + 1.)/2.)
         frameTransfer = USPEC_FT_ROW*(ystart+nyu-1.)+USPEC_FT_OFF
 
         # Never need more than nwins+2 times
@@ -2098,17 +2067,17 @@ def utimer(tbytes, rhead, fnum):
 
         if len(utimer.tstamp) > nwins+1:
 
-            texp       = DSEC*(utimer.tstamp[nwins] - utimer.tstamp[nwins+1]) - frameTransfer
-            mjdCentre  = utimer.tstamp[nwins]
+            texp = DSEC*(utimer.tstamp[nwins] - utimer.tstamp[nwins+1]) - frameTransfer
+            mjdCentre = utimer.tstamp[nwins]
             mjdCentre += (rhead.exposeTime-texp/2.)/DSEC
-            exposure   = texp
+            exposure = texp
 
         elif len(utimer.tstamp) == nwins+1:
 
-            texp          = DSEC*(utimer.tstamp[nwins-1] - utimer.tstamp[nwins]) - frameTransfer
-            mjdCentre     = utimer.tstamp[nwins]
-            mjdCentre     = (rhead.exposeTime-texp/2.)/DSEC
-            exposure      = texp
+            texp = DSEC*(utimer.tstamp[nwins-1] - utimer.tstamp[nwins]) - frameTransfer
+            mjdCentre = utimer.tstamp[nwins]
+            mjdCentre += (rhead.exposeTime-texp/2.)/DSEC
+            exposure = texp
             if goodTime:
                 reason = 'too few stored timestamps'
                 goodTime = False
@@ -2121,6 +2090,14 @@ def utimer(tbytes, rhead, fnum):
             if goodTime:
                 reason = 'too few stored timestamps'
                 goodTime = False
+
+    if mjdCentre < 51544.0:
+        # Check that no time was before 2000-01-01 (pre-dates
+        # earliest ULTRACAM / SPEC data, ensures don't get really
+        # silly times like 1858.
+        mjdCentre = 51544.0
+        goodTime = False
+        reason = 'time was pre-2000-01-01 (MJD={:d})'.format(int(round(mjdCentre)))
 
     # Return some data
     time = Utime(mjdCentre, exposure, goodTime, reason)
@@ -2148,10 +2125,10 @@ def utimer(tbytes, rhead, fnum):
                 # contributing exposure.  Corrections are made if there are
                 # too few contributing exposures (even though the final value
                 # will still be flagged as unreliable
-                ncont  = min(rhead.nblue, len(utimer.blueTimes))
-                start  = utimer.blueTimes[ncont-1].mjd - \
+                ncont = min(rhead.nblue, len(utimer.blueTimes))
+                start = utimer.blueTimes[ncont-1].mjd - \
                          utimer.blueTimes[ncont-1].expose/2./DSEC
-                end    = utimer.blueTimes[0].mjd       + utimer.blueTimes[0].expose/2./DSEC
+                end = utimer.blueTimes[0].mjd       + utimer.blueTimes[0].expose/2./DSEC
                 expose = DSEC*(end - start)
 
                 # correct the times
@@ -2159,8 +2136,8 @@ def utimer(tbytes, rhead, fnum):
                 reason = ''
                 if not ok:
                     expose *= rhead.nblue/float(ncont)
-                    start   = end - expose/DSEC
-                    reason  = 'not all contributing frames found'
+                    start = end - expose/DSEC
+                    reason = 'not all contributing frames found'
                 else:
                     ok = utimer.blueTimes[0].good and utimer.blueTimes[ncont-1].good
                     if not ok: reason  = 'time of start or end frame was unreliable'
