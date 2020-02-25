@@ -12,7 +12,7 @@ import numpy as np
 import urllib.request
 import requests
 import datetime
-
+import inspect
 from astropy.io import fits
 
 from hipercam import (CCD, Group, MCCD, Window, Winhead, Header,
@@ -67,48 +67,53 @@ PCPS_UCAP_BUFFER_FULL = 0x4000 # events read too slow
 PCPS_IO_BLOCKED       = 0x8000 # access to microprocessor blocked
 
 
-class Rhead(fits.Header):
-    """Stores the essential header info of an ULTRACAM/SPEC run as read from a
-    run###.xml file. Most of the items are stored in the underlying FITS
-    header object, but a number of these and some extras are put into
-    attributes for simple reference in methods of the class. Some items are
-    specific to either ULTRACAM or ULTRASPEC, as indicated by [] below. These
-    are the attributes set (alphabetical order)::
+class Rhead:
 
-       framesize : (int)
+    """Stores the essential header info of an ULTRACAM/SPEC run as read
+    from a run###.xml file. Most of the items are stored in the header
+    attribute, but a number of them and some extras are put into
+    attributes for simple reference in methods of the class. Some
+    items are specific to either ULTRACAM or ULTRASPEC, as indicated
+    by [] below. These are the attributes set (alphabetical order)::
+
+       framesize : int
           total number of bytes per frame.
 
-       headerwords : (int)
+       header : Header
+          contains many header items. Simulates FITS-like behaviour to allow
+          straightforward disk I/O.
+
+       headerwords : int
           number of words (2-bytes/word) in timing info at start of a frame.
 
-       instrument : (string)
+       instrument : string
           'ULTRACAM' or 'ULTRASPEC'
 
-       nccd : (int)
+       nccd : int
           number of CCDs
 
-       nxmax : (int)
+       nxmax : int
           maximum X dimension, unbinned pixels
 
-       nymax : (int)
+       nymax : int
           maximum Y dimension, unbinned pixels.
 
-       run : (string)
+       run : string
           The run number e.g. 'run005'
 
-       server : (bool)
+       server : bool
           True/False to indicate server access
 
-       timeUnits : (float)
+       timeUnits : float
           units of time steps in seconds
 
-       version : (int)
+       version : int
           version number
 
-       whichRun : (string)
-          to do with timing [ULTRACAM]
+       whichRun : string [ULTRACAM]
+          to do with timing.
 
-       win : (list)
+       win : list
           A list of Winhead objects, one per window. ULTRACAM data is multi-CCD
           but the windows of each CCD are identical so the information is only
           stored once for all CCDs.
@@ -116,9 +121,9 @@ class Rhead(fits.Header):
     """
 
     def __init__(self, run, server=False):
-        """Reads a run###.xml file. UltracamErrors are thrown if some items are not
-        found.  In some case it will carry on and corresponding attributes are
-        returned as None.
+        """Reads a run###.xml file. UltracamErrors are thrown if some items
+        are not found.  In some case it will carry on and
+        corresponding attributes are returned as None.
 
         Arguments::
 
@@ -132,8 +137,8 @@ class Rhead(fits.Header):
 
         """
 
-        # start with a blank FITS header
-        super().__init__()
+        # initialise the header
+        head = self.header = Header()
         self.run = run
         self.server = server
 
@@ -189,44 +194,44 @@ class Rhead(fits.Header):
 
                 # conditional loading of headers
                 if 'target' in user:
-                    self['TARGET'] = (user['target'], 'Target name')
+                    head['TARGET'] = (user['target'], 'Target name')
                 if 'filters' in user:
-                    self['FILTERS'] = (user['filters'], 'Filter(s) used')
+                    head['FILTERS'] = (user['filters'], 'Filter(s) used')
                 if 'PI' in user:
-                    self['PI'] = (user['PI'], 'Principal investigator')
+                    head['PI'] = (user['PI'], 'Principal investigator')
                 if 'ID' in user:
-                    self['ID'] = (user['ID'],'Proposal ID')
+                    head['ID'] = (user['ID'],'Proposal ID')
                 if 'Observers' in user:
-                    self['OBSERVRS'] = (user['Observers'], 'Observer(s)')
+                    head['OBSERVRS'] = (user['Observers'], 'Observer(s)')
                 if 'flags' in user:
-                    self['DTYPE'] = (user['flags'], 'Run data type')
+                    head['DTYPE'] = (user['flags'], 'Run data type')
                 if 'SlidePos' in user:
-                    self['SLIDEPOS'] = (
+                    head['SLIDEPOS'] = (
                         user['SlidePos'].split()[0],'Focal plane slide, pixels')
                 if 'RA' in user:
-                    self['RA']  = (user['RA'], 'Telescope Right Ascension')
+                    head['RA']  = (user['RA'], 'Telescope Right Ascension')
                 if 'Dec' in user:
-                    self['DEC'] = (user['Dec'], 'Telescope Declination')
+                    head['DEC'] = (user['Dec'], 'Telescope Declination')
                 if 'Tracking' in user:
-                    self['TRACKING'] = (user['Tracking'],
+                    head['TRACKING'] = (user['Tracking'],
                                         'usdriver telescope tracking flag')
                 if 'TTflag' in user:
-                    self['TTFLAG'] = (user['TTflag'],
+                    head['TTFLAG'] = (user['TTflag'],
                                       'TNT telescope tracking flag')
                 if 'Focus' in user:
-                    self['FOCUS'] = (user['Focus'],'Telescope focus')
+                    head['FOCUS'] = (user['Focus'],'Telescope focus')
                 if 'PA' in user:
-                    self['PA'] = (user['PA'],'Rotator position angle (deg)')
+                    head['PA'] = (user['PA'],'Rotator position angle (deg)')
                 if 'Eng_PA' in user:
-                    self['ENGPA'] = (user['Eng_PA'],'Engineering PA (deg)')
+                    head['ENGPA'] = (user['Eng_PA'],'Engineering PA (deg)')
                 if 'ccd_temp' in user:
-                    self['CCDTEMP'] = (user['ccd_temp'],
+                    head['CCDTEMP'] = (user['ccd_temp'],
                                        'CCD temperature(s) [K]')
                 if 'finger_temp' in user:
-                    self['FINGTEMP'] = (user['finger_temp'],
+                    head['FINGTEMP'] = (user['finger_temp'],
                                         'Cold finger temperature [K]')
                 if 'finger_pcent' in user:
-                    self['FINGPCNT'] = (user['finger_pcent'],
+                    head['FINGPCNT'] = (user['finger_pcent'],
                                         'Percentage power of finger')
             else:
                 user = None
@@ -290,10 +295,10 @@ class Rhead(fits.Header):
         self.mode = mode
 
         # Set some FITS keywords before leaving
-        self['INSTRUME'] = (instrument, 'Instrument')
-        self['APPLICAT'] = (application, 'ULTRA*** acquisition template')
-        self['MODE'] = (mode, 'Readout mode')
-        self['CLEAR'] = (clear,'Clear enabled')
+        head['INSTRUME'] = (instrument, 'Instrument')
+        head['APPLICAT'] = (application, 'ULTRA*** acquisition template')
+        head['MODE'] = (mode, 'Readout mode')
+        head['CLEAR'] = (clear,'Clear enabled')
 
         if mode == 'PONOFF': return
 
@@ -327,11 +332,11 @@ class Rhead(fits.Header):
             self.nblue = nblue
 
             # store parameters of interest in FITS header
-            self['EXPDELAY'] = (exposeTime, 'Exposure delay (seconds)')
-            self['NUMEXP'] = (numexp, 'Number of exposures [-1 = infinity]')
-            self['GAINSPED'] = (gainSpeed,'Gain speed [ULTRACAM]')
-            self['VFTCLK'] = (v_ft_clk, 'Vertical frame transfer [ULTRACAM]')
-            self['NBLUE'] = (nblue, 'Blue CCD cycle number [ULTRACAM]')
+            head['EXPDELAY'] = (exposeTime, 'Exposure delay (seconds)')
+            head['NUMEXP'] = (numexp, 'Number of exposures [-1 = infinity]')
+            head['GAINSPED'] = (gainSpeed,'Gain speed [ULTRACAM]')
+            head['VFTCLK'] = (v_ft_clk, 'Vertical frame transfer [ULTRACAM]')
+            head['NBLUE'] = (nblue, 'Blue CCD cycle number [ULTRACAM]')
 
             if mode == 'FFCLR' or mode == 'FFNCLR':
                 self.win.append(
@@ -425,11 +430,11 @@ class Rhead(fits.Header):
             self.output = ('N' if param['OUTPUT'] == '0' else 'A') \
                           if 'OUTPUT' in param else None
 
-            self['NUMEXP'] = (numexp, 'Number of exposures [-1 = infinity]')
-            self['SPEED'] = (speed, 'Readout speed [ULTRASPEC]')
-            self['ENBLCLR'] = (self.en_clr, 'Clear enabled [ULTRASPEC]')
-            self['HVGAIN'] = (hv_gain, 'High-voltage gain [ULTRASPEC]')
-            self['OUTPUT'] = (self.output, 'Readout output [ULTRASPEC]')
+            head['NUMEXP'] = (numexp, 'Number of exposures [-1 = infinity]')
+            head['SPEED'] = (speed, 'Readout speed [ULTRASPEC]')
+            head['ENBLCLR'] = (self.en_clr, 'Clear enabled [ULTRASPEC]')
+            head['HVGAIN'] = (hv_gain, 'High-voltage gain [ULTRASPEC]')
+            head['OUTPUT'] = (self.output, 'Readout output [ULTRASPEC]')
 
             xstart = int(param['X1_START'])
             ystart = int(param['Y1_START'])
@@ -477,7 +482,7 @@ class Rhead(fits.Header):
                   (int(param['REVISION']) if 'REVISION' in param \
                    else int(param['VERSION']) if 'VERSION' in param \
                    else -1)
-        self['VERSION'] = (version, 'Software version code')
+        head['VERSION'] = (version, 'Software version code')
         self.version = version
 
         if 'REVISION' in param or 'VERSION' in param:
@@ -514,7 +519,7 @@ class Rhead(fits.Header):
 
         # convert to seconds
         exposeTime *= self.timeUnits
-        self['EXPDELAY'] = (exposeTime, 'Exposure delay (seconds)')
+        head['EXPDELAY'] = (exposeTime, 'Exposure delay (seconds)')
         self.exposeTime = exposeTime
 
         # Finally have reached end of constructor / initialiser
@@ -566,6 +571,43 @@ class Utime:
         if not self.good:
             ret += ', reason: ' + self.reason
         return ret
+
+
+def caller_name(skip=2):
+    """Get a name of a caller in the format module.class.method
+
+       `skip` specifies how many levels of stack to skip while getting caller
+       name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+
+       An empty string is returned if skipped levels exceed stack height
+    """
+    stack = inspect.stack()
+    start = 0 + skip
+    if len(stack) < start + 1:
+      return ''
+    parentframe = stack[start][0]    
+
+    name = []
+    module = inspect.getmodule(parentframe)
+    # `modname` can be None when frame is executed directly in console
+    # TODO(techtonik): consider using __main__
+    if module:
+        name.append(module.__name__)
+    # detect classname
+    if 'self' in parentframe.f_locals:
+        # I don't know any way to detect call from the object method
+        # XXX: there seems to be no way to detect static method call - it will
+        #      be just a function call
+        name.append(parentframe.f_locals['self'].__class__.__name__)
+    codename = parentframe.f_code.co_name
+    if codename != '<module>':  # top level usually
+        name.append( codename ) # function or a method
+
+    ## Avoid circular refs and frame leaks
+    #  https://docs.python.org/2.7/library/inspect.html#the-interpreter-stack
+    del parentframe, stack
+
+    return ".".join(name)
 
 class Rdata (Rhead):
     """Callable, iterable object to represent ULTRACAM/SPEC raw data files.
@@ -621,7 +663,11 @@ class Rdata (Rhead):
               frame. Default is always to read as an MCCD.
 
         """
+        print(caller_name(skip=4))
+        print(caller_name(skip=3))
+        print(caller_name(skip=2))
 
+        print('Rdata run=',run)
         Rhead.__init__(self, run, server)
         if self.isPonoff():
             raise PowerOnOffError(
@@ -1254,7 +1300,8 @@ class Rdata (Rhead):
 
         else:
             raise UltracamError(
-                ' have not implemented anything for ' + self.instrument)
+                ' have not implemented anything for ' + self.instrument
+            )
 
 
 class Rtime (Rhead):
