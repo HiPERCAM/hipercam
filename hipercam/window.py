@@ -653,7 +653,7 @@ class Window(Winhead):
 
     """
 
-    def __init__(self, win, data=None, copy=False, output=''):
+    def __init__(self, win, data=None, copy=False, outamp=''):
         """Constructs a :class:`Window`
 
         Arguments::
@@ -673,7 +673,7 @@ class Window(Winhead):
               probably use 'True' unless you are careful to make 'win' a
               different object every time.
 
-          output : string
+          outamp : string
              Location of output amplifier. Options: '', unknown; 'LL',
              lower-left; 'LR', lower-right; 'UL', upper-left; 'UR',
              upper-right. Used when trimming to remove the correct
@@ -699,11 +699,11 @@ class Window(Winhead):
 
             self.data = data
 
-        if output in ('','LL','LR','UL','UR'):
-            self.output = output
+        if outamp in ('','LL','LR','UL','UR'):
+            self.outamp = outamp
         else:
             raise ValueError(
-                'output={:s} not an option for the output amplifier location'.format(output)
+                'outamp={:s} not an option for the output amplifier location'.format(outamp)
             )
 
     @property
@@ -760,10 +760,11 @@ class Window(Winhead):
         xbin = head['XBIN']
         ybin = head['YBIN']
         ny, nx = data.shape
+        outamp = head.get('OUTAMP','')
 
         win = Winhead(llx, lly, nx, ny, xbin, ybin, head)
 
-        return cls(win, data)
+        return cls(win, data, outamp=outamp)
 
     def whdu(self, head=None, xoff=0, yoff=0, extnam=None):
         """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU`
@@ -800,6 +801,9 @@ class Window(Winhead):
         head['LLY'] = (self.lly, 'Y-ordinate of lower-left pixel')
         head['XBIN'] = (self.xbin, 'X-binning factor')
         head['YBIN'] = (self.ybin, 'Y-binning factor')
+
+        # Location of output amplifier
+        head['OUTAMP'] = (self.outamp,'Location of output amplifier')
 
         # Now a set of parameters to facilitate ds9 display
         # using the IRAF mosaic option
