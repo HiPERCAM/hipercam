@@ -587,7 +587,7 @@ class Rdata (Rhead):
     reads frame number 10 and then 11 in from 'run045', or sequentially::
 
       for frm in Rdata('run045'):
-         print 'nccd = ',len(frm)
+         print('nccd = ',len(frm))
 
     Rdata maintains an internal file object pointer that is always at the
     start of a frame. This enables sequential reads to be swift. Once one

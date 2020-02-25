@@ -614,7 +614,6 @@ def rtplot(args=None):
 
             # bias level checks
             if lowlevel != 0.:
-                print(type(mccd))
                 median = mccd.get_num(0).get_num(0).median()
                 if median < lowlevel:
                     emessages.append(
