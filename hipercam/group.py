@@ -12,9 +12,10 @@ from .core import *
 __all__ = ('Group', 'Agroup')
 
 class Group(OrderedDict):
-    """A specialized OrderedDict that enforces string keys only and a single class
-    for the values. The objects stored as values should support a `copy`
-    method to return a deepcopy for use in the :class:`Group`s copy operation.
+    """A specialized OrderedDict that enforces string keys only and a
+    single class for the values. The objects stored as values should
+    support a `copy` method to return a deepcopy for use in the
+   :class:`Group`s copy operation.
 
     :class:`Group` is designed to amalgamate several of the classes used for
     objects associated with CCDs such as :class:`Window` (see :class:`CCD`),
@@ -23,10 +24,10 @@ class Group(OrderedDict):
     """
 
     def __init__(self, ftype, *args, **kwargs):
-        """Group constructor; see :class:`OrderedDict` for possible values of args and
-        kwargs. The first argument, `ftype`, is the fixed type that will be
-        enforced. e.g. it could be Window, Winhead, CCD etc. An attribute of
-        the same name will be stored.
+        """Group constructor; see :class:`OrderedDict` for possible values of
+        args and kwargs. The first argument, `ftype`, is the fixed
+        type that will be enforced. e.g. it could be Window, Winhead,
+        CCD etc. An attribute of the same name will be stored.
 
         Arguments::
 
@@ -97,6 +98,11 @@ class Group(OrderedDict):
                 except AttributeError:
                     # if object doesn't support clash, break out early
                     break
+
+    def get_num(self, num):
+        """Returns the num element of the Group (starting from 0)"""
+        keys = list(self.keys())
+        return self[keys[num]]
 
     def __copy__(self):
         """Copy operation for copy.copy

@@ -23,10 +23,10 @@ __all__ = ['rtplot',]
 
 def rtplot(args=None):
     """``rtplot [source device width height] (run first (trim [ncol nrow])
-    twait tmax | flist) [pause plotall] ccd (nx) bias flat defect
-    setup [hurl] msub iset (ilo ihi | plo phi) xlo xhi ylo yhi (profit
-    [fdevice fwidth fheight method beta fwhm fwhm_min shbox smooth
-    splot fhbox hmin read gain thresh])``
+    [twait tmax] | flist) (ccd (nx)) [pause plotall] bias [lowlevel
+    highlevel] flat defect setup [drurl] msub iset (ilo ihi | plo phi)
+    xlo xhi ylo yhi (profit [fdevice fwidth fheight method beta fwhm
+    fwhm_min shbox smooth splot fhbox hmin read gain thresh])``
 
     Plots a sequence of images as a movie in near 'real time', hence
     'rt'. Designed to be used to look at images coming in while at the
@@ -86,8 +86,7 @@ def rtplot(args=None):
 
         trim : bool [if source starts with 'u']
            True to trim columns and/or rows off the edges of windows nearest
-           the readout. This is particularly for ULTRACAM windowed data where
-           the first few rows and columns can contain bad data.
+           the readout which can sometimes contain bad data.
 
         ncol : int [if trim, hidden]
            Number of columns to remove (on left of left-hand window, and right
@@ -120,6 +119,16 @@ def rtplot(args=None):
         bias : string
            Name of bias frame to subtract, 'none' to ignore.
 
+        lowlevel : float [hidden]
+           Level below which a warning about low bias levels is warned. Set=0
+           to ignore. Applied to first window of first CCD. 2000 about
+           right for ULTRACAM.
+
+        highlevel : float [hidden]
+           Level above which a warning about high bias levels is warned. Set=0
+           to ignore. Applied to first window of first CCD. 3500 about
+           right for ULTRACAM.
+
         flat : string
            Name of flat field to divide by, 'none' to ignore. Should normally
            only be used in conjunction with a bias, although it does allow you
@@ -136,10 +145,11 @@ def rtplot(args=None):
            avoid overloading hdriver, especially if in drift mode as
            it makes a request for the windows for every frame.
 
-        hurl : string [if setup; hidden]
-           URL needed to access window setting from hdriver. The internal
-           server in hdriver must be switched on using rtplot_server_on
-           in the hdriver config file.
+        drurl : string [if setup; hidden]
+           URL needed to access window setting from the camera
+           driver (ultracam, ultraspec, hipercam). The internal server 
+           in the camera driver must be switched on which can be done
+           from the GUI.    
 
         msub : bool
            subtract the median from each window before scaling for the
@@ -270,14 +280,16 @@ def rtplot(args=None):
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
+        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('pause', Cline.LOCAL, Cline.HIDE)
         cl.register('plotall', Cline.LOCAL, Cline.HIDE)
-        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('lowlevel', Cline.GLOBAL, Cline.HIDE)
+        cl.register('highlevel', Cline.GLOBAL, Cline.HIDE)
         cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
         cl.register('defect', Cline.GLOBAL, Cline.PROMPT)
         cl.register('setup', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('hurl', Cline.GLOBAL, Cline.HIDE)
+        cl.register('drurl', Cline.GLOBAL, Cline.HIDE)
         cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
@@ -402,6 +414,16 @@ def rtplot(args=None):
         else:
             fprompt = "flat frame ['none' is normal choice with no bias]"
 
+        lowlevel = cl.get_value(
+            'lowlevel', 'bias level lower limit for warnings',
+            2000.
+        )
+
+        highlevel = cl.get_value(
+            'highlevel', 'bias level upper limit for warnings',
+            3500.
+        )
+
         # flat (if any)
         flat = cl.get_value(
             'flat', fprompt,
@@ -426,8 +448,8 @@ def rtplot(args=None):
         )
 
         if setup:
-            hurl = cl.get_value(
-                'hurl', 'URL for hdriver windows', 'http://192.168.1.2:5100'
+            drurl = cl.get_value(
+                'drurl', 'URL for driver windows', 'http://192.168.1.2:5100'
             )
 
         # define the display intensities
@@ -589,6 +611,27 @@ def rtplot(args=None):
             # accumulate errors
             emessages = []
 
+            # bias level checks
+            if lowlevel != 0.:
+                median = mccd.get_num(0).get_num(0).median()
+                if median < lowlevel:
+                    emessages.append(
+                        '** low bias level, median vs limit: {:.1f} vs {:.1f}'.format(
+                            median,lowlevel)
+                    )
+
+            if highlevel != 0.:
+                try:
+                    median = mccd.get_num(0).get_num(1).median()
+                except:
+                    median = mccd.get_num(0).get_num(0).median()
+
+                if median > highlevel:
+                    emessages.append(
+                        '** high bias level, median vs limit: {:.1f} vs {:.1f}'.format(
+                            median,lowlevel)
+                    )
+
             if n == 0:
                 if bias is not None:
                     # crop the bias on the first frame only
@@ -599,23 +642,23 @@ def rtplot(args=None):
                     flat = flat.crop(mccd)
 
             if setup:
-                # Get windows from hdriver. Fair bit of error checking
+                # Get windows from driver. Fair bit of error checking
                 # needed. 'got_windows' indicates if anything useful
                 # found, 'hwindows' is a list of (llx,lly,nx,ny) tuples
                 # if somthing is found.
                 try:
-                    r = requests.get(
-                        'http://192.168.1.2:5100',timeout=0.2
-                    )
+                    r = requests.get(drurl,timeout=0.2)
 
                     if r.text.strip() == 'No valid data available':
                         emessages.append(
-                            '** bad return from hdriver = {:s}'.format(r.text.strip())
+                            '** bad return from hdriver = {:s}'.format(
+                                r.text.strip())
                         )
                         got_windows = False
 
                     elif r.text.strip() == 'fullframe':
-                        # to help Stu out a bit, effectively just ignore this one
+                        # to help Stu out a bit, effectively just
+                        # ignore this one
                         got_windows = False
 
                     else:
@@ -681,7 +724,7 @@ def rtplot(args=None):
 
                     if got_windows:
                         # plot the current hdriver windows
-                        pgsci(hcam.CNAMS['yellow'])
+                        pgsci(hcam.CNAMS['green'])
                         pgsls(2)
                         for llxh,llyh,nxh,nyh in hwindows:
                             pgrect(llxh-0.5,llxh+nxh-0.5,llyh-0.5,llyh+nyh-0.5)
