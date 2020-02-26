@@ -8,6 +8,18 @@
 This page documents important changes in the pipeline, as a help to whether
 you should update.
 
+#. **26 February 2020, Version 0.19.8**: there have been many changes since
+   the 0.16 versions. Apart from many bugfixes, the main ones are:
+
+     * dark subtraction implemented
+     * significant speed-ups implemented,
+     * trimming of row & columns for ULTRACAM,
+     * better display level setting through region definition,
+     * ability to ignore frames with bad times in reduce,
+     * rtplot bias level warnings added,
+     * psf_reduce added for crowded fields.
+     * rupdate script added to update old reduce files
+
 #. **26 June 2018, Version 0.16.XX**: there have been very many recent changes
    in the pipeline as I have started to use it in earnest for reduction and
    have fixed a few problems encountered along the way. I would strongly

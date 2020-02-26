@@ -323,7 +323,7 @@ plotting these files, and module :mod:`hipercam.hlog` should allow you
 to develop scripts to access the data and to make your own
 plots. |hlog2fits| can convert the ASCII logs into rather more
 comprehensible FITS versions, with one HDU per CCD. These can be
-easily explored with standard FITS utilities like ``fv''.
+easily explored with standard FITS utilities like ``fv``.
 
 ULTRACAM|SPEC vs |hiper|
 ========================

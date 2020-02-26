@@ -13,7 +13,7 @@ serves two purposes. First, it provides a means of displaying,
 analysing and reducing |hiper|, ULTRACAM and ULTRASPEC data. Second,
 it provides an "Application Programmers Interface" (API) to allow you
 to access and manipulate the same sets of data. The first will be of
-interest to anyone using |hiper|, ULTRAACAM and ULTRASPEC; the second
+interest to anyone using |hiper|, ULTRACAM and ULTRASPEC; the second
 to those who want to code their own scripts.  This manual covers both
 aspects. It does not cover use of the |hiper| GUI or the finding chart
 generator, hfinder, or the equivalent components for ULTRACAM and
