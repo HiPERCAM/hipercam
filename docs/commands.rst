@@ -29,6 +29,7 @@
 .. |ol-plog|     replace:: plot output log from |reduce|
 .. |ol-redanal|  replace:: analyse a reduction log file
 .. |ol-reduce|   replace:: carry out photometric reduction
+.. |ol-rupdate|  replace:: updates old reduce files
 .. |ol-rtplot|   replace:: plot frames as they come in
 .. |ol-setaper|  replace:: define the photometric apertures
 .. |ol-setdefect| replace:: define a file of CCD defects
@@ -121,6 +122,8 @@ useful.
    | |reduce|     | |ol-reduce|    | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |rtplot|     | |ol-rtplot|    | Yes      | Yes      |  Yes    |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |rupdate|    | |ol-reduce|    | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |setaper|    | |ol-setaper|   | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+

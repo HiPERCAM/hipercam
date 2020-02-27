@@ -9,8 +9,8 @@ The |hiper| pipeline manual
 ****************************
 
 The |hiper| reduction software, known as the "pipeline" for short,
-serves two purposes. First, it provides a means of displaying,
-analysing and reducing |hiper|, ULTRACAM and ULTRASPEC data. Second,
+serves two purposes. First, it provides a means of displaying and reducing 
+|hiper|, ULTRACAM and ULTRASPEC data. Second,
 it provides an "Application Programmers Interface" (API) to allow you
 to access and manipulate the same sets of data. The first will be of
 interest to anyone using |hiper|, ULTRACAM and ULTRASPEC; the second
@@ -18,11 +18,11 @@ to those who want to code their own scripts.  This manual covers both
 aspects. It does not cover use of the |hiper| GUI or the finding chart
 generator, hfinder, or the equivalent components for ULTRACAM and
 ULTRASPEC. Details of these for |hiper| may be found on `github
-<https://github.com/HiPERCAM>`_.
+<https://github.com/HiPERCAM>`_; and follows these links for much
+more information on 
+`ULTRACAM <http://www.vikdhillon.staff.shef.ac.uk/ultracam/userman/userman.html>`_ and
+`ULTRASPEC on the TNT <http://www.vikdhillon.staff.shef.ac.uk/ultraspec/ultraspec_tnt.html>`_.
 
-.. Warning::
-
-   These pages are under development and incomplete. Apologies!
 
 .. toctree::
    :maxdepth: 2
@@ -34,6 +34,7 @@ ULTRASPEC. Details of these for |hiper| may be found on `github
    api
    installation
    files
+   bugs
 
 Indices and tables
 ==================

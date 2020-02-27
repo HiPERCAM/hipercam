@@ -1,4 +1,4 @@
-.. Links to usefule files 21/05/2018
+.. Links to useful files 21/05/2018
 
 .. include:: globals.rst
 
@@ -32,8 +32,7 @@ might appear in multiple pixels (there is a very nasty feature in the
 lower-right of the lower-left quadrant of CCD 2 for example). I plan to update
 the file with time, and retain old ones for monitoring purposes.  I
 identified the bad pixels using a flat field divided by a smoothed version of
-itself (smoothed with a 20 pixel FWHM 2D gaussian filter). The file used for
-this is also supplied for reference.
+itself (smoothed with a 20 pixel FWHM 2D gaussian filter).
 
 When observing, you should move the target and essential comparison stars away
 from any such defects, particularly those that appear in red.
@@ -48,6 +47,9 @@ Files:
 
   #. 2018-06-21 (:download:`ultracam defect file
      <ultracam_defects_2018_06_21.dft>`) Added another bad column in CCD 2
+
+  #. 2019-12-08 (:download:`ultraspec defect file
+     <ultraspec_defects_2019_12_08.dft>`)
 
 .. Warning::
    For ULTRACAM I need also to add hot pixel defects which need to be regarded

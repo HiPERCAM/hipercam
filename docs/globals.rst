@@ -20,9 +20,9 @@
 .. |fits2hcm| replace:: :func:`fits2hcm <hipercam.scripts.fits2hcm>`
 .. |genred| replace:: :func:`genred <hipercam.scripts.genred>`
 .. |grab| replace:: :func:`grab <hipercam.scripts.grab>`
+.. |hfilter| replace:: :func:`hfilter <hipercam.scripts.hfilter>`
 .. |hinfo| replace:: :func:`hinfo <hipercam.scripts.hinfo>`
 .. |hist| replace:: :func:`hist <hipercam.scripts.hist>`
-.. |hfilter| replace:: :func:`hfilter <hipercam.scripts.hfilter>`
 .. |hlog2fits| replace:: :func:`hlog2fits <hipercam.scripts.hlog2fits>`
 .. |hls| replace:: :func:`hls <hipercam.scripts.hls>`
 .. |hplot| replace:: :func:`hplot <hipercam.scripts.hplot>`
@@ -36,6 +36,7 @@
 .. |redanal| replace:: :func:`redanal <hipercam.scripts.redanal>`
 .. |reduce| replace:: :func:`reduce <hipercam.scripts.reduce>`
 .. |rtplot| replace:: :func:`rtplot <hipercam.scripts.rtplot>`
+.. |rupdate| replace:: :func:`rtplot <hipercam.scripts.rupdate>`
 .. |setaper| replace:: :func:`setaper <hipercam.scripts.setaper>`
 .. |setdefect| replace:: :func:`setdefect <hipercam.scripts.setdefect>`
 .. |splice| replace:: :func:`splice <hipercam.scripts.splice>`
