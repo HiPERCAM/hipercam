@@ -32,11 +32,11 @@
 .. |mstats| replace:: :func:`mstats <hipercam.scripts.mstats>`
 .. |mul| replace:: :func:`mul <hipercam.scripts.mul>`
 .. |plog| replace:: :func:`plog <hipercam.scripts.plog>`
-.. |psf_reduce| replace:: :func:`plog <hipercam.scripts.psf_reduce>`
+.. |psf_reduce| replace:: :func:`psf_reduce <hipercam.scripts.psf_reduce>`
 .. |redanal| replace:: :func:`redanal <hipercam.scripts.redanal>`
 .. |reduce| replace:: :func:`reduce <hipercam.scripts.reduce>`
 .. |rtplot| replace:: :func:`rtplot <hipercam.scripts.rtplot>`
-.. |rupdate| replace:: :func:`rtplot <hipercam.scripts.rupdate>`
+.. |rupdate| replace:: :func:`rupdate <hipercam.scripts.rupdate>`
 .. |setaper| replace:: :func:`setaper <hipercam.scripts.setaper>`
 .. |setdefect| replace:: :func:`setdefect <hipercam.scripts.setdefect>`
 .. |splice| replace:: :func:`splice <hipercam.scripts.splice>`

@@ -2,7 +2,7 @@
 
 .. include:: globals.rst
 
-.. One-liners for each command that come up repeatedly
+.. One-liners [hence ol] for each command that comes up repeatedly
 
 .. |ol-add|      replace:: add two frames
 .. |ol-averun|   replace:: average a series of frames in a run
@@ -123,7 +123,7 @@ useful.
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |rtplot|     | |ol-rtplot|    | Yes      | Yes      |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
-   | |rupdate|    | |ol-reduce|    | Yes      | Yes      |         |           |            |
+   | |rupdate|    | |ol-rupdate|   | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |setaper|    | |ol-setaper|   | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -279,7 +279,9 @@ In addition to ``list`` and ``prompt``, there is a third special keyword
 files. If ``nodefs`` is specified, then all parameters values need to be spelt
 out; it's use is inside scripts in circumstances where multiple instances are
 being used, or when there is interactive work going on too, to avoid causing
-problems by over-writing the default files.
+problems by over-writing the default files. Avoid using these keywords in any other
+context. e.g. you would be asking for trouble if you named your files ``list.hcm``
+or ``prompt.hcm``.
 
 
 Strings with spaces
@@ -337,18 +339,20 @@ the commands have lost the default values.
 Command definitions
 ===================
 
-This section contains documentation auto-generated from the code. This is the
-same as is returned from clicking command names in the lists at the top of
-this page or from using ``pydoc`` in a terminal. Each command appears as a
-function (an implementation detail), followed by a highlighted line showing
-the parameters one can use on the command-line. Inputs in square brackets such
-as ``[source]`` are hidden by default; those in round brackets e.g. ``(plot)``
-may or may not be prompted depending upon earlier inputs. It is always safest
-when first running a command simply to type its name and hit enter and let the
-command itself prompt you for input. Many commands have hidden parameters that
-can only be revealed by typing e.g. ``rtplot prompt``. These are usually
-parameters that rarely need changing, but you are sure sometimes to need to
-alter them.  See the :ref:`command-calling` section for details on how to
+This section contains documentation auto-generated from the code. This
+is the same as is returned from clicking command names in the lists at
+the top of this page or from using ``pydoc`` in a terminal (e.g. try
+``pydoc hipercam.scripts.reduce``). Each command appears as a function
+(an implementation detail), followed by a highlighted line showing the
+parameters one can use on the command-line. Inputs in square brackets
+such as ``[source]`` are hidden by default; those in round brackets
+e.g. ``(plot)`` may or may not be prompted depending upon earlier
+inputs. It is always safest when first running a command simply to
+type its name and hit enter and let the command itself prompt you for
+input. Many commands have hidden parameters that can only be revealed
+by typing e.g. ``rtplot prompt``. These are usually parameters that
+rarely need changing, but you are sure sometimes to need to alter
+them.  See the :ref:`command-calling` section for details on how to
 specify command parameters.
 
 In the one-line descriptions below, ``run`` refers to a complete run,
@@ -382,6 +386,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.redanal
 .. autofunction:: hipercam.scripts.reduce
 .. autofunction:: hipercam.scripts.rtplot
+.. autofunction:: hipercam.scripts.rupdate
 .. autofunction:: hipercam.scripts.setaper
 .. autofunction:: hipercam.scripts.setdefect
 .. autofunction:: hipercam.scripts.splice
