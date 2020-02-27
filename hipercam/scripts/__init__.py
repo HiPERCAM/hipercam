@@ -20,7 +20,7 @@ from .hplot import hplot
 from .makebias import makebias
 from .makedark import makedark
 from .makeflat import makeflat
-from .makestuff import makedata, makefield
+from .makestuff import makemccd, makefield
 from .plog import plog
 from .reduce import reduce
 from .rtplot import rtplot
