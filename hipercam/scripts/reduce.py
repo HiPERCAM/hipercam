@@ -496,9 +496,9 @@ def reduce(args=None):
                     break
 
                 print(
-                    'Frame {:d}: {:s} [{:s}]'.format(
+                    'Frame {:d}: {:s} ({:s})'.format(
                         nframe, mccd.head['TIMSTAMP'],
-                        'OK' if mccd.head.get('GOODTIME', True) else 'NOK'),
+                        'ok' if mccd.head.get('GOODTIME', True) else 'nok'),
                     end='' if implot else '\n'
                 )
 

@@ -3,7 +3,6 @@ import os
 import time
 
 import numpy as np
-import matplotlib.pyplot as plt
 from astropy.time import Time
 
 from trm.pgplot import *
@@ -149,7 +148,7 @@ def rtplot(args=None):
            URL needed to access window setting from the camera
            driver (ultracam, ultraspec, hipercam). The internal server 
            in the camera driver must be switched on which can be done
-           from the GUI.    
+           from the GUI.
 
         msub : bool
            subtract the median from each window before scaling for the
@@ -595,18 +594,20 @@ def rtplot(args=None):
                 hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
             # indicate progress
-            try:
-                tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
-                print(
-                    '{:d}, utc = {:s}, '.format(
-                        mccd.head['NFRAME'], tstamp.iso), end=''
-                )
-            except:
-                # sometimes times are junk.
-                print(
-                    '{:d}, utc = {:s}, '.format(
-                        mccd.head['NFRAME'], '2000-01-01 00:00:00.000'), end=''
-                )
+            #            try:
+            tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
+            print(
+                '{:d}, utc= {:s} ({:s}), '.format(
+                    mccd.head['NFRAME'], tstamp.iso,
+                    'ok' if mccd.head.get('GOODTIME', True) else 'nok'),
+                end=''
+            )
+            #            except:
+            #   # sometimes times are junk.
+            #   print(
+            #      '{:d}, utc = {:s}, '.format(
+            #           mccd.head['NFRAME'], '2000-01-01 00:00:00.000'), end=''
+            #   )
 
             # accumulate errors
             emessages = []
