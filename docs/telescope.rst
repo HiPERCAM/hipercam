@@ -268,11 +268,10 @@ Commands mentioned in this section: |reduce|.
 
 .. [#f0] All |hiper| commands are implemented as entry points to functions,
          all of which are part of the :mod:`hipercam.scripts` module. This
-         means that documentation on the same command can be looked up in
-         two ways at the terminal with `pydoc`. e.g. for |rtplot| you could
-         type ``pydoc hipercam.scripts.pydoc`` or simply ``pydoc rtplot``.
-         To actually invoke the same command, simply type ``rtplot`` in a
-         terminal.
+         means that documentation on any |hiper| pipeline command can be
+         looked up from a terminal with `pydoc`, e.g. for |rtplot| you would
+         type ``pydoc hipercam.scripts.pydoc``. To invoke the same command,
+         simply type ``rtplot`` in a terminal.
 
 
 .. [#f1] This may fail if the data source is set incorrectly. If so, re-type
