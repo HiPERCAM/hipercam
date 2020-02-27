@@ -8,12 +8,13 @@ At the telescope
 ****************
 
 Here it is assumed that you are observing with |hiper|, ULTRACAM or
-ULTRASPEC for the first time and want to look at your data. It is
-written in tutorial style for someone starting afresh who just wants
-to get going, so it is as short as possible, with details listed
-elsewhere. The first thing to realise is that the pipeline is run
-entirely from command lines entered in a terminal, so first of all
-open a terminal on the "drpc" (data reduction PC).
+ULTRASPEC (hereafter |ultra| for short) for the first time and want to
+look at your data. It is written in tutorial style for someone
+starting afresh who just wants to get going, so it is as short as
+possible, with details listed elsewhere. The first thing to realise is
+that the pipeline is run entirely from command lines entered in a
+terminal, so first of all open a terminal on the "drpc" (data
+reduction PC).
 
 Plotting the data coming in
 ===========================
@@ -42,10 +43,10 @@ for |hiper|, or::
 
   uls
 
-for ULTRACAM and ULTRASPEC (which works with a different server).
+for |ultra| (which work with a different server).
 This returns a list of runs; you probably want the last one of the list, which
 will be the most recent. Note that all |hiper| runs appear as 'run####', while
-ULTRACAM and ULTRASPEC have just three digits. Returning to |rtplot| we can
+|ultra| have just three digits. Returning to |rtplot| we can
 enter more inputs::
 
   rtplot
@@ -102,8 +103,8 @@ instance::
 
 ensures that |rtplot| tries to get the data from the |hiper| server on
 the rack (which must itself be running of course), while you would
-want to substitute 'us' when using the ULTRACAM|SPEC server, or 'ul'
-when accessing ULTRACAM|SPEC data locally. One very useful feature of
+want to substitute 'us' when using the |ultra| server, or 'ul'
+when accessing |ultra| data locally. One very useful feature of
 |rtplot| is for quick examination of the FWHM of images through a
 parameter called ``profit`` that will only be prompted if you display
 just a single CCD.  This is useful to see if your target has
@@ -120,8 +121,9 @@ parameter input system.
   useful features are (1) the ability to fit the profiles of selected targets
   when displaying a single CCD; (2) the option to plot a file of CCD defects
   (:download:`hipercam defect file <hipercam_defects_2018_05_21.dft>`;
-  :download:`ultracam defect file <ultracam_defects_2018_06_02.dft>`). Use
-  this to avoid bad regions of the CCDs; (3) the `setup` option which
+  :download:`ultracam defect file <ultracam_defects_2018_06_02.dft>`;
+  :download:`ultraspec defect file <ultraspec_defects_2019_12_08.dft>`).
+  Use this to avoid bad regions of the CCDs; (3) the `setup` option which
   interrogates the `hdriver` GUI for the current set of windows. This is
   useful for optimising the CCD setup on a target.
 
@@ -163,11 +165,14 @@ Plotting defects during target acquisition
 ==========================================
 
 It is **strongly** recommended that you plot CCD defects during
-acquisition.  For ULTRACAM|SPEC we have created defect files ('.dft')
-for this purpose from flat-field and bias frames. Flat-field defects
-in particular can often be hard to see, during acquistion, especially
-if the sky is dark. Plotting them can help you avoid the worst defects
-which you only later discover during reduction, when it is too late.
+acquisition.  We have created defect files ('.dft') for this purpose
+from flat-field and bias frames; see the note on |rtplot| above.
+Flat-field defects in particular can often be hard to see, during
+acquistion, especially if the sky is dark. Plotting them can help you
+avoid the worst defects which you only later discover during
+reduction, when it is too late. Note that the format of the defect
+files has changed from the old ULTRACAM pipeline to the |hiper| one,
+and you won't be able to use a defect file created under one system on the other.
 
 Getting reduction going
 =======================
@@ -279,9 +284,9 @@ Commands mentioned in this section: |reduce|.
          by default. The one you might want to change is ``source`` which
          should be ``hs`` for data from the |hiper| server at the telescope,
          or ``hl`` for data from a disk file local to your computer (or ``us``
-         and ``ul`` for ULTRACAM).
+         and ``ul`` for |ultra|).
 
 .. [#f2] All raw |hiper| file names take the form 'run####.fits' but
-         the extension '.fits' can be omitted. ULTRACAM|SPEC files take the
+         the extension '.fits' can be omitted. |ultra| files take the
          form 'run###.dat' / 'run###.xml'. Note that |hiper| files have
-         4 digits compared to ULTRACAM|SPEC's 3.
+         4 digits compared to |ultra|'s 3.

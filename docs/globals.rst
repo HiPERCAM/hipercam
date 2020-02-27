@@ -9,6 +9,7 @@
    :trim:
 
 .. |hiper| replace:: HiPERCAM
+.. |ultra| replace:: ULTRA(CAM|SPEC)
 .. |add| replace:: :func:`add <hipercam.scripts.add>`
 .. |averun| replace:: :func:`averun <hipercam.scripts.averun>`
 .. |cadd| replace:: :func:`cadd <hipercam.scripts.cadd>`
