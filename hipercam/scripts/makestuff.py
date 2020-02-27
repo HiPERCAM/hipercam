@@ -12,28 +12,29 @@ import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
-__all__ = ['makedata', 'makefield']
+__all__ = ['makemccd', 'makefield']
 
 ###########################################
 #
-# makedata -- generates fake multi-CCD data
+# makemccd -- generates fake multi-CCD data
 #
 ###########################################
 
-def makedata(args=None):
-    """Script to generate multi-CCD test data given a set of parameters defined in
-    a config file (parsed using configparser). This allows things such as a
-    bias frame, flat field variations offsets, scale factor and rotations
-    between CCDs, and temporal variations.
+def makemccd(args=None):
+    """Script to generate multi-CCD test data given a set of parameters
+    defined in a config file (parsed using configparser). This allows
+    things such as a bias frame, flat field variations offsets, scale
+    factor and rotations between CCDs, and temporal variations.
 
     Arguments::
 
-       config   : (string)
+       config : string
           file defining the parameters.
 
-       parallel : (bool)
-          True / yes etc to run in parallel. Be warned: it does not always make things faster,
-          which I assume is the result of overheads when parallelising. It will simply use whatever
+       parallel : bool
+          True / yes etc to run in parallel. Be warned: it does not
+          always make things faster, which I assume is the result of
+          overheads when parallelising. It will simply use whatever
           CPUs are available.
 
     Depending upon the setting in the config file, this could generate a large
@@ -68,6 +69,7 @@ def makedata(args=None):
         cl.register('config', Cline.LOCAL, Cline.PROMPT)
         cl.register('parallel', Cline.LOCAL, Cline.PROMPT)
 
+        # Prompt for them
         config = cl.get_value('config', 'configuration file',
                               cline.Fname('config'))
         parallel = cl.get_value('parallel', 'add targets in parallel?', False)
