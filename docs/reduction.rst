@@ -85,7 +85,7 @@ calibration section of the reduce file.
    than 20 minutes) powering on the CCDs to avoid higher than normal
    dark current. |makebias| include a plot option to check this. Make
    sure to look at this if the bias is taken not long after a power
-   on. ULTRACAM|SPEC are better behaved in this respect, but it is
+   on. ULTRA(CAM|SPEC) are better behaved in this respect, but it is
    always worth plotting the mean levels which ideally should drift by
    at most a few counts.
 
@@ -325,10 +325,10 @@ plots. |hlog2fits| can convert the ASCII logs into rather more
 comprehensible FITS versions, with one HDU per CCD. These can be
 easily explored with standard FITS utilities like ``fv``.
 
-ULTRACAM|SPEC vs |hiper|
-========================
+ULTRA(CAM|SPEC_ vs |hiper|
+==========================
 
-The |hiper| pipeline is designed to be usable with ULTRACAM|SPEC data
+The |hiper| pipeline is designed to be usable with ULTRA(CAM|SPEC) data
 as well as data from |hiper| itself. You will need a different set of
 CCD defects, otherwise the two are very similar. One extra ULTRACAM
 needs is proper dark subtraction. Finally, at the telescope you can
