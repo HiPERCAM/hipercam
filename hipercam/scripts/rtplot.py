@@ -21,27 +21,30 @@ __all__ = ['rtplot',]
 ######################################
 
 def rtplot(args=None):
-    """``rtplot [source device width height] (run first (trim [ncol nrow])
-    [twait tmax] | flist) (ccd (nx)) [pause plotall] bias [lowlevel
-    highlevel] flat defect setup [drurl] msub iset (ilo ihi | plo phi)
-    xlo xhi ylo yhi (profit [fdevice fwidth fheight method beta fwhm
-    fwhm_min shbox smooth splot fhbox hmin read gain thresh])``
+    """``rtplot [source device width height] (run first [twait tmax] |
+    flist) trim ([ncol nrow]) (ccd (nx)) [pause plotall] bias
+    [lowlevel highlevel] flat defect setup [drurl] msub iset (ilo ihi
+    | plo phi) xlo xhi ylo yhi (profit [fdevice fwidth fheight method
+    beta fwhm fwhm_min shbox smooth splot fhbox hmin read gain
+    thresh])``
 
     Plots a sequence of images as a movie in near 'real time', hence
     'rt'. Designed to be used to look at images coming in while at the
-    telescope, 'rtplot' comes with many options, a large number of which are
-    hidden by default, and many of which are only prompted if other arguments
-    are set correctly. If you want to see them all, invoke as 'rtplot prompt'.
-    This is worth doing once to know rtplot's capabilities.
+    telescope, 'rtplot' comes with many options, a large number of
+    which are hidden by default, and many of which are only prompted
+    if other arguments are set correctly. If you want to see them all,
+    invoke as 'rtplot prompt'.  This is worth doing once to know
+    rtplot's capabilities.
 
-    rtplot can source data from both the ULTRACAM and HiPERCAM servers, from
-    local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
-    FITS files for HiPERCAM) and from lists of HiPERCAM '.hcm' files.
+    rtplot can source data from both the ULTRACAM and HiPERCAM
+    servers, from local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml +
+    .dat for ULTRACAM, 3D FITS files for HiPERCAM) and from lists of
+    HiPERCAM '.hcm' files.
 
-    rtplot optionally allows the selection of targets to be fitted with
-    gaussian or moffat profiles, and, if successful, will plot circles of 2x
-    the measured FWHM in green over the selected targets. This option only
-    works if a single CCD is being plotted.
+    rtplot optionally allows the selection of targets to be fitted
+    with gaussian or moffat profiles, and, if successful, will plot
+    circles of 2x the measured FWHM in green over the selected
+    targets. This option only works if a single CCD is being plotted.
 
     Parameters:
 
@@ -83,6 +86,13 @@ def rtplot(args=None):
            frame. This is mainly to sidestep a difficult bug with the
            acquisition system.
 
+        twait : float [if source ends 's' or 'l'; hidden]
+           time to wait between attempts to find a new exposure, seconds.
+
+        tmax : float [if source ends 's' or 'l'; hidden]
+           maximum time to wait between attempts to find a new exposure,
+           seconds.
+
         trim : bool [if source starts with 'u']
            True to trim columns and/or rows off the edges of windows nearest
            the readout which can sometimes contain bad data.
@@ -94,12 +104,11 @@ def rtplot(args=None):
         nrow : int [if trim, hidden]
            Number of rows to remove (bottom of windows)
 
-        twait : float [if source ends 's' or 'l'; hidden]
-           time to wait between attempts to find a new exposure, seconds.
+        ccd : string
+           CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
 
-        tmax : float [if source ends 's' or 'l'; hidden]
-           maximum time to wait between attempts to find a new exposure,
-           seconds.
+        nx : int [if more than 1 CCD]
+           number of panels across to display.
 
         pause : float [hidden]
            seconds to pause between frames (defaults to 0)
@@ -108,12 +117,6 @@ def rtplot(args=None):
            plot all frames regardless of status (i.e. including blank frames
            when nskips are enabled (defaults to False). The profile fitting
            will still be disabled for bad frames.
-
-        ccd : string
-           CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
-
-        nx : int [if more than 1 CCD]
-           number of panels across to display.
 
         bias : string
            Name of bias frame to subtract, 'none' to ignore.
@@ -335,20 +338,6 @@ def rtplot(args=None):
             else:
                 first = cl.get_value('first', 'first frame to plot', 1, 0)
 
-            if source.startswith('u'):
-                trim = cl.get_value(
-                    'trim',
-                    'do you want to trim edges of windows? (ULTRACAM only)',
-                    True
-                )
-                if trim:
-                    ncol = cl.get_value(
-                        'ncol', 'number of columns to trim from windows', 0)
-                    nrow = cl.get_value(
-                        'nrow', 'number of rows to trim from windows', 0)
-            else:
-                trim = False
-
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
             tmax = cl.get_value(
@@ -359,7 +348,16 @@ def rtplot(args=None):
                 'flist', 'file list', cline.Fname('files.lis',hcam.LIST)
             )
             first = 1
-            trim = False
+
+        trim = cl.get_value(
+            'trim', 'do you want to trim edges of windows?',
+            True
+        )
+        if trim:
+            ncol = cl.get_value(
+                'ncol', 'number of columns to trim from windows', 0)
+            nrow = cl.get_value(
+                'nrow', 'number of rows to trim from windows', 0)
 
         # define the panel grid. first get the labels and maximum dimensions
         ccdinf = spooler.get_ccd_pars(source, resource)

@@ -16,8 +16,8 @@ __all__ = ['averun',]
 #################################
 
 def averun(args=None):
-    """``averun [source] (run first last (trim [ncol nrow]) twait tmax |
-    flist) bias dark flat [method sigma adjust clobber] output``
+    """``averun [source] (run first last twait tmax | flist) trim ([ncol
+    nrow]) bias dark flat [method sigma adjust clobber] output``
 
     Averages images from a run using median combination, skipping the junk
     frames that result from NSKIP / NBLUE options in HiPERCAM and ULTRACAM
@@ -53,10 +53,16 @@ def averun(args=None):
         last : int [if source ends 's' or 'l']
            last exposure number must be >= first.
 
-        trim : bool [if source starts with 'u']
+        twait : float [if source ends 's' or 'l'; hidden]
+           time to wait between attempts to find a new exposure, seconds.
+
+        tmax : float [if source ends 's' or 'l'; hidden]
+           maximum time to wait between attempts to find a new exposure,
+           seconds.
+
+        trim : bool
            True to trim columns and/or rows off the edges of windows nearest
-           the readout. This is particularly for ULTRACAM windowed data where
-           the first few rows and columns can contain bad data.
+           the readout. Useful for ULTRACAM particularly.
 
         ncol : int [if trim, hidden]
            Number of columns to remove (on left of left-hand window, and right
@@ -64,13 +70,6 @@ def averun(args=None):
 
         nrow : int [if trim, hidden]
            Number of rows to remove (bottom of windows)
-
-        twait : float [if source ends 's' or 'l'; hidden]
-           time to wait between attempts to find a new exposure, seconds.
-
-        tmax : float [if source ends 's' or 'l'; hidden]
-           maximum time to wait between attempts to find a new exposure,
-           seconds.
 
         bias : string
            Name of bias frame to subtract, 'none' to ignore.
@@ -114,11 +113,11 @@ def averun(args=None):
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.PROMPT)
+        cl.register('twait', Cline.LOCAL, Cline.HIDE)
+        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
         cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.LOCAL, Cline.PROMPT)
         cl.register('dark', Cline.LOCAL, Cline.PROMPT)
@@ -143,22 +142,6 @@ def averun(args=None):
             first = cl.get_value('first', 'first frame to average', 1, 1)
             last = cl.get_value('last', 'last frame to average', first, first)
 
-            if source.startswith('u'):
-                poss = True
-                trim = cl.get_value(
-                    'trim',
-                    'do you want to trim edges of windows? (ULTRACAM only)',
-                    True
-                )
-                if trim:
-                    ncol = cl.get_value(
-                        'ncol', 'number of columns to trim from windows', 0)
-                    nrow = cl.get_value(
-                        'nrow', 'number of rows to trim from windows', 0)
-            else:
-                poss = False
-                trim = False
-
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
             tmax = cl.get_value(
@@ -168,8 +151,16 @@ def averun(args=None):
             flist = cl.get_value('flist', 'file list',
                                cline.Fname('files.lis',hcam.LIST))
             first = 1
-            poss = False
-            trim = False
+
+        trim = cl.get_value(
+            'trim', 'do you want to trim edges of windows?',
+            True
+        )
+        if trim:
+            ncol = cl.get_value(
+                'ncol', 'number of columns to trim from windows', 0)
+            nrow = cl.get_value(
+                'nrow', 'number of rows to trim from windows', 0)
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -222,27 +213,19 @@ def averun(args=None):
 
     if server_or_local:
         print("\nCalling 'grab' ...")
-        if poss:
-            # trim will be prompted
-            if trim:
-                args = [
-                    None,'prompt',source,run,'yes',
-                    str(first),str(last),'yes',str(ncol),
-                    str(nrow),str(twait),str(tmax),
-                    'none','f32'
-                ]
-            else:
-                args = [
-                    None,'prompt',source,run,'yes',
-                    str(first),str(last),'no',str(twait),
-                    str(tmax),'none','f32'
-                ]
-        else:
-            # trim will not be prompted
+
+        if trim:
             args = [
                 None,'prompt',source,run,'yes',
                 str(first),str(last),str(twait),
-                str(tmax),'none','f32'
+                str(tmax),'yes',str(ncol),str(nrow),
+                'none','f32'
+            ]
+        else:
+            args = [
+                None,'prompt',source,run,'yes',
+                str(first),str(last),str(twait),
+                str(tmax),'no','none','f32'
             ]
         flist = hcam.scripts.grab(args)
 

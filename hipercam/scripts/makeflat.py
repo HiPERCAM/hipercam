@@ -174,7 +174,6 @@ def makeflat(args=None):
             resource = cl.get_value('run', 'run name', 'run005')
             first = cl.get_value('first', 'first frame to average', 1, 1)
             last = cl.get_value('last', 'last frame to average (0 for all)', first, 0)
-            poss = source.startswith('u')
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
             tmax = cl.get_value(
@@ -184,7 +183,6 @@ def makeflat(args=None):
             resource = cl.get_value('flist', 'file list',
                                cline.Fname('files.lis',hcam.LIST))
             first = 1
-            poss = False
 
         ngroup = cl.get_value(
             'ngroup', 'number of frames per median average group', 3, 1
@@ -244,20 +242,12 @@ def makeflat(args=None):
 
         if server_or_local:
             print("\nCalling 'grab' ...")
-            if poss:
-                # trim will be prompted
-                args = [
-                    None,'prompt',source,resource,'yes',
-                    str(first),str(last),'no',str(twait),
-                    str(tmax),'none','f32'
-                ]
-            else:
-                # trim will not be prompted
-                args = [
-                    None,'prompt',source,resource,'yes',
-                    str(first),str(last),str(twait),
-                    str(tmax),'none','f32'
-                ]
+
+            args = [
+                None,'prompt',source,resource,'yes',
+                str(first),str(last),str(twait),
+                str(tmax),,no','none','f32'
+            ]
             resource = hcam.scripts.grab(args)
 
         # at this point 'resource' is a list of files, no matter the input

@@ -28,8 +28,8 @@ __all__ = ['reduce', ]
 #
 ################################################
 def reduce(args=None):
-    """``reduce [source] rfile (run first last (trim [ncol nrow]) twait
-    tmax | flist) log lplot implot (ccd nx msub xlo xhi ylo yhi iset
+    """``reduce [source] rfile (run first last twait tmax | flist) trim
+    ([ncol nrow]) log lplot implot (ccd nx msub xlo xhi ylo yhi iset
     (ilo ihi | plo phi))``
 
     Reduces a sequence of multi-CCD images, plotting lightcurves as images
@@ -84,18 +84,6 @@ def reduce(args=None):
            defaults to 0 if not set. Its purpose is to allow accurate
            profiling tests.
 
-        trim : bool [if source starts with 'u']
-           True to trim columns and/or rows off the edges of windows nearest
-           the readout. This is particularly for ULTRACAM windowed data where
-           the first few rows and columns can contain bad data.
-
-        ncol : int [if trim]
-           Number of columns to remove (on left of left-hand window, and right
-           of right-hand windows)
-
-        nrow : int [if trim]
-           Number of rows to remove (bottom of windows)
-
         twait : float [if source ends 's'; hidden]
            time to wait between attempts to find a new exposure, seconds.
 
@@ -105,6 +93,18 @@ def reduce(args=None):
 
         flist : string [if source ends 'f']
            name of file list
+
+        trim : bool
+           True to trim columns and/or rows off the edges of windows nearest
+           the readout. Particularly useful with ULTRACAM windowed data where
+           the first few rows and columns can contain bad data.
+
+        ncol : int [if trim, hidden]
+           Number of columns to remove (on left of left-hand window, and right
+           of right-hand windows)
+
+        nrow : int [if trim, hidden]
+           Number of rows to remove (bottom of windows)
 
         log : string
            log file for the results
@@ -186,12 +186,12 @@ def reduce(args=None):
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
         cl.register('first', Cline.LOCAL, Cline.PROMPT)
         cl.register('last', Cline.LOCAL, Cline.HIDE)
-        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
-        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
         cl.register('twait', Cline.LOCAL, Cline.HIDE)
         cl.register('tmax', Cline.LOCAL, Cline.HIDE)
         cl.register('flist', Cline.LOCAL, Cline.PROMPT)
+        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
+        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
         cl.register('log', Cline.GLOBAL, Cline.PROMPT)
         cl.register('tkeep', Cline.GLOBAL, Cline.PROMPT)
         cl.register('lplot', Cline.LOCAL, Cline.PROMPT)
@@ -240,20 +240,6 @@ def reduce(args=None):
                 print('*** reduce aborted')
                 exit(1)
 
-            if source.startswith('u'):
-                trim = cl.get_value(
-                    'trim', 
-                    'do you want to trim edges of windows? (ULTRACAM only)',
-                    True
-                )
-                if trim:
-                    ncol = cl.get_value(
-                        'ncol', 'number of columns to trim from windows', 0)
-                    nrow = cl.get_value(
-                        'nrow', 'number of rows to trim from windows', 0)
-            else:
-                trim = False
-
             twait = cl.get_value(
                 'twait', 'time to wait for a new frame [secs]', 1., 0.)
             tmx = cl.get_value(
@@ -266,7 +252,16 @@ def reduce(args=None):
             )
             first = 1
             last = 0
-            trim = False
+
+        trim = cl.get_value(
+            'trim', 'do you want to trim edges of windows?',
+            True
+        )
+        if trim:
+            ncol = cl.get_value(
+                'ncol', 'number of columns to trim from windows', 0)
+            nrow = cl.get_value(
+                'nrow', 'number of rows to trim from windows', 0)
 
         log = cl.get_value(
             'log', 'name of log file to store results',
