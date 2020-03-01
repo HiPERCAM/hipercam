@@ -815,11 +815,13 @@ def get_ccd_info(fname):
     return info
 
 def trim_ultracam(mccd, ncol, nrow):
-    """Trims columns and rows from ULTRACAM data. The rows are trimmed
-    from the bottom of each windo, the columns are taken from the left
-    of the left-hand windows and the right of the right-hand
-    windows. This is becuase these regions are sometimes corrupted by
-    bad data.
+    """Trims columns and rows from an MCCD. The rows and columns are trimmed
+    from each nearest to the readout amplifier as indicated by the value of
+    the "outamp" attribute. e.g. if outamp='LL' then the rows and columns
+    are stripped from the bottom and the left of the window respectively. This
+    is useful because for ULTRACAM and ULTRASPEC these rows and columns can
+    suffer from ringing effects.
+
 
     Arguments::
 
@@ -828,24 +830,47 @@ def trim_ultracam(mccd, ncol, nrow):
          output.
 
        ncol : int
-         number of columns (nearest output of respective window) to
-         be trimmed.
+         number of columns to be trimmed.
 
        nrow : int
-         number of rows (nearest output of respective window) to
-         be trimmed.
+         number of rows to be trimmed
 
     """
     for cnam, ccd in mccd.items():
-        for i, (wlab, win) in enumerate(ccd.items()):
-            if i % 2 == 0:
-                # left-hand of window pair, trim from left
+        for wlab, win in ccd.items():
+            if win.outamp == 'LL':
+                # lower-left
                 win.data = win.data[nrow:,ncol:]
                 win.llx += ncol*win.xbin
-            else:
-                # right-hand of window pair, trim from right
+                win.lly += nrow*win.ybin
+
+            elif win.outamp == 'LR':
+                # lower-right
                 if ncol:
                     win.data = win.data[nrow:,:-ncol]
                 else:
                     win.data = win.data[nrow:,:]
-            win.lly += nrow*win.ybin
+                win.lly += nrow*win.ybin
+
+            elif win.outamp == 'UR':
+                # upper-right
+                if ncol and nrow:
+                    win.data = win.data[:-nrow,:-ncol]
+                elif nrow:
+                    win.data = win.data[:-nrow,:]
+                elif ncol:
+                    win.data = win.data[:,:-ncol]
+
+            elif win.outamp == 'UL':
+                # upper-left
+                if nrow:
+                    win.data = win.data[:-nrow,ncol:]
+                else:
+                    win.data = win.data[:,ncol:]
+                win.llx += ncol*win.xbin
+
+            else:
+                warnings.warn(
+                    'encountered a CCD window with no output'
+                    ' amplifier location defined'
+                )
