@@ -246,7 +246,7 @@ def makeflat(args=None):
             args = [
                 None,'prompt',source,resource,'yes',
                 str(first),str(last),str(twait),
-                str(tmax),,no','none','f32'
+                str(tmax),'no','none','f32'
             ]
             resource = hcam.scripts.grab(args)
 
