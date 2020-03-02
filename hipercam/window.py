@@ -38,47 +38,48 @@ class Winhead(Header):
         >>> win = Winhead(12, 6, 100, 150, 2, 3)
         >>> print(win)
 
-    :class:`Winhead`s are inherited from :class:`hipercam.Header`
-    objects
+    :class:`Winhead` is inherited from :class:`hipercam.Header`
 
+    Parameters
+    ----------
+    llx : int
+       X position of lower-left pixel of window (unbinned pixels)
+    lly : int
+       Y position of lower-left pixel of window (unbinned pixels)
+    nx : int
+       X dimension of window, binned pixels
+    ny : int
+       Y dimension of window, binned pixels
+    xbin : int
+       Binning factor in X
+    ybin : int
+       Binning factor in Y
+    head : Header
+       Arbitrary header items (excluding ones such as LLX reserved
+       for containing the above parameters when reading and writing
+       Winhead objects). This will be deep copied to avoid different
+       Winheads sharing the same header. See 'copy' for how the header
+       is tranferred into the Windhead
+    copy : bool
+       Controls whether the header is copied by value (True) or
+       simply by reference (False). The latter is lightweight and
+       faster but can cause unexpected behaviour especially when
+       constructing multiple Winhead (or Window) objects if one
+       repeatedly sends the same Header to each of them.
+
+    Attributes
+    ----------
+    llx : int
+       X ordinate lower-left pixel, unbinned pixels
+    lly : int
+       Y ordinate lower-left pixel, unbinned pixels
+    xbin : int
+       X-binning factor
+    ybin : int
+       Y-binning factor
     """
 
     def __init__(self, llx, lly, nx, ny, xbin, ybin, head=None, copy=False):
-        """
-        Constructor. Arguments::
-
-          llx : int
-              X position of lower-left pixel of window (unbinned pixels)
-
-          lly : int
-              Y position of lower-left pixel of window (unbinned pixels)
-
-          nx : int
-              X dimension of window, binned pixels
-
-          ny : int
-              Y dimension of window, binned pixels
-
-          xbin : int
-              Binning factor in X
-
-          ybin : int
-              Binning factor in Y
-
-          head : Header
-              Arbitrary header items (excluding ones such as LLX reserved
-              for containing the above parameters when reading and writing
-              Winhead objects). This will be deep copied to avoid different
-              Winheads sharing the same header. See 'copy' for how the header
-              is tranferred into the Windhead
-
-          copy : bool
-              Controls whether the header is copied by value (True) or
-              simply by reference (False). The latter is lightweight and
-              faster but can cause unexpected behaviour especially when
-              constructing multiple Winhead (or Window) objects if one
-              repeatedly sends the same Header to each of them.
-        """
         if head is None:
             super().__init__()
         else:
@@ -527,7 +528,7 @@ class _Decoder(json.JSONDecoder):
         return obj
 
 class CcdWin(Group):
-    """Class representing all the :class:`Winhead`s for a single CCD.
+    """Class representing all the :class:`Winhead` for a single CCD.
     """
 
     def __init__(self, wins=Group(Winhead)):
@@ -572,7 +573,7 @@ class CcdWin(Group):
 
 
 class MccdWin(Group):
-    """Class representing all the :class:`Winhead`s for multiple CCDs.
+    """Class representing all the :class:`Winhead` for multiple CCDs.
     """
 
     def __init__(self, wins=Group(CcdWin)):
@@ -945,8 +946,8 @@ class Window(Winhead):
 
         Arguments::
 
-        q : (float or sequence of floats)
-          Percentile(s) to use, in range [0,100]
+          q : float or sequence of floats
+            Percentile(s) to use, in range [0,100]
         """
         return np.percentile(self.data, q)
 

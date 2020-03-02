@@ -98,8 +98,8 @@ class CCD(Agroup):
         return np.concatenate(arrs)
 
     def min(self):
-        """Returns the minimum value of the :class:`CCD`, i.e. the minimum of all the
-        minimum values of all :class:`Window`s
+        """Returns the minimum value of the :class:`CCD`, i.e. the minimum of
+        all the minimum values of all the :class:`Window`
 
         """
         return min(v.min() for v in self.values())
@@ -229,7 +229,7 @@ class CCD(Agroup):
 
         If cnam is None, it is assumed that each HDU represents a Window.
         Each data HDU will be searched for a header parameter 'WINDOW' to label
-        the :class:`Window`s, but the routine will attempt to generate a
+        the :class:`Window`, but the routine will attempt to generate a
         sequential label if WINDOW is not found. If the auto-generated label
         conflicts with one already found, then a KeyError will be raised.
 
@@ -504,11 +504,12 @@ class CCD(Agroup):
             return None
 
     def crop(self, ccd):
-        """Given a template :class:CCD called `ccd`, this tries to modify the format
-        of the :class:CCD, returning a new :class:CCD. This is often needed
-        e.g. prior to applying a full frame flat field. In general this
-        operation requires re-labelling of the :class:`Window`s composing the
-        CCD. It raises a HipercamError if it fails.
+        """Given a template :class:`CCD` called `ccd`, this tries to modify
+        the format of the :class:`CCD`, returning a new
+        :class:`CCD`. This is often needed e.g. prior to applying a
+        full frame flat field. In general this operation requires
+        re-labelling of the :class:`Window` composing the CCD. It
+        raises a :class:`HipercamError` if it fails.
 
         """
         # build an empty CCD to get the headers. this will be added to
@@ -678,14 +679,15 @@ class MCCD(Agroup):
     def rhdul(cls, hdul):
         """Builds an :class:`MCCD` from an :class:`HDUList`.
 
-        This will usually be passed the :class:`HDUList` from a file. The
-        header from the first (primary) HDU will be used to create the header
-        for the :class:`MCCD`. It is then assumed that the data for each
-        :class:`CCD` is contained in blocks of HDUs after the first. The
-        data from all HDUs will be read into the :class:`Window` objects that
-        make up the CCD. Each HDU will be searched for a header parameter
-        WINDOW to label the :class:`Window`, but the code will attempt to
-        generate a sequential label if WINDOW is not found.
+        This will usually be passed the :class:`HDUList` from a
+        file. The header from the first (primary) HDU will be used to
+        create the header for the :class:`MCCD`. It is then assumed
+        that the data for each :class:`CCD` is contained in blocks of
+        HDUs after the first. The data from all HDUs will be read into
+        the :class:`Window` objects that make up the CCD. Each HDU
+        will be searched for a header parameter WINDOW to label the
+        :class:`Window`, but the code will attempt to generate a
+        sequential label if WINDOW is not found.
 
         Arguments::
 

@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Core data and a few classes for the hipercam package
+Core data, functions and classes for the hipercam package
 """
 
 from astropy.utils.exceptions import AstropyUserWarning
@@ -122,27 +122,29 @@ FLAGS = (
 
 
 def version():
-    """Returns version number of installed |hiper| pipeline"""
+    """Returns version number of installed HiPERCAM pipeline"""
     import pkg_resources
     return pkg_resources.require("hipercam")[0].version
 
 def gregorian_to_mjd(year, month, day):
-    """
-    This returns the Modified Julian Day number corresponding to
-    the start of the Gregorian date supplied. Algorithm taken from
+    """This returns the Modified Julian Day number corresponding to the
+    start of the Gregorian date supplied. Algorithm taken from
     Duffet-Smith. Tested against astropy.time.Time. Designed to be
-    simple and I hope fast. 
+    simple and fast.
 
-    Arguments::
-
-      year : int
-        Valid range: 1582 onwards
-
-      month : int
+    Parameters
+    ----------
+    year : int
+        Year (valid range: 1582 onwards)
+    month : int
         Month of year, 1 to 12 inclusive.
-
-      day : int
+    day : int
         day of month (1 to 31; will not check month by month)
+
+    Returns
+    -------
+    mjd : int
+        Modified Julian Day number
     """
 
     if year < 1582 or month < 1 or month > 12 or day < 1 or day > 31:
@@ -161,16 +163,17 @@ def gregorian_to_mjd(year, month, day):
     return B + C + D - 679006 + day
 
 def mjd_to_gregorian(mjd):
-    """
-    This returns the (year,month,day) corresponding to the supplied
-    MJD. From Duffet-Smith. Checked against gregorian_to_mjd
+    """This returns the year, month, and day corresponding to the supplied
+    MJD. From Duffet-Smith. Checked against 'gregorian_to_mjd'.
 
-    Arguments::
+    Parameters
+    ----------
+    mjd : int
+       Modified Julian Day number
 
-      mjd : int
-        Modified Julian Day number, an integer
-
-    Returns (year,month,day)
+    Returns
+    -------
+    Returns a tuple of (year,month,day)
 
     """
 
