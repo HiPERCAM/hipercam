@@ -340,10 +340,10 @@ class Rhead:
 
             if mode == 'FFCLR' or mode == 'FFNCLR':
                 self.win.append(
-                    Winhead(1, 1, 512//xbin, 1024//ybin, xbin, ybin)
+                    Winhead(1, 1, 512//xbin, 1024//ybin, xbin, ybin, 'LL')
                 )
                 self.win.append(
-                    Winhead(513, 1, 512//xbin, 1024//ybin, xbin, ybin)
+                    Winhead(513, 1, 512//xbin, 1024//ybin, xbin, ybin, 'LR')
                 )
                 fsize += 12*self.win[-1].nx*self.win[-1].ny
 
@@ -363,25 +363,25 @@ class Rhead:
                 # first set the physical data windows
                 nx, ny = 512, 1024
                 self.win.append(
-                    Winhead(1, 1, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(1, 1, nx // xbin, ny // ybin, xbin, ybin, 'LL'))
                 self.win.append(
-                    Winhead(513, 1, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(513, 1, nx // xbin, ny // ybin, xbin, ybin, 'LR'))
                 fsize += 12*nx*ny
 
                 # left & right overscans (both placed on the right)
                 nx,ny = 28, 1032
                 self.win.append(
-                    Winhead(1025, 1, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(1025, 1, nx // xbin, ny // ybin, xbin, ybin, 'LL'))
                 self.win.append(
-                    Winhead(1053, 1, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(1053, 1, nx // xbin, ny // ybin, xbin, ybin, 'LR'))
                 fsize += 12*nx*ny
 
                 # top overscans
                 nx,ny = 512, 8
                 self.win.append(
-                    Winhead(1, 1025, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(1, 1025, nx // xbin, ny // ybin, xbin, ybin, 'LL'))
                 self.win.append(
-                    Winhead(513, 1025, nx // xbin, ny // ybin, xbin, ybin))
+                    Winhead(513, 1025, nx // xbin, ny // ybin, xbin, ybin, 'LR'))
                 fsize += 12*nx*ny
 
             else:
@@ -392,8 +392,8 @@ class Rhead:
                 xright = int(param['X1R_START'])
                 nx = int(param['X1_SIZE']) // xbin
                 ny = int(param['Y1_SIZE']) // ybin
-                self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
-                self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin, 'LL'))
+                self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin, 'LR'))
                 fsize += 12*nx*ny
 
                 if mode == '2-PAIR' or mode == '3-PAIR':
@@ -402,8 +402,8 @@ class Rhead:
                     xright = int(param['X2R_START'])
                     nx = int(param['X2_SIZE']) // xbin
                     ny = int(param['Y2_SIZE']) // ybin
-                    self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
-                    self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
+                    self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin, 'LL'))
+                    self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin, 'LR'))
                     fsize += 12*nx*ny
 
                 if mode == '3-PAIR':
@@ -412,8 +412,8 @@ class Rhead:
                     xright = int(param['X3R_START'])
                     nx = int(param['X3_SIZE']) // xbin
                     ny = int(param['Y3_SIZE']) // ybin
-                    self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin))
-                    self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin))
+                    self.win.append(Winhead(xleft, ystart, nx, ny, xbin, ybin, 'LL'))
+                    self.win.append(Winhead(xright, ystart, nx, ny, xbin, ybin, 'LR'))
                     fsize += 12*nx*ny
 
         elif self.instrument == 'ULTRASPEC':
@@ -440,7 +440,13 @@ class Rhead:
             ystart = int(param['Y1_START'])
             nx = int(param['X1_SIZE'])
             ny = int(param['Y1_SIZE'])
-            self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin))
+            outamp = 'LL' if self.output == 'N' else \
+                     ('LR' if self.output == 'A' else '')
+            self.win.append(
+                Winhead(
+                    xstart, ystart, nx, ny, xbin, ybin, outamp
+                )
+            )
 
             fsize += 2*nx*ny
 
@@ -451,7 +457,7 @@ class Rhead:
                          int(param['Y2_START'])
                 nx = int(param['X2_SIZE'])
                 ny = ny if mode == 'UDRIFT' else int(param['Y2_SIZE'])
-                self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin, outamp))
                 fsize += 2*nx*ny
 
             if mode == 'USPEC-3' or mode == 'USPEC-4':
@@ -459,7 +465,7 @@ class Rhead:
                 ystart = int(param['Y3_START'])
                 nx = int(param['X3_SIZE'])
                 ny = int(param['Y3_SIZE'])
-                self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin, outamp))
                 fsize += 2*nx*ny
 
             if mode == 'USPEC-4':
@@ -467,7 +473,7 @@ class Rhead:
                 ystart = int(param['Y4_START'])
                 nx = int(param['X4_SIZE'])
                 ny = int(param['Y4_SIZE'])
-                self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin))
+                self.win.append(Winhead(xstart, ystart, nx, ny, xbin, ybin, outamp))
                 fsize += 2*nx*ny
 
         if fsize != self.framesize:
@@ -1180,23 +1186,24 @@ class Rdata (Rhead):
                     llx = max(1, w.llx + nchop*xbin - 16) if self.output == 'N' else \
                           max(1, 1074 - w.llx - w.nx*xbin)
 
-                    wmod = Winhead(llx, w.lly, w.nx-nchop, w.ny, xbin, ybin)
+                    wmod = Winhead(
+                        llx, w.lly, w.nx-nchop, w.ny, xbin, ybin,
+                        'LL' if self.output == 'N' else 'LR'
+                    )
 
                     if self.output == 'N':
                         # normal output, multi windows.
                         wins[str(nwin)] = \
                             Window(
                                 wmod,
-                                np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop:],
-                                outamp='LL'
+                                np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,nchop:]
                             )
 
                     elif self.output == 'A':
                         # avalanche output, multi windows.
                         wins[str(nwin)] = Window(
                             wmod,
-                            np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,-nchop-1::-1],
-                            outamp='LR'
+                            np.reshape(buff[noff:noff+npix],(w.ny,w.nx))[:,-nchop-1::-1]
                         )
 
                     nwin += 1
@@ -1230,11 +1237,11 @@ class Rdata (Rhead):
                     comb = np.reshape(buff[:npix],(wl.ny,wl.nx+wr.nx)[:,::-1])
                     outamp = 'LR'
 
-                wmodl = Winhead(llxl, wl.lly, wl.nx-nchopl, wl.ny, xbin, ybin)
-                wins[str(nwin)] = Window(wmodl,comb[:,nchopl:wl.nx],outamp=outamp)
+                wmodl = Winhead(llxl, wl.lly, wl.nx-nchopl, wl.ny, xbin, ybin, outamp)
+                wins[str(nwin)] = Window(wmodl,comb[:,nchopl:wl.nx])
                 nwin += 1
-                wmodr = Winhead(llxr, wr.lly, wr.nx-nchopr, wr.ny, xbin, ybin)
-                wins[str(nwin)] = Window(wmodr,comb[:,wl.nx+nchopr:],outamp=outamp)
+                wmodr = Winhead(llxr, wr.lly, wr.nx-nchopr, wr.ny, xbin, ybin, outamp)
+                wins[str(nwin)] = Window(wmodr,comb[:,wl.nx+nchopr:])
                 nwin += 1
 
             # data type conversions

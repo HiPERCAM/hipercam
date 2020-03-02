@@ -1,7 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""
+"""CCD window modules
+
 Defines classes to represent sub-windows of a CCD and associated
 functions.
+
 """
 
 import warnings
@@ -28,58 +30,78 @@ __all__ = (
 )
 
 class Winhead(Header):
-    """Class representing the header parts of a CCD window, i.e. everything
-    needed to represent a window other than its data. This represents an
-    arbitrary rectangular region of binned pixels. The lower-left pixel of the
-    CCD is assumed to have coordinates (x,y) = (1,1). :class:`Winhead`
+    """The header parts of a CCD window
+
+    `Winhead` objects contain everything needed to represent a
+    CCD window other than its data. This represents an arbitrary
+    rectangular region of binned pixels. The lower-left pixel of the
+    CCD is assumed to have coordinates (x,y) = (1,1). `Winhead`
     dimensions are in binned pixels.
 
         >>> from hipercam import Winhead
         >>> win = Winhead(12, 6, 100, 150, 2, 3)
         >>> print(win)
 
-    :class:`Winhead` is inherited from :class:`hipercam.Header`
-
     Parameters
     ----------
     llx : int
-       X position of lower-left pixel of window (unbinned pixels)
+        X position of lower-left pixel of window (unbinned pixels)
     lly : int
-       Y position of lower-left pixel of window (unbinned pixels)
+        Y position of lower-left pixel of window (unbinned pixels)
     nx : int
-       X dimension of window, binned pixels
+        X dimension of window, binned pixels
     ny : int
-       Y dimension of window, binned pixels
+        Y dimension of window, binned pixels
     xbin : int
-       Binning factor in X
+        Binning factor in X
     ybin : int
-       Binning factor in Y
-    head : Header
-       Arbitrary header items (excluding ones such as LLX reserved
-       for containing the above parameters when reading and writing
-       Winhead objects). This will be deep copied to avoid different
-       Winheads sharing the same header. See 'copy' for how the header
-       is tranferred into the Windhead
-    copy : bool
-       Controls whether the header is copied by value (True) or
-       simply by reference (False). The latter is lightweight and
-       faster but can cause unexpected behaviour especially when
-       constructing multiple Winhead (or Window) objects if one
-       repeatedly sends the same Header to each of them.
+        Binning factor in Y
+    outamp : str, {'','LL','LR','UL','UR'}
+        Location of output amplifier. Options: '' == unknown; 'LL' ==
+        lower-left; 'LR' == lower-right; 'UL' == upper-left; 'UR' ==
+        upper-right. Used when trimming to remove the correct part of
+        the window.
+    head : :class:`Header`, optional
+        Arbitrary header items (excluding ones such as LLX reserved
+        for containing the above parameters when reading and writing
+        Winhead objects). This will be deep copied to avoid different
+        Winheads sharing the same header. See 'copy' for how the header
+        is tranferred into the Winhead
+    copy : bool, optional
+        Controls whether the header is copied by value (True) or
+        simply by reference (False). The latter is lightweight and
+        faster but can cause unexpected behaviour especially when
+        constructing multiple Winhead (or Window) objects if one
+        repeatedly sends the same Header to each of them.
 
     Attributes
     ----------
     llx : int
-       X ordinate lower-left pixel, unbinned pixels
+        X ordinate lower-left pixel, unbinned pixels
     lly : int
-       Y ordinate lower-left pixel, unbinned pixels
+        Y ordinate lower-left pixel, unbinned pixels
     xbin : int
-       X-binning factor
+        X-binning factor
     ybin : int
-       Y-binning factor
+        Y-binning factor
+    nx : int
+    ny : int
+    outamp : str, {'','LL','LR','UL','UR'}
+        output amplifier location
+    urx : int
+    ury : int
+    xlo : float
+    xhi : float
+    ylo : float
+    yhi : float
     """
 
-    def __init__(self, llx, lly, nx, ny, xbin, ybin, head=None, copy=False):
+    def __init__(self, llx, lly, nx, ny, xbin, ybin, outamp,
+                 head=None, copy=False):
+        """
+        Inits Winheads
+        """
+
         if head is None:
             super().__init__()
         else:
@@ -90,6 +112,15 @@ class Winhead(Header):
         self.lly = lly
         self.xbin = xbin
         self.ybin = ybin
+        if outamp in ('','LL','LR','UL','UR'):
+            self.outamp = outamp
+        else:
+            raise ValueError(
+                'outamp={:s} not an option for the output amplifier location'.format(outamp)
+            )
+
+
+        self.outamp = outamp
 
         # Have to take care with the next two since in
         # Window they are connected to the array size
@@ -99,7 +130,7 @@ class Winhead(Header):
     @property
     def nx(self):
         """
-        Returns binned X-dimension of the :class:`Winhead`.
+        Binned X-dimension of the `Winhead`.
         """
         return self._nx
 
@@ -113,7 +144,7 @@ class Winhead(Header):
     @property
     def ny(self):
         """
-        Returns binned Y-dimension of the :class:`Winhead`.
+        Binned Y-dimension of the `Winhead`.
         """
         return self._ny
 
@@ -151,42 +182,42 @@ class Winhead(Header):
     @property
     def urx(self):
         """
-        Returns (unbinned) X pixel at upper-right of :class:`Winhead`
+        Unbinned X pixel at upper-right of `Winhead`
         """
         return self.llx-1+self.nx*self.xbin
 
     @property
     def ury(self):
         """
-        Returns (unbinned) Y pixel at upper-right of :class:`Winhead`
+        Unbinned Y pixel at upper-right of `Winhead`
         """
         return self.lly-1+self.ny*self.ybin
 
     @property
     def xlo(self):
         """
-        Returns left-hand edge of window (llx-0.5)
+        Left-hand edge of window (llx-0.5)
         """
         return self.llx-0.5
 
     @property
     def xhi(self):
         """
-        Returns right-hand edge of window (urx+0.5)
+        Right-hand edge of window (urx+0.5)
         """
         return self.llx-1+self.nx*self.xbin+0.5
 
     @property
     def ylo(self):
         """
-        Returns bottom edge of window (lly-0.5)
+        Bottom edge of window (lly-0.5)
         """
         return self.lly-0.5
 
     @property
     def yhi(self):
         """
-        Returns top edge of window (ury+0.5)
+        Top edge of window (ury+0.5)
         """
         return self.lly-1+self.ny*self.ybin+0.5
 
@@ -528,17 +559,18 @@ class _Decoder(json.JSONDecoder):
         return obj
 
 class CcdWin(Group):
-    """Class representing all the :class:`Winhead` for a single CCD.
+    """All the :class:`Winhead` objects of a single CCD.
+
+    Acts as a container for all of the window formats of a CCD.
+
+    Parameters
+    ----------
+    wins : Group(Winhead)
+       All of the :class:`Winhead` objects
+
     """
 
     def __init__(self, wins=Group(Winhead)):
-        """Constructs a :class:`CcdWin`.
-
-        Arguments::
-
-          wins : (Group)
-              Group of :class:`Winhead` objects
-        """
         super().__init__(Winhead, wins)
 
     def __repr__(self):
@@ -573,17 +605,15 @@ class CcdWin(Group):
 
 
 class MccdWin(Group):
-    """Class representing all the :class:`Winhead` for multiple CCDs.
+    """All the :class:`Winhead` objects for multiple CCDs.
+
+    Parameters
+    ----------
+    wins : Group(CcdWin)
+       All of the :class:`CcdWin` objects
     """
 
     def __init__(self, wins=Group(CcdWin)):
-        """Constructs a :class:`MccdWin`.
-
-        Arguments::
-
-          aps : (Group)
-              Group of :class:`CcdWin` objects
-        """
         super().__init__(CcdWin, wins)
 
     def __repr__(self):
@@ -630,10 +660,10 @@ class MccdWin(Group):
         return mccdwin
 
 class Window(Winhead):
-    """Class representing a CCD window, including its position, binning
-    and data.  Constructed from a :class:`Winhead` and a
-    :class:`numpy.ndarray` which is stored in an attribute called
-    `data`.
+    """A CCD window, headers, position and data
+
+    Constructed from a :class:`Winhead` and a :class:`numpy.ndarray`
+    which is stored in an attribute called `data`.
 
         >>> import numpy as np
         >>> from hipercam import Winhead, Window
@@ -644,43 +674,33 @@ class Window(Winhead):
         >>> wind *= 2
 
     You cannot directly change the nx, ny values of a Window; you have
-    to change its data array attribute and nx and ny will be taken from it.
+    to change its data array attribute and nx and ny will be taken
+    from it.
 
-    :class:`Window` objects support various arithematical operations such as
-    subtraction or additoin of constants. The end result of these always has a
-    float type for safety to avoid problems with e.g. trying to make the
-    result of adding a float to an integer an integer or with the range of
-    integers.
+    :class:`Window` objects support various arithematical operations
+    such as subtraction or addition of constants. The end result of
+    these always has a float type for safety to avoid problems with
+    e.g. trying to make the result of adding a float to an integer an
+    integer or with the range of integers.
+
+    Parameters
+    ----------
+    win : :class:`Winhead`
+        the :class:`Winhead` defining the position and, optionally, headers
+    data : 2D numpy.ndarray
+        the data (2D). The dimensions must match those in win unless
+        data is None in which case a zero array of the correct size will
+        be created. A ValueError will be raised if not.
+    copy : bool
+        flag sent to :class:`Winhead` controlling whether the header is
+        copied by value or reference. 'False' is lightweight and faster
+        but when building up CCDs from multiple Windows, you should
+        probably use 'True' unless you are careful to make 'win' a
+        different object every time.
 
     """
 
-    def __init__(self, win, data=None, copy=False, outamp=''):
-        """Constructs a :class:`Window`
-
-        Arguments::
-
-          win : :class:`Winhead`
-              the :class:`Winhead` defining the position and, optionally, headers
-
-          data : 2D numpy.ndarray
-              the data (2D). The dimensions must match those in win unless
-              data is None in which case a zero array of the correct size will
-              be created. A ValueError will be raised if not.
-
-          copy : bool
-              flag sent to :class:`Winhead` controlling whether the header is 
-              copied by value or reference. 'False' is lightweight and faster
-              but when building up CCDs from multiple Windows, you should 
-              probably use 'True' unless you are careful to make 'win' a
-              different object every time.
-
-          outamp : string
-             Location of output amplifier. Options: '', unknown; 'LL',
-             lower-left; 'LR', lower-right; 'UL', upper-left; 'UR',
-             upper-right. Used when trimming to remove the correct
-             part of the window.
-
-        """
+    def __init__(self, win, data=None, copy=False):
         super().__init__(
             win.llx, win.lly, win.nx, win.ny,
             win.xbin, win.ybin, win, copy=copy
@@ -699,13 +719,6 @@ class Window(Winhead):
                     'win vs data dimension conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
 
             self.data = data
-
-        if outamp in ('','LL','LR','UL','UR'):
-            self.outamp = outamp
-        else:
-            raise ValueError(
-                'outamp={:s} not an option for the output amplifier location'.format(outamp)
-            )
 
     @property
     def nx(self):
@@ -763,9 +776,9 @@ class Window(Winhead):
         ny, nx = data.shape
         outamp = head.get('OUTAMP','')
 
-        win = Winhead(llx, lly, nx, ny, xbin, ybin, head)
+        win = Winhead(llx, lly, nx, ny, xbin, ybin, head, outamp)
 
-        return cls(win, data, outamp=outamp)
+        return cls(win, data)
 
     def whdu(self, head=None, xoff=0, yoff=0, extnam=None):
         """Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU`
@@ -1435,4 +1448,3 @@ class Window(Winhead):
         # carry out division
         data = other / self.data
         return Window(super().copy(), data)
-
