@@ -449,7 +449,7 @@ class Rhead:
 
                     # store the window and the axes to flip
                     self.windows[-1][-1].append(
-                        (Winhead(llx, lly, nx, ny, self.xbin, self.ybin),
+                        (Winhead(llx, lly, nx, ny, self.xbin, self.ybin, ''),
                          FLIP_AXES[qnam])
                     )
 
@@ -1110,7 +1110,7 @@ class Rdata (Rhead):
                         # in preparation for removal of prescan data.
                         winh = Winhead(
                             win.llx, win.lly, win.nx-self.npscan, win.ny,
-                            win.xbin, win.ybin, win
+                            win.xbin, win.ybin, win.outamp, win
                         )
 
                         if nwin == 0 and nquad == 0:
@@ -1139,7 +1139,7 @@ class Rdata (Rhead):
                             # Store the prescan itself
                             winp = Winhead(
                                 1-HCM_NPSCAN, plly, self.npscan, win.ny,
-                                win.xbin, win.ybin, win
+                                win.xbin, win.ybin, win.outamp, win
                             )
 
                             # Create the Window with the pre-scan
@@ -1159,7 +1159,7 @@ class Rdata (Rhead):
                             # Now save the prescan itself
                             winp = Winhead(
                                 HCM_NXTOT+1, plly, self.npscan, win.ny,
-                                win.xbin, win.ybin, win
+                                win.xbin, win.ybin, win.outamp, win
                             )
 
                             # Create the Window with the pre-scan
@@ -1193,7 +1193,7 @@ class Rdata (Rhead):
                             # (outputs are on the bottom).
                             wino = Winhead(
                                 win.llx, 1-HCM_NOSCAN, win.nx, self.noscan,
-                                win.xbin, win.ybin, win
+                                win.xbin, win.ybin, win.outamp, win
                             )
 
                             # Create the Window with the over-scan from top
@@ -1210,7 +1210,7 @@ class Rdata (Rhead):
                             # (outputs are on the top).
                             wino = Winhead(
                                 win.llx, HCM_NYTOT+1, win.nx, self.noscan,
-                                win.xbin, win.ybin, win
+                                win.xbin, win.ybin, win.outamp, win
                             )
 
                             # Create the Window with the over-scan
