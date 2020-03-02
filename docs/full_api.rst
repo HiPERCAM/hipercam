@@ -12,45 +12,16 @@ documentation. The same information can be accessed from a terminal using
 .. contents::
    :local:
 
-
-HiPERCAM intro
-==============
-
-.. automodule:: hipercam
-
-Core
-====
-
-.. automodule:: hipercam.core
-   :members:
-
 CCD windows
 ===========
 
-.. automodule:: hipercam.window
-   :members:
+.. currentmodule:: hipercam.window
 
-   .. autosummary::
+.. autosummary::
+   :toctree: stubs
 
-Groups 
-======
-
-.. automodule:: hipercam.group
-   :members:
-
-CCDs and MCCDs
-==============
-
-.. automodule:: hipercam.ccd
-   :members:
-
-Photometry apertures
-====================
-
-.. automodule:: hipercam.aperture
-   :members:
-
-
+   Winhead
+   Window
 
 
 

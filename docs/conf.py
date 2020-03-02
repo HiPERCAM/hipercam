@@ -31,8 +31,15 @@
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.imgmath', 'numpydoc']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
+              'sphinx.ext.imgmath', 'numpydoc']
 
+# this needed for numpydoc I think
+autosummary_generate = True
+numpydoc_show_class_members = False
+numpydoc_show_inherited_class_members = False
+
+# number figures
 numfig = True
 
 # Add any paths that contain templates here, relative to this directory.
@@ -85,20 +92,24 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
-
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
 #html_theme = 'alabaster'
-html_theme = 'classic'
+#html_theme = 'classic'
+html_theme = 'bootstrap-astropy'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    'logotext2': '',  # orange, light
+    'logotext3': ':docs',   # white,  light
+    'astropy_project_menubar': False
+    }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
