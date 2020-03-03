@@ -156,9 +156,9 @@ class Winhead(Header):
         self._ny = ny
 
     def __repr__(self):
-        return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={:s})'.format(
+        return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, outamp={!r}, head={:s})'.format(
             self.llx, self.lly, self.nx, self.ny,
-            self.xbin, self.ybin, super().__repr__()
+            self.xbin, self.ybin, self.outamp, super().__repr__()
         )
 
     def __str__(self):
@@ -170,13 +170,13 @@ class Winhead(Header):
         being overloaded. Set 'nohead' True to suppress the header in addition"""
 
         if nohead:
-            return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head=<...>)'.format(
-                self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin
+            return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, outamp={!r}, head=<...>)'.format(
+                self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin, self.outamp
                 )
         else:
-            return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, head={!r})'.format(
+            return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, outamp={!r}, head={!r})'.format(
                 self.llx, self.lly, self.nx, self.ny,
-                self.xbin, self.ybin, super().__repr__()
+                self.xbin, self.ybin, self.outamp, super().__repr__()
                 )
 
     @property
@@ -388,7 +388,7 @@ class Winhead(Header):
         """
         return Winhead(
             self.llx, self.lly, self.nx, self.ny,
-            self.xbin, self.ybin, super().copy()
+            self.xbin, self.ybin, self.outamp, super().copy()
         )
 
     def distance(self, x, y):
@@ -539,6 +539,7 @@ class _Encoder (json.JSONEncoder):
                     ('ny', obj.ny),
                     ('xbin', obj.xbin),
                     ('ybin', obj.ybin),
+                    ('outamp', obj.outamp),
                     ('head', obj.head.tostring('',False,False))
                 ))
 
@@ -554,7 +555,7 @@ class _Decoder(json.JSONDecoder):
         if 'Comment' in obj and obj['Comment'] == 'hipercam.Winhead':
             return Winhead(
                 obj['llx'], obj['lly'], obj['nx'], obj['ny'],
-                obj['xbin'], obj['ybin'],
+                obj['xbin'], obj['ybin'], obj['outamp'],
                 Header.fromstring(obj['head'])
             )
 
@@ -669,7 +670,7 @@ class Window(Winhead):
 
         >>> import numpy as np
         >>> from hipercam import Winhead, Window
-        >>> win = Winhead(12, 6, 100, 150, 2, 3)
+        >>> win = Winhead(12, 6, 100, 150, 2, 3, 'LL')
         >>> data = np.ones((150,100))
         >>> wind = Window(win,data)
         >>> wind += 0.5
@@ -779,7 +780,7 @@ class Window(Winhead):
         ny, nx = data.shape
         outamp = head.get('OUTAMP','')
 
-        win = Winhead(llx, lly, nx, ny, xbin, ybin, head, outamp)
+        win = Winhead(llx, lly, nx, ny, xbin, ybin, outamp, head)
 
         return cls(win, data)
 
