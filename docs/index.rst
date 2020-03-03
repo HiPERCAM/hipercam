@@ -31,7 +31,7 @@ more information on
    news
    observers
    commands
-   api
+   api/api
    installation
    files
    bugs
