@@ -482,10 +482,12 @@ class Winhead(Header):
 
         if copy:
             # headers are copied over as an independent object
-            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin, super().copy())
+            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin,
+                         self.outamp, super().copy())
         else:
             # headers are copied by reference.
-            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin, self)
+            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin,
+                         self.outamp, self)
         return wh
 
     def __copy__(self):
@@ -703,7 +705,8 @@ class Window(Winhead):
     def __init__(self, win, data=None, copy=False):
         super().__init__(
             win.llx, win.lly, win.nx, win.ny,
-            win.xbin, win.ybin, win, copy=copy
+            win.xbin, win.ybin, win.outamp,
+            win, copy=copy
         )
 
         if data is None:
@@ -1049,7 +1052,7 @@ class Window(Winhead):
               maximum Y, unbinned pixels
 
            copy : bool
-              controls whether the headers in the Windhead associated
+              controls whether the headers in the Winhead associated
               with this are copied by value or reference. True=copy by
               value which can carry significant overheads, but has the
               virtue of creating an independent object.
