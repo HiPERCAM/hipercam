@@ -319,7 +319,9 @@ Global vs local parameters
 All |hiper| pipeline parameters fall into one of two classes, either being
 'local' to a command or 'global' to multiple commands. The ``run`` parameter
 of ``rtplot`` for instance also appears in ``grab`` and if you change it in
-``rtplot``, it will be changed in ``grab``.
+``rtplot``, it will be changed in ``grab``. This is very useful when running
+a series of commands on the same file as the commands almost 'know' what you want,
+saving much typing.
 
 Trouble-shooting parameter input
 --------------------------------
@@ -333,6 +335,51 @@ variable `HIPERCAM_ENV` has been defined to re-direct where the default files
 are stored. Once you have located them it is always safe to delete one or more
 or all of the default files (end with .def). The worst that happens is that
 the commands have lost the default values.
+
+Errors reported by scripts
+==========================
+
+If you use the pipeline for any significant time, you will at some point
+get a rather forbidding-looking error traceback such as::
+
+  reduce run=run013 \\
+  Traceback (most recent call last):
+    File "/storage/astro1/phsaap/software/python/bin/reduce", line 11, in <module>
+      load_entry_point('hipercam==0.19.9.dev22+g758df9d.d20200303', 'console_scripts', 'reduce')()
+    File "/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/scripts/reduce.py", line 405, in reduce
+      with spooler.data_source(source, resource, first, full=False) as spool:
+    File "/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/spooler.py", line 323, in data_source
+      return UcamDiskSpool(resource, first)
+    File "/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/spooler.py", line 108, in __init__
+      self._iter = ucam.Rdata(run, first, False)
+    File "/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/ucam.py", line 637, in __init__
+      Rhead.__init__(self, run, server)
+    File "/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/ucam.py", line 152, in __init__
+      udom = xml.dom.minidom.parse(run + '.xml')
+    File "/warwick/desktop/2018/software/MPI/GCC/7.3.0-2.30/OpenMPI/3.1.1/Python/3.6.6/lib/python3.6/xml/dom/minidom.py", line 1958, in parse
+      return expatbuilder.parse(file)
+    File "/warwick/desktop/2018/software/MPI/GCC/7.3.0-2.30/OpenMPI/3.1.1/Python/3.6.6/lib/python3.6/xml/dom/expatbuilder.py", line 910, in parse
+      with open(file, 'rb') as fp:
+  FileNotFoundError: [Errno 2] No such file or directory: 'run013.xml'
+
+Yikes! Although it looks awful, it simply reflects
+the chain of function calls that led to the problem, an extremely
+useful diagnostic of problems in Python code. Such tracebacks look a
+bit ugly, but almost certainly, in most cases, including this one,
+they are caused by incorrect parameter inputs. The one to look at is
+probably the last line or two, which reveals in this case that an expected
+file 'run013.xml' was not found; a directory listing would confirm this.
+
+Such errors follow from a standard Python approach of not trying to
+add endless checking code, but to let the code tell you what happened
+when errors are encountered. This has the merit of being very
+informative (and de-clutters code), but it can make it hard to
+distinguish between an essentially trivial issue, such as a missing
+file, and a genuine problem with the code. If however you find you
+can't get round a problem and the error reported does not look
+innocent, then it might be a time to :ref:`report the
+problem<reporting_problems>`. We will do our best to provide fast
+solutions to critical issues.
 
 .. _command-definitions:
 

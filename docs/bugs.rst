@@ -2,6 +2,8 @@
 
 .. include:: globals.rst
 
+.. _reporting_problems:
+
 Reporting problems
 ******************
 
