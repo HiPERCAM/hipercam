@@ -1,8 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""
-Defines classes to represent photometric apertures. These support
-JSON-style serialisation to allow apertures to be saved to disk in
-a fairly easily read and editable format.
+"""Defines classes to represent photometric apertures.
+
+The classes support JSON-style serialisation to allow apertures to be
+saved to disk in a fairly easily read and editable format.
+
 """
 
 import numpy as np
@@ -15,9 +16,10 @@ __all__ = ('Aperture', 'CcdAper', 'MccdAper')
 
 class Aperture:
 
-    """Class representing a photometric aperture for measuring the flux of a
-    star. At its most basic this consists of 3 circles representing the
-    object, radius `rtarg`, and the sky annulus between radii `r2` and `r3`,
+    """Represents an aperture for astronomical photometry
+
+    Essentially this consists of 3 circles representing the object,
+    radius `rtarg`, and the sky annulus between radii `r2` and `r3`,
     centered at a specific position, but there are several extra
     characteristics in addition. These are:
 
@@ -39,58 +41,50 @@ class Aperture:
     caused by blended objects. These *also* act as sky masks so there should
     be no need to also mask such object.
 
+    Parameters
+    ----------
+    x : float
+        X position of centre of aperture, or the X offset to apply
+        if the aperture is linked from another.
+    y : float
+        Y position of centre of aperture, or the Y offset to apply
+        if the aperture is linked from another.
+    rtarg : float
+        Radius (unbinned pixels) of target aperture
+    rsky1 : float
+        Inner radius (unbinned pixels) of sky annulus
+    rsky2 : float
+        Outer radius (unbinned pixels) of sky annulus
+    ref : bool)
+        True/False to indicate whether this is a reference
+        aperture meaning that its position will be re-determined
+        before non-reference apertures to provide a shift.
+    mask : list of 3 element tuples
+        Each tuple in the list consists of an x,y offset and a radius in
+        unbinned pixels. These are used to mask nearby areas when
+        determining the sky value (e.g. to exclude stars)
+    extra : list of 2 element tuples
+        Similar to `mask`, but each tuple in the list consists only of an
+        x,y offset. These however are used as centres of additional target
+        apertures to allow blended stars to be include in the total flux.
+        They are given the same radius as the target aperture. They are also
+        used to exclude sky pixels.
+    link : str
+        If != '', this is a string label for another :class:`Aperture` that
+        *this* :class:`Aperture` is linked from. The idea is that this label
+        can be used to lookup the :class:`Aperture`.
+
+     .. note::
+
+        Normal practice would be to set link, mask, extra later,
+        having created the Aperture. Attributes of the same name as
+        all the arguments are defined.  We copy the mask and extra
+        apertures to avoid propagating references.
+
     """
 
     def __init__(self, x, y, rtarg, rsky1, rsky2, ref, mask=[], extra=[],
                  link=''):
-        """Constructor. Arguments::
-
-        x     : (float)
-            X position of centre of aperture, or the X offset to apply
-            if the aperture is linked from another.
-
-        y     : (float)
-            Y position of centre of aperture, or the Y offset to apply
-            if the aperture is linked from another.
-
-        rtarg : (float)
-            Radius (unbinned pixels) of target aperture
-
-        rsky1 : (float)
-            Inner radius (unbinned pixels) of sky annulus
-
-        rsky2 : (float)
-            Outer radius (unbinned pixels) of sky annulus
-
-        ref   : (bool)
-            True/False to indicate whether this is a reference
-            aperture meaning that its position will be re-determined
-            before non-reference apertures to provide a shift.
-
-        mask  : (list of 3 element tuples)
-            Each tuple in the list consists of an x,y offset and a radius in
-            unbinned pixels. These are used to mask nearby areas when
-            determining the sky value (e.g. to exclude stars)
-
-        extra : (list of 2 element tuples)
-            Similar to `mask`, but each tuple in the list consists only of an
-            x,y offset. These however are used as centres of additional target
-            apertures to allow blended stars to be include in the total flux.
-            They are given the same radius as the target aperture. They are also
-            used to exclude sky pixels.
-
-        link  : (string)
-            If != '', this is a string label for another :class:Aperture that
-            *this* :class:Aperture is linked from. The idea is that this label
-            can be used to lookup the :class:Aperture.
-
-        Notes: normal practice would be to set link, mask, extra later, having
-        created the Aperture. Attributes of the same name as all the arguments
-        are defined.  We copy the mask and extra apertures to avoid
-        propagating references.
-
-        """
-
         self.x = x
         self.y = y
         self.rtarg = rtarg

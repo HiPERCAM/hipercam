@@ -1,6 +1,10 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""
-Class to represent a CCD and a multi-CCD
+"""Classes & methods to represent CCDs and multi-CCDs
+
+A :class:`CCD` is built as a :class:`Group` of :class:`Window`
+objects, while a multi-CCD of :class:`MCCD` is built as a
+:class:`Group` of :class:`CCD` objects.
+
 """
 
 import warnings
@@ -13,7 +17,7 @@ from .group import *
 from .window import *
 from .header import *
 
-__all__ = ('CCD', 'MCCD', 'get_ccd_info')
+__all__ = ('CCD', 'MCCD', 'get_ccd_info', 'trim_ultracam')
 
 # Special keywords that will be stripped from FITS headers
 # on input as they are added on output. This is to make
@@ -23,11 +27,13 @@ KEYWORDS = (
 )
 
 class CCD(Agroup):
-    """Class representing a single CCD as a :class:`Group` of :class:`Window`. It
-    supports a few operations such as returning the mean value, arithematic
-    operations, and file I/O to/from FITS files. Header information is passed
-    via the Windows. The first of these is assumed to be the location for any
-    data pertaining to the CCD as a whole.
+    """Represents a single CCD as a :class:`Group` of :class:`Window`.
+
+    :class:`CCD` objects support a few operations such as returning
+    the mean value, arithematic operations, and file I/O to/from FITS
+    files. Header information is passed via the Windows. The first of
+    these is assumed to be the location for any data pertaining to the
+    CCD as a whole.
 
     """
 
