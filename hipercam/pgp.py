@@ -168,19 +168,19 @@ def pCcd(ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel='',
            this is not blank.
 
       xlo : (int | None)
-           use to restrict the range for computing plot limits as 
+           use to restrict the range for computing plot limits as
            percentiles.
 
       xhi : (int | None)
-           use to restrict the range for computing plot limits as 
+           use to restrict the range for computing plot limits as
            percentiles.
 
       ylo : (int | None)
-           use to restrict the range for computing plot limits as 
+           use to restrict the range for computing plot limits as
            percentiles.
 
       yhi : (int | None)
-           use to restrict the range for computing plot limits as 
+           use to restrict the range for computing plot limits as
            percentiles.
 
     Returns: (vmin,vmax), the intensity limits used.
