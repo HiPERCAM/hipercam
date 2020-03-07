@@ -153,6 +153,7 @@ setup(
             'psf_reduce=hipercam.scripts.psf_reduce:psf_reduce',
             'redanal=hipercam.scripts.redanal:redanal',
             'reduce=hipercam.scripts.reduce:reduce',
+            'register=hipercam.scripts.register:register',
             'rtplot=hipercam.scripts.rtplot:rtplot',
             'rupdate=hipercam.scripts.rupdate:rupdate',
             'setaper=hipercam.scripts.setaper:setaper',

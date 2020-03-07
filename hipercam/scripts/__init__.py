@@ -23,6 +23,7 @@ from .makeflat import makeflat
 from .makestuff import makemccd, makefield
 from .plog import plog
 from .reduce import reduce
+from .register import register
 from .rtplot import rtplot
 from .rupdate import rupdate
 from .setaper import setaper
@@ -45,7 +46,7 @@ __all__ = [ \
             'hist', 'hfilter', 'hlog2fits', 'hlogger', 'hls', 'hplot',
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'pfolder', 'plog',
-            'redanal', 'reduce', 'rtplot', 'rupdate',
+            'redanal', 'reduce', 'register', 'rtplot', 'rupdate',
             'setaper', 'setdefect', 'splice', 'stats', 'sub',
             'times',
             'uls',
