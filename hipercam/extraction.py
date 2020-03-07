@@ -13,7 +13,7 @@ from numpy.lib import recfunctions
 import numpy as np
 
 
-def findStars(wind, thresh, kernel_fwhm):
+def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
     """
     Use sep to find objects in image.
 
@@ -26,18 +26,26 @@ def findStars(wind, thresh, kernel_fwhm):
         threshold for object detection, in muliples of background RMS.
 
 
-    kernel_fwhm: float
+    kernel_fwhm : float
         Image is convolved with a Gaussian kernel of this FWHM prior to object
         detection. Should be set to something similar to the typical FWHM in image.
 
+    return_bkg : bool
+        True to return the background as calculated by sep.Background
+
     Returns
     -------
-    objects :  np.ndarray
+    objects : np.ndarray
         Extracted object parameters (structured array).
         For available fields, see sep documentation.
         http://sep.readthedocs.io/en/v1.0.x/api/sep.extract.html#sep.extract
 
         Quantities are in un-binned pixels
+
+    bkg : `~sep.Background` [if return_bkg]
+        The background estimated by 'sep'. Use sep.subfrom
+        to subtract from data.
+
     """
     # ensure float type, c-contiguous and native byte order
     data = wind.data.astype('float')
@@ -62,9 +70,9 @@ def findStars(wind, thresh, kernel_fwhm):
 
     # convert to un-binned pixels
     for key in ('x', 'xmin', 'xmax', 'xcpeak', 'xpeak'):
-        objects[key] = objects[key]*wind.xbin + wind.llx
+        objects[key] = wind.x(objects[key])
     for key in ('y', 'ymin', 'ymax', 'ycpeak', 'ypeak'):
-        objects[key] = objects[key]*wind.ybin + wind.lly
+        objects[key] = wind.y(objects[key])
     for key in ('npix', 'tnpix', 'xy', 'cxy'):
         objects[key] *= wind.xbin * wind.ybin
     for key in ('x2', 'a', 'errx2', 'cxx'):
@@ -74,4 +82,7 @@ def findStars(wind, thresh, kernel_fwhm):
     for key in ('fwhm', 'hfd'):
         objects[key] *= np.sqrt(wind.xbin * wind.ybin)
 
-    return objects
+    if return_bkg:
+        return (objects, bkg)
+    else:
+        return objects
