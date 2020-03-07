@@ -405,9 +405,15 @@ def register(args=None):
                         ccd /= flat[cnam]
 
                     # estimate sky background, look for stars
-                    for wnam, wind in ccd:
+                    objs = []
+                    for wnam in ccd:
+                        wind = ccd[wnam].window(xlo,xhi,ylo,yhi)
+                        wind.data = wind.data.astype('float')
                         objects, bkg = findStars(wind, 3., 5., True)
-                        bkg.subfrom(wind.data)o
+                        bkg.subfrom(wind.data)
+                        ccd[wnam] = wind
+                        objs.append(objects)
+                    objs = np.concatenate(objs)
 
                     # set to the correct panel and then plot CCD
                     ix = (nc % nx) + 1
@@ -417,6 +423,8 @@ def register(args=None):
                         ccd,iset,plo,phi,ilo,ihi,
                         xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
                     )
+
+                    pgpt(objs['x'],objs['y'],17)
 
                     # accumulate string of image scalings
                     if nc:
