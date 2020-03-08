@@ -6,12 +6,24 @@ objects in photometric data.
 Adds optional dependency on sep package ()
 """
 
+import struct
 import sep
 from astropy.convolution import Gaussian2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
 from numpy.lib import recfunctions
 import numpy as np
 
+# to save space
+SMALL_TYPE = np.dtype(
+    [
+        ('thresh', '<f4'), ('npix', '<i4'), ('tnpix', '<i4'), ('xmin', '<i4'), ('xmax', '<i4'), 
+        ('ymin', '<i4'), ('ymax', '<i4'), ('x', '<f4'), ('y', '<f4'), ('x2', '<f4'), ('y2', '<f4'), 
+        ('xy', '<f4'), ('errx2', '<f4'), ('erry2', '<f4'), ('errxy', '<f4'), ('a', '<f4'), ('b', '<f4'),
+        ('theta', '<f4'), ('cxx', '<f4'), ('cyy', '<f4'), ('cxy', '<f4'), ('cflux', '<f4'),
+        ('flux', '<f4'), ('cpeak', '<f4'), ('peak', '<f4'), ('xcpeak', '<i4'), ('ycpeak', '<i4'),
+        ('xpeak', '<i4'), ('ypeak', '<i4'), ('flag', '<i4'), ('fwhm', '<f4'), ('hfd', '<f4')
+    ]
+)
 
 def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
     """
@@ -81,6 +93,9 @@ def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
         objects[key] *= wind.ybin
     for key in ('fwhm', 'hfd'):
         objects[key] *= np.sqrt(wind.xbin * wind.ybin)
+
+    # change the data type to save on space
+    objects = objects.astype(SMALL_TYPE)
 
     if return_bkg:
         return (objects, bkg)
