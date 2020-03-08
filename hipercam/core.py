@@ -7,9 +7,10 @@ from astropy.utils.exceptions import AstropyUserWarning
 import numpy as np
 
 __all__ = (
-    'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED',
+    'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED', 'LOG', 
+    'DFCT', 'SEP',
     'HipercamError', 'HipercamWarning', 'DMINS',
-    'LOG', 'CNAMS', 'CIS', 'DFCT', 'version',
+    'CNAMS', 'CIS', 'version',
     'gregorian_to_mjd', 'mjd_to_gregorian', 'fday_to_hms',
     'ALL_OK', 'NO_FWHM','NO_SKY', 'SKY_AT_EDGE', 'TARGET_AT_EDGE',
     'TARGET_NONLINEAR', 'TARGET_SATURATED',
@@ -31,9 +32,10 @@ HCAM = '.hcm'
 LIST = '.lis'
 APER = '.ape'
 HRAW = '.fits'
-RED  = '.red'
-LOG  = '.log'
+RED = '.red'
+LOG = '.log'
 DFCT = '.dft'
+SEP = '.sep'
 
 # number of minutes in a day
 DMINS = 1440.
