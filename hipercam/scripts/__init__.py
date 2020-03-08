@@ -9,6 +9,7 @@ from .averun import averun
 from .carith import cadd, cdiv, cmul, csub
 from .combine import combine
 from .flagcloud import flagcloud
+from .ftargets import ftargets
 from .grab import grab
 from .genred import genred
 from .hist import hist
@@ -23,7 +24,6 @@ from .makeflat import makeflat
 from .makestuff import makemccd, makefield
 from .plog import plog
 from .reduce import reduce
-from .register import register
 from .rtplot import rtplot
 from .rupdate import rupdate
 from .setaper import setaper

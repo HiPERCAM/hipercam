@@ -5,30 +5,33 @@ import requests
 import socket
 
 import numpy as np
+from numpy.lib.recfunctions import append_fields
+import fitsio
+
 from astropy.time import Time
 import sep
 
 from trm.pgplot import *
 import hipercam as hcam
-from hipercam import cline, utils, spooler, defect
+from hipercam import core, cline, utils, spooler, defect
 from hipercam.cline import Cline
 from hipercam.extraction import findStars
 
-__all__ = ['register',]
+__all__ = ['ftargets',]
 
-######################################
+########################################################
 #
-# register --registers a set of images
+# ftargets --uses sep to find targets in a set of images
 #
-######################################
+########################################################
 
-def register(args=None):
-    """``register [source device width height] (run first [twait tmax] |
-    flist) trim ([ncol nrow]) (ccd (nx)) [pause] bias flat msub iset
-    (ilo ihi | plo phi) xlo xhi ylo yhi``
+def ftargets(args=None):
+    """``ftargets [source device width height] (run first [twait tmax] |
+    flist) trim ([ncol nrow]) (ccd (nx)) [pause] thresh output bias
+    flat msub iset (ilo ihi | plo phi) xlo xhi ylo yhi``
 
-    Plots a sequence of images, runs source extraction of them, works
-    out transform to align to the first.
+    Plots a sequence of images, runs source extraction on them, 
+    save results to disk.
 
     Parameters:
 
@@ -97,6 +100,15 @@ def register(args=None):
         pause : float [hidden]
            seconds to pause between frames (defaults to 0)
 
+        thresh : float
+           threshold (mutiple of RMS) to use for object detection. Typical
+           values 2.5 to 4. The higher it is, the fewer objects will be located,
+           but the fewer false detections will be made.
+
+        fwhm : float
+           FWHM to use for smoothing during object detection. Should be
+           comparable to the seeing.
+
         bias : string
            Name of bias frame to subtract, 'none' to ignore.
 
@@ -104,6 +116,10 @@ def register(args=None):
            Name of flat field to divide by, 'none' to ignore. Should normally
            only be used in conjunction with a bias, although it does allow you
            to specify a flat even if you haven't specified a bias.
+
+        output: string
+           Name of file for storage of results. Will be a fits file, with
+           results saved to the HDU 1 as a table.
 
         iset : string [single character]
            determines how the intensities are determined. There are three
@@ -160,9 +176,11 @@ def register(args=None):
         cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
         cl.register('nx', Cline.LOCAL, Cline.PROMPT)
         cl.register('pause', Cline.LOCAL, Cline.HIDE)
-        cl.register('plotall', Cline.LOCAL, Cline.HIDE)
+        cl.register('thresh', Cline.LOCAL, Cline.PROMPT)
+        cl.register('fwhm', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
+        cl.register('output', Cline.LOCAL, Cline.PROMPT)
         cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
         cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
@@ -249,9 +267,12 @@ def register(args=None):
             ' frame plots [secs]', 0., 0.
         )
 
-        cl.set_default('plotall', False)
-        plotall = cl.get_value('plotall', 'plot all frames,'
-                               ' regardless of status?', False)
+        thresh = cl.get_value(
+            'thresh', 'source detection threshold [RMS]', 3.
+        )
+        fwhm = cl.get_value(
+            'fwhm', 'FWHM for source detection [binned pixels]', 4.
+        )
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -273,6 +294,11 @@ def register(args=None):
         if flat is not None:
             # read the flat frame
             flat = hcam.MCCD.read(flat)
+
+        output = cl.get_value(
+            'output', "output file for results",
+            cline.Fname('sources', hcam.SEP, cline.Fname.NEW), 
+        )
 
         iset = cl.get_value(
             'iset', 'set intensity a(utomatically),'
@@ -336,118 +362,139 @@ def register(args=None):
     # CCD for retrieval when coping with skipped data.
 
     total_time = 0 # time waiting for new frame
-    fpos = []      # list of target positions to fit
-    fframe = True   # waiting for first valid frame with profit
 
-    # plot images
-    with spooler.data_source(source, resource, first, full=False) as spool:
+    nhdu = len(ccds)*[0]
+    thetas = np.linspace(0,2*np.pi,100)
 
-        # 'spool' is an iterable source of MCCDs
-        n = 0
-        for mccd in spool:
+    # open the output file for results
+    with fitsio.FITS(output, 'rw', clobber=True) as fout:
 
-            if server_or_local:
-                # Handle the waiting game ...
-                give_up, try_again, total_time = spooler.hang_about(
-                    mccd, twait, tmax, total_time
-                )
+        # plot images
+        with spooler.data_source(source, resource, first, full=False) as spool:
 
-                if give_up:
-                    print('rtplot stopped')
-                    break
-                elif try_again:
-                    continue
+            # 'spool' is an iterable source of MCCDs
+            n = 0
+            for nf, mccd in enumerate(spool):
 
-            # Trim the frames: ULTRACAM windowed data has bad columns
-            # and rows on the sides of windows closest to the readout
-            # which can badly affect reduction. This option strips
-            # them.
-            if trim:
-                hcam.ccd.trim_ultracam(mccd, ncol, nrow)
-
-            # indicate progress
-            tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
-            print(
-                '{:d}, utc= {:s} ({:s}), '.format(
-                    mccd.head['NFRAME'], tstamp.iso,
-                    'ok' if mccd.head.get('GOODTIME', True) else 'nok'),
-                end=''
-            )
-
-            # accumulate errors
-            emessages = []
-
-            if n == 0:
-                if bias is not None:
-                    # crop the bias on the first frame only
-                    bias = bias.crop(mccd)
-
-                if flat is not None:
-                    # crop the flat on the first frame only
-                    flat = flat.crop(mccd)
-
-            # display the CCDs chosen
-            message = ''
-            pgbbuf()
-            for nc, cnam in enumerate(ccds):
-                ccd = mccd[cnam]
-
-                if ccd.is_data():
-                    # this should be data as opposed to a blank frame
-                    # between data frames that occur with nskip > 0
-
-                    # subtract the bias
-                    if bias is not None:
-                        ccd -= bias[cnam]
-
-                    # divide out the flat
-                    if flat is not None:
-                        ccd /= flat[cnam]
-
-                    # estimate sky background, look for stars
-                    objs = []
-                    for wnam in ccd:
-                        wind = ccd[wnam].window(xlo,xhi,ylo,yhi)
-                        wind.data = wind.data.astype('float')
-                        objects, bkg = findStars(wind, 3., 5., True)
-                        bkg.subfrom(wind.data)
-                        ccd[wnam] = wind
-                        objs.append(objects)
-                    objs = np.concatenate(objs)
-
-                    # set to the correct panel and then plot CCD
-                    ix = (nc % nx) + 1
-                    iy = nc // nx + 1
-                    pgpanl(ix,iy)
-                    vmin, vmax = hcam.pgp.pCcd(
-                        ccd,iset,plo,phi,ilo,ihi,
-                        xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
+                if server_or_local:
+                    # Handle the waiting game ...
+                    give_up, try_again, total_time = spooler.hang_about(
+                        mccd, twait, tmax, total_time
                     )
 
-                    pgpt(objs['x'],objs['y'],17)
+                    if give_up:
+                        print('rtplot stopped')
+                        break
+                    elif try_again:
+                        continue
 
-                    # accumulate string of image scalings
-                    if nc:
-                        message += ', ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
-                            cnam,vmin,vmax,mccd.head['EXPTIME']
+                # Trim the frames: ULTRACAM windowed data has bad columns
+                # and rows on the sides of windows closest to the readout
+                # which can badly affect reduction. This option strips
+                # them.
+                if trim:
+                    hcam.ccd.trim_ultracam(mccd, ncol, nrow)
+
+                # indicate progress
+                tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
+                print(
+                    '{:d}, utc= {:s} ({:s}), '.format(
+                        mccd.head['NFRAME'], tstamp.iso,
+                        'ok' if mccd.head.get('GOODTIME', True) else 'nok'),
+                    end=''
+                )
+
+                # accumulate errors
+                emessages = []
+
+                if n == 0:
+                    if bias is not None:
+                        # crop the bias on the first frame only
+                        bias = bias.crop(mccd)
+
+                    if flat is not None:
+                        # crop the flat on the first frame only
+                        flat = flat.crop(mccd)
+
+                # display the CCDs chosen
+                message = ''
+                pgbbuf()
+                for nc, cnam in enumerate(ccds):
+                    ccd = mccd[cnam]
+
+                    if ccd.is_data():
+                        # this should be data as opposed to a blank frame
+                        # between data frames that occur with nskip > 0
+
+                        # subtract the bias
+                        if bias is not None:
+                            ccd -= bias[cnam]
+
+                        # divide out the flat
+                        if flat is not None:
+                            ccd /= flat[cnam]
+
+                        # estimate sky background, look for stars
+                        objs = []
+                        for wnam in ccd:
+                            # chop window, find objects
+                            wind = ccd[wnam].window(xlo,xhi,ylo,yhi)
+                            wind.data = wind.data.astype('float')
+                            objects, bkg = findStars(wind, 3., 5., True)
+
+                            # subtract background
+                            bkg.subfrom(wind.data)
+                            ccd[wnam] = wind
+                            
+                            # tack on frame number
+                            data = (nf+first)*np.ones(len(objects),dtype=np.int32)
+                            objects = append_fields(objects,'nframe',data)
+                            objs.append(objects)
+
+                        objs = np.concatenate(objs)
+
+                        # write to disk
+                        if nhdu[nc]:
+                            fout[nhdu[nc]].append(objs)
+                        else:
+                            fout.write(objs)
+                            nhdu[nc] = nc+1
+
+                        # set to the correct panel and then plot CCD
+                        ix = (nc % nx) + 1
+                        iy = nc // nx + 1
+                        pgpanl(ix,iy)
+                        vmin, vmax = hcam.pgp.pCcd(
+                            ccd,iset,plo,phi,ilo,ihi,
+                            xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
                         )
-                    else:
-                        message += 'ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
-                            cnam,vmin,vmax,mccd.head['EXPTIME']
-                        )
 
-            pgebuf()
-            # end of CCD display loop
-            print(message)
-            for emessage in emessages:
-                print(emessage)
+                        pgsci(core.CNAMS['red'])
+                        As,Bs,Thetas,Xs,Ys = objs['a'], objs['b'], objs['theta'], objs['x'], objs['y']
+                        for a,b,theta0,x,y in zip(As,Bs,Thetas,Xs,Ys):
+                            xs = x + 3*a*np.cos(thetas+theta0)
+                            ys = y + 3*b*np.sin(thetas+theta0)
+                            pgline(xs,ys)
 
-            if pause > 0.:
-                # pause between frames
-                time.sleep(pause)
+                        # accumulate string of image scalings
+                        if nc:
+                            message += ', ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
+                                cnam,vmin,vmax,mccd.head['EXPTIME']
+                            )
+                        else:
+                            message += 'ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
+                                cnam,vmin,vmax,mccd.head['EXPTIME']
+                            )
 
-            # update the frame number
-            n += 1
+                pgebuf()
+                # end of CCD display loop
+                print(message)
+                for emessage in emessages:
+                    print(emessage)
 
-# From here is support code not visible outside
+                if pause > 0.:
+                    # pause between frames
+                    time.sleep(pause)
 
+                # update the frame number
+                n += 1
