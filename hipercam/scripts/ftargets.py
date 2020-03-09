@@ -467,7 +467,8 @@ def ftargets(args=None):
                                 # remove some less useful fields to save a bit more space
                                 objects = remove_field_names(
                                     objects,
-                                    ('xmin','xmax','ymin','ymax','x2','y2','xy')
+                                    ('xmin','xmax','ymin','ymax','x2','y2','xy',
+                                     'cxx','cxy','cyy','cflux','cpeak','xcpeak','ycpeak')
                                 )
 
                                 objs.append(objects)
