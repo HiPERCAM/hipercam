@@ -107,6 +107,11 @@ def ftargets(args=None):
            FWHM to use for smoothing during object detection. Should be
            comparable to the seeing.
 
+        minpix : int
+           Minimum number of pixels above threshold before convolution to count
+           as a detection. Useful in getting rid of cosmics and high dark count
+           pixels.
+
         bias : string
            Name of bias frame to subtract, 'none' to ignore.
 
@@ -176,6 +181,7 @@ def ftargets(args=None):
         cl.register('pause', Cline.LOCAL, Cline.HIDE)
         cl.register('thresh', Cline.LOCAL, Cline.PROMPT)
         cl.register('fwhm', Cline.LOCAL, Cline.PROMPT)
+        cl.register('minpix', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
@@ -271,6 +277,9 @@ def ftargets(args=None):
         fwhm = cl.get_value(
             'fwhm', 'FWHM for source detection [binned pixels]', 4.
         )
+        minpix = cl.get_value(
+            'minpix', 'minimum number of pixels above threshold (no convolution)', 3
+        )
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -295,7 +304,7 @@ def ftargets(args=None):
 
         output = cl.get_value(
             'output', "output file for results",
-            cline.Fname('sources', hcam.SEP, cline.Fname.NEW), 
+            cline.Fname('sources', hcam.SEP, cline.Fname.NEW),
         )
 
         iset = cl.get_value(
@@ -381,7 +390,7 @@ def ftargets(args=None):
                     )
 
                     if give_up:
-                        print('rtplot stopped')
+                        print('ftargets stopped')
                         break
                     elif try_again:
                         continue
@@ -435,19 +444,37 @@ def ftargets(args=None):
                         # estimate sky background, look for stars
                         objs = []
                         for wnam in ccd:
-                            # chop window, find objects
-                            wind = ccd[wnam].window(xlo,xhi,ylo,yhi)
-                            wind.data = wind.data.astype('float')
-                            objects, bkg = findStars(wind, thresh, fwhm, True)
+                            try:
+                                # chop window, find objects
+                                wind = ccd[wnam].window(xlo,xhi,ylo,yhi)
+                                wind.data = wind.data.astype('float')
+                                objects, bkg = findStars(
+                                    wind, thresh, fwhm, True
+                                )
 
-                            # subtract background
-                            bkg.subfrom(wind.data)
-                            ccd[wnam] = wind
+                                # remove dodgy rows
+                                objects = objects[objects['tnpix'] >= minpix]
 
-                            # tack on frame number
-                            data = (nf+first)*np.ones(len(objects),dtype=np.int32)
-                            objects = append_fields(objects,'nframe',data)
-                            objs.append(objects)
+                                # subtract background
+                                bkg.subfrom(wind.data)
+                                ccd[wnam] = wind
+
+                                # tack on frame number
+                                data = (nf+first)*np.ones(len(objects),
+                                                          dtype=np.int32)
+                                objects = append_fields(objects,'nframe',data)
+
+                                # remove some less useful fields to save a bit more space
+                                objects = remove_field_names(
+                                    objects,
+                                    ('xmin','xmax','ymin','ymax','x2','y2','xy')
+                                )
+
+                                objs.append(objects)
+                            except hcam.HipercamError:
+                                # window may have no overlap with xlo, xhi
+                                # ylo, yhi
+                                pass
 
                         objs = np.concatenate(objs)
 
@@ -496,3 +523,14 @@ def ftargets(args=None):
 
                 # update the frame number
                 n += 1
+
+def remove_field_names(a, names):
+    """
+    Removes the fields in names from the structured array a
+    """
+    anames = list(a.dtype.names)
+    for name in names:
+        if name in anames:
+            anames.remove(name)
+    b = a[anames]
+    return b
