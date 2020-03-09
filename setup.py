@@ -142,6 +142,7 @@ setup(
             'hlog2fits=hipercam.scripts.hlog2fits:hlog2fits',
             'hls=hipercam.scripts.hls:hls',
             'hplot=hipercam.scripts.hplot:hplot',
+            'ltrans=hipercam.scripts.ltrans:ltrans',
             'makebias=hipercam.scripts.makebias:makebias',
             'makedark=hipercam.scripts.makedark:makedark',
             'makefield=hipercam.scripts.makestuff:makefield',

@@ -18,6 +18,7 @@ from .hfilter import hfilter
 from .hlogger import hlogger
 from .hls import hls
 from .hplot import hplot
+from .ltrans import ltrans
 from .makebias import makebias
 from .makedark import makedark
 from .makeflat import makeflat
@@ -44,6 +45,7 @@ __all__ = [ \
             'div',
             'genred', 'grab',
             'hist', 'hfilter', 'hlog2fits', 'hlogger', 'hls', 'hplot',
+            'ltrans',
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'pfolder', 'plog',
             'redanal', 'reduce', 'register', 'rtplot', 'rupdate',
