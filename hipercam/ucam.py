@@ -925,34 +925,34 @@ class Rdata (Rhead):
                         wins1[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff:noff+npix:6],shape)[:,1:],
-                            True, outamp='LL'
+                            True
                         )
                         wins1[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,-1:0:-1],
-                            True, outamp='LR'
+                            True
                         )
 
                         wins2[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff+2:noff+npix:6],shape)[:,1:],
-                            True, outamp='LL'
+                            True
                         )
                         wins2[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,-1:0:-1],
-                            True, outamp='LR'
+                            True
                         )
 
                         wins3[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff+4:noff+npix:6],shape)[:,1:],
-                            True, outamp='LL'
+                            True
                         )
                         wins3[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,-1:0:-1],
-                            True, outamp='LR'
+                            True
                         )
 
                     else:
@@ -960,34 +960,34 @@ class Rdata (Rhead):
                         wins1[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff:noff+npix:6],shape),
-                            True, outamp='LL'
+                            True
                         )
                         wins1[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+1:noff+npix:6],shape)[:,::-1],
-                            True, outamp='LR'
+                            True
                         )
 
                         wins2[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff+2:noff+npix:6],shape),
-                            True, outamp='LL'
+                            True
                         )
                         wins2[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+3:noff+npix:6],shape)[:,::-1],
-                            True, outamp='LR'
+                            True
                         )
 
                         wins3[str(nwin+1)] = Window(
                             wlc, np.reshape(
                                 buff[noff+4:noff+npix:6],shape),
-                            True, outamp='LL'
+                            True
                         )
                         wins3[str(nwin+2)] = Window(
                             wrc, np.reshape(
                                 buff[noff+5:noff+npix:6],shape)[:,::-1],
-                            True, outamp='LR'
+                            True
                         )
 
                     noff += npix
