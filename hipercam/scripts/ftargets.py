@@ -438,12 +438,12 @@ def ftargets(args=None):
                             # chop window, find objects
                             wind = ccd[wnam].window(xlo,xhi,ylo,yhi)
                             wind.data = wind.data.astype('float')
-                            objects, bkg = findStars(wind, 3., 5., True)
+                            objects, bkg = findStars(wind, thresh, fwhm, True)
 
                             # subtract background
                             bkg.subfrom(wind.data)
                             ccd[wnam] = wind
-                            
+
                             # tack on frame number
                             data = (nf+first)*np.ones(len(objects),dtype=np.int32)
                             objects = append_fields(objects,'nframe',data)
