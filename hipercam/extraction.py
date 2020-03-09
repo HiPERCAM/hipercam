@@ -16,8 +16,8 @@ import numpy as np
 # to save space
 SMALL_TYPE = np.dtype(
     [
-        ('thresh', '<f4'), ('npix', '<i4'), ('tnpix', '<i4'), ('xmin', '<i4'), ('xmax', '<i4'), 
-        ('ymin', '<i4'), ('ymax', '<i4'), ('x', '<f4'), ('y', '<f4'), ('x2', '<f4'), ('y2', '<f4'), 
+        ('thresh', '<f4'), ('npix', '<i4'), ('tnpix', '<i4'), ('xmin', '<i4'), ('xmax', '<i4'),
+        ('ymin', '<i4'), ('ymax', '<i4'), ('x', '<f8'), ('y', '<f8'), ('x2', '<f4'), ('y2', '<f4'),
         ('xy', '<f4'), ('errx2', '<f4'), ('erry2', '<f4'), ('errxy', '<f4'), ('a', '<f4'), ('b', '<f4'),
         ('theta', '<f4'), ('cxx', '<f4'), ('cyy', '<f4'), ('cxy', '<f4'), ('cflux', '<f4'),
         ('flux', '<f4'), ('cpeak', '<f4'), ('peak', '<f4'), ('xcpeak', '<i4'), ('ycpeak', '<i4'),
@@ -27,7 +27,8 @@ SMALL_TYPE = np.dtype(
 
 def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
     """
-    Use sep to find objects in image.
+    Use sep to find objects in image. Not sure the outputs returned
+    are correct for xbin != ybin
 
     Parameters
     ----------
@@ -81,9 +82,13 @@ def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
     objects = recfunctions.append_fields(objects, ('fwhm', 'hfd'), (fwhm, 2*hfr))
 
     # convert to un-binned pixels
-    for key in ('x', 'xmin', 'xmax', 'xcpeak', 'xpeak'):
+    objects['xmin'] = (wind.x(objects['xmin']-(wind.xbin-1)/2)).astype(np.int32)
+    objects['xmax'] = (wind.x(objects['xmin']+(wind.xbin-1)/2)).astype(np.int32)
+    objects['ymin'] = (wind.x(objects['ymin']-(wind.ybin-1)/2)).astype(np.int32)
+    objects['ymax'] = (wind.x(objects['ymin']+(wind.ybin-1)/2)).astype(np.int32)
+    for key in ('x', 'xcpeak', 'xpeak'):
         objects[key] = wind.x(objects[key])
-    for key in ('y', 'ymin', 'ymax', 'ycpeak', 'ypeak'):
+    for key in ('y', 'ycpeak', 'ypeak'):
         objects[key] = wind.y(objects[key])
     for key in ('npix', 'tnpix', 'xy', 'cxy'):
         objects[key] *= wind.xbin * wind.ybin
@@ -101,3 +106,5 @@ def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
         return (objects, bkg)
     else:
         return objects
+
+
