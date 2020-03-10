@@ -5,6 +5,7 @@ import time
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 import fitsio
+from scipy import spatial
 
 from astropy.time import Time
 import sep
@@ -25,11 +26,16 @@ __all__ = ['ftargets',]
 
 def ftargets(args=None):
     """``ftargets [source device width height] (run first [twait tmax] |
-    flist) trim ([ncol nrow]) (ccd (nx)) [pause] thresh output bias
-    flat msub iset (ilo ihi | plo phi) xlo xhi ylo yhi``
+    flist) trim ([ncol nrow]) (ccd (nx)) [pause] thresh fwhm minpix
+    output bias flat msub iset (ilo ihi | plo phi) xlo xhi ylo yhi``
 
-    Plots a sequence of images, runs source extraction on them, 
-    save results to disk.
+    This script (1) detects the source in a series of images, (2)
+    identifies isolated targets suited to FWHM measurement, (3) fits
+    2D profiles to these. (4) Saves results to disk. Several
+    parameters depends on the object detection threshold retuned by
+    the source detection. This is referred to as `threshold`. The
+    source detection is carried out using `sep` which runs according
+    to the usual source extractor algorithm of Bertin.
 
     Parameters:
 
@@ -112,6 +118,20 @@ def ftargets(args=None):
            as a detection. Useful in getting rid of cosmics and high dark count
            pixels.
 
+        pmin : float
+           Minimum peak height for an attempt to be made to fit the
+           FWHM of an object. This should be a multiple of the object
+           detection threshold (returned by `sep` for each object).
+
+        pmax : float
+           Maximum peak height for an attempt to be made to fit the
+           FWHM of an object. Use to exclude saturated targets
+           [counts]
+
+        rmin : float
+           Closest distance of any other detected object for an attempt
+           to be made to fit the FWHM of an object [unbinned pixels].
+
         bias : string
            Name of bias frame to subtract, 'none' to ignore.
 
@@ -182,6 +202,9 @@ def ftargets(args=None):
         cl.register('thresh', Cline.LOCAL, Cline.PROMPT)
         cl.register('fwhm', Cline.LOCAL, Cline.PROMPT)
         cl.register('minpix', Cline.LOCAL, Cline.PROMPT)
+        cl.register('pmax', Cline.LOCAL, Cline.PROMPT)
+        cl.register('pmin', Cline.LOCAL, Cline.PROMPT)
+        cl.register('rmin', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
@@ -278,8 +301,18 @@ def ftargets(args=None):
             'fwhm', 'FWHM for source detection [binned pixels]', 4.
         )
         minpix = cl.get_value(
-            'minpix', 'minimum number of pixels above threshold (no convolution)', 3
+            'minpix', 'minimum number of pixels above threshold', 3
         )
+        pmin = cl.get_value(
+            'pmin', 'minimum peak value for FWHM fits [multiple of threshold]', 20.
+        )
+        pmax = cl.get_value(
+            'pmax', 'maximum peak value for FWHM fits [counts]', 60000.
+        )
+        rmin = cl.get_value(
+            'rmin', 'nearest neighbour for FWHM fits [unbinned pixels]', 20.
+        )
+
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -441,6 +474,7 @@ def ftargets(args=None):
                         if flat is not None:
                             ccd /= flat[cnam]
 
+                        # Where the fancy stuff happens ...
                         # estimate sky background, look for stars
                         objs = []
                         for wnam in ccd:
@@ -452,12 +486,13 @@ def ftargets(args=None):
                                     wind, thresh, fwhm, True
                                 )
 
-                                # remove dodgy rows
-                                objects = objects[objects['tnpix'] >= minpix]
-
-                                # subtract background
+                                # subtract background from frame for display
+                                # purposes.
                                 bkg.subfrom(wind.data)
                                 ccd[wnam] = wind
+
+                                # remove dodgy targets
+                                objects = objects[objects['tnpix'] >= minpix]
 
                                 # tack on frame number
                                 data = (nf+first)*np.ones(len(objects),
@@ -467,11 +502,22 @@ def ftargets(args=None):
                                 # remove some less useful fields to save a bit more space
                                 objects = remove_field_names(
                                     objects,
-                                    ('xmin','xmax','ymin','ymax','x2','y2','xy',
-                                     'cxx','cxy','cyy','cflux','cpeak','xcpeak','ycpeak')
+                                    ('x2','y2','xy','cxx','cxy','cyy','cflux','cpeak','xcpeak','ycpeak')
                                 )
 
                                 objs.append(objects)
+
+                                # run nearest neighbour search on all
+                                # objects, but select only a subset
+                                # with right count levels for FWHM
+                                # measurement
+                                results = isolated(objects['x'], objects['y'], rmin)
+
+                                peaks = objects['peak']
+                                ok = (peaks < pmax) & (peaks > pmin*objects['thresh'])
+                                dofwhms = [i for i in range(len(results)) if ok[i] and len(results[i]) == 1]
+                                print('isolated =',dofwhms)
+
                             except hcam.HipercamError:
                                 # window may have no overlap with xlo, xhi
                                 # ylo, yhi
@@ -500,6 +546,12 @@ def ftargets(args=None):
                         for a,b,theta0,x,y in zip(As,Bs,Thetas,Xs,Ys):
                             xs = x + 3*a*np.cos(thetas+theta0)
                             ys = y + 3*b*np.sin(thetas+theta0)
+                            pgline(xs,ys)
+
+                        pgsci(core.CNAMS['green'])
+                        for xmin,xmax,ymin,ymax in zip(objs['xmin'],objs['xmax'],objs['ymin'],objs['ymax']):
+                            xs = [xmin,xmax,xmax,xmin,xmin]
+                            ys = [ymin,ymin,ymax,ymax,ymin]
                             pgline(xs,ys)
 
                         # accumulate string of image scalings
@@ -535,3 +587,12 @@ def remove_field_names(a, names):
             anames.remove(name)
     b = a[anames]
     return b
+
+def isolated(xs, ys, rmin):
+    """
+    Returns lists of near-neighbours of a set of points as long as they are
+    within a distance rmin. Used to look for isolated points.
+    """
+    points = np.c_[xs, ys]
+    tree = spatial.KDTree(points)
+    return tree.query_ball_tree(tree, rmin, eps=0.1)
