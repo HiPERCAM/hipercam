@@ -37,6 +37,10 @@ def ftargets(args=None):
     source detection is carried out using `sep` which runs according
     to the usual source extractor algorithm of Bertin.
 
+    This plots the frames, with ellipses at 3*a,3*b indicated in red,
+    green boxes indicating the range of pixels identified by `sep`, and
+    blue boxes marking the targets selected for FWHM fitting.
+
     Parameters:
 
         source : string [hidden]
@@ -118,6 +122,10 @@ def ftargets(args=None):
            as a detection. Useful in getting rid of cosmics and high dark count
            pixels.
 
+        rmin : float
+           Closest distance of any other detected object for an attempt
+           to be made to fit the FWHM of an object [unbinned pixels].
+
         pmin : float
            Minimum peak height for an attempt to be made to fit the
            FWHM of an object. This should be a multiple of the object
@@ -128,9 +136,13 @@ def ftargets(args=None):
            FWHM of an object. Use to exclude saturated targets
            [counts]
 
-        rmin : float
-           Closest distance of any other detected object for an attempt
-           to be made to fit the FWHM of an object [unbinned pixels].
+        emax : float
+           Maximum elongation (major/minor axis ratio = a/b), > 1. Use
+           to reduce very non-stellar profiles.
+
+        nmax : int
+           Maximum number of FWHMs to measure. Will take the brightest first,
+           judging by the flux.
 
         bias : string
            Name of bias frame to subtract, 'none' to ignore.
@@ -202,9 +214,11 @@ def ftargets(args=None):
         cl.register('thresh', Cline.LOCAL, Cline.PROMPT)
         cl.register('fwhm', Cline.LOCAL, Cline.PROMPT)
         cl.register('minpix', Cline.LOCAL, Cline.PROMPT)
-        cl.register('pmax', Cline.LOCAL, Cline.PROMPT)
-        cl.register('pmin', Cline.LOCAL, Cline.PROMPT)
         cl.register('rmin', Cline.LOCAL, Cline.PROMPT)
+        cl.register('pmin', Cline.LOCAL, Cline.PROMPT)
+        cl.register('pmax', Cline.LOCAL, Cline.PROMPT)
+        cl.register('emax', Cline.LOCAL, Cline.PROMPT)
+        cl.register('nmax', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
@@ -303,14 +317,20 @@ def ftargets(args=None):
         minpix = cl.get_value(
             'minpix', 'minimum number of pixels above threshold', 3
         )
+        rmin = cl.get_value(
+            'rmin', 'nearest neighbour for FWHM fits [unbinned pixels]', 20.
+        )
         pmin = cl.get_value(
             'pmin', 'minimum peak value for FWHM fits [multiple of threshold]', 20.
         )
         pmax = cl.get_value(
             'pmax', 'maximum peak value for FWHM fits [counts]', 60000.
         )
-        rmin = cl.get_value(
-            'rmin', 'nearest neighbour for FWHM fits [unbinned pixels]', 20.
+        emax = cl.get_value(
+            'emax', 'maximum elongation (a/b)', 1.4, 1.
+        )
+        nmax = cl.get_value(
+            'nmax', 'maximum number of FWHMs', 10, 1
         )
 
 
@@ -456,6 +476,12 @@ def ftargets(args=None):
                         # crop the flat on the first frame only
                         flat = flat.crop(mccd)
 
+                    # compute maximum length of window name strings
+                    lsmax = 0
+                    for ccd in mccd.values():
+                        for wnam in ccd:
+                            lsmax = max(lsmax, len(wnam))
+
                 # display the CCDs chosen
                 message = ''
                 pgbbuf()
@@ -476,7 +502,8 @@ def ftargets(args=None):
 
                         # Where the fancy stuff happens ...
                         # estimate sky background, look for stars
-                        objs = []
+                        objs, dofwhms = [], []
+                        nobj = 0
                         for wnam in ccd:
                             try:
                                 # chop window, find objects
@@ -494,65 +521,125 @@ def ftargets(args=None):
                                 # remove dodgy targets
                                 objects = objects[objects['tnpix'] >= minpix]
 
-                                # tack on frame number
-                                data = (nf+first)*np.ones(len(objects),
-                                                          dtype=np.int32)
-                                objects = append_fields(objects,'nframe',data)
-
-                                # remove some less useful fields to save a bit more space
-                                objects = remove_field_names(
-                                    objects,
-                                    ('x2','y2','xy','cxx','cxy','cyy','cflux','cpeak','xcpeak','ycpeak')
-                                )
-
-                                objs.append(objects)
-
                                 # run nearest neighbour search on all
                                 # objects, but select only a subset
                                 # with right count levels for FWHM
                                 # measurement
                                 results = isolated(objects['x'], objects['y'], rmin)
-
+                                
                                 peaks = objects['peak']
-                                ok = (peaks < pmax) & (peaks > pmin*objects['thresh'])
-                                dofwhms = [i for i in range(len(results)) if ok[i] and len(results[i]) == 1]
-                                print('isolated =',dofwhms)
+                                ok = (peaks < pmax) & \
+                                     (peaks > pmin*objects['thresh']) & \
+                                     (objects['a'] < emax*objects['b'])
+                                dfwhms = np.array(
+                                    [i for i in range(len(results)) if \
+                                     ok[i] and len(results[i]) == 1]
+                                )
 
+                                # pick the brightest. 'dfwhms' are the
+                                # indices of the selected targets for
+                                # FWHM measurement
+                                fluxes = objects['flux'][dfwhms]
+                                isort = np.argsort(fluxes)[::-1]
+                                dfwhms = dfwhms[isort[:nmax]]
+
+                                fwhms = np.zeros_like(peaks,dtype=np.float32)
+
+                                for i, (x,y,peak,fwhm) in \
+                                    enumerate(zip(objects['x'],objects['y'],peaks,objects['fwhm'])):
+                                    # fit FWHMs of selected targets
+
+                                    if i in dfwhms:
+
+                                        # extract fit Window
+                                        fwind = wind.window(
+                                            x-rmin, x+rmin, y-rmin, y+rmin
+                                        )
+
+                                        # fit profile
+                                        (height, x, y, fwhm, beta), epars, \
+                                            (wfit, X, Y, sigma, chisq, nok, \
+                                             nrej, npar) = hcam.fitting.fitMoffat(
+                                                 fwind, None,  peak, x, y, fwhm, 2., False,
+                                                 4., 5.5, 0.98, 6.0, 0
+                                             )
+                                        fwhms[i] = fwhm
+                                    else:
+                                        # skip this one
+                                        fwhms[i] = np.nan
+
+
+                                # tack on frame number & window name
+                                frames = (nf+first)*np.ones(
+                                    len(objects),dtype=np.int32
+                                )
+                                wnams = np.array(
+                                    len(objects)*[wnam], dtype='U{:d}'.format(lsmax)
+                                )
+                                objects = append_fields(
+                                    objects,('ffwhm','nframe','wnam'),(fwhms,frames,wnams)
+                                )
+
+                                # remove some less useful fields to save a bit more space
+                                objects = remove_field_names(
+                                    objects,
+                                    ('x2','y2','xy','cxx','cxy','cyy','hfd',
+                                     'cflux','cpeak','xcpeak','ycpeak')
+                                )
+
+                                # save the objects and the 
+                                objs.append(objects)
+                                dofwhms.append(dfwhms+nobj)
+                                nobj += len(objects)
+
+                                
                             except hcam.HipercamError:
                                 # window may have no overlap with xlo, xhi
                                 # ylo, yhi
                                 pass
 
-                        objs = np.concatenate(objs)
+                        if len(objs):
+                            # Plot targets found
 
-                        # write to disk
-                        if nhdu[nc]:
-                            fout[nhdu[nc]].append(objs)
-                        else:
-                            fout.write(objs)
-                            nhdu[nc] = nc+1
+                            # concatenate results of all Windows
+                            objs = np.concatenate(objs)
+                            dofwhms = np.concatenate(dofwhms)
 
-                        # set to the correct panel and then plot CCD
-                        ix = (nc % nx) + 1
-                        iy = nc // nx + 1
-                        pgpanl(ix,iy)
-                        vmin, vmax = hcam.pgp.pCcd(
-                            ccd,iset,plo,phi,ilo,ihi,
-                            xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
-                        )
+                            # write to disk
+                            if nhdu[nc]:
+                                fout[nhdu[nc]].append(objs)
+                            else:
+                                fout.write(objs)
+                                nhdu[nc] = nc+1
 
-                        pgsci(core.CNAMS['red'])
-                        As,Bs,Thetas,Xs,Ys = objs['a'], objs['b'], objs['theta'], objs['x'], objs['y']
-                        for a,b,theta0,x,y in zip(As,Bs,Thetas,Xs,Ys):
-                            xs = x + 3*a*np.cos(thetas+theta0)
-                            ys = y + 3*b*np.sin(thetas+theta0)
-                            pgline(xs,ys)
+                            # set to the correct panel and then plot CCD
+                            ix = (nc % nx) + 1
+                            iy = nc // nx + 1
+                            pgpanl(ix,iy)
+                            vmin, vmax = hcam.pgp.pCcd(
+                                ccd,iset,plo,phi,ilo,ihi,
+                                xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
+                            )
 
-                        pgsci(core.CNAMS['green'])
-                        for xmin,xmax,ymin,ymax in zip(objs['xmin'],objs['xmax'],objs['ymin'],objs['ymax']):
-                            xs = [xmin,xmax,xmax,xmin,xmin]
-                            ys = [ymin,ymin,ymax,ymax,ymin]
-                            pgline(xs,ys)
+                            pgsci(core.CNAMS['red'])
+                            As,Bs,Thetas,Xs,Ys = objs['a'], objs['b'], objs['theta'], objs['x'], objs['y']
+                            for a,b,theta0,x,y in zip(As,Bs,Thetas,Xs,Ys):
+                                xs = x + 3*a*np.cos(thetas+theta0)
+                                ys = y + 3*b*np.sin(thetas+theta0)
+                                pgline(xs,ys)
+
+                            pgsci(core.CNAMS['green'])
+                            for xmin,xmax,ymin,ymax in zip(objs['xmin'],objs['xmax'],objs['ymin'],objs['ymax']):
+                                xs = [xmin,xmax,xmax,xmin,xmin]
+                                ys = [ymin,ymin,ymax,ymax,ymin]
+                                pgline(xs,ys)
+
+                            pgsci(core.CNAMS['blue'])
+                            print(dofwhms)
+                            for x,y in zip(objs['x'][dofwhms], objs['y'][dofwhms]):
+                                xs = [x-rmin,x+rmin,x+rmin,x-rmin,x-rmin]
+                                ys = [y-rmin,y-rmin,y+rmin,y+rmin,y-rmin]
+                                pgline(xs,ys)
 
                         # accumulate string of image scalings
                         if nc:
