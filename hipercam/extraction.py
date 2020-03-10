@@ -84,9 +84,9 @@ def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
 
     # convert to un-binned pixels
     objects['xmin'] = (wind.x(objects['xmin']-(wind.xbin-1)/2)).astype(np.int32)
-    objects['xmax'] = (wind.x(objects['xmin']+(wind.xbin-1)/2)).astype(np.int32)
-    objects['ymin'] = (wind.x(objects['ymin']-(wind.ybin-1)/2)).astype(np.int32)
-    objects['ymax'] = (wind.x(objects['ymin']+(wind.ybin-1)/2)).astype(np.int32)
+    objects['xmax'] = (wind.x(objects['xmax']+(wind.xbin-1)/2)).astype(np.int32)
+    objects['ymin'] = (wind.y(objects['ymin']-(wind.ybin-1)/2)).astype(np.int32)
+    objects['ymax'] = (wind.y(objects['ymax']+(wind.ybin-1)/2)).astype(np.int32)
     for key in ('x', 'xcpeak', 'xpeak'):
         objects[key] = wind.x(objects[key])
     for key in ('y', 'ycpeak', 'ypeak'):
