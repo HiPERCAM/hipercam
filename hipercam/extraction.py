@@ -53,7 +53,8 @@ def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
         For available fields, see sep documentation.
         http://sep.readthedocs.io/en/v1.0.x/api/sep.extract.html#sep.extract
 
-        Quantities are in un-binned pixels
+        Most quantities are converted to unbinned coordinates and pixels,
+        apart from npix, and tnpix, the number of pixels in the objects.
 
     bkg : `~sep.Background` [if return_bkg]
         The background estimated by 'sep'. Use sep.subfrom
@@ -90,7 +91,7 @@ def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
         objects[key] = wind.x(objects[key])
     for key in ('y', 'ycpeak', 'ypeak'):
         objects[key] = wind.y(objects[key])
-    for key in ('npix', 'tnpix', 'xy', 'cxy'):
+    for key in ('xy', 'cxy'):
         objects[key] *= wind.xbin * wind.ybin
     for key in ('x2', 'a', 'errx2', 'cxx'):
         objects[key] *= wind.xbin
