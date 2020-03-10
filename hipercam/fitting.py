@@ -325,7 +325,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 raise HipercamError('leastsq failed returning covar = None')
 
             # process results
-            skyf, heightf, xf, yf, fwhmf, betaf = soln
+            if sky is None:
+                heightf, xf, yf, fwhmf, betaf = soln
+            else:
+                skyf, heightf, xf, yf, fwhmf, betaf = soln
             fwhmf = abs(fwhmf)
 
             if fwhmf > fwhm_min:
@@ -583,8 +586,7 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
     tbeta = max(0.01, beta)
     alpha = 4*(2**(1/tbeta)-1)/fwhm**2
 
-    if sky is not None:
-        dsky = np.ones_like(x)
+    dsky = np.ones_like(x)
 
     if ndiv > 0:
         # complicated sub-pixellation case
@@ -649,23 +651,14 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
             # full set of derivs
             dfwhm /= nadd
             dbeta /= nadd
-            if sky is None:
-                return (dheight, dxcen, dycen, dfwhm, dbeta)
-            else:
-                return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
+            return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
         elif comp_dbeta:
             # miss out dfwhm
             dbeta /= nadd
-            if sky is None:
-                return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
-            else:
-                return (dheight, dxcen, dycen, dbeta, dbeta)
+            return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
         else:
             # miss out dbeta well
-            if sky is None:
-                return (dheight, dxcen, dycen, dycen, dycen)
-            else:
-                return (dsky, dheight, dxcen, dycen, dycen, dycen)
+            return (dsky, dheight, dxcen, dycen, dycen, dycen)
 
     else:
         # fast as possible, only compute at centre of pixels
@@ -688,21 +681,12 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
         if comp_dfwhm:
             dfwhm = (2*alpha*tbeta/fwhm)*save2
             dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
-            if sky is None:
-                return (dheight, dxcen, dycen, dfwhm, dbeta)
-            else:
-                return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
+            return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
         elif comp_dbeta:
             dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
-            if sky is None:
-                return (dheight, dxcen, dycen, dbeta, dbeta)
-            else:
-                return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
+            return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
         else:
-            if sky is None:
-                return (dheight, dxcen, dycen, dycen, dycen)
-            else:
-                return (dsky, dheight, dxcen, dycen, dycen, dycen)
+            return (dsky, dheight, dxcen, dycen, dycen, dycen)
 
 class Mfit1:
     """
@@ -991,7 +975,7 @@ class Dmfit3:
         derivs = dmoffat(
             self.x, self.y, None, height, xcen, ycen, fwhm, beta,
             self.xbin, self.ybin, self.ndiv, True, True
-        )
+        )[1:]
         ok = self.sigma > 0
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
@@ -1090,7 +1074,7 @@ class Dmfit4:
         derivs = dmoffat(
             self.x, self.y, None, height, xcen, ycen, self.fwhm, beta,
             self.xbin, self.ybin, self.ndiv, False, True
-        )
+        )[1:]
         ok = self.sigma > 0
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs[:-1]]
 
