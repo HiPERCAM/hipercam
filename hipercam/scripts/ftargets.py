@@ -444,8 +444,8 @@ def ftargets(args=None):
     nhdu = len(ccds)*[0]
     thetas = np.linspace(0,2*np.pi,100)
 
-    # initial value of Moffat fit parameter together with min max range
-    beta, beta_min, beta_max = 4., 1.5, 10.
+    # values of various parameters
+    fwhm_min, beta, beta_min, beta_max, readout, max_nfev = 2., 4., 1.5, 10., 5.5, 100
 
     # open the output file for results
     with fitsio.FITS(output, 'rw', clobber=True) as fout:
@@ -569,6 +569,7 @@ def ftargets(args=None):
                                 # for the ones thet are skipped
                                 fwhms = np.zeros_like(peaks,dtype=np.float32)
                                 betas = np.zeros_like(peaks,dtype=np.float32)
+                                nfevs = np.zeros_like(peaks,dtype=np.int32)
 
                                 for i, (x,y,peak,fwhm) in \
                                     enumerate(zip(objects['x'],objects['y'],peaks,objects['fwhm'])):
@@ -585,12 +586,14 @@ def ftargets(args=None):
                                             # fit profile
                                             (height, x, y, fwhm, beta), epars, \
                                                 (wfit, X, Y, sigma, chisq, nok, \
-                                                 nrej, npar) = hcam.fitting.fitMoffat(
+                                                 nrej, npar, nfev) = hcam.fitting.fitMoffat(
                                                      fwind, None,  peak, x, y, fwhm, 2., False,
-                                                     beta, 5.5, gain, rej, 1, 100
+                                                     beta, readout, gain, rej, 1, max_nfev
                                                  )
+
                                             fwhms[i] = fwhm
                                             betas[i] = beta
+                                            nfevs[i] = nfev
 
                                             # keep value of beta for next round under control
                                             beta = min(beta_max, max(beta_min, beta))
@@ -601,10 +604,12 @@ def ftargets(args=None):
                                             )
                                             fwhms[i] = np.nan
                                             betas[i] = np.nan
+                                            nfevs[i] = 0
                                     else:
                                         # skip this one
                                         fwhms[i] = np.nan
                                         betas[i] = np.nan
+                                        nfevs[i] = 0
 
 
                                 # tack on frame number & window name
@@ -615,7 +620,7 @@ def ftargets(args=None):
                                     len(objects)*[wnam], dtype='U{:d}'.format(lsmax)
                                 )
                                 objects = append_fields(
-                                    objects,('ffwhm','beta','nframe','wnam'),(fwhms,betas,frames,wnams)
+                                    objects,('ffwhm','beta','nfev','nframe','wnam'),(fwhms,betas,nfevs,frames,wnams)
                                 )
 
                                 # save the objects and the
