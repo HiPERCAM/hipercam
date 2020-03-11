@@ -154,7 +154,7 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
 ##############################
 
 def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-              beta, read, gain, thresh, ndiv):
+              beta, read, gain, thresh, ndiv, maxfev=0):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
     from the centre of the aperture. The constant alpha is determined by the
@@ -224,6 +224,11 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             simply evaluate the profile once at the centre of each pixel in
             `wind`, set ndiv = 0.
 
+        maxfev : int
+           maximum number of function evaluations during fits. Passed direct
+           to leastsq. Default 0 tops out at 600 I think, so you probably want
+           to set it to something smaller, like 100 to have an effect.
+
     Returns:: tuple of tuples
 
         (pars, sigs, extras) where::
@@ -291,7 +296,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             # carry out fit
             soln, covar, info, mesg, ier = leastsq(
                 mfit2, param, Dfun=dmfit2, col_deriv=True,
-                full_output=True
+                full_output=True, maxfev=maxfev
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
@@ -320,7 +325,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             # carry out fit
             soln, covar, info, mesg, ier = leastsq(
                 mfit1, param, Dfun=dmfit1, col_deriv=True,
-                full_output=True
+                full_output=True, maxfev=maxfev
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
@@ -359,7 +364,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 # carry out fit
                 soln, covar, info, mesg, ier = leastsq(
                     mfit2, param, Dfun=dmfit2, col_deriv=True,
-                    full_output=True
+                    full_output=True, maxfev=maxfev
                 )
                 if ier < 1 or ier > 4:
                     raise HipercamError(mesg)
@@ -694,6 +699,14 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
         else:
             return (dsky, dheight, dxcen, dycen, dycen, dycen)
 
+def _mask(wind, x, y):
+    """Returns circular mask centred on wind, extending to nearest side"""
+    x1, x2 = wind.x(0), wind.x(wind.nx-1)
+    y1, y2 = wind.y(0), wind.y(wind.ny-1)
+    xc, yc = (x1+x2)/2, (y1+y2)/2.
+    rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
+    return (x-xc)**2+(y-yc)**2 < rad**2
+
 class Mfit1:
     """
     Function object to pass to leastsq for Moffat + constant
@@ -726,13 +739,7 @@ class Mfit1:
         self.xbin = wind.xbin
         self.ybin = wind.ybin
         self.ndiv = ndiv
-
-        # Circular mask
-        x1, x2 = wind.x(0), wind.x(nx-1)
-        y1, y2 = wind.y(0), wind.y(nx-1)
-        xc, yc = (x1+x2)/2, (y1+y2)/2.
-        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
-        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+        self.mask = _mask(wind, self.x, self.y)
 
     def __call__(self, param):
         """
@@ -834,13 +841,7 @@ class Mfit2:
         self.xbin = wind.xbin
         self.ybin = wind.ybin
         self.ndiv = ndiv
-
-        # Circular mask
-        x1, x2 = wind.x(0), wind.x(nx-1)
-        y1, y2 = wind.y(0), wind.y(nx-1)
-        xc, yc = (x1+x2)/2, (y1+y2)/2.
-        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
-        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+        self.mask = _mask(wind, self.x, self.y)
 
     def __call__(self, param):
         """
@@ -937,13 +938,7 @@ class Mfit3:
         self.xbin = wind.xbin
         self.ybin = wind.ybin
         self.ndiv = ndiv
-
-        # Circular mask
-        x1, x2 = wind.x(0), wind.x(nx-1)
-        y1, y2 = wind.y(0), wind.y(nx-1)
-        xc, yc = (x1+x2)/2, (y1+y2)/2.
-        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
-        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+        self.mask = _mask(wind, self.x, self.y)
 
     def __call__(self, param):
         """
@@ -1045,13 +1040,7 @@ class Mfit4:
         self.xbin = wind.xbin
         self.ybin = wind.ybin
         self.ndiv = ndiv
-
-        # Circular mask
-        x1, x2 = wind.x(0), wind.x(nx-1)
-        y1, y2 = wind.y(0), wind.y(nx-1)
-        xc, yc = (x1+x2)/2, (y1+y2)/2.
-        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
-        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+        self.mask = _mask(wind, self.x, self.y)
 
     def __call__(self, param):
         """
@@ -1124,7 +1113,7 @@ class Dmfit4:
 
 def fitGaussian(
         wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-        read, gain, thresh, ndiv):
+        read, gain, thresh, ndiv, maxfev=0):
     """Fits the profile of one target in an Window with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
     of the aperture. The constant alpha is fixed by the FWHM. The function
@@ -1195,6 +1184,9 @@ def fitGaussian(
             simply evaluate the profile once at the centre of each pixel in
             `wind`, set ndiv = 0.
 
+        maxfev : int
+            maximum number of function evaluations passed through to leastsq.
+
     Returns:: tuple of tuples
 
         (pars, sigs, extras) where::
@@ -1243,7 +1235,7 @@ def fitGaussian(
             # carry out fit
             soln, covar, info, mesg, ier = leastsq(
                 gfit2, param, Dfun=dgfit2, col_deriv=True,
-                full_output=True
+                full_output=True, maxfev=maxfev
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
@@ -1266,7 +1258,7 @@ def fitGaussian(
             # carry out fit
             soln, covar, info, mesg, ier = leastsq(
                 gfit1, param, Dfun=dgfit1, col_deriv=True,
-                full_output=True
+                full_output=True, maxfev=maxfev
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
@@ -1295,7 +1287,7 @@ def fitGaussian(
                 # carry out fit
                 soln, covar, info, mesg, ier = leastsq(
                     gfit2, param, Dfun=dgfit2, col_deriv=True,
-                    full_output=True
+                    full_output=True, maxfev=maxfev
                 )
                 if ier < 1 or ier > 4:
                     raise HipercamError(mesg)
@@ -1583,13 +1575,7 @@ class Gfit1:
         self.xbin = wind.xbin
         self.ybin = wind.ybin
         self.ndiv = ndiv
-
-        # Circular mask
-        x1, x2 = wind.x(0), wind.x(nx-1)
-        y1, y2 = wind.y(0), wind.y(nx-1)
-        xc, yc = (x1+x2)/2, (y1+y2)/2.
-        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
-        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+        self.mask = _mask(wind, self.x, self.y)
 
     def __call__(self, param):
         """
@@ -1690,13 +1676,7 @@ class Gfit2:
         self.xbin = wind.xbin
         self.ybin = wind.ybin
         self.ndiv = ndiv
-
-        # Circular mask
-        x1, x2 = wind.x(0), wind.x(nx-1)
-        y1, y2 = wind.y(0), wind.y(nx-1)
-        xc, yc = (x1+x2)/2, (y1+y2)/2.
-        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
-        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+        self.mask = _mask(wind, self.x, self.y)
 
     def __call__(self, param):
         """
