@@ -445,7 +445,11 @@ def ftargets(args=None):
     thetas = np.linspace(0,2*np.pi,100)
 
     # values of various parameters
-    fwhm_min, beta, beta_min, beta_max, readout, max_nfev = 2., 4., 1.5, 10., 5.5, 100
+    fwhm_min, beta, beta_min, beta_max, readout, \
+        max_nfev = 2., 4., 1.5, 10., 5.5, 100
+
+    # number of failed fits
+    nfail = 0
 
     # open the output file for results
     with fitsio.FITS(output, 'rw', clobber=True) as fout:
@@ -584,13 +588,14 @@ def ftargets(args=None):
                                             )
 
                                             # fit profile
+                                            ofwhm = fwhm
+                                            obeta = beta
                                             (height, x, y, fwhm, beta), epars, \
                                                 (wfit, X, Y, sigma, chisq, nok, \
                                                  nrej, npar, nfev) = hcam.fitting.fitMoffat(
                                                      fwind, None,  peak, x, y, fwhm, 2., False,
                                                      beta, readout, gain, rej, 1, max_nfev
                                                  )
-
                                             fwhms[i] = fwhm
                                             betas[i] = beta
                                             nfevs[i] = nfev
@@ -605,6 +610,7 @@ def ftargets(args=None):
                                             fwhms[i] = np.nan
                                             betas[i] = np.nan
                                             nfevs[i] = 0
+                                            nfail += 1
                                     else:
                                         # skip this one
                                         fwhms[i] = np.nan
@@ -706,6 +712,8 @@ def ftargets(args=None):
 
                 # update the frame number
                 n += 1
+
+    print('Number of failed fits =',nfail)        
 
 def remove_field_names(a, names):
     """
