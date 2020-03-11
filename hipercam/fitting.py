@@ -378,7 +378,6 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 else:
                     skyf, heightf, xf, yf, betaf = soln
 
-                print('\ncovar =',covar)
                 covs = np.diag(covar)
                 if (covs < 0).any():
                     raise HipercamError('Negative covariance in fitMoffat')
