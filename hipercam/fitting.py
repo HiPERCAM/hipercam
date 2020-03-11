@@ -1,12 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
 Code for profile fitting. Currently supports symmetric 2D Gaussian and
-Moffat profiles plus constants. 
+Moffat profiles plus constants.
 """
 
 from numba import jit
 import numpy as np
-from scipy.optimize import leastsq
+from scipy.optimize import least_squares
 from .core import *
 from .window import *
 from . import support
@@ -26,45 +26,45 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
         wind : :class:`Window`
             the Window containing the stellar profile to fit.
 
-        method    : string
+        method : string
             fitting method 'g' for Gaussian, 'm' for Moffat
 
-        sky       : float
+        sky : float
             initial sky level
 
-        height    : float
+        height : float
             initial peak height
 
-        x         : float
+        x : float
             initial central X value
 
-        y         : float
+        y : float
             initial central Y value
 
-        fwhm      : float
+        fwhm : float
             initial FWHM, unbinned pixels.
 
-        fwhm_min  : float
+        fwhm_min : float
             minimum FWHM, unbinned pixels.
 
-        fwhm_fix  : float
+        fwhm_fix : float
             fix the FWHM (i.e. don't fit it)
 
-        beta      : float [if method == 'm']
+        beta : float [if method == 'm']
             exponent of Moffat function
 
-        read      : float | array
+        read : float | array
             readout noise, RMS ADU
 
-        gain      : float | array
+        gain : float | array
             gain, electrons per ADU
 
-        thresh    : float
+        thresh : float
             threshold in terms of RMS for rejection. The RMS is obtained from
             read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
             = 4
 
-        ndiv      : int
+        ndiv : int
             Parameter controlling treatment of sub-pixellation. If ndiv > 0,
             every pixel in `wind` will be sub-divided first into unbinned
             pixels, and then each unbinned pixel will be split into a square
@@ -80,11 +80,11 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
 
     where::
 
-       pars    : tuple
+       pars : tuple
           (sky, height, x, y, fwhm, beta), the fitted parameters
           (`beta` == 0 if `method`=='g')
 
-       epars   : tuple
+       epars : tuple
           (esky, eheight, ex, ey, efwhm, ebeta), fitted standard errors.
           `ebeta` == -1 if `method`=='g'; `efwhm` == -1 if the FWHM was fixed
           or it hit the minimum value.
@@ -116,7 +116,7 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
         # moffat fit
         (sky, height, x, y, fwhm, beta), \
             (esky, eheight, ex, ey, efwhm, ebeta), \
-            (fit, X, Y, sigma, chisq, nok, nrej, npar) = fitMoffat(
+            (fit, X, Y, sigma, chisq, nok, nrej, npar,nfev) = fitMoffat(
                 wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
                 beta, read, gain, thresh, ndiv
             )
@@ -154,7 +154,7 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
 ##############################
 
 def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-              beta, read, gain, thresh, ndiv, maxfev=0):
+              beta, read, gain, thresh, ndiv, max_nfev=0):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
     from the centre of the aperture. The constant alpha is determined by the
@@ -224,9 +224,9 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             simply evaluate the profile once at the centre of each pixel in
             `wind`, set ndiv = 0.
 
-        maxfev : int
+        max_nfev : int
            maximum number of function evaluations during fits. Passed direct
-           to leastsq. Default 0 tops out at 600 I think, so you probably want
+           to least_squares. Default 0 tops out at 600 I think, so you probably want
            to set it to something smaller, like 100 to have an effect.
 
     Returns:: tuple of tuples
@@ -236,7 +236,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
            pars : tuple
                 (sky, height, xcen, yce, fwhm, beta), the fitted parameters.
                 fwhm = fwhm_min if initial fit returns an fwhm < fwhm_min,
-                or == initial fwhm if fwhm_fix == True. 
+                or == initial fwhm if fwhm_fix == True.
 
            sigs : tuple
                 (skye, heighte, xcene, ycene, fwhme, betae), standard errors
@@ -244,13 +244,15 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 `fwhm_fix` == True, then `fwhme` will come back as -1.
 
            extras : tuple
-                (fit, x, y, sigma, chisq, nok, nrej, npar) where: `fit` is an
-                :class:`Window` containing the best fit; `x` and `y` are the x
-                and y positions of all pixels (2D numpy arrays); `sigma` is
-                the final set of RMS uncertainties on each pixel (2D numpy
-                array); `chisq` is the raw chi**2; `nok` is the number of
-                points fitted; `nrej` is the number rejected; `npar` is the
-                number of parameters fitted (5 or 6).
+                (fit, x, y, sigma, chisq, nok, nrej, npar, nfev)
+                where: `fit` is an :class:`Window` containing the best
+                fit; `x` and `y` are the x and y positions of all
+                pixels (2D numpy arrays); `sigma` is the final set of
+                RMS uncertainties on each pixel (2D numpy array);
+                `chisq` is the raw chi**2; `nok` is the number of
+                points fitted; `nrej` is the number rejected; `npar`
+                is the number of parameters fitted (5 or 6), `nfev` is
+                the number of functions evaluations.
 
     The program re-scales the uncertainties on the fit parameters by
     sqrt(chi**2/ndof) where ndof is the number of degrees of freedom =
@@ -259,7 +261,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
     especially if a sky background has been removed at the start. The
     value of `sigma` on any rejected pixel is < 0.
 
-    Raises a HipercamError if the leastsq fails.
+    Raises a HipercamError if the least_squares fails.
 
     """
 
@@ -268,14 +270,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
     if sky is None:
         # no sky case for fitting FWHM only
         mfit1 = Mfit3(wind, read, gain, ndiv)
-        dmfit1 = Dmfit3(mfit1)
         mfit2 = Mfit4(wind, read, gain, fwhm, ndiv)
-        dmfit2 = Dmfit4(mfit2)
     else:
         mfit1 = Mfit1(wind, read, gain, ndiv)
-        dmfit1 = Dmfit1(mfit1)
         mfit2 = Mfit2(wind, read, gain, fwhm, ndiv)
-        dmfit2 = Dmfit2(mfit2)
 
     while True:
         # Rejection loop. There is a break statement at the end of the loop
@@ -287,21 +285,21 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
         if fwhm_fix:
             # FWHM held fixed
             mfit2.fwhm = fwhm
-            dmfit2.fwhm = fwhm
             if sky is None:
                 param = (height, xcen, ycen, beta)
             else:
                 param = (sky, height, xcen, ycen, beta)
 
             # carry out fit
-            soln, covar, info, mesg, ier = leastsq(
-                mfit2, param, Dfun=dmfit2, col_deriv=True,
-                full_output=True, maxfev=maxfev
+            res = least_squares(
+                mfit2.fun, param, jac=mfit2.jac, method='lm',
+                max_nfev=max_nfev
             )
-            if ier < 1 or ier > 4:
-                raise HipercamError(mesg)
-            elif covar is None:
-                raise HipercamError('leastsq failed returning covar = None')
+            if not res.success:
+                raise HipercamError(res.message)
+            J = np.matrix(res.jac)
+            covar = (J.T*J).I
+            soln = res.x
 
             # process results
             fit = Window(wind, mfit2.model(soln))
@@ -316,6 +314,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             fwhmf, fwhmfe = fwhm, -1
 
         else:
+
             # FWHM free to vary
             if sky is None:
                 param = (height, xcen, ycen, fwhm, beta)
@@ -323,14 +322,15 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 param = (sky, height, xcen, ycen, fwhm, beta)
 
             # carry out fit
-            soln, covar, info, mesg, ier = leastsq(
-                mfit1, param, Dfun=dmfit1, col_deriv=True,
-                full_output=True, maxfev=maxfev
+            res = least_squares(
+                mfit1.fun, param, jac=mfit1.jac, method='lm',
+                max_nfev=max_nfev
             )
-            if ier < 1 or ier > 4:
-                raise HipercamError(mesg)
-            elif covar is None:
-                raise HipercamError('leastsq failed returning covar = None')
+            if not res.success:
+                raise HipercamError(res.message)
+            J = np.matrix(res.jac)
+            covar = (J.T*J).I
+            soln = res.x
 
             # process results
             if sky is None:
@@ -355,21 +355,21 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             else:
                 # fall back to fixed FWHM
                 mfit2.fwhm = fwhm_min
-                dmfit2.fwhm = fwhm_min
                 if sky is None:
                     param = (height, xcen, ycen, beta)
                 else:
                     param = (sky, height, xcen, ycen, beta)
 
                 # carry out fit
-                soln, covar, info, mesg, ier = leastsq(
-                    mfit2, param, Dfun=dmfit2, col_deriv=True,
-                    full_output=True, maxfev=maxfev
+                res = least_squares(
+                    mfit2.fun, param, jac=mfit2.jac, method='lm',
+                    max_nfev=max_nfev
                 )
-                if ier < 1 or ier > 4:
-                    raise HipercamError(mesg)
-                elif covar is None:
-                    raise HipercamError('leastsq failed returning covar = None')
+                if not res.success:
+                    raise HipercamError(res.message)
+                J = np.matrix(res.jac)
+                covar = (J.T*J).I
+                soln = res.x
 
                 # process results
                 fit = Window(wind, mfit2.model(soln))
@@ -378,6 +378,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 else:
                     skyf, heightf, xf, yf, betaf = soln
 
+                print('\ncovar =',covar)
                 covs = np.diag(covar)
                 if (covs < 0).any():
                     raise HipercamError('Negative covariance in fitMoffat')
@@ -388,23 +389,21 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 fwhmf, fwhmfe = fwhm_min, -1
 
         # now look for bad outliers
-        ok = mfit1.sigma > 0
+        ok = mfit1.mask & (mfit1.sigma > 0)
         resid = (wind.data - fit.data) / mfit1.sigma
         chisq = (resid[ok]**2).sum()
         nok1 = len(resid[ok])
-        sfac = np.sqrt(chisq/(nok1-len(soln)))
+        sfac = np.sqrt(chisq/nok1)
 
         # reject any above the defined threshold
         mfit1.sigma[ok & (np.abs(resid)> sfac*thresh)] *= -1
 
         # check whether any have been rejected
-        ok = mfit1.sigma > 0
+        ok = mfit1.mask & (mfit1.sigma > 0)
         nok = len(mfit1.sigma[ok])
         if nok < nok1:
-            # some more pixels have been rejected
+            # some pixels have been rejected
             mfit2.sigma = mfit1.sigma
-            dmfit1.sigma = mfit1.sigma
-            dmfit2.sigma = mfit1.sigma
         else:
             # no more pixels have been rejected.  calculate how many have
             # been, re-scale the uncertainties to reflect the actual chi**2
@@ -424,14 +423,15 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
         return (
             (heightf,xf,yf,fwhmf,betaf),
             (heightfe,xfe,yfe,fwhmfe,betafe),
-            (fit,mfit1.x,mfit1.y,mfit1.sigma,chisq,nok,nrej,len(soln))
+            (fit,mfit1.x,mfit1.y,mfit1.sigma,chisq,nok,nrej,len(soln),res.nfev)
         )
     else:
         return (
             (skyf,heightf,xf,yf,fwhmf,betaf),
             (skyfe,heightfe,xfe,yfe,fwhmfe,betafe),
-            (fit,mfit1.x,mfit1.y,mfit1.sigma,chisq,nok,nrej,len(soln))
+            (fit,mfit1.x,mfit1.y,mfit1.sigma,chisq,nok,nrej,len(soln),res.nfev)
         )
+
 
 @jit(nopython=True,cache=True)
 def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
@@ -708,9 +708,9 @@ def _mask(wind, x, y):
     return (x-xc)**2+(y-yc)**2 < rad**2
 
 class Mfit1:
-    """
-    Function object to pass to leastsq for Moffat + constant
-    background model with free FWHM.
+    """Object providing 'fun' and 'jac' methods for least_squares for
+    Mofffat + background model with free FWHM.
+
     """
 
     def __init__(self, wind, read, gain, ndiv):
@@ -741,7 +741,7 @@ class Mfit1:
         self.ndiv = ndiv
         self.mask = _mask(wind, self.x, self.y)
 
-    def __call__(self, param):
+    def fun(self, param):
         """
         Returns 1D array of normalised residuals. See the model
         method for a description of the argument 'param'
@@ -750,6 +750,20 @@ class Mfit1:
         diff = (self.data-mod)/self.sigma
         ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
+
+    def jac(self, param):
+        """
+        Returns list of 1D arrays of the partial derivatives of
+        the normalised residuals with respect to the variable
+        parameters.
+        """
+        sky, height, xcen, ycen, fwhm, beta = param
+        derivs = dmoffat(
+            self.x, self.y, sky, height, xcen, ycen, fwhm, beta,
+            self.xbin, self.ybin, self.ndiv, True, True
+        )
+        ok = self.mask & (self.sigma > 0)
+        return np.column_stack([(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs])
 
     def model(self, param):
         """
@@ -771,44 +785,10 @@ class Mfit1:
             self.xbin, self.ybin, self.ndiv
         )
 
-class Dmfit1:
-    """
-    Function object to pass to leastsq to calculate the Jacobian equivalent
-    to Mfit1
-    """
-
-    def __init__(self, mfit):
-        """
-        Arguments::
-
-          mfit : Mfit1
-             the Mfit1 object passed as 'func' to leastsq
-        """
-        self.mask = mfit.mask
-        self.sigma = mfit.sigma
-        self.x, self.y = mfit.x, mfit.y
-        self.xbin = mfit.xbin
-        self.ybin = mfit.ybin
-        self.ndiv = mfit.ndiv
-
-    def __call__(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        sky, height, xcen, ycen, fwhm, beta = param
-        derivs = dmoffat(
-            self.x, self.y, sky, height, xcen, ycen, fwhm, beta,
-            self.xbin, self.ybin, self.ndiv, True, True
-        )
-        ok = self.mask & (self.sigma > 0)
-        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
-
 class Mfit2:
-    """
-    Function object to pass to leastsq for Moffat + constant
-    background model with fixed FWHM
+    """Object providing 'fun' and 'jac' methods for least_squares for
+    Mofffat + background model with fixed FWHM.
+
     """
 
     def __init__(self, wind, read, gain, fwhm, ndiv):
@@ -843,7 +823,7 @@ class Mfit2:
         self.ndiv = ndiv
         self.mask = _mask(wind, self.x, self.y)
 
-    def __call__(self, param):
+    def fun(self, param):
         """
         Returns 1D array of normalised residuals
         """
@@ -851,6 +831,20 @@ class Mfit2:
         diff = (self.data-mod)/self.sigma
         ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
+
+    def jac(self, param):
+        """
+        Returns list of 1D arrays of the partial derivatives of
+        the normalised residuals with respect to the variable
+        parameters.
+        """
+        sky, height, xcen, ycen, beta = param
+        derivs = dmoffat(
+            self.x, self.y, sky, height, xcen, ycen, self.fwhm, beta,
+            self.xbin, self.ybin, self.ndiv, False, True
+        )[:-1]
+        ok = self.mask & (self.sigma > 0)
+        return np.column_stack([(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs])
 
     def model(self, param):
         """
@@ -871,45 +865,10 @@ class Mfit2:
             beta, self.xbin, self.ybin, self.ndiv
         )
 
-class Dmfit2:
-    """
-    Function object to pass to leastsq to calculate the Jacobian equivalent
-    to Mfit2
-    """
-
-    def __init__(self, mfit):
-        """
-        Arguments::
-
-          mfit : Mfit2
-             the Mfit2 object passed as 'func' to leastsq
-        """
-        self.mask = mfit.mask
-        self.sigma = mfit.sigma
-        self.x, self.y = mfit.x, mfit.y
-        self.fwhm = mfit.fwhm
-        self.xbin = mfit.xbin
-        self.ybin = mfit.ybin
-        self.ndiv = mfit.ndiv
-
-    def __call__(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        sky, height, xcen, ycen, beta = param
-        derivs = dmoffat(
-            self.x, self.y, sky, height, xcen, ycen, self.fwhm, beta,
-            self.xbin, self.ybin, self.ndiv, False, True
-        )
-        ok = self.mask & (self.sigma > 0)
-        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs[:-1]]
-
 class Mfit3:
-    """
-    Function object to pass to leastsq for Moffat with zero
-    background model with free FWHM.
+    """Object providing 'fun' and 'jac' methods for least_squares for
+    Mofffat + no background model with free FWHM.
+
     """
 
     def __init__(self, wind, read, gain, ndiv):
@@ -940,7 +899,7 @@ class Mfit3:
         self.ndiv = ndiv
         self.mask = _mask(wind, self.x, self.y)
 
-    def __call__(self, param):
+    def fun(self, param):
         """
         Returns 1D array of normalised residuals. See the model
         method for a description of the argument 'param'
@@ -949,6 +908,20 @@ class Mfit3:
         diff = (self.data-mod)/self.sigma
         ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
+
+    def jac(self, param):
+        """
+        Returns list of 1D arrays of the partial derivatives of
+        the normalised residuals with respect to the variable
+        parameters.
+        """
+        height, xcen, ycen, fwhm, beta = param
+        derivs = dmoffat(
+            self.x, self.y, None, height, xcen, ycen, fwhm, beta,
+            self.xbin, self.ybin, self.ndiv, True, True
+        )[1:]
+        ok = self.mask & (self.sigma > 0)
+        return np.column_stack([(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs])
 
     def model(self, param):
         """Returns 2D array with model given a parameter vector.
@@ -970,44 +943,11 @@ class Mfit3:
             self.xbin, self.ybin, self.ndiv
         )
 
-class Dmfit3:
-    """Function object to pass to leastsq to calculate the Jacobian
-    equivalent to Mfit3
-
-    """
-
-    def __init__(self, mfit):
-        """
-        Arguments::
-
-          mfit : Mfit3
-             the Mfit3 object passed as 'func' to leastsq
-        """
-        self.mask = mfit.mask
-        self.sigma = mfit.sigma
-        self.x, self.y = mfit.x, mfit.y
-        self.xbin = mfit.xbin
-        self.ybin = mfit.ybin
-        self.ndiv = mfit.ndiv
-
-    def __call__(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        height, xcen, ycen, fwhm, beta = param
-        derivs = dmoffat(
-            self.x, self.y, None, height, xcen, ycen, fwhm, beta,
-            self.xbin, self.ybin, self.ndiv, True, True
-        )[1:]
-        ok = self.mask & (self.sigma > 0)
-        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
 class Mfit4:
-    """
-    Function object to pass to leastsq for Moffat + zero
-    background model with fixed FWHM
+    """Object providing 'fun' and 'jac' methods for least_squares for
+    Mofffat + no background model with fixed FWHM.
+
     """
 
     def __init__(self, wind, read, gain, fwhm, ndiv):
@@ -1042,7 +982,7 @@ class Mfit4:
         self.ndiv = ndiv
         self.mask = _mask(wind, self.x, self.y)
 
-    def __call__(self, param):
+    def fun(self, param):
         """
         Returns 1D array of normalised residuals
         """
@@ -1050,6 +990,20 @@ class Mfit4:
         diff = (self.data-mod)/self.sigma
         ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
+
+    def jac(self, param):
+        """
+        Returns list of 1D arrays of the partial derivatives of
+        the normalised residuals with respect to the variable
+        parameters.
+        """
+        height, xcen, ycen, beta = param
+        derivs = dmoffat(
+            self.x, self.y, None, height, xcen, ycen, self.fwhm, beta,
+            self.xbin, self.ybin, self.ndiv, False, True
+        )[1:-1]
+        ok = self.mask & (self.sigma > 0)
+        return np.column_stack([(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs])
 
     def model(self, param):
         """Returns 2D array with model given a parameter vector.
@@ -1069,41 +1023,6 @@ class Mfit4:
             self.x, self.y, 0., height, xcen, ycen, self.fwhm,
             beta, self.xbin, self.ybin, self.ndiv
         )
-
-class Dmfit4:
-    """
-    Function object to pass to leastsq to calculate the Jacobian equivalent
-    to Mfit4
-    """
-
-    def __init__(self, mfit):
-        """
-        Arguments::
-
-          mfit : Mfit4
-             the Mfit4 object passed as 'func' to leastsq
-        """
-        self.mask = mfit.mask
-        self.sigma = mfit.sigma
-        self.x, self.y = mfit.x, mfit.y
-        self.fwhm = mfit.fwhm
-        self.xbin = mfit.xbin
-        self.ybin = mfit.ybin
-        self.ndiv = mfit.ndiv
-
-    def __call__(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        height, xcen, ycen, beta = param
-        derivs = dmoffat(
-            self.x, self.y, None, height, xcen, ycen, self.fwhm, beta,
-            self.xbin, self.ybin, self.ndiv, False, True
-        )[1:]
-        ok = self.mask & (self.sigma > 0)
-        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs[:-1]]
 
 ##########################################
 #
