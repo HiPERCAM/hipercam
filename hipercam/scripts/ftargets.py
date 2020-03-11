@@ -29,17 +29,27 @@ def ftargets(args=None):
     flist) trim ([ncol nrow]) (ccd (nx)) [pause] thresh fwhm minpix
     output bias flat msub iset (ilo ihi | plo phi) xlo xhi ylo yhi``
 
-    This script (1) detects the source in a series of images, (2)
-    identifies isolated targets suited to FWHM measurement, (3) fits
-    2D profiles to these. (4) Saves results to disk. Several
-    parameters depends on the object detection threshold retuned by
-    the source detection. This is referred to as `threshold`. The
-    source detection is carried out using `sep` which runs according
-    to the usual source extractor algorithm of Bertin.
+    This script carries out the following steps for each of a series
+    of images:
 
-    This plots the frames, with ellipses at 3*a,3*b indicated in red,
-    green boxes indicating the range of pixels identified by `sep`, and
-    blue boxes marking the targets selected for FWHM fitting.
+      (1) detects the sources,
+      (2) identifies isolated targets suited to profile fits,
+      (3) fits 2D Moffat profiles to these,
+      (4) Saves results to disk.
+
+    The profile fits are carried out because `sep` does not return
+    anything that can be used reliably for a FWHM.
+
+    Several parameters depends on the object detection threshold
+    retuned by the source detection. This is referred to as
+    `threshold`. The source detection is carried out using `sep` which
+    runs according to the usual source extractor algorithm of Bertin.
+
+    The script plots the frames, with ellipses at 3*a,3*b indicated in
+    red, green boxes indicating the range of pixels identified by
+    `sep`, and blue boxes marking the targets selected for FWHM
+    fitting (the boxes indicate the fit region).
+
 
     Parameters:
 
@@ -219,6 +229,8 @@ def ftargets(args=None):
         cl.register('pmax', Cline.LOCAL, Cline.PROMPT)
         cl.register('emax', Cline.LOCAL, Cline.PROMPT)
         cl.register('nmax', Cline.LOCAL, Cline.PROMPT)
+        cl.register('gain', Cline.LOCAL, Cline.PROMPT)
+        cl.register('rej', Cline.LOCAL, Cline.PROMPT)
         cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
         cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
         cl.register('output', Cline.LOCAL, Cline.PROMPT)
@@ -321,16 +333,22 @@ def ftargets(args=None):
             'rmin', 'nearest neighbour for FWHM fits [unbinned pixels]', 20.
         )
         pmin = cl.get_value(
-            'pmin', 'minimum peak value for FWHM fits [multiple of threshold]', 20.
+            'pmin', 'minimum peak value for profile fits [multiple of threshold]', 5.
         )
         pmax = cl.get_value(
-            'pmax', 'maximum peak value for FWHM fits [counts]', 60000.
+            'pmax', 'maximum peak value for profile fits [counts]', 60000.
         )
         emax = cl.get_value(
-            'emax', 'maximum elongation (a/b)', 1.4, 1.
+            'emax', 'maximum elongation (a/b) for profile fits', 1.2, 1.
         )
         nmax = cl.get_value(
-            'nmax', 'maximum number of FWHMs', 10, 1
+            'nmax', 'maximum number of profile fits', 10, 1
+        )
+        gain = cl.get_value(
+            'gain', 'CCD gain [electrons/ADU]', 1., 0.
+        )
+        rej = cl.get_value(
+            'rej', 'rejection threshold for profile fits [RMS]', 6., 2.
         )
 
 
@@ -426,6 +444,9 @@ def ftargets(args=None):
     nhdu = len(ccds)*[0]
     thetas = np.linspace(0,2*np.pi,100)
 
+    # initial value of Moffat fit parameter together with min max range
+    beta, beta_min, beta_max = 4., 1.5, 10.
+
     # open the output file for results
     with fitsio.FITS(output, 'rw', clobber=True) as fout:
 
@@ -518,15 +539,16 @@ def ftargets(args=None):
                                 bkg.subfrom(wind.data)
                                 ccd[wnam] = wind
 
-                                # remove dodgy targets
+                                # remove targets with too few pixels
                                 objects = objects[objects['tnpix'] >= minpix]
 
                                 # run nearest neighbour search on all
                                 # objects, but select only a subset
                                 # with right count levels for FWHM
-                                # measurement
+                                # measurement, and which are not too
+                                # elongated
                                 results = isolated(objects['x'], objects['y'], rmin)
-                                
+
                                 peaks = objects['peak']
                                 ok = (peaks < pmax) & \
                                      (peaks > pmin*objects['thresh']) & \
@@ -543,7 +565,10 @@ def ftargets(args=None):
                                 isort = np.argsort(fluxes)[::-1]
                                 dfwhms = dfwhms[isort[:nmax]]
 
+                                # buffer for storing the FWHMs, including NaNs
+                                # for the ones thet are skipped
                                 fwhms = np.zeros_like(peaks,dtype=np.float32)
+                                betas = np.zeros_like(peaks,dtype=np.float32)
 
                                 for i, (x,y,peak,fwhm) in \
                                     enumerate(zip(objects['x'],objects['y'],peaks,objects['fwhm'])):
@@ -551,22 +576,35 @@ def ftargets(args=None):
 
                                     if i in dfwhms:
 
-                                        # extract fit Window
-                                        fwind = wind.window(
-                                            x-rmin, x+rmin, y-rmin, y+rmin
-                                        )
+                                        try:
+                                            # extract fit Window
+                                            fwind = wind.window(
+                                                x-rmin, x+rmin, y-rmin, y+rmin
+                                            )
 
-                                        # fit profile
-                                        (height, x, y, fwhm, beta), epars, \
-                                            (wfit, X, Y, sigma, chisq, nok, \
-                                             nrej, npar) = hcam.fitting.fitMoffat(
-                                                 fwind, None,  peak, x, y, fwhm, 2., False,
-                                                 4., 5.5, 0.98, 6.0, 0
-                                             )
-                                        fwhms[i] = fwhm
+                                            # fit profile
+                                            (height, x, y, fwhm, beta), epars, \
+                                                (wfit, X, Y, sigma, chisq, nok, \
+                                                 nrej, npar) = hcam.fitting.fitMoffat(
+                                                     fwind, None,  peak, x, y, fwhm, 2., False,
+                                                     beta, 5.5, gain, rej, 1, 100
+                                                 )
+                                            fwhms[i] = fwhm
+                                            betas[i] = beta
+
+                                            # keep value of beta for next round under control
+                                            beta = min(beta_max, max(beta_min, beta))
+
+                                        except hcam.HipercamError as err:
+                                            emessages.append(
+                                                ' >> Targ {:d}: fit failed ***: {!s}'.format(i, err)
+                                            )
+                                            fwhms[i] = np.nan
+                                            betas[i] = np.nan
                                     else:
                                         # skip this one
                                         fwhms[i] = np.nan
+                                        betas[i] = np.nan
 
 
                                 # tack on frame number & window name
@@ -577,22 +615,14 @@ def ftargets(args=None):
                                     len(objects)*[wnam], dtype='U{:d}'.format(lsmax)
                                 )
                                 objects = append_fields(
-                                    objects,('ffwhm','nframe','wnam'),(fwhms,frames,wnams)
+                                    objects,('ffwhm','beta','nframe','wnam'),(fwhms,betas,frames,wnams)
                                 )
 
-                                # remove some less useful fields to save a bit more space
-                                objects = remove_field_names(
-                                    objects,
-                                    ('x2','y2','xy','cxx','cxy','cyy','hfd',
-                                     'cflux','cpeak','xcpeak','ycpeak')
-                                )
-
-                                # save the objects and the 
+                                # save the objects and the
                                 objs.append(objects)
                                 dofwhms.append(dfwhms+nobj)
                                 nobj += len(objects)
 
-                                
                             except hcam.HipercamError:
                                 # window may have no overlap with xlo, xhi
                                 # ylo, yhi
@@ -604,13 +634,6 @@ def ftargets(args=None):
                             # concatenate results of all Windows
                             objs = np.concatenate(objs)
                             dofwhms = np.concatenate(dofwhms)
-
-                            # write to disk
-                            if nhdu[nc]:
-                                fout[nhdu[nc]].append(objs)
-                            else:
-                                fout.write(objs)
-                                nhdu[nc] = nc+1
 
                             # set to the correct panel and then plot CCD
                             ix = (nc % nx) + 1
@@ -635,11 +658,26 @@ def ftargets(args=None):
                                 pgline(xs,ys)
 
                             pgsci(core.CNAMS['blue'])
-                            print(dofwhms)
                             for x,y in zip(objs['x'][dofwhms], objs['y'][dofwhms]):
                                 xs = [x-rmin,x+rmin,x+rmin,x-rmin,x-rmin]
                                 ys = [y-rmin,y-rmin,y+rmin,y+rmin,y-rmin]
                                 pgline(xs,ys)
+
+                            # remove some less useful fields to save a
+                            # bit more space prior to saving to disk
+                            objs = remove_field_names(
+                                objs,
+                                ('x2','y2','xy','cxx','cxy','cyy','hfd',
+                                 'cflux','cpeak','xcpeak','ycpeak',
+                                 'xmin','xmax','ymin','ymax')
+                            )
+
+                            # save to disk
+                            if nhdu[nc]:
+                                fout[nhdu[nc]].append(objs)
+                            else:
+                                fout.write(objs)
+                                nhdu[nc] = nc+1
 
                         # accumulate string of image scalings
                         if nc:
