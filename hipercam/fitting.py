@@ -300,7 +300,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
             # process results
             fit = Window(wind, mfit2.model(soln))
-            skyf, heightf, xf, yf, betaf = soln
+            if sky is None:
+                heightf, xf, yf, betaf = soln
+            else:
+                skyf, heightf, xf, yf, betaf = soln
             covs = np.diag(covar)
             if (covs < 0).any():
                 raise HipercamError('Negative covariance in fitMoffat')
@@ -348,7 +351,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 # fall back to fixed FWHM
                 mfit2.fwhm = fwhm_min
                 dmfit2.fwhm = fwhm_min
-                param = (sky, height, xcen, ycen, beta)
+                if sky is None:
+                    param = (height, xcen, ycen, beta)
+                else:
+                    param = (sky, height, xcen, ycen, beta)
 
                 # carry out fit
                 soln, covar, info, mesg, ier = leastsq(
@@ -535,7 +541,7 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
          profile. They should be measured in term of unbinned pixels.
 
       sky : float or None
-         sky background. If `None` it will be ignored. 
+         sky background. If `None` it will be ignored.
 
       height : float
          height of central peak
@@ -721,6 +727,13 @@ class Mfit1:
         self.ybin = wind.ybin
         self.ndiv = ndiv
 
+        # Circular mask
+        x1, x2 = wind.x(0), wind.x(nx-1)
+        y1, y2 = wind.y(0), wind.y(nx-1)
+        xc, yc = (x1+x2)/2, (y1+y2)/2.
+        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
+        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+
     def __call__(self, param):
         """
         Returns 1D array of normalised residuals. See the model
@@ -728,7 +741,7 @@ class Mfit1:
         """
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
 
     def model(self, param):
@@ -764,6 +777,7 @@ class Dmfit1:
           mfit : Mfit1
              the Mfit1 object passed as 'func' to leastsq
         """
+        self.mask = mfit.mask
         self.sigma = mfit.sigma
         self.x, self.y = mfit.x, mfit.y
         self.xbin = mfit.xbin
@@ -781,7 +795,7 @@ class Dmfit1:
             self.x, self.y, sky, height, xcen, ycen, fwhm, beta,
             self.xbin, self.ybin, self.ndiv, True, True
         )
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
 class Mfit2:
@@ -821,13 +835,20 @@ class Mfit2:
         self.ybin = wind.ybin
         self.ndiv = ndiv
 
+        # Circular mask
+        x1, x2 = wind.x(0), wind.x(nx-1)
+        y1, y2 = wind.y(0), wind.y(nx-1)
+        xc, yc = (x1+x2)/2, (y1+y2)/2.
+        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
+        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+
     def __call__(self, param):
         """
         Returns 1D array of normalised residuals
         """
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
 
     def model(self, param):
@@ -862,6 +883,7 @@ class Dmfit2:
           mfit : Mfit2
              the Mfit2 object passed as 'func' to leastsq
         """
+        self.mask = mfit.mask
         self.sigma = mfit.sigma
         self.x, self.y = mfit.x, mfit.y
         self.fwhm = mfit.fwhm
@@ -880,7 +902,7 @@ class Dmfit2:
             self.x, self.y, sky, height, xcen, ycen, self.fwhm, beta,
             self.xbin, self.ybin, self.ndiv, False, True
         )
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs[:-1]]
 
 class Mfit3:
@@ -916,6 +938,13 @@ class Mfit3:
         self.ybin = wind.ybin
         self.ndiv = ndiv
 
+        # Circular mask
+        x1, x2 = wind.x(0), wind.x(nx-1)
+        y1, y2 = wind.y(0), wind.y(nx-1)
+        xc, yc = (x1+x2)/2, (y1+y2)/2.
+        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
+        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+
     def __call__(self, param):
         """
         Returns 1D array of normalised residuals. See the model
@@ -923,7 +952,7 @@ class Mfit3:
         """
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
 
     def model(self, param):
@@ -959,6 +988,7 @@ class Dmfit3:
           mfit : Mfit3
              the Mfit3 object passed as 'func' to leastsq
         """
+        self.mask = mfit.mask
         self.sigma = mfit.sigma
         self.x, self.y = mfit.x, mfit.y
         self.xbin = mfit.xbin
@@ -976,7 +1006,7 @@ class Dmfit3:
             self.x, self.y, None, height, xcen, ycen, fwhm, beta,
             self.xbin, self.ybin, self.ndiv, True, True
         )[1:]
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
 class Mfit4:
@@ -1016,13 +1046,20 @@ class Mfit4:
         self.ybin = wind.ybin
         self.ndiv = ndiv
 
+        # Circular mask
+        x1, x2 = wind.x(0), wind.x(nx-1)
+        y1, y2 = wind.y(0), wind.y(nx-1)
+        xc, yc = (x1+x2)/2, (y1+y2)/2.
+        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
+        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+
     def __call__(self, param):
         """
         Returns 1D array of normalised residuals
         """
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
 
     def model(self, param):
@@ -1057,6 +1094,7 @@ class Dmfit4:
           mfit : Mfit4
              the Mfit4 object passed as 'func' to leastsq
         """
+        self.mask = mfit.mask
         self.sigma = mfit.sigma
         self.x, self.y = mfit.x, mfit.y
         self.fwhm = mfit.fwhm
@@ -1075,7 +1113,7 @@ class Dmfit4:
             self.x, self.y, None, height, xcen, ycen, self.fwhm, beta,
             self.xbin, self.ybin, self.ndiv, False, True
         )[1:]
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs[:-1]]
 
 ##########################################
@@ -1546,6 +1584,13 @@ class Gfit1:
         self.ybin = wind.ybin
         self.ndiv = ndiv
 
+        # Circular mask
+        x1, x2 = wind.x(0), wind.x(nx-1)
+        y1, y2 = wind.y(0), wind.y(nx-1)
+        xc, yc = (x1+x2)/2, (y1+y2)/2.
+        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
+        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+
     def __call__(self, param):
         """
         Returns 1D array of normalised residuals. See the model
@@ -1553,7 +1598,7 @@ class Gfit1:
         """
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
 
     def model(self, param):
@@ -1581,18 +1626,19 @@ class Dgfit1:
     to Gfit1
     """
 
-    def __init__(self, gfit1):
+    def __init__(self, gfit):
         """
         Arguments::
 
-          gfit1 : Gfit1
+          gfit : Gfit1
              the Gfit1 object passed as 'func' to leastsq
         """
-        self.sigma = gfit1.sigma
-        self.x, self.y = gfit1.x, gfit1.y
-        self.xbin = gfit1.xbin
-        self.ybin = gfit1.ybin
-        self.ndiv = gfit1.ndiv
+        self.mask = gfit.mask
+        self.sigma = gfit.sigma
+        self.x, self.y = gfit.x, gfit.y
+        self.xbin = gfit.xbin
+        self.ybin = gfit.ybin
+        self.ndiv = gfit.ndiv
 
     def __call__(self, param):
         """Returns list of 1D arrays of the partial derivatives of the normalised
@@ -1604,7 +1650,7 @@ class Dgfit1:
             self.x, self.y, sky, height, xcen, ycen, fwhm,
             self.xbin, self.ybin, self.ndiv
         )
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
 
 class Gfit2:
@@ -1645,6 +1691,13 @@ class Gfit2:
         self.ybin = wind.ybin
         self.ndiv = ndiv
 
+        # Circular mask
+        x1, x2 = wind.x(0), wind.x(nx-1)
+        y1, y2 = wind.y(0), wind.y(nx-1)
+        xc, yc = (x1+x2)/2, (y1+y2)/2.
+        rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
+        self.mask = (x-xc)**2+(y-yc)**2 < rad**2
+
     def __call__(self, param):
         """
         Returns 1D array of normalised residuals
@@ -1652,7 +1705,8 @@ class Gfit2:
 
         mod = self.model(param)
         diff = (self.data-mod)/self.sigma
-        return diff[self.sigma > 0].ravel()
+        ok = self.mask & (self.sigma > 0)
+        return diff[ok].ravel()
 
     def model(self, param):
         """Returns 2D array with model given a parameter vector.
@@ -1679,19 +1733,20 @@ class Dgfit2:
     to Gfit2
     """
 
-    def __init__(self, gfit2):
+    def __init__(self, gfit):
         """
         Arguments::
 
-          gfit2 : Gfit2
+          gfit : Gfit2
              the Gfit2 object passed as 'func' to leastsq
         """
-        self.sigma = gfit2.sigma
-        self.x, self.y = gfit2.x, gfit2.y
-        self.fwhm = gfit2.fwhm
-        self.xbin = gfit2.xbin
-        self.ybin = gfit2.ybin
-        self.ndiv = gfit2.ndiv
+        self.mask = gfit.mask
+        self.sigma = gfit.sigma
+        self.x, self.y = gfit.x, gfit.y
+        self.fwhm = gfit.fwhm
+        self.xbin = gfit.xbin
+        self.ybin = gfit.ybin
+        self.ndiv = gfit.ndiv
 
     def __call__(self, param):
         """
@@ -1707,6 +1762,6 @@ class Dgfit2:
 
         # note one more derivative is resturned than we need, so
         # we cut it out (the last one)
-        ok = self.sigma > 0
+        ok = self.mask & (self.sigma > 0)
         sigs = self.sigma[ok]
         return [(-deriv[ok]/sigs).ravel() for deriv in derivs[:-1]]
