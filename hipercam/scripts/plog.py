@@ -147,31 +147,34 @@ def plog(args=None):
         fig = plt.figure()
 
     dat1 = hlog.tseries(ccd1, aper1, pname1)
+    
     if ccd2 != '!':
         dat2 = hlog.tseries(ccd2, aper2, pname2)
         if scheme == 'b':
             # plots both together
-            dat1.mplot(plt,'b')
-            dat2.mplot(plt,'r')
+            dat1.mplot(plt,'b',mvalue=hcam.BAD_TIME,invert=True)
+            dat2.mplot(plt,'r',mvalue=hcam.BAD_TIME,invert=True)
             xlabel = 'Time [MJD]'
             ylabel = '{:s} & {:s}'.format(lab1, lab2)
 
         elif scheme == 'r':
             # ratio
             ratio = dat1 / dat2
-            ratio.mplot(plt,'b')
+            ratio.mplot(plt,'b',mvalue=hcam.BAD_TIME,invert=True)
             xlabel = 'Time [MJD]'
             ylabel = '{:s} / {:s}'.format(lab1, lab2)
 
         elif scheme == 'd':
             # difference
             diff = dat1 - dat2
-            diff.mplot(plt,'b')
+            diff.mplot(plt,'b',mvalue=hcam.BAD_TIME,invert=True)
             xlabel = 'Time [MJD]'
             ylabel = '{:s} - {:s}'.format(lab1, lab2)
 
         elif scheme == 's':
-            ok = (dat1.ye > 0) & (dat2.ye > 0)
+            mask1 = dat1.get_mask(mvalue=hcam.BAD_TIME,invert=True)
+            mask2 = dat1.get_mask(mvalue=hcam.BAD_TIME,invert=True)
+            ok = mask1 & mask2
             plt.errorbar(
                 dat1.y[ok], dat2.y[ok], dat2.ye[ok], dat1.ye[ok],
                     '.', capsize=0
@@ -181,7 +184,7 @@ def plog(args=None):
 
     else:
         # just one
-        dat1.mplot(plt)
+        dat1.mplot(plt,mvalue=hcam.BAD_TIME,invert=True)
         xlabel = 'Time [MJD]'
         ylabel = lab1
 
