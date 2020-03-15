@@ -154,7 +154,7 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
 ##############################
 
 def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-              beta, read, gain, thresh, ndiv, max_nfev=0):
+              beta, read, gain, thresh, ndiv, max_nfev=None):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
     from the centre of the aperture. The constant alpha is determined by the
@@ -224,10 +224,9 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             simply evaluate the profile once at the centre of each pixel in
             `wind`, set ndiv = 0.
 
-        max_nfev : int
-           maximum number of function evaluations during fits. Passed direct
-           to least_squares. Default 0 tops out at 600 I think, so you probably want
-           to set it to something smaller, like 100 to have an effect.
+        max_nfev : int or None
+           maximum number of function evaluations during fits. Passed
+           direct to least_squares.
 
     Returns:: tuple of tuples
 
