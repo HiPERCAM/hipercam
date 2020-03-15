@@ -496,15 +496,15 @@ class Rhead:
                      int(param['VERSION'])
             if vcheck != version:
                 raise ValueError(
-                    'clashing version numbers: {:s} vs {:s}'.format(
+                    'clashing version numbers: {:d} vs {:d}'.format(
                         version,vcheck)
                 )
 
         if self.headerwords == 16:
-            VERSIONS = [100222, 111205, 120716, 120813, 130307, 130317, 140331]
+            VERSIONS = [100222, 111205, 120716, 120813, 130307, 130317, 130417, 140331]
             if version not in VERSIONS:
                 raise ValueError(
-                    'could not recognise version = {:s}'.format(version)
+                    'could not recognise version = {:d}'.format(version)
                 )
 
         self.whichRun = ''
@@ -1495,7 +1495,8 @@ def utimer(tbytes, rhead, fnum):
     elif rhead.version == 100222 or rhead.version == 110921 or \
             rhead.version == 111205 or rhead.version == 120716 or \
             rhead.version == 120813 or rhead.version == 130303 or \
-            rhead.version == 130317 or rhead.version == 140331:
+            rhead.version == 130317 or rhead.version == 130417 or \
+            rhead.version == 140331:
         frmat = 2
     else:
         raise UltracamError('version = ' + str(rhead.version) + ' unrecognised.')
