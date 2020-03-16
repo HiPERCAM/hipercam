@@ -94,8 +94,11 @@ def pWin(axes, win, label=''):
     axes.plot([left,right,right,left,left],[bottom,bottom,top,top,bottom],
               color=Params['win.box.col'])
     if label != '':
-        axes.text(left-3,bottom-3,label,fontsize=Params['win.label.fs'],
-                  color=Params['win.label.col'], ha='right', va='top')
+        axes.text(
+            left-3,bottom-3,label,fontsize=Params['win.label.fs'],
+            color=Params['win.label.col'], ha='right', va='top',
+            clip_on=True
+        )
 
 def pWind(axes, wind,  vmin, vmax, label=''):
     """Plots :class:`Window` as an image with a line border. (matplotlib).

@@ -242,11 +242,8 @@ def hplot(args=None):
             # store the CCD associated with these axes for the cursor callback
             caxes[axes] = cnam
 
-            # commented out next because plotting window labels seems to
-            # interact with them in unpleasant ways
-            #
-            #            axes.set_xlim(xlo,xhi)
-            #            axes.set_ylim(ylo,yhi)
+            axes.set_xlim(xlo,xhi)
+            axes.set_ylim(ylo,yhi)
 
             if msub:
                 # subtract median from each window
@@ -265,6 +262,7 @@ def hplot(args=None):
             pass
 
         if hard == '':
+
             # add in the callback
             fig.canvas.mpl_connect('button_press_event', buttonPressEvent)
             print('\nClick points in windows for stats in a {:d}x{:d} box'.format(
@@ -273,7 +271,7 @@ def hplot(args=None):
             plt.subplots_adjust(wspace=0.1, hspace=0.1)
             plt.show()
         else:
-            plt.savefig(hard)
+            plt.savefig(hard,bbox_inches='tight',pad_inches=0)
 
     elif ptype == 'PGP':
         # open the plot
