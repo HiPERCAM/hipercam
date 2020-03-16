@@ -973,7 +973,7 @@ search_smooth_fft = {smooth_fft} # use FFTs for smoothing, 'yes' or 'no'.
 
 fit_method = {profile_type} # gaussian or moffat
 fit_beta = {beta:.1f} # Moffat exponent
-fit_beta_max = {beta_max:.1f} # max Moffat expt for later fits
+fit_beta_max = {beta_max:.1f} # max Moffat expt
 fit_fwhm = {fwhm:.1f} # FWHM, unbinned pixels
 fit_fwhm_min = {fwhm_min:.1f} # Minimum FWHM, unbinned pixels
 fit_ndiv = 0 # sub-pixellation factor

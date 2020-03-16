@@ -1412,6 +1412,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         fwdata, rfile.method, sky, peak-sky,
                         x, y, fit_fwhm, apsec['fit_fwhm_min'],
                         apsec['fit_fwhm_fixed'], fit_beta,
+                        apsec['fit_beta_max'], False,
                         fwread.data, fwgain.data,
                         apsec['fit_thresh'], apsec['fit_ndiv']
                     )
@@ -1655,6 +1656,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         fwdata, rfile.method, sky, peak-sky,
                         x, y, fit_fwhm, apsec['fit_fwhm_min'],
                         apsec['fit_fwhm_fixed'], fit_beta,
+                        apsec['fit_beta_max'], False,
                         fwread.data, fwgain.data,
                         apsec['fit_thresh'], apsec['fit_ndiv']
                     )
