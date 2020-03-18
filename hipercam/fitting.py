@@ -153,8 +153,9 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
 #
 ##############################
 
-def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-              beta, read, gain, thresh, ndiv, max_nfev=None):
+def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
+               fwhm_fix, beta, beta_max, beta_fix, read, gain, thresh,
+               ndiv, max_nfev=None):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
     from the centre of the aperture. The constant alpha is determined by the
@@ -163,7 +164,9 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
     can be constrained to lie above a lower limit which can be useful when
     data are heavily binned. If when `fwhm_fix` == False, the first fit with a
     free FWHM fails, the routine will try again with the fwhm held fixed at
-    its input value `fwhm`.
+    its input value `fwhm`. Similarly the Moffat exponent beta can be limited
+    to a maximum value as Moffat profiles are degenerate with Gaussians for
+    large beta.
 
     Arguments::
 
@@ -197,8 +200,23 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
             FWHM. If it goes below this value it tries again, setting to
             this value. (unbinned pixels)
 
+        fwhm_max : float
+            maximum value to allow FWHM to go to to avoid crazy results.
+
         fwhm_fix : bool
             fix the FWHM at the value `fwhm` during fits. Should be a bit
+            faster and more robust.
+
+        beta : float
+            initial value of Moffat exponent beta
+
+        beta_max : float
+            maximum value to allow beta to go to. For large beta, Moffat profiles
+            degenerate into guassians. The routines tries with a free beta, but
+            restarts if beta goes above this value.
+
+        beta_fix : bool
+            fix beta at its initial value during fits. Should be a bit
             faster and more robust.
 
         read : float | array
@@ -264,87 +282,73 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
 
     """
 
-    # construct function objects of both types from the first because during
-    # rejection, we assume both exist. sigma arrays are constructed here all > 0
-    if sky is None:
-        # no sky case for fitting FWHM only
-        mfit1 = Mfit3(wind, read, gain, ndiv)
-        mfit2 = Mfit4(wind, read, gain, fwhm, ndiv)
+    # construct function object for Moffat fit.
+    if fwhm_fix and beta_fix:
+        mode = 4
+    elif fwhm_fix:
+        mode = 2
+    elif beta_fix:
+        mode = 3
     else:
-        mfit1 = Mfit1(wind, read, gain, ndiv)
-        mfit2 = Mfit2(wind, read, gain, fwhm, ndiv)
+        mode = 1
+    if sky is None:
+        mode += 4
+
+    mfit = Mfit(wind, read, gain, mode, fwhm, beta)
+    mode_switch = False
 
     while True:
+
+        # retrieve current fit mode
+        mode = mfit.mode
+
         # Rejection loop. There is a break statement at the end of the loop
         # if no pixels have been rejected.
 
-        # Two pass strategy: fit with a free FWHM, and if it is
-        # below fwhm_min, re-fit with the fwhm set = fwhm_min
+        # set parameters
+        param = mfit.set_par(sky, height, xcen, ycen, fwhm, beta)
 
-        if fwhm_fix:
-            # FWHM held fixed
-            mfit2.fwhm = fwhm
-            if sky is None:
-                param = (height, xcen, ycen, beta)
-            else:
-                param = (sky, height, xcen, ycen, beta)
+        # carry out fit
+        res = least_squares(
+            mfit.fun, param, jac=mfit.jac, method='lm',
+            max_nfev=max_nfev
+        )
+        if not res.success:
+            raise HipercamError(res.message)
 
-            # carry out fit
-            res = least_squares(
-                mfit2.fun, param, jac=mfit2.jac, method='lm',
-                max_nfev=max_nfev
-            )
-            if not res.success:
-                raise HipercamError(res.message)
-            J = np.matrix(res.jac)
+        # get Jacobian
+        J = np.matrix(res.jac)
+        try:
+            # try / except for singularity
             covar = (J.T*J).I
-            soln = res.x
+        except np.linalg.LinAlgError as err:
+            raise HipercamError(err)
 
-            # process results
-            fit = Window(wind, mfit2.model(soln))
-            if sky is None:
-                heightf, xf, yf, betaf = soln
-            else:
-                skyf, heightf, xf, yf, betaf = soln
+        param = res.x
+        skyf, heightf, xf, yf, fwhmf, betaf = mfit.get_par(param)
+        fwhmf = abs(fwhmf)
+
+
+        if betaf > beta_max and \
+           (mode == 1 or mode == 3 or mode == 5 or mode == mfit) and betaf > beta_max:
+            # switch to fixed beta fit
+            mfit.set_mode(mfit.mode+2, fwhm, beta_max)
+            # switch to fixed beta fit
+            mfit.set_mode(mfit.mode+2, fwhm, beta_max)
+
+        elif (mfit.mode == 1 or mfit.mode == 5) and betaf > beta_max:
+            # switch to fixed beta fit
+            mfit.set_mode(mfit.mode+2, fwhm, beta_max)
+
+
+        if fwhmf > fwhm_min and :
+        fit = Window(wind, mfit.model(param))
+            # Free fit is OK
+
             covs = np.diag(covar)
             if (covs < 0).any():
                 raise HipercamError('Negative covariance in fitMoffat')
-            skyfe, heightfe, xfe, yfe, betafe = np.sqrt(covs)
-            fwhmf, fwhmfe = fwhm, -1
-
-        else:
-
-            # FWHM free to vary
             if sky is None:
-                param = (height, xcen, ycen, fwhm, beta)
-            else:
-                param = (sky, height, xcen, ycen, fwhm, beta)
-
-            # carry out fit
-            res = least_squares(
-                mfit1.fun, param, jac=mfit1.jac, method='lm',
-                max_nfev=max_nfev
-            )
-            if not res.success:
-                raise HipercamError(res.message)
-            J = np.matrix(res.jac)
-            covar = (J.T*J).I
-            soln = res.x
-
-            # process results
-            if sky is None:
-                heightf, xf, yf, fwhmf, betaf = soln
-            else:
-                skyf, heightf, xf, yf, fwhmf, betaf = soln
-            fwhmf = abs(fwhmf)
-
-            if fwhmf > fwhm_min:
-                # Free fit is OK
-                fit = Window(wind, mfit1.model(soln))
-                covs = np.diag(covar)
-                if (covs < 0).any():
-                    raise HipercamError('Negative covariance in fitMoffat')
-                if sky is None:
                     heightfe, xfe, yfe, \
                         fwhmfe, betafe = np.sqrt(covs)
                 else:
@@ -352,6 +356,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                         fwhmfe, betafe = np.sqrt(covs)
 
             else:
+
                 # fall back to fixed FWHM
                 mfit2.fwhm = fwhm_min
                 if sky is None:
@@ -367,7 +372,10 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 if not res.success:
                     raise HipercamError(res.message)
                 J = np.matrix(res.jac)
-                covar = (J.T*J).I
+                try:
+                    covar = (J.T*J).I
+                except np.linalg.LinAlgError as err:
+                    raise HipercamError(err)
                 soln = res.x
 
                 # process results
@@ -387,7 +395,7 @@ def fitMoffat(wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
                 fwhmf, fwhmfe = fwhm_min, -1
 
         # now look for bad outliers
-        ok = mfit1.mask & (mfit1.sigma > 0)
+        ok = mfit.mask & (mfit.sigma > 0)
         resid = (wind.data - fit.data) / mfit1.sigma
         chisq = (resid[ok]**2).sum()
         nok1 = len(resid[ok])
@@ -579,13 +587,12 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
          the centre of each pixel, set ndiv = 0.
 
       comp_dfwhm : bool
-         compute derivative wrt FWHM (or not). If True, then derivatives with respect
-         to (sky, height, xcen, ycen, fwhm, beta) are returned in a 6-element tuple.
+         compute derivative wrt FWHM (or not). If False, derivative with respect
+         to FWHM will not be computed
 
-      comp_dbeta : bool [only operative if comp_dfwhm=False]
-         compute derivative wrt beta (or not). Only has an effect if comp_dfwhm=False.
-         If True, 5 derivatives (sky, height, xcen, ycen, beta) are returned, if False
-         4 derivatives (sky, height, xcen, ycen) come back.
+      comp_dbeta : bool
+         compute derivative wrt beta (or not). If False, derivative with respect
+         to beta will not be computed.
 
     Returns:: in all cases a 6-element tuple is returned, but depending upon the comp flags
     only the first 4, 5 or 6 elements may be useful. 6-elements always come back because this
@@ -604,8 +611,7 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
         dycen = np.zeros_like(x)
         if comp_dfwhm:
             dfwhm = np.zeros_like(x)
-            dbeta = np.zeros_like(x)
-        elif comp_dbeta:
+        if comp_dbeta:
             dbeta = np.zeros_like(x)
 
         # mean offset within sub-pixels
@@ -642,9 +648,8 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
 
                         if comp_dfwhm:
                             dfwhm += (2*alpha*tbeta/fwhm)*save2
-                            dbeta += -np.log(denom)*height*dh + \
-                                     (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
-                        elif comp_dbeta:
+
+                        if comp_dbeta:
                             dbeta += -np.log(denom)*height*dh + \
                                      (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
 
@@ -656,17 +661,21 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
 
         # in the next lines we return the same number of arrays in all cases
         # to help 'numba'
-        if comp_dfwhm:
+        if comp_dfwhm and comp_dbeta:
             # full set of derivs
             dfwhm /= nadd
             dbeta /= nadd
             return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
+
+        elif comp_dfwhm:
+            dfwhm /= nadd
+            return (dsky, dheight, dxcen, dycen, dfwhm, dfwhm)
+
         elif comp_dbeta:
-            # miss out dfwhm
             dbeta /= nadd
             return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
+
         else:
-            # miss out dbeta well
             return (dsky, dheight, dxcen, dycen, dycen, dycen)
 
     else:
@@ -681,19 +690,23 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
 
         # derivatives. beta is a bit complicated because it appears directly
         # through the exponent but also indirectly through alpha
-        if sky is not None:
-            dsky = np.ones_like(x)
         dheight = denom**(-tbeta)
         dxcen = (2*alpha*tbeta)*dx*save1
         dycen = (2*alpha*tbeta)*dy*save1
 
-        if comp_dfwhm:
+        if comp_dfwhm and comp_dbeta:
             dfwhm = (2*alpha*tbeta/fwhm)*save2
             dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
             return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
+
+        elif comp_dfwhm:
+            dfwhm = (2*alpha*tbeta/fwhm)*save2
+            return (dsky, dheight, dxcen, dycen, dfwhm, dfwhm)
+
         elif comp_dbeta:
             dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
             return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
+
         else:
             return (dsky, dheight, dxcen, dycen, dycen, dycen)
 
@@ -705,13 +718,25 @@ def _mask(wind, x, y):
     rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
     return (x-xc)**2+(y-yc)**2 < rad**2
 
-class Mfit1:
+class Mfit:
     """Object providing 'fun' and 'jac' methods for least_squares for
-    Mofffat + background model with free FWHM.
+    Mofffat models. Eight operating modes each of which allows the
+    following to be free [else not]. Sky assumed = 0 when not free.
 
+       mode == 'sfb' : sky, FWHM, beta
+       mode == 'sb' : sky, beta
+       mode == 'sf' : sky, FWHM
+       mode == 's' : sky
+       mode == 'fb' : FWHM, beta
+       mode == 'b' : beta
+       mode == 'f' : FWHM
+       mode == '' : None of the above.
+
+    It is up to the user to set the values of fwhm and beta as attributes for mode != 1.
+    A method 'set_mode' provides some basic checks.
     """
 
-    def __init__(self, wind, read, gain, ndiv):
+    def __init__(self, wind, read, gain, ndiv, mode, fwhm=None, beta=None):
         """
         Arguments::
 
@@ -738,6 +763,86 @@ class Mfit1:
         self.ybin = wind.ybin
         self.ndiv = ndiv
         self.mask = _mask(wind, self.x, self.y)
+        self.set_mode(mode, fwhm, beta)
+
+
+    def set_mode(self, mode, fwhm, beta):
+        """Sets the mode along with the fwhm and beta with some checks."""
+        
+        if mode not in ('sfb','sb','sf','s','fb','b','f',''):
+            raise HipercamError('invalid mode = {:s}'.format(mode))
+        
+        if (mode.find('f') == -1 and self.fwhm is None) or \
+           (mode.find('b') == -1 and self.beta is None):
+            raise HipercamError('invalid mode / fwhm / beta combination')
+        
+        self.mode = mode
+        self.fwhm = fwhm
+        self.beta = beta
+
+    def get_par(self, param):
+        """Gets parameters (sky, height, xcen, ycen, fwhm, beta) according to
+        current least_squares parameter vector, accounting for the
+        operating mode. All six are returned in each case, even when this
+        is meaningless.
+
+        """
+        if self.mode == 'sfb':
+            sky, height, xcen, ycen, fwhm, beta = param
+        elif self.mode == 'sb':
+            sky, height, xcen, ycen, beta = param
+            fwhm = self.fwhm
+        elif self.mode == 'sf':
+            sky, height, xcen, ycen, fwhm = param
+            beta = self.beta
+        elif self.mode == 's':
+            sky, height, xcen, ycen = param
+            fwhm = self.fwhm
+            beta = self.beta
+        elif self.mode == 'fb':
+            height, xcen, ycen, fwhm, beta = param
+            sky = 0.
+        elif self.mode == 'b':
+            height, xcen, ycen, beta = param
+            sky = 0.
+            fwhm = self.fwhm
+        elif self.mode == 'f':
+            height, xcen, ycen, fwhm = param
+            sky = 0.
+            beta = self.beta
+        elif self.mode == '':
+            height, xcen, ycen = param
+            sky = 0.
+            fwhm = self.fwhm
+            beta = self.beta
+        else:
+            raise HipercamError('invalid mode')
+
+        return (sky, height, xcen, ycen, fwhm, beta)
+
+    def set_par(self, sky, height, xcen, ycen, fwhm, beta):
+        """Sets parameters (sky, height, xcen, ycen, fwhm, beta) into correct
+        vector for least_squares according to the operating mode
+
+        """
+        if self.mode == 'sfb':
+            return (sky, height, xcen, ycen, fwhm, beta)
+        elif self.mode == 'sb':
+            return (sky, height, xcen, ycen, beta)
+        elif self.mode == 'sf':
+            return (sky, height, xcen, ycen, fwhm)
+        elif self.mode == 's':
+            return (sky, height, xcen, ycen)
+        elif self.mode == 'fb':
+            return (height, xcen, ycen, fwhm, beta)
+        elif self.mode == 'b':
+            reurn (height, xcen, ycen, beta)
+        elif self.mode == 'f':
+            return (height, xcen, ycen, fwhm)
+        elif self.mode == '':
+            return (height, xcen, ycen)
+        else:
+            raise HipercamError('invalid mode')
 
     def fun(self, param):
         """
@@ -755,13 +860,36 @@ class Mfit1:
         the normalised residuals with respect to the variable
         parameters.
         """
-        sky, height, xcen, ycen, fwhm, beta = param
+        sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
+
+        comp_fwhm = self.mode.find('f') > -1
+        comp_beta = self.mode.find('b') > -1
+
+        # work out which derivatives to bother with
+        if self.mode == 'sfb':
+            inds = (0,1,2,3,4,5)
+        elif self.mode == 'sb':
+            inds = (0,1,2,3,4)
+        elif self.mode == 'sf':
+            inds = (0,1,2,3,4)
+        elif self.mode == 's':
+            inds = (0,1,2,3)
+        elif self.mode == 'fb'
+            inds = (1,2,3,4,5)
+        elif self.mode == 'b':
+            inds = (1,2,3,4)
+        elif self.mode == 'f':
+            inds = (1,2,3,4)
+        elif self.mode == '':
+            inds = (1,2,3)
+
         derivs = dmoffat(
             self.x, self.y, sky, height, xcen, ycen, fwhm, beta,
-            self.xbin, self.ybin, self.ndiv, True, True
+            self.xbin, self.ybin, self.ndiv, comp_fwhm, comp_beta
         )
+
         ok = self.mask & (self.sigma > 0)
-        return np.column_stack([(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs])
+        return np.column_stack([(-deriv[ind][ok]/self.sigma[ok]).ravel() for ind in inds])
 
     def model(self, param):
         """
@@ -777,249 +905,10 @@ class Mfit1:
               corner of the physical imagine area; 'fwhm' is the FWHM in unbinned
               pixels; 'beta' is the Moffat exponent.
         """
-        sky, height, xcen, ycen, fwhm, beta = param
+        sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
         return moffat(
             self.x, self.y, sky, height, xcen, ycen, fwhm, beta,
             self.xbin, self.ybin, self.ndiv
-        )
-
-class Mfit2:
-    """Object providing 'fun' and 'jac' methods for least_squares for
-    Mofffat + background model with fixed FWHM.
-
-    """
-
-    def __init__(self, wind, read, gain, fwhm, ndiv):
-        """
-        Arguments:
-
-          wind  : Window
-             the Window containing data to fit
-
-          read  : float / array
-             readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
-
-          gain  : float / array
-             gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
-
-          fwhm  : float
-             the fixed FWHM to use
-
-          ndiv  : int
-             pixel sub-division factor. See comments in fitMoffat
-        """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-        x = wind.x(np.arange(wind.nx))
-        y = wind.y(np.arange(wind.ny))
-        self.x, self.y = np.meshgrid(x, y)
-        self.data = wind.data
-        self.fwhm = fwhm
-        self.xbin = wind.xbin
-        self.ybin = wind.ybin
-        self.ndiv = ndiv
-        self.mask = _mask(wind, self.x, self.y)
-
-    def fun(self, param):
-        """
-        Returns 1D array of normalised residuals
-        """
-        mod = self.model(param)
-        diff = (self.data-mod)/self.sigma
-        ok = self.mask & (self.sigma > 0)
-        return diff[ok].ravel()
-
-    def jac(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        sky, height, xcen, ycen, beta = param
-        derivs = dmoffat(
-            self.x, self.y, sky, height, xcen, ycen, self.fwhm, beta,
-            self.xbin, self.ybin, self.ndiv, False, True
-        )[:-1]
-        ok = self.mask & (self.sigma > 0)
-        return np.column_stack([(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs])
-
-    def model(self, param):
-        """
-        Returns 2D array with model given a parameter vector.
-
-        Argument::
-
-           param : 1D array
-              unpacks to (sky, height, xcen, ycen, beta) where:
-              'sky' is the background per pixel; 'height' is the central
-              height of the Moffat function; 'xcen' and 'ycen' are the ordinates
-              of its centre in unbinned CCD pixels with (1,1) at the left
-              corner of the physical imagine area; 'beta' is the Moffat exponent.
-        """
-        sky, height, xcen, ycen, beta = param
-        return moffat(
-            self.x, self.y, sky, height, xcen, ycen, self.fwhm,
-            beta, self.xbin, self.ybin, self.ndiv
-        )
-
-class Mfit3:
-    """Object providing 'fun' and 'jac' methods for least_squares for
-    Mofffat + no background model with free FWHM.
-
-    """
-
-    def __init__(self, wind, read, gain, ndiv):
-        """
-        Arguments::
-
-          wind  : Window
-             the Window containing data to fit
-
-          read  : float | array
-             readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
-
-          gain  : float | array
-             gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
-
-          ndiv  : int
-             pixel sub-division factor. See comments in fitMoffat
-        """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-        x = wind.x(np.arange(wind.nx))
-        y = wind.y(np.arange(wind.ny))
-        self.x, self.y = np.meshgrid(x, y)
-        self.data = wind.data
-        self.xbin = wind.xbin
-        self.ybin = wind.ybin
-        self.ndiv = ndiv
-        self.mask = _mask(wind, self.x, self.y)
-
-    def fun(self, param):
-        """
-        Returns 1D array of normalised residuals. See the model
-        method for a description of the argument 'param'
-        """
-        mod = self.model(param)
-        diff = (self.data-mod)/self.sigma
-        ok = self.mask & (self.sigma > 0)
-        return diff[ok].ravel()
-
-    def jac(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        height, xcen, ycen, fwhm, beta = param
-        derivs = dmoffat(
-            self.x, self.y, None, height, xcen, ycen, fwhm, beta,
-            self.xbin, self.ybin, self.ndiv, True, True
-        )[1:]
-        ok = self.mask & (self.sigma > 0)
-        return np.column_stack([(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs])
-
-    def model(self, param):
-        """Returns 2D array with model given a parameter vector.
-
-        Argument::
-
-           param : 1D array
-              unpacks to (height, xcen, ycen, fwhm, beta) where:
-              'height' is the central height of the Moffat function;
-              'xcen' and 'ycen' are the ordinates of its centre in
-              unbinned CCD pixels with (1,1) at the left corner of the
-              physical imagine area; 'fwhm' is the FWHM in unbinned
-              pixels; 'beta' is the Moffat exponent.
-
-        """
-        height, xcen, ycen, fwhm, beta = param
-        return moffat(
-            self.x, self.y, 0., height, xcen, ycen, fwhm, beta,
-            self.xbin, self.ybin, self.ndiv
-        )
-
-
-class Mfit4:
-    """Object providing 'fun' and 'jac' methods for least_squares for
-    Mofffat + no background model with fixed FWHM.
-
-    """
-
-    def __init__(self, wind, read, gain, fwhm, ndiv):
-        """
-        Arguments:
-
-          wind  : Window
-             the Window containing data to fit
-
-          read  : float / array
-             readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
-
-          gain  : float / array
-             gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
-
-          fwhm  : float
-             the fixed FWHM to use
-
-          ndiv  : int
-             pixel sub-division factor. See comments in fitMoffat
-        """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
-        x = wind.x(np.arange(wind.nx))
-        y = wind.y(np.arange(wind.ny))
-        self.x, self.y = np.meshgrid(x, y)
-        self.data = wind.data
-        self.fwhm = fwhm
-        self.xbin = wind.xbin
-        self.ybin = wind.ybin
-        self.ndiv = ndiv
-        self.mask = _mask(wind, self.x, self.y)
-
-    def fun(self, param):
-        """
-        Returns 1D array of normalised residuals
-        """
-        mod = self.model(param)
-        diff = (self.data-mod)/self.sigma
-        ok = self.mask & (self.sigma > 0)
-        return diff[ok].ravel()
-
-    def jac(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        height, xcen, ycen, beta = param
-        derivs = dmoffat(
-            self.x, self.y, None, height, xcen, ycen, self.fwhm, beta,
-            self.xbin, self.ybin, self.ndiv, False, True
-        )[1:-1]
-        ok = self.mask & (self.sigma > 0)
-        return np.column_stack([(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs])
-
-    def model(self, param):
-        """Returns 2D array with model given a parameter vector.
-
-        Argument::
-
-           param : 1D array
-              unpacks to (height, xcen, ycen, beta) where: 'height' is
-              the central height of the Moffat function; 'xcen' and
-              'ycen' are the ordinates of its centre in unbinned CCD
-              pixels with (1,1) at the left corner of the physical
-              imagine area; 'beta' is the Moffat exponent.
-
-        """
-        height, xcen, ycen, beta = param
-        return moffat(
-            self.x, self.y, 0., height, xcen, ycen, self.fwhm,
-            beta, self.xbin, self.ybin, self.ndiv
         )
 
 ##########################################
