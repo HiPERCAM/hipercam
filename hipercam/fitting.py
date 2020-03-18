@@ -16,7 +16,7 @@ __all__ = (
 )
 
 def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-            beta, read, gain, thresh, ndiv=0):
+            beta, beta_max, beta_fix, read, gain, thresh, ndiv=0):
     """Fits a stellar profile in a :class:Window using either a 2D Gaussian
     or Moffat profile. This is a convenient wrapper of fitMoffat and
     fitGaussian because one often wants both options.
@@ -47,10 +47,16 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
         fwhm_min : float
             minimum FWHM, unbinned pixels.
 
-        fwhm_fix : float
+        fwhm_fix : bool
             fix the FWHM (i.e. don't fit it)
 
         beta : float [if method == 'm']
+            exponent of Moffat function
+
+        beta_max : float [if method == 'm']
+            fix beta (i.e. don't fit it)
+
+        beta_fix : bool [if method == 'm']
             exponent of Moffat function
 
         read : float | array
@@ -118,7 +124,7 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
             (esky, eheight, ex, ey, efwhm, ebeta), \
             (fit, X, Y, sigma, chisq, nok, nrej, npar,nfev) = fitMoffat(
                 wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-                beta, read, gain, thresh, ndiv
+                beta, beta_max, beta_fix, read, gain, thresh, ndiv
             )
 
     else:
@@ -211,9 +217,10 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
             initial value of Moffat exponent beta
 
         beta_max : float
-            maximum value to allow beta to go to. For large beta, Moffat profiles
-            degenerate into guassians. The routines tries with a free beta, but
-            restarts if beta goes above this value.
+            maximum value to allow beta to go to. For large beta,
+            Moffat profiles degenerate into guassians. The routines
+            tries with a free beta, but restarts if beta goes above
+            this value.
 
         beta_fix : bool
             fix beta at its initial value during fits. Should be a bit
@@ -282,19 +289,15 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
 
     """
 
-    # construct function object for Moffat fit.
-    if fwhm_fix and beta_fix:
-        mode = 4
-    elif fwhm_fix:
-        mode = 2
-    elif beta_fix:
-        mode = 3
-    else:
-        mode = 1
-    if sky is None:
-        mode += 4
+    if fwhm < fwhm_min or beta > beta_max:
+        raise HipercamError('fwhm and/or beta out of range')
 
-    mfit = Mfit(wind, read, gain, mode, fwhm, beta)
+    # construct function object for Moffat fit. First the mode.
+    mode = '' if sky is None else 's'
+    mode = mode if fwhm_fix else mode + 'f'
+    mode = mode if beta_fix else mode + 'b'
+    mfit = Mfit(wind, read, gain, ndiv, mode, fwhm, beta)
+
     mode_switch = False
 
     while True:
@@ -302,8 +305,8 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
         # retrieve current fit mode
         mode = mfit.mode
 
-        # Rejection loop. There is a break statement at the end of the loop
-        # if no pixels have been rejected.
+        # Rejection loop. There is a break statement at the end of the
+        # loop if no pixels have been rejected.
 
         # set parameters
         param = mfit.set_par(sky, height, xcen, ycen, fwhm, beta)
@@ -328,114 +331,59 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
         skyf, heightf, xf, yf, fwhmf, betaf = mfit.get_par(param)
         fwhmf = abs(fwhmf)
 
-
-        if betaf > beta_max and \
-           (mode == 1 or mode == 3 or mode == 5 or mode == mfit) and betaf > beta_max:
+        if mode.find('b') > -1 and betaf > beta_max:
             # switch to fixed beta fit
-            mfit.set_mode(mfit.mode+2, fwhm, beta_max)
-            # switch to fixed beta fit
-            mfit.set_mode(mfit.mode+2, fwhm, beta_max)
+            beta = beta_max
+            mfit.set_mode(mode.replace('b',''), fwhm, beta)
+            
+        elif mode.find('f') > -1 and fwhmf < fwhm_min:
+            # switch to fixed fwhm fit
+            mfit.set_mode(mode.replace('f',''), fwhm_min, beta)
 
-        elif (mfit.mode == 1 or mfit.mode == 5) and betaf > beta_max:
-            # switch to fixed beta fit
-            mfit.set_mode(mfit.mode+2, fwhm, beta_max)
+        else:
 
-
-        if fwhmf > fwhm_min and :
-        fit = Window(wind, mfit.model(param))
-            # Free fit is OK
+            # no mode switch, compute fit
+            fit = Window(wind, mfit.model(param))
 
             covs = np.diag(covar)
             if (covs < 0).any():
                 raise HipercamError('Negative covariance in fitMoffat')
-            if sky is None:
-                    heightfe, xfe, yfe, \
-                        fwhmfe, betafe = np.sqrt(covs)
-                else:
-                    skyfe, heightfe, xfe, yfe, \
-                        fwhmfe, betafe = np.sqrt(covs)
 
-            else:
+            # compute chi**2 and number of OK points
+            ok = mfit.mask & (mfit.sigma > 0)
+            resid = (wind.data - fit.data) / mfit.sigma
+            chisq = (resid[ok]**2).sum()
+            nok1 = len(resid[ok])
+            sfac = np.sqrt(chisq/nok1)
 
-                # fall back to fixed FWHM
-                mfit2.fwhm = fwhm_min
-                if sky is None:
-                    param = (height, xcen, ycen, beta)
-                else:
-                    param = (sky, height, xcen, ycen, beta)
+            # reject any above the defined threshold
+            mfit.sigma[ok & (np.abs(resid)> sfac*thresh)] *= -1
 
-                # carry out fit
-                res = least_squares(
-                    mfit2.fun, param, jac=mfit2.jac, method='lm',
-                    max_nfev=max_nfev
-                )
-                if not res.success:
-                    raise HipercamError(res.message)
-                J = np.matrix(res.jac)
-                try:
-                    covar = (J.T*J).I
-                except np.linalg.LinAlgError as err:
-                    raise HipercamError(err)
-                soln = res.x
+            # check whether any have been rejected
+            ok = mfit.mask & (mfit.sigma > 0)
+            nok = len(mfit.sigma[ok])
 
-                # process results
-                fit = Window(wind, mfit2.model(soln))
-                if sky is None:
-                    heightf, xf, yf, betaf = soln
-                else:
-                    skyf, heightf, xf, yf, betaf = soln
-
-                covs = np.diag(covar)
-                if (covs < 0).any():
-                    raise HipercamError('Negative covariance in fitMoffat')
-                if sky is None:
-                    heightfe, xfe, yfe, betafe = np.sqrt(covs)
-                else:
-                    skyfe, heightfe, xfe, yfe, betafe = np.sqrt(covs)
-                fwhmf, fwhmfe = fwhm_min, -1
-
-        # now look for bad outliers
-        ok = mfit.mask & (mfit.sigma > 0)
-        resid = (wind.data - fit.data) / mfit1.sigma
-        chisq = (resid[ok]**2).sum()
-        nok1 = len(resid[ok])
-        sfac = np.sqrt(chisq/nok1)
-
-        # reject any above the defined threshold
-        mfit1.sigma[ok & (np.abs(resid)> sfac*thresh)] *= -1
-
-        # check whether any have been rejected
-        ok = mfit1.mask & (mfit1.sigma > 0)
-        nok = len(mfit1.sigma[ok])
-        if nok < nok1:
-            # some pixels have been rejected
-            mfit2.sigma = mfit1.sigma
-        else:
-            # no more pixels have been rejected.  calculate how many have
-            # been, re-scale the uncertainties to reflect the actual chi**2
-            nrej = mfit1.sigma.size - nok
-            if sky is not None:
-                skyfe *= sfac
-            heightfe *= sfac
-            xfe *= sfac
-            yfe *= sfac
-            if fwhmfe > 0:
-                fwhmfe *= sfac
-            betafe *= sfac
-            break
+            if nok == nok1:
+                # no more pixels have been rejected.  calculate how
+                # many have been, re-scale the uncertainties to
+                # reflect the actual chi**2
+                nrej = len(mfit.sigma[mfit.mask]) - nok
+                skyfe, heightfe, xfe, yfe, \
+                    fwhmfe, betafe = mfit.get_epar(sfac*np.sqrt(covs))
+                break
 
     # OK we are done.
     if sky is None:
         return (
             (heightf,xf,yf,fwhmf,betaf),
             (heightfe,xfe,yfe,fwhmfe,betafe),
-            (fit,mfit1.x,mfit1.y,mfit1.sigma,chisq,nok,nrej,len(soln),res.nfev)
+            (fit,mfit.x,mfit.y,mfit.sigma,chisq,nok,nrej,len(param),res.nfev)
         )
     else:
         return (
             (skyf,heightf,xf,yf,fwhmf,betaf),
             (skyfe,heightfe,xfe,yfe,fwhmfe,betafe),
-            (fit,mfit1.x,mfit1.y,mfit1.sigma,chisq,nok,nrej,len(soln),res.nfev)
+            (fit,mfit.x,mfit.y,mfit.sigma,chisq,nok,nrej,len(param),res.nfev)
         )
 
 
@@ -570,10 +518,12 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
          Moffat exponent
 
       xbin : int
-         X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
+         X-size of pixels in terms of unbinned pixels, i.e. the
+         binning factor in X
 
       ybin : int
-         Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
+         Y-size of pixels in terms of unbinned pixels, i.e. the
+         binning factor in Y
 
       ndiv : int
          Parameter controlling treatment of sub-pixellation. If > 0, every
@@ -594,9 +544,10 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
          compute derivative wrt beta (or not). If False, derivative with respect
          to beta will not be computed.
 
-    Returns:: in all cases a 6-element tuple is returned, but depending upon the comp flags
-    only the first 4, 5 or 6 elements may be useful. 6-elements always come back because this
-    helps the numba just-in-time compiler function better.
+    Returns:: in all cases a 6-element tuple is returned, but
+    depending upon the comp flags only the first 4, 5 or 6 elements
+    may be useful. 6-elements always come back because this helps the
+    numba just-in-time compiler function better.
 
     """
     tbeta = max(0.01, beta)
@@ -639,8 +590,9 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
                         save1 = height*denom**(-tbeta-1)
                         save2 = save1*rsq
 
-                        # derivatives. beta is a bit complicated because it appears directly
-                        # through the exponent but also indirectly through alpha
+                        # derivatives. beta is a bit complicated
+                        # because it appears directly through the
+                        # exponent but also indirectly through alpha
                         dh = denom**(-tbeta)
                         dheight += dh
                         dxcen += (2*alpha*tbeta)*dx*save1
@@ -696,7 +648,8 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
 
         if comp_dfwhm and comp_dbeta:
             dfwhm = (2*alpha*tbeta/fwhm)*save2
-            dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
+            dbeta = -np.log(denom)*height*dheight + \
+                    (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
             return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
 
         elif comp_dfwhm:
@@ -704,7 +657,8 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
             return (dsky, dheight, dxcen, dycen, dfwhm, dfwhm)
 
         elif comp_dbeta:
-            dbeta = -np.log(denom)*height*dheight + (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
+            dbeta = -np.log(denom)*height*dheight + \
+                    (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
             return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
 
         else:
@@ -732,8 +686,10 @@ class Mfit:
        mode == 'f' : FWHM
        mode == '' : None of the above.
 
-    It is up to the user to set the values of fwhm and beta as attributes for mode != 1.
-    A method 'set_mode' provides some basic checks.
+    It is up to the user to set the values of fwhm and beta
+    appropriate to the mode. A method 'set_mode' provides some basic
+    checks.
+
     """
 
     def __init__(self, wind, read, gain, ndiv, mode, fwhm=None, beta=None):
@@ -765,17 +721,14 @@ class Mfit:
         self.mask = _mask(wind, self.x, self.y)
         self.set_mode(mode, fwhm, beta)
 
-
     def set_mode(self, mode, fwhm, beta):
-        """Sets the mode along with the fwhm and beta with some checks."""
-        
-        if mode not in ('sfb','sb','sf','s','fb','b','f',''):
+        """Set the operation mode with some light checks"""
+        if mode not in ('sfb', 'sb', 'sf', 's', 'fb', 'b', 'f', ''):
             raise HipercamError('invalid mode = {:s}'.format(mode))
-        
+
         if (mode.find('f') == -1 and self.fwhm is None) or \
            (mode.find('b') == -1 and self.beta is None):
             raise HipercamError('invalid mode / fwhm / beta combination')
-        
         self.mode = mode
         self.fwhm = fwhm
         self.beta = beta
@@ -824,6 +777,16 @@ class Mfit:
         """Sets parameters (sky, height, xcen, ycen, fwhm, beta) into correct
         vector for least_squares according to the operating mode
 
+        Argument::
+
+           param : 1D array
+              unpacks to (sky, height, xcen, ycen, fwhm, beta) where:
+              'sky' is the background per pixel; 'height' is the
+              central height of the Moffat function; 'xcen' and 'ycen'
+              are the ordinates of its centre in unbinned CCD pixels
+              with (1,1) at the left corner of the physical imagine
+              area; 'fwhm' is the FWHM in unbinned
+
         """
         if self.mode == 'sfb':
             return (sky, height, xcen, ycen, fwhm, beta)
@@ -843,6 +806,44 @@ class Mfit:
             return (height, xcen, ycen)
         else:
             raise HipercamError('invalid mode')
+
+    def get_epar(self, param):
+        """Gets parameter errors (skye, heighte, xcene, ycene, fwhme, betae)
+        passed a vector of errors, accounting for the operating
+        mode. All six are returned in each case, with fixed ones set =
+        -1
+
+        """
+        if self.mode == 'sfb':
+            skye, heighte, xcene, ycene, fwhme, betae = param
+        elif self.mode == 'sb':
+            skye, heighte, xcene, ycene, betae = param
+            fwhme = -1.
+        elif self.mode == 'sf':
+            skye, heighte, xcene, ycene, fwhme = param
+            betae = -1.
+        elif self.mode == 's':
+            skye, heighte, xcene, ycene = param
+            fwhme = -1.
+            betae = -1.
+        elif self.mode == 'fb':
+            heighte, xcene, ycene, fwhme, betae = param
+            skye = -1.
+        elif self.mode == 'b':
+            heighte, xcene, ycene, betae = param
+            skye = -1.
+            fwhme = -1.
+        elif self.mode == 'f':
+            heighte, xcene, ycene, fwhme = param
+            skye = -1.
+            betae = -1.
+        elif self.mode == '':
+            heighte, xcene, ycene = param
+            skye = -1.
+            fwhme = -1.
+            betae = -1.
+
+        return (skye, heighte, xcene, ycene, fwhme, betae)
 
     def fun(self, param):
         """
@@ -868,17 +869,13 @@ class Mfit:
         # work out which derivatives to bother with
         if self.mode == 'sfb':
             inds = (0,1,2,3,4,5)
-        elif self.mode == 'sb':
-            inds = (0,1,2,3,4)
-        elif self.mode == 'sf':
+        elif self.mode == 'sb' or self.mode == 'sf':
             inds = (0,1,2,3,4)
         elif self.mode == 's':
             inds = (0,1,2,3)
-        elif self.mode == 'fb'
+        elif self.mode == 'fb':
             inds = (1,2,3,4,5)
-        elif self.mode == 'b':
-            inds = (1,2,3,4)
-        elif self.mode == 'f':
+        elif self.mode == 'b' or self.mode == 'f':
             inds = (1,2,3,4)
         elif self.mode == '':
             inds = (1,2,3)
@@ -889,7 +886,9 @@ class Mfit:
         )
 
         ok = self.mask & (self.sigma > 0)
-        return np.column_stack([(-deriv[ind][ok]/self.sigma[ok]).ravel() for ind in inds])
+        return np.column_stack(
+            [(-derivs[ind][ok]/self.sigma[ok]).ravel() for ind in inds]
+        )
 
     def model(self, param):
         """
@@ -898,11 +897,13 @@ class Mfit:
         Argument::
 
            param : 1D array
-              unpacks to (sky, height, xcen, ycen, fwhm, beta) where:
-              'sky' is the background per pixel; 'height' is the central
-              height of the Moffat function; 'xcen' and 'ycen' are the ordinates
-              of its centre in unbinned CCD pixels with (1,1) at the left
-              corner of the physical imagine area; 'fwhm' is the FWHM in unbinned
+              parameter vector, with values that depend upon the mode,
+              but could include some or all of (sky, height, xcen, ycen,
+              fwhm, beta) where 'sky' is the background per pixel;
+              'height' is the central height of the Moffat function;
+              'xcen' and 'ycen' are the ordinates of its centre in
+              unbinned CCD pixels with (1,1) at the left corner of the
+              physical imaging area; 'fwhm' is the FWHM in unbinned
               pixels; 'beta' is the Moffat exponent.
         """
         sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
