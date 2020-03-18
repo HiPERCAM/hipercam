@@ -80,10 +80,8 @@ def rupdate(args=None):
                     # Insert modified version and extra lines which go into the 'general'
                     # section along with the version number.
                     lines.append(line)
-                    lines.append('\n# The next section was automatically added by rupdate to update\n')
-                    lines.append('# from an old version of reduce file.\n\n')
+                    lines.append('\n# Next line was automatically added by rupdate\n')
                     lines.append('skipbadt = no\n\n')
-                    lines.append('# End of added section\n')
 
                     # record version in case we need other actions later
                     nversion = 1
@@ -98,10 +96,26 @@ def rupdate(args=None):
                     # record version in case we need other actions later
                     nversion = 2
 
+                elif version == '20200223':
+                    # update version number
+                    line = ('version = {:s} # must be'
+                            ' compatible with the'
+                            ' version in reduce\n').format(hcam.REDUCE_FILE_VERSION)
+                    lines.append(line)
+
+                    # record version in case we need other actions later
+                    nversion = 3
+
                 else:
                     print('Version = {:s} not recognised'.format(version))
                     print('Aborting update; nothing changed.')
                     exit(1)
+
+            elif line.startswith('fit_fwhm_min ='):
+                if version <= 3:
+                    lines.append(line)
+                    lines.append('\n# Next line was automatically added by rupdate\n')
+                    lines.append('fit_fwhm_max = 1000 # Maximum FWHM, unbinned pixels\n')
 
             else:
                 # Default action is just to store save the line

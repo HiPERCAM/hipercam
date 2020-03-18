@@ -24,7 +24,7 @@ __all__ = ['genred',]
 def genred(args=None):
     """``genred apfile rfile comment bias flat dark linear [inst skipbadt
     ncpu extendx ccd location smoothfwhm method beta betamax fwhm
-    fwhmmin searchwidth thresh hminref hminnrf rfac rmin rmax sinner
+    fwhmmin fwhmmax searchwidth thresh hminref hminnrf rfac rmin rmax sinner
     souter scale psfgfac psfwidth psfpostweak]``
 
     Generates a reduce file as needed by |reduce| or |psf_reduce|. You
@@ -143,7 +143,10 @@ def genred(args=None):
            the default FWHM to use when fitting [unbinned pixels].
 
         fwhmmin : float [hidden]
-           the default FWHM to use when fitting [unbinned pixels].
+           the minimum FWHM to allow when fitting [unbinned pixels].
+
+        fwhmmax : float [hidden]
+           the maximum FWHM to allow when fitting [unbinned pixels].
 
         searchwidth : int [hidden]
            half width in (binned) pixels for the target searches
@@ -270,11 +273,12 @@ def genred(args=None):
         cl.register('toffset', Cline.LOCAL, Cline.HIDE)
         cl.register('smoothfwhm', Cline.LOCAL, Cline.HIDE)
         cl.register('fft', Cline.LOCAL, Cline.HIDE)
+        cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('beta', Cline.LOCAL, Cline.HIDE)
         cl.register('betamax', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('method', Cline.LOCAL, Cline.HIDE)
         cl.register('fwhmmin', Cline.LOCAL, Cline.HIDE)
+        cl.register('fwhmmax', Cline.LOCAL, Cline.HIDE)
         cl.register('searchwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('fitwidth', Cline.LOCAL, Cline.HIDE)
         cl.register('maxshift', Cline.LOCAL, Cline.HIDE)
@@ -473,7 +477,11 @@ warn = 1 60000 64000
         )
 
         fwhm_min = cl.get_value(
-            'fwhmmin','minimum FWHM, unbinned pixels', 1.5, 0.
+            'fwhmmin','minimum FWHM, unbinned pixels', 2, 0.
+        )
+
+        fwhm_max = cl.get_value(
+            'fwhmmax','maximum FWHM, unbinned pixels', 100., fwhm_min
         )
 
         search_half_width = cl.get_value(
@@ -771,8 +779,8 @@ warn = 1 60000 64000
         fout.write(
             TEMPLATE.format(
                 version=hcam.REDUCE_FILE_VERSION, apfile=apfile,
-                fwhm=fwhm, fwhm_min=fwhm_min, extraction=extraction,
-                bias=bias, flat=flat, dark=dark,
+                fwhm=fwhm, fwhm_min=fwhm_min, fwhm_max=fwhm_max,
+                extraction=extraction, bias=bias, flat=flat, dark=dark,
                 smooth_fwhm=smooth_fwhm, linear=linear,
                 light_plot=light_plot, position_plot=position_plot,
                 transmission_plot=transmission_plot, seeing_plot=seeing_plot,
@@ -973,9 +981,10 @@ search_smooth_fft = {smooth_fft} # use FFTs for smoothing, 'yes' or 'no'.
 
 fit_method = {profile_type} # gaussian or moffat
 fit_beta = {beta:.1f} # Moffat exponent
-fit_beta_max = {beta_max:.1f} # max Moffat expt for later fits
+fit_beta_max = {beta_max:.1f} # max Moffat expt
 fit_fwhm = {fwhm:.1f} # FWHM, unbinned pixels
 fit_fwhm_min = {fwhm_min:.1f} # Minimum FWHM, unbinned pixels
+fit_fwhm_max = {fwhm_max:.1f} # Maximum FWHM, unbinned pixels
 fit_ndiv = 0 # sub-pixellation factor
 fit_fwhm_fixed = no # Might want to set = 'yes' for defocussed images
 fit_half_width = {fit_half_width:d} # for fit, unbinned pixels
