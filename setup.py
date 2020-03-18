@@ -88,8 +88,10 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['sep','numpy','astropy','matplotlib','requests',
-                      'cython','numba','websocket-client'],
+    install_requires=[
+        'sep','numpy','astropy','matplotlib','requests',
+        'numba','websocket-client'
+    ],
 
     # need numpy version 1.12
 

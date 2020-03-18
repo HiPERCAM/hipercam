@@ -14,16 +14,19 @@ you get these, or at the very least trm.pgplot, installed first (you
 will very likely have several of them already). Most of these are
 available using 'pip', and if you can't get your sys admin to install
 them for you, I recommend you install them in your own account (--user
-option on pip). Note that some of them use others, e.g. 'astropy' uses
-matplotlib, numpy and scipy, so if you install it, you will have the
-others as well. If you install with 'pip' (which you may have to
-specify as 'pip3' if the python2.XX version of pip is your default),
-many of these may be installed for you by pip as part of the process.
+option on pip), if they are not already available as packages on your
+O/S (e.g. python3-Cython). Note that some of them use others,
+e.g. 'astropy' uses matplotlib, numpy and scipy, so if you install it,
+you will have the others as well. If you install with 'pip' (which you
+may have to specify as 'pip3' if the python2.XX version of pip is your
+default), many of these may be installed for you by pip as part of the
+process, but you should install Cython for sure because setup.py needs
+it to run.
 
   astropy :
          astronomical Python package with lots of useful stuff.
 
-  cython :
+  Cython :
          C-extensions for Python. Widely used package used to interface
          to C-libraries and to enable faster code when critical.
 
@@ -42,7 +45,8 @@ many of these may be installed for you by pip as part of the process.
          `numpy.flip`.
 
   requests :
-         nicest http request module. It may well be installed.
+         nicest http request module. It may well be installed
+	 already.
 
   scipy :
          Scientific software for Python, closely linked to numpy.
@@ -66,7 +70,9 @@ many of these may be installed for you by pip as part of the process.
          trm.pgplot is not to be confused with "ppgplot" which although
          very similar, is a more hand-crafted version with some
          differences in the calls. Once you have cloned it, you can
-         enter trm-pgplot and install with pip
+         enter trm-pgplot and install with pip, but make sure to set
+	 the enviroment variable PGPLOT_PNG to "true" or "false" first,
+	 according to whether yo installed the PNG drivers with PGPLOT.
 
   websocket-client :
          for talking to the hipercam server.
