@@ -160,7 +160,7 @@ def ltimes(args=None):
             time, tinfo = tdata
             ts = Time(time.mjd, format='mjd', precision=tdigit)
             print(
-                'Frame {:d}, HMS = {:s} [{:s}], exp = {:.5f}, MJD = {:.10f}'.format(
+                'Frame {:d}, HMS = {:s} [{:s}], exp = {:.5f}, MJD = {:.12f}'.format(
                     nframe, ts.hms_custom, 'OK' if time.good else 'NOK',
                     time.expose, time.mjd)
             )
@@ -171,7 +171,7 @@ def ltimes(args=None):
             ts = Time(time.mjd, format='mjd', precision=tdigit)
             bts = Time(time.mjd, format='mjd', precision=tdigit)
             print(
-                'Frame {:d}, HMS = {:s} [{:s}], exp = {:.5f}, MJD = {:.9f}'.format(
+                'Frame {:d}, HMS = {:s} [{:s}], exp = {:.5f}, MJD = {:.12f}'.format(
                     nframe, ts.hms_custom, 'OK' if time.good else 'NOK',
                     time.expose, time.mjd)
             )
