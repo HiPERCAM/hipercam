@@ -1289,8 +1289,8 @@ class Rtime (Rhead):
     Iterator class to enable swift reading of Ultracam times.
     """
     def __init__(self, run, nframe=1, server=False):
-        """Connects to a raw data file for reading. The file is kept open.  The file
-        pointer is set to the start of frame nframe.
+        """Connects to a raw data file for reading. The file is kept open.
+        The file pointer is set to the start of frame nframe.
 
         Arguments::
 
@@ -1304,7 +1304,7 @@ class Rtime (Rhead):
               True/False for server vs local disk access
 
         """
-        super().__init__(self, run, server)
+        super().__init__(run, server)
         if self.isPonoff():
             raise PowerOnOffError('attempted to read a power on/off')
 
@@ -1389,7 +1389,7 @@ class Rtime (Rhead):
           nframe -- frame number to get, starting at 1. 0 for the last
                   (complete) frame.
 
-        See utimer for gets returned by this.
+        See utimer for what gets returned by this.
         """
 
         # position read pointer
@@ -1445,7 +1445,7 @@ def utimer(tbytes, rhead, fnum):
     Returns (time,info,blueTime,badBlue) for ULTRACAM or (time,info) for
     ULTRASPEC
 
-     time : Time
+     time : Utime
        the time determined
 
      info : dict
