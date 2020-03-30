@@ -18,6 +18,7 @@ from .hfilter import hfilter
 from .hlogger import hlogger
 from .hls import hls
 from .hplot import hplot
+from .ltimes import ltimes
 from .ltrans import ltrans
 from .makebias import makebias
 from .makedark import makedark
@@ -30,7 +31,6 @@ from .rupdate import rupdate
 from .setaper import setaper
 from .setdefect import setdefect
 from .stats import stats
-from .times import times
 from .mstats import mstats
 from .pfolder import pfolder
 from .uls import uls
@@ -45,12 +45,11 @@ __all__ = [ \
             'div',
             'genred', 'grab',
             'hist', 'hfilter', 'hlog2fits', 'hlogger', 'hls', 'hplot',
-            'ltrans',
+            'ltimes', 'ltrans',
             'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
             'pfolder', 'plog',
             'redanal', 'reduce', 'register', 'rtplot', 'rupdate',
             'setaper', 'setdefect', 'splice', 'stats', 'sub',
-            'times',
             'uls',
         ]
 
