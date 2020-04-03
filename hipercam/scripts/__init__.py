@@ -38,6 +38,7 @@ from .fits2hcm import fits2hcm
 from .hlog2fits import hlog2fits
 from .redanal import redanal
 from .splice import splice
+from .tbytes import tbytes
 
 __all__ = [ \
             'add', 'averun',
@@ -50,6 +51,7 @@ __all__ = [ \
             'pfolder', 'plog',
             'redanal', 'reduce', 'register', 'rtplot', 'rupdate',
             'setaper', 'setdefect', 'splice', 'stats', 'sub',
+            'tbytes',
             'uls',
         ]
 

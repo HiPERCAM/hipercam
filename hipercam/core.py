@@ -8,7 +8,7 @@ import numpy as np
 
 __all__ = (
     'FIELD', 'HCAM', 'LIST', 'APER', 'HRAW', 'RED', 'LOG', 
-    'DFCT', 'SEP',
+    'DFCT', 'SEP', 'TBTS',
     'HipercamError', 'HipercamWarning', 'DMINS',
     'CNAMS', 'CIS', 'version',
     'gregorian_to_mjd', 'mjd_to_gregorian', 'fday_to_hms',
@@ -36,6 +36,7 @@ RED = '.red'
 LOG = '.log'
 DFCT = '.dft'
 SEP = '.sep'
+TBTS = '.tbts'
 
 # number of minutes in a day
 DMINS = 1440.

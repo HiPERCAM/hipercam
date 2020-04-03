@@ -165,6 +165,7 @@ setup(
             'splice=hipercam.scripts.splice:splice',
             'stats=hipercam.scripts.stats:stats',
             'sub=hipercam.scripts.arith:sub',
+            'tbytes=hipercam.scripts.tbytes:tbytes',
             'uls=hipercam.scripts.uls:uls',
         ],
     },
