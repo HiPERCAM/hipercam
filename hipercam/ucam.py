@@ -1453,25 +1453,37 @@ def utimer(tbytes, rhead, fnum):
        without breaking code. Currently returns values for the
        following keys:
 
-         nsat : number of satellites (if set)
+         nsat : int
+             number of satellites (if set)
 
-         format : the format integer used to translate the timing bytes
+         format : int
+             the format integer used to translate the timing bytes
 
-         vclock_frame : vertical clocking time for a whole frame [ULTRACAM only]
+         vclock_frame : float
+             vertical clocking time for a whole frame [ULTRACAM only]
 
-         whichRun : special case run identifier. MAY2002 or nothing
+         whichRun : str
+             special case run identifier. MAY2002 or nothing
 
-         defTstamp : whether the "default" time stamping cycle was thought to apply
-         gps : the raw GPS time associated with the frame, no corrections applied
-         frameError : was there a frame numbering clash
+         defTstamp : bool
+             whether the "default" time stamping cycle was thought to apply
 
-         midnightCorr : was the midnight bug correction applied
+         gps : float
+             the raw GPS time associated with the frame, no corrections applied (MJD)
+
+         frameError : bool
+             was there a frame numbering clash
+
+         midnightCorr : bool
+             was the midnight bug correction applied
 
      ULTRACAM only:
 
-     blueTime : different time for the blue frames of ULTRACAM for nblue > 1
+         blueTime : Utime
+             different time for the blue frames of ULTRACAM for nblue > 1
 
-     badBlue : blue frame is bad for nblue > 1 (nblue-1 out nblue are bad)
+         badBlue : bool
+             blue frames can be bad for nblue > 1 (nblue-1 out of nblue are bad)
 
     """
 
