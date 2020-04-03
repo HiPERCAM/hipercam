@@ -217,16 +217,19 @@ def averun(args=None):
         if trim:
             args = [
                 None,'prompt',source,run,'yes',
-                str(first),str(last),str(twait),
-                str(tmax),'yes',str(ncol),str(nrow),
+                str(first),str(last),
+                'yes',str(ncol),str(nrow),
+                str(twait),str(tmax),
                 'none','f32'
             ]
         else:
             args = [
                 None,'prompt',source,run,'yes',
-                str(first),str(last),str(twait),
-                str(tmax),'no','none','f32'
+                str(first),str(last),'no',
+                str(twait),str(tmax),
+                'none','f32'
             ]
+        print('arg =',args)
         flist = hcam.scripts.grab(args)
 
     try:

@@ -136,8 +136,8 @@ def makebias(args=None):
 
     args = [
         None,'prompt',source,run,'yes',
-        str(first),str(last),str(twait),
-        str(tmax),'no','none','f32'
+        str(first),str(last),'no',str(twait),
+        str(tmax),'none','f32'
     ]
     flist = hcam.scripts.grab(args)
 

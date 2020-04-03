@@ -22,8 +22,8 @@ __all__ = ['times',]
 def ltimes(args=None):
     """``ltimes [source] run first last [twait tmax tdigit edigit]``
 
-    Lists timing information from a run in machine-readable CSV
-    style. Integer status flags are used, 1=OK, 0=not OK.
+    Lists timing information from a run in machine-readable space-separated
+    column style. Integer status flags are used, 1=OK, 0=not OK.
 
     For HiPERCAM, the following items are listed: (1) the frame
     number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
@@ -43,6 +43,13 @@ def ltimes(args=None):
     as a UTC string, (10) status flag of the blue data, which reflects
     the "nblue" option where only some of the blue frames are valid
     data.
+
+    For ULTRASPEC, the following items are listed: (1) the frame
+    number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
+    timestamp as a UTC string, (4) the mid-exposure time as an MJD,
+    (5) the mid-exposure time as a UTC string, (6) a status flag to
+    indicate whether the mid-exposure time is considered to be good,
+    (7) the exposure time in seconds.
 
     Parameters:
 
@@ -158,14 +165,14 @@ def ltimes(args=None):
             tstamp, tinfo, tflag = tdata
             tstamp.precision = tdigit
             print(
-                '{:d}, {.12f}, {:s}, {:s}'.format(
+                '{:d} {.12f} {:s} {:s}'.format(
                     nframe, tstamp.mjd, tstamp.iso, 'OK' if tflag else 'NOK'), end=''
             )
 
             message = ''
             for nccd, (mjd, exptime, flag) in enumerate(tinfo):
                 ts = Time(mjd, format='mjd', precision=tdigit)
-                message += ', {:d}, {:.12f}, {:s}, {:.{:d}f}, {:d}'.format(
+                message += ' {:d} {:.12f} {:s} {:.{:d}f} {:d}'.format(
                     nccd+1, mjd, ts.hms_custom, exptime, edigit, 1 if flag else 0
                 )
             print(message)
@@ -176,8 +183,8 @@ def ltimes(args=None):
             ts = Time(time.mjd, format='mjd', precision=tdigit)
             gps = Time(tinfo['gps'], format='mjd', precision=tdigit)
             print(
-                '{:d}, {:.12f}, {:s}, {:s}, {:d}, {:.5f}'.format(
-                    nframe, tinfo['gps'], gps.hms_custom, ts.hms_custom,
+                '{:d}, {:.12f} {:s} {:.12f} {:s} {:d} {:.5f}'.format(
+                    nframe, tinfo['gps'], gps.hms_custom, time.mjd, ts.hms_custom,
                     1 if time.good else 0, time.expose)
             )
 
@@ -188,7 +195,7 @@ def ltimes(args=None):
             gps = Time(tinfo['gps'], format='mjd', precision=tdigit)
             bts = Time(btime.mjd, format='mjd', precision=tdigit)
             print(
-                '{:d}, {:.12f}, {:s}, {:.12f}, {:s}, {:d}, {:.5f}, {:.12f}, {:s}, {:d}'.format(
+                '{:d} {:.12f} {:s} {:.12f} {:s} {:d} {:.5f} {:.12f} {:s} {:d}'.format(
                     nframe, tinfo['gps'], gps.hms_custom, time.mjd, ts.hms_custom, 1 if time.good else 0,
                     time.expose, btime.mjd, bts.hms_custom, 0 if bbad else 1)
             )

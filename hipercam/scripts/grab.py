@@ -95,6 +95,10 @@ def grab(args=None):
                       issued if loss of precision occurs; an exception will
                       be raised if the data are outside the range 0 to 65535.
 
+    .. Note::
+
+       |grab| is used by several other scripts such as |averun| so take great
+       care when changing anything to do with its input parameters.
     """
 
     command, args = utils.script_args(args)
