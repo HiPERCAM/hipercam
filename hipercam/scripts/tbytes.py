@@ -2,7 +2,6 @@ import sys
 import os
 
 import hipercam as hcam
-import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
@@ -60,13 +59,17 @@ def tbytes(args=None):
 
         run = cl.get_value('run', 'run name', 'run005')
 
+    ofile = os.path.basename(run) + hcam.TBTS
+    if os.path.exists(ofile):
+        print('File =',ofile,'already exists; tbytes aborted')
+        return
+    
     if source == 'hl':
 
-        with Rtbytes(run) as rtbytes:
-            while tbytes in rtbytes:
-                pass
-
-        raise NotImplementedError('Option hl not yet implemented')
+        with hcam.hcam.Rtbytes(run) as rtbytes:
+            with open(ofile,'wb') as fout:
+                for tbytes in rtbytes:
+                    fout.write(tbytes)
 
     elif source == 'ul':
 
@@ -75,11 +78,6 @@ def tbytes(args=None):
 
         if rhead.isPonoff():
             print(run,'is a power on/off and will be ignored.')
-            return
-
-        ofile = os.path.basename(run) + hcam.TBTS
-        if os.path.exists(ofile):
-            print('File =',ofile,'already exists; tbytes aborted')
             return
 
         ifile = run + '.dat'

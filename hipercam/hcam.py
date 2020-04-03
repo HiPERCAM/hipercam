@@ -1372,7 +1372,7 @@ class Rtbytes (Rhead):
 
         elif self.nframe > self.ntotal():
             # We have attempted to access a non-existent frame
-            return None
+            raise HendError('no more frames to access')
 
         else:
             # find the start of the timing data if necessary
@@ -1381,13 +1381,14 @@ class Rtbytes (Rhead):
 
             # read the timing data, skip forward to next set
             tbytes = self._ffile.read(self.ntbytes)
+            if len(tbytes) != self.ntbytes:
+                raise HendError('failed to read timing bytes')
             self._ffile.seek(self._framesize-self.ntbytes, 1)
 
         # update the internal frame counter
         self.nframe += 1
 
         return tbytes
-
 
 
 class Rtime (Rtbytes):
