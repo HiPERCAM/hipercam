@@ -568,7 +568,7 @@ class Utime:
         self.reason = reason
 
     def __repr__(self):
-        return 'Utime(mjd={:r}, expose={:r}, good={:r}, reason={:r})'.format(
+        return 'Utime(mjd={}, expose={}, good={}, reason={})'.format(
             self.mjd, self.expose, self.good, self.reason)
 
     def __str__(self):
