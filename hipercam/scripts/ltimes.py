@@ -3,10 +3,8 @@ import os
 import time
 
 import numpy as np
-import matplotlib.pyplot as plt
 from astropy.time import Time, TimeISO
 
-from trm.pgplot import *
 import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
@@ -165,8 +163,8 @@ def ltimes(args=None):
             tstamp, tinfo, tflag = tdata
             tstamp.precision = tdigit
             print(
-                '{:d} {.12f} {:s} {:s}'.format(
-                    nframe, tstamp.mjd, tstamp.iso, 'OK' if tflag else 'NOK'), end=''
+                '{:d} {:.12f} {:s} {:d}'.format(
+                    nframe, tstamp.mjd, tstamp.iso, 1 if tflag else 0), end=''
             )
 
             message = ''
@@ -196,8 +194,9 @@ def ltimes(args=None):
             bts = Time(btime.mjd, format='mjd', precision=tdigit)
             print(
                 '{:d} {:.12f} {:s} {:.12f} {:s} {:d} {:.5f} {:.12f} {:s} {:d}'.format(
-                    nframe, tinfo['gps'], gps.hms_custom, time.mjd, ts.hms_custom, 1 if time.good else 0,
-                    time.expose, btime.mjd, bts.hms_custom, 0 if bbad else 1)
+                    nframe, tinfo['gps'], gps.hms_custom, time.mjd, ts.hms_custom,
+                    1 if time.good else 0, time.expose, btime.mjd, bts.hms_custom,
+                    0 if bbad else 1)
             )
 
         # increment the frame
