@@ -29,8 +29,8 @@ from hipercam import (CCD, Group, MCCD, Window, Winhead, HRAW, HipercamError, He
 from hipercam.utils import add_extension
 
 __all__ = [
-    'Rhead', 'Rdata', 'Rtime', 'HCM_NXTOT', 'HCM_NYTOT',
-    'HCM_NPSCAN', 'HCM_NOSCAN'
+    'Rhead', 'Rdata', 'Rtime', 'Rtbytes',
+    'HCM_NXTOT', 'HCM_NYTOT', 'HCM_NPSCAN', 'HCM_NOSCAN'
 ]
 
 # Set the URL of the FileServer from the environment or default to localhost.
@@ -1417,6 +1417,119 @@ class Rtime (Rhead):
 
         # Return timing data
         return (tstamp, tuple(tinfo), tflag)
+
+class Rtbytes (Rhead):
+    """Callable, iterable object to returns timing bytes from HiPERCAM raw data files.
+
+    This is similar to Rdata and Rtime except it only reads the timing data
+    and does no processing at all, just returning the bytes.
+    """
+
+    def __init__(self, fname, nframe=1, server=False):
+        """Connects to a raw HiPERCAM FITS file for reading. The file is kept
+        open.  The Rdata object can then generate MCCD objects through being
+        called as a function or iterator.
+
+        Arguments::
+
+           fname : (string)
+              run name, e.g. 'run036'.
+
+           nframe : (int)
+              the frame number to read first [1 is the first]. This initialises an attribute
+              of the same name that is used when reading frames sequentially.
+
+           server : (bool)
+              True/False for server vs local disk access. Server access goes
+              through a websocket.  It uses a base URL taken from the
+              environment variable "HIPERCAM_DEFAULT_URL", or, if that is not
+              set, "ws://localhost:8007/".  The server here is Stu Littlefair's
+              Python-based server that defaults to port 8007.
+        """
+
+        # read the header
+        Rhead.__init__(self, fname, server)
+
+        # move to the start of the timing bytes
+        self.nframe = nframe
+        if not server:
+            self._ffile.seek(self._hbytes+self._framesize*self.nframe-self.ntbytes)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            return self.__call__()
+        except (HendError):
+            raise StopIteration
+
+    def __call__(self, nframe=None):
+        """Reads the timing data of one frame from the run the :class:`Rtime`
+        is attached to. If `nframe` is None, then it will read the frame it is
+        positioned at. If nframe is an integer > 0, it will try to read that
+        particular frame; if nframe == 0, it reads the last complete frame.
+        nframe == 1 gives the first frame.
+
+        Arguments::
+
+           nframe : int | none
+              frame number to get, starting at 1. 0 for the last (complete)
+              frame. 'None' indicates that the next frame is wanted.
+
+        Returns:: the timing bytes of the frame
+        """
+
+        # set the frame to be read and whether the file pointer needs to be
+        # reset
+        if nframe is None:
+            # just read whatever frame we are on
+            reset = False
+        else:
+            if nframe == 0:
+                # go for the last one
+                nframe = self.ntotal()
+
+            # update frame counter
+            reset = self.nframe != nframe
+            self.nframe = nframe
+
+        if self.server:
+            # define command to send to server
+            if reset:
+                # requires a seek as well as a read
+                data = json.dumps(dict(action='get_frame', frame_number=self.nframe))
+            else:
+                # just read next set of bytes
+                data = json.dumps(dict(action='get_next'))
+
+            # get data
+            self._ws.send(data)
+            raw_bytes = self._ws.recv()
+
+            if len(raw_bytes) == 0:
+                # if we are trying to access a file that has not yet been
+                # written, 0 bytes will be returned. In this case we return
+                # with None. NB we do not update self.nframe in this case.
+                return None
+
+            # extract the timing data
+            tbytes = raw_bytes[-self.ntbytes:]
+
+        elif self.nframe > self.ntotal():
+            # We have attempted to access a non-existent frame
+            return None
+
+        else:
+            # find the start of the timing data if necessary
+            if reset:
+                self._ffile.seek(self._hbytes+self._framesize*self.nframe-self.ntbytes)
+
+            # read the timing data, skip forward to next set
+            tbytes = self._ffile.read(self.ntbytes)
+            self._ffile.seek(self._framesize-self.ntbytes, 1)
+
+        return tbytes
 
 def decode_timing_bytes(tbytes):
     """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the

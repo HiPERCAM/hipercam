@@ -61,6 +61,11 @@ def tbytes(args=None):
         run = cl.get_value('run', 'run name', 'run005')
 
     if source == 'hl':
+
+        with Rtbytes(run) as rtbytes:
+            while tbytes in rtbytes:
+                pass
+
         raise NotImplementedError('Option hl not yet implemented')
 
     elif source == 'ul':
