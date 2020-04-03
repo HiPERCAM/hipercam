@@ -22,12 +22,27 @@ __all__ = ['times',]
 def ltimes(args=None):
     """``ltimes [source] run first last [twait tmax tdigit edigit]``
 
-    Lists timing information from a run. For each frame the associated GPS
-    timestamp is listed (UTC, date then HMS), and then for each CCD the CCD
-    number [1-5], the mid exposure time (UTC, HMS only), the exposure length
-    (seconds) and a status flag are listed in parentheses (). The status flag
-    is set by the NSKIP parameters for each CCD. Only the valid frames will
-    have status = 'T'.
+    Lists timing information from a run in machine-readable CSV
+    style. Integer status flags are used, 1=OK, 0=not OK.
+
+    For HiPERCAM, the following items are listed: (1) the frame
+    number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
+    timestamp as a UTC string, (4) a status flag, 0 or 1, then for
+    each CCD: (i) the CCD number [1-5], (ii) the mid exposure time as
+    an MJD, (iii) the mid-exposure time as a UTC string, (iv) the
+    exposure length (seconds), (v) a status flag (0 or 1), determined
+    by the NSKIP parameters for each CCD.
+
+    For ULTRACAM, the following items are listed: (1) the frame
+    number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
+    timestamp as a UTC string, (4) the red & green mid exposure time
+    as an MJD, (5) the red & green mid-exposure time as a UTC string,
+    (6) a status flag to indicate whether the mid-exposure time is
+    considered to be good, (7) the exposure time in seconds, (8) the
+    blue mid-exposure time as an MJD, (9) the blue mid-exposure time
+    as a UTC string, (10) status flag of the blue data, which reflects
+    the "nblue" option where only some of the blue frames are valid
+    data.
 
     Parameters:
 
@@ -143,15 +158,15 @@ def ltimes(args=None):
             tstamp, tinfo, tflag = tdata
             tstamp.precision = tdigit
             print(
-                'Frame {:d}, GPS = {:s} [{:s}]'.format(
-                    nframe, tstamp.iso, 'OK' if tflag else 'NOK'), end=''
+                '{:d}, {.12f}, {:s}, {:s}'.format(
+                    nframe, tstamp.mjd, tstamp.iso, 'OK' if tflag else 'NOK'), end=''
             )
 
             message = ''
             for nccd, (mjd, exptime, flag) in enumerate(tinfo):
                 ts = Time(mjd, format='mjd', precision=tdigit)
-                message += ', ({:d}, {:s}, {:.{:d}f}, {:s})'.format(
-                    nccd+1, ts.hms_custom, exptime, edigit, 'T' if flag else 'F'
+                message += ', {:d}, {:.12f}, {:s}, {:.{:d}f}, {:d}'.format(
+                    nccd+1, mjd, ts.hms_custom, exptime, edigit, 1 if flag else 0
                 )
             print(message)
 
@@ -159,21 +174,23 @@ def ltimes(args=None):
             # ULTRASPEC
             time, tinfo = tdata
             ts = Time(time.mjd, format='mjd', precision=tdigit)
+            gps = Time(tinfo['gps'], format='mjd', precision=tdigit)
             print(
-                'Frame {:d}, HMS = {:s} [{:s}], exp = {:.5f}, MJD = {:.12f}'.format(
-                    nframe, ts.hms_custom, 'OK' if time.good else 'NOK',
-                    time.expose, time.mjd)
+                '{:d}, {:.12f}, {:s}, {:s}, {:d}, {:.5f}'.format(
+                    nframe, tinfo['gps'], gps.hms_custom, ts.hms_custom,
+                    1 if time.good else 0, time.expose)
             )
 
         elif len(tdata) == 4:
             # ULTRACAM
-            time, tinfo,btime,bgood = tdata
+            time, tinfo, btime, bbad = tdata
             ts = Time(time.mjd, format='mjd', precision=tdigit)
-            bts = Time(time.mjd, format='mjd', precision=tdigit)
+            gps = Time(tinfo['gps'], format='mjd', precision=tdigit)
+            bts = Time(btime.mjd, format='mjd', precision=tdigit)
             print(
-                'Frame {:d}, HMS = {:s} [{:s}], exp = {:.5f}, MJD = {:.12f}'.format(
-                    nframe, ts.hms_custom, 'OK' if time.good else 'NOK',
-                    time.expose, time.mjd)
+                '{:d}, {:.12f}, {:s}, {:.12f}, {:s}, {:d}, {:.5f}, {:.12f}, {:s}, {:d}'.format(
+                    nframe, tinfo['gps'], gps.hms_custom, time.mjd, ts.hms_custom, 1 if time.good else 0,
+                    time.expose, btime.mjd, bts.hms_custom, 0 if bbad else 1)
             )
 
         # increment the frame
