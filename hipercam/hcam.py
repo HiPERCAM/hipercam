@@ -943,7 +943,7 @@ class Rdata (Rhead):
         # First the timing bytes. The frameCount starts from 0 so we
         # we add one to it
         frameCount, timeStampCount, years, day_of_year, hours, mins, \
-            seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
+            seconds, nanoseconds, nsats, synced = htimer(tbytes)
         frameCount += 1
 
         if self.server and \
@@ -1397,31 +1397,6 @@ class Rtime (Rtbytes):
     This is the same as Rtbytes except it interprets the bytes.
     """
 
-    def __init__(self, fname, nframe=1, server=False):
-        """Connects to a raw HiPERCAM FITS file for reading. The file is kept
-        open.  The Rdata object can then generate MCCD objects through being
-        called as a function or iterator.
-
-        Arguments::
-
-           fname : (string)
-              run name, e.g. 'run036'.
-
-           nframe : (int)
-              the frame number to read first [1 is the first]. This initialises an attribute
-              of the same name that is used when reading frames sequentially.
-
-           server : (bool)
-              True/False for server vs local disk access. Server access goes
-              through a websocket.  It uses a base URL taken from the
-              environment variable "HIPERCAM_DEFAULT_URL", or, if that is not
-              set, "ws://localhost:8007/".  The server here is Stu Littlefair's
-              Python-based server that defaults to port 8007.
-        """
-
-        # read the header
-        Rtbytes.__init__(self, fname, nframe, server)
-
     def __call__(self, nframe=None):
         """Reads the timing data of one frame from the run the :class:`Rtime`
         is attached to. If `nframe` is None, then it will read the frame it is
@@ -1452,7 +1427,7 @@ class Rtime (Rtbytes):
 
         # Interpret the timing bytes
         frameCount, timeStampCount, years, day_of_year, \
-            hours, mins, seconds, nanoseconds, nsats, synced = decode_timing_bytes(tbytes)
+            hours, mins, seconds, nanoseconds, nsats, synced = htimer(tbytes)
 
         tflag = nsats != -1 or synced != -1
         try:
@@ -1473,7 +1448,7 @@ class Rtime (Rtbytes):
         # Return timing data
         return (tstamp, tuple(tinfo), tflag)
 
-def decode_timing_bytes(tbytes):
+def htimer(tbytes):
     """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the
     3D FITS file.
 
