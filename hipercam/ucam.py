@@ -18,7 +18,7 @@ from astropy.io import fits
 from hipercam import (CCD, Group, MCCD, Window, Winhead, Header,
                       gregorian_to_mjd, mjd_to_gregorian, fday_to_hms)
 
-__all__ = ['Rhead', 'Rdata', 'Rtime']
+__all__ = ['Rhead', 'Rdata', 'Rtime', 'Rtbytes']
 
 # First come a set of constants to do with timing and various changes that
 # occurred to ULTRACAM over time.
@@ -156,6 +156,7 @@ class Rhead:
         self.framesize = int(node.getAttribute('framesize'))
         self.headerwords = int(node.getElementsByTagName('header_status')[0].getAttribute(
             'headerwords'))
+        self.ntbytes = 2*self.headerwords
 
         # Frame format and other detail.
         node = udom.getElementsByTagName('instrument_status')[0]
@@ -312,7 +313,7 @@ class Rhead:
 
         # Build up list of Winheads
         self.win = []
-        fsize = 2*self.headerwords
+        fsize = self.ntbytes
         if self.instrument == 'ULTRACAM':
             exposeTime = float(param['EXPOSE_TIME'])
             numexp = int(param['NO_EXPOSURES'])
@@ -545,6 +546,14 @@ class Rhead:
         """
         return self.mode == 'PONOFF'
 
+    # Want to run this as a context manager
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        if not self.server:
+            self.fp.close()
+
 class Utime:
     """
     Represents a time for a CCD. Four attributes::
@@ -651,14 +660,6 @@ class Rdata (Rhead):
             self.fp = open(self.run + '.dat', 'rb', buffering=0)
             if self.nframe: self.fp.seek(self.framesize*(self.nframe-1))
 
-    # Want to run this as a context manager
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        if not self.server:
-            self.fp.close()
-
     # and as an iterator.
     def __iter__(self):
         return self
@@ -758,11 +759,11 @@ class Rdata (Rhead):
                      ' length vs expected = {:d} vs {:d} bytes').format(
                          self.nframe, len(buff), self.framesize)
                 )
-            tbytes = buff[:2*self.headerwords]
+            tbytes = buff[:self.ntbytes]
         else:
             # If on disk, we can simply read the timing bytes alone
-            tbytes = self.fp.read(2*self.headerwords)
-            if len(tbytes) != 2*self.headerwords:
+            tbytes = self.fp.read(self.ntbytes)
+            if len(tbytes) != self.ntbytes:
                 self.fp.seek(0)
                 self.nframe = 1
                 raise UendError('failed to read timing bytes')
@@ -771,7 +772,7 @@ class Rdata (Rhead):
 
         # step to start of next frame
         if not self.server:
-            self.fp.seek(self.framesize-2*self.headerwords,1)
+            self.fp.seek(self.framesize-self.ntbytes,1)
 
         # move frame counter on by one
         self.nframe += 1
@@ -836,8 +837,8 @@ class Rdata (Rhead):
 
                 # Re-format into the timing bytes and unsigned 2
                 # byte int data buffer
-                tbytes = buff[:2*self.headerwords]
-                buff = np.fromstring(buff[2*self.headerwords:],dtype='uint16')
+                tbytes = buff[:self.ntbytes]
+                buff = np.fromstring(buff[self.ntbytes:],dtype='uint16')
 
             except urllib.error.HTTPError:
                 # when there is nothing there to read the request
@@ -848,8 +849,8 @@ class Rdata (Rhead):
 
         else:
             # read timing bytes
-            tbytes = self.fp.read(2*self.headerwords)
-            if len(tbytes) != 2*self.headerwords:
+            tbytes = self.fp.read(self.ntbytes)
+            if len(tbytes) != self.ntbytes:
                 self.fp.seek(0)
                 self.nframe = 1
                 raise UendError('failed to read timing bytes')
@@ -1283,11 +1284,12 @@ class Rdata (Rhead):
                 ' have not implemented anything for ' + self.instrument
             )
 
+class Rtbytes (Rhead):
+    """
+    Iterator class to enable swift reading of Ultracam timing bytes. See
+    also Rtime which translates these into times.
+    """
 
-class Rtime (Rhead):
-    """
-    Iterator class to enable swift reading of Ultracam times.
-    """
     def __init__(self, run, nframe=1, server=False):
         """Connects to a raw data file for reading. The file is kept open.
         The file pointer is set to the start of frame nframe.
@@ -1408,23 +1410,44 @@ class Rtime (Rhead):
                 )
 
             # have data. Re-format into the timing bytes and unsigned 2 byte int data buffer
-            tbytes = buff[:2*self.headerwords]
+            tbytes = buff[:self.ntbytes]
         else:
             # read timing bytes
-            tbytes = self.fp.read(2*self.headerwords)
-            if len(tbytes) != 2*self.headerwords:
+            tbytes = self.fp.read(self.ntbytes)
+            if len(tbytes) != self.ntbytes:
                 self.fp.seek(0)
                 self.nframe = 1
                 raise UendError('failed to read timing bytes')
 
             # step to start of next frame
-            self.fp.seek(self.framesize-2*self.headerwords,1)
-
-        tinfo = utimer(tbytes, self, self.nframe)
+            self.fp.seek(self.framesize-self.ntbytes,1)
 
         # move frame counter on by one
         self.nframe += 1
 
+        return tbytes
+
+class Rtime (Rtbytes):
+    """
+    Iterator class to enable swift reading of Ultracam times.
+    """
+
+    def __call__(self, nframe=None):
+        """
+        Returns timing information of frame nframe (starts from 1).
+
+        Arguments::
+
+          nframe -- frame number to get, starting at 1. 0 for the last
+                  (complete) frame.
+
+        See utimer for what gets returned by this.
+        """
+        tbytes = super().__call__(nframe)
+
+        # only extra thing: translate the timing data. Have to set the
+        # frame back by one since the Rtbytes call moves it on one
+        tinfo = utimer(tbytes, self, self.nframe-1)
         return tinfo
 
 def utimer(tbytes, rhead, fnum):
@@ -1440,7 +1463,7 @@ def utimer(tbytes, rhead, fnum):
         header of data file
 
      fnum : int
-        frame number we think we are on.
+        frame number we think we are on. Used to test the timing bytes.
 
     Returns (time,info,blueTime,badBlue) for ULTRACAM or (time,info) for
     ULTRASPEC
