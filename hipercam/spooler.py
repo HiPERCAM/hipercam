@@ -32,6 +32,7 @@ __all__ = (
     'SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
     'UcamDiskSpool', 'HcamListSpool', 'get_ccd_pars',
     'hang_about', 'HcamServSpool', 'HcamDiskSpool',
+    'UcamTbytesSpool', 'HcamTbytesSpool',
 )
 
 def rhcam(fname):
@@ -137,6 +138,34 @@ class UcamServSpool(SpoolerBase):
 
         """
         self._iter = ucam.Rdata(run, first, True)
+
+    def __exit__(self, *args):
+        self._iter.__exit__(args)
+
+    def __next__(self):
+        return self._iter.__next__()
+
+class UcamTbytesSpool(SpoolerBase):
+
+    """Provides an iterable context manager to loop through frames within
+    a raw ULTRACAM or ULTRASPEC disk file returning the timing bytes.
+    """
+
+    def __init__(self, run, first=1):
+        """Attaches the UcamDiskSpool to a run.
+
+        Arguments::
+
+           run : (string)
+
+              The run number, e.g. 'run003' or 'data/run004'.
+
+           first : (int)
+              The first frame to access.
+
+        """
+        self._iter = ucam.Rtbytes(run, first, False)
+        self.ntbytes = self._iter.ntbytes
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
@@ -273,6 +302,33 @@ class HcamServSpool(SpoolerBase):
     def __next__(self):
         return self._iter.__next__()
 
+class HcamTbytesSpool(SpoolerBase):
+
+    """Provides an iterable context manager to loop through frames within
+    a raw HiPERCAM file returning the timing bytes
+    """
+
+    def __init__(self, run, first=1):
+        """Attaches the HcamDiskSpool to a run.
+
+        Arguments::
+
+           run : (string)
+
+              The run number, e.g. 'run003' or 'data/run004'.
+
+           first : (int)
+              The first frame to access.
+
+        """
+        self._iter = hcam.Rtbytes(run, first, False)
+        self.ntbytes = self._iter.ntbytes
+
+    def __exit__(self, *args):
+        self._iter.__exit__(args)
+
+    def __next__(self):
+        return self._iter.__next__()
 
 def data_source(source, resource, first=1, **kwargs):
     """Returns a context manager needed to run through a set of exposures.
