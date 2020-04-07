@@ -54,10 +54,12 @@ def atbytes(args=None):
             if fname.endswith('.fits'):
                 source = 'hl'
                 run = os.path.join('..',fname [:-5])
+                tfile = fname [:-5] + hcam.TBTS
             else:
                 source = 'ul'
                 run = os.path.join('..',fname [:-4])
-            tfile = run + hcam.TBTS
+                tfile = fname [:-4] + hcam.TBTS
+
             if os.path.exists(tfile):
                 print(tfile,'already exists; will not re-make')
             else:
@@ -66,6 +68,8 @@ def atbytes(args=None):
                     hcam.scripts.tbytes(args)
                 except hcam.ucam.PowerOnOffError:
                     print('ignoring',run,'which is a Power On or Off')
+                except FileNotFoundError:
+                    print('ignoring run',run,'as no data were found')
 
         print('Finished',ndir)
 
