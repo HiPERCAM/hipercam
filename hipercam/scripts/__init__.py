@@ -5,6 +5,7 @@ inclusion in the documentation and for portability
 """
 
 from .arith import add, div, mul, sub
+from .atbytes import atbytes
 from .averun import averun
 from .carith import cadd, cdiv, cmul, csub
 from .combine import combine

@@ -124,6 +124,7 @@ setup(
         'console_scripts' : [
             'add=hipercam.scripts.arith:add',
             'aligntool=hipercam.scripts.aligntool:aligntool',
+            'atbytes=hipercam.scripts.atbytes:atbytes',
             'averun=hipercam.scripts.averun:averun',
             'cadd=hipercam.scripts.carith:cadd',
             'cdiv=hipercam.scripts.carith:cdiv',
