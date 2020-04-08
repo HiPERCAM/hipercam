@@ -151,7 +151,7 @@ class UcamTbytesSpool(SpoolerBase):
     a raw ULTRACAM or ULTRASPEC disk file returning the timing bytes.
     """
 
-    def __init__(self, run, first=1):
+    def __init__(self, run, first=1, old=False):
         """Attaches the UcamDiskSpool to a run.
 
         Arguments::
@@ -164,7 +164,7 @@ class UcamTbytesSpool(SpoolerBase):
               The first frame to access.
 
         """
-        self._iter = ucam.Rtbytes(run, first, False)
+        self._iter = ucam.Rtbytes(run, first, False, old)
         self.ntbytes = self._iter.ntbytes
 
     def __exit__(self, *args):

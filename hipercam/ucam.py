@@ -479,8 +479,8 @@ class Rhead:
 
         if fsize != self.framesize:
             raise ValueError(
-                ('file = {:s}. Framesize = {:s} clashes with calculated '
-                 'value = {:s}').format(self.run,self.framesize,fsize)
+                ('file = {:s}. Framesize = {:d} clashes with calculated '
+                 'value = {:d}').format(self.run,self.framesize,fsize)
             )
 
         # nasty stuff coming up ...
@@ -627,16 +627,17 @@ class Rdata (Rhead):
 
         Arguments::
 
-           run : (string)
+           run : string
               run name, e.g. 'run036'.
 
-           nframe : (int)
-              frame number for first read, starting at 1 as the first.
+           nframe : int
+              frame number for first read, starting at 1 as the first. 0
+              means access most recet frame.
 
-           server : (bool)
+           server : bool
               True/False for server vs local disk access
 
-           ccd : (bool)
+           ccd : bool
               flag to read data as a :class:`trm.ultracam.CCD` rather than a
               :class:`trm.ultracam.MCCD` object if only one CCD per
               frame. Default is always to read as an MCCD.
@@ -656,8 +657,9 @@ class Rdata (Rhead):
         if not self.server:
             # If it's not via a server, then we must access a local disk
             # file. We need random access hence buffering=0. Move the pointer
-            # if we are not on frame 1.
-            self.fp = open(self.run + '.dat', 'rb', buffering=0)
+            # if we are not on frame 1. Think I misunderstood buffering=0
+            #self.fp = open(self.run + '.dat', 'rb', buffering=0)
+            self.fp = open(self.run + '.dat')
             if self.nframe: self.fp.seek(self.framesize*(self.nframe-1))
 
     # and as an iterator.
@@ -821,7 +823,7 @@ class Rdata (Rhead):
             # We are trying to get the last frame. If the frame
             # we will attempt to get is less than the expected
             # (minimum) value, i.e. 1 more than the last frame
-            # read, then we are not profressing, so return None.
+            # read, then we are not progressing, so return None.
             # It's then up to calling routine to wait or give up.
             self.nframe = old_frame
             return None
@@ -1290,21 +1292,27 @@ class Rtbytes (Rhead):
     also Rtime which translates these into times.
     """
 
-    def __init__(self, run, nframe=1, server=False):
+    def __init__(self, run, nframe=1, server=False, old=False):
         """Connects to a raw data file for reading. The file is kept open.
         The file pointer is set to the start of frame nframe.
 
         Arguments::
 
-           run : (string)
+           run : string
               run number, e.g. 'run036'.
 
-           nframe : (int)
-              frame number to position for next read, starting at 1 as the first.
+           nframe : int
+              frame number to position for next read, starting at 1
+              as the first.
 
-           server : (bool)
+           server : bool
               True/False for server vs local disk access
 
+           old : bool
+              If True, will attempt to connect to a file ending
+              '.dat.old' first, before trying plain '.dat'. '.dat.old'
+              is the standard file copy produced by the ultraspec
+              null timestamp corrector script.
         """
         super().__init__(run, server)
         if self.isPonoff():
@@ -1318,8 +1326,19 @@ class Rtbytes (Rhead):
         if server:
             self.fp   = None
         else:
-            self.fp   = open(run + '.dat', 'rb')
-        self.nframe     = nframe
+            if old:
+                try:
+                    # try to open old version of file first
+                    self.fp = open(run + '.dat.old', 'rb')
+                except:
+                    # revert to current version if old one not found
+                    self.fp = open(run + '.dat', 'rb')
+            else:
+                # open current version ignoring any old one.
+                self.fp = open(run + '.dat', 'rb')
+
+            self.nframe = nframe
+
         if not server and nframe != 1:
             self.fp.seek(self.framesize*(nframe-1))
 
