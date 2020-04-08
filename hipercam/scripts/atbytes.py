@@ -15,12 +15,27 @@ __all__ = ['atbytes',]
 def atbytes(args=None):
     """``atbytes``
 
-    Script to strip out and save all timing bytes of all runs in a
-    series of directories of YYY-MM-DD form which should be
+    Specialist script to strip out and save all timing bytes of all runs in a
+    series of directories of YYYY[_-]MM[_-]DD form which should be
     sub-directories of the directory the script is run from. It will
-    create (if necessary) a sub-directory of each of these call
-    'tbytes' containing the timing bytes data. It can handle ULTRACAM,
-    ULTRASPEC and HiPERCAM data.
+    create (if necessary) a sub-directory of each of these night
+    directories called 'tbytes' containing the timing bytes data, one
+    for each run of the night directory. It can handle ULTRACAM,
+    ULTRASPEC and HiPERCAM data. The script was created in preparation
+    for making in-place modifications of the timing data after the
+    discovery of some timing issues in March 2020.
+
+    In the case of ULTRASPEC (or ULTRACAM, but really only applies to
+    ULTRASPEC in practice) data, the script will always attempt to
+    access any "old" version of the form "run023.dat.old" as these are
+    files containing the original timing data potentially with null
+    timestamps in the case of ULTRASPEC, as ultimately I want to
+    develop a script that corrects both the ULTRASPEC null timestamps
+    as well as the spurious but genuine timestamps that seem to be at
+    the root of the March 2020 problem.
+
+    atbytes takes no arguments. Just run it from a directory
+    containing night directories.
 
     """
 
@@ -55,21 +70,24 @@ def atbytes(args=None):
                 source = 'hl'
                 run = os.path.join('..',fname [:-5])
                 tfile = fname [:-5] + hcam.TBTS
+                args = [None, 'prompt', source, run]
             else:
                 source = 'ul'
                 run = os.path.join('..',fname [:-4])
                 tfile = fname [:-4] + hcam.TBTS
+                args = [None, 'prompt', source, 'yes', run]
 
             if os.path.exists(tfile):
                 print(tfile,'already exists; will not re-make')
             else:
-                args = [None, 'prompt', source, run]
                 try:
                     hcam.scripts.tbytes(args)
                 except hcam.ucam.PowerOnOffError:
                     print('ignoring',run,'which is a Power On or Off')
                 except FileNotFoundError:
-                    print('ignoring run',run,'as no data were found')
+                    print('ignoring',run,'as no data were found')
+                except ValueError as err:
+                    print('ignoring',run,'error =',err)
 
         print('Finished',ndir)
 
