@@ -6,9 +6,11 @@ inclusion in the documentation and for portability
 
 from .arith import add, div, mul, sub
 from .atbytes import atbytes
+from .atfixer import atfixer
 from .averun import averun
 from .carith import cadd, cdiv, cmul, csub
 from .combine import combine
+from .fits2hcm import fits2hcm
 from .flagcloud import flagcloud
 from .ftargets import ftargets
 from .grab import grab
@@ -17,6 +19,7 @@ from .hist import hist
 from .hinfo import hinfo
 from .hfilter import hfilter
 from .hlogger import hlogger
+from .hlog2fits import hlog2fits
 from .hls import hls
 from .hplot import hplot
 from .ltimes import ltimes
@@ -25,6 +28,8 @@ from .makebias import makebias
 from .makedark import makedark
 from .makeflat import makeflat
 from .makestuff import makemccd, makefield
+from .mstats import mstats
+from .pfolder import pfolder
 from .plog import plog
 from .reduce import reduce
 from .rtplot import rtplot
@@ -32,14 +37,11 @@ from .rupdate import rupdate
 from .setaper import setaper
 from .setdefect import setdefect
 from .stats import stats
-from .mstats import mstats
-from .pfolder import pfolder
-from .uls import uls
-from .fits2hcm import fits2hcm
-from .hlog2fits import hlog2fits
 from .redanal import redanal
 from .splice import splice
 from .tbytes import tbytes
+from .tfixer import tfixer
+from .uls import uls
 
 __all__ = [ \
             'add', 'averun',
@@ -52,7 +54,7 @@ __all__ = [ \
             'pfolder', 'plog',
             'redanal', 'reduce', 'register', 'rtplot', 'rupdate',
             'setaper', 'setdefect', 'splice', 'stats', 'sub',
-            'tbytes',
+            'tbytes', 'tfixer',
             'uls',
         ]
 
