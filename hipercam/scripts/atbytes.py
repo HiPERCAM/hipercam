@@ -86,7 +86,7 @@ def atbytes(args=None):
                     print('ignoring',run,'which is a Power On or Off')
                 except FileNotFoundError:
                     print('ignoring',run,'as no data were found')
-                except ValueError as err:
+                except (ValueError, hcam.HipercamError, KeyError) as err:
                     print('ignoring',run,'error =',err)
 
         print('Finished',ndir)
