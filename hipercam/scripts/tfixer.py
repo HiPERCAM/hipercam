@@ -151,7 +151,7 @@ def tfixer(args=None):
     mdiff = np.median(mjds_ok[1:]-mjds_ok[:-1])
 
     # Maximum deviation from median separation to allow (days)
-    MDIFF = 1.e-11
+    MDIFF = 1.e-9
 
     # Assuming mdiff is right, try to identify definitely OK
     # timestamps ... (could miss some at this point, but that's OK)
