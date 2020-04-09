@@ -659,7 +659,7 @@ class Rdata (Rhead):
             # file. We need random access hence buffering=0. Move the pointer
             # if we are not on frame 1. Think I misunderstood buffering=0
             #self.fp = open(self.run + '.dat', 'rb', buffering=0)
-            self.fp = open(self.run + '.dat')
+            self.fp = open(self.run + '.dat', 'rb')
             if self.nframe: self.fp.seek(self.framesize*(self.nframe-1))
 
     # and as an iterator.
