@@ -51,7 +51,7 @@ def atfixer(args=None):
             args = [None, 'prompt', source, run, 'yes']
 
             try:
-                hcam.scripts.tbytes(args)
+                hcam.scripts.tfixer(args)
             except hcam.HipercamError as err:
                 print(err)
 
