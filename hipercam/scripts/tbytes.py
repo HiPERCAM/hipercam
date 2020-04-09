@@ -169,7 +169,7 @@ def tbytes(args=None):
 
 def u_tbytes_to_mjd(tbytes, rtbytes, nframe):
     """Translates set of ULTRACAM timing bytes into an MJD"""
-    return hcam.ucam.utimer(tbytes,rtbytes,nframe)[1]['gps'].mjd
+    return hcam.ucam.utimer(tbytes,rtbytes,nframe)[1]['gps']
 
 def h_tbytes_to_mjd(tbytes, nframe):
     """Translates set of HiPERCAM timing bytes into an MJD"""
