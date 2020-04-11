@@ -151,11 +151,10 @@ def tfixer(args=None):
     mdiff = np.median(mjds_ok[1:]-mjds_ok[:-1])
 
     # Maximum deviation from median separation to allow (days)
-    MDIFF = 1.e-9
+    MDIFF = 1.e-10
 
-    # Assuming mdiff is right, try to identify definitely OK
-    # timestamps ... (could miss some at this point, but that's OK)
-    # kick off by marking all timestamp as False
+    # Identify OK timestamps ... (could miss some at this point, but
+    # that's OK) kick off by marking all timestamps as False
     ok = mjds_ok == mjds_ok + 1
     for n in range(len(mjds_ok)-1):
         if abs(mjds_ok[n+1]-mjds_ok[n]-mdiff) < MDIFF:
@@ -165,6 +164,19 @@ def tfixer(args=None):
 
     gmjds = mjds_ok[ok]
     ginds = inds_ok[ok]
+
+    # Work out integer cycle numbers. First OK timestamp is given
+    # cycle number = 0 automatically by the method used.
+    cycles = (gmjds-gmjds[0])/mdiff
+    moffset = (cycles - np.round(cycles)).mean()
+    icycles = np.round(cycles-moffset).astype(int)
+
+    # fit linear trend
+    slope, intercept, r, p, err = stats.linregress(icycles,gmjds)
+    pmjds = slope*icycles + intercept
+    diffs = gmjds-pmjds
+
+    # fit splines to differences
 
     if len(mjds) == 1 or len(mjds) == len(gmjds):
         print(
@@ -185,7 +197,9 @@ def tfixer(args=None):
 
     if ginds[0] != 0:
         # this case needs checking
-        raise hcam.HipercamError('Cannot handle case where first timestamp is no good')
+        raise hcam.HipercamError(
+            'Cannot handle case where first timestamp is no good'
+        )
 
     # Now work out integer cycle numbers for all OK timestamps.
     # First OK timestamp is given cycle number = 0 automatically
@@ -252,7 +266,9 @@ def h_tbytes_to_mjd(tbytes, nframe):
 
     if frameCount != nframe:
         if frameCount == nframe + 1:
-            warnings.warn('frame count mis-match; a frame seems to have been dropped')
+            warnings.warn(
+                'frame count mis-match; a frame seems to have been dropped'
+            )
         else:
             warnings.warn(
                 'frame count mis-match; {:d} frames seems to have been dropped'.format(frameCount-self.nframe)
