@@ -48,15 +48,14 @@ def atfixer(args=None):
                 source = 'ul'
                 run = fname [:-4]
 
-            args = [None, 'prompt', source, run, 'yes']
+            args = [None, 'prompt', source, run, '6', 'no', 'yes']
 
             try:
                 hcam.scripts.tfixer(args)
             except hcam.HipercamError as err:
-                print(err)
+                print('ERROR =',err)
 
         print('Finished',ndir)
 
         # change up the working directory
         os.chdir('..')
-        print('Moved working directory up one level')
