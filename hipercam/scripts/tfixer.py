@@ -120,7 +120,7 @@ def tfixer(args=None):
     # create name of timing file
     tfile = os.path.join('tbytes', os.path.basename(run) + hcam.TBTS)
     if not os.path.isfile(tfile):
-        raise hcam.HipercamError('Could not find timing file = {} [OK]'.format(tfile))
+        raise hcam.HipercamError('Could not find timing file = {}'.format(tfile))
 
     # create name of run file and the copy which will only get made
     # later if problems are picked up
@@ -156,6 +156,14 @@ def tfixer(args=None):
                 mjds.append(mjd)
                 tflags.append(tflag)
 
+                    # Must have specified minimum of times to work with.
+    if len(mjds) < mintim:
+        print(
+            run,'has too few frames to work with ({} vs minimum = {})'.format(
+                len(mjds), mintim)
+        )
+        return
+    
     # Independent of source, at this stage 'atbytes' is a list of all
     # timestamp bytes, while 'mjds' is a list of all equivalent MJDs,
     # and 'tflags' are bools which are True for OK times, False for
@@ -173,7 +181,7 @@ def tfixer(args=None):
     # Must have specified minimum of times to work with.
     if len(mjds_ok) < mintim:
         print(
-            run,'has too few non-null times to work with ({} vs minimum = {}) [OK]'.format(
+            run,'has too few non-null times to work with ({} vs minimum = {})'.format(
                 len(mjds_ok), mintim)
         )
         return
@@ -195,6 +203,9 @@ def tfixer(args=None):
 
     gmjds = mjds_ok[ok]
     ginds = inds_ok[ok]
+    if len(gmjds) < 2:
+        print('{} has fewer than 2 good time'.format(run))
+        return
 
     # Work out integer cycle numbers. First OK timestamp is given
     # cycle number = 0 automatically by the method used.  The cycle
@@ -211,7 +222,6 @@ def tfixer(args=None):
     while NMAX < len(gmjds):
         # fit linear trend of first NMAX times where hopefully NMAX is small
         # enough for there not to be a big error but large enough to allow extrapolation.
-        print(NMAX)
         slope, intercept, r, p, err = stats.linregress(icycles[:NMAX],gmjds[:NMAX])
         NMAX *= 2
         icycles = np.round((gmjds[:NMAX]-intercept)/slope).astype(int)
@@ -233,11 +243,11 @@ def tfixer(args=None):
     # if no large differences and cycle number monotically increase,
     # then we are good.
     if not nulls_present and monotonic and (np.abs(cdiffs) < CDIFF).all():
+        mdev = np.abs(cdiffs).max()
         print(
-            'Cycle differences of the {} frames span {:.2e} to {:.2e} [OK]'.format(
-                len(icycles),cdiffs.min(),cdiffs.max())
+            '{} times are OK; {} frames; max. dev. = {:.2g} cyc, {:.2g} sec'.format(
+                run, len(icycles), mdev, 86400*slope*mdev)
         )
-        print(run,'times are OK')
         return
 
     # next, a common (but perfectly normal) problem is for the final
@@ -255,12 +265,11 @@ def tfixer(args=None):
         monotonic = (icycles[1:]-icycles[:-1] > 0).all()
 
     if not nulls_present and monotonic and terminated_early and len(cdiffs[bad]) == 1:
-        print('Final frame has cycle difference = {:.2e} [OK]'.format(cdiffs[-1]))
+        mdev = np.abs(cdiffs[:-1]).max()
         print(
-            'Cycle differences of the {} other frames span {:.2e} to {:.2e} [OK]'.format(
-                len(icycles)-1,cdiffs[:-1].min(),cdiffs[:-1].max())
+            '{} times are OK; {} frames; max. dev. = {:.2g} cyc, {:.2g} sec (excluding last)'.format(
+                run, len(icycles), mdev, 86400*slope*mdev)
         )
-        print(run,'times are OK')
         return
 
     if plot:
@@ -288,8 +297,8 @@ def tfixer(args=None):
 
     # report problems
     print(
-        '  {} timestamps are corrupt. TOT,DUP,NULL,BAD = {},{},{},{}; max dev = {:.4f} cycles'.format(
-            run, ntot, ndupe, nnull, nbad, mdev)
+        '{} timestamps are corrupt. TOT,DUP,NULL,BAD = {},{},{},{}; max dev = {:.2g} cyc, {:.2g} sec'.format(
+            run, ntot, ndupe, nnull, nbad, mdev, 86400*slope*mdev)
     )
 
     if check:
