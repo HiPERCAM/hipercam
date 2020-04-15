@@ -20,6 +20,11 @@ def atfixer(args=None):
 
     """
 
+    if not sys.warnoptions:
+        # to avoid some annoying warnings from utimer
+        import warnings
+        warnings.simplefilter("ignore")
+
     # Specific formats for night directories and runs within them
     ndre = re.compile('^\d\d\d\d[_-]\d\d[_-]\d\d$')
     rnre = re.compile('^run\d\d\d\d\.fits|run\d\d\d\.xml$')

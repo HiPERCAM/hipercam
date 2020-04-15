@@ -1559,7 +1559,8 @@ def utimer(tbytes, rhead, fnum):
     if frameNumber != fnum:
         warnings.warn(
             'ultracam.utimer: run {:s} expected frame number = {:d} but found {:d}'.format(
-                rhead.run,fnum,frameNumber))
+                rhead.run,fnum,frameNumber)
+        )
         frameError = True
     else:
         frameError = False

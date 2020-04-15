@@ -142,7 +142,7 @@ def tfixer(args=None):
         # read and how to interpret them.
         rhead = hcam.ucam.Rhead(run)
         with open(tfile,'rb') as fin:
-            atbytes, mjds, tflags = [], [], []
+            atbytes, mjds, tflags, gflags = [], [], [], []
             nframe = 0
             while 1:
                 tbytes = fin.read(rhead.ntbytes)
@@ -152,31 +152,37 @@ def tfixer(args=None):
                 atbytes.append(tbytes)
 
                 # interpret times
-                mjd, tflag = u_tbytes_to_mjd(tbytes, rhead, nframe)
+                mjd, tflag, gflag = u_tbytes_to_mjd(tbytes, rhead, nframe)
                 mjds.append(mjd)
                 tflags.append(tflag)
+                gflags.append(gflag)
 
-                    # Must have specified minimum of times to work with.
     if len(mjds) < mintim:
+        # Must have specified minimum of times to work with. This is
+        # checked more stringently later, but this avoids silly crashes
+        # when there are no times.
         print(
             run,'has too few frames to work with ({} vs minimum = {})'.format(
                 len(mjds), mintim)
         )
         return
-    
+
     # Independent of source, at this stage 'atbytes' is a list of all
     # timestamp bytes, while 'mjds' is a list of all equivalent MJDs,
     # and 'tflags' are bools which are True for OK times, False for
     # null timestamps.
     mjds = np.array(mjds)
     tflags = np.array(tflags)
+    gflags = np.array(gflags)
     inds = np.arange(len(mjds))
     nulls = ~tflags
     nulls_present = nulls.any()
+    btimes = ~gflags
+    bad_times_present = btimes.any()
 
     # Remove null timestamps
-    mjds_ok = mjds[tflags]
-    inds_ok = inds[tflags]
+    mjds_ok = mjds[tflags & gflags]
+    inds_ok = inds[tflags & gflags]
 
     # Must have specified minimum of times to work with.
     if len(mjds_ok) < mintim:
@@ -190,9 +196,12 @@ def tfixer(args=None):
     mdiff = np.median(mjds_ok[1:]-mjds_ok[:-1])
 
     # Maximum deviation from median separation to allow (days)
-    MDIFF = 1.e-10
+    # 1.e-9 ~ 1e-4 seconds, ~30x shorter than shortest ULTRACAM
+    # cycle time. This could allow some bad stamps through but
+    # they will be spotted later by looking at cycle numbers.
+    MDIFF = 1.e-9
 
-    # Identify OK timestamps ... (could miss some at this point, but
+    # Identify OK timestamps. Could miss some at this point, but
     # that's OK) kick off by marking all timestamps as False
     ok = mjds_ok == mjds_ok + 1
     for n in range(len(mjds_ok)-1):
@@ -204,7 +213,7 @@ def tfixer(args=None):
     gmjds = mjds_ok[ok]
     ginds = inds_ok[ok]
     if len(gmjds) < 2:
-        print('{} has fewer than 2 good time'.format(run))
+        print('{}: found fewer than 2 good timestamps'.format(run))
         return
 
     # Work out integer cycle numbers. First OK timestamp is given
@@ -226,51 +235,66 @@ def tfixer(args=None):
         NMAX *= 2
         icycles = np.round((gmjds[:NMAX]-intercept)/slope).astype(int)
 
-
-    # hope the cycle numbers should be good across the board now final
-    # fit
+    # hope the cycle numbers should be good across the board. Carry out
+    # final fit (only fit for runs with <= 100 frames). 'slope' is the
+    # cycle time. 'intercept' is the initial MJD for icycle=0.
     slope, intercept, r, p, err = stats.linregress(icycles,gmjds)
 
     # now compute cycle numbers for *all* non-null timestamps
     cycles = (mjds_ok-intercept)/slope
     icycles = np.round(cycles).astype(int)
+
+    if icycles[-1] == icycles[-2]:
+        # because the last frame can be terminated early, it is
+        # not uncommon for it to end with same cycle number as the
+        # penultimate one. Correct this here
+        icycles[-1] += 1
+
     cdiffs = cycles-icycles
     monotonic = (icycles[1:]-icycles[:-1] > 0).all()
 
     # Maximum deviation to allow [cycles]
     CDIFF = 2.e-3
 
-    # if no large differences and cycle number monotically increase,
-    # then we are good.
-    if not nulls_present and monotonic and (np.abs(cdiffs) < CDIFF).all():
+    # check for early termination on run causing last frame to appear
+    # early
+    terminated_early = cdiffs[-1] < -CDIFF
+
+    # check that all is OK
+    if not nulls_present and monotonic and \
+       ((terminated_early and (np.abs(cdiffs[:-1]) < CDIFF).all()) or \
+        (not terminated_early and (np.abs(cdiffs) < CDIFF).all())):
         mdev = np.abs(cdiffs).max()
         print(
             '{} times are OK; {} frames; max. dev. = {:.2g} cyc, {:.2g} sec'.format(
                 run, len(icycles), mdev, 86400*slope*mdev)
         )
-        return
+        run_ok = True
 
-    # next, a common (but perfectly normal) problem is for the final
-    # frame to be off in time to be curtailed early giving a final
-    # false timestamp which comes early. If the rest are OK, then the
-    # run is basically OK.
-    bad = np.abs(cdiffs) > CDIFF
-    terminated_early = bad[-1]
+    else:
+        # search for duplicate cycle numbers
+        u, c = np.unique(icycles, return_counts=True)
+        dupes = u[c > 1]
+        dupes_present = len(dupes) > 0
 
-    if terminated_early and icycles[-1] == icycles[-2]:
-        # final frame can end up with same cycle number as one before it
-        # apply correction to make later steps easier
-        icycles[-1] += 1
-        cdiffs[-1] -= 1
-        monotonic = (icycles[1:]-icycles[:-1] > 0).all()
+        ntot = len(mjds)
+        ndupe = len(dupes)
+        nnull = len(mjds[nulls])
+        nbad = len(mjds[btimes])
+        fails = np.abs(cdiffs) > CDIFF
+        if terminated_early:
+            nfail = len(cdiffs[fails])-1
+            mdev = np.abs(cdiffs[:-1]).max()
+        else:
+            nfail = len(cdiffs[fails])
+            mdev = np.abs(cdiffs).max()
 
-    if not nulls_present and monotonic and terminated_early and len(cdiffs[bad]) == 1:
-        mdev = np.abs(cdiffs[:-1]).max()
+        # summarise problems
         print(
-            '{} times are OK; {} frames; max. dev. = {:.2g} cyc, {:.2g} sec (excluding last)'.format(
-                run, len(icycles), mdev, 86400*slope*mdev)
+            '{} timestamps corrupt. TOT,DUP,NULL,BAD,FAIL = {},{},{},{},{}; max dev = {:.2g} cyc, {:.2g} sec'.format(
+                run, ntot, ndupe, nnull, nbad, nfail, mdev, 86400*slope*mdev)
         )
-        return
+        run_ok = False
 
     if plot:
         # diagnostic plot: cycle differences vs cycle numbers
@@ -279,30 +303,8 @@ def tfixer(args=None):
         plt.ylabel('Cycle difference')
         plt.show()
 
-    # search for duplicate cycle numbers
-    u, c = np.unique(icycles, return_counts=True)
-    dupes = u[c > 1]
-    dupes_present = len(dupes) > 0
-
-    ntot = len(mjds)
-    ndupe = len(dupes)
-    nnull = len(mjds[nulls])
-    bad = np.abs(cdiffs) > CDIFF
-    if terminated_early:
-        nbad = len(cdiffs[bad])-1
-        mdev = np.abs(cdiffs[:-1]).max()
-    else:
-        nbad = len(cdiffs[bad])
-        mdev = np.abs(cdiffs).max()
-
-    # report problems
-    print(
-        '{} timestamps are corrupt. TOT,DUP,NULL,BAD = {},{},{},{}; max dev = {:.2g} cyc, {:.2g} sec'.format(
-            run, ntot, ndupe, nnull, nbad, mdev, 86400*slope*mdev)
-    )
-
-    if check:
-        # go no further, pure check mode
+    if run_ok or check:
+        # go no further if run is OK or we are in check mode
         return
 
 #    if ginds[0] != 0:
@@ -325,12 +327,19 @@ def u_tbytes_to_mjd(tbytes, rtbytes, nframe):
     Marks ULTRASPEC null stamps as bad (32 bytes in length,
     the last 20 of which are 0)
 
+    Returns (MJD, NotNull, GoodTime) where MJD is the MJD, NotNull is
+    a flag to say whether the time stamp was not null (True=OK) and
+    GoodTime says whether the time is otherwise thought to be OK.
     """
-    ret = hcam.ucam.utimer(tbytes,rtbytes,nframe)
+    try:
+        ret = hcam.ucam.utimer(tbytes,rtbytes,nframe)
+    except ValueError:
+        return (0,True,False)
+
     if len(tbytes) == 32 and tbytes[12:] == 20*b'\x00':
-        return (ret[1]['gps'], False)
+        return (ret[1]['gps'], False, False)
     else:
-        return (ret[1]['gps'], True)
+        return (ret[1]['gps'], True, True)
 
 def h_tbytes_to_mjd(tbytes, nframe):
     """Translates set of HiPERCAM timing bytes into an MJD"""
