@@ -13,10 +13,20 @@ __all__ = ['atfixer',]
 #########################################################
 
 def atfixer(args=None):
-    """``atfixer``
+    """``atfixer mintim dcmax``
 
     Specialist script to look for timing problems in all runs in 
     night directories.
+
+    Parameters:
+
+        mintim : int
+           Minimum number of frames to reuire a run to have before running tfixer on it
+
+        dcmax : float
+           Maximum differential in terms of cycle number from exact integers
+           to use to indicate "failed" times. Pre 2010-02 needs to be looser
+           than post 2010-02. Number of order 0.003 is appropriate.
 
     """
 
@@ -24,6 +34,18 @@ def atfixer(args=None):
         # to avoid some annoying warnings from utimer
         import warnings
         warnings.simplefilter("ignore")
+
+    command, args = utils.script_args(args)
+
+    # get the inputs
+    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+
+        # register parameters
+        cl.register('mintim', Cline.LOCAL, Cline.PROMPT)
+        cl.register('dcmax', Cline.LOCAL, Cline.PROMPT)
+
+        mintim = cl.get_value('mintim', 'minimum number of times needed', 6, 4)
+        dcmax = cl.get_value('dcmax', 'maximum cycle number offset from an integer', 0.003, 0)
 
     # Specific formats for night directories and runs within them
     ndre = re.compile('^\d\d\d\d[_-]\d\d[_-]\d\d$')
@@ -53,7 +75,7 @@ def atfixer(args=None):
                 source = 'ul'
                 run = fname [:-4]
 
-            args = [None, 'prompt', source, run, '6', '0.003', 'no', 'no', 'yes']
+            args = [None, 'prompt', source, run, str(mintim), str(dcmax), 'no', 'no', 'yes']
 
             try:
                 hcam.scripts.tfixer(args)

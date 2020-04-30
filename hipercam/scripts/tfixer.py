@@ -300,7 +300,8 @@ def tfixer(args=None):
 
         if ndupe == 0 and nbad == 0 and nnull == 0 and inds_ok[fails][-1] < nfail:
             # save some runs with trivial level issues from being flagged
-            mdev = np.abs(cdiffs[nfail]).max()
+            if nfail < len(cdiffs):
+                mdev = np.abs(cdiffs[nfail:]).max()
             comment = ' [All fails are at start]'
             run_ok = True
         else:
