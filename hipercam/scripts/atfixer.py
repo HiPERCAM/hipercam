@@ -3,6 +3,8 @@ import os
 import re
 import time
 import hipercam as hcam
+from hipercam import utils, cline
+from hipercam.cline import Cline
 
 __all__ = ['atfixer',]
 
