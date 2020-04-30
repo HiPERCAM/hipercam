@@ -53,7 +53,7 @@ def atfixer(args=None):
                 source = 'ul'
                 run = fname [:-4]
 
-            args = [None, 'prompt', source, run, '6', 'no', 'no', 'yes']
+            args = [None, 'prompt', source, run, '6', '0.003', 'no', 'no', 'yes']
 
             try:
                 hcam.scripts.tfixer(args)

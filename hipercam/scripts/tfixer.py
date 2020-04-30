@@ -19,7 +19,7 @@ __all__ = ['tfixer',]
 ###############################
 
 def tfixer(args=None):
-    """``tfixer [source] run mintim details plot check``
+    """``tfixer [source] run [mintim dcmax] details (mcdiffplot check``
 
     .. Warning::
 
@@ -70,11 +70,16 @@ def tfixer(args=None):
            file will be written to the present working directory, not
            necessarily the location of the data file.
 
-        mintim : int
+        mintim : int [hidden]
            Minimum number of times to attempt to do anything
            with. This must be at least 4 so that there are 3+ time
            differences to try to get a median time, but in practice it
            is probably advisable to use a larger number still.
+
+        dcmax : float [hidden]
+           Maximum differential in terms of cycle number from exact integers
+           to use to indicate "failed" times. Pre 2010-02 needs to be looser
+           than post 2010-02. Number of order 0.003 is appropriate.
 
         details : bool
            Print out detailed information on problem times
@@ -102,7 +107,8 @@ def tfixer(args=None):
         # register parameters
         cl.register('source', Cline.LOCAL, Cline.HIDE)
         cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('mintim', Cline.LOCAL, Cline.PROMPT)
+        cl.register('mintim', Cline.LOCAL, Cline.HIDE)
+        cl.register('dcmax', Cline.LOCAL, Cline.HIDE)
         cl.register('plot', Cline.LOCAL, Cline.PROMPT)
         cl.register('details', Cline.LOCAL, Cline.PROMPT)
         cl.register('check', Cline.LOCAL, Cline.PROMPT)
@@ -118,6 +124,7 @@ def tfixer(args=None):
             run = run[:-5]
 
         mintim = cl.get_value('mintim', 'minimum number of times needed', 6, 4)
+        dcmax = cl.get_value('dcmax', 'maximum cycle number offset from an integer', 0.003, 0)
         details = cl.get_value('details', 'print detailed diagnostics of problems', True)
         plot = cl.get_value('plot', 'make diagnostic plots', True)
         check = cl.get_value('check', 'check for, but do not fix, any problems', True)
@@ -258,17 +265,14 @@ def tfixer(args=None):
     cdiffs = cycles-icycles
     monotonic = (icycles[1:]-icycles[:-1] > 0).all()
 
-    # Maximum deviation to allow [cycles]
-    CDIFF = 2.e-3
-
     # check for early termination on run causing last frame to appear
     # early
-    terminated_early = cdiffs[-1] < -CDIFF
+    terminated_early = cdiffs[-1] < -dcmax
 
     # check that all is OK
     if not nulls_present and monotonic and \
-       ((terminated_early and (np.abs(cdiffs[:-1]) < CDIFF).all()) or \
-        (not terminated_early and (np.abs(cdiffs) < CDIFF).all())):
+       ((terminated_early and (np.abs(cdiffs[:-1]) < dcmax).all()) or \
+        (not terminated_early and (np.abs(cdiffs) < dcmax).all())):
         mdev = np.abs(cdiffs).max()
         print(
             '{} times are OK; {} frames; max. dev. = {:.2g} cyc, {:.2g} sec'.format(
@@ -286,7 +290,7 @@ def tfixer(args=None):
         ndupe = len(dupes)
         nnull = len(mjds[nulls])
         nbad = len(mjds[btimes])
-        fails = np.abs(cdiffs) > CDIFF
+        fails = np.abs(cdiffs) > dcmax
         if terminated_early:
             nfail = len(cdiffs[fails])-1
             mdev = np.abs(cdiffs[:-1]).max()
