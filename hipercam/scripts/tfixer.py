@@ -273,11 +273,18 @@ def tfixer(args=None):
     if not nulls_present and monotonic and \
        ((terminated_early and (np.abs(cdiffs[:-1]) < dcmax).all()) or \
         (not terminated_early and (np.abs(cdiffs) < dcmax).all())):
-        mdev = np.abs(cdiffs).max()
-        print(
-            '{} times are OK; {} frames; max. dev. = {:.2g} cyc, {:.2g} sec'.format(
-                run, len(icycles), mdev, 86400*slope*mdev)
-        )
+        if terminated_early:
+            mdev = np.abs(cdiffs[:-1]).max()
+            print(
+                '{} times are OK; {} frames; max. dev. all bar last = {:.2g} cyc, {:.2g} msec; last = {:.2g} cyc'.format(
+                    run, len(icycles), mdev, 86400*1000*slope*mdev, cdiffs[-1])
+            )
+        else:
+            mdev = np.abs(cdiffs).max()
+            print(
+                '{} times are OK; {} frames; max. dev. all = {:.2g} cyc, {:.2g} msec'.format(
+                    run, len(icycles), mdev, 86400*1000*slope*mdev)
+            )
         run_ok = True
 
     else:
