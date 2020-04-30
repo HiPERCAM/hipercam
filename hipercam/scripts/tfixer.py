@@ -289,18 +289,58 @@ def tfixer(args=None):
             nfail = len(cdiffs[fails])
             mdev = np.abs(cdiffs).max()
 
-        # summarise problems
-        print(
-            '{} timestamps corrupt. TOT,DUP,NULL,BAD,FAIL = {},{},{},{},{}; max dev = {:.2g} cyc, {:.2g} sec'.format(
-                run, ntot, ndupe, nnull, nbad, nfail, mdev, 86400*slope*mdev)
-        )
-        run_ok = False
+        if ndupe == 0 and nbad == 0 and nnull == 0 and nfail < 2 and inds_ok[fails][-1] < nfail:
+
+            # save some runs with trivial level issues from being flagged
+
+            mdev = np.abs(cdiffs[nfail]).max()
+            print(
+                '{} times are OK; {} frames; max. dev. = {:.2g} cyc, {:.2g} sec [excluding {} initial bad times]'.format(
+                    run, len(icycles), mdev, 86400*slope*mdev, nfail)
+            )
+            run_ok = True
+
+        else:
+
+            # OK, things seem to be bad. summarise problems
+            print(
+                '{} timestamps corrupt. TOT,DUP,NULL,BAD,FAIL,FOK = {},{},{},{},{},{}; max dev = {:.2g} cyc, {:.2g} sec'.format(
+                    run, ntot, ndupe, nnull, nbad, nfail, inds_ok[ok][0]+1, mdev, 86400*slope*mdev)
+            )
+
+            # some details
+            fcdiffs = icycles[1:]-icycles[:-1]
+            back = fcdiffs <= 0
+            oinds = inds_ok[:-1][back]
+            ninds = np.arange(len(fcdiffs))[back]
+            cycs = icycles[:-1][back]
+            ncycs = icycles[1:][back]
+            tims = mjds_ok[:-1][back]
+            for oind, nind, cyc, ncyc, mjd in zip(oinds, ninds, cycs, ncycs, tims):
+                print(
+                    '  Old index = {}, new index = {}, cycle = {}, next cycle = {}, time = {}'.format(
+                        oind, nind, cyc, ncyc, mjd)
+                )
+            run_ok = False
 
     if plot:
         # diagnostic plot: cycle differences vs cycle numbers
-        plt.plot(icycles,cdiffs,'.')
-        plt.xlabel('Cycle number')
-        plt.ylabel('Cycle difference')
+        def c2t(x):
+            return 86400*slope*x
+
+        def t2c(x):
+            return x/slope/86400
+
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.plot(icycles[~fails],cdiffs[~fails],'.b')
+        ax.plot(icycles[fails],cdiffs[fails],'.r')
+        ax.set_xlabel('Cycle number')
+        ax.set_ylabel('Cycle difference')
+        secxax = ax.secondary_xaxis('top', functions=(c2t,t2c))
+        secxax.set_xlabel('Time [MJD - {}] (seconds)'.format(intercept))
+        secyax = ax.secondary_yaxis('right', functions=(lambda x: 1000*c2t(x),lambda x: t2c(x)/1000))
+        secyax.set_xlabel('$\Delta t$ (msec)'.format(intercept))
         plt.show()
 
     if run_ok or check:
