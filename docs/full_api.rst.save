@@ -1,0 +1,88 @@
+.. The full API of the HiPERCAM code
+
+.. globals.rst
+
+Classes & Methods
+*****************
+
+This pages gives a link to documentation auto-generated from the in-code
+documentation. The same information can be accessed from a terminal using
+``pydoc``. The documentation is divided into sections covering each
+sub-module.
+
+.. contents::
+   :local:
+
+hipercam.aperture
+-----------------
+
+.. automodule:: hipercam.aperture
+
+.. autosummary::
+   :toctree: stubs/aperture
+
+   hipercam.aperture.Aperture
+   hipercam.aperture.CcdAper
+   hipercam.aperture.MccdAper
+
+hipercam.ccd
+------------
+
+.. automodule:: hipercam.ccd
+
+.. autosummary::
+   :toctree: stubs/ccd
+
+   hipercam.ccd.CCD
+   hipercam.ccd.MCCD
+   hipercam.ccd.get_ccd_info
+   hipercam.ccd.trim_ultracam
+
+hipercam.defect
+---------------
+
+.. automodule:: hipercam.defect
+
+.. autosummary::
+   :toctree: stubs/defect
+
+   CcdDefect
+   Defect
+   Hot
+   MccdDefect
+   Line
+   Point
+   Severity
+
+hipercam.group
+--------------
+
+.. automodule:: hipercam.group
+   :members:
+
+hipercam.core
+-------------
+
+.. automodule:: hipercam.core
+   :members:
+
+hipercam.ucam
+-------------
+
+.. autosummary::
+   :toctree: stubs/ucam
+
+   hipercam.ucam
+
+
+
+
+
+
+
+
+
+
+
+
+
