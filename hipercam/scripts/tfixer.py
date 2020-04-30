@@ -79,7 +79,8 @@ def tfixer(args=None):
         dcmax : float [hidden]
            Maximum differential in terms of cycle number from exact integers
            to use to indicate "failed" times. Pre 2010-02 needs to be looser
-           than post 2010-02. Number of order 0.003 is appropriate.
+           than post 2010-02. Number of order 0.002 is fine post 2010-02,
+           whereas 0.02 is more like it pre 2010-02.
 
         details : bool
            Print out detailed information on problem times
