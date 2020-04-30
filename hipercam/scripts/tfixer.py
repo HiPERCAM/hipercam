@@ -289,39 +289,34 @@ def tfixer(args=None):
             nfail = len(cdiffs[fails])
             mdev = np.abs(cdiffs).max()
 
-        if ndupe == 0 and nbad == 0 and nnull == 0 and nfail < 2 and inds_ok[fails][-1] < nfail:
-
+        if ndupe == 0 and nbad == 0 and nnull == 0 and inds_ok[fails][-1] < nfail:
             # save some runs with trivial level issues from being flagged
-
             mdev = np.abs(cdiffs[nfail]).max()
-            print(
-                '{} times are OK; {} frames; max. dev. = {:.2g} cyc, {:.2g} sec [excluding {} initial bad times]'.format(
-                    run, len(icycles), mdev, 86400*slope*mdev, nfail)
-            )
+            comment = ' [All fails are at start]'
             run_ok = True
-
         else:
-
-            # OK, things seem to be bad. summarise problems
-            print(
-                '{} timestamps corrupt. TOT,DUP,NULL,BAD,FAIL,FOK = {},{},{},{},{},{}; max dev = {:.2g} cyc, {:.2g} sec'.format(
-                    run, ntot, ndupe, nnull, nbad, nfail, inds_ok[ok][0]+1, mdev, 86400*slope*mdev)
-            )
-
-            # some details
-            fcdiffs = icycles[1:]-icycles[:-1]
-            back = fcdiffs <= 0
-            oinds = inds_ok[:-1][back]
-            ninds = np.arange(len(fcdiffs))[back]
-            cycs = icycles[:-1][back]
-            ncycs = icycles[1:][back]
-            tims = mjds_ok[:-1][back]
-            for oind, nind, cyc, ncyc, mjd in zip(oinds, ninds, cycs, ncycs, tims):
-                print(
-                    '  Old index = {}, new index = {}, cycle = {}, next cycle = {}, time = {}'.format(
-                        oind, nind, cyc, ncyc, mjd)
-                )
+            comment = ''
             run_ok = False
+
+        # Summarise problems
+        print(
+            '{} timestamps corrupt. TOT,DUP,NULL,BAD,FAIL,FOK = {},{},{},{},{},{}; max dev = {:.2g} cyc, {:.2g} sec.{}'.format(
+                run, ntot, ndupe, nnull, nbad, nfail, inds_ok[ok][0]+1, mdev, 86400*slope*mdev, comment)
+        )
+
+        # Some details
+        fcdiffs = icycles[1:]-icycles[:-1]
+        back = fcdiffs <= 0
+        oinds = inds_ok[:-1][back]
+        ninds = np.arange(len(fcdiffs))[back]
+        cycs = icycles[:-1][back]
+        ncycs = icycles[1:][back]
+        tims = mjds_ok[:-1][back]
+        for oind, nind, cyc, ncyc, mjd in zip(oinds, ninds, cycs, ncycs, tims):
+            print(
+                '  Old index = {}, new index = {}, cycle = {}, next cycle = {}, time = {}'.format(
+                    oind, nind, cyc, ncyc, mjd)
+            )
 
     if plot:
         # diagnostic plot: cycle differences vs cycle numbers
