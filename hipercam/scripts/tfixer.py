@@ -205,8 +205,14 @@ def tfixer(args=None):
         )
         return
 
-    # Median time difference of GPS timestamps
-    mdiff = np.median(mjds_ok[1:]-mjds_ok[:-1])
+    # Median time difference of GPS timestamps with guard against identical
+    # times that can dominate leading to mdiff = 0
+    diffs = mjds_ok[1:]-mjds_ok[:-1]
+    pos = diffs > 1.e-9
+    if len(diffs[pos]) == 0:
+        print(run,'has zero positive time differences to work with')
+        return
+    mdiff = np.median(diffs[pos])
 
     # Maximum deviation from median separation to allow (days)
     # 1.e-9 ~ 1e-4 seconds, ~30x shorter than shortest ULTRACAM
@@ -245,52 +251,76 @@ def tfixer(args=None):
         # fit linear trend of first NMAX times where hopefully NMAX is small
         # enough for there not to be a big error but large enough to allow extrapolation.
         slope, intercept, r, p, err = stats.linregress(icycles[:NMAX],gmjds[:NMAX])
-        NMAX *= 2
+        NMAX *= 1.5
+        NMAX = int(NMAX)
         icycles = np.round((gmjds[:NMAX]-intercept)/slope).astype(int)
 
-    # hope the cycle numbers should be good across the board. Carry out
-    # final fit (only fit for runs with <= 100 frames). 'slope' is the
-    # cycle time. 'intercept' is the initial MJD for icycle=0.
-    slope, intercept, r, p, err = stats.linregress(icycles,gmjds)
+    # hope the cycle numbers should be good across the board for all the "gmjds"
+    # at this point. Carry out final fits to try to refine the intercept and
+    # slope because it is possible to be upset by jumps in time of less
+    # than a cycle (i.e 2002-09-20, run014)
 
-    # now compute cycle numbers for *all* non-null timestamps
-    cycles = (mjds_ok-intercept)/slope
-    icycles = np.round(cycles).astype(int)
+    cok = icycles == icycles
+    cinds = np.arange(len(cok))
+    nrej = 0
+    while 1:
+        # fit to ok ones
+        slope, intercept, r, p, err = stats.linregress(icycles[cok],gmjds[cok])
+        cycles = (gmjds-intercept)/slope
 
-    if icycles[-1] == icycles[-2]:
+        # cdiffs, acdiffs -- cycle differences and their absolute
+        # values
+        cdiffs = cycles-icycles
+        acdiffs = np.abs(cdiffs)
+
+        dmax = np.argmax(acdiffs[cok])
+        if acdiffs[cok][dmax] > dcmax:
+            # at least one is out of spec. reject it
+            cok[cinds[cok][dmax]] = False
+        else:
+            break
+    print('Rejected {} times when fitting nominally good times'.format(nrej))
+
+    # now try to compute cycle numbers for *all* non-null timestamps
+    acycles = (mjds_ok-intercept)/slope
+    iacycles = np.round(acycles).astype(int)
+
+    if iacycles[-1] == iacycles[-2]:
         # because the last frame can be terminated early, it is
         # not uncommon for it to end with same cycle number as the
         # penultimate one. Correct this here
-        icycles[-1] += 1
+        iacycles[-1] += 1
 
-    cdiffs = cycles-icycles
-    monotonic = (icycles[1:]-icycles[:-1] > 0).all()
+    cadiffs = acycles-iacycles
+    monotonic = (iacycles[1:]-iacycles[:-1] > 0).all()
 
     # check for early termination on run causing last frame to appear
     # early
-    terminated_early = cdiffs[-1] < -dcmax
+    terminated_early = cadiffs[-1] < -dcmax
 
     # check that all is OK
     if not nulls_present and monotonic and \
-       ((terminated_early and (np.abs(cdiffs[:-1]) < dcmax).all()) or \
-        (not terminated_early and (np.abs(cdiffs) < dcmax).all())):
+       ((terminated_early and (np.abs(cadiffs[:-1]) < dcmax).all()) or \
+        (not terminated_early and (np.abs(cadiffs) < dcmax).all())):
         if terminated_early:
-            mdev = np.abs(cdiffs[:-1]).max()
+            mdev = np.abs(cadiffs[:-1]).max()
             print(
                 '{} times are OK; {} frames; max. dev. all bar last = {:.2g} cyc, {:.2g} msec; last = {:.2g} cyc'.format(
-                    run, len(icycles), mdev, 86400*1000*slope*mdev, cdiffs[-1])
+                    run, len(iacycles), mdev, 86400*1000*slope*mdev, cadiffs[-1])
             )
         else:
-            mdev = np.abs(cdiffs).max()
+            mdev = np.abs(cadiffs).max()
             print(
                 '{} times are OK; {} frames; max. dev. all = {:.2g} cyc, {:.2g} msec'.format(
-                    run, len(icycles), mdev, 86400*1000*slope*mdev)
+                    run, len(iacycles), mdev, 86400*1000*slope*mdev)
             )
+        # to prevent crash during plot
+        fails = cadiffs != cadiffs
         run_ok = True
 
     else:
         # search for duplicate cycle numbers
-        u, c = np.unique(icycles, return_counts=True)
+        u, c = np.unique(iacycles, return_counts=True)
         dupes = u[c > 1]
         dupes_present = len(dupes) > 0
 
@@ -298,18 +328,18 @@ def tfixer(args=None):
         ndupe = len(dupes)
         nnull = len(mjds[nulls])
         nbad = len(mjds[btimes])
-        fails = np.abs(cdiffs) > dcmax
+        fails = np.abs(cadiffs) > dcmax
         if terminated_early:
-            nfail = len(cdiffs[fails])-1
-            mdev = np.abs(cdiffs[:-1]).max()
+            nfail = len(cadiffs[fails])-1
+            mdev = np.abs(cadiffs[:-1]).max()
         else:
-            nfail = len(cdiffs[fails])
-            mdev = np.abs(cdiffs).max()
+            nfail = len(cadiffs[fails])
+            mdev = np.abs(cadiffs).max()
 
         if ndupe == 0 and nbad == 0 and nnull == 0 and inds_ok[fails][-1] < nfail:
             # save some runs with trivial level issues from being flagged
-            if nfail < len(cdiffs):
-                mdev = np.abs(cdiffs[nfail:]).max()
+            if nfail < len(cadiffs):
+                mdev = np.abs(cadiffs[nfail:]).max()
             comment = ' [All fails are at start]'
             run_ok = True
         else:
@@ -325,18 +355,32 @@ def tfixer(args=None):
         if details:
 
             # Some details
-            fcdiffs = icycles[1:]-icycles[:-1]
-            back = fcdiffs <= 0
+            fcadiffs = iacycles[1:]-iacycles[:-1]
+            back = fcadiffs <= 0
             oinds = inds_ok[:-1][back]
-            ninds = np.arange(len(fcdiffs))[back]
-            cycs = icycles[:-1][back]
-            ncycs = icycles[1:][back]
+            ninds = np.arange(len(fcadiffs))[back]
+            cycs = iacycles[:-1][back]
+            ncycs = iacycles[1:][back]
             tims = mjds_ok[:-1][back]
-            for oind, nind, cyc, ncyc, mjd in zip(oinds, ninds, cycs, ncycs, tims):
-                print(
-                    '  Old index = {}, new index = {}, cycle = {}, next cycle = {}, time = {}'.format(
-                        oind, nind, cyc, ncyc, mjd)
-                )
+            if len(oinds):
+                print('\nInverted order times:')
+                for oind, nind, cyc, ncyc, mjd in zip(oinds, ninds, cycs, ncycs, tims):
+                    print(
+                        '  Old index = {}, new index = {}, cycle = {}, next cycle = {}, time = {}'.format(
+                            oind, nind, cyc, ncyc, mjd)
+                    )
+
+            if nfail:
+                print('\nFailed times:')
+                inds = inds_ok[fails]
+                cycs = iacycles[fails]
+                cydiffs = cadiffs[fails]
+                tims = mjds_ok[fails]
+                for ind,  cyc, cdiff, mjd in zip(inds, cycs, cydiffs, tims):
+                    print(
+                        '  Index = {}, cycle = {}, cycle diff. = {:.2g}, time = {}'.format(
+                            ind, cyc, cdiff, mjd)
+                    )
 
     if plot:
         # diagnostic plot: cycle differences vs cycle numbers
@@ -348,8 +392,11 @@ def tfixer(args=None):
 
         fig = plt.figure()
         ax = fig.add_subplot()
-        ax.plot(icycles[~fails],cdiffs[~fails],'.b')
-        ax.plot(icycles[fails],cdiffs[fails],'.r')
+        ax.plot(iacycles[~fails],cadiffs[~fails],'.b')
+        ax.plot(iacycles[fails],cadiffs[fails],'.r')
+#        ax.plot(icycles[~cok],cdiffs[~cok],'.',color='0.7')
+#        ax.plot(icycles[cok],cdiffs[cok],'.g')
+
         ax.set_xlabel('Cycle number')
         ax.set_ylabel('Cycle difference')
         secxax = ax.secondary_xaxis('top', functions=(c2t,t2c))
@@ -393,6 +440,8 @@ def u_tbytes_to_mjd(tbytes, rtbytes, nframe):
 
     if len(tbytes) == 32 and tbytes[12:] == 20*b'\x00':
         return (ret[1]['gps'], False, False)
+    elif ret[1]['gps'] < 52395:
+        return (ret[1]['gps'], True, False)
     else:
         return (ret[1]['gps'], True, True)
 
