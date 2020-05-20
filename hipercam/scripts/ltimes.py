@@ -111,9 +111,9 @@ def ltimes(args=None):
 
         resource = cl.get_value('run', 'run name', 'run005')
         if source == 'hs':
-            first = cl.get_value('first', 'first frame to plot', 1)
+            first = cl.get_value('first', 'first frame to list', 1)
         else:
-            first = cl.get_value('first', 'first frame to plot', 1, 0)
+            first = cl.get_value('first', 'first frame to list', 1, 0)
         last = cl.get_value('last', 'last frame to list', 0, 0)
         if last < first and last != 0:
             sys.stderr.write('last must be >= first or 0')
@@ -198,6 +198,9 @@ def ltimes(args=None):
                     1 if time.good else 0, time.expose, btime.mjd, bts.hms_custom,
                     0 if bbad else 1)
             )
+
+        if last > 0 and nframe == last:
+            break
 
         # increment the frame
         nframe += 1
