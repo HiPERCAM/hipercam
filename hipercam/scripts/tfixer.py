@@ -277,6 +277,7 @@ def tfixer(args=None):
         if acdiffs[cok][dmax] > dcmax:
             # at least one is out of spec. reject it
             cok[cinds[cok][dmax]] = False
+            nrej += 1
         else:
             break
     print('Rejected {} times when fitting nominally good times'.format(nrej))
