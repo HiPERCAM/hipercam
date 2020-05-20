@@ -7,13 +7,16 @@ import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
-__all__ = ['averun',]
+__all__ = [
+    "averun",
+]
 
 #################################
 #
 # averun -- median average images
 #
 #################################
+
 
 def averun(args=None):
     """``averun [source] (run first last twait tmax | flist) trim ([ncol
@@ -106,107 +109,109 @@ def averun(args=None):
     command, args = utils.script_args(args)
 
     # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('last', Cline.LOCAL, Cline.PROMPT)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
-        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
-        cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-        cl.register('bias', Cline.LOCAL, Cline.PROMPT)
-        cl.register('dark', Cline.LOCAL, Cline.PROMPT)
-        cl.register('flat', Cline.LOCAL, Cline.PROMPT)
-        cl.register('method', Cline.LOCAL, Cline.HIDE)
-        cl.register('sigma', Cline.LOCAL, Cline.HIDE)
-        cl.register('adjust', Cline.LOCAL, Cline.HIDE)
-        cl.register('clobber', Cline.LOCAL, Cline.HIDE)
-        cl.register('output', Cline.LOCAL, Cline.PROMPT)
+        cl.register("source", Cline.GLOBAL, Cline.HIDE)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("first", Cline.LOCAL, Cline.PROMPT)
+        cl.register("last", Cline.LOCAL, Cline.PROMPT)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ncol", Cline.GLOBAL, Cline.HIDE)
+        cl.register("nrow", Cline.GLOBAL, Cline.HIDE)
+        cl.register("flist", Cline.LOCAL, Cline.PROMPT)
+        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
+        cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
+        cl.register("method", Cline.LOCAL, Cline.HIDE)
+        cl.register("sigma", Cline.LOCAL, Cline.HIDE)
+        cl.register("adjust", Cline.LOCAL, Cline.HIDE)
+        cl.register("clobber", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         source = cl.get_value(
-            'source', 'data source [hs, hl, us, ul, hf]',
-            'hl', lvals=('hs','hl','us','ul','hf')
+            "source",
+            "data source [hs, hl, us, ul, hf]",
+            "hl",
+            lvals=("hs", "hl", "us", "ul", "hf"),
         )
 
         # set a flag
-        server_or_local = source.endswith('s') or source.endswith('l')
+        server_or_local = source.endswith("s") or source.endswith("l")
 
         if server_or_local:
-            run = cl.get_value('run', 'run name', 'run005')
-            first = cl.get_value('first', 'first frame to average', 1, 1)
-            last = cl.get_value('last', 'last frame to average', first, first)
+            run = cl.get_value("run", "run name", "run005")
+            first = cl.get_value("first", "first frame to average", 1, 1)
+            last = cl.get_value("last", "last frame to average", first, first)
 
             twait = cl.get_value(
-                'twait', 'time to wait for a new frame [secs]', 1., 0.)
+                "twait", "time to wait for a new frame [secs]", 1.0, 0.0
+            )
             tmax = cl.get_value(
-                'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+                "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+            )
 
         else:
-            flist = cl.get_value('flist', 'file list',
-                               cline.Fname('files.lis',hcam.LIST))
+            flist = cl.get_value(
+                "flist", "file list", cline.Fname("files.lis", hcam.LIST)
+            )
             first = 1
 
-        trim = cl.get_value(
-            'trim', 'do you want to trim edges of windows?',
-            True
-        )
+        trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
         if trim:
-            ncol = cl.get_value(
-                'ncol', 'number of columns to trim from windows', 0)
-            nrow = cl.get_value(
-                'nrow', 'number of rows to trim from windows', 0)
+            ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
+            nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
 
         # bias frame (if any)
         bias = cl.get_value(
-            'bias', "bias frame ['none' to ignore]",
-            cline.Fname('bias', hcam.HCAM), ignore='none'
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
         )
 
         # dark frame (if any)
         dark = cl.get_value(
-            'dark', "dark frame ['none' to ignore]",
-            cline.Fname('dark', hcam.HCAM), ignore='none'
+            "dark",
+            "dark frame ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM),
+            ignore="none",
         )
 
         # flat field frame (if any)
         flat = cl.get_value(
-            'flat', "flat field frame ['none' to ignore]",
-            cline.Fname('flat', hcam.HCAM), ignore='none'
+            "flat",
+            "flat field frame ['none' to ignore]",
+            cline.Fname("flat", hcam.HCAM),
+            ignore="none",
         )
 
-        cl.set_default('method','m')
+        cl.set_default("method", "m")
         method = cl.get_value(
-            'method', 'c(lipped mean), m(edian)', 'c', lvals=('c','m')
+            "method", "c(lipped mean), m(edian)", "c", lvals=("c", "m")
         )
 
-        if method == 'c':
-            sigma = cl.get_value(
-                'sigma', 'number of RMS deviations to clip', 3.
-            )
+        if method == "c":
+            sigma = cl.get_value("sigma", "number of RMS deviations to clip", 3.0)
 
-        cl.set_default('adjust','i')
+        cl.set_default("adjust", "i")
         adjust = cl.get_value(
-            'adjust', 'i(gnore), n(ormalise) b(ias offsets)',
-            'i', lvals=('i','n','b')
+            "adjust", "i(gnore), n(ormalise) b(ias offsets)", "i", lvals=("i", "n", "b")
         )
 
         clobber = cl.get_value(
-            'clobber', 'clobber any pre-existing files on output',
-            False
+            "clobber", "clobber any pre-existing files on output", False
         )
 
         output = cl.get_value(
-            'output', 'output average',
+            "output",
+            "output average",
             cline.Fname(
-                'hcam', hcam.HCAM,
-                cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
-            )
+                "hcam", hcam.HCAM, cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
+            ),
         )
 
     # inputs done with. Now do the work with 'grab' and 'combine'
@@ -216,43 +221,71 @@ def averun(args=None):
 
         if trim:
             args = [
-                None,'prompt',source,run,'yes',
-                str(first),str(last),
-                'yes',str(ncol),str(nrow),
-                str(twait),str(tmax),
-                'none','f32'
+                None,
+                "prompt",
+                source,
+                run,
+                "yes",
+                str(first),
+                str(last),
+                "yes",
+                str(ncol),
+                str(nrow),
+                str(twait),
+                str(tmax),
+                "none",
+                "f32",
             ]
         else:
             args = [
-                None,'prompt',source,run,'yes',
-                str(first),str(last),'no',
-                str(twait),str(tmax),
-                'none','f32'
+                None,
+                "prompt",
+                source,
+                run,
+                "yes",
+                str(first),
+                str(last),
+                "no",
+                str(twait),
+                str(tmax),
+                "none",
+                "f32",
             ]
-        print('arg =',args)
+        print("arg =", args)
         flist = hcam.scripts.grab(args)
 
     try:
         print("\nCalling 'combine' ...")
-        if method == 'm':
+        if method == "m":
             args = [
-                None, 'prompt', flist,
-                'none' if bias is None else bias,
-                'none' if dark is None else dark,
-                'none' if flat is None else flat,
-                method, adjust, 'usemean=yes',
-                'plot=no',
-                'yes' if clobber else 'no', output
+                None,
+                "prompt",
+                flist,
+                "none" if bias is None else bias,
+                "none" if dark is None else dark,
+                "none" if flat is None else flat,
+                method,
+                adjust,
+                "usemean=yes",
+                "plot=no",
+                "yes" if clobber else "no",
+                output,
             ]
         else:
             args = [
-                None, 'prompt', flist,
-                'none' if bias is None else bias,
-                'none' if dark is None else dark,
-                'none' if flat is None else flat,
-                method, str(sigma), adjust,
-                'usemean=yes', 'plot=no',
-                'yes' if clobber else 'no', output
+                None,
+                "prompt",
+                flist,
+                "none" if bias is None else bias,
+                "none" if dark is None else dark,
+                "none" if flat is None else flat,
+                method,
+                str(sigma),
+                adjust,
+                "usemean=yes",
+                "plot=no",
+                "yes" if clobber else "no",
+                output,
             ]
         hcam.scripts.combine(args)
 
@@ -262,8 +295,8 @@ def averun(args=None):
                 fname = fname.strip()
                 os.remove(fname)
         os.remove(flist)
-        print('\ntemporary files have been deleted')
-        print('averun finished')
+        print("\ntemporary files have been deleted")
+        print("averun finished")
 
     except KeyboardInterrupt:
         # this to ensure we delete the temporary files
@@ -272,5 +305,5 @@ def averun(args=None):
                 fname = fname.strip()
                 os.remove(fname)
         os.remove(flist)
-        print('\ntemporary files have been deleted')
-        print('averun aborted')
+        print("\ntemporary files have been deleted")
+        print("averun aborted")

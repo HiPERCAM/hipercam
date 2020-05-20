@@ -10,13 +10,31 @@ import hipercam as hcam
 from hipercam import utils, fitting
 
 from trm.pgplot import (
-    pgpap, pgsubp, pgsci, pgsch, pgenv, pglab, pgqvp, pgvstd,
-    pgeras, pgerry, pgpt, pgpanl, pgbbuf, pgebuf, pgsvp, pgswin,
-    pgbox, pgmove, pgdraw, pgpt1
+    pgpap,
+    pgsubp,
+    pgsci,
+    pgsch,
+    pgenv,
+    pglab,
+    pgqvp,
+    pgvstd,
+    pgeras,
+    pgerry,
+    pgpt,
+    pgpanl,
+    pgbbuf,
+    pgebuf,
+    pgsvp,
+    pgswin,
+    pgbox,
+    pgmove,
+    pgdraw,
+    pgpt1,
 )
 
 import matplotlib.pyplot as plt
 from hipercam import mpl
+
 
 class Rfile(OrderedDict):
     """Class to read and interpret reduce setup files. Similar to
@@ -40,23 +58,23 @@ class Rfile(OrderedDict):
 
             for line in fp:
 
-                if not line.startswith('#') and line != '' and not line.isspace():
+                if not line.startswith("#") and line != "" and not line.isspace():
 
                     # strip trailing comments
-                    comm = line.find('#')
+                    comm = line.find("#")
                     if comm != -1:
                         line = line[:comm].strip()
 
-                    if line.startswith('['):
+                    if line.startswith("["):
                         # new section
-                        section = line[1:line.find(']')].strip()
+                        section = line[1 : line.find("]")].strip()
                         sec = rfile[section] = cls()
                         insection = True
 
                     elif insection:
                         # another entry to current section
-                        key = line[:line.find('=')].strip()
-                        val = line[line.find('=')+1:].strip()
+                        key = line[: line.find("=")].strip()
+                        val = line[line.find("=") + 1 :].strip()
 
                         if key in sec:
                             if isinstance(sec[key], list):
@@ -68,8 +86,8 @@ class Rfile(OrderedDict):
 
                     else:
                         raise hcam.HipercamError(
-                            'found entry line before'
-                            ' any section = \n{:s}'.format(line)
+                            "found entry line before"
+                            " any section = \n{:s}".format(line)
                         )
 
         # process it. this is a matter of checking entries and
@@ -79,36 +97,37 @@ class Rfile(OrderedDict):
         #
         # general section
         #
-        sect = rfile['general']
-        if sect['version'] != hcam.REDUCE_FILE_VERSION:
+        sect = rfile["general"]
+        if sect["version"] != hcam.REDUCE_FILE_VERSION:
             # check the version
             raise hcam.HipercamError(
-                'Version mismatch: file = {:s}, reduce = {:s}'.format(
-                    sect['version'], hcam.REDUCE_FILE_VERSION)
+                "Version mismatch: file = {:s}, reduce = {:s}".format(
+                    sect["version"], hcam.REDUCE_FILE_VERSION
+                )
             )
 
-        sect['lwidth'] = float(sect['lwidth'])
-        if sect['lwidth'] < 0:
-            raise hcam.HipercamError('general.lwidth must be >= 0')
+        sect["lwidth"] = float(sect["lwidth"])
+        if sect["lwidth"] < 0:
+            raise hcam.HipercamError("general.lwidth must be >= 0")
 
-        sect['lheight'] = float(sect['lheight'])
-        if sect['lheight'] < 0:
-            raise hcam.HipercamError('general.lheight must be >= 0')
+        sect["lheight"] = float(sect["lheight"])
+        if sect["lheight"] < 0:
+            raise hcam.HipercamError("general.lheight must be >= 0")
 
-        sect['iwidth'] = float(sect['iwidth'])
-        if sect['iwidth'] < 0:
-            raise hcam.HipercamError('general.iwidth must be >= 0')
+        sect["iwidth"] = float(sect["iwidth"])
+        if sect["iwidth"] < 0:
+            raise hcam.HipercamError("general.iwidth must be >= 0")
 
-        sect['iheight'] = float(sect['iheight'])
-        if sect['iheight'] < 0:
-            raise hcam.HipercamError('general.iheight must be >= 0')
+        sect["iheight"] = float(sect["iheight"])
+        if sect["iheight"] < 0:
+            raise hcam.HipercamError("general.iheight must be >= 0")
 
-        sect['toffset'] = int(sect['toffset'])
+        sect["toffset"] = int(sect["toffset"])
 
-        toBool(rfile, 'general', 'skipbadt')
+        toBool(rfile, "general", "skipbadt")
 
         # handle the count level warnings
-        warns = sect.get('warn', [])
+        warns = sect.get("warn", [])
         if isinstance(warns, str):
             warns = [warns]
 
@@ -120,132 +139,122 @@ class Rfile(OrderedDict):
         for warn in warns:
             cnam, nonlinear, saturation = warn.split()
             rfile.warn[cnam] = {
-                'nonlinear': float(nonlinear),
-                'saturation': float(saturation),
+                "nonlinear": float(nonlinear),
+                "saturation": float(saturation),
             }
 
-        sect['ncpu'] = int(sect['ncpu'])
-        if sect['ncpu'] < 1:
-            raise hcam.HipercamError('general.ncpu must be >= 1')
+        sect["ncpu"] = int(sect["ncpu"])
+        if sect["ncpu"] < 1:
+            raise hcam.HipercamError("general.ncpu must be >= 1")
 
-        sect['ngroup'] = int(sect['ngroup']) if sect['ncpu'] > 1 else 1
-        if sect['ngroup'] < 1:
-            raise hcam.HipercamError('general.ngroup must be >= 1')
+        sect["ngroup"] = int(sect["ngroup"]) if sect["ncpu"] > 1 else 1
+        if sect["ngroup"] < 1:
+            raise hcam.HipercamError("general.ngroup must be >= 1")
 
         #
         # apertures section
         #
-        apsec = rfile['apertures']
+        apsec = rfile["apertures"]
 
         rfile.aper = hcam.MccdAper.read(
-            utils.add_extension(apsec['aperfile'], hcam.APER)
+            utils.add_extension(apsec["aperfile"], hcam.APER)
         )
-        if apsec['location'] != 'fixed' and \
-           apsec['location'] != 'variable':
+        if apsec["location"] != "fixed" and apsec["location"] != "variable":
             raise hcam.HipercamError(
                 "aperture location must either be 'fixed' or 'variable'"
             )
 
-        if apsec['fit_method'] == 'moffat':
-            rfile.method = 'm'
-        elif apsec['fit_method'] == 'gaussian':
-            rfile.method = 'g'
+        if apsec["fit_method"] == "moffat":
+            rfile.method = "m"
+        elif apsec["fit_method"] == "gaussian":
+            rfile.method = "g"
         else:
             raise hcam.HipercamError(
-                'apertures.fit_method = {:s} not recognised'.format(
-                    apsec['fit_method'])
+                "apertures.fit_method = {:s} not recognised".format(apsec["fit_method"])
             )
 
         # type conversions
-        toBool(rfile, 'apertures', 'fit_fwhm_fixed')
-        toBool(rfile, 'apertures', 'search_smooth_fft')
+        toBool(rfile, "apertures", "fit_fwhm_fixed")
+        toBool(rfile, "apertures", "search_smooth_fft")
 
-        apsec['search_half_width'] = int(apsec['search_half_width'])
-        apsec['search_smooth_fwhm'] = float(apsec['search_smooth_fwhm'])
-        apsec['fit_fwhm'] = float(apsec['fit_fwhm'])
-        apsec['fit_fwhm_min'] = float(apsec['fit_fwhm_min'])
-        apsec['fit_ndiv'] = int(apsec['fit_ndiv'])
-        apsec['fit_beta'] = float(apsec['fit_beta'])
-        apsec['fit_beta_max'] = float(apsec['fit_beta_max'])
-        apsec['fit_half_width'] = int(apsec['fit_half_width'])
-        apsec['fit_thresh'] = float(apsec['fit_thresh'])
-        apsec['fit_height_min_ref'] = float(apsec['fit_height_min_ref'])
-        apsec['fit_height_min_nrf'] = float(apsec['fit_height_min_nrf'])
-        apsec['fit_max_shift'] = float(apsec['fit_max_shift'])
-        apsec['fit_alpha'] = float(apsec['fit_alpha'])
-        apsec['fit_diff'] = float(apsec['fit_diff'])
+        apsec["search_half_width"] = int(apsec["search_half_width"])
+        apsec["search_smooth_fwhm"] = float(apsec["search_smooth_fwhm"])
+        apsec["fit_fwhm"] = float(apsec["fit_fwhm"])
+        apsec["fit_fwhm_min"] = float(apsec["fit_fwhm_min"])
+        apsec["fit_ndiv"] = int(apsec["fit_ndiv"])
+        apsec["fit_beta"] = float(apsec["fit_beta"])
+        apsec["fit_beta_max"] = float(apsec["fit_beta_max"])
+        apsec["fit_half_width"] = int(apsec["fit_half_width"])
+        apsec["fit_thresh"] = float(apsec["fit_thresh"])
+        apsec["fit_height_min_ref"] = float(apsec["fit_height_min_ref"])
+        apsec["fit_height_min_nrf"] = float(apsec["fit_height_min_nrf"])
+        apsec["fit_max_shift"] = float(apsec["fit_max_shift"])
+        apsec["fit_alpha"] = float(apsec["fit_alpha"])
+        apsec["fit_diff"] = float(apsec["fit_diff"])
 
         # run a few checks
-        if apsec['fit_beta'] <= 0.:
-            raise hcam.HipercamError('apertures.fit_beta <= 0')
-        if apsec['fit_thresh'] <= 1.:
-            raise hcam.HipercamError('apertures.fit_thresh <= 1')
-        if apsec['fit_max_shift'] <= 0.:
-            raise hcam.HipercamError('apertures.fit_diff <= 0')
-        if apsec['fit_alpha'] <= 0. or apsec['fit_alpha'] > 1:
-            raise hcam.HipercamError('apertures.fit_alpha outside interval (0,1].')
-        if apsec['fit_diff'] <= 0.:
-            raise hcam.HipercamError('apertures.fit_diff <= 0')
+        if apsec["fit_beta"] <= 0.0:
+            raise hcam.HipercamError("apertures.fit_beta <= 0")
+        if apsec["fit_thresh"] <= 1.0:
+            raise hcam.HipercamError("apertures.fit_thresh <= 1")
+        if apsec["fit_max_shift"] <= 0.0:
+            raise hcam.HipercamError("apertures.fit_diff <= 0")
+        if apsec["fit_alpha"] <= 0.0 or apsec["fit_alpha"] > 1:
+            raise hcam.HipercamError("apertures.fit_alpha outside interval (0,1].")
+        if apsec["fit_diff"] <= 0.0:
+            raise hcam.HipercamError("apertures.fit_diff <= 0")
 
         #
         # calibration section
         #
-        calsec = rfile['calibration']
+        calsec = rfile["calibration"]
 
-        toBool(rfile, 'calibration', 'crop')
+        toBool(rfile, "calibration", "crop")
 
-        if calsec['bias'] != '':
-            rfile.bias = hcam.MCCD.read(
-                utils.add_extension(calsec['bias'], hcam.HCAM)
-            )
+        if calsec["bias"] != "":
+            rfile.bias = hcam.MCCD.read(utils.add_extension(calsec["bias"], hcam.HCAM))
         else:
             rfile.bias = None
 
-        if calsec['dark'] != '':
-            rfile.dark = hcam.MCCD.read(
-                utils.add_extension(calsec['dark'], hcam.HCAM)
-                )
+        if calsec["dark"] != "":
+            rfile.dark = hcam.MCCD.read(utils.add_extension(calsec["dark"], hcam.HCAM))
         else:
             rfile.dark = None
 
-        if calsec['flat'] != '':
-            rfile.flat = hcam.MCCD.read(
-                utils.add_extension(calsec['flat'], hcam.HCAM)
-                )
+        if calsec["flat"] != "":
+            rfile.flat = hcam.MCCD.read(utils.add_extension(calsec["flat"], hcam.HCAM))
         else:
             rfile.flat = None
 
         try:
-            rfile.readout = float(calsec['readout'])
+            rfile.readout = float(calsec["readout"])
         except TypeError:
             rfile.readout = hcam.MCCD.read(
-                utils.add_extension(calsec['readout'], hcam.HCAM)
-                )
+                utils.add_extension(calsec["readout"], hcam.HCAM)
+            )
 
         try:
-            rfile.gain = float(calsec['gain'])
+            rfile.gain = float(calsec["gain"])
         except TypeError:
-            rfile.gain = hcam.MCCD.read(
-                utils.add_extension(calsec['gain'], hcam.HCAM)
-                )
+            rfile.gain = hcam.MCCD.read(utils.add_extension(calsec["gain"], hcam.HCAM))
 
         # Extraction section
 
         # Separate the extraction entries into lists, check and convert some
         # entries
-        extsec = rfile['extraction']
+        extsec = rfile["extraction"]
 
         for cnam in extsec:
 
             extsec[cnam] = lst = extsec[cnam].split()
 
-            if lst[0] != 'variable' and lst[0] != 'fixed':
+            if lst[0] != "variable" and lst[0] != "fixed":
                 raise hcam.HipercamError(
                     "first entry of extraction lines must either"
                     " be 'variable' or 'fixed'"
                 )
 
-            if lst[1] != 'normal' and lst[1] != 'optimal':
+            if lst[1] != "normal" and lst[1] != "optimal":
                 raise hcam.HipercamError(
                     "second entry of extraction lines"
                     " must either be 'normal' or 'optimal'"
@@ -258,43 +267,39 @@ class Rfile(OrderedDict):
         #
         # sky section
         #
-        skysec = rfile['sky']
+        skysec = rfile["sky"]
 
-        if skysec['error'] == 'variance':
-            if skysec['method'] == 'median':
+        if skysec["error"] == "variance":
+            if skysec["method"] == "median":
                 raise hcam.HipercamError(
-                    'sky.error == variance requires sky.method == clipped'
+                    "sky.error == variance requires sky.method == clipped"
                 )
-        elif skysec['error'] != 'photon':
-            raise hcam.HipercamError(
-                "sky.error must be either 'variance' or 'photon'"
-            )
+        elif skysec["error"] != "photon":
+            raise hcam.HipercamError("sky.error must be either 'variance' or 'photon'")
 
-        if skysec['method'] != 'clipped' and skysec['method'] != 'median':
-            raise hcam.HipercamError(
-                "sky.method must be either 'clipped' or 'median'"
-            )
+        if skysec["method"] != "clipped" and skysec["method"] != "median":
+            raise hcam.HipercamError("sky.method must be either 'clipped' or 'median'")
 
-        skysec['thresh'] = float(skysec['thresh'])
+        skysec["thresh"] = float(skysec["thresh"])
 
         #
         # light curve plot section
         #
 
-        sect = rfile['lcplot']
+        sect = rfile["lcplot"]
 
-        sect['xrange'] = float(sect['xrange'])
-        sect['extend_x'] = float(sect['extend_x'])
-        if sect['extend_x'] <= 0:
-            raise hcam.HipercamError('lcplot.extend_x must be > 0')
+        sect["xrange"] = float(sect["xrange"])
+        sect["extend_x"] = float(sect["extend_x"])
+        if sect["extend_x"] <= 0:
+            raise hcam.HipercamError("lcplot.extend_x must be > 0")
 
         #
         # light curve panel section
         #
 
-        sect = rfile['light']
+        sect = rfile["light"]
 
-        plot = sect['plot']
+        plot = sect["plot"]
         if isinstance(plot, str):
             plot = [plot]
 
@@ -306,56 +311,64 @@ class Rfile(OrderedDict):
             # some consistency checks
             if cnam not in rfile.aper:
                 raise hcam.HipercamError(
-                    ("CCD = {:s} has a plot line in 'light' but is"
-                     " not present in the aperture file").format(cnam)
+                    (
+                        "CCD = {:s} has a plot line in 'light' but is"
+                        " not present in the aperture file"
+                    ).format(cnam)
                 )
 
             if cnam not in extsec:
                 raise hcam.HipercamError(
-                    ("CCD = {:s} has a plot line in 'light' but no"
-                     " corresponding entry under 'extraction'").format(cnam)
+                    (
+                        "CCD = {:s} has a plot line in 'light' but no"
+                        " corresponding entry under 'extraction'"
+                    ).format(cnam)
                 )
 
             if tnm not in rfile.aper[cnam]:
                 raise hcam.HipercamError(
-                    ("Aperture = {:s} [target], CCD = {:s} has a plot line"
-                     " in 'light' but is not present in the aperture file").format(tnm, cnam)
+                    (
+                        "Aperture = {:s} [target], CCD = {:s} has a plot line"
+                        " in 'light' but is not present in the aperture file"
+                    ).format(tnm, cnam)
                 )
 
-            if cnm != '!' and cnm not in rfile.aper[cnam]:
+            if cnm != "!" and cnm not in rfile.aper[cnam]:
                 raise hcam.HipercamError(
-                    ("Aperture = {:s} [comparison], CCD = {:s} has a plot line"
-                     " in 'light' but is not present in the aperture file").format(tnm, cnam)
+                    (
+                        "Aperture = {:s} [comparison], CCD = {:s} has a plot line"
+                        " in 'light' but is not present in the aperture file"
+                    ).format(tnm, cnam)
                 )
 
             plot[n] = {
-                'ccd': cnam,
-                'targ': tnm,
-                'comp': cnm,
-                'off': float(off),
-                'fac': float(fac),
-                'dcol': ctrans(dcol),
-                'ecol': ctrans(ecol)
-                }
-        sect['plot'] = plot
+                "ccd": cnam,
+                "targ": tnm,
+                "comp": cnm,
+                "off": float(off),
+                "fac": float(fac),
+                "dcol": ctrans(dcol),
+                "ecol": ctrans(ecol),
+            }
+        sect["plot"] = plot
 
-        toBool(rfile, 'light', 'linear')
-        toBool(rfile, 'light', 'y_fixed')
-        sect['y1'] = float(sect['y1'])
-        sect['y2'] = float(sect['y2'])
-        sect['extend_y'] = float(sect['extend_y'])
-        if sect['extend_y'] <= 0:
-            raise hcam.HipercamError('light.extend_y must be > 0')
+        toBool(rfile, "light", "linear")
+        toBool(rfile, "light", "y_fixed")
+        sect["y1"] = float(sect["y1"])
+        sect["y2"] = float(sect["y2"])
+        sect["extend_y"] = float(sect["extend_y"])
+        if sect["extend_y"] <= 0:
+            raise hcam.HipercamError("light.extend_y must be > 0")
 
         #
         # position panel section
         #
 
-        rfile.position = 'position' in rfile
+        rfile.position = "position" in rfile
         if rfile.position:
-            sect = rfile['position']
+            sect = rfile["position"]
 
-            plot = sect['plot']
+            plot = sect["plot"]
             if isinstance(plot, str):
                 plot = [plot]
 
@@ -367,59 +380,65 @@ class Rfile(OrderedDict):
                 # some consistency checks
                 if cnam not in rfile.aper:
                     raise hcam.HipercamError(
-                        ("CCD = {:s} has a plot line in 'position'"
-                         " but is not present in the aperture file").format(cnam)
-                        )
+                        (
+                            "CCD = {:s} has a plot line in 'position'"
+                            " but is not present in the aperture file"
+                        ).format(cnam)
+                    )
 
                 if cnam not in extsec:
                     raise hcam.HipercamError(
-                        ("CCD = {:s} has a plot line in 'position'"
-                         " but is no corresponding entry under 'extraction'").format(cnam)
-                        )
+                        (
+                            "CCD = {:s} has a plot line in 'position'"
+                            " but is no corresponding entry under 'extraction'"
+                        ).format(cnam)
+                    )
 
                 if tnm not in rfile.aper[cnam]:
                     raise hcam.HipercamError(
-                        ("Aperture = {:s}, CCD = {:s} has a plot line in 'position'"
-                         " but is not present in the aperture file").format(tnm, cnam)
-                        )
+                        (
+                            "Aperture = {:s}, CCD = {:s} has a plot line in 'position'"
+                            " but is not present in the aperture file"
+                        ).format(tnm, cnam)
+                    )
 
                 plot[n] = {
-                    'ccd': cnam,
-                    'targ': tnm,
-                    'dcol': ctrans(dcol),
-                    'ecol': ctrans(ecol)
-                    }
-            sect['plot'] = plot
+                    "ccd": cnam,
+                    "targ": tnm,
+                    "dcol": ctrans(dcol),
+                    "ecol": ctrans(ecol),
+                }
+            sect["plot"] = plot
 
-            sect['height'] = float(sect['height'])
-            if sect['height'] <= 0:
-                raise hcam.HipercamError('position.height must be > 0')
+            sect["height"] = float(sect["height"])
+            if sect["height"] <= 0:
+                raise hcam.HipercamError("position.height must be > 0")
 
-            toBool(rfile, 'position', 'x_fixed')
-            sect['x_min'] = float(sect['x_min'])
-            sect['x_max'] = float(sect['x_max'])
-            if sect['x_max'] <= sect['x_min']:
-                raise hcam.HipercamError('position.x_min must be < position.x_max')
+            toBool(rfile, "position", "x_fixed")
+            sect["x_min"] = float(sect["x_min"])
+            sect["x_max"] = float(sect["x_max"])
+            if sect["x_max"] <= sect["x_min"]:
+                raise hcam.HipercamError("position.x_min must be < position.x_max")
 
-            toBool(rfile, 'position', 'y_fixed')
-            sect['y_min'] = float(sect['y_min'])
-            sect['y_max'] = float(sect['y_max'])
-            if sect['y_max'] <= sect['y_min']:
-                raise hcam.HipercamError('position.y_min must be < position.y_max')
+            toBool(rfile, "position", "y_fixed")
+            sect["y_min"] = float(sect["y_min"])
+            sect["y_max"] = float(sect["y_max"])
+            if sect["y_max"] <= sect["y_min"]:
+                raise hcam.HipercamError("position.y_min must be < position.y_max")
 
-            sect['extend_y'] = float(sect['extend_y'])
-            if sect['extend_y'] <= 0:
-                raise hcam.HipercamError('position.extend_y must be > 0')
+            sect["extend_y"] = float(sect["extend_y"])
+            if sect["extend_y"] <= 0:
+                raise hcam.HipercamError("position.extend_y must be > 0")
 
         #
         # transmission panel section
         #
 
-        rfile.transmission = 'transmission' in rfile
+        rfile.transmission = "transmission" in rfile
         if rfile.transmission:
-            sect = rfile['transmission']
+            sect = rfile["transmission"]
 
-            plot = sect['plot']
+            plot = sect["plot"]
             if isinstance(plot, str):
                 plot = [plot]
 
@@ -431,46 +450,52 @@ class Rfile(OrderedDict):
                 # some consistency checks
                 if cnam not in rfile.aper:
                     raise hcam.HipercamError(
-                        ("CCD = {:s} has a plot line in 'transmission' but is"
-                         " not present in the aperture file").format(cnam)
-                        )
+                        (
+                            "CCD = {:s} has a plot line in 'transmission' but is"
+                            " not present in the aperture file"
+                        ).format(cnam)
+                    )
 
                 if cnam not in extsec:
                     raise hcam.HipercamError(
-                        ("CCD = {:s} has a plot line in 'transmission' but no"
-                         " corresponding entry under 'extraction'").format(cnam)
-                        )
+                        (
+                            "CCD = {:s} has a plot line in 'transmission' but no"
+                            " corresponding entry under 'extraction'"
+                        ).format(cnam)
+                    )
 
                 if tnm not in rfile.aper[cnam]:
                     raise hcam.HipercamError(
-                        ("Aperture = {:s}, CCD = {:s} has a plot line in 'transmission'"
-                         " but is not present in the aperture file").format(tnm, cnam)
-                        )
+                        (
+                            "Aperture = {:s}, CCD = {:s} has a plot line in 'transmission'"
+                            " but is not present in the aperture file"
+                        ).format(tnm, cnam)
+                    )
 
                 plot[n] = {
-                    'ccd': cnam,
-                    'targ': tnm,
-                    'dcol': ctrans(dcol),
-                    'ecol': ctrans(ecol)
-                    }
-            sect['plot'] = plot
+                    "ccd": cnam,
+                    "targ": tnm,
+                    "dcol": ctrans(dcol),
+                    "ecol": ctrans(ecol),
+                }
+            sect["plot"] = plot
 
-            sect['height'] = float(sect['height'])
-            if sect['height'] <= 0:
-                raise hcam.HipercamError('transmission.height must be > 0')
+            sect["height"] = float(sect["height"])
+            if sect["height"] <= 0:
+                raise hcam.HipercamError("transmission.height must be > 0")
 
-            sect['ymax'] = float(sect['ymax'])
-            if sect['ymax'] < 100:
-                raise hcam.HipercamError('transmission.ymax must be >= 100')
+            sect["ymax"] = float(sect["ymax"])
+            if sect["ymax"] < 100:
+                raise hcam.HipercamError("transmission.ymax must be >= 100")
 
         #
         # seeing panel section
         #
-        rfile.seeing = 'seeing' in rfile
+        rfile.seeing = "seeing" in rfile
         if rfile.seeing:
-            sect = rfile['seeing']
+            sect = rfile["seeing"]
 
-            plot = sect['plot']
+            plot = sect["plot"]
             if isinstance(plot, str):
                 plot = [plot]
 
@@ -482,61 +507,65 @@ class Rfile(OrderedDict):
                 # some consistency checks
                 if cnam not in rfile.aper:
                     raise hcam.HipercamError(
-                        ("CCD = {:s} has a plot line in 'position' but is"
-                         " not present in the aperture file").format(cnam)
-                        )
+                        (
+                            "CCD = {:s} has a plot line in 'position' but is"
+                            " not present in the aperture file"
+                        ).format(cnam)
+                    )
 
                 if cnam not in extsec:
                     raise hcam.HipercamError(
-                        ("CCD = {:s} has a plot line in 'position' but no"
-                         " corresponding entry under 'extraction'").format(cnam)
-                        )
+                        (
+                            "CCD = {:s} has a plot line in 'position' but no"
+                            " corresponding entry under 'extraction'"
+                        ).format(cnam)
+                    )
 
                 if tnm not in rfile.aper[cnam]:
                     raise hcam.HipercamError(
-                        ("Aperture = {:s}, CCD = {:s} has a plot line in 'position'"
-                         " but is not present in the aperture file").format(tnm, cnam)
-                        )
+                        (
+                            "Aperture = {:s}, CCD = {:s} has a plot line in 'position'"
+                            " but is not present in the aperture file"
+                        ).format(tnm, cnam)
+                    )
 
                 plot[n] = {
-                    'ccd': cnam,
-                    'targ': tnm,
-                    'dcol': ctrans(dcol),
-                    'ecol': ctrans(ecol)
-                    }
-            sect['plot'] = plot
+                    "ccd": cnam,
+                    "targ": tnm,
+                    "dcol": ctrans(dcol),
+                    "ecol": ctrans(ecol),
+                }
+            sect["plot"] = plot
 
-            toBool(rfile, 'seeing', 'y_fixed')
+            toBool(rfile, "seeing", "y_fixed")
 
-            sect['height'] = float(sect['height'])
-            if sect['height'] <= 0:
-                raise hcam.HipercamError('seeing.height must be > 0')
+            sect["height"] = float(sect["height"])
+            if sect["height"] <= 0:
+                raise hcam.HipercamError("seeing.height must be > 0")
 
-            sect['ymax'] = float(sect['ymax'])
-            if sect['ymax'] <= 0:
-                raise hcam.HipercamError('seeing.ymax must be > 0')
+            sect["ymax"] = float(sect["ymax"])
+            if sect["ymax"] <= 0:
+                raise hcam.HipercamError("seeing.ymax must be > 0")
 
-            sect['scale'] = float(sect['scale'])
-            if sect['scale'] <= 0:
-                raise hcam.HipercamError('seeing.scale must be > 0')
+            sect["scale"] = float(sect["scale"])
+            if sect["scale"] <= 0:
+                raise hcam.HipercamError("seeing.scale must be > 0")
 
-            sect['extend_y'] = float(sect['extend_y'])
-            if sect['extend_y'] <= 0:
-                raise hcam.HipercamError('seeing.extend_y must be > 0')
+            sect["extend_y"] = float(sect["extend_y"])
+            if sect["extend_y"] <= 0:
+                raise hcam.HipercamError("seeing.extend_y must be > 0")
 
         # focal plane mask section
-        toBool(rfile, 'focal_mask', 'demask')
-        sect = rfile['focal_mask']
-        sect['dthresh'] = float(sect['dthresh'])
+        toBool(rfile, "focal_mask", "demask")
+        sect = rfile["focal_mask"]
+        sect["dthresh"] = float(sect["dthresh"])
 
         # Monitor section
-        monsec = rfile['monitor']
+        monsec = rfile["monitor"]
         for apnam in monsec:
 
             # interpret the bitmasks.
-            monsec[apnam] = [
-                eval('hcam.'+entry) for entry in monsec[apnam].split()
-            ]
+            monsec[apnam] = [eval("hcam." + entry) for entry in monsec[apnam].split()]
 
         # We are finally done reading and checking the reduce script.
         # rfile[section][param] should from now on return something
@@ -573,12 +602,12 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
     if implot:
         xlo, xhi, ylo, yhi = plot_lims
         # image plot
-        imdev = hcam.pgp.Device(rfile['general']['idevice'])
-        iwidth = rfile['general']['iwidth']
-        iheight = rfile['general']['iheight']
+        imdev = hcam.pgp.Device(rfile["general"]["idevice"])
+        iwidth = rfile["general"]["iwidth"]
+        iheight = rfile["general"]["iheight"]
 
         if iwidth > 0 and iheight > 0:
-            pgpap(iwidth, iheight/iwidth)
+            pgpap(iwidth, iheight / iwidth)
 
         # set up panels and axes
         nccd = len(ccds)
@@ -589,20 +618,20 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
 
         # plot axes, labels, titles. Happens once only
         for cnam in ccds:
-            pgsci(hcam.pgp.Params['axis.ci'])
-            pgsch(hcam.pgp.Params['axis.number.ch'])
+            pgsci(hcam.pgp.Params["axis.ci"])
+            pgsch(hcam.pgp.Params["axis.number.ch"])
             pgenv(xlo, xhi, ylo, yhi, 1, 0)
-            pgsci(hcam.pgp.Params['axis.label.ci'])
-            pgsch(hcam.pgp.Params['axis.label.ch'])
-            pglab('X', 'Y', 'CCD {:s}'.format(cnam))
+            pgsci(hcam.pgp.Params["axis.label.ci"])
+            pgsch(hcam.pgp.Params["axis.label.ch"])
+            pglab("X", "Y", "CCD {:s}".format(cnam))
 
     if lplot:
         # open the light curve plot
-        lcdev = hcam.pgp.Device(rfile['general']['ldevice'])
-        lwidth = rfile['general']['lwidth']
-        lheight = rfile['general']['lheight']
+        lcdev = hcam.pgp.Device(rfile["general"]["ldevice"])
+        lwidth = rfile["general"]["lwidth"]
+        lheight = rfile["general"]["lheight"]
         if lwidth > 0 and lheight > 0:
-            pgpap(lwidth, lheight/lwidth)
+            pgpap(lwidth, lheight / lwidth)
 
         # define and draw panels. 'total' is the total height of all
         # panel which will be used to work out the fraction occupied
@@ -612,91 +641,146 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
         total = lheight
 
         if rfile.position:
-            pheight = rfile['position']['height']
+            pheight = rfile["position"]["height"]
             total += pheight
 
         if rfile.transmission:
-            theight = rfile['transmission']['height']
+            theight = rfile["transmission"]["height"]
             total += theight
 
         if rfile.seeing:
-            sheight = rfile['seeing']['height']
+            sheight = rfile["seeing"]["height"]
             total += sheight
 
         # define standard viewport. We set the character height to ensure
         # there is enough room around the edges.
-        pgsch(max(hcam.pgp.Params['axis.label.ch'],
-                  hcam.pgp.Params['axis.number.ch']))
+        pgsch(max(hcam.pgp.Params["axis.label.ch"], hcam.pgp.Params["axis.number.ch"]))
         pgvstd()
         xv1, xv2, yv1, yv2 = pgqvp()
-        x1, x2 = 0, rfile['lcplot']['extend_x']
+        x1, x2 = 0, rfile["lcplot"]["extend_x"]
 
         # scale = vertical height of LC panel in device coordinates
-        scale = (yv2-yv1) / total
+        scale = (yv2 - yv1) / total
 
         # Work from the bottom up to get the X-axis labelling right
         # since it has to be turned off for the upper panels.  at each
         # step yv1, yv2 is the Panel's vertical range
-        xlabel = 'Time [mins]'
-        xopt = 'bcnst'
+        xlabel = "Time [mins]"
+        xopt = "bcnst"
 
         if rfile.seeing:
             # the seeing panel
-            yv2 = yv1 + scale*sheight
+            yv2 = yv1 + scale * sheight
             spanel = Panel(
-                lcdev, xv1, xv2, yv1, yv2, xlabel, 'FWHM (")',
-                '', xopt, 'bcnst', x1, x2, 0, rfile['seeing']['ymax']
-                )
+                lcdev,
+                xv1,
+                xv2,
+                yv1,
+                yv2,
+                xlabel,
+                'FWHM (")',
+                "",
+                xopt,
+                "bcnst",
+                x1,
+                x2,
+                0,
+                rfile["seeing"]["ymax"],
+            )
 
-            xlabel = ''
-            xopt = 'bcst'
+            xlabel = ""
+            xopt = "bcst"
             yv1 = yv2
 
         if rfile.transmission:
             # the transmission panel
-            yv2 = yv1 + scale*theight
+            yv2 = yv1 + scale * theight
             tpanel = Panel(
-                lcdev, xv1, xv2, yv1, yv2, xlabel, '% trans',
-                '', xopt, 'bcnst', x1, x2, 0, rfile['transmission']['ymax']
-                )
+                lcdev,
+                xv1,
+                xv2,
+                yv1,
+                yv2,
+                xlabel,
+                "% trans",
+                "",
+                xopt,
+                "bcnst",
+                x1,
+                x2,
+                0,
+                rfile["transmission"]["ymax"],
+            )
 
-            xlabel = ''
-            xopt = 'bcst'
+            xlabel = ""
+            xopt = "bcst"
             yv1 = yv2
 
         if rfile.position:
             # the X,Y position panels. First Y
-            yv2 = yv1 + scale*pheight/2.
+            yv2 = yv1 + scale * pheight / 2.0
             ypanel = Panel(
-                lcdev, xv1, xv2, yv1, yv2, xlabel, 'Y',
-                '', xopt, 'bcnst', x1, x2,
-                rfile['position']['y_min'], rfile['position']['y_max'],
-                )
+                lcdev,
+                xv1,
+                xv2,
+                yv1,
+                yv2,
+                xlabel,
+                "Y",
+                "",
+                xopt,
+                "bcnst",
+                x1,
+                x2,
+                rfile["position"]["y_min"],
+                rfile["position"]["y_max"],
+            )
 
-            xlabel = ''
-            xopt = 'bcst'
+            xlabel = ""
+            xopt = "bcst"
             yv1 = yv2
 
             # then X
-            yv2 = yv1 + scale*pheight/2.
+            yv2 = yv1 + scale * pheight / 2.0
             xpanel = Panel(
-                lcdev, xv1, xv2, yv1, yv2, xlabel, 'X',
-                '', xopt, 'bcnst', x1, x2,
-                rfile['position']['x_min'], rfile['position']['x_max'],
-                )
+                lcdev,
+                xv1,
+                xv2,
+                yv1,
+                yv2,
+                xlabel,
+                "X",
+                "",
+                xopt,
+                "bcnst",
+                x1,
+                x2,
+                rfile["position"]["x_min"],
+                rfile["position"]["x_max"],
+            )
 
-            xlabel = ''
-            xopt = 'bcst'
+            xlabel = ""
+            xopt = "bcst"
             yv1 = yv2
 
         # Light curve is not an option and is always at the top
-        yv2 = yv1 + scale*lheight
+        yv2 = yv1 + scale * lheight
 
         lpanel = Panel(
-            lcdev, xv1, xv2, yv1, yv2, xlabel,
-            'Flux' if rfile['light']['linear'] else 'Magnitudes', '',
-            xopt, 'bcnst', x1, x2,
-            rfile['light']['y1'], rfile['light']['y2']
+            lcdev,
+            xv1,
+            xv2,
+            yv1,
+            yv2,
+            xlabel,
+            "Flux" if rfile["light"]["linear"] else "Magnitudes",
+            "",
+            xopt,
+            "bcnst",
+            x1,
+            x2,
+            rfile["light"]["y1"],
+            rfile["light"]["y2"],
         )
 
     return imdev, lcdev, spanel, tpanel, xpanel, ypanel, lpanel
@@ -705,26 +789,27 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
 def setup_plot_buffers(rfile):
     # create buffers to store the points plotted in each panel
     lbuffer = []
-    for plot_config in rfile['light']['plot']:
-        lbuffer.append(LightCurve(plot_config, rfile['light']['linear']))
+    for plot_config in rfile["light"]["plot"]:
+        lbuffer.append(LightCurve(plot_config, rfile["light"]["linear"]))
 
     xbuffer, ybuffer = [], []
     if rfile.position:
-        for plot_config in rfile['position']['plot']:
+        for plot_config in rfile["position"]["plot"]:
             xbuffer.append(Xposition(plot_config))
             ybuffer.append(Yposition(plot_config))
 
     tbuffer = []
     if rfile.transmission:
-        for plot_config in rfile['transmission']['plot']:
+        for plot_config in rfile["transmission"]["plot"]:
             tbuffer.append(Transmission(plot_config))
 
     sbuffer = []
     if rfile.seeing:
-        for plot_config in rfile['seeing']['plot']:
-            sbuffer.append(Seeing(plot_config, rfile['seeing']['scale']))
+        for plot_config in rfile["seeing"]["plot"]:
+            sbuffer.append(Seeing(plot_config, rfile["seeing"]["scale"]))
 
     return lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
+
 
 # Some fancy stuff to keep tzero internal to update_plots
 def static_vars(**kwargs):
@@ -732,14 +817,43 @@ def static_vars(**kwargs):
         for k in kwargs:
             setattr(func, k, kwargs[k])
         return func
+
     return decorate
+
 
 @static_vars(tzero=None)
 def update_plots(
-        results, rfile, implot, lplot, imdev, lcdev,
-        pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi,
-        xlo, xhi, ylo, yhi, lpanel, xpanel, ypanel, tpanel, spanel,
-        tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer):
+    results,
+    rfile,
+    implot,
+    lplot,
+    imdev,
+    lcdev,
+    pccd,
+    ccds,
+    msub,
+    nx,
+    iset,
+    plo,
+    phi,
+    ilo,
+    ihi,
+    xlo,
+    xhi,
+    ylo,
+    yhi,
+    lpanel,
+    xpanel,
+    ypanel,
+    tpanel,
+    spanel,
+    tkeep,
+    lbuffer,
+    xbuffer,
+    ybuffer,
+    tbuffer,
+    sbuffer,
+):
     """Plot updater routine.
 
     Arguments::
@@ -818,7 +932,7 @@ def update_plots(
         imdev.select()
 
         # display the CCDs chosen
-        message = '; '
+        message = "; "
         for nc, cnam in enumerate(ccds):
             ccd = pccd[cnam]
 
@@ -836,19 +950,14 @@ def update_plots(
                 iy = nc // nx + 1
                 pgpanl(ix, iy)
                 vmin, vmax = hcam.pgp.pCcd(
-                    ccd, iset, plo, phi, ilo, ihi,
-                    xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
+                    ccd, iset, plo, phi, ilo, ihi, xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
                 )
 
                 # accumulate string of image scalings
                 if nc:
-                    message += ', ccd {:s}: {:.2f} to {:.2f}'.format(
-                        cnam, vmin, vmax
-                    )
+                    message += ", ccd {:s}: {:.2f} to {:.2f}".format(cnam, vmin, vmax)
                 else:
-                    message += 'ccd {:s}: {:.2f} to {:.2f}'.format(
-                        cnam, vmin, vmax
-                    )
+                    message += "ccd {:s}: {:.2f} to {:.2f}".format(cnam, vmin, vmax)
 
                 if cnam in rfile.aper:
                     # find the result for this ccd name
@@ -869,12 +978,20 @@ def update_plots(
 
             # first set the tzero if it is not set yet
 
-            skipbadt = rfile['general']['skipbadt']
+            skipbadt = rfile["general"]["skipbadt"]
             for cnam, res in results:
-                for nframe, store, ccdaper, reses, mjdint, \
-                    mjdfrac, mjdok, expose in res:
+                for (
+                    nframe,
+                    store,
+                    ccdaper,
+                    reses,
+                    mjdint,
+                    mjdfrac,
+                    mjdok,
+                    expose,
+                ) in res:
                     if mjdok or not skipbadt:
-                        update_plots.tzero = mjdint+mjdfrac
+                        update_plots.tzero = mjdint + mjdfrac
                         break
                 if update_plots.tzero is not None:
                     break
@@ -889,8 +1006,7 @@ def update_plots(
         tmax = None
 
         replot, ltmax = plotLight(lpanel, tzero, results, rfile, tkeep, lbuffer)
-        tmax = tmax if ltmax is None else \
-               ltmax if tmax is None else max(tmax, ltmax)
+        tmax = tmax if ltmax is None else ltmax if tmax is None else max(tmax, ltmax)
 
         if rfile.position:
             # plot the positions
@@ -898,29 +1014,32 @@ def update_plots(
                 xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer
             )
             replot |= rep
-            tmax = tmax if ptmax is None else \
-                   ptmax if tmax is None else max(tmax, ptmax)
+            tmax = (
+                tmax if ptmax is None else ptmax if tmax is None else max(tmax, ptmax)
+            )
 
         if rfile.transmission:
             # plot the transmission
             rep, ttmax = plotTrans(tpanel, tzero, results, rfile, tkeep, tbuffer)
             replot |= rep
-            tmax = tmax if ttmax is None else \
-                   ttmax if tmax is None else max(tmax, ttmax)
+            tmax = (
+                tmax if ttmax is None else ttmax if tmax is None else max(tmax, ttmax)
+            )
 
         if rfile.seeing:
             # plot the seeing
             rep, stmax = plotSeeing(spanel, tzero, results, rfile, tkeep, sbuffer)
             replot |= rep
-            tmax = tmax if stmax is None else \
-                   stmax if tmax is None else max(tmax, stmax)
+            tmax = (
+                tmax if stmax is None else stmax if tmax is None else max(tmax, stmax)
+            )
 
         # check the time
         if tmax is not None and tmax > lpanel.x2:
             # extend range by multiple of extend_x
             x2 = lpanel.x2
             while tmax > x2:
-                x2 += rfile['lcplot']['extend_x']
+                x2 += rfile["lcplot"]["extend_x"]
 
             # need to re-plot
             replot = True
@@ -976,7 +1095,7 @@ def update_plots(
                 # Plot the error bars
                 if lc.ecol is not None:
                     pgsci(lc.ecol)
-                    pgerry(t, f-fe, f+fe, 0)
+                    pgerry(t, f - fe, f + fe, 0)
 
                 # Plot the data
                 pgsci(lc.dcol)
@@ -1000,7 +1119,7 @@ def update_plots(
                     # Plot the error bars
                     if xpos.ecol is not None:
                         pgsci(xpos.ecol)
-                        pgerry(t, f-fe, f+fe, 0)
+                        pgerry(t, f - fe, f + fe, 0)
 
                     # Plot the data
                     pgsci(xpos.dcol)
@@ -1021,7 +1140,7 @@ def update_plots(
                     # Plot the error bars
                     if ypos.ecol is not None:
                         pgsci(ypos.ecol)
-                        pgerry(t, f-fe, f+fe, 0)
+                        pgerry(t, f - fe, f + fe, 0)
 
                     # Plot the data
                     pgsci(ypos.dcol)
@@ -1041,7 +1160,7 @@ def update_plots(
                         t = np.array(trans.t, dtype=np.float32)
                         f = np.array(trans.f, dtype=np.float32)
                         fe = np.array(trans.fe, dtype=np.float32)
-                        scale = np.float32(100./trans.fmax)
+                        scale = np.float32(100.0 / trans.fmax)
                         f *= scale
                         fe *= scale
                         symbs = np.array(trans.symb, dtype=np.int)
@@ -1050,7 +1169,7 @@ def update_plots(
                         # Plot the error bars
                         if trans.ecol is not None:
                             pgsci(trans.ecol)
-                            pgerry(t, f-fe, f+fe, 0)
+                            pgerry(t, f - fe, f + fe, 0)
 
                         # Plot the data
                         pgsci(trans.dcol)
@@ -1074,7 +1193,7 @@ def update_plots(
                     # Plot the error bars
                     if see.ecol is not None:
                         pgsci(see.ecol)
-                        pgerry(t, f-fe, f+fe, 0)
+                        pgerry(t, f - fe, f + fe, 0)
 
                     # Plot the data
                     pgsci(see.dcol)
@@ -1103,22 +1222,25 @@ def initial_checks(mccd, rfile):
             xbin = max(xbin, mccd[cnam][wnam].xbin)
             ybin = max(ybin, mccd[cnam][wnam].ybin)
 
-    if rfile['apertures']['fit_half_width'] < 3*max(xbin, ybin):
+    if rfile["apertures"]["fit_half_width"] < 3 * max(xbin, ybin):
         print(
-            ("'** fit_half_width' < 3*max(xbin,ybin) ({:.1f} vs {:d}); profile fits"
-                " will fail. Please increase its value in the reduce file.").format(
-                rfile['apertures']['fit_half_width'], 3*max(xbin, ybin)
-                ), file=sys.stderr)
+            (
+                "'** fit_half_width' < 3*max(xbin,ybin) ({:.1f} vs {:d}); profile fits"
+                " will fail. Please increase its value in the reduce file."
+            ).format(rfile["apertures"]["fit_half_width"], 3 * max(xbin, ybin)),
+            file=sys.stderr,
+        )
         ok = False
 
-    elif rfile['apertures']['fit_half_width'] < 5*max(xbin, ybin):
+    elif rfile["apertures"]["fit_half_width"] < 5 * max(xbin, ybin):
         warnings.warn(
-            ("'** fit_half_width' < 5*max(xbin,ybin) ({:.1f} vs {:d}) ==> small windows for"
-                " profile fits. Advise increasing its value in the reduce file if possible.").format(
-                rfile['apertures']['fit_half_width'], 5*max(xbin, ybin)
-                ))
+            (
+                "'** fit_half_width' < 5*max(xbin,ybin) ({:.1f} vs {:d}) ==> small windows for"
+                " profile fits. Advise increasing its value in the reduce file if possible."
+            ).format(rfile["apertures"]["fit_half_width"], 5 * max(xbin, ybin))
+        )
 
-    if rfile['calibration']['crop']:
+    if rfile["calibration"]["crop"]:
         # Trim the calibrations, on the assumption that all
         # data frames have the same format
         rfile.crop(mccd)
@@ -1228,9 +1350,11 @@ class ProcessCCDs:
         for cnam in pccds[0]:
 
             # get the apertures
-            if cnam not in self.rfile.aper or \
-               cnam not in self.rfile['extraction'] or \
-               len(self.rfile.aper[cnam]) == 0:
+            if (
+                cnam not in self.rfile.aper
+                or cnam not in self.rfile["extraction"]
+                or len(self.rfile.aper[cnam]) == 0
+            ):
                 continue
 
             # build lists of specific CCDs from each frame as opposed to lists
@@ -1262,21 +1386,37 @@ class ProcessCCDs:
 
             if cnam not in self.store:
                 # initialisation
-                self.store[cnam] = {'mfwhm': -1., 'mbeta': -1., 'nok': 0}
+                self.store[cnam] = {"mfwhm": -1.0, "mbeta": -1.0, "nok": 0}
 
             if self.pool is None:
                 # carry out processing serially, store results
                 res = self.ccdproc(
-                    cnam, pcds, mcds, nfrs, self.read[cnam], self.gain[cnam],
-                    self.mwins[cnam], self.rfile, self.store[cnam]
+                    cnam,
+                    pcds,
+                    mcds,
+                    nfrs,
+                    self.read[cnam],
+                    self.gain[cnam],
+                    self.mwins[cnam],
+                    self.rfile,
+                    self.store[cnam],
                 )
                 allres.append(res)
 
             else:
                 # store arguments lists for later parallel processing
                 arglist.append(
-                    (cnam, pcds, mcds, nfrs, self.read[cnam], self.gain[cnam],
-                     self.mwins[cnam], self.rfile, self.store[cnam])
+                    (
+                        cnam,
+                        pcds,
+                        mcds,
+                        nfrs,
+                        self.read[cnam],
+                        self.gain[cnam],
+                        self.mwins[cnam],
+                        self.rfile,
+                        self.store[cnam],
+                    )
                 )
 
         if len(arglist):
@@ -1284,6 +1424,7 @@ class ProcessCCDs:
             allres = self.pool.starmap(self.ccdproc, arglist)
 
         return allres
+
 
 def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results
@@ -1334,25 +1475,29 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     ccdaper = rfile.aper[cnam]
 
     # short-hand that will used a lot
-    apsec = rfile['apertures']
+    apsec = rfile["apertures"]
 
-    if apsec['location'] == 'fixed':
+    if apsec["location"] == "fixed":
         for apnam in ccdaper:
             store[apnam] = {
-                'xe': -1., 'ye': -1.,
-                'fwhm': 0., 'fwhme': -1.,
-                'beta': 0., 'betae': -1.,
-                'dx': 0., 'dy': 0.
+                "xe": -1.0,
+                "ye": -1.0,
+                "fwhm": 0.0,
+                "fwhme": -1.0,
+                "beta": 0.0,
+                "betae": -1.0,
+                "dx": 0.0,
+                "dy": 0.0,
             }
         return True
 
     # some initialisations
-    xsum, ysum = 0., 0.
-    wxsum, wysum = 0., 0.
+    xsum, ysum = 0.0, 0.0
+    wxsum, wysum = 0.0, 0.0
     ref = False
     fsum, wfsum = 0, 0
     bsum, wbsum = 0, 0
-    shbox = apsec['search_half_width']
+    shbox = apsec["search_half_width"]
 
     # first of all try to get a mean shift from the reference apertures.  we
     # move any of these apertures that are fitted OK. We work out weighted
@@ -1377,116 +1522,141 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 
                 # get sub-window around start position
                 swdata = wdata.window(
-                    aper.x-shbox, aper.x+shbox, aper.y-shbox, aper.y+shbox
+                    aper.x - shbox, aper.x + shbox, aper.y - shbox, aper.y + shbox
                 )
 
                 # carry out initial search
                 x, y, peak = swdata.search(
-                    apsec['search_smooth_fwhm'], aper.x, aper.y,
-                    apsec['fit_height_min_ref'], apsec['search_smooth_fft']
+                    apsec["search_smooth_fwhm"],
+                    aper.x,
+                    aper.y,
+                    apsec["fit_height_min_ref"],
+                    apsec["search_smooth_fft"],
                 )
 
                 # Now for a more refined fit. First extract fit Window
-                fhbox = apsec['fit_half_width']
-                fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fhbox = apsec["fit_half_width"]
+                fwdata = wdata.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
+                fwread = wread.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
+                fwgain = wgain.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
 
                 # initial estimate of background
                 sky = np.percentile(fwdata.data, 50)
 
                 # get some parameters from previous run where possible
-                fit_fwhm = store['mfwhm'] if store['mfwhm'] > 0. else \
-                    apsec['fit_fwhm']
-                fit_beta = store['mbeta'] if store['mbeta'] > 0. else \
-                    apsec['fit_beta']
+                fit_fwhm = store["mfwhm"] if store["mfwhm"] > 0.0 else apsec["fit_fwhm"]
+                fit_beta = store["mbeta"] if store["mbeta"] > 0.0 else apsec["fit_beta"]
 
                 # limit the initial value of beta because of tendency to
                 # wander to high values and never come down.
-                fit_beta = min(fit_beta, apsec['fit_beta_max'])
+                fit_beta = min(fit_beta, apsec["fit_beta_max"])
 
                 # refine the Aperture position by fitting the profile
-                (sky, height, x, y, fwhm, beta), \
-                    (esky, eheight, ex, ey, efwhm, ebeta), \
-                    extras = hcam.fitting.combFit(
-                        fwdata, rfile.method, sky, peak-sky,
-                        x, y, fit_fwhm, apsec['fit_fwhm_min'],
-                        apsec['fit_fwhm_fixed'], fit_beta,
-                        apsec['fit_beta_max'], False,
-                        fwread.data, fwgain.data,
-                        apsec['fit_thresh'], apsec['fit_ndiv']
-                    )
+                (
+                    (sky, height, x, y, fwhm, beta),
+                    (esky, eheight, ex, ey, efwhm, ebeta),
+                    extras,
+                ) = hcam.fitting.combFit(
+                    fwdata,
+                    rfile.method,
+                    sky,
+                    peak - sky,
+                    x,
+                    y,
+                    fit_fwhm,
+                    apsec["fit_fwhm_min"],
+                    apsec["fit_fwhm_fixed"],
+                    fit_beta,
+                    apsec["fit_beta_max"],
+                    False,
+                    fwread.data,
+                    fwgain.data,
+                    apsec["fit_thresh"],
+                    apsec["fit_ndiv"],
+                )
 
                 # check that x, y are in range of the original search box.
                 if swdata.distance(x, y) < 0.5:
                     raise hcam.HipercamError(
-                        ('Fitted position ({:.1f},{:.1f}) too close to or'
-                         ' beyond edge of search window = {!s}'.format(
-                                x, y, swdata.format(True)))
+                        (
+                            "Fitted position ({:.1f},{:.1f}) too close to or"
+                            " beyond edge of search window = {!s}".format(
+                                x, y, swdata.format(True)
+                            )
                         )
+                    )
 
-                if height > apsec['fit_height_min_ref']:
+                if height > apsec["fit_height_min_ref"]:
 
                     # The peak height check is probably not required at this
                     # point since the search routine applies it more
                     # stringently but I have left it in for safety.
                     dx = x - aper.x
-                    wx = 1./ex**2
+                    wx = 1.0 / ex ** 2
                     wxsum += wx
-                    xsum += wx*dx
+                    xsum += wx * dx
 
                     dy = y - aper.y
-                    wy = 1./ey**2
+                    wy = 1.0 / ey ** 2
                     wysum += wy
-                    ysum += wy*dy
+                    ysum += wy * dy
 
                     shifts.append((dx, dy))
 
                     # store stuff
                     store[apnam] = {
-                        'xe': ex, 'ye': ey,
-                        'fwhm': fwhm, 'fwhme': efwhm,
-                        'beta': beta, 'betae': ebeta,
-                        'dx': dx, 'dy': dy
+                        "xe": ex,
+                        "ye": ey,
+                        "fwhm": fwhm,
+                        "fwhme": efwhm,
+                        "beta": beta,
+                        "betae": ebeta,
+                        "dx": dx,
+                        "dy": dy,
                     }
 
-                    if efwhm > 0.:
+                    if efwhm > 0.0:
                         # average FWHM computation
-                        wf = 1./efwhm**2
-                        fsum += wf*fwhm
+                        wf = 1.0 / efwhm ** 2
+                        fsum += wf * fwhm
                         wfsum += wf
 
-                    if ebeta > 0.:
+                    if ebeta > 0.0:
                         # average beta computation
-                        wb = 1./ebeta**2
-                        bsum += wb*beta
+                        wb = 1.0 / ebeta ** 2
+                        bsum += wb * beta
                         wbsum += wb
 
                 else:
                     raise hcam.HipercamError(
-                        ('CCD {:s}, reference aperture {:s}'
-                         ', peak = {:.1f} < {:.1f}').format(
-                             cnam, apnam, height, apsec['fit_height_min_ref'])
-                        )
+                        (
+                            "CCD {:s}, reference aperture {:s}"
+                            ", peak = {:.1f} < {:.1f}"
+                        ).format(cnam, apnam, height, apsec["fit_height_min_ref"])
+                    )
 
     except hcam.HipercamError as err:
         # trap problems during the fits
         print(
-            'CCD {:s}, reference aperture {:s},'
-            ' fit failed, will abort extraction. Error = {!s}'.format(
-                cnam, apnam, err), file=sys.stderr
-            )
+            "CCD {:s}, reference aperture {:s},"
+            " fit failed, will abort extraction. Error = {!s}".format(cnam, apnam, err),
+            file=sys.stderr,
+        )
 
         for apnam, aper in ccdaper.items():
             store[apnam] = {
-                'xe': -1., 'ye': -1.,
-                'fwhm': 0., 'fwhme': -1.,
-                'beta': 0., 'betae': -1.,
-                'dx': 0., 'dy': 0.
+                "xe": -1.0,
+                "ye": -1.0,
+                "fwhm": 0.0,
+                "fwhme": -1.0,
+                "beta": 0.0,
+                "betae": -1.0,
+                "dx": 0.0,
+                "dy": 0.0,
             }
 
-        store['mfwhm'] = -1.
-        store['mbeta'] = -1.
+        store["mfwhm"] = -1.0
+        store["mbeta"] = -1.0
         return False
 
     # at this point we are done with measuring the positions of the reference
@@ -1501,30 +1671,36 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
         # offsets
         if len(shifts) > 1:
             for n, (x1, y1) in enumerate(shifts[:-1]):
-                for (x2, y2) in shifts[n+1:]:
-                    diff = np.sqrt((x2-x1)**2+(y2-y1)**2)
+                for (x2, y2) in shifts[n + 1 :]:
+                    diff = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
-                    if np.sqrt((x2-x1)**2+(y2-y1)**2) > apsec['fit_diff']:
+                    if np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) > apsec["fit_diff"]:
                         # have exceeded threshold differential shift
                         for apnam, aper in ccdaper.items():
                             store[apnam] = {
-                                'xe': -1., 'ye': -1.,
-                                'fwhm': 0., 'fwhme': -1.,
-                                'beta': 0., 'betae': -1.,
-                                'dx': 0., 'dy': 0.
+                                "xe": -1.0,
+                                "ye": -1.0,
+                                "fwhm": 0.0,
+                                "fwhme": -1.0,
+                                "beta": 0.0,
+                                "betae": -1.0,
+                                "dx": 0.0,
+                                "dy": 0.0,
                             }
 
-                        store['mfwhm'] = -1.
-                        store['mbeta'] = -1.
+                        store["mfwhm"] = -1.0
+                        store["mbeta"] = -1.0
 
                         print(
-                            ('CCD {:s}: reference aperture differential '
-                             'shift = {:.2f} exceeded limit = {:.2f}').format(
-                                cnam, diff, apsec['fit_diff']), file=sys.stderr
+                            (
+                                "CCD {:s}: reference aperture differential "
+                                "shift = {:.2f} exceeded limit = {:.2f}"
+                            ).format(cnam, diff, apsec["fit_diff"]),
+                            file=sys.stderr,
                         )
                         return False
 
-        if wxsum > 0. and wysum > 0.:
+        if wxsum > 0.0 and wysum > 0.0:
             # things are OK if we get here. Work out mean shift
             xshift = xsum / wxsum
             yshift = ysum / wysum
@@ -1534,8 +1710,8 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
             # test fails.
             for apnam, aper in ccdaper.items():
                 if aper.ref:
-                    aper.x += store[apnam]['dx']
-                    aper.y += store[apnam]['dy']
+                    aper.x += store[apnam]["dx"]
+                    aper.y += store[apnam]["dy"]
 
         else:
 
@@ -1544,36 +1720,41 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
             for apnam, aper in ccdaper.items():
                 if not aper.ref:
                     store[apnam] = {
-                        'xe': -1., 'ye': -1.,
-                        'fwhm': 0., 'fwhme': -1.,
-                        'beta': 0., 'betae': -1.,
-                        'dx': 0., 'dy': 0.
+                        "xe": -1.0,
+                        "ye": -1.0,
+                        "fwhm": 0.0,
+                        "fwhme": -1.0,
+                        "beta": 0.0,
+                        "betae": -1.0,
+                        "dx": 0.0,
+                        "dy": 0.0,
                     }
-            store['mfwhm'] = -1.
-            store['mbeta'] = -1.
+            store["mfwhm"] = -1.0
+            store["mbeta"] = -1.0
 
             print(
-                ('CCD {:s}: no reference aperture '
-                 'fit was successful; skipping').format(
-                    cnam), file=sys.stderr
+                (
+                    "CCD {:s}: no reference aperture " "fit was successful; skipping"
+                ).format(cnam),
+                file=sys.stderr,
             )
             return False
 
     else:
         # no reference apertures. All individual
-        xshift, yshift = 0., 0.
+        xshift, yshift = 0.0, 0.0
 
     # now go over non-reference, non-linked apertures. Failed reference
     # apertures are shifted by the mean shift just determined
     for apnam, aper in ccdaper.items():
 
-        if aper.ref and store[apnam]['xe'] <= 0.:
+        if aper.ref and store[apnam]["xe"] <= 0.0:
 
             # Move failed reference fit to the mean shift
             aper.x += xshift
             aper.y += yshift
-            store[apnam]['dx'] = xshift
-            store[apnam]['dy'] = yshift
+            store[apnam]["dx"] = xshift
+            store[apnam]["dy"] = yshift
 
         elif not aper.ref and not aper.linked:
 
@@ -1589,198 +1770,238 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 # were reference apertures this is only used to check that the
                 # position remains OK, but it should not be an expensive step
                 swdata = wdata.window(
-                    aper.x+xshift-shbox, aper.x+xshift+shbox,
-                    aper.y+yshift-shbox, aper.y+yshift+shbox
+                    aper.x + xshift - shbox,
+                    aper.x + xshift + shbox,
+                    aper.y + yshift - shbox,
+                    aper.y + yshift + shbox,
                 )
 
                 # We carry out a search in either case because it involves a
                 # threshold check and we want that to be applied consistently.
                 x, y, peak = swdata.search(
-                    apsec['search_smooth_fwhm'], aper.x+xshift, aper.y+yshift,
-                    apsec['fit_height_min_nrf'], apsec['search_smooth_fft']
+                    apsec["search_smooth_fwhm"],
+                    aper.x + xshift,
+                    aper.y + yshift,
+                    apsec["fit_height_min_nrf"],
+                    apsec["search_smooth_fft"],
                 )
 
                 if ref:
-                    shift = np.sqrt((x-aper.x-xshift)**2+(y-aper.y-yshift)**2)
-                    max_shift = (apsec['fit_max_shift'] +
-                                 np.sqrt(swdata.xbin**2+swdata.ybin**2)/2)
+                    shift = np.sqrt(
+                        (x - aper.x - xshift) ** 2 + (y - aper.y - yshift) ** 2
+                    )
+                    max_shift = (
+                        apsec["fit_max_shift"]
+                        + np.sqrt(swdata.xbin ** 2 + swdata.ybin ** 2) / 2
+                    )
                     if shift > max_shift:
                         # check the shift allowing for maximum pixellation
                         # error in the position
                         raise hcam.HipercamError(
-                            ('Position of non-reference aperture'
-                             ' shifted by {:.1f} relative to prediction from reference which exceeds '
-                             'fit_max_shift+pix_diam/2 = {:.1f}').format(
-                                 shift, max_shift)
+                            (
+                                "Position of non-reference aperture"
+                                " shifted by {:.1f} relative to prediction from reference which exceeds "
+                                "fit_max_shift+pix_diam/2 = {:.1f}"
+                            ).format(shift, max_shift)
                         )
 
                     # we don't actually use the position just determined on
                     # the principle that is safer to use the shift from the
                     # reference stars to estimate the first position.
-                    xold = x = aper.x+xshift
-                    yold = y = aper.y+yshift
+                    xold = x = aper.x + xshift
+                    yold = y = aper.y + yshift
                     peak = swdata.data[
-                        int(round(swdata.y_pixel(y))),
-                        int(round(swdata.x_pixel(x)))
+                        int(round(swdata.y_pixel(y))), int(round(swdata.x_pixel(x)))
                     ]
 
                 # now for a more refined fit. First extract fit Window
-                fhbox = apsec['fit_half_width']
-                fwdata = wdata.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwread = wread.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
-                fwgain = wgain.window(x-fhbox, x+fhbox, y-fhbox, y+fhbox)
+                fhbox = apsec["fit_half_width"]
+                fwdata = wdata.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
+                fwread = wread.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
+                fwgain = wgain.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
 
                 sky = np.percentile(fwdata.data, 50)
 
                 # get some parameters from previous run where possible
                 fit_fwhm = (
-                    store[apnam]['fwhm']
-                    if apnam in store and store[apnam]['fwhme'] > 0.
-                    else apsec['fit_fwhm']
+                    store[apnam]["fwhm"]
+                    if apnam in store and store[apnam]["fwhme"] > 0.0
+                    else apsec["fit_fwhm"]
                 )
 
                 fit_beta = (
-                    store[apnam]['beta']
-                    if apnam in store and store[apnam]['betae'] > 0.
-                    else apsec['fit_beta']
+                    store[apnam]["beta"]
+                    if apnam in store and store[apnam]["betae"] > 0.0
+                    else apsec["fit_beta"]
                 )
 
                 # limit the initial value of beta because of tendency
                 # to wander to high values and never come down.
-                fit_beta = min(fit_beta, apsec['fit_beta_max'])
+                fit_beta = min(fit_beta, apsec["fit_beta_max"])
 
                 # refine the Aperture position by fitting the profile
-                (sky, height, x, y, fwhm, beta), \
-                    (esky, eheight, ex, ey, efwhm, ebeta), \
-                    extras = hcam.fitting.combFit(
-                        fwdata, rfile.method, sky, peak-sky,
-                        x, y, fit_fwhm, apsec['fit_fwhm_min'],
-                        apsec['fit_fwhm_fixed'], fit_beta,
-                        apsec['fit_beta_max'], False,
-                        fwread.data, fwgain.data,
-                        apsec['fit_thresh'], apsec['fit_ndiv']
-                    )
+                (
+                    (sky, height, x, y, fwhm, beta),
+                    (esky, eheight, ex, ey, efwhm, ebeta),
+                    extras,
+                ) = hcam.fitting.combFit(
+                    fwdata,
+                    rfile.method,
+                    sky,
+                    peak - sky,
+                    x,
+                    y,
+                    fit_fwhm,
+                    apsec["fit_fwhm_min"],
+                    apsec["fit_fwhm_fixed"],
+                    fit_beta,
+                    apsec["fit_beta_max"],
+                    False,
+                    fwread.data,
+                    fwgain.data,
+                    apsec["fit_thresh"],
+                    apsec["fit_ndiv"],
+                )
 
                 # this is where the search window gets used.
                 if swdata.distance(x, y) < 0.5:
                     raise hcam.HipercamError(
-                        ('Fitted position ({:.1f},{:.1f}) too close to or'
-                         ' beyond edge of search window = {!s}').format(
-                             x, y, swdata.format(True))
+                        (
+                            "Fitted position ({:.1f},{:.1f}) too close to or"
+                            " beyond edge of search window = {!s}"
+                        ).format(x, y, swdata.format(True))
                     )
 
                 # check for overly large shifts in the case that we have
                 # reference apertures
                 if ref:
-                    shift = np.sqrt((x-xold)**2+(y-yold)**2)
-                    if shift > apsec['fit_max_shift']:
+                    shift = np.sqrt((x - xold) ** 2 + (y - yold) ** 2)
+                    if shift > apsec["fit_max_shift"]:
                         raise hcam.HipercamError(
-                            ('Position of non-reference aperture'
-                             ' shifted by {:.1f} which exceeds '
-                             'fit_max_shift = {:.1f}').format(
-                                 shift, apsec['fit_max_shift'])
+                            (
+                                "Position of non-reference aperture"
+                                " shifted by {:.1f} which exceeds "
+                                "fit_max_shift = {:.1f}"
+                            ).format(shift, apsec["fit_max_shift"])
                         )
 
-                if height > apsec['fit_height_min_nrf']:
+                if height > apsec["fit_height_min_nrf"]:
                     # As above, the peak height check is probably not required
                     # at this point since the search routine applies it more
                     # stringently but I have left it in for safety. Store some
                     # stuff for next time and for passing onto next routine
                     store[apnam] = {
-                        'xe': ex, 'ye': ey,
-                        'fwhm': fwhm, 'fwhme': efwhm,
-                        'beta': beta, 'betae': ebeta,
-                        'dx': x-aper.x, 'dy': y-aper.y
+                        "xe": ex,
+                        "ye": ey,
+                        "fwhm": fwhm,
+                        "fwhme": efwhm,
+                        "beta": beta,
+                        "betae": ebeta,
+                        "dx": x - aper.x,
+                        "dy": y - aper.y,
                     }
 
-                    if ref and store['nok'] > 0:
+                    if ref and store["nok"] > 0:
                         # apply a fraction 'fit_alpha' times the change is
                         # position relative to the expected
                         # position. Experimental parameter.  We only do this
                         # after at least one successful measurement has been
                         # made to cope with large initial shifts.
-                        aper.x = xold + apsec['fit_alpha']*(x-xold)
-                        aper.y = yold + apsec['fit_alpha']*(y-yold)
+                        aper.x = xold + apsec["fit_alpha"] * (x - xold)
+                        aper.y = yold + apsec["fit_alpha"] * (y - yold)
 
                     else:
                         aper.x = x
                         aper.y = y
 
-                    if efwhm > 0.:
+                    if efwhm > 0.0:
                         # average FWHM computation
-                        wf = 1./efwhm**2
-                        fsum += wf*fwhm
+                        wf = 1.0 / efwhm ** 2
+                        fsum += wf * fwhm
                         wfsum += wf
 
-                    if ebeta > 0.:
+                    if ebeta > 0.0:
                         # average beta computation
-                        wb = 1./ebeta**2
-                        bsum += wb*beta
+                        wb = 1.0 / ebeta ** 2
+                        bsum += wb * beta
                         wbsum += wb
 
                 else:
                     print(
-                        ('CCD {:s}, aperture {:s},'
-                         ' peak = {:.1f} < {:.1f}').format(
-                             cnam, apnam, height, apsec['fit_height_min_nrf']),
-                        file=sys.stderr
+                        ("CCD {:s}, aperture {:s}," " peak = {:.1f} < {:.1f}").format(
+                            cnam, apnam, height, apsec["fit_height_min_nrf"]
+                        ),
+                        file=sys.stderr,
                     )
                     aper.x += xshift
                     aper.y += yshift
 
                     store[apnam] = {
-                        'xe': -1., 'ye': -1.,
-                        'fwhm': 0., 'fwhme': -1.,
-                        'beta': 0., 'betae': -1.,
-                        'dx': xshift, 'dy': yshift
+                        "xe": -1.0,
+                        "ye": -1.0,
+                        "fwhm": 0.0,
+                        "fwhme": -1.0,
+                        "beta": 0.0,
+                        "betae": -1.0,
+                        "dx": xshift,
+                        "dy": yshift,
                     }
 
             except (hcam.HipercamError, IndexError) as err:
                 print(
-                    'CCD {:s}, aperture {:s}, fit failed, error = {!s}'.format(
-                        cnam, apnam, err), file=sys.stderr
+                    "CCD {:s}, aperture {:s}, fit failed, error = {!s}".format(
+                        cnam, apnam, err
+                    ),
+                    file=sys.stderr,
                 )
                 aper.x += xshift
                 aper.y += yshift
 
                 store[apnam] = {
-                    'xe': -1., 'ye': -1.,
-                    'fwhm': 0., 'fwhme': -1.,
-                    'beta': 0., 'betae': -1.,
-                    'dx': xshift, 'dy': yshift
+                    "xe": -1.0,
+                    "ye": -1.0,
+                    "fwhm": 0.0,
+                    "fwhme": -1.0,
+                    "beta": 0.0,
+                    "betae": -1.0,
+                    "dx": xshift,
+                    "dy": yshift,
                 }
 
     # finally the linked ones
     for apnam, aper in ccdaper.items():
 
         if aper.linked:
-            aper.x += store[aper.link]['dx']
-            aper.y += store[aper.link]['dy']
+            aper.x += store[aper.link]["dx"]
+            aper.y += store[aper.link]["dy"]
 
             store[apnam] = {
-                'xe': -1., 'ye': -1.,
-                'fwhm': 0., 'fwhme': -1.,
-                'beta': 0., 'betae': -1.,
-                'dx': store[aper.link]['dx'],
-                'dy': store[aper.link]['dy']
+                "xe": -1.0,
+                "ye": -1.0,
+                "fwhm": 0.0,
+                "fwhme": -1.0,
+                "beta": 0.0,
+                "betae": -1.0,
+                "dx": store[aper.link]["dx"],
+                "dy": store[aper.link]["dy"],
             }
 
     # update mfwhm and mbeta if we can. If not, set them to -1 as a flag down
     # the line that there is no measured value of these parameters. If things
     # work, store them in the config file for retrieval if mfwhm and mbeta go
     # wrong later.
-    if wfsum > 0.:
-        store['mfwhm'] = fsum / wfsum
-        apsec['fit_fwhm'] = store['mfwhm']
-        store['nok'] += 1
+    if wfsum > 0.0:
+        store["mfwhm"] = fsum / wfsum
+        apsec["fit_fwhm"] = store["mfwhm"]
+        store["nok"] += 1
     else:
-        store['mfwhm'] = -1
+        store["mfwhm"] = -1
 
-    if wbsum > 0.:
-        store['mbeta'] = bsum / wbsum
-        apsec['fit_beta'] = store['mbeta']
+    if wbsum > 0.0:
+        store["mbeta"] = bsum / wbsum
+        apsec["fit_beta"] = store["mbeta"]
     else:
-        store['mbeta'] = -1
+        store["mbeta"] = -1
 
     return True
 
@@ -1791,9 +2012,24 @@ class Panel:
     they can be easily re-plotted and selected for additional plotting if
     need be.
     """
-    def __init__(self, device, xv1, xv2, yv1, yv2,
-                 xlabel, ylabel, tlabel, xopt, yopt,
-                 x1, x2, y1, y2):
+
+    def __init__(
+        self,
+        device,
+        xv1,
+        xv2,
+        yv1,
+        yv2,
+        xlabel,
+        ylabel,
+        tlabel,
+        xopt,
+        yopt,
+        x1,
+        x2,
+        y1,
+        y2,
+    ):
         """
         This takes all the arguments needs to set up some axes
         at an arbitrary location, using PGPLOT commands pgsvp, pgswin,
@@ -1829,8 +2065,8 @@ class Panel:
         self.device.select()
 
         # draw the axes
-        pgsci(hcam.pgp.Params['axis.ci'])
-        pgsch(hcam.pgp.Params['axis.number.ch'])
+        pgsci(hcam.pgp.Params["axis.ci"])
+        pgsch(hcam.pgp.Params["axis.number.ch"])
         pgsvp(self.xv1, self.xv2, self.yv1, self.yv2)
 
         # avoid invalid limits warnings from PGPLOT
@@ -1847,8 +2083,8 @@ class Panel:
         pgbox(self.xopt, 0, 0, self.yopt, 0, 0)
 
         # plot the labels
-        pgsci(hcam.pgp.Params['axis.label.ci'])
-        pgsch(hcam.pgp.Params['axis.label.ch'])
+        pgsci(hcam.pgp.Params["axis.label.ci"])
+        pgsch(hcam.pgp.Params["axis.label.ch"])
         pglab(self.xlabel, self.ylabel, self.tlabel)
 
     def select(self):
@@ -1865,11 +2101,11 @@ class Panel:
 
         # avoid invalid limits warnings from PGPLOT
         if self.x1 == self.x2:
-            x1, x2 = 0, 1.
+            x1, x2 = 0, 1.0
         else:
             x1, x2 = self.x1, self.x2
         if self.y1 == self.y2:
-            y1, y2 = 0, 1.
+            y1, y2 = 0, 1.0
         else:
             y1, y2 = self.y1, self.y2
         pgswin(x1, x2, y1, y2)
@@ -1890,10 +2126,10 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
     # by default, don't re-plot
     replot = False
 
-    skipbadt = rfile['general']['skipbadt']
+    skipbadt = rfile["general"]["skipbadt"]
 
     # shorthand
-    sect = rfile['light']
+    sect = rfile["light"]
 
     # select the light curve panel
     panel.select()
@@ -1910,8 +2146,11 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
         tmax, fmin, fmax = lc.add_point(results, tzero, tmax, fmin, fmax, skipbadt)
         lc.trim(tkeep)
 
-    if not sect['y_fixed'] and fmin is not None and \
-       ((ymin == ymax) or (fmin < ymin or fmax > ymax)):
+    if (
+        not sect["y_fixed"]
+        and fmin is not None
+        and ((ymin == ymax) or (fmin < ymin or fmax > ymax))
+    ):
 
         # we are going to have to replot because we have moved
         # outside the y-limits of the panel. We extend a little bit
@@ -1921,23 +2160,23 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
 
         if ymin == ymax:
             # First time through just use data
-            extend = sect['extend_y']*(fmax-fmin)
+            extend = sect["extend_y"] * (fmax - fmin)
             # for one CCD, fmin==fmax after first frame,
             # and we never get out of ymin==ymax and the scale
             # is never reset
             if extend == 0:
-                extend = 0.001*fmax if sect['linear'] else 0.001
+                extend = 0.001 * fmax if sect["linear"] else 0.001
             ymin = fmin - extend
             ymax = fmax + extend
         else:
             # subsequently use the plot range
-            extend = sect['extend_y']*(ymax-ymin)
+            extend = sect["extend_y"] * (ymax - ymin)
             if fmin < ymin:
                 ymin = fmin - extend
             if fmax > ymax:
                 ymax = fmax + extend
 
-        if sect['linear']:
+        if sect["linear"]:
             panel.y1, panel.y2 = ymin, ymax
         else:
             panel.y1, panel.y2 = ymax, ymin
@@ -1957,10 +2196,10 @@ def plotPosition(xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer)
     # by default, don't re-plot
     replot = False
 
-    skipbadt = rfile['general']['skipbadt']
+    skipbadt = rfile["general"]["skipbadt"]
 
     # shorthand
-    sect = rfile['position']
+    sect = rfile["position"]
 
     # select the X panel
     xpanel.select()
@@ -1971,10 +2210,13 @@ def plotPosition(xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer)
         tmax, xmin, xmax = xpos.add_point(results, tzero, tmax, xmin, xmax, skipbadt)
         xpos.trim(tkeep)
 
-    if xmin is not None and (xmin < xpanel.y1 or xmax > xpanel.y2) and \
-       not sect['x_fixed']:
+    if (
+        xmin is not None
+        and (xmin < xpanel.y1 or xmax > xpanel.y2)
+        and not sect["x_fixed"]
+    ):
         replot = True
-        extend = sect['extend_y']*(xpanel.y2-xpanel.y1)
+        extend = sect["extend_y"] * (xpanel.y2 - xpanel.y1)
         if xmin < xpanel.y1:
             xpanel.y1 = xmin - extend
 
@@ -1990,10 +2232,13 @@ def plotPosition(xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer)
         tmax, ymin, ymax = ypos.add_point(results, tzero, tmax, ymin, ymax, skipbadt)
         ypos.trim(tkeep)
 
-    if ymin is not None and (ymin < ypanel.y1 or ymax > ypanel.y2) and \
-       not sect['y_fixed']:
+    if (
+        ymin is not None
+        and (ymin < ypanel.y1 or ymax > ypanel.y2)
+        and not sect["y_fixed"]
+    ):
         replot = True
-        extend = sect['extend_y']*(ypanel.y2-ypanel.y1)
+        extend = sect["extend_y"] * (ypanel.y2 - ypanel.y1)
         if ymin < ypanel.y1:
             ypanel.y1 = ymin - extend
 
@@ -2001,6 +2246,7 @@ def plotPosition(xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer)
             ypanel.y2 = ymax + extend
 
     return (replot, tmax)
+
 
 def plotTrans(panel, tzero, results, rfile, tkeep, tbuffer):
     """Plots one set of results in the transmission panel. Handles storage of
@@ -2014,7 +2260,7 @@ def plotTrans(panel, tzero, results, rfile, tkeep, tbuffer):
     # by default, don't re-plot
     replot = False
 
-    skipbadt = rfile['general']['skipbadt']
+    skipbadt = rfile["general"]["skipbadt"]
 
     # select the light curve panel
     panel.select()
@@ -2025,7 +2271,7 @@ def plotTrans(panel, tzero, results, rfile, tkeep, tbuffer):
     for trans in tbuffer:
         tmax, fmax = trans.add_point(results, tzero, tmax, skipbadt)
         if fmax is not None and fmax > panel.y2:
-            trans.fmax *= fmax/100
+            trans.fmax *= fmax / 100
             replot = True
         trans.trim(tkeep)
 
@@ -2044,10 +2290,10 @@ def plotSeeing(panel, tzero, results, rfile, tkeep, sbuffer):
     # by default, don't re-plot
     replot = False
 
-    skipbadt = rfile['general']['skipbadt']
+    skipbadt = rfile["general"]["skipbadt"]
 
     # shorthand
-    sect = rfile['seeing']
+    sect = rfile["seeing"]
 
     # select the light curve panel
     panel.select()
@@ -2059,9 +2305,9 @@ def plotSeeing(panel, tzero, results, rfile, tkeep, sbuffer):
         tmax, fmax = see.add_point(results, tzero, tmax, fmax, skipbadt)
         see.trim(tkeep)
 
-    if fmax is not None and fmax > panel.y2 and not sect['y_fixed']:
+    if fmax is not None and fmax > panel.y2 and not sect["y_fixed"]:
         replot = True
-        panel.y2 = (1+sect['extend_y'])*fmax
+        panel.y2 = (1 + sect["extend_y"]) * fmax
 
     return (replot, tmax)
 
@@ -2074,10 +2320,10 @@ class BaseBuffer:
     """
 
     def __init__(self, plot_config):
-        self.cnam = plot_config['ccd']
-        self.targ = plot_config['targ']
-        self.dcol = plot_config['dcol']
-        self.ecol = plot_config['ecol']
+        self.cnam = plot_config["ccd"]
+        self.targ = plot_config["targ"]
+        self.dcol = plot_config["dcol"]
+        self.ecol = plot_config["ecol"]
         self.t = []
         self.f = []
         self.fe = []
@@ -2090,10 +2336,10 @@ class BaseBuffer:
         or if the first point does not exceed tkeep by at least 1.
         The idea is to avoid doing this too often. Returns the first time
         """
-        if len(self.t) > 1 and tkeep > 0. and self.t[-1] > self.t[0] + tkeep + 1:
+        if len(self.t) > 1 and tkeep > 0.0 and self.t[-1] > self.t[0] + tkeep + 1:
             tlast = self.t[-1]
             for ntrim, t in enumerate(self.t):
-                if t > tlast-tkeep:
+                if t > tlast - tkeep:
                     break
             if ntrim:
                 self.t = self.t[ntrim:]
@@ -2106,7 +2352,7 @@ class BaseBuffer:
         Returns the start time of the buffer, 0 if one is not defined
         """
         if len(self.t) == 0:
-            return 0.
+            return 0.0
         else:
             return self.t[0]
 
@@ -2116,11 +2362,12 @@ class LightCurve(BaseBuffer):
     Container for light curves so they can be re-plotted as they come in.
     There should be one of these per plot line in the 'light' section.
     """
+
     def __init__(self, plot_config, linear):
         super().__init__(plot_config)
-        self.comp = plot_config['comp']
-        self.off = plot_config['off']
-        self.fac = plot_config['fac']
+        self.comp = plot_config["comp"]
+        self.off = plot_config["off"]
+        self.fac = plot_config["fac"]
         self.linear = linear
 
     def add_point(self, results, tzero, tmax, fmin, fmax, skipbadt):
@@ -2166,30 +2413,31 @@ class LightCurve(BaseBuffer):
         else:
             return (tmax, fmin, fmax)
 
-        for nframe, store, ccdaper, reses, mjdint, \
-            mjdfrac, mjdok, expose in res:
+        for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
 
             # loop over each frame of the group
 
             if mjdok or not skipbadt:
 
                 targ = reses[self.targ]
-                ft = targ['counts']
-                fte = targ['countse']
-                saturated = targ['flag'] & hcam.TARGET_SATURATED
+                ft = targ["counts"]
+                fte = targ["countse"]
+                saturated = targ["flag"] & hcam.TARGET_SATURATED
 
                 if fte > 0:
 
-                    if self.comp != '!':
+                    if self.comp != "!":
                         comp = reses[self.comp]
-                        fc = comp['counts']
-                        fce = comp['countse']
-                        saturated |= comp['flag'] & hcam.TARGET_SATURATED
+                        fc = comp["counts"]
+                        fce = comp["countse"]
+                        saturated |= comp["flag"] & hcam.TARGET_SATURATED
 
                         if fc > 0:
-                            if fce > 0.:
+                            if fce > 0.0:
                                 f = ft / fc
-                                fe = np.sqrt((fte/fc)**2+(ft*fce/fc**2)**2)
+                                fe = np.sqrt(
+                                    (fte / fc) ** 2 + (ft * fce / fc ** 2) ** 2
+                                )
                             else:
                                 continue
                         else:
@@ -2201,11 +2449,11 @@ class LightCurve(BaseBuffer):
                     continue
 
                 if not self.linear:
-                    if f <= 0.:
+                    if f <= 0.0:
                         continue
 
-                    fe = 2.5/np.log(10)*(fe/f)
-                    f = -2.5*np.log10(f)
+                    fe = 2.5 / np.log(10) * (fe / f)
+                    f = -2.5 * np.log10(f)
 
                 # apply scaling factor and offset
                 f *= self.fac
@@ -2213,7 +2461,7 @@ class LightCurve(BaseBuffer):
                 f += self.off
 
                 # compute time in terms of minutes from the zeropoint
-                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                tmins = hcam.DMINS * (mjdint + mjdfrac - tzero)
 
                 # OK, we are done for this frame. Store new point
                 self.t.append(tmins)
@@ -2230,14 +2478,14 @@ class LightCurve(BaseBuffer):
                 pgsch(0.5)
                 if self.ecol is not None:
                     pgsci(self.ecol)
-                    pgmove(tmins, f-fe)
-                    pgdraw(tmins, f+fe)
+                    pgmove(tmins, f - fe)
+                    pgdraw(tmins, f + fe)
 
                 pgsci(self.dcol)
                 pgpt1(tmins, f, self.symb[-1])
 
                 # track the limits
-                tmax = tmins if tmax is None else max(tmins,tmax)
+                tmax = tmins if tmax is None else max(tmins, tmax)
                 fmin = f if fmin is None else min(f, fmin)
                 fmax = f if fmax is None else max(f, fmax)
 
@@ -2249,6 +2497,7 @@ class Xposition(BaseBuffer):
     There should be one of these per plot line in the 'position' section.
 
     """
+
     def __init__(self, plot_config):
         super().__init__(plot_config)
         self.xzero = None
@@ -2286,16 +2535,15 @@ class Xposition(BaseBuffer):
         else:
             return (tmax, xmin, xmax)
 
-        for nframe, store, ccdaper, reses, mjdint, \
-            mjdfrac, mjdok, expose in res:
+        for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
 
             if mjdok or not skipbadt:
 
                 # loop over each frame of the group
 
                 targ = reses[self.targ]
-                x = targ['x']
-                xe = targ['xe']
+                x = targ["x"]
+                xe = targ["xe"]
 
                 if xe <= 0:
                     # skip junk
@@ -2308,13 +2556,13 @@ class Xposition(BaseBuffer):
                 x -= self.xzero
 
                 # compute time in terms of minutes from the zeropoint
-                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                tmins = hcam.DMINS * (mjdint + mjdfrac - tzero)
 
                 # Store new point
                 self.t.append(tmins)
                 self.f.append(x)
                 self.fe.append(xe)
-                if targ['flag'] & hcam.TARGET_SATURATED:
+                if targ["flag"] & hcam.TARGET_SATURATED:
                     # mark saturated data with cross
                     self.symb.append(5)
                 else:
@@ -2325,13 +2573,13 @@ class Xposition(BaseBuffer):
                 pgsch(0.5)
                 if self.ecol is not None:
                     pgsci(self.ecol)
-                    pgmove(tmins, x-xe)
-                    pgdraw(tmins, x+xe)
+                    pgmove(tmins, x - xe)
+                    pgdraw(tmins, x + xe)
                 pgsci(self.dcol)
                 pgpt1(tmins, x, self.symb[-1])
 
                 # track the limits
-                tmax = tmins if tmax is None else max(tmins,tmax)
+                tmax = tmins if tmax is None else max(tmins, tmax)
                 xmin = x if xmin is None else min(x, xmin)
                 xmax = x if xmax is None else max(x, xmax)
 
@@ -2343,6 +2591,7 @@ class Yposition(BaseBuffer):
     There should be one of these per plot line in the 'position' section.
 
     """
+
     def __init__(self, plot_config):
         super().__init__(plot_config)
         self.yzero = None
@@ -2380,16 +2629,15 @@ class Yposition(BaseBuffer):
         else:
             return (tmax, ymin, ymax)
 
-        for nframe, store, ccdaper, reses, mjdint, \
-            mjdfrac, mjdok, expose in res:
+        for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
 
             if mjdok or not skipbadt:
 
                 # loop over each frame of the group
 
                 targ = reses[self.targ]
-                y = targ['y']
-                ye = targ['ye']
+                y = targ["y"]
+                ye = targ["ye"]
 
                 if ye <= 0:
                     # skip junk
@@ -2402,13 +2650,13 @@ class Yposition(BaseBuffer):
                 y -= self.yzero
 
                 # compute time in terms of minutes from the zeropoint
-                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                tmins = hcam.DMINS * (mjdint + mjdfrac - tzero)
 
                 # Store new point
                 self.t.append(tmins)
                 self.f.append(y)
                 self.fe.append(ye)
-                if targ['flag'] & hcam.TARGET_SATURATED:
+                if targ["flag"] & hcam.TARGET_SATURATED:
                     # mark saturated data with cross
                     self.symb.append(5)
                 else:
@@ -2419,13 +2667,13 @@ class Yposition(BaseBuffer):
                 pgsch(0.5)
                 if self.ecol is not None:
                     pgsci(self.ecol)
-                    pgmove(tmins, y-ye)
-                    pgdraw(tmins, y+ye)
+                    pgmove(tmins, y - ye)
+                    pgdraw(tmins, y + ye)
                 pgsci(self.dcol)
                 pgpt1(tmins, y, self.symb[-1])
 
                 # track the limits
-                tmax = tmins if tmax is None else max(tmins,tmax)
+                tmax = tmins if tmax is None else max(tmins, tmax)
                 ymin = y if ymin is None else min(y, ymin)
                 ymax = y if ymax is None else max(y, ymax)
 
@@ -2437,9 +2685,10 @@ class Transmission(BaseBuffer):
     Container for light curves so they can be re-plotted as they come in.
     There should be one of these per plot line in the 'light' section.
     """
+
     def __init__(self, plot_config):
         super().__init__(plot_config)
-        self.fmax = None   # Maximum to scale the transmission
+        self.fmax = None  # Maximum to scale the transmission
 
     def add_point(self, results, tzero, tmax, skipbadt):
         """
@@ -2459,28 +2708,27 @@ class Transmission(BaseBuffer):
         else:
             return (tmax, fmax)
 
-        for nframe, store, ccdaper, reses, mjdint, \
-            mjdfrac, mjdok, expose in res:
+        for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
 
             if mjdok or not skipbadt:
 
                 # loop over each frame of the group
                 targ = reses[self.targ]
-                f = targ['counts']
-                fe = targ['countse']
+                f = targ["counts"]
+                fe = targ["countse"]
 
                 if f <= 0 or fe <= 0:
                     # skip junk
                     continue
 
                 # compute time in terms of minutes from the zeropoint
-                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                tmins = hcam.DMINS * (mjdint + mjdfrac - tzero)
 
                 # Store new point
                 self.t.append(tmins)
                 self.f.append(f)
                 self.fe.append(fe)
-                if targ['flag'] & hcam.TARGET_SATURATED:
+                if targ["flag"] & hcam.TARGET_SATURATED:
                     # mark saturated data with cross
                     self.symb.append(5)
                 else:
@@ -2491,20 +2739,20 @@ class Transmission(BaseBuffer):
                     # initialise the maximum flux
                     self.fmax = f
 
-                f *= 100/self.fmax
-                fe *= 100/self.fmax
+                f *= 100 / self.fmax
+                fe *= 100 / self.fmax
 
                 # Plot the point in minutes from start point
                 pgsch(0.5)
                 if self.ecol is not None:
                     pgsci(self.ecol)
-                    pgmove(tmins, f-fe)
-                    pgdraw(tmins, f+fe)
+                    pgmove(tmins, f - fe)
+                    pgdraw(tmins, f + fe)
                 pgsci(self.dcol)
                 pgpt1(tmins, f, self.symb[-1])
 
                 # track the limits
-                tmax = tmins if tmax is None else max(tmins,tmax)
+                tmax = tmins if tmax is None else max(tmins, tmax)
                 fmax = f if fmax is None else max(f, fmax)
 
         return (tmax, fmax)
@@ -2515,6 +2763,7 @@ class Seeing(BaseBuffer):
     Container for light curves so they can be re-plotted as they come in.
     There should be one of these per plot line in the 'light' section.
     """
+
     def __init__(self, plot_config, scale):
         super().__init__(plot_config)
         self.scale = scale
@@ -2536,15 +2785,14 @@ class Seeing(BaseBuffer):
         else:
             return (tmax, fmax)
 
-        for nframe, store, ccdaper, reses, mjdint, \
-            mjdfrac, mjdok, expose in res:
+        for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
 
             if mjdok or not skipbadt:
 
                 # loop over each frame of the group
                 targ = reses[self.targ]
-                f = targ['fwhm']
-                fe = targ['fwhme']
+                f = targ["fwhm"]
+                fe = targ["fwhme"]
 
                 if f <= 0 or fe <= 0:
                     # skip junk
@@ -2554,13 +2802,13 @@ class Seeing(BaseBuffer):
                 fe *= self.scale
 
                 # compute time in terms of minutes from the zeropoint
-                tmins = hcam.DMINS*(mjdint + mjdfrac - tzero)
+                tmins = hcam.DMINS * (mjdint + mjdfrac - tzero)
 
                 # Store new point
                 self.t.append(tmins)
                 self.f.append(f)
                 self.fe.append(fe)
-                if targ['flag'] & hcam.TARGET_SATURATED:
+                if targ["flag"] & hcam.TARGET_SATURATED:
                     # mark saturated data with cross
                     self.symb.append(5)
                 else:
@@ -2571,16 +2819,17 @@ class Seeing(BaseBuffer):
                 pgsch(0.5)
                 if self.ecol is not None:
                     pgsci(self.ecol)
-                    pgmove(tmins, f-fe)
-                    pgdraw(tmins, f+fe)
+                    pgmove(tmins, f - fe)
+                    pgdraw(tmins, f + fe)
                 pgsci(self.dcol)
                 pgpt1(tmins, f, self.symb[-1])
 
                 # track the limits
-                tmax = tmins if tmax is None else max(tmins,tmax)
+                tmax = tmins if tmax is None else max(tmins, tmax)
                 fmax = f if fmax is None else max(f, fmax)
 
         return (tmax, fmax)
+
 
 def ctrans(cname):
     """
@@ -2589,7 +2838,7 @@ def ctrans(cname):
     a message if cname not recognised. Returns None if cname is None
     """
 
-    if cname == '!':
+    if cname == "!":
         return None
     elif cname in hcam.CNAMS:
         return hcam.CNAMS[cname]
@@ -2599,9 +2848,9 @@ def ctrans(cname):
 
         warnings.warn(
             "Failed to recognize colour = '{:s}'; defaulting to black.\n"
-            'Recognised colours are {:s}\n'.format(
-                cname, ', '.join(
-                    ["'{:s}'".format(name) for name in rnames]))
+            "Recognised colours are {:s}\n".format(
+                cname, ", ".join(["'{:s}'".format(name) for name in rnames])
+            )
         )
         return 1
 
@@ -2626,27 +2875,28 @@ def toBool(rfile, section, param):
     raised if the initial value is neither 'yes' nor 'no.
     """
 
-    if rfile[section][param] == 'yes':
+    if rfile[section][param] == "yes":
         rfile[section][param] = True
-    elif rfile[section][param] == 'no':
+    elif rfile[section][param] == "no":
         rfile[section][param] = False
     else:
         raise hcam.HipercamError(
             "{:s}.{:s}: 'yes' or 'no' are the only supported values".format(
-                section, param)
+                section, param
             )
+        )
 
 
 # messages if various bitflags are set
 FLAG_MESSAGES = {
-    hcam.NO_FWHM: 'no FWHM could be measured',
-    hcam.NO_SKY: 'zero sky pixels',
-    hcam.SKY_AT_EDGE: 'sky aperture overlaps edge of window',
-    hcam.TARGET_AT_EDGE: 'target aperture overlaps edge of window',
-    hcam.TARGET_SATURATED: 'target aperture has saturated pixels',
-    hcam.TARGET_NONLINEAR: 'target aperture has nonlinear pixels',
-    hcam.NO_EXTRACTION: 'no extraction possible',
-    hcam.NO_DATA: 'no valid pixels in target aperture',
+    hcam.NO_FWHM: "no FWHM could be measured",
+    hcam.NO_SKY: "zero sky pixels",
+    hcam.SKY_AT_EDGE: "sky aperture overlaps edge of window",
+    hcam.TARGET_AT_EDGE: "target aperture overlaps edge of window",
+    hcam.TARGET_SATURATED: "target aperture has saturated pixels",
+    hcam.TARGET_NONLINEAR: "target aperture has nonlinear pixels",
+    hcam.NO_EXTRACTION: "no extraction possible",
+    hcam.NO_DATA: "no valid pixels in target aperture",
 }
 
 
@@ -2655,16 +2905,17 @@ class LogWriter:
     and safe exit.
 
     """
+
     def __init__(self, filename, rfile, hipercam_version, plist):
         self.rfile = rfile
         self.filename = filename
         self.hipercam_version = hipercam_version
         self.plist = plist
-        self.toffset = rfile['general']['toffset']
+        self.toffset = rfile["general"]["toffset"]
 
     def __enter__(self):
         # open filehandle, write header
-        self.log = open(self.filename, 'w')
+        self.log = open(self.filename, "w")
         self.write_header()
         return self
 
@@ -2683,7 +2934,7 @@ class LogWriter:
               of (nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose)
               storing all the relevant data for the CCD / exposure in question.
         """
-        monitor = self.rfile['monitor']
+        monitor = self.rfile["monitor"]
 
         alerts = []
         for cnam, res in results:
@@ -2693,41 +2944,54 @@ class LogWriter:
                 # Loop over all frames for the specific CCD group in question
 
                 # A spacer because the lines are long
-                self.log.write('#\n')
+                self.log.write("#\n")
 
                 # The time is worked out so that it can especially accurate if a suitable
                 # integer offset is applied. The parentheses are important here.
                 mjd = (mjdint - self.toffset) + mjdfrac
 
                 # get mean profile parameters
-                mfwhm = store['mfwhm']
-                mbeta = store['mbeta']
+                mfwhm = store["mfwhm"]
+                mbeta = store["mbeta"]
 
                 # write generic data
                 self.log.write(
-                    '{:s} {:d} {:.14f} {:b} {:.8g} {:.2f} {:.2f} '.format(
-                        cnam, nframe, mjd, mjdok, expose, mfwhm, mbeta)
+                    "{:s} {:d} {:.14f} {:b} {:.8g} {:.2f} {:.2f} ".format(
+                        cnam, nframe, mjd, mjdok, expose, mfwhm, mbeta
+                    )
                 )
 
                 # now for data per aperture
                 for apnam in ccdaper:
                     r = reses[apnam]
                     self.log.write(
-                        '{:.4f} {:.4f} {:.4f} {:.4f} '
-                        '{:.3f} {:.3f} {:.3f} {:.3f} '
-                        '{:.1f} {:.1f} {:.2f} {:.2f} '
-                        '{:d} {:d} {:d} {:d} '.format(
-                            r['x'], r['xe'], r['y'], r['ye'],
-                            r['fwhm'], r['fwhme'], r['beta'], r['betae'],
-                            r['counts'], r['countse'], r['sky'], r['skye'],
-                            r['nsky'], r['nrej'], r['cmax'], r['flag']
+                        "{:.4f} {:.4f} {:.4f} {:.4f} "
+                        "{:.3f} {:.3f} {:.3f} {:.3f} "
+                        "{:.1f} {:.1f} {:.2f} {:.2f} "
+                        "{:d} {:d} {:d} {:d} ".format(
+                            r["x"],
+                            r["xe"],
+                            r["y"],
+                            r["ye"],
+                            r["fwhm"],
+                            r["fwhme"],
+                            r["beta"],
+                            r["betae"],
+                            r["counts"],
+                            r["countse"],
+                            r["sky"],
+                            r["skye"],
+                            r["nsky"],
+                            r["nrej"],
+                            r["cmax"],
+                            r["flag"],
                         )
                     )
 
                     if apnam in monitor:
                         # accumulate any problems with particular targets
                         bitmasks = monitor[apnam]
-                        flag = r['flag']
+                        flag = r["flag"]
                         messes = []
                         for bitmask in bitmasks:
                             if (flag & bitmask) and bitmask in FLAG_MESSAGES:
@@ -2735,13 +2999,13 @@ class LogWriter:
 
                         if len(messes):
                             alerts.append(
-                                ' *** WARNING: Frame {:d}, CCD {:s}, aperture {:s}: {:s}'.format(
-                                    nframe, cnam, apnam, ', '.join(messes)
+                                " *** WARNING: Frame {:d}, CCD {:s}, aperture {:s}: {:s}".format(
+                                    nframe, cnam, apnam, ", ".join(messes)
                                 )
                             )
 
                 # finish the line
-                self.log.write('\n')
+                self.log.write("\n")
 
         # flush the buffer to ensure that we have complete lines if we hit ctrl-C
         self.log.flush()
@@ -2752,7 +3016,8 @@ class LogWriter:
     def write_header(self):
 
         # first, a general description
-        self.log.write("""#
+        self.log.write(
+            """#
 # This is a logfile produced by the HiPERCAM pipeline command 'reduce'. It consists
 # of one line per reduced CCD per exposure. Each line contains all the information
 # from all apertures defined for the CCD. The column names are defined just before
@@ -2763,54 +3028,62 @@ class LogWriter:
 # of the HiPERCAM reduction software, and was generated using the following
 # command-line inputs to 'reduce':
 #
-""".format(hipercam_version=self.hipercam_version))
+""".format(
+                hipercam_version=self.hipercam_version
+            )
+        )
 
         # second, list the command-line inputs to the logfile
         for line in self.plist:
-            self.log.write('# {:s}'.format(line))
+            self.log.write("# {:s}".format(line))
 
         # third, list the reduce file
-        self.log.write("""#
+        self.log.write(
+            """#
 # and here is a minimal version of the reduce file used ['rfile' above] with
 # all between-line comments removed for compactness:
 #
-""")
+"""
+        )
 
         # skip these as they only affect the on the fly plots,
         # not the final values
-        skip_sections = (
-            'lcplot', 'light', 'transmission', 'seeing'
-        )
+        skip_sections = ("lcplot", "light", "transmission", "seeing")
         skip = False
         with open(self.rfile.filename) as fred:
             for line in fred:
-                if not line.startswith('#') and not line.isspace():
-                    if line.startswith('['):
-                        sect = line[1:line.find(']')].strip()
+                if not line.startswith("#") and not line.isspace():
+                    if line.startswith("["):
+                        sect = line[1 : line.find("]")].strip()
                         if sect in skip_sections:
                             skip = True
                             continue
                         else:
                             skip = False
-                        self.log.write('#\n#   {:s}'.format(line))
+                        self.log.write("#\n#   {:s}".format(line))
                     elif not skip:
-                        self.log.write('#   {:s}'.format(line))
+                        self.log.write("#   {:s}".format(line))
 
         # fourth, write the apertures
-        self.log.write("""#
+        self.log.write(
+            """#
 # Next here is the aperture file used in JSON-style format that (without
 # the initial comment hashes) is readable by setaper and reduce:
 #
-""")
+"""
+        )
         # convert aperture file to JSON-style string, split line by line,
         # pre-pend comment and indentation, write out to the logfile.
-        lines = ['#   {:s}\n'.format(line) for line in self.rfile.aper.toString().split('\n')]
+        lines = [
+            "#   {:s}\n".format(line) for line in self.rfile.aper.toString().split("\n")
+        ]
         for line in lines:
             self.log.write(line)
 
         # fifth the column names for each CCD which has any
         # apertures
-        self.log.write("""#
+        self.log.write(
+            """#
 # Now follow column name definitions for each CCD. These include all apertures
 # of the CCD. Since there are 15 items stored per aperture and each column name
 # is built from the item name followed by an underscore and finally the aperture
@@ -2850,8 +3123,9 @@ class LogWriter:
 #
 # Start of column name definitions:
 #
-""")
-        toffset = self.rfile['general']['toffset']
+"""
+        )
+        toffset = self.rfile["general"]["toffset"]
         for cnam, ccdaper in self.rfile.aper.items():
             if len(ccdaper) == 0:
                 # nothing will be written for CCDs without
@@ -2859,20 +3133,26 @@ class LogWriter:
                 continue
 
             if toffset == 0:
-                cnames = '# {:s} = CCD nframe MJD MJDok Exptim mfwhm mbeta '.format(cnam)
+                cnames = "# {:s} = CCD nframe MJD MJDok Exptim mfwhm mbeta ".format(
+                    cnam
+                )
             else:
-                cnames = '# {:s} = CCD nframe MJD-{:d} MJDok Exptim mfwhm mbeta '.format(cnam,toffset)
+                cnames = "# {:s} = CCD nframe MJD-{:d} MJDok Exptim mfwhm mbeta ".format(
+                    cnam, toffset
+                )
 
             for apnam in ccdaper:
-                cnames += 'x_{0:s} xe_{0:s} y_{0:s} ye_{0:s} ' \
-                          'fwhm_{0:s} fwhme_{0:s} beta_{0:s} betae_{0:s} ' \
-                          'counts_{0:s} countse_{0:s} sky_{0:s} skye_{0:s} ' \
-                          'nsky_{0:s} nrej_{0:s} cmax_{0:s} flag_{0:s} '.format(
-                              apnam)
-            self.log.write(cnames + '\n')
+                cnames += (
+                    "x_{0:s} xe_{0:s} y_{0:s} ye_{0:s} "
+                    "fwhm_{0:s} fwhme_{0:s} beta_{0:s} betae_{0:s} "
+                    "counts_{0:s} countse_{0:s} sky_{0:s} skye_{0:s} "
+                    "nsky_{0:s} nrej_{0:s} cmax_{0:s} flag_{0:s} ".format(apnam)
+                )
+            self.log.write(cnames + "\n")
 
         # now the datatypes for building into structured arrays
-        self.log.write("""#
+        self.log.write(
+            """#
 # End of column name definitions
 #
 # Now follow a similar series of datatypes which are designed to be used to
@@ -2881,8 +3161,9 @@ class LogWriter:
 #
 # Start of data type definitions:
 #
-""")
-        atypes = 'f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 i4 i4 i4 u4 '
+"""
+        )
+        atypes = "f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 i4 i4 i4 u4 "
         for cnam, ccdaper in self.rfile.aper.items():
             if len(ccdaper) == 0:
                 # nothing will be written for CCDs without
@@ -2890,13 +3171,14 @@ class LogWriter:
                 continue
 
             self.log.write(
-                '# {:s} = s i4 f8 ? f4 f4 f4 {:s}\n'.format(
-                    cnam, len(ccdaper)*atypes)
+                "# {:s} = s i4 f8 ? f4 f4 f4 {:s}\n".format(cnam, len(ccdaper) * atypes)
             )
 
-        self.log.write("""#
+        self.log.write(
+            """#
 # End of data type definitions
 #
-""")
+"""
+        )
 
     # that's it for the headers!

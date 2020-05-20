@@ -17,14 +17,19 @@ from .group import *
 from .window import *
 from .header import *
 
-__all__ = ('CCD', 'MCCD', 'get_ccd_info', 'trim_ultracam')
+__all__ = ("CCD", "MCCD", "get_ccd_info", "trim_ultracam")
 
 # Special keywords that will be stripped from FITS headers
 # on input as they are added on output. This is to make
 # to make diagnostic print statements easier to follow.
 KEYWORDS = (
-    'NXTOT', 'NYTOT', 'NUMWIN', 'CCD', 'WINDOW',
+    "NXTOT",
+    "NYTOT",
+    "NUMWIN",
+    "CCD",
+    "WINDOW",
 )
+
 
 class CCD(Agroup):
     """Represents a single CCD as a :class:`Group` of :class:`Window`.
@@ -89,9 +94,8 @@ class CCD(Agroup):
 
         """
         return (
-            self.__class__, (list(self.items()),
-                             self.nxtot, self.nytot,
-                             self.nxpad, self.nypad)
+            self.__class__,
+            (list(self.items()), self.nxtot, self.nytot, self.nxpad, self.nypad),
         )
 
     def flatten(self):
@@ -120,7 +124,7 @@ class CCD(Agroup):
         """
         Returns the mean value of the :class:`CCD`.
         """
-        npix, total = 0, 0.
+        npix, total = 0, 0.0
         for wind in self.values():
             npix += wind.size
             total += wind.sum()
@@ -165,7 +169,7 @@ class CCD(Agroup):
         arrs = []
         for wind in self.values():
             try:
-                wind_small = wind.window(xlo,xhi,ylo,yhi)
+                wind_small = wind.window(xlo, xhi, ylo, yhi)
                 arrs.append(wind_small.data.flatten())
             except HipercamError as err:
                 # could get errors if window not aligned
@@ -173,7 +177,7 @@ class CCD(Agroup):
                 pass
 
         if len(arrs) == 0:
-            raise ValueError('supplied xlo,xhi,ylo,yhi region contains no pixels')
+            raise ValueError("supplied xlo,xhi,ylo,yhi region contains no pixels")
 
         # concatenate into 1D array
         arr = np.concatenate(arrs)
@@ -206,25 +210,25 @@ class CCD(Agroup):
         for n, (wnam, wind) in enumerate(self.items()):
 
             if cnam is None:
-                extnam = 'W:{:s}'.format(wnam)
+                extnam = "W:{:s}".format(wnam)
             else:
-                extnam = 'C:{:s}, W:{:s}'.format(cnam, wnam)
+                extnam = "C:{:s}, W:{:s}".format(cnam, wnam)
 
             # Generate a few extra items to add to the header
             head = Header()
             if cnam:
-                head['CCD'] = (cnam, 'CCD label')
+                head["CCD"] = (cnam, "CCD label")
 
             if n == 0:
                 # Tack a few general items into the first Window
                 # to be written for a given CCD.
-                head['NXTOT'] = (self.nxtot, 'Total unbinned X dimension')
-                head['NYTOT'] = (self.nytot, 'Total unbinned Y dimension')
-                head['NUMWIN'] = (len(self), 'Total number of windows')
-                head['NXPAD'] = (self.nxpad, 'X-padding for display purposes')
-                head['NYPAD'] = (self.nypad, 'Y-padding for display purposes')
+                head["NXTOT"] = (self.nxtot, "Total unbinned X dimension")
+                head["NYTOT"] = (self.nytot, "Total unbinned Y dimension")
+                head["NUMWIN"] = (len(self), "Total number of windows")
+                head["NXPAD"] = (self.nxpad, "X-padding for display purposes")
+                head["NYPAD"] = (self.nypad, "Y-padding for display purposes")
 
-            head['WINDOW'] = (wnam, 'Window label')
+            head["WINDOW"] = (wnam, "Window label")
             hdul.append(wind.whdu(head, xoff, yoff, extnam))
 
         return hdul
@@ -270,22 +274,22 @@ class CCD(Agroup):
             # The header of the HDU
             head = hdu.header
 
-            if cnam is None or ('CCD' in head and cnam == head['CCD']):
+            if cnam is None or ("CCD" in head and cnam == head["CCD"]):
                 if first:
                     # Extract maximum dimensions and padding from first
                     # HDU of a CCD
-                    nxtot = head['NXTOT']
-                    nytot = head['NYTOT']
-                    nxpad = head.get('NXPAD',0)
-                    nypad = head.get('NYPAD',0)
+                    nxtot = head["NXTOT"]
+                    nytot = head["NYTOT"]
+                    nxpad = head.get("NXPAD", 0)
+                    nypad = head.get("NYPAD", 0)
                     first = False
 
                 # attempt auto-generation of window labels as an aid
                 # to ingesting foreign-format data
-                if 'WINDOW' in head:
-                    label = head['WINDOW']
+                if "WINDOW" in head:
+                    label = head["WINDOW"]
                 elif str(nwin) in winds:
-                    raise KeyError('window label conflict')
+                    raise KeyError("window label conflict")
                 else:
                     label = str(nwin)
 
@@ -294,7 +298,8 @@ class CCD(Agroup):
 
                 # clean its header
                 for key in KEYWORDS:
-                    if key in wind: del wind[key]
+                    if key in wind:
+                        del wind[key]
 
                 # store it
                 winds[label] = wind
@@ -344,7 +349,7 @@ class CCD(Agroup):
             # The header of the HDU
             head = hdu.header
 
-            if not first and ccd_label != head['CCD']:
+            if not first and ccd_label != head["CCD"]:
                 # we have found a new CCD. Create and return the old CCD
                 ccd = cls(winds, nxtot, nytot, nxpad, nypad)
                 yield (ccd_label, ccd)
@@ -356,18 +361,18 @@ class CCD(Agroup):
 
             if first:
                 # we are on the first HDU of a CCD, get some essentials
-                nxtot = head['NXTOT']
-                nytot = head['NYTOT']
-                nxpad = head.get('NXPAD',0)
-                nypad = head.get('NYPAD',0)
-                ccd_label = head['CCD']
+                nxtot = head["NXTOT"]
+                nytot = head["NYTOT"]
+                nxpad = head.get("NXPAD", 0)
+                nypad = head.get("NYPAD", 0)
+                ccd_label = head["CCD"]
                 first = False
 
             # store the HDU as a Window
-            if 'WINDOW' in head:
-                label = head['WINDOW']
+            if "WINDOW" in head:
+                label = head["WINDOW"]
             elif str(nwin) in winds:
-                raise KeyError('window label conflict')
+                raise KeyError("window label conflict")
             else:
                 label = str(nwin)
 
@@ -376,7 +381,8 @@ class CCD(Agroup):
 
             # clean its header
             for key in KEYWORDS:
-                if key in wind: del wind[key]
+                if key in wind:
+                    del wind[key]
 
             # store it
             winds[label] = wind
@@ -404,19 +410,31 @@ class CCD(Agroup):
 
         # Get the main header (header of first HDU)
         phead = hdul[0].header
-        phead['HIPERCAM'] = ('CCD', 'Type of HiPERCAM data (CCD | MCCD)')
+        phead["HIPERCAM"] = ("CCD", "Type of HiPERCAM data (CCD | MCCD)")
 
         # Add comments if not already present.
-        comm1 = 'Data representing a single CCD frame written by hipercam.CCD.write.'
-        if 'COMMENT' not in phead or phead['COMMENT'].find(comm1) == -1:
+        comm1 = "Data representing a single CCD frame written by hipercam.CCD.write."
+        if "COMMENT" not in phead or phead["COMMENT"].find(comm1) == -1:
             phead.add_comment(comm1)
-            phead.add_comment('Multiple sub-windows are written as a series of HDUs. LLX and LLY give')
-            phead.add_comment('the pixel location in unbinned pixels of their lower-left corners. XBIN')
-            phead.add_comment('and YBIN are the binning factors. The first HDU contains the main header')
-            phead.add_comment('along with NXTOT and NYTOT, the total unbinned dimensions of the imaging')
-            phead.add_comment('area of the CCD, NXPAD and NYPAD to account for pre- and over-scans for')
-            phead.add_comment('display purposes, and NUMWIN the number of windows which should match')
-            phead.add_comment('the number of HDUs following the first.')
+            phead.add_comment(
+                "Multiple sub-windows are written as a series of HDUs. LLX and LLY give"
+            )
+            phead.add_comment(
+                "the pixel location in unbinned pixels of their lower-left corners. XBIN"
+            )
+            phead.add_comment(
+                "and YBIN are the binning factors. The first HDU contains the main header"
+            )
+            phead.add_comment(
+                "along with NXTOT and NYTOT, the total unbinned dimensions of the imaging"
+            )
+            phead.add_comment(
+                "area of the CCD, NXPAD and NYPAD to account for pre- and over-scans for"
+            )
+            phead.add_comment(
+                "display purposes, and NUMWIN the number of windows which should match"
+            )
+            phead.add_comment("the number of HDUs following the first.")
 
         hdul.writeto(fname, overwrite=overwrite)
 
@@ -451,19 +469,18 @@ class CCD(Agroup):
         """
         for key in self:
             if key not in ccd:
-                raise KeyError(
-                    'window {0:d} not found in ccd'.format(key))
+                raise KeyError("window {0:d} not found in ccd".format(key))
 
         for key in ccd:
             if key not in self:
-                raise KeyError(
-                    'window {0:d} not found in self'.format(key))
+                raise KeyError("window {0:d} not found in self".format(key))
 
         if self.nxtot != ccd.nxtot or self.nytot != ccd.nytot:
             raise ValueError(
-                'self / ccd have conflicting total (nxtot,nytot):'
-                ' ({0:d},{1:d}) vs ({2:d},{3:d})'.format(
-                    self.nxtot,self.nytot,ccd.nxtot,ccd.nytot)
+                "self / ccd have conflicting total (nxtot,nytot):"
+                " ({0:d},{1:d}) vs ({2:d},{3:d})".format(
+                    self.nxtot, self.nytot, ccd.nxtot, ccd.nytot
+                )
             )
 
         for key, wind in self.items():
@@ -474,9 +491,7 @@ class CCD(Agroup):
 
         copy.copy and copy.deepcopy of a `CCD` use this method
         """
-        return CCD(
-            super().copy(memo), self.nxtot, self.nytot, self.nxpad, self.nypad
-        )
+        return CCD(super().copy(memo), self.nxtot, self.nytot, self.nxpad, self.nypad)
 
     def float32(self):
         """Applies :class:Window.float32 to all Windows of a CCD"""
@@ -504,7 +519,7 @@ class CCD(Agroup):
         or None if the point is not inside any Window"""
 
         for wnam, wind in self.items():
-            if wind.distance(x,y) > dmin:
+            if wind.distance(x, y) > dmin:
                 return wnam
         else:
             return None
@@ -535,8 +550,8 @@ class CCD(Agroup):
                     pass
             else:
                 raise HipercamError(
-                    'failed to find any enclosing window'
-                    ' for window label = {:s}'.format(twnam)
+                    "failed to find any enclosing window"
+                    " for window label = {:s}".format(twnam)
                 )
 
         return tccd
@@ -556,22 +571,24 @@ class CCD(Agroup):
         try:
             next(iter(self.values()))[key] = value
         except StopIteration:
-            raise ValueError(
-                'there is no first Window to store any CCD header'
-            )
+            raise ValueError("there is no first Window to store any CCD header")
 
     def is_data(self):
         """Returns True / False according to whether the frame is thought
         to contain data. Uses DSTATUS keyword if present, else returns True
         """
-        return len(self) and \
-            (self.head['DSTATUS'] if 'DSTATUS' in self.head else True)
+        return len(self) and (self.head["DSTATUS"] if "DSTATUS" in self.head else True)
 
     def __repr__(self):
-        return '{:s}(winds={:s}, nxtot={!r}, nytot={!r}, nxpad={!r}, nypad={!r})'.format(
-            self.__class__.__name__, super().__repr__(),
-            self.nxtot, self.nytot, self.nxpad, self.nypad
+        return "{:s}(winds={:s}, nxtot={!r}, nytot={!r}, nxpad={!r}, nypad={!r})".format(
+            self.__class__.__name__,
+            super().__repr__(),
+            self.nxtot,
+            self.nytot,
+            self.nxpad,
+            self.nypad,
         )
+
 
 class MCCD(Agroup):
     """Class representing a multi-CCD as a Group of CCD objects plus a FITS
@@ -634,21 +651,35 @@ class MCCD(Agroup):
         """
 
         phead = self.head.copy()
-        phead['NUMCCD'] = (len(self), 'Number of CCDs')
-        phead['HIPERCAM'] = ('MCCD', 'Type of HiPERCAM data (CCD | MCCD)')
+        phead["NUMCCD"] = (len(self), "Number of CCDs")
+        phead["HIPERCAM"] = ("MCCD", "Type of HiPERCAM data (CCD | MCCD)")
 
         # Add comments if not already present.
-        comm1 = 'Data representing multiple CCDs written by hipercam.MCCD.write.'
-        if 'COMMENT' not in phead or str(phead['COMMENT']).find(comm1) == -1:
+        comm1 = "Data representing multiple CCDs written by hipercam.MCCD.write."
+        if "COMMENT" not in phead or str(phead["COMMENT"]).find(comm1) == -1:
             phead.add_comment(comm1)
-            phead.add_comment('Each window of each CCD is written in a series of HDUs following an')
-            phead.add_comment('HDU containing only the header. These follow an overall header for the')
-            phead.add_comment('MCCD containing top-level information. The headers of the data window')
-            phead.add_comment('HDUs have keywords LLX, LLY giving the pixel location in unbinned')
-            phead.add_comment('pixels and XBIN and YBIN for their binning factors. The total unbinned')
-            phead.add_comment('dimensions of each CCD are stored under keywords NXTOT and NYTOT for')
-            phead.add_comment('each CCD. Each HDU associated with a given CCD is labelled with a')
-            phead.add_comment('header keyword CCD.')
+            phead.add_comment(
+                "Each window of each CCD is written in a series of HDUs following an"
+            )
+            phead.add_comment(
+                "HDU containing only the header. These follow an overall header for the"
+            )
+            phead.add_comment(
+                "MCCD containing top-level information. The headers of the data window"
+            )
+            phead.add_comment(
+                "HDUs have keywords LLX, LLY giving the pixel location in unbinned"
+            )
+            phead.add_comment(
+                "pixels and XBIN and YBIN for their binning factors. The total unbinned"
+            )
+            phead.add_comment(
+                "dimensions of each CCD are stored under keywords NXTOT and NYTOT for"
+            )
+            phead.add_comment(
+                "each CCD. Each HDU associated with a given CCD is labelled with a"
+            )
+            phead.add_comment("header keyword CCD.")
 
         # make the first HDU
         hdul = fits.HDUList()
@@ -663,9 +694,9 @@ class MCCD(Agroup):
             noff += 1
             if noff % NX == 0:
                 xoff = 0
-                yoff -= (ccd.nytot+2*ccd.nypad) + ygap
+                yoff -= (ccd.nytot + 2 * ccd.nypad) + ygap
             else:
-                xoff += (ccd.nxtot+2*ccd.nxpad) + xgap
+                xoff += (ccd.nxtot + 2 * ccd.nxpad) + xgap
         hdul.writeto(fname, overwrite=overwrite)
 
     @classmethod
@@ -705,8 +736,10 @@ class MCCD(Agroup):
         """
         # Get the main header from the first hdu, but otherwise ignore it
         head = hdul[0].header
-        if 'NUMCCD' in head: del head['NUMCCD']
-        if 'HIPERCAM' in head: del head['HIPERCAM']
+        if "NUMCCD" in head:
+            del head["NUMCCD"]
+        if "HIPERCAM" in head:
+            del head["HIPERCAM"]
 
         # Attempt to read the rest of HDUs into a series of CCDs
         ccds = Group(CCD)
@@ -735,13 +768,11 @@ class MCCD(Agroup):
         """
         for key in self:
             if key not in mccd:
-                raise KeyError(
-                    'CCD {0:d} not found in mccd'.format(key))
+                raise KeyError("CCD {0:d} not found in mccd".format(key))
 
         for key in mccd:
             if key not in self:
-                raise KeyError(
-                    'CCD {0:d} not found in self'.format(key))
+                raise KeyError("CCD {0:d} not found in self".format(key))
 
         for key, ccd in self.items():
             ccd.matches(mccd[key])
@@ -761,8 +792,9 @@ class MCCD(Agroup):
         return tmccd
 
     def __repr__(self):
-        return '{:s}(ccds={:s}, head={!r})'.format(
-            self.__class__.__name__, super().__repr__(), self.head)
+        return "{:s}(ccds={:s}, head={!r})".format(
+            self.__class__.__name__, super().__repr__(), self.head
+        )
 
     def float32(self):
         """Applies :class:Window.float32 to all Windows of an MCCD"""
@@ -784,6 +816,7 @@ class MCCD(Agroup):
         for ccd in self.values():
             ccd.set_const(val)
 
+
 def get_ccd_info(fname):
     """Routine to return some useful basic information from an MCCD file without
     reading the whole thing in. It returns an OrderedDict keyed on the CCD
@@ -802,25 +835,27 @@ def get_ccd_info(fname):
             head = hdu.header
 
             if not first and (
-                ('CCD' in head and ccd_label != head['CCD']) or
-                ('NXTOT' in head and 'NYTOT' in head)):
+                ("CCD" in head and ccd_label != head["CCD"])
+                or ("NXTOT" in head and "NYTOT" in head)
+            ):
                 # Reset because we think we are on the first HDU of a CCD
                 first = True
 
-            if first and 'NXTOT' in head and 'NYTOT' in head:
+            if first and "NXTOT" in head and "NYTOT" in head:
                 # Extract header from first HDU of a CCD
-                if 'CCD' in head:
-                    ccd_label = head['CCD']
+                if "CCD" in head:
+                    ccd_label = head["CCD"]
                 else:
-                    ccd_label = '1'
-                nxtot = head['NXTOT']
-                nytot = head['NYTOT']
-                nxpad = head.get('NXPAD',0)
-                nypad = head.get('NYPAD',0)
-                info[ccd_label] = (nxtot,nytot,nxpad,nypad)
+                    ccd_label = "1"
+                nxtot = head["NXTOT"]
+                nytot = head["NYTOT"]
+                nxpad = head.get("NXPAD", 0)
+                nypad = head.get("NYPAD", 0)
+                info[ccd_label] = (nxtot, nytot, nxpad, nypad)
                 first = False
 
     return info
+
 
 def trim_ultracam(mccd, ncol, nrow):
     """Trims columns and rows from an MCCD. The rows and columns are trimmed
@@ -846,39 +881,39 @@ def trim_ultracam(mccd, ncol, nrow):
     """
     for cnam, ccd in mccd.items():
         for wlab, win in ccd.items():
-            if win.outamp == 'LL':
+            if win.outamp == "LL":
                 # lower-left
-                win.data = win.data[nrow:,ncol:]
-                win.llx += ncol*win.xbin
-                win.lly += nrow*win.ybin
+                win.data = win.data[nrow:, ncol:]
+                win.llx += ncol * win.xbin
+                win.lly += nrow * win.ybin
 
-            elif win.outamp == 'LR':
+            elif win.outamp == "LR":
                 # lower-right
                 if ncol:
-                    win.data = win.data[nrow:,:-ncol]
+                    win.data = win.data[nrow:, :-ncol]
                 else:
-                    win.data = win.data[nrow:,:]
-                win.lly += nrow*win.ybin
+                    win.data = win.data[nrow:, :]
+                win.lly += nrow * win.ybin
 
-            elif win.outamp == 'UR':
+            elif win.outamp == "UR":
                 # upper-right
                 if ncol and nrow:
-                    win.data = win.data[:-nrow,:-ncol]
+                    win.data = win.data[:-nrow, :-ncol]
                 elif nrow:
-                    win.data = win.data[:-nrow,:]
+                    win.data = win.data[:-nrow, :]
                 elif ncol:
-                    win.data = win.data[:,:-ncol]
+                    win.data = win.data[:, :-ncol]
 
-            elif win.outamp == 'UL':
+            elif win.outamp == "UL":
                 # upper-left
                 if nrow:
-                    win.data = win.data[:-nrow,ncol:]
+                    win.data = win.data[:-nrow, ncol:]
                 else:
-                    win.data = win.data[:,ncol:]
-                win.llx += ncol*win.xbin
+                    win.data = win.data[:, ncol:]
+                win.llx += ncol * win.xbin
 
             else:
                 warnings.warn(
-                    'encountered a CCD window with no output'
-                    ' amplifier location defined'
+                    "encountered a CCD window with no output"
+                    " amplifier location defined"
                 )

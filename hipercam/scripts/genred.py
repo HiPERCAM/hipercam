@@ -8,18 +8,22 @@ from hipercam.cline import Cline
 
 # get hipercam version to write into the reduce file
 from pkg_resources import get_distribution, DistributionNotFound
-try:
-    hipercam_version = get_distribution('hipercam').version
-except DistributionNotFound:
-    hipercam_version = 'not found'
 
-__all__ = ['genred',]
+try:
+    hipercam_version = get_distribution("hipercam").version
+except DistributionNotFound:
+    hipercam_version = "not found"
+
+__all__ = [
+    "genred",
+]
 
 ################################################
 #
 # genred -- generates a reduce file
 #
 ################################################
+
 
 def genred(args=None):
     """``genred apfile rfile comment bias flat dark linear [inst skipbadt
@@ -253,110 +257,118 @@ def genred(args=None):
 
     command, args = utils.script_args(args)
 
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('apfile', Cline.LOCAL, Cline.PROMPT)
-        cl.register('rfile', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('comment', Cline.LOCAL, Cline.PROMPT)
-        cl.register('bias', Cline.LOCAL, Cline.PROMPT)
-        cl.register('flat', Cline.LOCAL, Cline.PROMPT)
-        cl.register('dark', Cline.LOCAL, Cline.PROMPT)
-        cl.register('linear', Cline.LOCAL, Cline.PROMPT)
-        cl.register('inst', Cline.LOCAL, Cline.HIDE)
-        cl.register('skipbadt', Cline.LOCAL, Cline.HIDE)
-        cl.register('ncpu', Cline.LOCAL, Cline.HIDE)
-        cl.register('ngroup', Cline.LOCAL, Cline.HIDE)
-        cl.register('extendx', Cline.LOCAL, Cline.HIDE)
-        cl.register('ccd', Cline.LOCAL, Cline.HIDE)
-        cl.register('location', Cline.LOCAL, Cline.HIDE)
-        cl.register('toffset', Cline.LOCAL, Cline.HIDE)
-        cl.register('smoothfwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('fft', Cline.LOCAL, Cline.HIDE)
-        cl.register('method', Cline.LOCAL, Cline.HIDE)
-        cl.register('beta', Cline.LOCAL, Cline.HIDE)
-        cl.register('betamax', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwhmmin', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwhmmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('searchwidth', Cline.LOCAL, Cline.HIDE)
-        cl.register('fitwidth', Cline.LOCAL, Cline.HIDE)
-        cl.register('maxshift', Cline.LOCAL, Cline.HIDE)
-        cl.register('thresh', Cline.LOCAL, Cline.HIDE)
-        cl.register('hminref', Cline.LOCAL, Cline.HIDE)
-        cl.register('hminnrf', Cline.LOCAL, Cline.HIDE)
-        cl.register('alpha', Cline.LOCAL, Cline.HIDE)
-        cl.register('diff', Cline.LOCAL, Cline.HIDE)
-        cl.register('rfac', Cline.LOCAL, Cline.HIDE)
-        cl.register('rmin', Cline.LOCAL, Cline.HIDE)
-        cl.register('rmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('sinner', Cline.LOCAL, Cline.HIDE)
-        cl.register('souter', Cline.LOCAL, Cline.HIDE)
-        cl.register('readout', Cline.LOCAL, Cline.HIDE)
-        cl.register('gain', Cline.LOCAL, Cline.HIDE)
-        cl.register('scale', Cline.LOCAL, Cline.HIDE)
-        cl.register('psfgfac', Cline.LOCAL, Cline.HIDE)
-        cl.register('psfwidth', Cline.LOCAL, Cline.HIDE)
-        cl.register('psfpostweak', Cline.LOCAL, Cline.HIDE)
-        cl.register('demask', Cline.LOCAL, Cline.HIDE)
-        cl.register('dthresh', Cline.LOCAL, Cline.HIDE)
+        cl.register("apfile", Cline.LOCAL, Cline.PROMPT)
+        cl.register("rfile", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("comment", Cline.LOCAL, Cline.PROMPT)
+        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
+        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
+        cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("linear", Cline.LOCAL, Cline.PROMPT)
+        cl.register("inst", Cline.LOCAL, Cline.HIDE)
+        cl.register("skipbadt", Cline.LOCAL, Cline.HIDE)
+        cl.register("ncpu", Cline.LOCAL, Cline.HIDE)
+        cl.register("ngroup", Cline.LOCAL, Cline.HIDE)
+        cl.register("extendx", Cline.LOCAL, Cline.HIDE)
+        cl.register("ccd", Cline.LOCAL, Cline.HIDE)
+        cl.register("location", Cline.LOCAL, Cline.HIDE)
+        cl.register("toffset", Cline.LOCAL, Cline.HIDE)
+        cl.register("smoothfwhm", Cline.LOCAL, Cline.HIDE)
+        cl.register("fft", Cline.LOCAL, Cline.HIDE)
+        cl.register("method", Cline.LOCAL, Cline.HIDE)
+        cl.register("beta", Cline.LOCAL, Cline.HIDE)
+        cl.register("betamax", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwhm", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwhmmin", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwhmmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("searchwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("fitwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("maxshift", Cline.LOCAL, Cline.HIDE)
+        cl.register("thresh", Cline.LOCAL, Cline.HIDE)
+        cl.register("hminref", Cline.LOCAL, Cline.HIDE)
+        cl.register("hminnrf", Cline.LOCAL, Cline.HIDE)
+        cl.register("alpha", Cline.LOCAL, Cline.HIDE)
+        cl.register("diff", Cline.LOCAL, Cline.HIDE)
+        cl.register("rfac", Cline.LOCAL, Cline.HIDE)
+        cl.register("rmin", Cline.LOCAL, Cline.HIDE)
+        cl.register("rmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("sinner", Cline.LOCAL, Cline.HIDE)
+        cl.register("souter", Cline.LOCAL, Cline.HIDE)
+        cl.register("readout", Cline.LOCAL, Cline.HIDE)
+        cl.register("gain", Cline.LOCAL, Cline.HIDE)
+        cl.register("scale", Cline.LOCAL, Cline.HIDE)
+        cl.register("psfgfac", Cline.LOCAL, Cline.HIDE)
+        cl.register("psfwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("psfpostweak", Cline.LOCAL, Cline.HIDE)
+        cl.register("demask", Cline.LOCAL, Cline.HIDE)
+        cl.register("dthresh", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
 
         # the aperture file
         apfile = cl.get_value(
-            'apfile', 'aperture input file', cline.Fname('aper.ape',hcam.APER)
+            "apfile", "aperture input file", cline.Fname("aper.ape", hcam.APER)
         )
         # Read the aperture file
         aper = hcam.MccdAper.read(apfile)
 
         # the reduce file
         rfile = cl.get_value(
-            'rfile', 'reduce output file',
-            cline.Fname('reduce.red',hcam.RED,cline.Fname.NEW)
+            "rfile",
+            "reduce output file",
+            cline.Fname("reduce.red", hcam.RED, cline.Fname.NEW),
         )
 
         # user comment string
         comment = cl.get_value(
-            'comment', 'user comment to add [<cr>'
-            ' for newline to get multilines]',''
+            "comment", "user comment to add [<cr>" " for newline to get multilines]", ""
         )
-        if comment == '':
-            comment = '# There was no user comment\n'
+        if comment == "":
+            comment = "# There was no user comment\n"
         else:
-            comment_lines = comment.split('<cr>')
-            comment = '# User comment:\n#\n# ' + '\n# '.join(comment_lines)
+            comment_lines = comment.split("<cr>")
+            comment = "# User comment:\n#\n# " + "\n# ".join(comment_lines)
 
         # ones you might quite often want to change
 
         # bias frame
         bias = cl.get_value(
-            'bias', "bias frame ['none' to ignore]",
-            cline.Fname('bias', hcam.HCAM), ignore='none'
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
         )
-        bias = '' if bias is None else bias
+        bias = "" if bias is None else bias
 
         # flat field frame
         flat = cl.get_value(
-            'flat', "flat field frame ['none' to ignore]",
-            cline.Fname('flat', hcam.HCAM), ignore='none'
+            "flat",
+            "flat field frame ['none' to ignore]",
+            cline.Fname("flat", hcam.HCAM),
+            ignore="none",
         )
-        flat = '' if flat is None else flat
+        flat = "" if flat is None else flat
 
         # dark frame
         dark = cl.get_value(
-            'dark', "dark field frame ['none' to ignore]",
-            cline.Fname('dark', hcam.HCAM), ignore='none'
+            "dark",
+            "dark field frame ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM),
+            ignore="none",
         )
-        dark = '' if dark is None else dark
+        dark = "" if dark is None else dark
 
         # hidden parameters
         inst = cl.get_value(
-            'inst', 'instrument (hipercam, ultracam, ultraspec, other)',
-            'hipercam', lvals=['hipercam', 'ultracam', 'ultraspec','other']
+            "inst",
+            "instrument (hipercam, ultracam, ultraspec, other)",
+            "hipercam",
+            lvals=["hipercam", "ultracam", "ultraspec", "other"],
         )
 
-        if inst == 'hipercam':
+        if inst == "hipercam":
             warn_levels = """# Warning levels for instrument = HiPERCAM
 warn = 1 50000 64000
 warn = 2 50000 64000
@@ -365,24 +377,23 @@ warn = 4 50000 64000
 warn = 5 50000 64000
 """
             maxcpu = 5
-            cl.set_default('skipbadt', False)
+            cl.set_default("skipbadt", False)
 
-        elif inst == 'ultracam':
+        elif inst == "ultracam":
             warn_levels = """# Warning levels for instrument = ULTRACAM
 warn = 1 28000 64000
 warn = 2 28000 64000
 warn = 3 50000 64000
 """
             maxcpu = 3
-            cl.set_default('skipbadt', True)
+            cl.set_default("skipbadt", True)
 
-        elif inst == 'ultraspec':
+        elif inst == "ultraspec":
             warn_levels = """# Warning levels for instrument = ULTRASPEC
 warn = 1 60000 64000
 """
             maxcpu = 1
-            cl.set_default('skipbadt', True)
-
+            cl.set_default("skipbadt", True)
 
         else:
             warn_levels = """# No warning levels have been set!!
@@ -393,192 +404,182 @@ warn = 1 60000 64000
 
         if maxcpu > 1:
             ncpu = cl.get_value(
-                'ncpu', 'number of CPUs to use (<= number of CCDs)',
-                1, 1, maxcpu
+                "ncpu", "number of CPUs to use (<= number of CCDs)", 1, 1, maxcpu
             )
         else:
             ncpu = 1
 
         if ncpu > 1:
             ngroup = cl.get_value(
-                'ngroup', 
-                'number of frames per group to reduce parallelisation overheads',
-                1, 1
+                "ngroup",
+                "number of frames per group to reduce parallelisation overheads",
+                1,
+                1,
             )
         else:
             ngroup = 1
 
-        skipbadt = cl.get_value(
-            'skipbadt', 'skip points with bad times or not', True
-        )
+        skipbadt = cl.get_value("skipbadt", "skip points with bad times or not", True)
 
-        linear = cl.get_value(
-            'linear', 'linear light curve plot?', False
-        )
-        linear = 'yes' if linear else 'no'
+        linear = cl.get_value("linear", "linear light curve plot?", False)
+        linear = "yes" if linear else "no"
 
         extendx = cl.get_value(
-            'extendx', 'how much to extend light curve plot [mins]',
-            10.,0.01
+            "extendx", "how much to extend light curve plot [mins]", 10.0, 0.01
         )
 
-        if inst == 'ultraspec':
+        if inst == "ultraspec":
             # only one CCD for ULTRASPEC
-            ccd = '1'
+            ccd = "1"
         else:
             ccd = cl.get_value(
-                'ccd', 'label for the CCD used for the position plot','2'
+                "ccd", "label for the CCD used for the position plot", "2"
             )
             if ccd not in aper:
                 raise hcam.HipercamError(
-                    'CCD {:s} not found in aperture file {:s}'.format(
-                        ccd,apfile)
+                    "CCD {:s} not found in aperture file {:s}".format(ccd, apfile)
                 )
 
         location = cl.get_value(
-            'location', 'aperture location, f(ixed) or v(ariable)',
-            'v', lvals=['f','v']
+            "location",
+            "aperture location, f(ixed) or v(ariable)",
+            "v",
+            lvals=["f", "v"],
         )
-        location = 'variable' if location == 'v' else 'fixed'
-        comm_seeing = '#' if location == 'fixed' else ''
-        comm_position = '#' if location == 'fixed' else ''
+        location = "variable" if location == "v" else "fixed"
+        comm_seeing = "#" if location == "fixed" else ""
+        comm_position = "#" if location == "fixed" else ""
 
-        cl.set_default('toffset',0)
+        cl.set_default("toffset", 0)
         toffset = cl.get_value(
-            'toffset',
-            'offset to subtract from the MJD times (to reduce round-off) [days]',0,0
+            "toffset",
+            "offset to subtract from the MJD times (to reduce round-off) [days]",
+            0,
+            0,
         )
 
         smooth_fwhm = cl.get_value(
-            'smoothfwhm','search smoothing FWHM [binned pixels]',6.,3.
+            "smoothfwhm", "search smoothing FWHM [binned pixels]", 6.0, 3.0
         )
 
-        smooth_fft = cl.get_value(
-            'fft','use FFT when smoothing',False
-        )
+        smooth_fft = cl.get_value("fft", "use FFT when smoothing", False)
 
         profile_type = cl.get_value(
-            'method', 'profile fit method, g(aussian) or m(offat)',
-            'g', lvals=['g','m']
+            "method",
+            "profile fit method, g(aussian) or m(offat)",
+            "g",
+            lvals=["g", "m"],
         )
-        profile_type = 'gaussian' if profile_type == 'g' else 'moffat'
+        profile_type = "gaussian" if profile_type == "g" else "moffat"
 
-        beta = cl.get_value(
-            'beta','starting value of beta', 4., 3.
-        )
+        beta = cl.get_value("beta", "starting value of beta", 4.0, 3.0)
 
         beta_max = cl.get_value(
-            'betamax','maximum value of beta to start consecutive fits',
-            20., beta
+            "betamax", "maximum value of beta to start consecutive fits", 20.0, beta
         )
 
-        fwhm = cl.get_value(
-            'fwhm','starting FWHM, unbinned pixels', 5., 1.5
-        )
+        fwhm = cl.get_value("fwhm", "starting FWHM, unbinned pixels", 5.0, 1.5)
 
-        fwhm_min = cl.get_value(
-            'fwhmmin','minimum FWHM, unbinned pixels', 2, 0.
-        )
+        fwhm_min = cl.get_value("fwhmmin", "minimum FWHM, unbinned pixels", 2, 0.0)
 
         fwhm_max = cl.get_value(
-            'fwhmmax','maximum FWHM, unbinned pixels', 100., fwhm_min
+            "fwhmmax", "maximum FWHM, unbinned pixels", 100.0, fwhm_min
         )
 
         search_half_width = cl.get_value(
-            'searchwidth', 'half width for initial searches, unbinned pixels', 11, 3
+            "searchwidth", "half width for initial searches, unbinned pixels", 11, 3
         )
 
         fit_half_width = cl.get_value(
-            'fitwidth', 'half width for profile fits, unbinned pixels', 21, 5
+            "fitwidth", "half width for profile fits, unbinned pixels", 21, 5
         )
 
         fit_max_shift = cl.get_value(
-            'maxshift', 'maximum non-reference shift, unbinned pixels', 15., 0.
+            "maxshift", "maximum non-reference shift, unbinned pixels", 15.0, 0.0
         )
 
         thresh = cl.get_value(
-            'thresh', 'RMS rejection threshold for fits (sigma)', 5., 2.
+            "thresh", "RMS rejection threshold for fits (sigma)", 5.0, 2.0
         )
 
         height_min_ref = cl.get_value(
-            'hminref',
-            'minimum peak height for a fit to reference aperture [counts]', 10., 0.
+            "hminref",
+            "minimum peak height for a fit to reference aperture [counts]",
+            10.0,
+            0.0,
         )
 
         height_min_nrf = cl.get_value(
-            'hminnrf',
-            'minimum peak height for a fit to non-reference aperture [counts]', 5., 0.
+            "hminnrf",
+            "minimum peak height for a fit to non-reference aperture [counts]",
+            5.0,
+            0.0,
         )
 
         fit_alpha = cl.get_value(
-            'alpha',
-            'non-reference aperture fractional shift parameter (range: (0,1])', 1., 1.e-5, 1.
+            "alpha",
+            "non-reference aperture fractional shift parameter (range: (0,1])",
+            1.0,
+            1.0e-5,
+            1.0,
         )
 
         fit_diff = cl.get_value(
-            'diff',
-            'maximum differential reference aperture shift', 2., 1.e-5
+            "diff", "maximum differential reference aperture shift", 2.0, 1.0e-5
         )
 
-        rfac = cl.get_value(
-            'rfac','target aperture scale factor', 1.8, 1.0
-        )
+        rfac = cl.get_value("rfac", "target aperture scale factor", 1.8, 1.0)
 
         rmin = cl.get_value(
-            'rmin','minimum target aperture radius [unbinned pixels]', 6., 1.
+            "rmin", "minimum target aperture radius [unbinned pixels]", 6.0, 1.0
         )
 
         rmax = cl.get_value(
-            'rmax','maximum target aperture radius [unbinned pixels]', 30., rmin
+            "rmax", "maximum target aperture radius [unbinned pixels]", 30.0, rmin
         )
 
         sinner = cl.get_value(
-            'sinner','inner sky aperture radius [unbinned pixels]', 30., rmax
+            "sinner", "inner sky aperture radius [unbinned pixels]", 30.0, rmax
         )
 
         souter = cl.get_value(
-            'souter','outer sky aperture radius [unbinned pixels]',50.,sinner+1
+            "souter", "outer sky aperture radius [unbinned pixels]", 50.0, sinner + 1
         )
-
 
         readout = cl.get_value(
-            'readout', 'readout noise, RMS ADU (float or file name)', '4.5'
+            "readout", "readout noise, RMS ADU (float or file name)", "4.5"
         )
 
-        gain = cl.get_value(
-            'gain', 'gain, electrons/ADU, (float or file name)', '1.1'
-        )
+        gain = cl.get_value("gain", "gain, electrons/ADU, (float or file name)", "1.1")
 
-        scale = cl.get_value(
-            'scale','image scale [arcsec/unbinned pixel]',0.3,0.001
-        )
+        scale = cl.get_value("scale", "image scale [arcsec/unbinned pixel]", 0.3, 0.001)
 
         psfgfac = cl.get_value(
-            'psfgfac','multiple of FWHM used to group objects for PSF fitting', 3, 0.1
+            "psfgfac", "multiple of FWHM used to group objects for PSF fitting", 3, 0.1
         )
 
         psfwidth = cl.get_value(
-            'psfwidth', 'half width for PSF fits, unbinned pixels', 15, 5
+            "psfwidth", "half width for PSF fits, unbinned pixels", 15, 5
         )
 
         psfpostweak = cl.get_value(
-            'psfpostweak', 'locations during PSF fitting stage, f(ixed) or v(ariable)',
-            'f', lvals=['f', 'v']
+            "psfpostweak",
+            "locations during PSF fitting stage, f(ixed) or v(ariable)",
+            "f",
+            lvals=["f", "v"],
         )
-        psfpostweak = 'variable' if psfpostweak == 'v' else 'fixed'
+        psfpostweak = "variable" if psfpostweak == "v" else "fixed"
 
         demask = cl.get_value(
-            'demask', 'correct for badly located focal plane mask?',
-            False
+            "demask", "correct for badly located focal plane mask?", False
         )
 
         if demask:
             dthresh = cl.get_value(
-                'dthresh', 'RMS threshold for rejection in X before median',
-                3., 0.1
+                "dthresh", "RMS threshold for rejection in X before median", 3.0, 0.1
             )
         else:
-            dthresh = 3.
+            dthresh = 3.0
 
     ################################################################
     #
@@ -587,176 +588,152 @@ warn = 1 60000 64000
     # Generate the extraction lines. Note that the aperture location
     # parameter maps into the same names as the aperture re-size
     # parameter
-    extraction = ''
+    extraction = ""
     for cnam in aper:
         extraction += (
-            '{:s} = {:s} normal'
-            ' {:.2f} {:.1f} {:.1f}'
-            ' 2.5 {:.1f} {:.1f}'
-            ' 3.0 {:.1f} {:.1f}\n').format(
-                cnam, location, rfac, rmin, rmax,
-                sinner, sinner, souter, souter
-            )
+            "{:s} = {:s} normal"
+            " {:.2f} {:.1f} {:.1f}"
+            " 2.5 {:.1f} {:.1f}"
+            " 3.0 {:.1f} {:.1f}\n"
+        ).format(cnam, location, rfac, rmin, rmax, sinner, sinner, souter, souter)
 
     # standard colours for CCDs
-    if inst == 'hipercam':
+    if inst == "hipercam":
         CCD_COLS = {
-            '1' : 'purple',
-            '2' : 'green',
-            '3' : 'orange',
-            '4' : 'red',
-            '5' : 'darkred'
+            "1": "purple",
+            "2": "green",
+            "3": "orange",
+            "4": "red",
+            "5": "darkred",
         }
 
-    elif inst == 'ultracam':
+    elif inst == "ultracam":
         CCD_COLS = {
-            '1' : 'red',
-            '2' : 'green',
-            '3' : 'blue',
+            "1": "red",
+            "2": "green",
+            "3": "blue",
         }
 
-    elif inst == 'ultraspec':
+    elif inst == "ultraspec":
         CCD_COLS = {
-            '1' : 'green',
+            "1": "green",
         }
 
     # Generate the light curve plot lines
-    light_plot = ''
+    light_plot = ""
     no_light = True
     for cnam in aper:
         ccdaper = aper[cnam]
-        if '1' in ccdaper and '2' in ccdaper:
+        if "1" in ccdaper and "2" in ccdaper:
             light_plot += (
-                'plot = {:s} 1 2 0 1 {:10s} !  '
-                ' # ccd, targ, comp, off, fac, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
-                )
+                "plot = {:s} 1 2 0 1 {:10s} !  "
+                " # ccd, targ, comp, off, fac, dcol, ecol\n"
+            ).format(cnam, CCD_COLS[cnam])
             no_light = False
 
-        elif '1' in ccdaper and '2' not in ccdaper:
+        elif "1" in ccdaper and "2" not in ccdaper:
             light_plot += (
-                'plot = {:s} 1 ! 0 1 {:10s} !  '
-                ' # ccd, targ, comp, off, fac, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
-                )
+                "plot = {:s} 1 ! 0 1 {:10s} !  "
+                " # ccd, targ, comp, off, fac, dcol, ecol\n"
+            ).format(cnam, CCD_COLS[cnam])
             no_light = False
 
-        if '2' in ccdaper and '3' in ccdaper:
+        if "2" in ccdaper and "3" in ccdaper:
             light_plot += (
-                'plot = {:s} 3 2 0 1 {:10s} !  '
-                ' # ccd, targ, domp, off, fac, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
-                )
+                "plot = {:s} 3 2 0 1 {:10s} !  "
+                " # ccd, targ, domp, off, fac, dcol, ecol\n"
+            ).format(cnam, CCD_COLS[cnam])
             no_light = False
 
     if no_light:
         raise hcam.HipercamError(
-            'Found no targets for light curve plots in any'
-            ' CCD; cannot make light curve plot'
+            "Found no targets for light curve plots in any"
+            " CCD; cannot make light curve plot"
         )
 
     # Generate the position plot lines
-    position_plot = ''
+    position_plot = ""
     ccdaper = aper[ccd]
     no_position = True
-    if '2' in ccdaper:
+    if "2" in ccdaper:
         position_plot += (
-            '{:s}plot = {:s} 2 {:10s} !  '
-            ' # ccd, targ, dcol, ecol\n').format(
-                comm_position, ccd, CCD_COLS[ccd]
-            )
+            "{:s}plot = {:s} 2 {:10s} !  " " # ccd, targ, dcol, ecol\n"
+        ).format(comm_position, ccd, CCD_COLS[ccd])
         no_position = False
 
-    elif '3' in ccdaper:
+    elif "3" in ccdaper:
         position_plot += (
-            '{:s}plot = {:s} 3 {:10s} !  '
-            ' # ccd, targ, dcol, ecol\n').format(
-                comm_position, ccd, CCD_COLS[ccd]
-            )
+            "{:s}plot = {:s} 3 {:10s} !  " " # ccd, targ, dcol, ecol\n"
+        ).format(comm_position, ccd, CCD_COLS[ccd])
         no_position = False
 
-    elif '1' in ccdaper:
+    elif "1" in ccdaper:
         position_plot += (
-            '{:s}plot = {:s} 1 {:10s} !  '
-            ' # ccd, targ, dcol, ecol\n').format(
-                comm_position, ccd, CCD_COLS[ccd]
-            )
+            "{:s}plot = {:s} 1 {:10s} !  " " # ccd, targ, dcol, ecol\n"
+        ).format(comm_position, ccd, CCD_COLS[ccd])
         no_position = False
 
     if no_position:
         raise hcam.HipercamError(
-            'Targets 1, 2 and 3 not found in '
-            'CCD = {:s}; cannot make position plot'.format(ccd)
+            "Targets 1, 2 and 3 not found in "
+            "CCD = {:s}; cannot make position plot".format(ccd)
         )
 
     # Generate the transmission plot lines
-    transmission_plot = ''
+    transmission_plot = ""
     no_transmission = True
     for cnam in aper:
         ccdaper = aper[cnam]
-        if '2' in ccdaper:
+        if "2" in ccdaper:
             transmission_plot += (
-                'plot = {:s} 2 {:10s} !  '
-                ' # ccd, targ, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
-                )
+                "plot = {:s} 2 {:10s} !  " " # ccd, targ, dcol, ecol\n"
+            ).format(cnam, CCD_COLS[cnam])
             no_transmission = False
 
-        elif '3' in ccdaper:
+        elif "3" in ccdaper:
             transmission_plot += (
-                'plot = {:s} 3 {:10s} !  '
-                ' # ccd, targ, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
-                )
+                "plot = {:s} 3 {:10s} !  " " # ccd, targ, dcol, ecol\n"
+            ).format(cnam, CCD_COLS[cnam])
             no_transmission = False
 
-        elif '1' in ccdaper:
+        elif "1" in ccdaper:
             transmission_plot += (
-                'plot = {:s} 1 {:10s} !  '
-                ' # ccd, targ, dcol, ecol\n').format(
-                    cnam, CCD_COLS[cnam]
-                )
+                "plot = {:s} 1 {:10s} !  " " # ccd, targ, dcol, ecol\n"
+            ).format(cnam, CCD_COLS[cnam])
             no_transmission = False
 
     if no_transmission:
         raise hcam.HipercamError(
-            'Targets 1, 2 and 3 not found in any CCDs;'
-            ' cannot make transmission plot'
+            "Targets 1, 2 and 3 not found in any CCDs;" " cannot make transmission plot"
         )
 
     # Generate the seeing plot lines
-    seeing_plot = ''
+    seeing_plot = ""
     no_seeing = True
     for cnam in aper:
         ccdaper = aper[cnam]
-        if '1' in ccdaper and not ccdaper['1'].linked:
+        if "1" in ccdaper and not ccdaper["1"].linked:
             seeing_plot += (
-                '{:s}plot = {:s} 1 {:10s} !  '
-                ' # ccd, targ, dcol, ecol\n').format(
-                    comm_seeing, cnam, CCD_COLS[cnam]
-                )
+                "{:s}plot = {:s} 1 {:10s} !  " " # ccd, targ, dcol, ecol\n"
+            ).format(comm_seeing, cnam, CCD_COLS[cnam])
             no_seeing = False
 
-        elif '2' in ccdaper and not ccdaper['2'].linked:
+        elif "2" in ccdaper and not ccdaper["2"].linked:
             seeing_plot += (
-                '{:s}plot = {:s} 2 {:10s} !  '
-                ' # ccd, targ, dcol, ecol\n').format(
-                    comm_seeing, cnam, CCD_COLS[cnam]
-                )
+                "{:s}plot = {:s} 2 {:10s} !  " " # ccd, targ, dcol, ecol\n"
+            ).format(comm_seeing, cnam, CCD_COLS[cnam])
             no_seeing = False
 
-        elif '3' in ccdaper  and not ccdaper['3'].linked:
+        elif "3" in ccdaper and not ccdaper["3"].linked:
             seeing_plot += (
-                '{:s}plot = {:s} 3 {:10s} !  '
-                ' # ccd, targ, dcol, ecol\n').format(
-                    comm_seeing, cnam, CCD_COLS[cnam]
-                )
+                "{:s}plot = {:s} 3 {:10s} !  " " # ccd, targ, dcol, ecol\n"
+            ).format(comm_seeing, cnam, CCD_COLS[cnam])
             no_seeing = False
 
     if no_seeing:
         raise hcam.HipercamError(
-            'Targets 1, 2 and 3 not found in any CCD'
-            ' (or they are linked); cannot make seeing plot'
+            "Targets 1, 2 and 3 not found in any CCD"
+            " (or they are linked); cannot make seeing plot"
         )
 
     # monitor targets (whole lot by default)
@@ -765,45 +742,74 @@ warn = 1 60000 64000
         ccdaper = aper[cnam]
         for targ in ccdaper:
             targs.add(targ)
-    monitor = ''
+    monitor = ""
     for targ in sorted(targs):
-        monitor += ('{:s} = NO_EXTRACTION TARGET_SATURATED TARGET_AT_EDGE'
-                    ' TARGET_NONLINEAR NO_SKY NO_FWHM NO_DATA SKY_AT_EDGE\n').format(targ)
+        monitor += (
+            "{:s} = NO_EXTRACTION TARGET_SATURATED TARGET_AT_EDGE"
+            " TARGET_NONLINEAR NO_SKY NO_FWHM NO_DATA SKY_AT_EDGE\n"
+        ).format(targ)
 
     # time stamp
     tstamp = strftime("%d %b %Y %H:%M:%S (UTC)", gmtime())
 
     # finally write out the reduce file.
-    with open(rfile, 'w') as fout:
+    with open(rfile, "w") as fout:
         # write out file
         fout.write(
             TEMPLATE.format(
-                version=hcam.REDUCE_FILE_VERSION, apfile=apfile,
-                fwhm=fwhm, fwhm_min=fwhm_min, fwhm_max=fwhm_max,
-                extraction=extraction, bias=bias, flat=flat, dark=dark,
-                smooth_fwhm=smooth_fwhm, linear=linear,
-                light_plot=light_plot, position_plot=position_plot,
-                transmission_plot=transmission_plot, seeing_plot=seeing_plot,
-                monitor=monitor, comment=comment, tstamp=tstamp,
-                hipercam_version=hipercam_version, location=location,
-                comm_seeing=comm_seeing, extendx=extendx,
-                comm_position=comm_position, scale=scale,
-                warn_levels=warn_levels, ncpu=ncpu, ngroup=ngroup,
+                version=hcam.REDUCE_FILE_VERSION,
+                apfile=apfile,
+                fwhm=fwhm,
+                fwhm_min=fwhm_min,
+                fwhm_max=fwhm_max,
+                extraction=extraction,
+                bias=bias,
+                flat=flat,
+                dark=dark,
+                smooth_fwhm=smooth_fwhm,
+                linear=linear,
+                light_plot=light_plot,
+                position_plot=position_plot,
+                transmission_plot=transmission_plot,
+                seeing_plot=seeing_plot,
+                monitor=monitor,
+                comment=comment,
+                tstamp=tstamp,
+                hipercam_version=hipercam_version,
+                location=location,
+                comm_seeing=comm_seeing,
+                extendx=extendx,
+                comm_position=comm_position,
+                scale=scale,
+                warn_levels=warn_levels,
+                ncpu=ncpu,
+                ngroup=ngroup,
                 search_half_width=search_half_width,
-                fit_half_width=fit_half_width, profile_type=profile_type,
-                height_min_ref=height_min_ref, height_min_nrf=height_min_nrf,
-                beta=beta, beta_max=beta_max, thresh=thresh, readout=readout,
-                gain=gain, fit_max_shift=fit_max_shift, fit_alpha=fit_alpha,
-                fit_diff=fit_diff, psfgfac=psfgfac, psfpostweak=psfpostweak,
-                psfwidth=psfwidth,toffset=toffset,
-                smooth_fft='yes' if smooth_fft else 'no',
-                skipbadt='yes' if skipbadt else 'no',
-                demask='yes' if demask else 'no',
+                fit_half_width=fit_half_width,
+                profile_type=profile_type,
+                height_min_ref=height_min_ref,
+                height_min_nrf=height_min_nrf,
+                beta=beta,
+                beta_max=beta_max,
+                thresh=thresh,
+                readout=readout,
+                gain=gain,
+                fit_max_shift=fit_max_shift,
+                fit_alpha=fit_alpha,
+                fit_diff=fit_diff,
+                psfgfac=psfgfac,
+                psfpostweak=psfpostweak,
+                psfwidth=psfwidth,
+                toffset=toffset,
+                smooth_fft="yes" if smooth_fft else "no",
+                skipbadt="yes" if skipbadt else "no",
+                demask="yes" if demask else "no",
                 dthresh=dthresh,
             )
         )
 
-    print('Reduce file written to {:s}'.format(rfile))
+    print("Reduce file written to {:s}".format(rfile))
+
 
 #################################################################
 #

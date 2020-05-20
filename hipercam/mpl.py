@@ -15,65 +15,52 @@ from . import defect
 
 
 # Font scale factor
-SCALE_FACTOR = float(os.environ['HIPERCAM_MPL_FSCALE']) \
-               if 'HIPERCAM_MPL_FSCALE' in os.environ else 1.0
+SCALE_FACTOR = (
+    float(os.environ["HIPERCAM_MPL_FSCALE"])
+    if "HIPERCAM_MPL_FSCALE" in os.environ
+    else 1.0
+)
 
 # some look-and-feel globals.
 Params = {
-
     # axis label fontsize
-    'axis.label.fs' : 14*SCALE_FACTOR,
-
+    "axis.label.fs": 14 * SCALE_FACTOR,
     # axis label colour
-    'axis.label.col' : CIS[2],
-
+    "axis.label.col": CIS[2],
     # axis number fontsize
-    'axis.number.fs' : 14*SCALE_FACTOR,
-
+    "axis.number.fs": 14 * SCALE_FACTOR,
     # axis colour
-    'axis.col' : CIS[4],
-
+    "axis.col": CIS[4],
     # window box colour
-    'ccd.box.col' : CIS[1],
-
+    "ccd.box.col": CIS[1],
     # window label font size
-    'win.label.fs' : 12*SCALE_FACTOR,
-
+    "win.label.fs": 12 * SCALE_FACTOR,
     # window label colour
-    'win.label.col' : CIS[5],
-
+    "win.label.col": CIS[5],
     # window box colour
-    'win.box.col' : CIS[7],
-
+    "win.box.col": CIS[7],
     # aperture target colour
-    'aper.target.col' : CIS[1],
-
+    "aper.target.col": CIS[1],
     # aperture reference target colour
-    'aper.reference.col' : CIS[3],
-
+    "aper.reference.col": CIS[3],
     # aperture sky colour
-    'aper.sky.col' : CIS[2],
-
+    "aper.sky.col": CIS[2],
     # aperture label colour
-    'aper.label.col' : CIS[4],
-
+    "aper.label.col": CIS[4],
     # aperture link colour
-    'aper.link.col' : CIS[5],
-
+    "aper.link.col": CIS[5],
     # aperture mask colour
-    'aper.mask.col' : CIS[5],
-
+    "aper.mask.col": CIS[5],
     # aperture extra colour
-    'aper.extra.col' : CIS[14],
-
+    "aper.extra.col": CIS[14],
     # moderate defect colour
-    'defect.moderate.col' : CIS[15],
-
+    "defect.moderate.col": CIS[15],
     # severe defect colour
-    'defect.severe.col' : CIS[2],
+    "defect.severe.col": CIS[2],
 }
 
-def pWin(axes, win, label=''):
+
+def pWin(axes, win, label=""):
     """
     Plots boundary of a :class:`Winhead` as a line. (matplotlib)
     Arguments::
@@ -90,17 +77,26 @@ def pWin(axes, win, label=''):
       kwargs : keyword arguments
            other arguments to feed to :func:`matplotlib.pyplot.plot`
     """
-    left,right,bottom,top = win.extent()
-    axes.plot([left,right,right,left,left],[bottom,bottom,top,top,bottom],
-              color=Params['win.box.col'])
-    if label != '':
+    left, right, bottom, top = win.extent()
+    axes.plot(
+        [left, right, right, left, left],
+        [bottom, bottom, top, top, bottom],
+        color=Params["win.box.col"],
+    )
+    if label != "":
         axes.text(
-            left-3,bottom-3,label,fontsize=Params['win.label.fs'],
-            color=Params['win.label.col'], ha='right', va='top',
-            clip_on=True
+            left - 3,
+            bottom - 3,
+            label,
+            fontsize=Params["win.label.fs"],
+            color=Params["win.label.col"],
+            ha="right",
+            va="top",
+            clip_on=True,
         )
 
-def pWind(axes, wind,  vmin, vmax, label=''):
+
+def pWind(axes, wind, vmin, vmax, label=""):
     """Plots :class:`Window` as an image with a line border. (matplotlib).
     Note that the keyword arguments are only passed to :func:`imshow` and
     you should plot the border separately if you want anything out of the
@@ -121,18 +117,38 @@ def pWind(axes, wind,  vmin, vmax, label=''):
       vmax : (float)
            image value at maximum intensity
     """
-    left,right,bottom,top = wind.extent()
+    left, right, bottom, top = wind.extent()
 
     # plot image
-    axes.imshow(wind.data,extent=(left,right,bottom,top),
-                aspect='equal',origin='lower',cmap='Greys',
-                interpolation='nearest',vmin=vmin,vmax=vmax)
+    axes.imshow(
+        wind.data,
+        extent=(left, right, bottom, top),
+        aspect="equal",
+        origin="lower",
+        cmap="Greys",
+        interpolation="nearest",
+        vmin=vmin,
+        vmax=vmax,
+    )
 
     # plot window border
     pWin(axes, wind, label)
 
-def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel='',
-         xlo=None, xhi=None, ylo=None, yhi=None):
+
+def pCcd(
+    axes,
+    ccd,
+    iset="p",
+    plo=5.0,
+    phi=95.0,
+    dlo=0.0,
+    dhi=1000.0,
+    tlabel="",
+    xlo=None,
+    xhi=None,
+    ylo=None,
+    yhi=None,
+):
     """Plots :class:`CCD` as a set of :class:`Window` objects correctly
     positioned with respect to each other.
 
@@ -180,15 +196,15 @@ def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel='',
     Returns: (vmin,vmax), the intensity limits used.
 
     """
-    if iset == 'p':
+    if iset == "p":
         # Set intensities from percentiles
-        vmin,vmax = ccd.percentile((plo,phi),xlo,xhi,ylo,yhi)
+        vmin, vmax = ccd.percentile((plo, phi), xlo, xhi, ylo, yhi)
 
-    elif iset == 'a':
+    elif iset == "a":
         # Set intensities from min/max range
         vmin, vmax = ccd.min(), ccd.max()
 
-    elif iset == 'd':
+    elif iset == "d":
         vmin, vmax = dlo, dhi
 
     else:
@@ -198,17 +214,26 @@ def pCcd(axes, ccd, iset='p', plo=5., phi=95., dlo=0., dhi=1000., tlabel='',
         pWind(axes, wind, vmin, vmax, key)
 
     # plot outermost border of CCD
-    axes.plot([0.5,ccd.nxtot+0.5,ccd.nxtot+0.5,0.5,0.5],
-              [0.5,0.5,ccd.nytot+0.5,ccd.nytot+0.5,0.5],
-              color=Params['ccd.box.col'])
-    if tlabel != '':
-        axes.set_title(tlabel,color=Params['axis.label.col'],fontsize=Params['axis.label.fs'])
-        axes.set_xlabel('X',color=Params['axis.label.col'],fontsize=Params['axis.label.fs'])
-        axes.set_ylabel('Y',color=Params['axis.label.col'],fontsize=Params['axis.label.fs'])
+    axes.plot(
+        [0.5, ccd.nxtot + 0.5, ccd.nxtot + 0.5, 0.5, 0.5],
+        [0.5, 0.5, ccd.nytot + 0.5, ccd.nytot + 0.5, 0.5],
+        color=Params["ccd.box.col"],
+    )
+    if tlabel != "":
+        axes.set_title(
+            tlabel, color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
+        )
+        axes.set_xlabel(
+            "X", color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
+        )
+        axes.set_ylabel(
+            "Y", color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
+        )
 
-    return (vmin,vmax)
+    return (vmin, vmax)
 
-def pAper(axes, aper, label='', ccdAper=None):
+
+def pAper(axes, aper, label="", ccdAper=None):
     """
     Plots an :class:`Aperture` object, returning references to the
     plot objects.
@@ -237,32 +262,50 @@ def pAper(axes, aper, label='', ccdAper=None):
 
     # target
     objs.append(
-        axes.add_patch(Circle(
-            (aper.x,aper.y),aper.rtarg,fill=False,
-            color=Params['aper.reference.col'] if aper.ref else
-            Params['aper.target.col']
-    )))
+        axes.add_patch(
+            Circle(
+                (aper.x, aper.y),
+                aper.rtarg,
+                fill=False,
+                color=Params["aper.reference.col"]
+                if aper.ref
+                else Params["aper.target.col"],
+            )
+        )
+    )
 
     # sky
     objs.append(
-        axes.add_patch(Circle(
-            (aper.x,aper.y),aper.rsky1,fill=False,
-            color=Params['aper.reference.col'] if aper.ref else
-            Params['aper.sky.col']
-    )))
+        axes.add_patch(
+            Circle(
+                (aper.x, aper.y),
+                aper.rsky1,
+                fill=False,
+                color=Params["aper.reference.col"]
+                if aper.ref
+                else Params["aper.sky.col"],
+            )
+        )
+    )
 
     objs.append(
-        axes.add_patch(Circle(
-            (aper.x,aper.y),aper.rsky2,fill=False,
-            color=Params['aper.reference.col'] if aper.ref else
-            Params['aper.sky.col']
-    )))
+        axes.add_patch(
+            Circle(
+                (aper.x, aper.y),
+                aper.rsky2,
+                fill=False,
+                color=Params["aper.reference.col"]
+                if aper.ref
+                else Params["aper.sky.col"],
+            )
+        )
+    )
 
-    if aper.link != '':
+    if aper.link != "":
         # indicate a link with an arrow
         if ccdAper is None:
             raise ValueError(
-                'to plot a linked aperture, need to pass through an CcdAper'
+                "to plot a linked aperture, need to pass through an CcdAper"
             )
         else:
             laper = ccdAper[aper.link]
@@ -271,63 +314,95 @@ def pAper(axes, aper, label='', ccdAper=None):
             # aperture to the other.
             p1 = utils.Vec2D(aper.x, aper.y)
             p2 = utils.Vec2D(laper.x, laper.y)
-            v = p2-p1
+            v = p2 - p1
             uv = v.unit()
-            r1 = aper.rtarg*uv
-            r2 = laper.rtarg*uv
-            v -= (aper.rtarg+laper.rtarg)*uv
+            r1 = aper.rtarg * uv
+            r2 = laper.rtarg * uv
+            v -= (aper.rtarg + laper.rtarg) * uv
             p1 += r1
             objs.append(
                 axes.arrow(
-                    p1.x, p1.y, v.x, v.y, width=0.5, length_includes_head=True,
-                    overhang=0.8, lw=2, color=Params['aper.link.col']
+                    p1.x,
+                    p1.y,
+                    v.x,
+                    v.y,
+                    width=0.5,
+                    length_includes_head=True,
+                    overhang=0.8,
+                    lw=2,
+                    color=Params["aper.link.col"],
                 )
             )
 
     # draw dashed lines connecting the aperture to the centres of mask
     # indicated with circles. NB plot returns a list of the lines added, only
     # one in this case, so we extract it rather than storing a list
-    for xoff,yoff,r in aper.mask:
-        # draw the line
-        objs.append(
-            axes.plot([aper.x, aper.x+xoff], [aper.y, aper.y+yoff], '--',
-                      color=Params['aper.mask.col'])[0]
-            )
-
-        # and now the circle
-        objs.append(
-            axes.add_patch(Circle((aper.x+xoff,aper.y+yoff),r,fill=False,ls='dashed',
-                                  color=Params['aper.mask.col']))
-            )
-
-    # draw dashed lines connecting the aperture to the centres of mask
-    # indicated with circles. NB plot returns a list of the lines added, only
-    # one in this case, so we extract it rather than storing a list
-    for xoff,yoff in aper.extra:
+    for xoff, yoff, r in aper.mask:
         # draw the line
         objs.append(
             axes.plot(
-                [aper.x, aper.x+xoff], [aper.y, aper.y+yoff], '--',
-                color=Params['aper.extra.col'])[0]
-            )
+                [aper.x, aper.x + xoff],
+                [aper.y, aper.y + yoff],
+                "--",
+                color=Params["aper.mask.col"],
+            )[0]
+        )
 
         # and now the circle
         objs.append(
             axes.add_patch(
-                Circle((aper.x+xoff,aper.y+yoff),aper.rtarg,fill=False,ls='dashed',
-                       color=Params['aper.extra.col']))
+                Circle(
+                    (aper.x + xoff, aper.y + yoff),
+                    r,
+                    fill=False,
+                    ls="dashed",
+                    color=Params["aper.mask.col"],
+                )
             )
+        )
 
-    if label != '':
+    # draw dashed lines connecting the aperture to the centres of mask
+    # indicated with circles. NB plot returns a list of the lines added, only
+    # one in this case, so we extract it rather than storing a list
+    for xoff, yoff in aper.extra:
+        # draw the line
+        objs.append(
+            axes.plot(
+                [aper.x, aper.x + xoff],
+                [aper.y, aper.y + yoff],
+                "--",
+                color=Params["aper.extra.col"],
+            )[0]
+        )
+
+        # and now the circle
+        objs.append(
+            axes.add_patch(
+                Circle(
+                    (aper.x + xoff, aper.y + yoff),
+                    aper.rtarg,
+                    fill=False,
+                    ls="dashed",
+                    color=Params["aper.extra.col"],
+                )
+            )
+        )
+
+    if label != "":
         objs.append(
             axes.text(
-                aper.x-aper.rsky2,aper.y-aper.rsky2,label,
-                color=Params['aper.label.col'],ha='right',va='top',
-                bbox=dict(ec='0.8',fc='0.8',alpha=0.5)
+                aper.x - aper.rsky2,
+                aper.y - aper.rsky2,
+                label,
+                color=Params["aper.label.col"],
+                ha="right",
+                va="top",
+                bbox=dict(ec="0.8", fc="0.8", alpha=0.5),
             )
         )
 
     return tuple(objs)
+
 
 def pCcdAper(axes, ccdAper):
     """
@@ -353,6 +428,7 @@ def pCcdAper(axes, ccdAper):
 
     return g
 
+
 def pDefect(axes, dfct):
     """Plots a :class:`Defect` object, returning references to the
     plot objects.
@@ -374,43 +450,43 @@ def pDefect(axes, dfct):
     if isinstance(dfct, defect.Point):
         if dfct.severity == defect.Severity.MODERATE:
             obj = axes.plot(
-                dfct.x, dfct.y, 'o', color=Params['defect.moderate.col'],
-                ms=2.5
+                dfct.x, dfct.y, "o", color=Params["defect.moderate.col"], ms=2.5
             )
         elif dfct.severity == defect.Severity.SEVERE:
             obj = axes.plot(
-                dfct.x, dfct.y, 'o', color=Params['defect.severe.col'],
-                ms=2.5
+                dfct.x, dfct.y, "o", color=Params["defect.severe.col"], ms=2.5
             )
 
     elif isinstance(dfct, defect.Line):
         if dfct.severity == defect.Severity.MODERATE:
             obj = axes.plot(
-                [dfct.x1,dfct.x2], [dfct.y1,dfct.y2],
-                '--', color=Params['defect.moderate.col']
+                [dfct.x1, dfct.x2],
+                [dfct.y1, dfct.y2],
+                "--",
+                color=Params["defect.moderate.col"],
             )
         elif dfct.severity == defect.Severity.SEVERE:
             obj = axes.plot(
-                [dfct.x1,dfct.x2], [dfct.y1,dfct.y2],
-                color=Params['defect.severe.col']
+                [dfct.x1, dfct.x2],
+                [dfct.y1, dfct.y2],
+                color=Params["defect.severe.col"],
             )
 
     elif isinstance(dfct, defect.Hot):
         if dfct.severity == defect.Severity.MODERATE:
             obj = axes.plot(
-                dfct.x, dfct.y, '*', color=Params['defect.moderate.col'],
-                ms=2.5
+                dfct.x, dfct.y, "*", color=Params["defect.moderate.col"], ms=2.5
             )
         elif dfct.severity == defect.Severity.SEVERE:
             obj = axes.plot(
-                dfct.x, dfct.y, '*', color=Params['defect.severe.col'],
-                ms=2.5
+                dfct.x, dfct.y, "*", color=Params["defect.severe.col"], ms=2.5
             )
 
     else:
-        raise HipercamError('Did not recognise Defect')
+        raise HipercamError("Did not recognise Defect")
 
     return tuple(obj)
+
 
 def pCcdDefect(axes, ccdDefect):
     """Plots a :class:`CcdDefect` object, returning references to the plot

@@ -29,11 +29,20 @@ from . import core
 from . import utils
 
 __all__ = (
-    'SpoolerBase', 'data_source', 'rhcam', 'UcamServSpool',
-    'UcamDiskSpool', 'HcamListSpool', 'get_ccd_pars',
-    'hang_about', 'HcamServSpool', 'HcamDiskSpool',
-    'UcamTbytesSpool', 'HcamTbytesSpool',
+    "SpoolerBase",
+    "data_source",
+    "rhcam",
+    "UcamServSpool",
+    "UcamDiskSpool",
+    "HcamListSpool",
+    "get_ccd_pars",
+    "hang_about",
+    "HcamServSpool",
+    "HcamDiskSpool",
+    "UcamTbytesSpool",
+    "HcamTbytesSpool",
 )
+
 
 def rhcam(fname):
     """Reads a HiPERCAM file containing either CCD or MCCD data and returns one or
@@ -53,16 +62,18 @@ def rhcam(fname):
 
     # Read HDU list
     with fits.open(fname) as hdul:
-        htype = hdul[0].header['HIPERCAM']
-        if htype == 'CCD':
+        htype = hdul[0].header["HIPERCAM"]
+        if htype == "CCD":
             return ccd.CCD.rhdul(hdul)
-        elif htype == 'MCCD':
+        elif htype == "MCCD":
             return ccd.MCCD.rhdul(hdul)
         else:
             raise ValueError(
                 'Could not find keyword "HIPERCAM" in primary header of file = {:s}'.format(
-            fname)
+                    fname
+                )
             )
+
 
 class SpoolerBase(ABC):
 
@@ -86,6 +97,7 @@ class SpoolerBase(ABC):
     @abstractmethod
     def __next__(self):
         pass
+
 
 class UcamDiskSpool(SpoolerBase):
 
@@ -113,6 +125,7 @@ class UcamDiskSpool(SpoolerBase):
 
     def __next__(self):
         return self._iter.__next__()
+
 
 class UcamServSpool(SpoolerBase):
 
@@ -145,6 +158,7 @@ class UcamServSpool(SpoolerBase):
     def __next__(self):
         return self._iter.__next__()
 
+
 class UcamTbytesSpool(SpoolerBase):
 
     """Provides an iterable context manager to loop through frames within
@@ -173,6 +187,7 @@ class UcamTbytesSpool(SpoolerBase):
     def __next__(self):
         return self._iter.__next__()
 
+
 class HcamDiskSpool(SpoolerBase):
 
     """Provides an iterable context manager to loop through frames within
@@ -199,6 +214,7 @@ class HcamDiskSpool(SpoolerBase):
 
     def __next__(self):
         return self._iter.__next__()
+
 
 class HcamListSpool(SpoolerBase):
 
@@ -253,7 +269,7 @@ class HcamListSpool(SpoolerBase):
         # as a header parameter
         if self._file:
             for fname in self._iter:
-                if not fname.startswith('#') and not fname.isspace():
+                if not fname.startswith("#") and not fname.isspace():
                     break
             else:
                 raise StopIteration
@@ -266,14 +282,15 @@ class HcamListSpool(SpoolerBase):
 
         if self.cnam is None:
             mccd = ccd.MCCD.read(utils.add_extension(fname.strip(), core.HCAM))
-            mccd.head['FILENAME'] = fname.strip()
+            mccd.head["FILENAME"] = fname.strip()
             return mccd
         else:
             ccd1 = ccd.CCD.read(
                 utils.add_extension(fname.strip(), core.HCAM), self.cnam
             )
-            ccd1.head['FILENAME'] = fname.strip()
+            ccd1.head["FILENAME"] = fname.strip()
             return ccd1
+
 
 class HcamServSpool(SpoolerBase):
 
@@ -302,6 +319,7 @@ class HcamServSpool(SpoolerBase):
     def __next__(self):
         return self._iter.__next__()
 
+
 class HcamTbytesSpool(SpoolerBase):
 
     """Provides an iterable context manager to loop through frames within
@@ -329,6 +347,7 @@ class HcamTbytesSpool(SpoolerBase):
 
     def __next__(self):
         return self._iter.__next__()
+
 
 def data_source(source, resource, first=1, **kwargs):
     """Returns a context manager needed to run through a set of exposures.
@@ -373,20 +392,19 @@ def data_source(source, resource, first=1, **kwargs):
        how to handle this.
     """
 
-    if source == 'us':
+    if source == "us":
         return UcamServSpool(resource, first)
-    elif source == 'ul':
+    elif source == "ul":
         return UcamDiskSpool(resource, first)
-    elif source == 'hs':
+    elif source == "hs":
         return HcamServSpool(resource, first)
-    elif source == 'hl':
+    elif source == "hl":
         return HcamDiskSpool(resource, first, **kwargs)
-    elif source == 'hf':
+    elif source == "hf":
         return HcamListSpool(resource)
     else:
-        raise ValueError(
-            '{!s} is not a recognised data source'.format(source)
-        )
+        raise ValueError("{!s} is not a recognised data source".format(source))
+
 
 def get_ccd_pars(source, resource):
     """Returns a list of tuples of CCD labels, maximum dimensions, and padding
@@ -407,64 +425,94 @@ def get_ccd_pars(source, resource):
 
     """
 
-    if source.startswith('u'):
-        server = source.endswith('s')
+    if source.startswith("u"):
+        server = source.endswith("s")
         # ULTRA(CAM|SPEC)
         rhead = ucam.Rhead(resource, server=server)
-        if rhead.instrument == 'ULTRACAM':
+        if rhead.instrument == "ULTRACAM":
             # ULTRACAM raw data file: fixed data
             return OrderedDict(
-                (('1',(1080,1032,56,8)), ('2',(1080,1032,56,8)), ('3',(1080,1032,56,8)))
+                (
+                    ("1", (1080, 1032, 56, 8)),
+                    ("2", (1080, 1032, 56, 8)),
+                    ("3", (1080, 1032, 56, 8)),
+                )
             )
 
-        elif rhead.instrument == 'ULTRASPEC':
+        elif rhead.instrument == "ULTRASPEC":
             # ULTRASPEC raw data file: fixed data
-            return OrderedDict(
-                (('1',(1056,1072,0,0)),)
-            )
+            return OrderedDict((("1", (1056, 1072, 0, 0)),))
 
         else:
-            raise ValueError(
-                'instrument = {:s} not supported'.format(rhead.instrument)
-            )
+            raise ValueError("instrument = {:s} not supported".format(rhead.instrument))
 
-    elif source.startswith('h'):
-        if source.endswith('f'):
+    elif source.startswith("h"):
+        if source.endswith("f"):
             # file list: we access the first file of the list to read the key
             # and dimension info on the assumption that it is the same, for
             # all files.
             with open(resource) as flp:
                 for fname in flp:
-                    if not fname.startswith('#') and not fname.isspace():
+                    if not fname.startswith("#") and not fname.isspace():
                         break
                 else:
                     raise ValueError(
-                        'failed to find any file names in {:s}'.format(resource)
-                        )
-            return ccd.get_ccd_info(
-                utils.add_extension(fname.strip(), core.HCAM)
-            )
+                        "failed to find any file names in {:s}".format(resource)
+                    )
+            return ccd.get_ccd_info(utils.add_extension(fname.strip(), core.HCAM))
 
         else:
             # HiPERCAM raw data file: fixed data
             return OrderedDict(
                 (
-                    ('1',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
-                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
-
-                    ('2',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
-                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
-
-                    ('3',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
-                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
-
-                    ('4',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
-                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
-
-                    ('5',(hcam.HCM_NXTOT, hcam.HCM_NYTOT,
-                          hcam.HCM_NPSCAN, hcam.HCM_NOSCAN)),
-                    )
+                    (
+                        "1",
+                        (
+                            hcam.HCM_NXTOT,
+                            hcam.HCM_NYTOT,
+                            hcam.HCM_NPSCAN,
+                            hcam.HCM_NOSCAN,
+                        ),
+                    ),
+                    (
+                        "2",
+                        (
+                            hcam.HCM_NXTOT,
+                            hcam.HCM_NYTOT,
+                            hcam.HCM_NPSCAN,
+                            hcam.HCM_NOSCAN,
+                        ),
+                    ),
+                    (
+                        "3",
+                        (
+                            hcam.HCM_NXTOT,
+                            hcam.HCM_NYTOT,
+                            hcam.HCM_NPSCAN,
+                            hcam.HCM_NOSCAN,
+                        ),
+                    ),
+                    (
+                        "4",
+                        (
+                            hcam.HCM_NXTOT,
+                            hcam.HCM_NYTOT,
+                            hcam.HCM_NPSCAN,
+                            hcam.HCM_NOSCAN,
+                        ),
+                    ),
+                    (
+                        "5",
+                        (
+                            hcam.HCM_NXTOT,
+                            hcam.HCM_NYTOT,
+                            hcam.HCM_NPSCAN,
+                            hcam.HCM_NOSCAN,
+                        ),
+                    ),
                 )
+            )
+
 
 def hang_about(obj, twait, tmax, total_time):
     """Carries out some standard actions when we loop through frames which are
@@ -500,12 +548,11 @@ def hang_about(obj, twait, tmax, total_time):
     if obj is None:
 
         if tmax < total_time + twait:
-            if tmax > 0.:
+            if tmax > 0.0:
                 print(
-                    ' ** last frame unchanged for {:.1f} sec.'
-                    ' cf tmax = {:.1f}; will wait no more'.format(
-                        total_time, tmax)
-                    )
+                    " ** last frame unchanged for {:.1f} sec."
+                    " cf tmax = {:.1f}; will wait no more".format(total_time, tmax)
+                )
             give_up, try_again = True, False
 
         else:
@@ -515,10 +562,9 @@ def hang_about(obj, twait, tmax, total_time):
                 print()
 
             print(
-                ' ** last frame unchanged for {:.1f} sec.'
-                ' cf tmax = {:.1f}; will wait another'
-                ' twait = {:.1f} sec.'.format(
-                    total_time, tmax, twait)
+                " ** last frame unchanged for {:.1f} sec."
+                " cf tmax = {:.1f}; will wait another"
+                " twait = {:.1f} sec.".format(total_time, tmax, twait)
             )
 
             # pause
@@ -538,4 +584,3 @@ def hang_about(obj, twait, tmax, total_time):
         give_up, try_again = False, False
 
     return (give_up, try_again, total_time)
-

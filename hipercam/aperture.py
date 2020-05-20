@@ -12,7 +12,8 @@ from collections import OrderedDict
 from .core import *
 from .group import *
 
-__all__ = ('Aperture', 'CcdAper', 'MccdAper')
+__all__ = ("Aperture", "CcdAper", "MccdAper")
+
 
 class Aperture:
 
@@ -83,8 +84,7 @@ class Aperture:
 
     """
 
-    def __init__(self, x, y, rtarg, rsky1, rsky2, ref, mask=[], extra=[],
-                 link=''):
+    def __init__(self, x, y, rtarg, rsky1, rsky2, ref, mask=[], extra=[], link=""):
         self.x = x
         self.y = y
         self.rtarg = rtarg
@@ -96,26 +96,39 @@ class Aperture:
         self.link = link
 
     def __repr__(self):
-        return 'Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, mask={!r}, extra={!r}, link={!r})'.format(
-            self.x, self.y, self.rtarg, self.rsky1, self.rsky2, self.ref,
-            self.mask, self.extra, self.link
+        return "Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, mask={!r}, extra={!r}, link={!r})".format(
+            self.x,
+            self.y,
+            self.rtarg,
+            self.rsky1,
+            self.rsky2,
+            self.ref,
+            self.mask,
+            self.extra,
+            self.link,
         )
 
     def copy(self, memo=None):
         """Returns with a copy of the Aperture"""
         return Aperture(
-            self.x, self.y, self.rtarg, self.rsky1, self.rsky2,
-            self.ref, self.mask.copy(), self.extra.copy(),
-            self.link
+            self.x,
+            self.y,
+            self.rtarg,
+            self.rsky1,
+            self.rsky2,
+            self.ref,
+            self.mask.copy(),
+            self.extra.copy(),
+            self.link,
         )
 
     def add_mask(self, xoff, yoff, radius):
         """Adds a mask to the :class:Aperture"""
-        self.mask.append((xoff,yoff,radius))
+        self.mask.append((xoff, yoff, radius))
 
     def add_extra(self, xoff, yoff):
         """Adds a mask to the :class:Aperture"""
-        self.extra.append((xoff,yoff))
+        self.extra.append((xoff, yoff))
 
     def set_link(self, aplabel):
         """Links this :class:Aperture to a lookup label for another"""
@@ -123,12 +136,12 @@ class Aperture:
 
     def break_link(self):
         """Cancels any link to another :class:Aperture"""
-        self.link = ''
+        self.link = ""
 
     @property
     def linked(self):
         """Returns True if the :class:Aperture is linked to another"""
-        return self.link != ''
+        return self.link != ""
 
     def check(self):
         """Run a few checks on an :class:Aperture. Raises a ValueError if there are
@@ -138,27 +151,31 @@ class Aperture:
 
         if self.rtarg <= 0:
             raise ValueError(
-                'Aperture = {!r}\nTarget aperture radius = '
-                '{:.2f} <= 0'.format(self, self.rtarg)
+                "Aperture = {!r}\nTarget aperture radius = "
+                "{:.2f} <= 0".format(self, self.rtarg)
             )
 
         elif self.rsky1 > self.rsky2:
             raise ValueError(
-                'Aperture = {!r}\nInner sky aperture radius '
-                '(={:.2f}) > outer radius (={:.2f})'.format(
-                    self, self.rsky1,self.rsky2)
+                "Aperture = {!r}\nInner sky aperture radius "
+                "(={:.2f}) > outer radius (={:.2f})".format(
+                    self, self.rsky1, self.rsky2
+                )
             )
 
-        elif not isinstance(self.link,str) or not isinstance(self.mask,list) \
-             or not isinstance(self.ref,bool):
+        elif (
+            not isinstance(self.link, str)
+            or not isinstance(self.mask, list)
+            or not isinstance(self.ref, bool)
+        ):
             raise ValueError(
-                'Aperture = {!r}\nOne or more of link, mask, extra '
-                'has the wrong type'.format(self)
+                "Aperture = {!r}\nOne or more of link, mask, extra "
+                "has the wrong type".format(self)
             )
 
     def write(self, fname):
         """Dumps Aperture in JSON format to a file called fname"""
-        with open(fname,'w') as fp:
+        with open(fname, "w") as fp:
             json.dump(self, cls=_Encoder, indent=2)
 
     def toString(self):
@@ -172,6 +189,7 @@ class Aperture:
             aper = json.load(fp, cls=_Decoder)
         aper.check()
         return aper
+
 
 class CcdAper(Group):
     """Class representing all the :class:Apertures for a single CCD.
@@ -191,32 +209,35 @@ class CcdAper(Group):
         super().__init__(Aperture, aps)
 
     def __repr__(self):
-        return '{:s}(aps={:s})'.format(
-            self.__class__.__name__, super().__repr__()
-            )
+        return "{:s}(aps={:s})".format(self.__class__.__name__, super().__repr__())
 
     def check(self):
         """Checks for problems with links"""
         for apnam, aper in self.items():
             if aper.linked:
                 if aper.link not in self:
-                    raise ValueError('Aperture = {!r} links to anon-existent aperture'.format(self))
+                    raise ValueError(
+                        "Aperture = {!r} links to anon-existent aperture".format(self)
+                    )
                 elif self[aper.link].linked:
-                    raise ValueError('Aperture = {!r} is linked to an aperture which is itself linked'.format(self))
+                    raise ValueError(
+                        "Aperture = {!r} is linked to an aperture which is itself linked".format(
+                            self
+                        )
+                    )
 
     def write(self, fname):
         """Dumps ccdAper in JSON format to a file called fname"""
 
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
-        listify = ['hipercam.CcdAper'] + list(self.items)
-        with open(fname,'w') as fp:
+        listify = ["hipercam.CcdAper"] + list(self.items)
+        with open(fname, "w") as fp:
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
     def copy(self, memo=None):
-        return CcdAper(
-            super().copy(memo)
-        )
+        return CcdAper(super().copy(memo))
+
 
 class MccdAper(Group):
     """Class representing all the :class:Apertures for multiple CCDs.
@@ -242,20 +263,20 @@ class MccdAper(Group):
         super().__init__(CcdAper, aps)
 
     def __repr__(self):
-        return '{:s}(aps={:s})'.format(
-            self.__class__.__name__, super().__repr__()
-            )
+        return "{:s}(aps={:s})".format(self.__class__.__name__, super().__repr__())
 
     def write(self, fname):
         """Dumps MccdAper in JSON format to a file called fname"""
 
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
-        listify = ['hipercam.MccdAper'] + list(
-            ((key,['hipercam.CcdAper']+list(val.items())) \
-             for key, val in self.items())
+        listify = ["hipercam.MccdAper"] + list(
+            (
+                (key, ["hipercam.CcdAper"] + list(val.items()))
+                for key, val in self.items()
+            )
         )
-        with open(fname,'w') as fp:
+        with open(fname, "w") as fp:
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
     def toString(self):
@@ -263,9 +284,11 @@ class MccdAper(Group):
 
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
-        listify = ['hipercam.MccdAper'] + list(
-            ((key,['hipercam.CcdAper']+list(val.items())) \
-             for key, val in self.items())
+        listify = ["hipercam.MccdAper"] + list(
+            (
+                (key, ["hipercam.CcdAper"] + list(val.items()))
+                for key, val in self.items()
+            )
         )
         return json.dumps(listify, cls=_Encoder, indent=2)
 
@@ -283,47 +306,53 @@ class MccdAper(Group):
         """
         with open(fname) as fp:
             obj = json.load(fp, cls=_Decoder)
-        listify = [(v1,CcdAper(v2[1:])) for v1,v2 in obj[1:]]
+        listify = [(v1, CcdAper(v2[1:])) for v1, v2 in obj[1:]]
         mccdaper = MccdAper(listify)
         for cnam, ccdaper in mccdaper.items():
             ccdaper.check()
         return mccdaper
 
+
 # classes to support JSON serialisation of Aperture objects
 class _Encoder(json.JSONEncoder):
-
     def default(self, obj):
 
         if isinstance(obj, Aperture):
             return OrderedDict(
                 (
-                    ('Comment', 'hipercam.Aperture'),
-                    ('x', obj.x),
-                    ('y', obj.y),
-                    ('rtarg', obj.rtarg),
-                    ('rsky1', obj.rsky1),
-                    ('rsky2', obj.rsky2),
-                    ('ref', obj.ref),
-                    ('mask', obj.mask),
-                    ('extra', obj.extra),
-                    ('link', obj.link),
-                    )
+                    ("Comment", "hipercam.Aperture"),
+                    ("x", obj.x),
+                    ("y", obj.y),
+                    ("rtarg", obj.rtarg),
+                    ("rsky1", obj.rsky1),
+                    ("rsky2", obj.rsky2),
+                    ("ref", obj.ref),
+                    ("mask", obj.mask),
+                    ("extra", obj.extra),
+                    ("link", obj.link),
                 )
+            )
 
         return super().default(obj)
 
-class _Decoder(json.JSONDecoder):
 
+class _Decoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
         super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
         # looks out for Aperture objects. Everything else done by default
-        if 'rtarg' in obj and 'rsky1' in obj and 'rsky2' in obj and 'link' in obj:
+        if "rtarg" in obj and "rsky1" in obj and "rsky2" in obj and "link" in obj:
             return Aperture(
-                obj['x'], obj['y'], obj['rtarg'], obj['rsky1'], obj['rsky2'],
-                obj['ref'], obj['mask'], obj['extra'], obj['link']
+                obj["x"],
+                obj["y"],
+                obj["rtarg"],
+                obj["rsky1"],
+                obj["rsky2"],
+                obj["ref"],
+                obj["mask"],
+                obj["extra"],
+                obj["link"],
             )
 
         return obj
-

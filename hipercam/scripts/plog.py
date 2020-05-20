@@ -15,6 +15,7 @@ from hipercam.cline import Cline
 #
 ##########################################
 
+
 def plog(args=None):
     """``plog log [device width height] ccd1 aper1 param1 ccd2 (aper2 param2
     scheme)``
@@ -76,123 +77,117 @@ def plog(args=None):
     command, args = utils.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('log', Cline.LOCAL, Cline.PROMPT)
-        cl.register('device', Cline.LOCAL, Cline.HIDE)
-        cl.register('width', Cline.LOCAL, Cline.HIDE)
-        cl.register('height', Cline.LOCAL, Cline.HIDE)
-        cl.register('ccd1', Cline.LOCAL, Cline.PROMPT)
-        cl.register('aper1', Cline.LOCAL, Cline.PROMPT)
-        cl.register('param1', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd2', Cline.LOCAL, Cline.PROMPT)
-        cl.register('aper2', Cline.LOCAL, Cline.PROMPT)
-        cl.register('param2', Cline.LOCAL, Cline.PROMPT)
-        cl.register('scheme', Cline.LOCAL, Cline.PROMPT)
+        cl.register("log", Cline.LOCAL, Cline.PROMPT)
+        cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("width", Cline.LOCAL, Cline.HIDE)
+        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("ccd1", Cline.LOCAL, Cline.PROMPT)
+        cl.register("aper1", Cline.LOCAL, Cline.PROMPT)
+        cl.register("param1", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd2", Cline.LOCAL, Cline.PROMPT)
+        cl.register("aper2", Cline.LOCAL, Cline.PROMPT)
+        cl.register("param2", Cline.LOCAL, Cline.PROMPT)
+        cl.register("scheme", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         log = cl.get_value(
-            'log', 'reduce log file to plot',
-            cline.Fname('hcam', hcam.LOG)
+            "log", "reduce log file to plot", cline.Fname("hcam", hcam.LOG)
         )
 
-        device = cl.get_value('device', 'plot device name', 'term')
-        width = cl.get_value('width', 'plot width (inches)', 0.)
-        height = cl.get_value('height', 'plot height (inches)', 0.)
+        device = cl.get_value("device", "plot device name", "term")
+        width = cl.get_value("width", "plot width (inches)", 0.0)
+        height = cl.get_value("height", "plot height (inches)", 0.0)
 
-        ccd1 = cl.get_value('ccd1', 'first CCD to plot', '1')
-        aper1 = cl.get_value('aper1', 'first aperture', '1')
+        ccd1 = cl.get_value("ccd1", "first CCD to plot", "1")
+        aper1 = cl.get_value("aper1", "first aperture", "1")
         param1 = cl.get_value(
-            'param1', 'first parameter [x, y, f(whm), b(eta), c(ounts), s(ky)]',
-            'c', lvals=('x','y','f','b','c','s')
+            "param1",
+            "first parameter [x, y, f(whm), b(eta), c(ounts), s(ky)]",
+            "c",
+            lvals=("x", "y", "f", "b", "c", "s"),
         )
-        lab1 = '[CCD={:s},ap={:s},p={:s}]'.format(
-            ccd1, aper1, param1)
+        lab1 = "[CCD={:s},ap={:s},p={:s}]".format(ccd1, aper1, param1)
 
-        ccd2 = cl.get_value('ccd2', "second CCD to plot ['!' to ignore]", ccd1)
-        if ccd2 != '!':
-            aper2 = cl.get_value('aper2', 'second aperture', '1')
+        ccd2 = cl.get_value("ccd2", "second CCD to plot ['!' to ignore]", ccd1)
+        if ccd2 != "!":
+            aper2 = cl.get_value("aper2", "second aperture", "1")
             param2 = cl.get_value(
-                'param2',
-                'second parameter [x, y, f(whm), b(eta), c(ounts), s(ky)]',
-                'c', lvals=('x','y','f','b','c','s')
+                "param2",
+                "second parameter [x, y, f(whm), b(eta), c(ounts), s(ky)]",
+                "c",
+                lvals=("x", "y", "f", "b", "c", "s"),
             )
-            lab2 = '[CCD={:s},ap={:s},p={:s}]'.format(
-                ccd2, aper2, param2)
+            lab2 = "[CCD={:s},ap={:s},p={:s}]".format(ccd2, aper2, param2)
 
         # map to names used in reduce log files
-        MAP = {
-            'x' : 'x',
-            'y' : 'y',
-            'f' : 'fwhm',
-            'b' : 'beta',
-            'c' : 'counts',
-            's' : 'sky'
-        }
+        MAP = {"x": "x", "y": "y", "f": "fwhm", "b": "beta", "c": "counts", "s": "sky"}
         pname1 = MAP[param1]
-        if ccd2 != '!':
+        if ccd2 != "!":
             pname2 = MAP[param2]
             scheme = cl.get_value(
-                'scheme', 'b(oth), d(ifference), r(atio), s(catter)',
-                'b', lvals=('b','d','r','s')
+                "scheme",
+                "b(oth), d(ifference), r(atio), s(catter)",
+                "b",
+                lvals=("b", "d", "r", "s"),
             )
 
     # load the reduce log
     hlog = hcam.hlog.Hlog.read(log)
 
     if width > 0 and height > 0:
-        fig = plt.figure(figsize=(width,height))
+        fig = plt.figure(figsize=(width, height))
     else:
         fig = plt.figure()
 
     dat1 = hlog.tseries(ccd1, aper1, pname1)
-    
-    if ccd2 != '!':
-        dat2 = hlog.tseries(ccd2, aper2, pname2)
-        if scheme == 'b':
-            # plots both together
-            dat1.mplot(plt,'b',mvalue=hcam.BAD_TIME,invert=True)
-            dat2.mplot(plt,'r',mvalue=hcam.BAD_TIME,invert=True)
-            xlabel = 'Time [MJD]'
-            ylabel = '{:s} & {:s}'.format(lab1, lab2)
 
-        elif scheme == 'r':
+    if ccd2 != "!":
+        dat2 = hlog.tseries(ccd2, aper2, pname2)
+        if scheme == "b":
+            # plots both together
+            dat1.mplot(plt, "b", mvalue=hcam.BAD_TIME, invert=True)
+            dat2.mplot(plt, "r", mvalue=hcam.BAD_TIME, invert=True)
+            xlabel = "Time [MJD]"
+            ylabel = "{:s} & {:s}".format(lab1, lab2)
+
+        elif scheme == "r":
             # ratio
             ratio = dat1 / dat2
-            ratio.mplot(plt,'b',mvalue=hcam.BAD_TIME,invert=True)
-            xlabel = 'Time [MJD]'
-            ylabel = '{:s} / {:s}'.format(lab1, lab2)
+            ratio.mplot(plt, "b", mvalue=hcam.BAD_TIME, invert=True)
+            xlabel = "Time [MJD]"
+            ylabel = "{:s} / {:s}".format(lab1, lab2)
 
-        elif scheme == 'd':
+        elif scheme == "d":
             # difference
             diff = dat1 - dat2
-            diff.mplot(plt,'b',mvalue=hcam.BAD_TIME,invert=True)
-            xlabel = 'Time [MJD]'
-            ylabel = '{:s} - {:s}'.format(lab1, lab2)
+            diff.mplot(plt, "b", mvalue=hcam.BAD_TIME, invert=True)
+            xlabel = "Time [MJD]"
+            ylabel = "{:s} - {:s}".format(lab1, lab2)
 
-        elif scheme == 's':
-            mask1 = dat1.get_mask(mvalue=hcam.BAD_TIME,invert=True)
-            mask2 = dat1.get_mask(mvalue=hcam.BAD_TIME,invert=True)
+        elif scheme == "s":
+            mask1 = dat1.get_mask(mvalue=hcam.BAD_TIME, invert=True)
+            mask2 = dat1.get_mask(mvalue=hcam.BAD_TIME, invert=True)
             ok = mask1 & mask2
             plt.errorbar(
-                dat1.y[ok], dat2.y[ok], dat2.ye[ok], dat1.ye[ok],
-                    '.', capsize=0
-                )
+                dat1.y[ok], dat2.y[ok], dat2.ye[ok], dat1.ye[ok], ".", capsize=0
+            )
             xlabel = lab1
             ylabel = lab2
 
     else:
         # just one
-        dat1.mplot(plt,mvalue=hcam.BAD_TIME,invert=True)
-        xlabel = 'Time [MJD]'
+        dat1.mplot(plt, mvalue=hcam.BAD_TIME, invert=True)
+        xlabel = "Time [MJD]"
         ylabel = lab1
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(log)
 
-    if device == 'term':
+    if device == "term":
         plt.show()
     else:
         plt.savefig(device)

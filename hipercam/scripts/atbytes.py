@@ -4,13 +4,16 @@ import re
 import time
 import hipercam as hcam
 
-__all__ = ['atbytes',]
+__all__ = [
+    "atbytes",
+]
 
 ###########################################################################
 #
 # atbytes -- strips timing bytes out of all runs in a series of directories
 #
 ###########################################################################
+
 
 def atbytes(args=None):
     """``atbytes``
@@ -40,20 +43,21 @@ def atbytes(args=None):
     """
 
     # Specific formats for night directories and runs within them
-    ndre = re.compile('^\d\d\d\d[_-]\d\d[_-]\d\d$')
-    rnre = re.compile('^run\d\d\d\d\.fits|run\d\d\d\.xml$')
+    ndre = re.compile("^\d\d\d\d[_-]\d\d[_-]\d\d$")
+    rnre = re.compile("^run\d\d\d\d\.fits|run\d\d\d\.xml$")
 
     # Find list of night directories
-    ndirs = [dname for dname in os.listdir('.') \
-             if ndre.match(dname) and os.path.isdir(dname)]
+    ndirs = [
+        dname for dname in os.listdir(".") if ndre.match(dname) and os.path.isdir(dname)
+    ]
     ndirs.sort()
 
     for ndir in ndirs:
 
-        print('\nStarted on',ndir)
+        print("\nStarted on", ndir)
 
         # create sub-directory where all timing info will be saved
-        tbytes_dir = os.path.join(ndir,'tbytes')
+        tbytes_dir = os.path.join(ndir, "tbytes")
         if not os.path.exists(tbytes_dir):
             os.mkdir(tbytes_dir)
 
@@ -63,34 +67,34 @@ def atbytes(args=None):
 
         # change working directory to the tbytes one
         os.chdir(tbytes_dir)
-        print('Changed working directory to',tbytes_dir)
+        print("Changed working directory to", tbytes_dir)
 
         for fname in fnames:
-            if fname.endswith('.fits'):
-                source = 'hl'
-                run = os.path.join('..',fname [:-5])
-                tfile = fname [:-5] + hcam.TBTS
-                args = [None, 'prompt', source, run]
+            if fname.endswith(".fits"):
+                source = "hl"
+                run = os.path.join("..", fname[:-5])
+                tfile = fname[:-5] + hcam.TBTS
+                args = [None, "prompt", source, run]
             else:
-                source = 'ul'
-                run = os.path.join('..',fname [:-4])
-                tfile = fname [:-4] + hcam.TBTS
-                args = [None, 'prompt', source, 'yes', run]
+                source = "ul"
+                run = os.path.join("..", fname[:-4])
+                tfile = fname[:-4] + hcam.TBTS
+                args = [None, "prompt", source, "yes", run]
 
             if os.path.exists(tfile):
-                print(tfile,'already exists; will not re-make')
+                print(tfile, "already exists; will not re-make")
             else:
                 try:
                     hcam.scripts.tbytes(args)
                 except hcam.ucam.PowerOnOffError:
-                    print('ignoring',run,'which is a Power On or Off')
+                    print("ignoring", run, "which is a Power On or Off")
                 except FileNotFoundError:
-                    print('ignoring',run,'as no data were found')
+                    print("ignoring", run, "as no data were found")
                 except (ValueError, hcam.HipercamError, KeyError) as err:
-                    print('ignoring',run,'error =',err)
+                    print("ignoring", run, "error =", err)
 
-        print('Finished',ndir)
+        print("Finished", ndir)
 
         # change up the working directory to the tbytes one
-        os.chdir('../..')
-        print('Moved working directory up two levels')
+        os.chdir("../..")
+        print("Moved working directory up two levels")

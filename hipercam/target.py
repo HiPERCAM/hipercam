@@ -11,7 +11,8 @@ import numpy as np
 
 from .core import *
 
-__all__ = ('Target','Field')
+__all__ = ("Target", "Field")
+
 
 class Target:
     """Object to represent an astronomical target in terms of its appearance in a
@@ -57,10 +58,12 @@ class Target:
             less than height in terms of absolute value.
         """
 
-        if (height > 0. and height < fmin) or \
-           (height < 0. and height > fmin):
+        if (height > 0.0 and height < fmin) or (height < 0.0 and height > fmin):
             raise ValueError(
-                'hipercam.Target.__init__: fmin vs height conflict: {0:f} vs {1:f}'.format(fmin,height))
+                "hipercam.Target.__init__: fmin vs height conflict: {0:f} vs {1:f}".format(
+                    fmin, height
+                )
+            )
 
         self.xcen = xcen
         self.ycen = ycen
@@ -74,8 +77,16 @@ class Target:
 
     def copy(self, memo=None):
         """Returns a copy of the :class:`Target`"""
-        return Target(self.xcen,self.ycen,self.height, self.fwhm1,
-                      self.fwhm2, self.angle, self.beta, self.fmin)
+        return Target(
+            self.xcen,
+            self.ycen,
+            self.height,
+            self.fwhm1,
+            self.fwhm2,
+            self.angle,
+            self.beta,
+            self.fmin,
+        )
 
     def __copy__(self):
         return self.copy()
@@ -91,7 +102,7 @@ class Target:
 
         # First compute, alpha the value the quadratic form in x,y needs
         # to reach to drop the height by a factor of 2.
-        alpha = 2**(1./self.beta)-1.
+        alpha = 2 ** (1.0 / self.beta) - 1.0
 
         # Then the cosine and sine of the angle
         ct = math.cos(math.radians(self.angle))
@@ -100,17 +111,17 @@ class Target:
         # _a, _b, _c appear in a*x**2 + b*y**2 + 2*c*x*y which
         # is used instead of the (r/r0)**2 of the Moffat
         # function description.
-        self._a = 4*alpha*((ct/self.fwhm1)**2+(st/self.fwhm2)**2)
-        self._b = 4*alpha*((st/self.fwhm1)**2+(ct/self.fwhm2)**2)
-        self._c = 4*alpha*ct*st*(1/self.fwhm1**2-1/self.fwhm2**2)
+        self._a = 4 * alpha * ((ct / self.fwhm1) ** 2 + (st / self.fwhm2) ** 2)
+        self._b = 4 * alpha * ((st / self.fwhm1) ** 2 + (ct / self.fwhm2) ** 2)
+        self._c = 4 * alpha * ct * st * (1 / self.fwhm1 ** 2 - 1 / self.fwhm2 ** 2)
 
         # Maximum value of the rsq parameter (see "add") to
         # calculate to. This defines the region to which the profile
         # needs to be calculated which will be stored for fast lookup
-        rsqmax = (self.height/self.fmin)**(1./self.beta)-1
-        det = self._a*self._b-self._c**2
-        xmax = np.sqrt(rsqmax*self._b/det)
-        ymax = np.sqrt(rsqmax*self._a/det)
+        rsqmax = (self.height / self.fmin) ** (1.0 / self.beta) - 1
+        det = self._a * self._b - self._c ** 2
+        xmax = np.sqrt(rsqmax * self._b / det)
+        ymax = np.sqrt(rsqmax * self._a / det)
         self._x1 = self.xcen - xmax
         self._x2 = self.xcen + xmax
         self._y1 = self.ycen - ymax
@@ -173,7 +184,7 @@ class Target:
         targ.ycen += dy
         return targ
 
-    def add(self, wind, scale=1.):
+    def add(self, wind, scale=1.0):
         """Adds the :class:`Target` to a :class:`Window` with
         an optional scaling factor. Returns 1 if anything added, 0
         if there was no overlap.
@@ -188,30 +199,40 @@ class Target:
         """
 
         # Determine the region in terms of binned pixels
-        nx1 = min(max(0, int(np.floor(wind.x_pixel(self._x1)))),wind.nx)
-        nx2 = min(max(0, int(np.ceil(wind.x_pixel(self._x2)))+1),wind.nx)
-        ny1 = min(max(0, int(np.floor(wind.y_pixel(self._y1)))),wind.ny)
-        ny2 = min(max(0, int(np.ceil(wind.y_pixel(self._y2)))+1),wind.ny)
+        nx1 = min(max(0, int(np.floor(wind.x_pixel(self._x1)))), wind.nx)
+        nx2 = min(max(0, int(np.ceil(wind.x_pixel(self._x2))) + 1), wind.nx)
+        ny1 = min(max(0, int(np.floor(wind.y_pixel(self._y1)))), wind.ny)
+        ny2 = min(max(0, int(np.ceil(wind.y_pixel(self._y2))) + 1), wind.ny)
 
         if nx1 < nx2 and ny1 < ny2:
-            xd = np.linspace(wind.x(nx1),wind.x(nx2-1),nx2-nx1)-self.xcen
-            yd = np.linspace(wind.y(ny1),wind.y(ny2-1),ny2-ny1)-self.ycen
-            xd,yd = np.meshgrid(xd,yd)
+            xd = np.linspace(wind.x(nx1), wind.x(nx2 - 1), nx2 - nx1) - self.xcen
+            yd = np.linspace(wind.y(ny1), wind.y(ny2 - 1), ny2 - ny1) - self.ycen
+            xd, yd = np.meshgrid(xd, yd)
 
-            rsq = self._a*xd**2 + self._b*yd**2 + (2*self._c)*xd*yd
+            rsq = self._a * xd ** 2 + self._b * yd ** 2 + (2 * self._c) * xd * yd
 
             # Next bit is to give elliptical outer shape rather than
             # rectangular
             ok = rsq < self._rsqmax
-            wind.data[ny1:ny2,nx1:nx2][ok] += scale*self.height/(1+rsq[ok])**self.beta
+            wind.data[ny1:ny2, nx1:nx2][ok] += (
+                scale * self.height / (1 + rsq[ok]) ** self.beta
+            )
             return 1
         else:
             return 0
 
     def __repr__(self):
-        return 'Target(xcen={!r}, ycen={!r}, height={!r}, fwhm1={!r}, fwhm2={!r}, angle={!r}, beta={!r}, fmin={!r})'.format(
-            self.xcen, self.ycen, self.height, self.fwhm1, self.fwhm2,
-            self.angle, self.beta, self.fmin)
+        return "Target(xcen={!r}, ycen={!r}, height={!r}, fwhm1={!r}, fwhm2={!r}, angle={!r}, beta={!r}, fmin={!r})".format(
+            self.xcen,
+            self.ycen,
+            self.height,
+            self.fwhm1,
+            self.fwhm2,
+            self.angle,
+            self.beta,
+            self.fmin,
+        )
+
 
 class Field(list):
     """Object to represent a star field as a list of :class:`Target`s. This is to
@@ -220,10 +241,11 @@ class Field(list):
     """
 
     def __init__(self):
-        super(Field,self).__init__()
+        super(Field, self).__init__()
 
-    def add_random(self, ntarg, x1, x2, y1, y2, h1, h2, angle1, angle2,
-                   fwhm1, fwhm2, beta, fmin):
+    def add_random(
+        self, ntarg, x1, x2, y1, y2, h1, h2, angle1, angle2, fwhm1, fwhm2, beta, fmin
+    ):
         """Adds a random field of ntarg :class:`Target` objects scattered over the
         range x1, x2, y1, y2, with peak heights from h1 to h2, random angles
         from angle1 to angle2, but with fixed width parameters. The peak
@@ -279,11 +301,16 @@ class Field(list):
         for nt in range(ntarg):
             xcen = np.random.uniform(x1, x2)
             ycen = np.random.uniform(y1, y2)
-            height = 1./(1./math.sqrt(h1)-(1./math.sqrt(h1)-1./math.sqrt(h2))*
-                         np.random.uniform())**2
+            height = (
+                1.0
+                / (
+                    1.0 / math.sqrt(h1)
+                    - (1.0 / math.sqrt(h1) - 1.0 / math.sqrt(h2)) * np.random.uniform()
+                )
+                ** 2
+            )
             angle = np.random.uniform(angle1, angle2)
-            self.append(Target(xcen, ycen, height, fwhm1, fwhm2, angle,
-                               beta, fmin))
+            self.append(Target(xcen, ycen, height, fwhm1, fwhm2, angle, beta, fmin))
 
     def modify(self, transform, fscale):
         """This generates a new :class:`Field` by applying `transform` to the x,y
@@ -307,8 +334,8 @@ class Field(list):
         """
         field = Field()
         for target in self:
-            dx,dy = transform(target.xcen, target.ycen)
-            targ = target.offset(dx,dy)
+            dx, dy = transform(target.xcen, target.ycen)
+            targ = target.offset(dx, dy)
             targ.height *= fscale
             field.append(targ)
         return field
@@ -327,14 +354,14 @@ class Field(list):
         """
 
         if ndiv:
-            scale = 1/ndiv**2/wind.xbin/wind.ybin
-            for iy in range(wind.ybin*ndiv):
+            scale = 1 / ndiv ** 2 / wind.xbin / wind.ybin
+            for iy in range(wind.ybin * ndiv):
                 dy = (iy - (ndiv - 1) / 2) / ndiv
-                for ix in range(wind.xbin*ndiv):
+                for ix in range(wind.xbin * ndiv):
                     dx = (ix - (ndiv - 1) / 2) / ndiv
                     for target in self:
-                        targ = target.offset(dx,dy)
-                        targ.add(wind,scale)
+                        targ = target.offset(dx, dy)
+                        targ.add(wind, scale)
         else:
             for target in self:
                 target.add(wind)
@@ -349,7 +376,7 @@ class Field(list):
               file to write to
 
         """
-        with open(fname, 'w') as fp:
+        with open(fname, "w") as fp:
             json.dump(self, fp, cls=TargetEncoder)
 
     @classmethod
@@ -366,11 +393,19 @@ class Field(list):
         field = cls()
         for dat in data:
             field.append(
-                Target(dat['xcen'], dat['ycen'], dat['height'],
-                       dat['fwhm1'], dat['fwhm2'], dat['angle'],
-                       dat['beta'], dat['fmin'])
+                Target(
+                    dat["xcen"],
+                    dat["ycen"],
+                    dat["height"],
+                    dat["fwhm1"],
+                    dat["fwhm2"],
+                    dat["angle"],
+                    dat["beta"],
+                    dat["fmin"],
+                )
             )
         return field
+
 
 class TargetEncoder(json.JSONEncoder):
     """Provides a translation to json for :class:`Target` as required
@@ -382,10 +417,16 @@ class TargetEncoder(json.JSONEncoder):
         if isinstance(obj, Target):
             # Catch Targets
             return {
-                '_comment': 'hipercam.Target',
-                'xcen' : obj.xcen, 'ycen' : obj.ycen, 'height' : obj.height,
-                'fwhm1' : obj.fwhm1, 'fwhm2' : obj.fwhm2, 'angle' : obj.angle,
-                'beta' : obj.beta, 'fmin' : obj.fmin}
+                "_comment": "hipercam.Target",
+                "xcen": obj.xcen,
+                "ycen": obj.ycen,
+                "height": obj.height,
+                "fwhm1": obj.fwhm1,
+                "fwhm2": obj.fwhm2,
+                "angle": obj.angle,
+                "beta": obj.beta,
+                "fmin": obj.fmin,
+            }
 
         # Default
         return json.JSONEncoder.default(self, obj)

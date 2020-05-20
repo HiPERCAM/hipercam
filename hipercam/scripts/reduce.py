@@ -7,19 +7,27 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler, fitting
 from hipercam.cline import Cline
 from hipercam.reduction import (
-    Rfile, initial_checks, update_plots,
-    ProcessCCDs, setup_plots, setup_plot_buffers,
-    LogWriter, moveApers
+    Rfile,
+    initial_checks,
+    update_plots,
+    ProcessCCDs,
+    setup_plots,
+    setup_plot_buffers,
+    LogWriter,
+    moveApers,
 )
 
 # get hipercam version to write into the reduce log file
 from pkg_resources import get_distribution, DistributionNotFound
-try:
-    hipercam_version = get_distribution('hipercam').version
-except DistributionNotFound:
-    hipercam_version = 'not found'
 
-__all__ = ['reduce', ]
+try:
+    hipercam_version = get_distribution("hipercam").version
+except DistributionNotFound:
+    hipercam_version = "not found"
+
+__all__ = [
+    "reduce",
+]
 
 
 ################################################
@@ -178,109 +186,106 @@ def reduce(args=None):
 
     command, args = utils.script_args(args)
 
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
-        cl.register('rfile', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('last', Cline.LOCAL, Cline.HIDE)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
-        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
-        cl.register('log', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('tkeep', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('lplot', Cline.LOCAL, Cline.PROMPT)
-        cl.register('implot', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
-        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('phi', Cline.LOCAL, Cline.PROMPT)
-        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register("source", Cline.GLOBAL, Cline.HIDE)
+        cl.register("rfile", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("first", Cline.LOCAL, Cline.PROMPT)
+        cl.register("last", Cline.LOCAL, Cline.HIDE)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("flist", Cline.LOCAL, Cline.PROMPT)
+        cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ncol", Cline.GLOBAL, Cline.HIDE)
+        cl.register("nrow", Cline.GLOBAL, Cline.HIDE)
+        cl.register("log", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("tkeep", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("lplot", Cline.LOCAL, Cline.PROMPT)
+        cl.register("implot", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nx", Cline.LOCAL, Cline.PROMPT)
+        cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("phi", Cline.LOCAL, Cline.PROMPT)
+        cl.register("xlo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("xhi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ylo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
 
         # get inputs
         source = cl.get_value(
-            'source', 'data source [hs, hl, us, ul, hf]',
-            'hl', lvals=('hs', 'hl', 'us', 'ul', 'hf')
+            "source",
+            "data source [hs, hl, us, ul, hf]",
+            "hl",
+            lvals=("hs", "hl", "us", "ul", "hf"),
         )
 
         # set some flags
-        server_or_local = source.endswith('s') or source.endswith('l')
+        server_or_local = source.endswith("s") or source.endswith("l")
 
         # the reduce file
         rfilen = cl.get_value(
-            'rfile', 'reduce file', cline.Fname('reduce.red', hcam.RED))
+            "rfile", "reduce file", cline.Fname("reduce.red", hcam.RED)
+        )
         try:
             rfile = Rfile.read(rfilen)
         except hcam.HipercamError as err:
             # abort on failure to read as there are many ways to get reduce
             # files wrong
             print(err, file=sys.stderr)
-            print('*** reduce aborted')
+            print("*** reduce aborted")
             exit(1)
 
         if server_or_local:
-            resource = cl.get_value('run', 'run name', 'run005')
-            first = cl.get_value('first', 'first frame to reduce', 1, 0)
-            cl.set_default('last',0)
-            last = cl.get_value('last', 'last frame to reduce', 0, 0)
+            resource = cl.get_value("run", "run name", "run005")
+            first = cl.get_value("first", "first frame to reduce", 1, 0)
+            cl.set_default("last", 0)
+            last = cl.get_value("last", "last frame to reduce", 0, 0)
             if last and last < first:
-                print('Cannot set last < first unless last == 0')
-                print('*** reduce aborted')
+                print("Cannot set last < first unless last == 0")
+                print("*** reduce aborted")
                 exit(1)
 
             twait = cl.get_value(
-                'twait', 'time to wait for a new frame [secs]', 1., 0.)
+                "twait", "time to wait for a new frame [secs]", 1.0, 0.0
+            )
             tmx = cl.get_value(
-                'tmax', 'maximum time to wait for a new frame [secs]',
-                10., 0.)
+                "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+            )
 
         else:
             resource = cl.get_value(
-                'flist', 'file list', cline.Fname('files.lis', hcam.LIST)
+                "flist", "file list", cline.Fname("files.lis", hcam.LIST)
             )
             first = 1
             last = 0
 
-        trim = cl.get_value(
-            'trim', 'do you want to trim edges of windows?',
-            True
-        )
+        trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
         if trim:
-            ncol = cl.get_value(
-                'ncol', 'number of columns to trim from windows', 0)
-            nrow = cl.get_value(
-                'nrow', 'number of rows to trim from windows', 0)
+            ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
+            nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
 
         log = cl.get_value(
-            'log', 'name of log file to store results',
-            cline.Fname('reduce.log', hcam.LOG, cline.Fname.NEW)
+            "log",
+            "name of log file to store results",
+            cline.Fname("reduce.log", hcam.LOG, cline.Fname.NEW),
         )
 
         tkeep = cl.get_value(
-            'tkeep', 'number of minute of data to'
-            ' keep in internal buffers (0 for all)',
-            0., 0.
+            "tkeep",
+            "number of minute of data to" " keep in internal buffers (0 for all)",
+            0.0,
+            0.0,
         )
 
-        lplot = cl.get_value(
-            'lplot', 'do you want to plot light curves?', True
-        )
+        lplot = cl.get_value("lplot", "do you want to plot light curves?", True)
 
-        implot = cl.get_value(
-            'implot', 'do you want to plot images?', True
-        )
+        implot = cl.get_value("implot", "do you want to plot images?", True)
 
         if implot:
 
@@ -289,21 +294,21 @@ def reduce(args=None):
             ccdinf = spooler.get_ccd_pars(source, resource)
 
             try:
-                nxdef = cl.get_default('nx')
+                nxdef = cl.get_default("nx")
             except KeyError:
                 nxdef = 3
 
             if len(ccdinf) > 1:
-                ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
-                if ccd == '0':
+                ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
+                if ccd == "0":
                     ccds = list(ccdinf.keys())
                 else:
                     ccds = ccd.split()
 
                 if len(ccds) > 1:
                     nxdef = min(len(ccds), nxdef)
-                    cl.set_default('nx', nxdef)
-                    nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+                    cl.set_default("nx", nxdef)
+                    nx = cl.get_value("nx", "number of panels in X", 3, 1)
                 else:
                     nx = 1
             else:
@@ -311,27 +316,27 @@ def reduce(args=None):
                 ccds = list(ccdinf.keys())
 
             # define the display intensities
-            msub = cl.get_value(
-                'msub', 'subtract median from each window?', True)
+            msub = cl.get_value("msub", "subtract median from each window?", True)
 
             iset = cl.get_value(
-                'iset', 'set intensity a(utomatically),'
-                ' d(irectly) or with p(ercentiles)?',
-                'a', lvals=['a', 'd', 'p']
+                "iset",
+                "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+                "a",
+                lvals=["a", "d", "p"],
             )
 
             plo, phi = 5, 95
             ilo, ihi = 0, 1000
-            if iset == 'd':
-                ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
-                ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
-            elif iset == 'p':
+            if iset == "d":
+                ilo = cl.get_value("ilo", "lower intensity limit", 0.0)
+                ihi = cl.get_value("ihi", "upper intensity limit", 1000.0)
+            elif iset == "p":
                 plo = cl.get_value(
-                    'plo', 'lower intensity limit percentile',
-                    5., 0., 100.)
+                    "plo", "lower intensity limit percentile", 5.0, 0.0, 100.0
+                )
                 phi = cl.get_value(
-                    'phi', 'upper intensity limit percentile',
-                    95., 0., 100.)
+                    "phi", "upper intensity limit percentile", 95.0, 0.0, 100.0
+                )
 
             # region to plot
             for i, cnam in enumerate(ccds):
@@ -345,10 +350,10 @@ def reduce(args=None):
                     ymin = min(ymin, float(-nypad))
                     ymax = max(ymax, float(nytot + nypad + 1))
 
-            xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
-            xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
-            ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
-            yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
+            xlo = cl.get_value("xlo", "left-hand X value", xmin, xmin, xmax)
+            xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax)
+            ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax)
+            yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax)
 
         else:
             ccds, nx, msub, iset = None, None, None, None
@@ -371,7 +376,7 @@ def reduce(args=None):
     )
 
     # a couple of initialisations
-    total_time = 0   # time waiting for new frame
+    total_time = 0  # time waiting for new frame
 
     if lplot:
         lbuffer, xbuffer, ybuffer, tbuffer, sbuffer = setup_plot_buffers(rfile)
@@ -384,7 +389,7 @@ def reduce(args=None):
     #
     with LogWriter(log, rfile, hipercam_version, plist) as logfile:
 
-        ncpu = rfile['general']['ncpu']
+        ncpu = rfile["general"]["ncpu"]
         if ncpu > 1:
             pool = multiprocessing.Pool(processes=ncpu)
         else:
@@ -430,19 +435,43 @@ def reduce(args=None):
 
                             # print out any accumulated alert messages
                             if len(alerts):
-                                print('\n'.join(alerts))
+                                print("\n".join(alerts))
 
                             update_plots(
-                                results, rfile, implot, lplot, imdev,
-                                lcdev, pccd, ccds, msub, nx, iset, plo, phi,
-                                ilo, ihi, xlo, xhi, ylo, yhi,
-                                lpanel, xpanel, ypanel, tpanel, spanel,
-                                tkeep, lbuffer, xbuffer, ybuffer, tbuffer,
-                                sbuffer
+                                results,
+                                rfile,
+                                implot,
+                                lplot,
+                                imdev,
+                                lcdev,
+                                pccd,
+                                ccds,
+                                msub,
+                                nx,
+                                iset,
+                                plo,
+                                phi,
+                                ilo,
+                                ihi,
+                                xlo,
+                                xhi,
+                                ylo,
+                                yhi,
+                                lpanel,
+                                xpanel,
+                                ypanel,
+                                tpanel,
+                                spanel,
+                                tkeep,
+                                lbuffer,
+                                xbuffer,
+                                ybuffer,
+                                tbuffer,
+                                sbuffer,
                             )
                             mccds = []
 
-                        print('reduce finished')
+                        print("reduce finished")
                         break
 
                     elif try_again:
@@ -456,12 +485,12 @@ def reduce(args=None):
                     hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
                 # indicate progress
-                if 'NFRAME' in mccd.head:
-                    nframe = mccd.head['NFRAME']
+                if "NFRAME" in mccd.head:
+                    nframe = mccd.head["NFRAME"]
                 else:
                     nframe = nf + 1
 
-                if source != 'hf' and last and nframe > last:
+                if source != "hf" and last and nframe > last:
                     # finite last frame number
 
                     if len(mccds):
@@ -473,28 +502,53 @@ def reduce(args=None):
 
                         # print out any accumulated alert messages
                         if len(alerts):
-                            print('\n'.join(alerts))
+                            print("\n".join(alerts))
 
                         update_plots(
-                            results, rfile, implot, lplot, imdev, lcdev,
-                            pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi,
-                            xlo, xhi, ylo, yhi, lpanel, xpanel,
-                            ypanel, tpanel, spanel, tkeep, lbuffer,
-                            xbuffer, ybuffer, tbuffer, sbuffer
+                            results,
+                            rfile,
+                            implot,
+                            lplot,
+                            imdev,
+                            lcdev,
+                            pccd,
+                            ccds,
+                            msub,
+                            nx,
+                            iset,
+                            plo,
+                            phi,
+                            ilo,
+                            ihi,
+                            xlo,
+                            xhi,
+                            ylo,
+                            yhi,
+                            lpanel,
+                            xpanel,
+                            ypanel,
+                            tpanel,
+                            spanel,
+                            tkeep,
+                            lbuffer,
+                            xbuffer,
+                            ybuffer,
+                            tbuffer,
+                            sbuffer,
                         )
                         mccds = []
 
-                    print(
-                        '\nHave reduced up to the last frame set.'
-                    )
-                    print('reduce finished')
+                    print("\nHave reduced up to the last frame set.")
+                    print("reduce finished")
                     break
 
                 print(
-                    'Frame {:d}: {:s} ({:s})'.format(
-                        nframe, mccd.head['TIMSTAMP'],
-                        'ok' if mccd.head.get('GOODTIME', True) else 'nok'),
-                    end='' if implot else '\n'
+                    "Frame {:d}: {:s} ({:s})".format(
+                        nframe,
+                        mccd.head["TIMSTAMP"],
+                        "ok" if mccd.head.get("GOODTIME", True) else "nok",
+                    ),
+                    end="" if implot else "\n",
                 )
 
                 if not initialised:
@@ -503,9 +557,7 @@ def reduce(args=None):
                     read, gain, ok = initial_checks(mccd, rfile)
 
                     # Define the CCD processor function object
-                    processor = ProcessCCDs(
-                        rfile, read, gain, ccdproc, pool
-                    )
+                    processor = ProcessCCDs(rfile, read, gain, ccdproc, pool)
 
                     # set flag to show we are set
                     if not ok:
@@ -517,55 +569,55 @@ def reduce(args=None):
                 if rfile.bias is not None:
                     # subtract bias
                     pccd = mccd - rfile.bias
-                    bexpose = rfile.bias.head.get('EXPTIME',0.)
+                    bexpose = rfile.bias.head.get("EXPTIME", 0.0)
                 else:
                     # no bias subtraction
                     pccd = mccd.copy()
-                    bexpose = 0.
+                    bexpose = 0.0
 
                 if rfile.dark is not None:
                     # subtract dark, CCD by CCD
-                    dexpose = rfile.dark.head['EXPTIME']
+                    dexpose = rfile.dark.head["EXPTIME"]
                     for cnam in pccd:
                         ccd = pccd[cnam]
-                        cexpose = ccd.head['EXPTIME']
-                        scale = (cexpose-bexpose)/dexpose
-                        ccd -= scale*rfile.dark[cnam]
+                        cexpose = ccd.head["EXPTIME"]
+                        scale = (cexpose - bexpose) / dexpose
+                        ccd -= scale * rfile.dark[cnam]
 
                 if rfile.flat is not None:
                     # apply flat field to processed frame
                     pccd /= rfile.flat
 
-                if rfile['focal_mask']['demask']:
+                if rfile["focal_mask"]["demask"]:
                     # attempt to correct for poorly placed frame
                     # transfer mask causing a step illumination in the
                     # y-direction. Loop through all windows of all
                     # CCDs. Also include a stage where we average in
                     # the Y direction to try to eliminate high pixels.
-                    dthresh = rfile['focal_mask']['dthresh']
+                    dthresh = rfile["focal_mask"]["dthresh"]
 
                     for cnam, ccd in pccd.items():
                         for wnam, wind in ccd.items():
 
                             # form mean in Y direction, then try to
                             # mask out high pixels
-                            ymean = np.mean(wind.data,0)
-                            xmask = (ymean == ymean)
+                            ymean = np.mean(wind.data, 0)
+                            xmask = ymean == ymean
                             while 1:
                                 # rejection cycle, rejecting
                                 # overly positive pixels
                                 ave = ymean[xmask].mean()
                                 rms = ymean[xmask].std()
-                                diff = ymean-ave
+                                diff = ymean - ave
                                 diff[~xmask] = 0
                                 imax = np.argmax(diff)
-                                if diff[imax] > dthresh*rms:
+                                if diff[imax] > dthresh * rms:
                                     xmask[imax] = False
                                 else:
                                     break
 
                             # form median in X direction
-                            xmedian = np.median(wind.data[:,xmask],1)
+                            xmedian = np.median(wind.data[:, xmask], 1)
 
                             # subtract it's median to avoid removing
                             # general background
@@ -573,9 +625,7 @@ def reduce(args=None):
 
                             # now subtract from 2D image using
                             # broadcasting rules
-                            wind.data -= xmedian.reshape(
-                                (len(xmedian),1)
-                            )
+                            wind.data -= xmedian.reshape((len(xmedian), 1))
 
                 # Acummulate frames into processing groups for faster
                 # parallelisation
@@ -583,7 +633,7 @@ def reduce(args=None):
                 mccds.append(mccd)
                 nframes.append(nframe)
 
-                if len(pccds) == rfile['general']['ngroup']:
+                if len(pccds) == rfile["general"]["ngroup"]:
                     # parallel processing. This should usually be the first
                     # points at which it takes place
                     results = processor(pccds, mccds, nframes)
@@ -593,14 +643,39 @@ def reduce(args=None):
 
                     # print out any accumulated alert messages
                     if len(alerts):
-                        print('\n'.join(alerts))
+                        print("\n".join(alerts))
 
                     update_plots(
-                        results, rfile, implot, lplot, imdev, lcdev,
-                        pccds[-1], ccds, msub, nx, iset, plo, phi, 
-                        ilo, ihi, xlo, xhi, ylo, yhi,
-                        lpanel, xpanel, ypanel, tpanel, spanel, tkeep,
-                        lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
+                        results,
+                        rfile,
+                        implot,
+                        lplot,
+                        imdev,
+                        lcdev,
+                        pccds[-1],
+                        ccds,
+                        msub,
+                        nx,
+                        iset,
+                        plo,
+                        phi,
+                        ilo,
+                        ihi,
+                        xlo,
+                        xhi,
+                        ylo,
+                        yhi,
+                        lpanel,
+                        xpanel,
+                        ypanel,
+                        tpanel,
+                        spanel,
+                        tkeep,
+                        lbuffer,
+                        xbuffer,
+                        ybuffer,
+                        tbuffer,
+                        sbuffer,
                     )
 
                     # Reset the frame buffers
@@ -616,23 +691,49 @@ def reduce(args=None):
 
             # print out any accumulated alert messages
             if len(alerts):
-                print('\n'.join(alerts))
+                print("\n".join(alerts))
 
             update_plots(
-                results, rfile, implot, lplot, imdev,
-                lcdev, pccd, ccds, msub, nx, iset, plo, phi,
-                ilo, ihi, xlo, xhi, ylo, yhi, lpanel,
-                xpanel, ypanel, tpanel, spanel, tkeep,
-                lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
+                results,
+                rfile,
+                implot,
+                lplot,
+                imdev,
+                lcdev,
+                pccd,
+                ccds,
+                msub,
+                nx,
+                iset,
+                plo,
+                phi,
+                ilo,
+                ihi,
+                xlo,
+                xhi,
+                ylo,
+                yhi,
+                lpanel,
+                xpanel,
+                ypanel,
+                tpanel,
+                spanel,
+                tkeep,
+                lbuffer,
+                xbuffer,
+                ybuffer,
+                tbuffer,
+                sbuffer,
             )
 
-            print('reduce finished')
+            print("reduce finished")
 
 
 ###################################################################
 #
 # Stuff below is not exported outside this routine. Two routines of
 # the same name but different action are located in psf_reduce
+
 
 def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
     """Processing steps for a sequential set of images from the same
@@ -700,18 +801,24 @@ def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
         # extract flux from all apertures of each CCD. Return with the CCD
         # name, the store dictionary, ccdaper and then the results from
         # extractFlux for compatibility with multiprocessing. Note
-        results = extractFlux(
-            cnam, ccd, rccd, read, gain, ccdwin, rfile, store
-        )
+        results = extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store)
 
         # Save the essentials
-        res.append((
-            nframe, store, rfile.aper[cnam], results, ccd.head['MJDINT'],
-            ccd.head['MJDFRAC'], ccd.head.get('GOODTIME',True),
-            ccd.head.get('EXPTIME',1.)
-        ))
+        res.append(
+            (
+                nframe,
+                store,
+                rfile.aper[cnam],
+                results,
+                ccd.head["MJDINT"],
+                ccd.head["MJDFRAC"],
+                ccd.head.get("GOODTIME", True),
+                ccd.head.get("EXPTIME", 1.0),
+            )
+        )
 
     return (cnam, res)
+
 
 def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
     """This extracts the flux of all apertures of a given CCD.
@@ -771,20 +878,33 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
     ccdaper = rfile.aper[cnam]
 
     # get the control parameters
-    resize, extype, r1fac, r1min, r1max, r2fac, r2min, r2max, \
-        r3fac, r3min, r3max = rfile['extraction'][cnam]
+    (
+        resize,
+        extype,
+        r1fac,
+        r1min,
+        r1max,
+        r2fac,
+        r2min,
+        r2max,
+        r3fac,
+        r3min,
+        r3max,
+    ) = rfile["extraction"][cnam]
 
     results = {}
-    mfwhm = store['mfwhm']
+    mfwhm = store["mfwhm"]
 
-    if resize == 'variable' or extype == 'optimal':
+    if resize == "variable" or extype == "optimal":
 
         if mfwhm <= 0:
             # return early here as there is nothing we can do.
             print(
-                (' *** WARNING: CCD {:s}: no measured FWHM to re-size'
-                 ' apertures or carry out optimal extraction; no'
-                 ' extraction possible').format(cnam)
+                (
+                    " *** WARNING: CCD {:s}: no measured FWHM to re-size"
+                    " apertures or carry out optimal extraction; no"
+                    " extraction possible"
+                ).format(cnam)
             )
             # set flag to indicate no FWHM
             flag = hcam.NO_FWHM
@@ -792,13 +912,22 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
             for apnam, aper in ccdaper.items():
                 info = store[apnam]
                 results[apnam] = {
-                    'x': aper.x, 'xe': info['xe'],
-                    'y': aper.y, 'ye': info['ye'],
-                    'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
-                    'beta': info['beta'], 'betae': info['betae'],
-                    'counts': 0., 'countse': -1,
-                    'sky': 0., 'skye': 0., 'nsky': 0, 'nrej': 0,
-                    'flag': flag, 'cmax' : 0
+                    "x": aper.x,
+                    "xe": info["xe"],
+                    "y": aper.y,
+                    "ye": info["ye"],
+                    "fwhm": info["fwhm"],
+                    "fwhme": info["fwhme"],
+                    "beta": info["beta"],
+                    "betae": info["betae"],
+                    "counts": 0.0,
+                    "countse": -1,
+                    "sky": 0.0,
+                    "skye": 0.0,
+                    "nsky": 0,
+                    "nrej": 0,
+                    "flag": flag,
+                    "cmax": 0,
                 }
             return results
 
@@ -806,11 +935,11 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
 
             # Re-size the apertures
             for aper in ccdaper.values():
-                aper.rtarg = max(r1min, min(r1max, r1fac*mfwhm))
-                aper.rsky1 = max(r2min, min(r2max, r2fac*mfwhm))
-                aper.rsky2 = max(r3min, min(r3max, r3fac*mfwhm))
+                aper.rtarg = max(r1min, min(r1max, r1fac * mfwhm))
+                aper.rsky1 = max(r2min, min(r2max, r2fac * mfwhm))
+                aper.rsky2 = max(r3min, min(r3max, r3fac * mfwhm))
 
-    elif resize == 'fixed':
+    elif resize == "fixed":
 
         # just apply the max and min limits
         for aper in ccdaper.values():
@@ -821,8 +950,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
     else:
         raise hcam.HipercamError(
             "CCD {:s}: 'variable' and 'fixed' are the only"
-            " aperture resizing options".format(
-                cnam)
+            " aperture resizing options".format(cnam)
         )
 
     # apertures have been positioned in moveApers and now re-sized. Finally
@@ -846,12 +974,14 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
         # be the default outer radius
         rmax = aper.rsky2
         for xoff, yoff in aper.extra:
-            rmax = max(rmax, np.sqrt(xoff**2+yoff**2) + aper.rtarg)
+            rmax = max(rmax, np.sqrt(xoff ** 2 + yoff ** 2) + aper.rtarg)
 
         # this is the region of interest
         x1, x2, y1, y2 = (
-            aper.x-aper.rsky2-wdata.xbin, aper.x+aper.rsky2+wdata.xbin,
-            aper.y-aper.rsky2-wdata.ybin, aper.y+aper.rsky2+wdata.ybin
+            aper.x - aper.rsky2 - wdata.xbin,
+            aper.x + aper.rsky2 + wdata.xbin,
+            aper.y - aper.rsky2 - wdata.ybin,
+            aper.y + aper.rsky2 + wdata.ybin,
         )
 
         try:
@@ -865,41 +995,53 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
             # some checks for possible problems. bitmask flags will be set if
             # they are encountered.
             xlo, xhi, ylo, yhi = swdata.extent()
-            if xlo > aper.x-aper.rsky2 or xhi < aper.x+aper.rsky2 or \
-               ylo > aper.y-aper.rsky2 or yhi < aper.y+aper.rsky2:
+            if (
+                xlo > aper.x - aper.rsky2
+                or xhi < aper.x + aper.rsky2
+                or ylo > aper.y - aper.rsky2
+                or yhi < aper.y + aper.rsky2
+            ):
                 # the sky aperture overlaps the edge of the window
                 flag |= hcam.SKY_AT_EDGE
 
-            if xlo > aper.x-aper.rtarg or xhi < aper.x+aper.rtarg or \
-               ylo > aper.y-aper.rtarg or yhi < aper.y+aper.rtarg:
+            if (
+                xlo > aper.x - aper.rtarg
+                or xhi < aper.x + aper.rtarg
+                or ylo > aper.y - aper.rtarg
+                or yhi < aper.y + aper.rtarg
+            ):
                 # the target aperture overlaps the edge of the window
                 flag |= hcam.TARGET_AT_EDGE
 
             for xoff, yoff in aper.extra:
-                rout = np.sqrt(xoff**2+yoff**2) + aper.rtarg
-                if xlo > aper.x-rout or xhi < aper.x+rout or \
-                   ylo > aper.y-rout or yhi < aper.y+rout:
+                rout = np.sqrt(xoff ** 2 + yoff ** 2) + aper.rtarg
+                if (
+                    xlo > aper.x - rout
+                    or xhi < aper.x + rout
+                    or ylo > aper.y - rout
+                    or yhi < aper.y + rout
+                ):
                     # an extra target aperture overlaps the edge of the window
                     flag |= hcam.TARGET_AT_EDGE
 
             # compute X, Y arrays over the sub-window relative to the centre
             # of the aperture and the distance squared from the centre (Rsq)
             # to save a little effort.
-            x = swdata.x(np.arange(swdata.nx))-aper.x
-            y = swdata.y(np.arange(swdata.ny))-aper.y
+            x = swdata.x(np.arange(swdata.nx)) - aper.x
+            y = swdata.y(np.arange(swdata.ny)) - aper.y
             X, Y = np.meshgrid(x, y)
-            Rsq = X**2 + Y**2
+            Rsq = X ** 2 + Y ** 2
 
             # squared aperture radii for comparison
-            R1sq, R2sq, R3sq = aper.rtarg**2, aper.rsky1**2, aper.rsky2**2
+            R1sq, R2sq, R3sq = aper.rtarg ** 2, aper.rsky1 ** 2, aper.rsky2 ** 2
 
             # sky selection, accounting for masks and extra (which we assume
             # acts like a sky mask as well)
             sok = (Rsq > R2sq) & (Rsq < R3sq)
             for xoff, yoff, radius in aper.mask:
-                sok &= (X-xoff)**2 + (Y-yoff)**2 > radius**2
+                sok &= (X - xoff) ** 2 + (Y - yoff) ** 2 > radius ** 2
             for xoff, yoff in aper.extra:
-                sok &= (X-xoff)**2 + (Y-yoff)**2 > R1sq
+                sok &= (X - xoff) ** 2 + (Y - yoff) ** 2 > R1sq
 
             # sky data
             dsky = swdata.data[sok]
@@ -908,26 +1050,26 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
 
                 # we have some sky!
 
-                if rfile['sky']['method'] == 'clipped':
+                if rfile["sky"]["method"] == "clipped":
 
                     # clipped mean. Take average, compute RMS,
                     # reject pixels > thresh*rms from the mean.
                     # repeat until no new pixels are rejected.
 
-                    thresh = rfile['sky']['thresh']
+                    thresh = rfile["sky"]["thresh"]
                     ok = np.ones_like(dsky, dtype=bool)
                     nrej = 1
                     while nrej:
                         slevel = dsky[ok].mean()
                         srms = dsky[ok].std()
                         nold = len(dsky[ok])
-                        ok = ok & (np.abs(dsky-slevel) < thresh*srms)
+                        ok = ok & (np.abs(dsky - slevel) < thresh * srms)
                         nrej = nold - len(dsky[ok])
 
                     nsky = len(dsky[ok])
 
                     # serror -- error in the sky estimate.
-                    serror = srms/np.sqrt(nsky)
+                    serror = srms / np.sqrt(nsky)
 
                 else:
 
@@ -941,7 +1083,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                     dgain = swgain.data[sok]
 
                     serror = np.sqrt(
-                        (dread**2 + np.max(0, dsky)/dgain).sum()/nsky**2
+                        (dread ** 2 + np.max(0, dsky) / dgain).sum() / nsky ** 2
                     )
 
             else:
@@ -955,31 +1097,29 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
 
             # size of a pixel which is used to taper pixels as they approach
             # the edge of the aperture to reduce pixellation noise
-            size = np.sqrt(wdata.xbin*wdata.ybin)
+            size = np.sqrt(wdata.xbin * wdata.ybin)
 
             # target selection, accounting for extra apertures and allowing
             # pixels to contribute if their centres are as far as size/2 beyond
             # the edge of the circle (but with a tapered weight)
-            dok = Rsq < (aper.rtarg+size/2.)**2
+            dok = Rsq < (aper.rtarg + size / 2.0) ** 2
 
             if not dok.any():
                 # check there are some valid pixels
                 flag |= hcam.NO_DATA
-                raise hcam.HipercamError('no valid pixels in aperture')
+                raise hcam.HipercamError("no valid pixels in aperture")
 
             # check for saturation and nonlinearity
             cmax = int(swraw.data[dok].max())
             if cnam in rfile.warn:
-                if cmax >= rfile.warn[cnam]['saturation']:
+                if cmax >= rfile.warn[cnam]["saturation"]:
                     flag |= hcam.TARGET_SATURATED
 
-                if cmax >= rfile.warn[cnam]['nonlinear']:
+                if cmax >= rfile.warn[cnam]["nonlinear"]:
                     flag |= hcam.TARGET_NONLINEAR
 
             else:
-                warnings.warn(
-                    'CCD {:s} has no nonlinearity or saturation levels set'
-                )
+                warnings.warn("CCD {:s} has no nonlinearity or saturation levels set")
 
             # Pixellation amelioration:
             #
@@ -989,17 +1129,13 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
             # binning factors. A pixel with its centre exactly on the edge
             # gets a weight of 0.5.
             wgt = np.minimum(
-                1, np.maximum(
-                    0, (aper.rtarg+size/2.-np.sqrt(Rsq))/size
-                )
+                1, np.maximum(0, (aper.rtarg + size / 2.0 - np.sqrt(Rsq)) / size)
             )
             for xoff, yoff in aper.extra:
-                rsq = (X-xoff)**2 + (Y-yoff)**2
-                dok |= rsq < (aper.rtarg+size/2.)**2
+                rsq = (X - xoff) ** 2 + (Y - yoff) ** 2
+                dok |= rsq < (aper.rtarg + size / 2.0) ** 2
                 wg = np.minimum(
-                    1, np.maximum(
-                        0, (aper.rtarg+size/2.-np.sqrt(rsq))/size
-                    )
+                    1, np.maximum(0, (aper.rtarg + size / 2.0 - np.sqrt(rsq)) / size)
                 )
                 wgt = np.maximum(wgt, wg)
 
@@ -1010,7 +1146,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
             wtarg = wgt[dok]
 
             # 'override' to indicate we want to override the readout noise.
-            if nsky and rfile['sky']['error'] == 'variance':
+            if nsky and rfile["sky"]["error"] == "variance":
                 # from sky variance
                 rd = srms
                 override = True
@@ -1021,67 +1157,90 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
             # count above sky
             diff = dtarg - slevel
 
-            if extype == 'normal' or extype == 'optimal':
+            if extype == "normal" or extype == "optimal":
 
-                if extype == 'optimal':
+                if extype == "optimal":
                     # optimal extraction. Need the profile
                     warnings.warn(
-                        'Transmission plot is not reliable'
-                        ' with optimal extraction'
+                        "Transmission plot is not reliable" " with optimal extraction"
                     )
 
-                    mbeta = store['mbeta']
-                    if mbeta > 0.:
+                    mbeta = store["mbeta"]
+                    if mbeta > 0.0:
                         prof = fitting.moffat(
-                            X[dok], Y[dok], 0., 1., 0., 0., mfwhm, mbeta,
-                            wdata.xbin, wdata.ybin,
-                            rfile['apertures']['fit_ndiv']
+                            X[dok],
+                            Y[dok],
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            mfwhm,
+                            mbeta,
+                            wdata.xbin,
+                            wdata.ybin,
+                            rfile["apertures"]["fit_ndiv"],
                         )
                     else:
                         prof = fitting.gaussian(
-                            X[dok], Y[dok], 0., 1., 0., 0., mfwhm,
-                            wdata.xbin, wdata.ybin,
-                            rfile['apertures']['fit_ndiv']
+                            X[dok],
+                            Y[dok],
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            mfwhm,
+                            wdata.xbin,
+                            wdata.ybin,
+                            rfile["apertures"]["fit_ndiv"],
                         )
 
                     # multiply weights by the profile
                     wtarg *= prof
 
                 # now extract
-                counts = (wtarg*diff).sum()
+                counts = (wtarg * diff).sum()
 
                 if override:
                     # in this case, the "readout noise" includes the component
                     # due to the sky background so we use the sky-subtracted
                     # counts above sky for the object contribution.
-                    var = (wtarg**2*(rd**2 + np.maximum(0, diff)/dgain)).sum()
+                    var = (wtarg ** 2 * (rd ** 2 + np.maximum(0, diff) / dgain)).sum()
                 else:
                     # in this case we are using the true readout noise and we
                     # just use the data (which should be debiassed) without
                     # removal of the sky.
-                    var = (wtarg**2*(rd**2 + np.maximum(0, dtarg)/dgain)).sum()
+                    var = (wtarg ** 2 * (rd ** 2 + np.maximum(0, dtarg) / dgain)).sum()
 
                 if serror > 0:
                     # add in factor due to uncertainty in sky estimate
-                    var += (wtarg.sum()*serror)**2
+                    var += (wtarg.sum() * serror) ** 2
 
                 countse = np.sqrt(var)
 
             else:
                 raise hcam.HipercamError(
-                    'extraction type = {:s} not recognised'.format(extype)
+                    "extraction type = {:s} not recognised".format(extype)
                 )
 
             info = store[apnam]
 
             results[apnam] = {
-                'x': aper.x, 'xe': info['xe'],
-                'y': aper.y, 'ye': info['ye'],
-                'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
-                'beta': info['beta'], 'betae': info['betae'],
-                'counts': counts, 'countse': countse,
-                'sky': slevel, 'skye': serror, 'nsky': nsky,
-                'nrej': nrej, 'flag': flag, 'cmax' : cmax
+                "x": aper.x,
+                "xe": info["xe"],
+                "y": aper.y,
+                "ye": info["ye"],
+                "fwhm": info["fwhm"],
+                "fwhme": info["fwhme"],
+                "beta": info["beta"],
+                "betae": info["betae"],
+                "counts": counts,
+                "countse": countse,
+                "sky": slevel,
+                "skye": serror,
+                "nsky": nsky,
+                "nrej": nrej,
+                "flag": flag,
+                "cmax": cmax,
             }
 
         except hcam.HipercamError as err:
@@ -1090,13 +1249,22 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
             flag |= hcam.NO_EXTRACTION
 
             results[apnam] = {
-                'x': aper.x, 'xe': info['xe'],
-                'y': aper.y, 'ye': info['ye'],
-                'fwhm': info['fwhm'], 'fwhme': info['fwhme'],
-                'beta': info['beta'], 'betae': info['betae'],
-                'counts': 0., 'countse': -1,
-                'sky': 0., 'skye': 0., 'nsky': 0, 'nrej': 0,
-                'flag': flag, 'cmax' : 0
+                "x": aper.x,
+                "xe": info["xe"],
+                "y": aper.y,
+                "ye": info["ye"],
+                "fwhm": info["fwhm"],
+                "fwhme": info["fwhme"],
+                "beta": info["beta"],
+                "betae": info["betae"],
+                "counts": 0.0,
+                "countse": -1,
+                "sky": 0.0,
+                "skye": 0.0,
+                "nsky": 0,
+                "nrej": 0,
+                "flag": flag,
+                "cmax": 0,
             }
 
     # finally, we are done

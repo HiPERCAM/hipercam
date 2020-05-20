@@ -16,13 +16,16 @@ from hipercam import core, cline, utils, spooler, defect
 from hipercam.cline import Cline
 from hipercam.extraction import findStars
 
-__all__ = ['ftargets',]
+__all__ = [
+    "ftargets",
+]
 
 ########################################################
 #
 # ftargets --uses sep to find targets in a set of images
 #
 ########################################################
+
 
 def ftargets(args=None):
     """``ftargets [source device width height] (run first [twait tmax] |
@@ -203,159 +206,148 @@ def ftargets(args=None):
     command, args = utils.script_args(args)
 
     # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
-        cl.register('device', Cline.LOCAL, Cline.HIDE)
-        cl.register('width', Cline.LOCAL, Cline.HIDE)
-        cl.register('height', Cline.LOCAL, Cline.HIDE)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
-        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
-        cl.register('pause', Cline.LOCAL, Cline.HIDE)
-        cl.register('thresh', Cline.LOCAL, Cline.PROMPT)
-        cl.register('fwhm', Cline.LOCAL, Cline.PROMPT)
-        cl.register('minpix', Cline.LOCAL, Cline.PROMPT)
-        cl.register('rmin', Cline.LOCAL, Cline.PROMPT)
-        cl.register('pmin', Cline.LOCAL, Cline.PROMPT)
-        cl.register('pmax', Cline.LOCAL, Cline.PROMPT)
-        cl.register('emax', Cline.LOCAL, Cline.PROMPT)
-        cl.register('nmax', Cline.LOCAL, Cline.PROMPT)
-        cl.register('gain', Cline.LOCAL, Cline.PROMPT)
-        cl.register('rej', Cline.LOCAL, Cline.PROMPT)
-        cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('output', Cline.LOCAL, Cline.PROMPT)
-        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('phi', Cline.LOCAL, Cline.PROMPT)
-        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register("source", Cline.GLOBAL, Cline.HIDE)
+        cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("width", Cline.LOCAL, Cline.HIDE)
+        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("first", Cline.LOCAL, Cline.PROMPT)
+        cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ncol", Cline.GLOBAL, Cline.HIDE)
+        cl.register("nrow", Cline.GLOBAL, Cline.HIDE)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("flist", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nx", Cline.LOCAL, Cline.PROMPT)
+        cl.register("pause", Cline.LOCAL, Cline.HIDE)
+        cl.register("thresh", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fwhm", Cline.LOCAL, Cline.PROMPT)
+        cl.register("minpix", Cline.LOCAL, Cline.PROMPT)
+        cl.register("rmin", Cline.LOCAL, Cline.PROMPT)
+        cl.register("pmin", Cline.LOCAL, Cline.PROMPT)
+        cl.register("pmax", Cline.LOCAL, Cline.PROMPT)
+        cl.register("emax", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nmax", Cline.LOCAL, Cline.PROMPT)
+        cl.register("gain", Cline.LOCAL, Cline.PROMPT)
+        cl.register("rej", Cline.LOCAL, Cline.PROMPT)
+        cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
+        cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("phi", Cline.LOCAL, Cline.PROMPT)
+        cl.register("xlo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("xhi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ylo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
 
         # get inputs
-        source = cl.get_value('source', 'data source [hs, hl, us, ul, hf]',
-                              'hl', lvals=('hs','hl','us','ul','hf'))
+        source = cl.get_value(
+            "source",
+            "data source [hs, hl, us, ul, hf]",
+            "hl",
+            lvals=("hs", "hl", "us", "ul", "hf"),
+        )
 
         # set some flags
-        server_or_local = source.endswith('s') or source.endswith('l')
+        server_or_local = source.endswith("s") or source.endswith("l")
 
         # plot device stuff
-        device = cl.get_value('device', 'plot device', '1/xs')
-        width = cl.get_value('width', 'plot width (inches)', 0.)
-        height = cl.get_value('height', 'plot height (inches)', 0.)
+        device = cl.get_value("device", "plot device", "1/xs")
+        width = cl.get_value("width", "plot width (inches)", 0.0)
+        height = cl.get_value("height", "plot height (inches)", 0.0)
 
         if server_or_local:
-            resource = cl.get_value('run', 'run name', 'run005')
-            if source == 'hs':
-                first = cl.get_value('first', 'first frame to plot', 1)
+            resource = cl.get_value("run", "run name", "run005")
+            if source == "hs":
+                first = cl.get_value("first", "first frame to plot", 1)
             else:
-                first = cl.get_value('first', 'first frame to plot', 1, 0)
+                first = cl.get_value("first", "first frame to plot", 1, 0)
 
             twait = cl.get_value(
-                'twait', 'time to wait for a new frame [secs]', 1., 0.)
+                "twait", "time to wait for a new frame [secs]", 1.0, 0.0
+            )
             tmax = cl.get_value(
-                'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+                "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+            )
 
         else:
             resource = cl.get_value(
-                'flist', 'file list', cline.Fname('files.lis',hcam.LIST)
+                "flist", "file list", cline.Fname("files.lis", hcam.LIST)
             )
             first = 1
 
-        trim = cl.get_value(
-            'trim', 'do you want to trim edges of windows?',
-            True
-        )
+        trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
         if trim:
-            ncol = cl.get_value(
-                'ncol', 'number of columns to trim from windows', 0)
-            nrow = cl.get_value(
-                'nrow', 'number of rows to trim from windows', 0)
+            ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
+            nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
 
         # define the panel grid. first get the labels and maximum dimensions
         ccdinf = spooler.get_ccd_pars(source, resource)
 
         try:
-            nxdef = cl.get_default('nx')
+            nxdef = cl.get_default("nx")
         except:
             nxdef = 3
 
         if len(ccdinf) > 1:
-            ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
-            if ccd == '0':
+            ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
+            if ccd == "0":
                 ccds = list(ccdinf.keys())
             else:
                 ccds = ccd.split()
                 check = set(ccdinf.keys())
                 if not set(ccds) <= check:
-                    raise hcam.HipercamError(
-                        'At least one invalid CCD label supplied'
-                    )
+                    raise hcam.HipercamError("At least one invalid CCD label supplied")
 
             if len(ccds) > 1:
                 nxdef = min(len(ccds), nxdef)
-                cl.set_default('nx', nxdef)
-                nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+                cl.set_default("nx", nxdef)
+                nx = cl.get_value("nx", "number of panels in X", 3, 1)
             else:
                 nx = 1
         else:
             nx = 1
             ccds = list(ccdinf.keys())
 
-        cl.set_default('pause', 0.)
+        cl.set_default("pause", 0.0)
         pause = cl.get_value(
-            'pause', 'time delay to add between'
-            ' frame plots [secs]', 0., 0.
+            "pause", "time delay to add between" " frame plots [secs]", 0.0, 0.0
         )
 
-        thresh = cl.get_value(
-            'thresh', 'source detection threshold [RMS]', 3.
-        )
-        fwhm = cl.get_value(
-            'fwhm', 'FWHM for source detection [binned pixels]', 4.
-        )
-        minpix = cl.get_value(
-            'minpix', 'minimum number of pixels above threshold', 3
-        )
+        thresh = cl.get_value("thresh", "source detection threshold [RMS]", 3.0)
+        fwhm = cl.get_value("fwhm", "FWHM for source detection [binned pixels]", 4.0)
+        minpix = cl.get_value("minpix", "minimum number of pixels above threshold", 3)
         rmin = cl.get_value(
-            'rmin', 'nearest neighbour for FWHM fits [unbinned pixels]', 20.
+            "rmin", "nearest neighbour for FWHM fits [unbinned pixels]", 20.0
         )
         pmin = cl.get_value(
-            'pmin', 'minimum peak value for profile fits [multiple of threshold]', 5.
+            "pmin", "minimum peak value for profile fits [multiple of threshold]", 5.0
         )
         pmax = cl.get_value(
-            'pmax', 'maximum peak value for profile fits [counts]', 60000.
+            "pmax", "maximum peak value for profile fits [counts]", 60000.0
         )
         emax = cl.get_value(
-            'emax', 'maximum elongation (a/b) for profile fits', 1.2, 1.
+            "emax", "maximum elongation (a/b) for profile fits", 1.2, 1.0
         )
-        nmax = cl.get_value(
-            'nmax', 'maximum number of profile fits', 10, 1
-        )
-        gain = cl.get_value(
-            'gain', 'CCD gain [electrons/ADU]', 1., 0.
-        )
+        nmax = cl.get_value("nmax", "maximum number of profile fits", 10, 1)
+        gain = cl.get_value("gain", "CCD gain [electrons/ADU]", 1.0, 0.0)
         rej = cl.get_value(
-            'rej', 'rejection threshold for profile fits [RMS]', 6., 2.
+            "rej", "rejection threshold for profile fits [RMS]", 6.0, 2.0
         )
-
 
         # bias frame (if any)
         bias = cl.get_value(
-            'bias', "bias frame ['none' to ignore]",
-            cline.Fname('bias', hcam.HCAM), ignore='none'
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
         )
         if bias is not None:
             # read the bias frame
@@ -366,34 +358,38 @@ def ftargets(args=None):
 
         # flat (if any)
         flat = cl.get_value(
-            'flat', fprompt,
-            cline.Fname('flat', hcam.HCAM), ignore='none'
+            "flat", fprompt, cline.Fname("flat", hcam.HCAM), ignore="none"
         )
         if flat is not None:
             # read the flat frame
             flat = hcam.MCCD.read(flat)
 
         output = cl.get_value(
-            'output', "output file for results",
-            cline.Fname('sources', hcam.SEP, cline.Fname.NEW),
+            "output",
+            "output file for results",
+            cline.Fname("sources", hcam.SEP, cline.Fname.NEW),
         )
 
         iset = cl.get_value(
-            'iset', 'set intensity a(utomatically),'
-            ' d(irectly) or with p(ercentiles)?',
-            'a', lvals=['a','d','p'])
+            "iset",
+            "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+            "a",
+            lvals=["a", "d", "p"],
+        )
         iset = iset.lower()
 
         plo, phi = 5, 95
         ilo, ihi = 0, 1000
-        if iset == 'd':
-            ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
-            ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
-        elif iset == 'p':
-            plo = cl.get_value('plo', 'lower intensity limit percentile',
-                               5., 0., 100.)
-            phi = cl.get_value('phi', 'upper intensity limit percentile',
-                               95., 0., 100.)
+        if iset == "d":
+            ilo = cl.get_value("ilo", "lower intensity limit", 0.0)
+            ihi = cl.get_value("ihi", "upper intensity limit", 1000.0)
+        elif iset == "p":
+            plo = cl.get_value(
+                "plo", "lower intensity limit percentile", 5.0, 0.0, 100.0
+            )
+            phi = cl.get_value(
+                "phi", "upper intensity limit percentile", 95.0, 0.0, 100.0
+            )
 
         # region to plot
         for i, cnam in enumerate(ccds):
@@ -407,11 +403,10 @@ def ftargets(args=None):
                 ymin = min(ymin, float(-nypad))
                 ymax = max(ymax, float(nytot + nypad + 1))
 
-        xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
-        xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
-        ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
-        yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
-
+        xlo = cl.get_value("xlo", "left-hand X value", xmin, xmin, xmax)
+        xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax)
+        ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax)
+        yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax)
 
     ################################################################
     #
@@ -420,39 +415,45 @@ def ftargets(args=None):
     # open image plot device
     imdev = hcam.pgp.Device(device)
     if width > 0 and height > 0:
-        pgpap(width,height/width)
+        pgpap(width, height / width)
 
     # set up panels and axes
     nccd = len(ccds)
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
     # slice up viewport
-    pgsubp(nx,ny)
+    pgsubp(nx, ny)
 
     # plot axes, labels, titles. Happens once only
     for cnam in ccds:
-        pgsci(hcam.pgp.Params['axis.ci'])
-        pgsch(hcam.pgp.Params['axis.number.ch'])
+        pgsci(hcam.pgp.Params["axis.ci"])
+        pgsch(hcam.pgp.Params["axis.number.ch"])
         pgenv(xlo, xhi, ylo, yhi, 1, 0)
-        pglab('X','Y','CCD {:s}'.format(cnam))
+        pglab("X", "Y", "CCD {:s}".format(cnam))
 
     # initialisations. 'last_ok' is used to store the last OK frames of each
     # CCD for retrieval when coping with skipped data.
 
-    total_time = 0 # time waiting for new frame
+    total_time = 0  # time waiting for new frame
 
-    nhdu = len(ccds)*[0]
-    thetas = np.linspace(0,2*np.pi,100)
+    nhdu = len(ccds) * [0]
+    thetas = np.linspace(0, 2 * np.pi, 100)
 
     # values of various parameters
-    fwhm_min, beta, beta_min, beta_max, readout, \
-        max_nfev = 2., 4., 1.5, 10., 5.5, 100
+    fwhm_min, beta, beta_min, beta_max, readout, max_nfev = (
+        2.0,
+        4.0,
+        1.5,
+        10.0,
+        5.5,
+        100,
+    )
 
     # number of failed fits
     nfail = 0
 
     # open the output file for results
-    with fitsio.FITS(output, 'rw', clobber=True) as fout:
+    with fitsio.FITS(output, "rw", clobber=True) as fout:
 
         # plot images
         with spooler.data_source(source, resource, first, full=False) as spool:
@@ -468,7 +469,7 @@ def ftargets(args=None):
                     )
 
                     if give_up:
-                        print('ftargets stopped')
+                        print("ftargets stopped")
                         break
                     elif try_again:
                         continue
@@ -481,12 +482,14 @@ def ftargets(args=None):
                     hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
                 # indicate progress
-                tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
+                tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
                 print(
-                    '{:d}, utc= {:s} ({:s}), '.format(
-                        mccd.head['NFRAME'], tstamp.iso,
-                        'ok' if mccd.head.get('GOODTIME', True) else 'nok'),
-                    end=''
+                    "{:d}, utc= {:s} ({:s}), ".format(
+                        mccd.head["NFRAME"],
+                        tstamp.iso,
+                        "ok" if mccd.head.get("GOODTIME", True) else "nok",
+                    ),
+                    end="",
                 )
 
                 # accumulate errors
@@ -508,7 +511,7 @@ def ftargets(args=None):
                             lsmax = max(lsmax, len(wnam))
 
                 # display the CCDs chosen
-                message = ''
+                message = ""
                 pgbbuf()
                 for nc, cnam in enumerate(ccds):
                     ccd = mccd[cnam]
@@ -532,11 +535,9 @@ def ftargets(args=None):
                         for wnam in ccd:
                             try:
                                 # chop window, find objects
-                                wind = ccd[wnam].window(xlo,xhi,ylo,yhi)
-                                wind.data = wind.data.astype('float')
-                                objects, bkg = findStars(
-                                    wind, thresh, fwhm, True
-                                )
+                                wind = ccd[wnam].window(xlo, xhi, ylo, yhi)
+                                wind.data = wind.data.astype("float")
+                                objects, bkg = findStars(wind, thresh, fwhm, True)
 
                                 # subtract background from frame for display
                                 # purposes.
@@ -544,39 +545,50 @@ def ftargets(args=None):
                                 ccd[wnam] = wind
 
                                 # remove targets with too few pixels
-                                objects = objects[objects['tnpix'] >= minpix]
+                                objects = objects[objects["tnpix"] >= minpix]
 
                                 # run nearest neighbour search on all
                                 # objects, but select only a subset
                                 # with right count levels for FWHM
                                 # measurement, and which are not too
                                 # elongated
-                                results = isolated(objects['x'], objects['y'], rmin)
+                                results = isolated(objects["x"], objects["y"], rmin)
 
-                                peaks = objects['peak']
-                                ok = (peaks < pmax) & \
-                                     (peaks > pmin*objects['thresh']) & \
-                                     (objects['a'] < emax*objects['b'])
+                                peaks = objects["peak"]
+                                ok = (
+                                    (peaks < pmax)
+                                    & (peaks > pmin * objects["thresh"])
+                                    & (objects["a"] < emax * objects["b"])
+                                )
                                 dfwhms = np.array(
-                                    [i for i in range(len(results)) if \
-                                     ok[i] and len(results[i]) == 1]
+                                    [
+                                        i
+                                        for i in range(len(results))
+                                        if ok[i] and len(results[i]) == 1
+                                    ]
                                 )
 
                                 # pick the brightest. 'dfwhms' are the
                                 # indices of the selected targets for
                                 # FWHM measurement
-                                fluxes = objects['flux'][dfwhms]
+                                fluxes = objects["flux"][dfwhms]
                                 isort = np.argsort(fluxes)[::-1]
                                 dfwhms = dfwhms[isort[:nmax]]
 
                                 # buffer for storing the FWHMs, including NaNs
                                 # for the ones thet are skipped
-                                fwhms = np.zeros_like(peaks,dtype=np.float32)
-                                betas = np.zeros_like(peaks,dtype=np.float32)
-                                nfevs = np.zeros_like(peaks,dtype=np.int32)
+                                fwhms = np.zeros_like(peaks, dtype=np.float32)
+                                betas = np.zeros_like(peaks, dtype=np.float32)
+                                nfevs = np.zeros_like(peaks, dtype=np.int32)
 
-                                for i, (x,y,peak,fwhm) in \
-                                    enumerate(zip(objects['x'],objects['y'],peaks,objects['fwhm'])):
+                                for i, (x, y, peak, fwhm) in enumerate(
+                                    zip(
+                                        objects["x"],
+                                        objects["y"],
+                                        peaks,
+                                        objects["fwhm"],
+                                    )
+                                ):
                                     # fit FWHMs of selected targets
 
                                     if i in dfwhms:
@@ -584,18 +596,42 @@ def ftargets(args=None):
                                         try:
                                             # extract fit Window
                                             fwind = wind.window(
-                                                x-rmin, x+rmin, y-rmin, y+rmin
+                                                x - rmin, x + rmin, y - rmin, y + rmin
                                             )
 
                                             # fit profile
                                             ofwhm = fwhm
                                             obeta = beta
-                                            (height, x, y, fwhm, beta), epars, \
-                                                (wfit, X, Y, sigma, chisq, nok, \
-                                                 nrej, npar, nfev) = hcam.fitting.fitMoffat(
-                                                     fwind, None,  peak, x, y, fwhm, 2., False,
-                                                     beta, readout, gain, rej, 1, max_nfev
-                                                 )
+                                            (
+                                                (height, x, y, fwhm, beta),
+                                                epars,
+                                                (
+                                                    wfit,
+                                                    X,
+                                                    Y,
+                                                    sigma,
+                                                    chisq,
+                                                    nok,
+                                                    nrej,
+                                                    npar,
+                                                    nfev,
+                                                ),
+                                            ) = hcam.fitting.fitMoffat(
+                                                fwind,
+                                                None,
+                                                peak,
+                                                x,
+                                                y,
+                                                fwhm,
+                                                2.0,
+                                                False,
+                                                beta,
+                                                readout,
+                                                gain,
+                                                rej,
+                                                1,
+                                                max_nfev,
+                                            )
                                             fwhms[i] = fwhm
                                             betas[i] = beta
                                             nfevs[i] = nfev
@@ -605,7 +641,9 @@ def ftargets(args=None):
 
                                         except hcam.HipercamError as err:
                                             emessages.append(
-                                                ' >> Targ {:d}: fit failed ***: {!s}'.format(i, err)
+                                                " >> Targ {:d}: fit failed ***: {!s}".format(
+                                                    i, err
+                                                )
                                             )
                                             fwhms[i] = np.nan
                                             betas[i] = np.nan
@@ -617,21 +655,22 @@ def ftargets(args=None):
                                         betas[i] = np.nan
                                         nfevs[i] = 0
 
-
                                 # tack on frame number & window name
-                                frames = (nf+first)*np.ones(
-                                    len(objects),dtype=np.int32
+                                frames = (nf + first) * np.ones(
+                                    len(objects), dtype=np.int32
                                 )
                                 wnams = np.array(
-                                    len(objects)*[wnam], dtype='U{:d}'.format(lsmax)
+                                    len(objects) * [wnam], dtype="U{:d}".format(lsmax)
                                 )
                                 objects = append_fields(
-                                    objects,('ffwhm','beta','nfev','nframe','wnam'),(fwhms,betas,nfevs,frames,wnams)
+                                    objects,
+                                    ("ffwhm", "beta", "nfev", "nframe", "wnam"),
+                                    (fwhms, betas, nfevs, frames, wnams),
                                 )
 
                                 # save the objects and the
                                 objs.append(objects)
-                                dofwhms.append(dfwhms+nobj)
+                                dofwhms.append(dfwhms + nobj)
                                 nobj += len(objects)
 
                             except hcam.HipercamError:
@@ -649,38 +688,68 @@ def ftargets(args=None):
                             # set to the correct panel and then plot CCD
                             ix = (nc % nx) + 1
                             iy = nc // nx + 1
-                            pgpanl(ix,iy)
+                            pgpanl(ix, iy)
                             vmin, vmax = hcam.pgp.pCcd(
-                                ccd,iset,plo,phi,ilo,ihi,
-                                xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
+                                ccd,
+                                iset,
+                                plo,
+                                phi,
+                                ilo,
+                                ihi,
+                                xlo=xlo,
+                                xhi=xhi,
+                                ylo=ylo,
+                                yhi=yhi,
                             )
 
-                            pgsci(core.CNAMS['red'])
-                            As,Bs,Thetas,Xs,Ys = objs['a'], objs['b'], objs['theta'], objs['x'], objs['y']
-                            for a,b,theta0,x,y in zip(As,Bs,Thetas,Xs,Ys):
-                                xs = x + 3*a*np.cos(thetas+theta0)
-                                ys = y + 3*b*np.sin(thetas+theta0)
-                                pgline(xs,ys)
+                            pgsci(core.CNAMS["red"])
+                            As, Bs, Thetas, Xs, Ys = (
+                                objs["a"],
+                                objs["b"],
+                                objs["theta"],
+                                objs["x"],
+                                objs["y"],
+                            )
+                            for a, b, theta0, x, y in zip(As, Bs, Thetas, Xs, Ys):
+                                xs = x + 3 * a * np.cos(thetas + theta0)
+                                ys = y + 3 * b * np.sin(thetas + theta0)
+                                pgline(xs, ys)
 
-                            pgsci(core.CNAMS['green'])
-                            for xmin,xmax,ymin,ymax in zip(objs['xmin'],objs['xmax'],objs['ymin'],objs['ymax']):
-                                xs = [xmin,xmax,xmax,xmin,xmin]
-                                ys = [ymin,ymin,ymax,ymax,ymin]
-                                pgline(xs,ys)
+                            pgsci(core.CNAMS["green"])
+                            for xmin, xmax, ymin, ymax in zip(
+                                objs["xmin"], objs["xmax"], objs["ymin"], objs["ymax"]
+                            ):
+                                xs = [xmin, xmax, xmax, xmin, xmin]
+                                ys = [ymin, ymin, ymax, ymax, ymin]
+                                pgline(xs, ys)
 
-                            pgsci(core.CNAMS['blue'])
-                            for x,y in zip(objs['x'][dofwhms], objs['y'][dofwhms]):
-                                xs = [x-rmin,x+rmin,x+rmin,x-rmin,x-rmin]
-                                ys = [y-rmin,y-rmin,y+rmin,y+rmin,y-rmin]
-                                pgline(xs,ys)
+                            pgsci(core.CNAMS["blue"])
+                            for x, y in zip(objs["x"][dofwhms], objs["y"][dofwhms]):
+                                xs = [x - rmin, x + rmin, x + rmin, x - rmin, x - rmin]
+                                ys = [y - rmin, y - rmin, y + rmin, y + rmin, y - rmin]
+                                pgline(xs, ys)
 
                             # remove some less useful fields to save a
                             # bit more space prior to saving to disk
                             objs = remove_field_names(
                                 objs,
-                                ('x2','y2','xy','cxx','cxy','cyy','hfd',
-                                 'cflux','cpeak','xcpeak','ycpeak',
-                                 'xmin','xmax','ymin','ymax')
+                                (
+                                    "x2",
+                                    "y2",
+                                    "xy",
+                                    "cxx",
+                                    "cxy",
+                                    "cyy",
+                                    "hfd",
+                                    "cflux",
+                                    "cpeak",
+                                    "xcpeak",
+                                    "ycpeak",
+                                    "xmin",
+                                    "xmax",
+                                    "ymin",
+                                    "ymax",
+                                ),
                             )
 
                             # save to disk
@@ -688,16 +757,16 @@ def ftargets(args=None):
                                 fout[nhdu[nc]].append(objs)
                             else:
                                 fout.write(objs)
-                                nhdu[nc] = nc+1
+                                nhdu[nc] = nc + 1
 
                         # accumulate string of image scalings
                         if nc:
-                            message += ', ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
-                                cnam,vmin,vmax,mccd.head['EXPTIME']
+                            message += ", ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
+                                cnam, vmin, vmax, mccd.head["EXPTIME"]
                             )
                         else:
-                            message += 'ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
-                                cnam,vmin,vmax,mccd.head['EXPTIME']
+                            message += "ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
+                                cnam, vmin, vmax, mccd.head["EXPTIME"]
                             )
 
                 pgebuf()
@@ -706,14 +775,15 @@ def ftargets(args=None):
                 for emessage in emessages:
                     print(emessage)
 
-                if pause > 0.:
+                if pause > 0.0:
                     # pause between frames
                     time.sleep(pause)
 
                 # update the frame number
                 n += 1
 
-    print('Number of failed fits =',nfail)        
+    print("Number of failed fits =", nfail)
+
 
 def remove_field_names(a, names):
     """
@@ -725,6 +795,7 @@ def remove_field_names(a, names):
             anames.remove(name)
     b = a[anames]
     return b
+
 
 def isolated(xs, ys, rmin):
     """

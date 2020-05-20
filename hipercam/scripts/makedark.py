@@ -11,7 +11,9 @@ import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
-__all__ =  ['makedark',]
+__all__ = [
+    "makedark",
+]
 
 ############################################################################
 #
@@ -20,6 +22,7 @@ __all__ =  ['makedark',]
 # exposure applies to the bias.
 #
 #############################################################################
+
 
 def makedark(args=None):
     """``makedark [source] run first last bias sigma plot [twait tmax output]``
@@ -81,45 +84,47 @@ def makedark(args=None):
     command, args = utils.script_args(args)
 
     # get inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('last', Cline.LOCAL, Cline.PROMPT)
-        cl.register('bias', Cline.LOCAL, Cline.PROMPT)
-        cl.register('sigma', Cline.LOCAL, Cline.PROMPT)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('output', Cline.GLOBAL, Cline.PROMPT)
+        cl.register("source", Cline.GLOBAL, Cline.HIDE)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("first", Cline.LOCAL, Cline.PROMPT)
+        cl.register("last", Cline.LOCAL, Cline.PROMPT)
+        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
+        cl.register("sigma", Cline.LOCAL, Cline.PROMPT)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.GLOBAL, Cline.PROMPT)
 
         # get inputs
-        source = cl.get_value('source', 'data source [hs, hl, us, ul]',
-                              'hl', lvals=('hs','hl','us','ul'))
+        source = cl.get_value(
+            "source",
+            "data source [hs, hl, us, ul]",
+            "hl",
+            lvals=("hs", "hl", "us", "ul"),
+        )
 
-        run = cl.get_value('run', 'run name', 'run005')
+        run = cl.get_value("run", "run name", "run005")
 
-        first = cl.get_value('first', 'first frame to grab', 1, 0)
-        last = cl.get_value('last', 'last frame to grab', 0)
+        first = cl.get_value("first", "first frame to grab", 1, 0)
+        last = cl.get_value("last", "last frame to grab", 0)
         if last < first and last != 0:
-            sys.stderr.write('last must be >= first or 0')
+            sys.stderr.write("last must be >= first or 0")
             sys.exit(1)
 
-        bias = cl.get_value('bias', 'bias to subtract', 'bias')
+        bias = cl.get_value("bias", "bias to subtract", "bias")
 
-        sigma = cl.get_value(
-            'sigma', 'number of RMS deviations to clip', 3., 1.
-            )
+        sigma = cl.get_value("sigma", "number of RMS deviations to clip", 3.0, 1.0)
 
-        twait = cl.get_value(
-            'twait', 'time to wait for a new frame [secs]', 1., 0.)
+        twait = cl.get_value("twait", "time to wait for a new frame [secs]", 1.0, 0.0)
         tmax = cl.get_value(
-            'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+            "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+        )
 
-        output = cl.get_value('output', 'output name', 'bias')
+        output = cl.get_value("output", "output name", "bias")
 
-    # Now the actual work. 
+    # Now the actual work.
 
     # We pass full argument lists to grab and combine because with None as the
     # command name, the default file mechanism is by-passed. 'prompt' is used
@@ -133,9 +138,18 @@ def makedark(args=None):
     print("\nCalling 'grab' ...")
 
     args = [
-        None,'prompt',source,run,'yes',
-        str(first),str(last),'no',str(twait),
-        str(tmax),'none','f32'
+        None,
+        "prompt",
+        source,
+        run,
+        "yes",
+        str(first),
+        str(last),
+        "no",
+        str(twait),
+        str(tmax),
+        "none",
+        "f32",
     ]
     flist = hcam.scripts.grab(args)
 
@@ -146,11 +160,14 @@ def makedark(args=None):
             first_frame = f.readline().strip()
 
         mccd = hcam.MCCD.read(first_frame)
-        instrument = mccd.head.get('INSTRUME','UNKNOWN')
-        if instrument == 'ULTRACAM' or instrument == 'HIPERCAM' or \
-           instrument == 'ULTRASPEC':
-            if 'CLEAR' in mccd.head:
-                if not mccd.head['CLEAR']:
+        instrument = mccd.head.get("INSTRUME", "UNKNOWN")
+        if (
+            instrument == "ULTRACAM"
+            or instrument == "HIPERCAM"
+            or instrument == "ULTRASPEC"
+        ):
+            if "CLEAR" in mccd.head:
+                if not mccd.head["CLEAR"]:
                     warnings.warn(
                         """You should not include the first frame of a run when making a dark from
 readout modes which do not have clear enabled since the first frame is
@@ -158,19 +175,28 @@ different from all others."""
                     )
             else:
                 warnings.warn(
-                        """Instrument = {:s} has readout modes with both clears enabled or not
+                    """Instrument = {:s} has readout modes with both clears enabled or not
 between exposures. When no clear is enabled, the first frame is different
 from all others and should normally not be included when making a dark.
 This message is a temporary stop gap until the nature of the readout mode
 has been determined with respect to clears."""
-                    )
-                
+                )
+
     try:
 
         print("\nCalling 'combine' ...")
         args = [
-            None, 'prompt', flist, 'none', 'none', 'none', 'c', str(sigma),
-            'i', 'yes', output
+            None,
+            "prompt",
+            flist,
+            "none",
+            "none",
+            "none",
+            "c",
+            str(sigma),
+            "i",
+            "yes",
+            output,
         ]
         hcam.scripts.combine(args)
 
@@ -180,27 +206,29 @@ has been determined with respect to clears."""
                 fname = fname.strip()
                 os.remove(fname)
         os.remove(flist)
-        print('temporary files have been deleted')
+        print("temporary files have been deleted")
 
         # correct exposure time of dark frame by the exposure time of
         # the bias frame used
-        dark = hcam.MCCD.read(utils.add_extension(output,hcam.HCAM))
-        bias = hcam.MCCD.read(utils.add_extension(bias,hcam.HCAM))
-        if 'EXPTIME' in dark.head and 'EXPTIME' in bias.head:
-            dexpose = dark.head['EXPTIME']
-            bexpose = bias.head['EXPTIME']
-            dark.head['EXPTIME'] = dexpose-bexpose
-            print('Corrected dark exposure time from {:.4f} to {:.4f}'.format(
-                dexpose,dexpose-bexpose)
+        dark = hcam.MCCD.read(utils.add_extension(output, hcam.HCAM))
+        bias = hcam.MCCD.read(utils.add_extension(bias, hcam.HCAM))
+        if "EXPTIME" in dark.head and "EXPTIME" in bias.head:
+            dexpose = dark.head["EXPTIME"]
+            bexpose = bias.head["EXPTIME"]
+            dark.head["EXPTIME"] = dexpose - bexpose
+            print(
+                "Corrected dark exposure time from {:.4f} to {:.4f}".format(
+                    dexpose, dexpose - bexpose
+                )
             )
-            dark.write(utils.add_extension(output,hcam.HCAM), True)
+            dark.write(utils.add_extension(output, hcam.HCAM), True)
         else:
             warnings.warn(
-                'Could not find exposure time (EXPTIME) in the dark and/or'
-                ' the bias hence could not correct it in the dark'
+                "Could not find exposure time (EXPTIME) in the dark and/or"
+                " the bias hence could not correct it in the dark"
             )
-        
-        print('makedark finished')
+
+        print("makedark finished")
 
     except KeyboardInterrupt:
         # this to ensure we delete the temporary files
@@ -209,5 +237,5 @@ has been determined with respect to clears."""
                 fname = fname.strip()
                 os.remove(fname)
         os.remove(flist)
-        print('\ntemporary files have been deleted')
-        print('makedark aborted')
+        print("\ntemporary files have been deleted")
+        print("makedark aborted")

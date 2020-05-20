@@ -8,13 +8,16 @@ import hipercam as hcam
 from hipercam import cline, utils, support, spooler
 from hipercam.cline import Cline
 
-__all__ = ['combine',]
+__all__ = [
+    "combine",
+]
 
 ############################
 #
 # combine -- combines images
 #
 ############################
+
 
 def combine(args=None):
     """``combine list bias dark flat method (sigma) adjust (usemean) [plot clobber]
@@ -88,31 +91,32 @@ def combine(args=None):
     command, args = utils.script_args(args)
 
     # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('list', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('bias', Cline.LOCAL, Cline.PROMPT)
-        cl.register('dark', Cline.LOCAL, Cline.PROMPT)
-        cl.register('flat', Cline.LOCAL, Cline.PROMPT)
-        cl.register('method', Cline.LOCAL, Cline.PROMPT)
-        cl.register('sigma', Cline.LOCAL, Cline.PROMPT)
-        cl.register('adjust', Cline.LOCAL, Cline.PROMPT)
-        cl.register('usemean', Cline.LOCAL, Cline.PROMPT)
-        cl.register('plot', Cline.LOCAL, Cline.HIDE)
-        cl.register('clobber', Cline.LOCAL, Cline.HIDE)
-        cl.register('output', Cline.LOCAL, Cline.PROMPT)
+        cl.register("list", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
+        cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
+        cl.register("method", Cline.LOCAL, Cline.PROMPT)
+        cl.register("sigma", Cline.LOCAL, Cline.PROMPT)
+        cl.register("adjust", Cline.LOCAL, Cline.PROMPT)
+        cl.register("usemean", Cline.LOCAL, Cline.PROMPT)
+        cl.register("plot", Cline.LOCAL, Cline.HIDE)
+        cl.register("clobber", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         flist = cl.get_value(
-            'list', 'list of files to combine',
-            cline.Fname('files', hcam.LIST)
+            "list", "list of files to combine", cline.Fname("files", hcam.LIST)
         )
 
         # bias frame (if any)
         bias = cl.get_value(
-            'bias', "bias frame ['none' to ignore]",
-            cline.Fname('bias', hcam.HCAM), ignore='none'
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
         )
         if bias is not None:
             # read the bias frame
@@ -120,8 +124,10 @@ def combine(args=None):
 
         # dark frame (if any)
         dark = cl.get_value(
-            'dark', "dark frame ['none' to ignore]",
-            cline.Fname('dark', hcam.HCAM), ignore='none'
+            "dark",
+            "dark frame ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM),
+            ignore="none",
         )
         if dark is not None:
             # read the dark frame
@@ -129,39 +135,43 @@ def combine(args=None):
 
         # flat frame (if any)
         flat = cl.get_value(
-            'flat', "flat frame ['none' to ignore]",
-            cline.Fname('flat', hcam.HCAM), ignore='none'
+            "flat",
+            "flat frame ['none' to ignore]",
+            cline.Fname("flat", hcam.HCAM),
+            ignore="none",
         )
         if flat is not None:
             # read the flat frame
             flat = hcam.MCCD.read(flat)
 
         method = cl.get_value(
-            'method', 'c(lipped mean), m(edian)', 'c', lvals=('c','m')
+            "method", "c(lipped mean), m(edian)", "c", lvals=("c", "m")
         )
 
-        if method == 'c':
-            sigma = cl.get_value(
-                'sigma', 'number of RMS deviations to clip', 3.
-            )
+        if method == "c":
+            sigma = cl.get_value("sigma", "number of RMS deviations to clip", 3.0)
 
         adjust = cl.get_value(
-            'adjust', 'i(gnore), n(ormalise), b(ias offsets)',
-            'i', lvals=('i','n','b')
+            "adjust",
+            "i(gnore), n(ormalise), b(ias offsets)",
+            "i",
+            lvals=("i", "n", "b"),
         )
 
-        if adjust == 'n' or adjust == 'b':
+        if adjust == "n" or adjust == "b":
 
             usemean = cl.get_value(
-                'usemean',
-                'use the mean for normalisation / offsetting [else median]',
-                True
+                "usemean",
+                "use the mean for normalisation / offsetting [else median]",
+                True,
             )
 
             plot = cl.get_value(
-                'plot',
-                'plot mean levels versus frame number?' if usemean else \
-                'plot median levels versus frame number?', False
+                "plot",
+                "plot mean levels versus frame number?"
+                if usemean
+                else "plot median levels versus frame number?",
+                False,
             )
 
         else:
@@ -169,16 +179,15 @@ def combine(args=None):
             usemean = False
 
         clobber = cl.get_value(
-            'clobber', 'clobber any pre-existing files on output',
-            False
+            "clobber", "clobber any pre-existing files on output", False
         )
 
         outfile = cl.get_value(
-            'output', 'output file',
+            "output",
+            "output file",
             cline.Fname(
-                'hcam', hcam.HCAM,
-                cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
-            )
+                "hcam", hcam.HCAM, cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
+            ),
         )
 
     # inputs done with
@@ -187,17 +196,13 @@ def combine(args=None):
     # for the CCD names etc.
     with open(flist) as fin:
         for line in fin:
-            if not line.startswith('#') and not line.isspace():
+            if not line.startswith("#") and not line.isspace():
                 template_name = line.strip()
                 break
         else:
-            raise hcam.HipercamError(
-                'List = {:s} is empty'.format(flist)
-            )
+            raise hcam.HipercamError("List = {:s} is empty".format(flist))
 
-    template = hcam.MCCD.read(
-        utils.add_extension(template_name,hcam.HCAM)
-    )
+    template = hcam.MCCD.read(utils.add_extension(template_name, hcam.HCAM))
 
     if bias is not None:
         # crop the bias
@@ -217,9 +222,7 @@ def combine(args=None):
 
         # Read files into memory, insisting that they
         # all have the same set of CCDs
-        print(
-            "\nLoading all CCDs labelled '{:s}' from {:s}".format(cnam, flist)
-        )
+        print("\nLoading all CCDs labelled '{:s}' from {:s}".format(cnam, flist))
 
         ccds, means = [], []
         nrej, ntot = 0, 0
@@ -228,14 +231,14 @@ def combine(args=None):
             if bias is not None:
                 # extract relevant CCD from the bias
                 bccd = bias[cnam]
-                bexpose = bias.head.get('EXPTIME',0.)
+                bexpose = bias.head.get("EXPTIME", 0.0)
             else:
-                bexpose = 0.
+                bexpose = 0.0
 
             if dark is not None:
                 # extract relevant CCD from the dark
                 dccd = dark[cnam]
-                dexpose = dark.head['EXPTIME']
+                dexpose = dark.head["EXPTIME"]
 
             if flat is not None:
                 # extract relevant CCD from the flat
@@ -252,8 +255,8 @@ def combine(args=None):
 
                     if dark is not None:
                         # subtract dark
-                        scale = (ccd.head['EXPTIME']-bexpose)/dexpose
-                        ccd -= scale*dccd
+                        scale = (ccd.head["EXPTIME"] - bexpose) / dexpose
+                        ccd -= scale * dccd
 
                     if flat is not None:
                         # apply flat
@@ -262,7 +265,7 @@ def combine(args=None):
                     # keep the result
                     ccds.append(ccd)
 
-                    if (adjust == 'b' or adjust == 'n') and mean is None:
+                    if (adjust == "b" or adjust == "n") and mean is None:
                         # store the first mean [median]
                         if usemean:
                             mean = ccd.mean()
@@ -271,17 +274,17 @@ def combine(args=None):
 
             if len(ccds) == 0:
                 raise hcam.HipercamError(
-                    'Found no valid examples of CCD {:s}'
-                    ' in list = {:s}'.format(cnam,flist)
+                    "Found no valid examples of CCD {:s}"
+                    " in list = {:s}".format(cnam, flist)
                 )
 
             else:
-                print('Loaded {:d} CCDs'.format(len(ccds)))
+                print("Loaded {:d} CCDs".format(len(ccds)))
 
-        if adjust == 'b' or adjust == 'n':
+        if adjust == "b" or adjust == "n":
 
             # adjust the means
-            print('Computing and adjusting their mean levels')
+            print("Computing and adjusting their mean levels")
 
             # now carry out the adjustments
             for ccd in ccds:
@@ -291,23 +294,23 @@ def combine(args=None):
                     cmean = ccd.median()
 
                 means.append(cmean)
-                if adjust == 'b':
+                if adjust == "b":
                     ccd += mean - cmean
-                elif adjust == 'n':
+                elif adjust == "n":
                     ccd *= mean / cmean
 
             if plot:
                 plt.plot(means)
-                plt.plot(means,'.k')
-                plt.text(len(means)+1,means[-1],cnam,va='center',ha='left')
+                plt.plot(means, ".k")
+                plt.text(len(means) + 1, means[-1], cnam, va="center", ha="left")
 
         # Finally, combine
-        if method == 'm':
-            print('Combining them (median) and storing the result')
-        elif method == 'c':
-            print('Combining them (clipped mean) and storing the result')
+        if method == "m":
+            print("Combining them (median) and storing the result")
+        elif method == "c":
+            print("Combining them (clipped mean) and storing the result")
         else:
-            raise NotImplementedError('method = {:s} not implemented'.format(method))
+            raise NotImplementedError("method = {:s} not implemented".format(method))
 
         for wnam, wind in template[cnam].items():
 
@@ -319,38 +322,44 @@ def combine(args=None):
             # (axis=0) running over the images. We want to average / median
             # over this axis.
 
-            if method == 'm':
+            if method == "m":
                 # median
-                wind.data = np.median(arr3d,axis=0)
+                wind.data = np.median(arr3d, axis=0)
 
-            elif method == 'c':
+            elif method == "c":
                 # Cython routine avgstd requires np.float32 input
                 arr3d = arr3d.astype(np.float32)
-                if sigma > 0.:
+                if sigma > 0.0:
                     avg, std, num = support.avgstd(arr3d, sigma)
-                    nrej += len(ccds)*num.size-num.sum()
-                    ntot += len(ccds)*num.size
+                    nrej += len(ccds) * num.size - num.sum()
+                    ntot += len(ccds) * num.size
                 else:
-                    avg = np.mean(arr3d,axis=0)
+                    avg = np.mean(arr3d, axis=0)
                 wind.data = avg
 
         # Add history
-        if method == 'm':
+        if method == "m":
             template[cnam].head.add_history(
-                'Median combine of {:d} images'.format(len(ccds))
+                "Median combine of {:d} images".format(len(ccds))
+            )
+        elif method == "c":
+            print(
+                "Rejected {:d} pixels = {:.3f}% of the total".format(
+                    nrej, 100 * nrej / ntot
                 )
-        elif method == 'c':
-            print('Rejected {:d} pixels = {:.3f}% of the total'.format(nrej,100*nrej/ntot))
+            )
             template[cnam].head.add_history(
-                'Clipped mean combine of {:d} images, sigma = {:.1f}'.format(len(ccds), sigma)
+                "Clipped mean combine of {:d} images, sigma = {:.1f}".format(
+                    len(ccds), sigma
                 )
+            )
 
     # write out
     template.write(outfile, clobber)
-    print('\nFinal result written to {:s}'.format(outfile))
+    print("\nFinal result written to {:s}".format(outfile))
 
     # finally
     if plot:
-        plt.xlabel('Frame number')
-        plt.ylabel('Mean counts')
+        plt.xlabel("Frame number")
+        plt.ylabel("Mean counts")
         plt.show()

@@ -14,6 +14,7 @@ from hipercam.cline import Cline
 #
 #######################################
 
+
 def hfilter(args=None):
     """``hfilter input ccd nx filter [fwhm] output``
 
@@ -47,26 +48,24 @@ def hfilter(args=None):
     command, args = utils.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('input', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('filter', Cline.LOCAL, Cline.PROMPT)
-        cl.register('fwhm', Cline.LOCAL, Cline.PROMPT)
-        cl.register('clobber', Cline.LOCAL, Cline.HIDE)
-        cl.register('output', Cline.LOCAL, Cline.PROMPT)
+        cl.register("input", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("filter", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fwhm", Cline.LOCAL, Cline.PROMPT)
+        cl.register("clobber", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
-        frame = cl.get_value(
-            'input', 'frame to filter', cline.Fname('hcam', hcam.HCAM)
-        )
+        frame = cl.get_value("input", "frame to filter", cline.Fname("hcam", hcam.HCAM))
         mccd = hcam.MCCD.read(frame)
 
         max_ccd = len(mccd)
         if max_ccd > 1:
-            ccd = cl.get_value('ccd', 'CCD(s) to filter [0 for all]', '0')
-            if ccd == '0':
+            ccd = cl.get_value("ccd", "CCD(s) to filter [0 for all]", "0")
+            if ccd == "0":
                 ccds = list(mccd.keys())
             else:
                 ccds = ccd.split()
@@ -74,45 +73,42 @@ def hfilter(args=None):
             ccds = list(mccd.keys())
 
         # define the display intensities
-        filt = cl.get_value(
-            'filter', 'filter to apply: g(aussian)','g',
-            lvals=['g',]
-        )
+        filt = cl.get_value("filter", "filter to apply: g(aussian)", "g", lvals=["g",])
 
-        if filt == 'g':
+        if filt == "g":
             fwhm = cl.get_value(
-                'fwhm', 'FWHM for gaussian filter (binned pixels)',
-                4., 0.01
+                "fwhm", "FWHM for gaussian filter (binned pixels)", 4.0, 0.01
             )
 
         clobber = cl.get_value(
-            'clobber', 'clobber any pre-existing files on output',
-            False
+            "clobber", "clobber any pre-existing files on output", False
         )
 
         output = cl.get_value(
-            'output', 'output file',
+            "output",
+            "output file",
             cline.Fname(
-                'filtered', hcam.HCAM,
-                cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
-            )
+                "filtered",
+                hcam.HCAM,
+                cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER,
+            ),
         )
 
     # all inputs obtained, filter
 
-    if filt == 'g':
+    if filt == "g":
         # create filter kernal
-        kern = Gaussian2DKernel(fwhm/np.sqrt(8*np.log(2)))
+        kern = Gaussian2DKernel(fwhm / np.sqrt(8 * np.log(2)))
 
     for cnam in ccds:
 
         ccd = mccd[cnam]
         for wnam, wind in ccd.items():
-            if filt == 'g':
-                wind.data = convolve_fft(wind.data, kern, 'wrap')
+            if filt == "g":
+                wind.data = convolve_fft(wind.data, kern, "wrap")
 
-        print('Filtered CCD {:s}'.format(cnam))
+        print("Filtered CCD {:s}".format(cnam))
 
     # write out
     mccd.write(output, clobber)
-    print('\nFiltered result written to {:s}'.format(output))
+    print("\nFiltered result written to {:s}".format(output))

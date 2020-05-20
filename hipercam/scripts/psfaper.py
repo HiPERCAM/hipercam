@@ -12,15 +12,16 @@ import matplotlib as mpl
 
 backend = mpl.get_backend()
 
-if backend == 'Qt4Agg' or 'Qt5Agg':
+if backend == "Qt4Agg" or "Qt5Agg":
     from matplotlib.backends.backend_qt5 import cursord as curs
-elif backend == 'GTK3agg':
+elif backend == "GTK3agg":
     from matplotlib.backends.backend_gtk3 import cursord as curs
 else:
     curs = None
 
 if curs is not None:
     from matplotlib.backend_bases import cursors
+
     try:
         curs[cursors.HAND] = curs[cursors.POINTER]
         curs[cursors.WAIT] = curs[cursors.POINTER]
@@ -40,7 +41,9 @@ from hipercam import cline, utils
 from hipercam.cline import Cline
 from hipercam.scripts.psf_reduce import MoffatPSF
 
-__all__ = ['psfaper', ]
+__all__ = [
+    "psfaper",
+]
 
 
 #############################################################
@@ -193,128 +196,132 @@ def psfaper(args=None):
     command, args = utils.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('mccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('aper', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('linput', Cline.LOCAL, Cline.HIDE)
-        cl.register('width', Cline.LOCAL, Cline.HIDE)
-        cl.register('height', Cline.LOCAL, Cline.HIDE)
-        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
-        cl.register('method', Cline.LOCAL, Cline.PROMPT)
-        cl.register('thresh', Cline.LOCAL, Cline.PROMPT)
-        cl.register('niters', Cline.LOCAL, Cline.PROMPT)
-        cl.register('gfac', Cline.LOCAL, Cline.PROMPT)
-        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('phi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('beta', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwmin', Cline.LOCAL, Cline.HIDE)
-        cl.register('shbox', Cline.LOCAL, Cline.HIDE)
-        cl.register('smooth', Cline.LOCAL, Cline.HIDE)
-        cl.register('fhbox', Cline.LOCAL, Cline.HIDE)
-        cl.register('read', Cline.LOCAL, Cline.HIDE)
-        cl.register('gain', Cline.LOCAL, Cline.HIDE)
-        cl.register('rejthresh', Cline.LOCAL, Cline.HIDE)
+        cl.register("mccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("aper", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("linput", Cline.LOCAL, Cline.HIDE)
+        cl.register("width", Cline.LOCAL, Cline.HIDE)
+        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("nx", Cline.LOCAL, Cline.PROMPT)
+        cl.register("method", Cline.LOCAL, Cline.PROMPT)
+        cl.register("thresh", Cline.LOCAL, Cline.PROMPT)
+        cl.register("niters", Cline.LOCAL, Cline.PROMPT)
+        cl.register("gfac", Cline.LOCAL, Cline.PROMPT)
+        cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("phi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("beta", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwhm", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwmin", Cline.LOCAL, Cline.HIDE)
+        cl.register("shbox", Cline.LOCAL, Cline.HIDE)
+        cl.register("smooth", Cline.LOCAL, Cline.HIDE)
+        cl.register("fhbox", Cline.LOCAL, Cline.HIDE)
+        cl.register("read", Cline.LOCAL, Cline.HIDE)
+        cl.register("gain", Cline.LOCAL, Cline.HIDE)
+        cl.register("rejthresh", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
-        mccd = cl.get_value('mccd', 'frame to plot',
-                            cline.Fname('hcam', hcam.HCAM))
+        mccd = cl.get_value("mccd", "frame to plot", cline.Fname("hcam", hcam.HCAM))
         mccd = hcam.MCCD.read(mccd)
 
-        aper = cl.get_value('aper', 'name of aperture file',
-                            cline.Fname('hcam', hcam.APER, exist=False))
+        aper = cl.get_value(
+            "aper", "name of aperture file", cline.Fname("hcam", hcam.APER, exist=False)
+        )
 
         if os.path.exists(aper):
             # read in old apertures
             mccdaper = hcam.MccdAper.read(aper)
-            print('Loaded existing file = {:s}'.format(aper))
+            print("Loaded existing file = {:s}".format(aper))
         else:
             # create empty container
             mccdaper = hcam.MccdAper()
             print(
-                'No file called {:s} exists; '
-                'will create from scratch'.format(aper)
+                "No file called {:s} exists; " "will create from scratch".format(aper)
             )
 
         # define the panel grid
         try:
-            nxdef = cl.get_default('nx')
+            nxdef = cl.get_default("nx")
         except KeyError:
             nxdef = 3
 
         max_ccd = len(mccd)
         if max_ccd > 1:
-            ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
-            if ccd == '0':
+            ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
+            if ccd == "0":
                 ccds = list(mccd.keys())
             else:
                 ccds = ccd.split()
         else:
             ccds = list(mccd.keys())
 
-        width = cl.get_value('width', 'plot width (inches)', 0.)
-        height = cl.get_value('height', 'plot height (inches)', 0.)
+        width = cl.get_value("width", "plot width (inches)", 0.0)
+        height = cl.get_value("height", "plot height (inches)", 0.0)
 
         # number of panels in X
         if len(ccds) > 1:
             nxdef = min(len(ccds), nxdef)
-            cl.set_default('nx', nxdef)
-            nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+            cl.set_default("nx", nxdef)
+            nx = cl.get_value("nx", "number of panels in X", 3, 1)
         else:
             nx = 1
 
         # PSF fitting stuff
         method = cl.get_value(
-            'method', 'fit method g(aussian) or m(offat)', 'm', lvals=['g', 'm']
+            "method", "fit method g(aussian) or m(offat)", "m", lvals=["g", "m"]
         )
-        if method == 'm':
-            beta = cl.get_value(
-                'beta', 'initial exponent for Moffat fits', 5., 0.5)
+        if method == "m":
+            beta = cl.get_value("beta", "initial exponent for Moffat fits", 5.0, 0.5)
         else:
             beta = 0
         fwhm_min = cl.get_value(
-            'fwmin', 'minimum FWHM to allow [unbinned pixels]', 1.5, 0.01)
+            "fwmin", "minimum FWHM to allow [unbinned pixels]", 1.5, 0.01
+        )
         fwhm = cl.get_value(
-            'fwhm', 'initial FWHM [unbinned pixels] for profile fits',
-            6., fwhm_min
+            "fwhm", "initial FWHM [unbinned pixels] for profile fits", 6.0, fwhm_min
         )
 
-        gfac = cl.get_value('gfac', 'multiple of FWHM used to group stars for fitting',
-                            2.0, 0.1)
+        gfac = cl.get_value(
+            "gfac", "multiple of FWHM used to group stars for fitting", 2.0, 0.1
+        )
 
-        thresh = cl.get_value('thresh',
-                              'threshold for object detection (multiple of sky RMS)',
-                              3.0, 0.1)
+        thresh = cl.get_value(
+            "thresh", "threshold for object detection (multiple of sky RMS)", 3.0, 0.1
+        )
 
-        niters = cl.get_value('niters', 'number of iterations of FIND-FIT-SUBTRACT',
-                              2, 1)
+        niters = cl.get_value(
+            "niters", "number of iterations of FIND-FIT-SUBTRACT", 2, 1
+        )
 
         # define the display intensities
-        msub = cl.get_value('msub', 'subtract median from each window?', True)
+        msub = cl.get_value("msub", "subtract median from each window?", True)
 
         iset = cl.get_value(
-            'iset', 'set intensity a(utomatically),'
-            ' d(irectly) or with p(ercentiles)?',
-            'a', lvals=['a', 'A', 'd', 'D', 'p', 'P'])
+            "iset",
+            "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+            "a",
+            lvals=["a", "A", "d", "D", "p", "P"],
+        )
         iset = iset.lower()
 
         plo, phi = 5, 95
         ilo, ihi = 0, 1000
-        if iset == 'd':
-            ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
-            ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
-        elif iset == 'p':
+        if iset == "d":
+            ilo = cl.get_value("ilo", "lower intensity limit", 0.0)
+            ihi = cl.get_value("ihi", "upper intensity limit", 1000.0)
+        elif iset == "p":
             plo = cl.get_value(
-                'plo', 'lower intensity limit percentile', 5., 0., 100.)
+                "plo", "lower intensity limit percentile", 5.0, 0.0, 100.0
+            )
             phi = cl.get_value(
-                'phi', 'upper intensity limit percentile', 95., 0., 100.)
+                "phi", "upper intensity limit percentile", 95.0, 0.0, 100.0
+            )
 
         nxmax, nymax = 0, 0
         for cnam in ccds:
@@ -322,43 +329,47 @@ def psfaper(args=None):
             nymax = max(nymax, mccd[cnam].nytot)
 
         # might be worth trying to improve this at some point
-        xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
+        xlo, xhi, ylo, yhi = 0, nxmax + 1, 0, nymax + 1
 
         shbox = cl.get_value(
-            'shbox', 'half width of box for initial'
-            ' location of target [unbinned pixels]', 11., 2.
+            "shbox",
+            "half width of box for initial" " location of target [unbinned pixels]",
+            11.0,
+            2.0,
         )
         smooth = cl.get_value(
-            'smooth', 'FWHM for smoothing for initial object'
-            ' detection [binned pixels]', 6.
+            "smooth",
+            "FWHM for smoothing for initial object" " detection [binned pixels]",
+            6.0,
         )
 
         fhbox = cl.get_value(
-            'fhbox', 'half width of box for profile fit'
-            ' [unbinned pixels]', 21., 3.)
-        read = cl.get_value('read', 'readout noise, RMS ADU', 3.)
-        gain = cl.get_value('gain', 'gain, ADU/e-', 1.)
-        rejthresh = cl.get_value('rejthresh',
-                                 'RMS rejection threshold for sky fitting', 4.)
+            "fhbox", "half width of box for profile fit" " [unbinned pixels]", 21.0, 3.0
+        )
+        read = cl.get_value("read", "readout noise, RMS ADU", 3.0)
+        gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
+        rejthresh = cl.get_value(
+            "rejthresh", "RMS rejection threshold for sky fitting", 4.0
+        )
 
     # Inputs obtained.
 
     # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
     # quit_all does not seem to be universal, hence the try/except
     try:
-        mpl.rcParams['keymap.back'] = ''
-        mpl.rcParams['keymap.forward'] = ''
-        mpl.rcParams['keymap.fullscreen'] = ''
-        mpl.rcParams['keymap.grid'] = ''
-        mpl.rcParams['keymap.home'] = ''
-        mpl.rcParams['keymap.pan'] = ''
-        mpl.rcParams['keymap.quit'] = ''
-        mpl.rcParams['keymap.save'] = ''
-        mpl.rcParams['keymap.pan'] = ''
-        mpl.rcParams['keymap.save'] = ''
-        mpl.rcParams['keymap.xscale'] = ''
-        mpl.rcParams['keymap.yscale'] = ''
-        mpl.rcParams['keymap.zoom'] = ''
+        mpl.rcParams["keymap.back"] = ""
+        mpl.rcParams["keymap.forward"] = ""
+        mpl.rcParams["keymap.fullscreen"] = ""
+        mpl.rcParams["keymap.grid"] = ""
+        mpl.rcParams["keymap.home"] = ""
+        mpl.rcParams["keymap.pan"] = ""
+        mpl.rcParams["keymap.quit"] = ""
+        mpl.rcParams["keymap.save"] = ""
+        mpl.rcParams["keymap.pan"] = ""
+        mpl.rcParams["keymap.save"] = ""
+        mpl.rcParams["keymap.xscale"] = ""
+        mpl.rcParams["keymap.yscale"] = ""
+        mpl.rcParams["keymap.zoom"] = ""
     except KeyError:
         pass
 
@@ -387,13 +398,13 @@ def psfaper(args=None):
 
     for n, cnam in enumerate(ccds):
         if ax is None:
-            axes = ax = fig.add_subplot(ny, nx, n+1)
-            axes.set_aspect('equal', adjustable='box')
+            axes = ax = fig.add_subplot(ny, nx, n + 1)
+            axes.set_aspect("equal", adjustable="box")
             axes.set_xlim(xlo, xhi)
             axes.set_ylim(ylo, yhi)
         else:
-            axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-            axes.set_aspect('equal')
+            axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
+            axes.set_aspect("equal")
 
         if msub:
             # subtract median from each window
@@ -404,8 +415,8 @@ def psfaper(args=None):
             pccd = mccd
 
         hcam.mpl.pCcd(
-            axes, pccd[cnam], iset, plo, phi, ilo, ihi, 'CCD {:s}'.format(cnam)
-            )
+            axes, pccd[cnam], iset, plo, phi, ilo, ihi, "CCD {:s}".format(cnam)
+        )
 
         # keep track of the CCDs associated with each axes
         cnams[axes] = cnam
@@ -425,7 +436,8 @@ def psfaper(args=None):
             # and an empty container for any new plot objects
             pobjs[cnam] = hcam.Group(tuple)
 
-    print("""
+    print(
+        """
 Now use the mouse and the pan/zoom tools to zoom in to the region of interest (ROI) for
 PSF photometry. All existing apertures inside this region will be retained, but apertures
 outside this region will be deleted.
@@ -443,7 +455,8 @@ Key commands:
 
 Hitting 'd' will delete the aperture nearest to the cursor, as long as it is
 close enough.
-""")
+"""
+    )
 
     try:
         plt.tight_layout()
@@ -451,9 +464,29 @@ close enough.
         pass
 
     # create a class for picking reference star and zooming in
-    picker = PickRef(mccd, cnams, anams, toolbar, fig, mccdaper, method, beta, fwhm,
-                     gfac, niters, thresh, fwhm_min, shbox, smooth, fhbox, read, gain,
-                     rejthresh, pobjs, aper)
+    picker = PickRef(
+        mccd,
+        cnams,
+        anams,
+        toolbar,
+        fig,
+        mccdaper,
+        method,
+        beta,
+        fwhm,
+        gfac,
+        niters,
+        thresh,
+        fwhm_min,
+        shbox,
+        smooth,
+        fhbox,
+        read,
+        gain,
+        rejthresh,
+        pobjs,
+        aper,
+    )
 
     # squeeze space a bit
     plt.subplots_adjust(wspace=0.1, hspace=0.1)
@@ -470,13 +503,35 @@ class PickRef:
     """
     Class to zoom into ROI and select reference stars.
     """
-    def __init__(self, mccd, cnams, anams, toolbar, fig, mccdaper, method, beta, fwhm,
-                 gfac, niters, thresh, fwhm_min, shbox, smooth, fhbox, read, gain,
-                 rejthresh, pobjs, apernam):
+
+    def __init__(
+        self,
+        mccd,
+        cnams,
+        anams,
+        toolbar,
+        fig,
+        mccdaper,
+        method,
+        beta,
+        fwhm,
+        gfac,
+        niters,
+        thresh,
+        fwhm_min,
+        shbox,
+        smooth,
+        fhbox,
+        read,
+        gain,
+        rejthresh,
+        pobjs,
+        apernam,
+    ):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
-        self.fig.canvas.mpl_connect('key_press_event', self._keyPressEvent)
+        self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
         self.mccd = mccd
         self.cnams = cnams
         self.anams = anams
@@ -512,13 +567,13 @@ class PickRef:
             self._x = x
             self._y = y
 
-            if key == 'a':
+            if key == "a":
                 self._add()
-            elif key == 'd':
+            elif key == "d":
                 self._delete()
-            elif key == 'u':
+            elif key == "u":
                 self._unlinkaxes()
-            elif key == 'q':
+            elif key == "q":
                 self._find_stars_and_quit()
 
     def _unlinkaxes(self):
@@ -552,15 +607,18 @@ class PickRef:
         wnam = ccd.inside(self._x, self._y, 2)
         if wnam is None:
             print(
-                '  *** selected position ({:.1f},{:.1f}) not in a window;'
-                ' should not occur'.format(self._x, self._y), file=sys.stderr
+                "  *** selected position ({:.1f},{:.1f}) not in a window;"
+                " should not occur".format(self._x, self._y),
+                file=sys.stderr,
             )
             return
 
         # get Window around the selected position
         wind = ccd[wnam].window(
-            self._x-self.shbox, self._x+self.shbox,
-            self._y-self.shbox, self._y+self.shbox
+            self._x - self.shbox,
+            self._x + self.shbox,
+            self._y - self.shbox,
+            self._y + self.shbox,
         )
 
         try:
@@ -568,21 +626,33 @@ class PickRef:
             x, y, peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
 
             # now for a more refined fit. First extract fit Window
-            fwind = ccd[wnam].window(x-self.fhbox, x+self.fhbox,
-                                     y-self.fhbox, y+self.fhbox)
+            fwind = ccd[wnam].window(
+                x - self.fhbox, x + self.fhbox, y - self.fhbox, y + self.fhbox
+            )
             sky = np.percentile(fwind.data, 25)
 
             # refine the Aperture position by fitting the profile
-            (sky, height, x, y, fwhm, beta), \
-                (esky, eheight, ex, ey, efwhm, ebeta), \
-                (wfit, X, Y, sigma, chisq, nok, nrej,
-                    npar, message) = hcam.fitting.combFit(
-                        fwind, self.method, sky, peak-sky,
-                        x, y, self.fwhm, self.fwhm_min, False,
-                        self.beta, self.read, self.gain, self.rejthresh
-                    )
+            (
+                (sky, height, x, y, fwhm, beta),
+                (esky, eheight, ex, ey, efwhm, ebeta),
+                (wfit, X, Y, sigma, chisq, nok, nrej, npar, message),
+            ) = hcam.fitting.combFit(
+                fwind,
+                self.method,
+                sky,
+                peak - sky,
+                x,
+                y,
+                self.fwhm,
+                self.fwhm_min,
+                False,
+                self.beta,
+                self.read,
+                self.gain,
+                self.rejthresh,
+            )
 
-            print('Aperture {:s}: {:s}'.format(self._buffer, message))
+            print("Aperture {:s}: {:s}".format(self._buffer, message))
             self._x = x
             self._y = y
 
@@ -592,22 +662,21 @@ class PickRef:
             return
 
         # create and add reference aperture
-        aper = hcam.Aperture(
-            self._x, self._y, 5, 10, 12, True
-        )
+        aper = hcam.Aperture(self._x, self._y, 5, 10, 12, True)
         self.mccdaper[self._cnam][self._buffer] = aper
 
         # add fit params to object
-        wf = 1./efwhm**2 if efwhm > 0 else 0
-        wb = 1./ebeta**2 if ebeta > 0 else 0
+        wf = 1.0 / efwhm ** 2 if efwhm > 0 else 0
+        wb = 1.0 / ebeta ** 2 if ebeta > 0 else 0
         if self._cnam not in self.psf_data:
-            self.psf_data[self._cnam] = dict(fsum=wf*fwhm, wfsum=wf,
-                                             bsum=wb*beta, wbsum=wb)
+            self.psf_data[self._cnam] = dict(
+                fsum=wf * fwhm, wfsum=wf, bsum=wb * beta, wbsum=wb
+            )
         else:
-            self.psf_data[self._cnam]['fsum'] += wf*fwhm
-            self.psf_data[self._cnam]['wfsum'] += wf
-            self.psf_data[self._cnam]['bsum'] += wb*beta
-            self.psf_data[self._cnam]['wbsum'] += wb
+            self.psf_data[self._cnam]["fsum"] += wf * fwhm
+            self.psf_data[self._cnam]["wfsum"] += wf
+            self.psf_data[self._cnam]["bsum"] += wb * beta
+            self.psf_data[self._cnam]["wbsum"] += wb
 
         # add aperture to the plot, store plot objects
         self.pobjs[self._cnam][self._buffer] = hcam.mpl.pAper(
@@ -617,8 +686,10 @@ class PickRef:
         # make sure it appears
         plt.draw()
 
-        print('added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
-            self._buffer, self._cnam, self._x, self._y)
+        print(
+            "added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}".format(
+                self._buffer, self._cnam, self._x, self._y
+            )
         )
 
     def _delete(self):
@@ -648,8 +719,7 @@ class PickRef:
             print('  deleted aperture "{:s}"'.format(apnam))
 
         else:
-            print('  found no aperture near enough '
-                  'the cursor position for deletion')
+            print("  found no aperture near enough " "the cursor position for deletion")
 
     def _find_aper(self):
         """Finds the nearest aperture to the currently selected position,
@@ -663,7 +733,7 @@ class PickRef:
         apmin = None
         anmin = None
         for anam, aper in self.mccdaper[self._cnam].items():
-            dist = np.sqrt((aper.x-self._x)**2+(aper.y-self._y)**2)
+            dist = np.sqrt((aper.x - self._x) ** 2 + (aper.y - self._y) ** 2)
             if dmin is None or dist < dmin:
                 dmin = dist
                 apmin = aper
@@ -680,34 +750,40 @@ class PickRef:
             ylo, yhi = self.anams[cnam].get_ylim()
 
             if cnam not in self.psf_data:
-                warnings.warn(
-                    'no reference stars for CCD{} - skipping'.format(cnam)
-                )
+                warnings.warn("no reference stars for CCD{} - skipping".format(cnam))
                 continue
 
             fwhm = -1
             beta = -1
-            if self.psf_data[cnam]['wfsum'] > 0:
-                fwhm = self.psf_data[cnam]['fsum'] / self.psf_data[cnam]['wfsum']
-            if self.psf_data[cnam]['wbsum'] > 0:
-                beta = self.psf_data[cnam]['bsum'] / self.psf_data[cnam]['wbsum']
+            if self.psf_data[cnam]["wfsum"] > 0:
+                fwhm = self.psf_data[cnam]["fsum"] / self.psf_data[cnam]["wfsum"]
+            if self.psf_data[cnam]["wbsum"] > 0:
+                beta = self.psf_data[cnam]["bsum"] / self.psf_data[cnam]["wbsum"]
 
             if fwhm < 0:
-                warnings.warn(
-                    'no fwhm measured for CCD{} - skipping'.format(cnam)
-                )
+                warnings.warn("no fwhm measured for CCD{} - skipping".format(cnam))
                 continue
 
-            if self.method == 'm' and beta < 0:
-                warnings.warn(
-                    'no beta measured for CCD{} - skipping'.format(cnam)
-                )
+            if self.method == "m" and beta < 0:
+                warnings.warn("no beta measured for CCD{} - skipping".format(cnam))
                 continue
 
-            print('fitting CCD{}:'.format(cnam))
-            xlocs, ylocs = daophot(cnam, self.mccd[cnam], xlo, xhi, ylo, yhi, self.niters,
-                                   self.method, fwhm, beta,
-                                   self.gfac, self.thresh, self.rejthresh)
+            print("fitting CCD{}:".format(cnam))
+            xlocs, ylocs = daophot(
+                cnam,
+                self.mccd[cnam],
+                xlo,
+                xhi,
+                ylo,
+                yhi,
+                self.niters,
+                self.method,
+                fwhm,
+                beta,
+                self.gfac,
+                self.thresh,
+                self.rejthresh,
+            )
 
             # let's find which of our positions best matches our reference apertures
             # save ref apertures
@@ -736,11 +812,12 @@ class PickRef:
         # done. write aperture file
         plt.close()
         self.mccdaper.write(self.apernam)
-        print('\nApertures saved to {:s}.\nBye'.format(self.apernam))
+        print("\nApertures saved to {:s}.\nBye".format(self.apernam))
 
 
-def daophot(cnam, ccd, xlo, xhi, ylo, yhi, niters, method, fwhm, beta,
-            gfac, thresh, rejthresh):
+def daophot(
+    cnam, ccd, xlo, xhi, ylo, yhi, niters, method, fwhm, beta, gfac, thresh, rejthresh
+):
     """
     Perform iterative PSF photometry and star finding on region of CCD
     """
@@ -750,7 +827,7 @@ def daophot(cnam, ccd, xlo, xhi, ylo, yhi, niters, method, fwhm, beta,
     wnam2 = ccd.inside(xhi, yhi, 2)
     if wnam1 != wnam2:
         raise hcam.HipercamError(
-            'PSF photometry cannot currently be run across seperate windows'
+            "PSF photometry cannot currently be run across seperate windows"
         )
     wnam = wnam1
     print(wnam)
@@ -762,43 +839,53 @@ def daophot(cnam, ccd, xlo, xhi, ylo, yhi, niters, method, fwhm, beta,
     bkg_rms = rms_func(wind.data)
     bkg_func = MMMBackground(sigma_clip=SigmaClip(sigma=rejthresh))
     bkg = bkg_func(wind.data)
-    print('  Background estimate = {}, BKG RMS = {}'.format(bkg, bkg_rms))
+    print("  Background estimate = {}, BKG RMS = {}".format(bkg, bkg_rms))
 
     # crop window to ROI
     wind = ccd[wnam].window(xlo, xhi, ylo, yhi)
 
     # correct FWHM for binning
     fwhm /= wind.xbin
-    if method == 'm':
+    if method == "m":
         psf_model = MoffatPSF(fwhm, beta)
-        print('  FWHM = {:.1f}, BETA={:.1f}'.format(fwhm, beta))
+        print("  FWHM = {:.1f}, BETA={:.1f}".format(fwhm, beta))
     else:
         psf_model = IntegratedGaussianPRF(sigma=fwhm * gaussian_fwhm_to_sigma)
-        print('  FWHM = {:.1f}'.format(fwhm))
+        print("  FWHM = {:.1f}".format(fwhm))
 
     # region to extract around positions for fits
-    fitshape = int(5*fwhm)
+    fitshape = int(5 * fwhm)
     # ensure odd
     if fitshape % 2 == 0:
         fitshape += 1
 
     photometry_task = DAOPhotPSFPhotometry(
-        gfac*fwhm, thresh*bkg_rms, fwhm, psf_model, fitshape, niters=niters,
-        sigma=rejthresh)
+        gfac * fwhm,
+        thresh * bkg_rms,
+        fwhm,
+        psf_model,
+        fitshape,
+        niters=niters,
+        sigma=rejthresh,
+    )
 
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
+        warnings.simplefilter("ignore")
         results = photometry_task(wind.data - bkg)
 
     # filter out junk fits
     tiny = 1e-30
-    bad_errs = (results['flux_unc'] < tiny) | (results['x_0_unc'] < tiny) | (results['y_0_unc'] < tiny)
+    bad_errs = (
+        (results["flux_unc"] < tiny)
+        | (results["x_0_unc"] < tiny)
+        | (results["y_0_unc"] < tiny)
+    )
     results = results[~bad_errs]
 
-    results.write('table_{}.fits'.format(cnam))
-    print('  found {} stars'.format(len(results)))
+    results.write("table_{}.fits".format(cnam))
+    print("  found {} stars".format(len(results)))
 
-    xlocs, ylocs = results['x_fit'], results['y_fit']
+    xlocs, ylocs = results["x_fit"], results["y_fit"]
 
     # convert to device coordinates
     xlocs = wind.x(xlocs)

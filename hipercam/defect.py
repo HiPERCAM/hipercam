@@ -15,15 +15,21 @@ from .core import *
 from .group import *
 from . import utils
 
-__all__ = ('Severity', 'Defect',)
+__all__ = (
+    "Severity",
+    "Defect",
+)
+
 
 class Severity(Enum):
     """
     Enum class to define defect severity levels. There are
     two: MODERATE and SEVERE
     """
+
     MODERATE = 1
     SEVERE = 2
+
 
 class Defect(ABC):
 
@@ -48,9 +54,15 @@ class Defect(ABC):
     def copy(self, memo=None):
         """Returns with a copy of the Aperture"""
         return Aperture(
-            self.x, self.y, self.rtarg, self.rsky1, self.rsky2,
-            self.ref, self.mask.copy(), self.extra.copy(),
-            self.link
+            self.x,
+            self.y,
+            self.rtarg,
+            self.rsky1,
+            self.rsky2,
+            self.ref,
+            self.mask.copy(),
+            self.extra.copy(),
+            self.link,
         )
 
     @abstractmethod
@@ -66,7 +78,7 @@ class Defect(ABC):
 
     def write(self, fname):
         """Dumps Aperture in JSON format to a file called fname"""
-        with open(fname,'w') as fp:
+        with open(fname, "w") as fp:
             json.dump(self, cls=_Encoder, indent=2)
 
     def toString(self):
@@ -80,6 +92,7 @@ class Defect(ABC):
             aper = json.load(fp, cls=_Decoder)
         aper.check()
         return aper
+
 
 class Point(Defect):
 
@@ -112,12 +125,13 @@ class Point(Defect):
         return Point(self.severity, self.x, self.y)
 
     def __repr__(self):
-        return 'Point(severity={!r}, x={!r}, y={!r})'.format(
+        return "Point(severity={!r}, x={!r}, y={!r})".format(
             self.severity, self.x, self.y
         )
 
     def dist(self, x, y):
-        return np.sqrt((x-self.x)**2+(y-self.y)**2)
+        return np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
+
 
 class Line(Defect):
 
@@ -158,7 +172,7 @@ class Line(Defect):
         return Line(self.severity, self.x1, self.y1, self.x2, self.y2)
 
     def __repr__(self):
-        return 'Line(severity={!r}, x1={!r}, y1={!r}, x2={!r}, y2={!r})'.format(
+        return "Line(severity={!r}, x1={!r}, y1={!r}, x2={!r}, y2={!r})".format(
             self.severity, self.x1, self.y1, self.x2, self.y2
         )
 
@@ -167,22 +181,23 @@ class Line(Defect):
         of a point (x,y) from any portion of the line between its two
         end-points
         """
-        p = utils.Vec2D(x,y)
+        p = utils.Vec2D(x, y)
         l1 = utils.Vec2D(self.x1, self.y1)
         l2 = utils.Vec2D(self.x2, self.y2)
-        pl1 = p-l1
-        pl2 = p-l2
+        pl1 = p - l1
+        pl2 = p - l2
 
         # first the minimum distance from either end-point
         d = min(pl1.length(), pl2.length())
 
-        l12 = l2-l1
+        l12 = l2 - l1
         ll12 = l12.length()
         if ll12 > 0:
-            lam = utils.dot(pl1,l12)/ll12**2
+            lam = utils.dot(pl1, l12) / ll12 ** 2
             if lam > 0 and lam < 1:
-                d = min(d, (p-l1-lam*l12).length())
+                d = min(d, (p - l1 - lam * l12).length())
         return d
+
 
 class Hot(Defect):
 
@@ -215,12 +230,13 @@ class Hot(Defect):
         return Hot(self.severity, self.x, self.y)
 
     def __repr__(self):
-        return 'Hot(severity={!r}, x={!r}, y={!r})'.format(
+        return "Hot(severity={!r}, x={!r}, y={!r})".format(
             self.severity, self.x, self.y
         )
 
     def dist(self, x, y):
-        return np.sqrt((x-self.x)**2+(y-self.y)**2)
+        return np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
+
 
 class CcdDefect(Group):
     """Class representing all the :class:Defects for a single CCD.
@@ -240,23 +256,20 @@ class CcdDefect(Group):
         super().__init__(Defect, defs)
 
     def __repr__(self):
-        return '{:s}(defs={:s})'.format(
-            self.__class__.__name__, super().__repr__()
-            )
+        return "{:s}(defs={:s})".format(self.__class__.__name__, super().__repr__())
 
     def write(self, fname):
         """Dumps ccdAper in JSON format to a file called fname"""
 
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
-        listify = ['hipercam.CcdDefect'] + list(self.items)
-        with open(fname,'w') as fp:
+        listify = ["hipercam.CcdDefect"] + list(self.items)
+        with open(fname, "w") as fp:
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
     def copy(self, memo=None):
-        return CcdDefect(
-            super().copy(memo)
-        )
+        return CcdDefect(super().copy(memo))
+
 
 class MccdDefect(Group):
     """Class representing all the :class:Defects for multiple CCDs.
@@ -282,20 +295,20 @@ class MccdDefect(Group):
         super().__init__(CcdDefect, defs)
 
     def __repr__(self):
-        return '{:s}(defs={:s})'.format(
-            self.__class__.__name__, super().__repr__()
-            )
+        return "{:s}(defs={:s})".format(self.__class__.__name__, super().__repr__())
 
     def write(self, fname):
         """Dumps a MccdDefect in JSON format to a file called fname"""
 
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
-        listify = ['hipercam.MccdDefect'] + list(
-            ((key,['hipercam.CcdDefect']+list(val.items())) \
-             for key, val in self.items())
+        listify = ["hipercam.MccdDefect"] + list(
+            (
+                (key, ["hipercam.CcdDefect"] + list(val.items()))
+                for key, val in self.items()
+            )
         )
-        with open(fname,'w') as fp:
+        with open(fname, "w") as fp:
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
     def toString(self):
@@ -303,9 +316,11 @@ class MccdDefect(Group):
 
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
-        listify = ['hipercam.MccdDefect'] + list(
-            ((key,['hipercam.CcdDefect']+list(val.items())) \
-             for key, val in self.items())
+        listify = ["hipercam.MccdDefect"] + list(
+            (
+                (key, ["hipercam.CcdDefect"] + list(val.items()))
+                for key, val in self.items()
+            )
         )
         return json.dumps(listify, cls=_Encoder, indent=2)
 
@@ -320,69 +335,68 @@ class MccdDefect(Group):
         """
         with open(fname) as fp:
             obj = json.load(fp, cls=_Decoder)
-        listify = [(v1,CcdDefect(v2[1:])) for v1,v2 in obj[1:]]
+        listify = [(v1, CcdDefect(v2[1:])) for v1, v2 in obj[1:]]
         mccd_def = MccdDefect(listify)
         return mccd_def
 
+
 # classes to support JSON serialisation of Defect objects
 class _Encoder(json.JSONEncoder):
-
     def default(self, obj):
 
         if isinstance(obj, Point):
             return OrderedDict(
                 (
-                    ('Comment', 'hipercam.defect.Point'),
-                    ('severity', obj.severity.name),
-                    ('x', obj.x),
-                    ('y', obj.y),
-                    )
+                    ("Comment", "hipercam.defect.Point"),
+                    ("severity", obj.severity.name),
+                    ("x", obj.x),
+                    ("y", obj.y),
                 )
+            )
 
         elif isinstance(obj, Line):
             return OrderedDict(
                 (
-                    ('Comment', 'hipercam.defect.Line'),
-                    ('severity', obj.severity.name),
-                    ('x1', obj.x1),
-                    ('y1', obj.y1),
-                    ('x2', obj.x2),
-                    ('y2', obj.y2),
-                    )
+                    ("Comment", "hipercam.defect.Line"),
+                    ("severity", obj.severity.name),
+                    ("x1", obj.x1),
+                    ("y1", obj.y1),
+                    ("x2", obj.x2),
+                    ("y2", obj.y2),
                 )
+            )
 
         elif isinstance(obj, Hot):
             return OrderedDict(
                 (
-                    ('Comment', 'hipercam.defect.Hot'),
-                    ('severity', obj.severity.name),
-                    ('x', obj.x),
-                    ('y', obj.y),
-                    )
+                    ("Comment", "hipercam.defect.Hot"),
+                    ("severity", obj.severity.name),
+                    ("x", obj.x),
+                    ("y", obj.y),
                 )
+            )
 
         return super().default(obj)
 
-class _Decoder(json.JSONDecoder):
 
+class _Decoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
         super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
         # look out for Defect objects. Everything else done by default
-        if 'Comment' in obj:
-            if obj['Comment'] == 'hipercam.defect.Point':
-                return Point(
-                    getattr(Severity,obj['severity']), obj['x'], obj['y']
-                )
-            elif obj['Comment'] == 'hipercam.defect.Line':
+        if "Comment" in obj:
+            if obj["Comment"] == "hipercam.defect.Point":
+                return Point(getattr(Severity, obj["severity"]), obj["x"], obj["y"])
+            elif obj["Comment"] == "hipercam.defect.Line":
                 return Line(
-                    getattr(Severity,obj['severity']), obj['x1'], obj['y1'],
-                    obj['x2'], obj['y2']
+                    getattr(Severity, obj["severity"]),
+                    obj["x1"],
+                    obj["y1"],
+                    obj["x2"],
+                    obj["y2"],
                 )
-            elif obj['Comment'] == 'hipercam.defect.Hot':
-                return Hot(
-                    getattr(Severity,obj['severity']), obj['x'], obj['y']
-                )
+            elif obj["Comment"] == "hipercam.defect.Hot":
+                return Hot(getattr(Severity, obj["severity"]), obj["x"], obj["y"])
 
         return obj

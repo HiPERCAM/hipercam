@@ -9,7 +9,8 @@ from collections import OrderedDict
 
 from .core import *
 
-__all__ = ('Group', 'Agroup')
+__all__ = ("Group", "Agroup")
+
 
 class Group(OrderedDict):
     """A specialized OrderedDict that enforces string keys only and a
@@ -46,27 +47,25 @@ class Group(OrderedDict):
         # random time which could be horribly obscure.
 
         # keys must be strings
-        if any(not isinstance(key,str) for key in self.keys()):
-            raise HipercamError('keys must be strings')
+        if any(not isinstance(key, str) for key in self.keys()):
+            raise HipercamError("keys must be strings")
 
         # values must have specific type
-        if any(not isinstance(obj,ftype) for obj in self.values()):
-            raise HipercamError(
-                'an input object is not a {!s} object'.format(ftype)
-            )
+        if any(not isinstance(obj, ftype) for obj in self.values()):
+            raise HipercamError("an input object is not a {!s} object".format(ftype))
 
     def __setitem__(self, key, item):
         """Adds an item `item` keyed by `key`
         checking that its type matches 
         """
-        if not isinstance(key,str):
-            raise KeyError('key must be an string')
+        if not isinstance(key, str):
+            raise KeyError("key must be an string")
 
         # store or check that the new item matches in type
         if not isinstance(item, self.ftype):
             raise HipercamError(
-                'key = {:s}: item = {!s} does not have'
-                ' the expected type = {!s}'.format(key,item,self.ftype)
+                "key = {:s}: item = {!s} does not have"
+                " the expected type = {!s}".format(key, item, self.ftype)
             )
 
         # checks passed, set the new item and add the key
@@ -117,11 +116,11 @@ class Group(OrderedDict):
         return self.copy(memo)
 
     def __repr__(self):
-        return 'Group(ftype={!r}, [{}])'.format(
+        return "Group(ftype={!r}, [{}])".format(
             self.ftype,
-            ', '.join('({!r}, {!r})'.format(key,val)
-                      for key, val in self.items())
+            ", ".join("({!r}, {!r})".format(key, val) for key, val in self.items()),
         )
+
 
 class Agroup(Group):
     """A :class:`Group` which defines arithmetic methods +=, +, etc which must be
@@ -299,7 +298,7 @@ class Agroup(Group):
         """Subtracts the :class:`Agroup` from `other` as '= other - self'.
         """
         cself = self.copy()
-        cself *= -1. # in-place faster
+        cself *= -1.0  # in-place faster
         cself += other
         return cself
 
@@ -319,8 +318,7 @@ class Agroup(Group):
         return self
 
     def __repr__(self):
-        return 'Agroup(ftype={!r}, [{}])'.format(
+        return "Agroup(ftype={!r}, [{}])".format(
             self.ftype,
-            ', '.join('({!r}, {!r})'.format(key,val)
-                      for key, val in self.items())
+            ", ".join("({!r}, {!r})".format(key, val) for key, val in self.items()),
         )

@@ -22,7 +22,10 @@ from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 from hipercam.extraction import findStars
 
-__all__ = ['aligntool',]
+__all__ = [
+    "aligntool",
+]
+
 
 def findBestRigidTransform(x, y, xref, yref):
     """
@@ -56,12 +59,12 @@ def findBestRigidTransform(x, y, xref, yref):
     u, s, v = np.linalg.svd(H)
     R = np.dot(v, u.T)
     if np.linalg.det(R) < 0:
-        R = np.dot(v, np.array([1, -1])*u.T)
+        R = np.dot(v, np.array([1, -1]) * u.T)
 
     T = np.median(B - np.dot(A, R), axis=0)
     theta1 = np.degrees(np.arctan2(R[1, 0], R[0, 0]))
     theta2 = np.degrees(-np.arctan2(R[0, 1], R[1, 1]))
-    theta = 0.5*(theta1 + theta2)
+    theta = 0.5 * (theta1 + theta2)
     return theta, T
 
 
@@ -85,11 +88,13 @@ def matchSpots(x, y, xref, yref):
     seps, indices = tree.query(np.column_stack((x, y)))
     if np.all(seps < 0.01):
         # probably the same data
-        mask = np.zeros_like(seps).astype('bool')
+        mask = np.zeros_like(seps).astype("bool")
     else:
-        sep_sigma = (seps-seps.mean())/seps.std()
+        sep_sigma = (seps - seps.mean()) / seps.std()
         mask = sep_sigma < 1.5
-    return findBestRigidTransform(x[mask], y[mask], xref[indices][mask], yref[indices][mask])
+    return findBestRigidTransform(
+        x[mask], y[mask], xref[indices][mask], yref[indices][mask]
+    )
 
 
 def displayFWHM(xpos, ypos, xref, yref, fwhm, peak, fix_fwhm_scale=False, bins=20):
@@ -115,7 +120,7 @@ def displayFWHM(xpos, ypos, xref, yref, fwhm, peak, fix_fwhm_scale=False, bins=2
         xi = np.linspace(xpos.min(), xpos.max(), bins)
         yi = np.linspace(ypos.min(), ypos.max(), bins)
         xx, yy = np.meshgrid(xi, yi)
-        func = interpolate.Rbf(xpos, ypos, fwhm_prime, function='quintic')
+        func = interpolate.Rbf(xpos, ypos, fwhm_prime, function="quintic")
         image = func(xx, yy)
     except:
         imageOK = False
@@ -131,7 +136,7 @@ def displayFWHM(xpos, ypos, xref, yref, fwhm, peak, fix_fwhm_scale=False, bins=2
     rect_xcut = [right, bottom_h, width, 0.2]
     rect_ycut = [left_h, bottom, 0.1, height]
     rect_pos = [left, bottom, width, height]
-    rect_corr = [left, bottom_h+0.1, width, 0.1]
+    rect_corr = [left, bottom_h + 0.1, width, 0.1]
 
     axIm = plt.axes(rect_im)
     axX = plt.axes(rect_xcut)
@@ -146,34 +151,45 @@ def displayFWHM(xpos, ypos, xref, yref, fwhm, peak, fix_fwhm_scale=False, bins=2
     axX.yaxis.tick_right()
 
     if imageOK:
-        axIm.pcolormesh(xx, yy, image, cmap='magma')
-    axX.plot(xpos, fwhm, 'r.')
-    axY.plot(fwhm, ypos, 'r.')
+        axIm.pcolormesh(xx, yy, image, cmap="magma")
+    axX.plot(xpos, fwhm, "r.")
+    axY.plot(fwhm, ypos, "r.")
     if fitOK:
-        axX.plot(xpos, fwhm_prime, 'b+')
-        axY.plot(fwhm_prime, ypos, 'b+')
-        axCorr.plot(peak, fwhm, 'r.')
+        axX.plot(xpos, fwhm_prime, "b+")
+        axY.plot(fwhm_prime, ypos, "b+")
+        axCorr.plot(peak, fwhm, "r.")
         idx = np.argsort(peak)
-        axCorr.plot(peak[idx], f(peak[idx]), 'b--')
+        axCorr.plot(peak[idx], f(peak[idx]), "b--")
 
-    axPos.plot(xpos, ypos, 'r.')
-    axPos.plot(xref, yref, 'b+', alpha=0.5)
+    axPos.plot(xpos, ypos, "r.")
+    axPos.plot(xref, yref, "b+", alpha=0.5)
 
-    axPos.set_xlabel('x')
-    axPos.set_ylabel('y')
-    axIm.set_xlabel('x')
-    axX.set_ylabel('FWHM')
-    axY.set_xlabel('FWHM')
+    axPos.set_xlabel("x")
+    axPos.set_ylabel("y")
+    axIm.set_xlabel("x")
+    axX.set_ylabel("FWHM")
+    axY.set_xlabel("FWHM")
     if fix_fwhm_scale:
         axY.set_xlim(1.9, 2.8)
         axX.set_ylim(1.9, 2.8)
     theta, offset = matchSpots(xpos, ypos, xref, yref)
     xoff, yoff = offset
-    textstr = r'$\theta = %.2f$; $\mathrm{xoff}=%.1f$, $\mathrm{yoff}=%.1f$' % (theta, xoff, yoff)
-    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    axPos.text(left, 1.02, textstr, horizontalalignment='left',
-               verticalalignment='bottom', bbox=props, fontsize=10,
-               transform=axPos.transAxes)
+    textstr = r"$\theta = %.2f$; $\mathrm{xoff}=%.1f$, $\mathrm{yoff}=%.1f$" % (
+        theta,
+        xoff,
+        yoff,
+    )
+    props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
+    axPos.text(
+        left,
+        1.02,
+        textstr,
+        horizontalalignment="left",
+        verticalalignment="bottom",
+        bbox=props,
+        fontsize=10,
+        transform=axPos.transAxes,
+    )
 
 
 def measureSpots(mccd, ccdname, thresh, use_hfd=True):
@@ -181,20 +197,22 @@ def measureSpots(mccd, ccdname, thresh, use_hfd=True):
     Detect spots in all windows of a ccd.
     """
     ccd = mccd[ccdname]
-    objects = np.concatenate([findStars(wind, thresh, 3) for (wname, wind) in ccd.items()])
-    xpos = objects['x']
-    ypos = objects['y']
-    fwhm = objects['fwhm']
-    hfd = objects['hfd']
+    objects = np.concatenate(
+        [findStars(wind, thresh, 3) for (wname, wind) in ccd.items()]
+    )
+    xpos = objects["x"]
+    ypos = objects["y"]
+    fwhm = objects["fwhm"]
+    hfd = objects["hfd"]
 
     if use_hfd:
-        mask = np.logical_and(np.isfinite(hfd).data, objects['peak'] < 20000)
+        mask = np.logical_and(np.isfinite(hfd).data, objects["peak"] < 20000)
         mask = mask & (fwhm <= 20)
-        return xpos[mask], ypos[mask], hfd[mask], objects['cflux'][mask]
+        return xpos[mask], ypos[mask], hfd[mask], objects["cflux"][mask]
     else:
         mask = fwhm <= 20
-        mask = np.logical_and(mask, objects['peak'] < 20000)
-        return xpos[mask], ypos[mask], fwhm[mask], objects['cflux'][mask]
+        mask = np.logical_and(mask, objects["peak"] < 20000)
+        return xpos[mask], ypos[mask], fwhm[mask], objects["cflux"][mask]
 
 
 def separateBigSmallSpots(xpos, ypos, fwhm, flux):
@@ -228,8 +246,16 @@ def separateBigSmallSpots(xpos, ypos, fwhm, flux):
     else:
         big_spot_mask = spot_mask1
         little_spot_mask = spot_mask0
-    return (xpos[little_spot_mask], ypos[little_spot_mask], fwhm[little_spot_mask], flux[little_spot_mask],
-            xpos[big_spot_mask], ypos[big_spot_mask], fwhm[big_spot_mask], flux[big_spot_mask])
+    return (
+        xpos[little_spot_mask],
+        ypos[little_spot_mask],
+        fwhm[little_spot_mask],
+        flux[little_spot_mask],
+        xpos[big_spot_mask],
+        ypos[big_spot_mask],
+        fwhm[big_spot_mask],
+        flux[big_spot_mask],
+    )
 
 
 def aligntool(args=None):
@@ -327,139 +353,155 @@ def aligntool(args=None):
 
     command, args = utils.script_args(args)
 
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
         # register parameters
-        cl.register('ref', Cline.LOCAL, Cline.PROMPT)
-        cl.register('thresh', Cline.LOCAL, Cline.PROMPT)
-        cl.register('small_spots', Cline.LOCAL, Cline.HIDE)
-        cl.register('source', Cline.LOCAL, Cline.HIDE)
-        cl.register('device', Cline.LOCAL, Cline.HIDE)
-        cl.register('width', Cline.LOCAL, Cline.HIDE)
-        cl.register('height', Cline.LOCAL, Cline.HIDE)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('rccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('pause', Cline.LOCAL, Cline.HIDE)
-        cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('phi', Cline.LOCAL, Cline.PROMPT)
-        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ref", Cline.LOCAL, Cline.PROMPT)
+        cl.register("thresh", Cline.LOCAL, Cline.PROMPT)
+        cl.register("small_spots", Cline.LOCAL, Cline.HIDE)
+        cl.register("source", Cline.LOCAL, Cline.HIDE)
+        cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("width", Cline.LOCAL, Cline.HIDE)
+        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("first", Cline.LOCAL, Cline.PROMPT)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("flist", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("rccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("pause", Cline.LOCAL, Cline.HIDE)
+        cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("phi", Cline.LOCAL, Cline.PROMPT)
+        cl.register("xlo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("xhi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ylo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
 
         # get inputs
-        reference = cl.get_value('ref', 'reference frame to align to',
-                                 cline.Fname('hcam', hcam.HCAM))
+        reference = cl.get_value(
+            "ref", "reference frame to align to", cline.Fname("hcam", hcam.HCAM)
+        )
 
         ref_mccd = hcam.MCCD.read(reference)
 
-        thresh = cl.get_value('thresh', 'detection threshold (sigma)', 5.0)
-        small_spots = cl.get_value('small_spots', 'use small spots for alignment', False)
+        thresh = cl.get_value("thresh", "detection threshold (sigma)", 5.0)
+        small_spots = cl.get_value(
+            "small_spots", "use small spots for alignment", False
+        )
 
         # get inputs
         source = cl.get_value(
-            'source', 'data source [hs, hl, us, ul, hf]',
-            'hl', lvals=('hs','hl','us','ul','hf')
+            "source",
+            "data source [hs, hl, us, ul, hf]",
+            "hl",
+            lvals=("hs", "hl", "us", "ul", "hf"),
         )
 
         # set some flags
-        server_or_local = source.endswith('s') or source.endswith('l')
+        server_or_local = source.endswith("s") or source.endswith("l")
         inst = source[0]
 
         # plot device stuff
-        device = cl.get_value('device', 'plot device', '1/xs')
-        width = cl.get_value('width', 'plot width (inches)', 0.)
-        height = cl.get_value('height', 'plot height (inches)', 0.)
+        device = cl.get_value("device", "plot device", "1/xs")
+        width = cl.get_value("width", "plot width (inches)", 0.0)
+        height = cl.get_value("height", "plot height (inches)", 0.0)
 
         if server_or_local:
-            resource = cl.get_value('run', 'run name', 'run005')
-            first = cl.get_value('first', 'first frame to plot', 1, 1)
-            twait = cl.get_value('twait', 'time to wait for a new frame [secs]', 1., 0.)
-            tmax = cl.get_value('tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+            resource = cl.get_value("run", "run name", "run005")
+            first = cl.get_value("first", "first frame to plot", 1, 1)
+            twait = cl.get_value(
+                "twait", "time to wait for a new frame [secs]", 1.0, 0.0
+            )
+            tmax = cl.get_value(
+                "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+            )
         else:
             # set inst = 'h' as only lists of HiPERCAM files are supported
-            inst = 'h'
-            resource = cl.get_value('flist', 'file list', cline.Fname('files.lis',hcam.LIST))
+            inst = "h"
+            resource = cl.get_value(
+                "flist", "file list", cline.Fname("files.lis", hcam.LIST)
+            )
             first = 1
 
-        flist = source.endswith('f')
-        server = source.endswith('s')
-        if inst == 'u':
-            instrument = 'ULTRA'
-        elif inst == 'h':
-            instrument = 'HIPER'
+        flist = source.endswith("f")
+        server = source.endswith("s")
+        if inst == "u":
+            instrument = "ULTRA"
+        elif inst == "h":
+            instrument = "HIPER"
 
         # get the labels and maximum dimensions and padding factors
         ccdinf = spooler.get_ccd_pars(source, resource)
         if len(ccdinf) > 1:
-            ccdnam = cl.get_value('ccd', 'CCD to plot alignment of', '1')
-            rccdnam = cl.get_value('rccd', 'CCD to use as reference', '5')
+            ccdnam = cl.get_value("ccd", "CCD to plot alignment of", "1")
+            rccdnam = cl.get_value("rccd", "CCD to use as reference", "5")
 
-        cl.set_default('pause', 0.)
+        cl.set_default("pause", 0.0)
         pause = cl.get_value(
-            'pause', 'time delay to add between frame plots [secs]', 0., 0.
+            "pause", "time delay to add between frame plots [secs]", 0.0, 0.0
         )
 
         # bias frame (if any)
         bias = cl.get_value(
-            'bias', "bias frame ['none' to ignore]",
-            cline.Fname('bias', hcam.HCAM), ignore='none'
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
         )
         if bias is not None:
             # read the bias frame
             bias = hcam.MCCD.read(bias)
 
-        msub = cl.get_value('msub', 'subtract median from each window?', True)
+        msub = cl.get_value("msub", "subtract median from each window?", True)
 
         iset = cl.get_value(
-            'iset', 'set intensity a(utomatically),'
-            ' d(irectly) or with p(ercentiles)?',
-            'a', lvals=['a', 'A', 'd', 'D', 'p', 'P']
+            "iset",
+            "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+            "a",
+            lvals=["a", "A", "d", "D", "p", "P"],
         )
         iset = iset.lower()
 
         plo, phi = 5, 95
         ilo, ihi = 0, 1000
-        if iset == 'd':
-            ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
-            ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
-        elif iset == 'p':
+        if iset == "d":
+            ilo = cl.get_value("ilo", "lower intensity limit", 0.0)
+            ihi = cl.get_value("ihi", "upper intensity limit", 1000.0)
+        elif iset == "p":
             plo = cl.get_value(
-                'plo', 'lower intensity limit percentile', 5., 0., 100.)
+                "plo", "lower intensity limit percentile", 5.0, 0.0, 100.0
+            )
             phi = cl.get_value(
-                'phi', 'upper intensity limit percentile', 95., 0., 100.)
+                "phi", "upper intensity limit percentile", 95.0, 0.0, 100.0
+            )
 
         # region to plot
         nxtot, nytot, nxpad, nypad = ccdinf[ccdnam]
         xmin, xmax = float(-nxpad), float(nxtot + nxpad + 1)
         ymin, ymax = float(-nypad), float(nytot + nypad + 1)
 
-        xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
-        xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
-        ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
-        yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
+        xlo = cl.get_value("xlo", "left-hand X value", xmin, xmin, xmax)
+        xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax)
+        ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax)
+        yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax)
 
     # arguments defined, let's do something!
     # open image plot device
     imdev = hcam.pgp.Device(device)
     if width > 0 and height > 0:
-        pgpap(width, height/width)
+        pgpap(width, height / width)
 
     pgsubp(1, 2)
     for i in range(2):
-        pgsci(hcam.pgp.Params['axis.ci'])
-        pgsch(hcam.pgp.Params['axis.number.ch'])
+        pgsci(hcam.pgp.Params["axis.ci"])
+        pgsch(hcam.pgp.Params["axis.number.ch"])
         pgenv(xlo, xhi, ylo, yhi, 1, 0)
-        pglab('X', 'Y', ('reference', 'data')[i])
+        pglab("X", "Y", ("reference", "data")[i])
 
     total_time = 0  # time waiting for new frame
 
@@ -474,15 +516,17 @@ def aligntool(args=None):
                 )
 
                 if give_up:
-                    print('alignment tool stopped')
+                    print("alignment tool stopped")
                     break
                 elif try_again:
                     continue
 
             # indicate progress
             print(
-                'Frame {:d}, time = {:s}; '.format(
-                    mccd.head['NFRAME'], mccd.head['TIMSTAMP']), end=''
+                "Frame {:d}, time = {:s}; ".format(
+                    mccd.head["NFRAME"], mccd.head["TIMSTAMP"]
+                ),
+                end="",
             )
 
             if n == 0 and bias is not None:
@@ -502,40 +546,44 @@ def aligntool(args=None):
                     wind -= wind.median()
 
             # plot images
-            message = ''
+            message = ""
             for i in range(2):
                 this_ccd = (ref_ccd, ccd)[i]
-                name = ('ref: ', 'data: ')[i]
-                pgpanl(1, i+1)
+                name = ("ref: ", "data: ")[i]
+                pgpanl(1, i + 1)
                 vmin, vmax = hcam.pgp.pCcd(this_ccd, iset, plo, phi, ilo, ihi)
-                message += ' {:s}: {:.2f} to {:.2f}'.format(name, vmin, vmax)
+                message += " {:s}: {:.2f} to {:.2f}".format(name, vmin, vmax)
             print(message)
 
             # time for measurement of spots!
             try:
                 xpos, ypos, fwhm, flux = measureSpots(mccd, ccdnam, thresh)
-                lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(xpos, ypos, fwhm, flux)
+                lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(
+                    xpos, ypos, fwhm, flux
+                )
                 if not small_spots:
                     # use big spots
                     x, y, f, flux = bx, by, bf, bp
                 else:
                     x, y, f, flux = lx, ly, lf, lp
             except Exception as err:
-                print('Failed to find spots in frame: ', end=' ')
+                print("Failed to find spots in frame: ", end=" ")
                 print(str(err))
                 continue
 
             # also measure spots in reference image
             try:
                 xpos, ypos, fwhm, rflux = measureSpots(ref_mccd, rccdnam, thresh)
-                lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(xpos, ypos, fwhm, rflux)
+                lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(
+                    xpos, ypos, fwhm, rflux
+                )
                 if not small_spots:
                     # use big spots
                     xref, yref, fref = bx, by, bf
                 else:
                     xref, yref, fref = lx, ly, lf
             except Exception as err:
-                print('Failed to find spots in reference: ', end=' ')
+                print("Failed to find spots in reference: ", end=" ")
                 print(str(err))
                 continue
 

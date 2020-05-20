@@ -7,13 +7,14 @@ import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
-__all__ = ['add', 'div', 'mul', 'sub']
+__all__ = ["add", "div", "mul", "sub"]
 
 #############################################
 #
 # arith -- arithematic with multi-CCD images
 #
 #############################################
+
 
 def arith(args=None):
     """
@@ -54,116 +55,130 @@ def arith(args=None):
     command, args = utils.script_args(args)
 
     # get inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('input1', Cline.LOCAL, Cline.PROMPT)
-        cl.register('input2', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.HIDE)
-        cl.register('win', Cline.LOCAL, Cline.HIDE)
-        cl.register('crop', Cline.LOCAL, Cline.HIDE)
-        cl.register('output', Cline.LOCAL, Cline.PROMPT)
+        cl.register("input1", Cline.LOCAL, Cline.PROMPT)
+        cl.register("input2", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.HIDE)
+        cl.register("win", Cline.LOCAL, Cline.HIDE)
+        cl.register("crop", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
-        prompts = {'add' : 'add', 'sub' : 'subtract',
-                   'mul' : 'multiply by', 'div' : 'divide by'}
+        prompts = {
+            "add": "add",
+            "sub": "subtract",
+            "mul": "multiply by",
+            "div": "divide by",
+        }
 
-        infile1 = cl.get_value('input1', 'first input file',
-                               cline.Fname('hcam', hcam.HCAM))
+        infile1 = cl.get_value(
+            "input1", "first input file", cline.Fname("hcam", hcam.HCAM)
+        )
         mccd1 = hcam.MCCD.read(infile1)
 
-        infile2 = cl.get_value('input2', 'second input file',
-                               cline.Fname('hcam', hcam.HCAM))
+        infile2 = cl.get_value(
+            "input2", "second input file", cline.Fname("hcam", hcam.HCAM)
+        )
         mccd2 = hcam.MCCD.read(infile2)
 
         if len(mccd1) > 1:
-            cl.set_default('ccd', 'all')
-            ccd = cl.get_value('ccd', 'CCD(s) to process', 'all')
-            if ccd == 'all':
+            cl.set_default("ccd", "all")
+            ccd = cl.get_value("ccd", "CCD(s) to process", "all")
+            if ccd == "all":
                 ccds = list(mccd1.keys())
             else:
                 ccds = ccd.split()
         else:
-            ccd = 'all'
+            ccd = "all"
             ccds = list(mccd1.keys())
 
         tccd = mccd1[ccds[0]]
         if len(tccd) > 1:
-            cl.set_default('win', 'all')
-            win = cl.get_value('win', 'window(s) to process', 'all')
-            if win == 'all':
-                wins = 'all'
+            cl.set_default("win", "all")
+            win = cl.get_value("win", "window(s) to process", "all")
+            if win == "all":
+                wins = "all"
             else:
                 wins = win.split()
         else:
-            win = 'all'
-            wins = 'all'
+            win = "all"
+            wins = "all"
 
-        cl.set_default('crop', False)
-        crop = cl.get_value('crop', 'try to crop input2 to the same format as input1', False)
+        cl.set_default("crop", False)
+        crop = cl.get_value(
+            "crop", "try to crop input2 to the same format as input1", False
+        )
         if crop:
             mccd2 = mccd2.crop(mccd1)
-            print('cropped {:s} to match {:s} before operation'.format(infile2,infile1))
+            print(
+                "cropped {:s} to match {:s} before operation".format(infile2, infile1)
+            )
 
-        outfile = cl.get_value('output', 'output file',
-                               cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW))
+        outfile = cl.get_value(
+            "output", "output file", cline.Fname("hcam", hcam.HCAM, cline.Fname.NEW)
+        )
 
     # carry out operation
-    if command == 'add':
+    if command == "add":
         # addition
         for cnam in ccds:
             ccd1 = mccd1[cnam]
             ccd2 = mccd2[cnam]
-            if wins == 'all':
+            if wins == "all":
                 ccd1 += ccd2
             else:
                 for wnam in wins:
                     ccd1[wnam] += ccd2[wnam]
 
-    elif command == 'sub':
+    elif command == "sub":
         # subtraction
         for cnam in ccds:
             ccd1 = mccd1[cnam]
             ccd2 = mccd2[cnam]
-            if wins == 'all':
+            if wins == "all":
                 ccd1 -= ccd2
             else:
                 for wnam in wins:
                     ccd1[wnam] -= ccd2[wnam]
 
-    elif command == 'mul':
+    elif command == "mul":
         # multiplication
         for cnam in ccds:
             ccd1 = mccd1[cnam]
             ccd2 = mccd2[cnam]
-            if wins == 'all':
+            if wins == "all":
                 ccd1 *= ccd2
             else:
                 for wnam in wins:
                     ccd1[wnam] *= ccd2[wnam]
 
-    elif command == 'div':
+    elif command == "div":
         # multiplication
         for cnam in ccds:
             ccd1 = mccd1[cnam]
             ccd2 = mccd2[cnam]
-            if wins == 'all':
+            if wins == "all":
                 ccd1 /= ccd2
             else:
                 for wnam in wins:
                     ccd1[wnam] /= ccd2[wnam]
 
-
     # Add a history line
     mccd1.head.add_history(
-        '{:s} {:s} {:s} {:s} {:s} {:s}'.format(
-            command, utils.sub_extension(infile1, hcam.HCAM),
-            utils.sub_extension(infile2, hcam.HCAM), ccd, win,
-            utils.sub_extension(outfile, hcam.HCAM)
+        "{:s} {:s} {:s} {:s} {:s} {:s}".format(
+            command,
+            utils.sub_extension(infile1, hcam.HCAM),
+            utils.sub_extension(infile2, hcam.HCAM),
+            ccd,
+            win,
+            utils.sub_extension(outfile, hcam.HCAM),
         )
     )
 
     # save result
     mccd1.write(outfile, True)
+
 
 def add(args=None):
     """``add input1 input2 [ccd win] output``
@@ -196,6 +211,7 @@ def add(args=None):
           in which case the input file will be over-written.
     """
     arith(args)
+
 
 def sub(args=None):
     """``sub input1 input2 [ccd win] output``
@@ -230,6 +246,7 @@ def sub(args=None):
     """
     arith(args)
 
+
 def div(args=None):
     """``div input1 input2 [ccd win] output``
 
@@ -262,6 +279,7 @@ def div(args=None):
 
     """
     arith(args)
+
 
 def mul(args=None):
     """``mul input1 input2 [ccd win] output``

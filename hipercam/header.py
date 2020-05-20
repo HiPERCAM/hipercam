@@ -7,7 +7,8 @@ The aim is to provide a faster replacement for astropy.io.fits.Header
 from collections import OrderedDict as odict
 from astropy.io.fits import Header as FITS_Header
 
-__all__ = ('Header',)
+__all__ = ("Header",)
+
 
 class Header:
 
@@ -33,7 +34,7 @@ class Header:
     objects.
     """
 
-    SPECIAL_KEYWORDS = ('COMMENT', 'HISTORY', '')
+    SPECIAL_KEYWORDS = ("COMMENT", "HISTORY", "")
 
     def __init__(self, head=None, copy=False):
         """Initialiser. 'head' can be (i) another Header, (ii) an ordered
@@ -82,11 +83,13 @@ class Header:
                     self.cards.append((key, value, comment))
                     ukey = key.upper()
                     if ukey not in self._lookup:
-                        self._lookup[ukey] = len(self.cards)-1
+                        self._lookup[ukey] = len(self.cards) - 1
                     else:
                         raise ValueError(
-                            ('key = {:s} appears more than once'
-                             ' (case-insensitive)').format(ukey)
+                            (
+                                "key = {:s} appears more than once"
+                                " (case-insensitive)"
+                            ).format(ukey)
                         )
 
         elif isinstance(head, FITS_Header):
@@ -95,7 +98,7 @@ class Header:
             self._lookup = {}
             for n, card in enumerate(head.cards):
                 key = card.keyword
-                self.cards.append((key,card.value,card.comment))
+                self.cards.append((key, card.value, card.comment))
 
                 ukey = key.upper()
                 if ukey not in Header.SPECIAL_KEYWORDS:
@@ -103,8 +106,10 @@ class Header:
                         self._lookup[ukey] = n
                     else:
                         raise ValueError(
-                            ('key = {:s} appears more than once'
-                             ' (case-insensitive)').format(ukey)
+                            (
+                                "key = {:s} appears more than once"
+                                " (case-insensitive)"
+                            ).format(ukey)
                         )
         else:
             # A list of (key,value,comment) tuples.
@@ -125,8 +130,10 @@ class Header:
                         self._lookup[ukey] = n
                     else:
                         raise ValueError(
-                            ('key = {:s} appears more than once'
-                             ' (case-insensitive)').format(ukey)
+                            (
+                                "key = {:s} appears more than once"
+                                " (case-insensitive)"
+                            ).format(ukey)
                         )
 
         # Calculate pointers to where COMMENTS and HISTORY start
@@ -134,15 +141,15 @@ class Header:
         self._hstart = self._hstop = self._cstart = self._cstop = -1
 
         for n, (key, value, comment) in enumerate(self.cards):
-            if key == 'COMMENT':
+            if key == "COMMENT":
                 if self._cstart == -1:
                     self._cstart = n
-                self._cstop = n+1
+                self._cstop = n + 1
 
-            elif key == 'HISTORY':
+            elif key == "HISTORY":
                 if self._hstart == -1:
                     self._hstart = n
-                self._hstop = n+1
+                self._hstop = n + 1
 
         if self._cstart == -1:
             self._cstart = self._cstop = len(self.cards)
@@ -157,10 +164,10 @@ class Header:
         """
         # Translate the cards to avoid warnings about long keys
         cards = []
-        for key,value,comment in self.cards:
+        for key, value, comment in self.cards:
             if len(key) > 8:
-                key = 'HIERARCH ' + key
-            cards.append((key,value,comment))
+                key = "HIERARCH " + key
+            cards.append((key, value, comment))
 
         return FITS_Header(cards)
 
@@ -170,7 +177,7 @@ class Header:
         Any leading 'HIERARCH ' is stripped"""
         if len(key) <= 8:
             key = key.upper()
-        elif key.upper().startswith('HIERARCH '):
+        elif key.upper().startswith("HIERARCH "):
             key = key[9:]
         return key
 
@@ -201,9 +208,7 @@ class Header:
             key = Header._process_key(key)
 
             if key in Header.SPECIAL_KEYWORDS:
-                raise ValueError(
-                    "Keywords 'COMMENT', 'HISTORY' and '' are reserved"
-                )
+                raise ValueError("Keywords 'COMMENT', 'HISTORY' and '' are reserved")
             ukey = key.upper()
             if ukey in self._lookup:
                 # Overwrite pre-existing value, re-covering the old comment if
@@ -251,33 +256,33 @@ class Header:
 
     def add_comment(self, comment):
         """Adds a comment to the end of the 'COMMENT' section"""
-        if isinstance(comment,str):
+        if isinstance(comment, str):
             if self._hstart >= self._cstop:
                 self._hstart += 1
             if self._hstop >= self._cstop:
                 self._hstop += 1
-            self.cards.insert(self._cstop,('COMMENT',comment,''))
+            self.cards.insert(self._cstop, ("COMMENT", comment, ""))
             self._cstop += 1
         else:
-            raise ValueError('only string comments allowed')
+            raise ValueError("only string comments allowed")
 
     def add_history(self, history):
         """Adds a line of history to the end of the 'HISTORY' section"""
-        if isinstance(history,str):
+        if isinstance(history, str):
             if self._cstart >= self._hstop:
                 self._cstart += 1
             if self._cstop >= self._hstop:
                 self._cstop += 1
-            self.cards.insert(self._hstop,('HISTORY',history,''))
+            self.cards.insert(self._hstop, ("HISTORY", history, ""))
             self._hstop += 1
         else:
-            raise ValueError('only string history lines allowed')
+            raise ValueError("only string history lines allowed")
 
     def copy(self):
         return Header(self, True)
 
     def __repr__(self):
-        return 'Header(head={!r})'.format(self.cards)
+        return "Header(head={!r})".format(self.cards)
 
     def __delitem__(self, key):
         """Deletes a particular header item when called e.g. as
@@ -302,7 +307,7 @@ class Header:
         self._cstop -= 1
         for key, ind in self._lookup.items():
             if ind > index:
-                self._lookup[key] = ind-1
+                self._lookup[key] = ind - 1
 
     def __contains__(self, key):
         """Defines the operation 'in' for a Header. Look up whether
@@ -315,6 +320,6 @@ class Header:
         comments and history)
         """
         nadded = 0
-        for key,value,comment in head.cards:
+        for key, value, comment in head.cards:
             if key.upper() not in Header.SPECIAL_KEYWORDS:
-                self[key] = (value,comment)
+                self[key] = (value, comment)

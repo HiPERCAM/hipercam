@@ -25,9 +25,12 @@ from .group import *
 from .header import *
 
 __all__ = (
-    'Winhead', 'Window',
-    'CcdWin', 'MccdWin',
+    "Winhead",
+    "Window",
+    "CcdWin",
+    "MccdWin",
 )
+
 
 class Winhead(Header):
     """The header parts of a CCD window
@@ -96,8 +99,7 @@ class Winhead(Header):
     yhi : float
     """
 
-    def __init__(self, llx, lly, nx, ny, xbin, ybin, outamp,
-                 head=None, copy=False):
+    def __init__(self, llx, lly, nx, ny, xbin, ybin, outamp, head=None, copy=False):
         """
         Inits Winheads
         """
@@ -112,13 +114,14 @@ class Winhead(Header):
         self.lly = lly
         self.xbin = xbin
         self.ybin = ybin
-        if outamp in ('','LL','LR','UL','UR'):
+        if outamp in ("", "LL", "LR", "UL", "UR"):
             self.outamp = outamp
         else:
             raise ValueError(
-                'outamp={:s} not an option for the output amplifier location'.format(outamp)
+                "outamp={:s} not an option for the output amplifier location".format(
+                    outamp
+                )
             )
-
 
         self.outamp = outamp
 
@@ -137,8 +140,7 @@ class Winhead(Header):
     @nx.setter
     def nx(self, nx):
         if nx < 1:
-            raise ValueError(
-                'nx = {:d} is invalid'.format(nx))
+            raise ValueError("nx = {:d} is invalid".format(nx))
         self._nx = nx
 
     @property
@@ -151,14 +153,19 @@ class Winhead(Header):
     @ny.setter
     def ny(self, ny):
         if ny < 1:
-            raise ValueError(
-                'ny = {:d} is invalid'.format(ny))
+            raise ValueError("ny = {:d} is invalid".format(ny))
         self._ny = ny
 
     def __repr__(self):
-        return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, outamp={!r}, head={:s})'.format(
-            self.llx, self.lly, self.nx, self.ny,
-            self.xbin, self.ybin, self.outamp, super().__repr__()
+        return "Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, outamp={!r}, head={:s})".format(
+            self.llx,
+            self.lly,
+            self.nx,
+            self.ny,
+            self.xbin,
+            self.ybin,
+            self.outamp,
+            super().__repr__(),
         )
 
     def __str__(self):
@@ -170,56 +177,62 @@ class Winhead(Header):
         being overloaded. Set 'nohead' True to suppress the header in addition"""
 
         if nohead:
-            return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, outamp={!r}, head=<...>)'.format(
+            return "Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, outamp={!r}, head=<...>)".format(
                 self.llx, self.lly, self.nx, self.ny, self.xbin, self.ybin, self.outamp
-                )
+            )
         else:
-            return 'Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, outamp={!r}, head={!r})'.format(
-                self.llx, self.lly, self.nx, self.ny,
-                self.xbin, self.ybin, self.outamp, super().__repr__()
-                )
+            return "Winhead(llx={!r}, lly={!r}, nx={!r}, ny={!r}, xbin={!r}, ybin={!r}, outamp={!r}, head={!r})".format(
+                self.llx,
+                self.lly,
+                self.nx,
+                self.ny,
+                self.xbin,
+                self.ybin,
+                self.outamp,
+                super().__repr__(),
+            )
 
     @property
     def urx(self):
         """
         Unbinned X pixel at upper-right of `Winhead`
         """
-        return self.llx-1+self.nx*self.xbin
+        return self.llx - 1 + self.nx * self.xbin
 
     @property
     def ury(self):
         """
         Unbinned Y pixel at upper-right of `Winhead`
         """
-        return self.lly-1+self.ny*self.ybin
+        return self.lly - 1 + self.ny * self.ybin
 
     @property
     def xlo(self):
         """
         Left-hand edge of window (llx-0.5)
         """
-        return self.llx-0.5
+        return self.llx - 0.5
 
     @property
     def xhi(self):
         """
         Right-hand edge of window (urx+0.5)
         """
-        return self.llx-1+self.nx*self.xbin+0.5
+        return self.llx - 1 + self.nx * self.xbin + 0.5
 
     @property
     def ylo(self):
         """
         Bottom edge of window (lly-0.5)
         """
-        return self.lly-0.5
+        return self.lly - 0.5
 
     @property
     def yhi(self):
         """
         Top edge of window (ury+0.5)
         """
-        return self.lly-1+self.ny*self.ybin+0.5
+        return self.lly - 1 + self.ny * self.ybin + 0.5
 
     def x(self, xpix):
         """Given an X-pixel position, returns the physical X in the CCD.
@@ -233,7 +246,7 @@ class Winhead(Header):
         Returns the physical location measured in unbinned pixels, with the
         centre of left-most pixels of the CCD = 1.0
         """
-        return self.llx + self.xbin*(xpix+0.5) - 0.5
+        return self.llx + self.xbin * (xpix + 0.5) - 0.5
 
     def y(self, ypix):
         """Given a Y-pixel position, returns the physical Y in the CCD.
@@ -247,7 +260,7 @@ class Winhead(Header):
         Returns the physical location measured in unbinned pixels, with the
         centre of lowest pixels of the CCD = 1.0
         """
-        return self.lly + self.ybin*(ypix+0.5) - 0.5
+        return self.lly + self.ybin * (ypix + 0.5) - 0.5
 
     def x_pixel(self, x):
         """The inverse of `x`: returns the X-pixel position given a physical
@@ -263,7 +276,7 @@ class Winhead(Header):
         left-most pixel is 0.
 
         """
-        return (x+0.5-self.llx)/self.xbin-0.5
+        return (x + 0.5 - self.llx) / self.xbin - 0.5
 
     def y_pixel(self, y):
         """The inverse of `y`: returns the Y-pixel position given a physical
@@ -279,7 +292,7 @@ class Winhead(Header):
         lowest pixel is 0.
 
         """
-        return (y+0.5-self.lly)/self.ybin-0.5
+        return (y + 0.5 - self.lly) / self.ybin - 0.5
 
     def extent(self):
 
@@ -287,7 +300,7 @@ class Winhead(Header):
         Returns (left,right,bottom,top) boundaries of :class:`Winhead`
         i.e. (xlo,xhi,ylo,yhi)
         """
-        return (self.xlo,self.xhi,self.ylo,self.yhi)
+        return (self.xlo, self.xhi, self.ylo, self.yhi)
 
     def outside(self, win):
         """Returns True if `self` contains the :class:Winhead `win` in such a
@@ -304,11 +317,16 @@ class Winhead(Header):
         See also :func:`inside`, :func:`window`
 
         """
-        return win.xbin % self.xbin == 0 and win.ybin % self.ybin == 0 and \
-            self.llx <= win.llx and self.urx >= win.urx and \
-            self.lly <= win.lly and self.ury >= win.ury and \
-            (win.llx-self.llx) % self.xbin == 0 and \
-            (win.lly-self.lly) % self.ybin == 0
+        return (
+            win.xbin % self.xbin == 0
+            and win.ybin % self.ybin == 0
+            and self.llx <= win.llx
+            and self.urx >= win.urx
+            and self.lly <= win.lly
+            and self.ury >= win.ury
+            and (win.llx - self.llx) % self.xbin == 0
+            and (win.lly - self.lly) % self.ybin == 0
+        )
 
     def inside(self, win):
         """Returns True if `win` contains `self` in such a way that it could
@@ -325,11 +343,16 @@ class Winhead(Header):
         See also :func:`outside`, :func:`window`
 
         """
-        return self.xbin % win.xbin == 0 and self.ybin % win.ybin == 0 and \
-            win.llx <= self.llx and win.urx >= self.urx and \
-            win.lly <= self.lly and win.ury >= self.ury and \
-            (self.llx-win.llx) % win.xbin == 0 and \
-            (self.lly-win.lly) % win.ybin == 0
+        return (
+            self.xbin % win.xbin == 0
+            and self.ybin % win.ybin == 0
+            and win.llx <= self.llx
+            and win.urx >= self.urx
+            and win.lly <= self.lly
+            and win.ury >= self.ury
+            and (self.llx - win.llx) % win.xbin == 0
+            and (self.lly - win.lly) % win.ybin == 0
+        )
 
     def xy(self):
         """Returns two 2D arrays containing the x and y values at the centre
@@ -338,10 +361,10 @@ class Winhead(Header):
 
         """
         # generate 1D x and y arrays along the edges
-        x = np.linspace(self.x(0),self.x(self.nx-1),self.nx)
-        y = np.linspace(self.y(0),self.y(self.ny-1),self.ny)
+        x = np.linspace(self.x(0), self.x(self.nx - 1), self.nx)
+        y = np.linspace(self.y(0), self.y(self.ny - 1), self.ny)
 
-        return np.meshgrid(x,y)
+        return np.meshgrid(x, y)
 
     def clash(self, win):
         """Raises a ValueError if two :class: `Winhead`s are considered to
@@ -356,11 +379,16 @@ class Winhead(Header):
              the :class:`Winhead` that we are testing self against.
 
         """
-        if self.llx <=  win.urx and self.urx >= win.llx and \
-           self.lly <=  win.ury and self.ury >= win.lly:
+        if (
+            self.llx <= win.urx
+            and self.urx >= win.llx
+            and self.lly <= win.ury
+            and self.ury >= win.lly
+        ):
             raise ValueError(
-                'self = {:s} clashes with win = {:s}'.format(
-                    self.format(), win.format())
+                "self = {:s} clashes with win = {:s}".format(
+                    self.format(), win.format()
+                )
             )
 
     def matches(self, win):
@@ -376,7 +404,7 @@ class Winhead(Header):
         """
         if self != win:
             raise ValueError(
-                'self = {!s} clashes with win = {!s}'.format(
+                "self = {!s} clashes with win = {!s}".format(
                     self.format(True), win.format(True)
                 )
             )
@@ -387,8 +415,14 @@ class Winhead(Header):
         copy.copy and copy.deepcopy of a `Winhead` use this method
         """
         return Winhead(
-            self.llx, self.lly, self.nx, self.ny,
-            self.xbin, self.ybin, self.outamp, super().copy()
+            self.llx,
+            self.lly,
+            self.nx,
+            self.ny,
+            self.xbin,
+            self.ybin,
+            self.outamp,
+            super().copy(),
         )
 
     def distance(self, x, y):
@@ -402,28 +436,28 @@ class Winhead(Header):
         """
         if x < self.xlo:
             if y < self.ylo:
-                dist = -min(self.xlo-x, self.ylo-y)
+                dist = -min(self.xlo - x, self.ylo - y)
             elif y > self.yhi:
-                dist = -min(self.xlo-x, y-self.yhi)
+                dist = -min(self.xlo - x, y - self.yhi)
             else:
-                dist = x-self.xlo
+                dist = x - self.xlo
 
         elif x > self.xhi:
             if y < self.ylo:
-                dist = -min(x-self.xhi, self.ylo-y)
+                dist = -min(x - self.xhi, self.ylo - y)
             elif y > self.yhi:
-                dist = -min(x-self.xhi, y-self.yhi)
+                dist = -min(x - self.xhi, y - self.yhi)
             else:
-                dist = self.xhi-x
+                dist = self.xhi - x
 
         else:
             if y < self.ylo:
-                dist = y-self.ylo
+                dist = y - self.ylo
             elif y > self.yhi:
-                dist = self.yhi-y
+                dist = self.yhi - y
             else:
                 # we are *in* the box
-                dist = min(x-self.xlo, self.xhi-x, y-self.ylo, self.yhi-y)
+                dist = min(x - self.xlo, self.xhi - x, y - self.ylo, self.yhi - y)
 
         return dist
 
@@ -464,30 +498,41 @@ class Winhead(Header):
         ylo = ylo if ylo is not None else self.ylo
         yhi = yhi if yhi is not None else self.yhi
 
-        llx = max(self.llx, self.llx +
-                  self.xbin*int(math.ceil((xlo-self.xlo)/self.xbin)))
-        lly = max(self.lly, self.lly +
-                  self.ybin*int(math.ceil((ylo-self.ylo)/self.ybin)))
-        nx = self.nx - (llx-self.llx)//self.xbin - \
-             max(0,int(math.ceil((self.xhi-xhi)/self.xbin)))
-        ny = self.ny - (lly-self.lly)//self.ybin - \
-             max(0,int(math.ceil((self.yhi-yhi)/self.ybin)))
+        llx = max(
+            self.llx,
+            self.llx + self.xbin * int(math.ceil((xlo - self.xlo) / self.xbin)),
+        )
+        lly = max(
+            self.lly,
+            self.lly + self.ybin * int(math.ceil((ylo - self.ylo) / self.ybin)),
+        )
+        nx = (
+            self.nx
+            - (llx - self.llx) // self.xbin
+            - max(0, int(math.ceil((self.xhi - xhi) / self.xbin)))
+        )
+        ny = (
+            self.ny
+            - (lly - self.lly) // self.ybin
+            - max(0, int(math.ceil((self.yhi - yhi) / self.ybin)))
+        )
 
         if nx <= 0 or ny <= 0:
             raise HipercamError(
-                '{!r} has no overlap with region = '
-                '({:.2f},{:.2f},{:.2f},{:.2f})'.format(
-                    self.format(), xlo, xhi, ylo, yhi)
+                "{!r} has no overlap with region = "
+                "({:.2f},{:.2f},{:.2f},{:.2f})".format(
+                    self.format(), xlo, xhi, ylo, yhi
                 )
+            )
 
         if copy:
             # headers are copied over as an independent object
-            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin,
-                         self.outamp, super().copy())
+            wh = Winhead(
+                llx, lly, nx, ny, self.xbin, self.ybin, self.outamp, super().copy()
+            )
         else:
             # headers are copied by reference.
-            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin,
-                         self.outamp, self)
+            wh = Winhead(llx, lly, nx, ny, self.xbin, self.ybin, self.outamp, self)
         return wh
 
     def __copy__(self):
@@ -506,9 +551,14 @@ class Winhead(Header):
              the :class:Winhead that we are testing self against.
 
         """
-        return self.llx == win.llx and  self.lly == win.lly and \
-            self.nx == win.nx and self.ny == win.ny and \
-            self.xbin == win.xbin and self.ybin == win.ybin
+        return (
+            self.llx == win.llx
+            and self.lly == win.lly
+            and self.nx == win.nx
+            and self.ny == win.ny
+            and self.xbin == win.xbin
+            and self.ybin == win.ybin
+        )
 
     def __ne__(self, win):
         """Defines equality. Two :class:`Winhead`s are equal if they match
@@ -523,43 +573,52 @@ class Winhead(Header):
         """
         return not (self == win)
 
-class _Encoder (json.JSONEncoder):
+
+class _Encoder(json.JSONEncoder):
     """
     Provides a default that can be used to write Winhead
     objects to json files
     """
+
     def default(self, obj):
         if isinstance(obj, Winhead):
             return OrderedDict(
                 (
-                    ('Comment', 'hipercam.Winhead'),
-                    ('llx', obj.llx),
-                    ('lly', obj.lly),
-                    ('nx', obj.nx),
-                    ('ny', obj.ny),
-                    ('xbin', obj.xbin),
-                    ('ybin', obj.ybin),
-                    ('outamp', obj.outamp),
-                    ('head', obj.head.tostring('',False,False))
-                ))
+                    ("Comment", "hipercam.Winhead"),
+                    ("llx", obj.llx),
+                    ("lly", obj.lly),
+                    ("nx", obj.nx),
+                    ("ny", obj.ny),
+                    ("xbin", obj.xbin),
+                    ("ybin", obj.ybin),
+                    ("outamp", obj.outamp),
+                    ("head", obj.head.tostring("", False, False)),
+                )
+            )
 
         super().default(obj)
 
-class _Decoder(json.JSONDecoder):
 
+class _Decoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
         super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
         # looks out for Winhead objects. Everything else done by default
-        if 'Comment' in obj and obj['Comment'] == 'hipercam.Winhead':
+        if "Comment" in obj and obj["Comment"] == "hipercam.Winhead":
             return Winhead(
-                obj['llx'], obj['lly'], obj['nx'], obj['ny'],
-                obj['xbin'], obj['ybin'], obj['outamp'],
-                Header.fromstring(obj['head'])
+                obj["llx"],
+                obj["lly"],
+                obj["nx"],
+                obj["ny"],
+                obj["xbin"],
+                obj["ybin"],
+                obj["outamp"],
+                Header.fromstring(obj["head"]),
             )
 
         return obj
+
 
 class CcdWin(Group):
     """All the :class:`Winhead` objects of a single CCD.
@@ -577,9 +636,7 @@ class CcdWin(Group):
         super().__init__(Winhead, wins)
 
     def __repr__(self):
-        return '{:s}(wins={:s})'.format(
-            self.__class__.__name__, super().__repr__()
-            )
+        return "{:s}(wins={:s})".format(self.__class__.__name__, super().__repr__())
 
     def toJson(self, fname):
         """Dumps ccdWin in JSON format to a file
@@ -592,8 +649,8 @@ class CcdWin(Group):
 
         # dumps as list to retain order through default iterator encoding that
         # buggers things otherwise
-        listify = ['hipercam.CcdWin'] + list(self.items())
-        with open(fname,'w') as fp:
+        listify = ["hipercam.CcdWin"] + list(self.items())
+        with open(fname, "w") as fp:
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
     @classmethod
@@ -620,9 +677,7 @@ class MccdWin(Group):
         super().__init__(CcdWin, wins)
 
     def __repr__(self):
-        return '{:s}(wins={:s})'.format(
-            self.__class__.__name__, super().__repr__()
-            )
+        return "{:s}(wins={:s})".format(self.__class__.__name__, super().__repr__())
 
     def toJson(self, fname):
         """Dumps MccdWin in JSON format to a file
@@ -634,11 +689,13 @@ class MccdWin(Group):
         """
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
-        listify = ['hipercam.MccdWin'] + list(
-            ((key,['hipercam.CcdWin']+list(val.items())) \
-             for key, val in self.items())
+        listify = ["hipercam.MccdWin"] + list(
+            (
+                (key, ["hipercam.CcdWin"] + list(val.items()))
+                for key, val in self.items()
+            )
         )
-        with open(fname, 'w') as fp:
+        with open(fname, "w") as fp:
             json.dump(listify, fp, cls=_Encoder, indent=2)
 
     @classmethod
@@ -649,7 +706,7 @@ class MccdWin(Group):
         """
         with open(fname) as fp:
             obj = json.load(fp, cls=_Decoder)
-        listify = [(v1,CcdWin(v2[1:])) for v1,v2 in obj[1:]]
+        listify = [(v1, CcdWin(v2[1:])) for v1, v2 in obj[1:]]
         mccdwin = MccdWin(listify)
         return mccdwin
 
@@ -661,6 +718,7 @@ class MccdWin(Group):
             for wnam, wind in ccd.items():
                 mccdwin[cnam][wnam] = wind.win
         return mccdwin
+
 
 class Window(Winhead):
     """A CCD window, headers, position and data
@@ -705,22 +763,30 @@ class Window(Winhead):
 
     def __init__(self, win, data=None, copy=False):
         super().__init__(
-            win.llx, win.lly, win.nx, win.ny,
-            win.xbin, win.ybin, win.outamp,
-            win, copy=copy
+            win.llx,
+            win.lly,
+            win.nx,
+            win.ny,
+            win.xbin,
+            win.ybin,
+            win.outamp,
+            win,
+            copy=copy,
         )
 
         if data is None:
-            self.data = np.zeros((win.ny,win.nx))
+            self.data = np.zeros((win.ny, win.nx))
         else:
             # Run a couple of checks
             if data.ndim != 2:
-                raise ValueError(
-                    'data must be 2D. Found {0:d}'.format(data.ndim))
+                raise ValueError("data must be 2D. Found {0:d}".format(data.ndim))
             ny, nx = data.shape
             if nx != win.nx or ny != win.ny:
                 raise ValueError(
-                    'win vs data dimension conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}'.format(win.nx,nx,win.ny,ny))
+                    "win vs data dimension conflict. NX: {0:d} vs {1:d}, NY: {2:d} vs {3:d}".format(
+                        win.nx, nx, win.ny, ny
+                    )
+                )
 
             self.data = data
 
@@ -733,9 +799,7 @@ class Window(Winhead):
 
     @nx.setter
     def nx(self, nx):
-        raise NotImplementedError(
-            'cannot set nx directly; change data array instead'
-        )
+        raise NotImplementedError("cannot set nx directly; change data array instead")
 
     @property
     def ny(self):
@@ -746,9 +810,7 @@ class Window(Winhead):
 
     @ny.setter
     def ny(self, ny):
-        raise NotImplementedError(
-            'cannot set ny directly; change data array instead'
-        )
+        raise NotImplementedError("cannot set ny directly; change data array instead")
 
     def flatten(self):
         """Return data of the :class:`Window` as a 1D array"""
@@ -773,12 +835,12 @@ class Window(Winhead):
             data = data.astype(np.float32)
 
         # extract important keywords Winhead
-        llx = head['LLX']
-        lly = head['LLY']
-        xbin = head['XBIN']
-        ybin = head['YBIN']
+        llx = head["LLX"]
+        lly = head["LLY"]
+        xbin = head["XBIN"]
+        ybin = head["YBIN"]
         ny, nx = data.shape
-        outamp = head.get('OUTAMP','')
+        outamp = head.get("OUTAMP", "")
 
         win = Winhead(llx, lly, nx, ny, xbin, ybin, outamp, head)
 
@@ -815,56 +877,58 @@ class Window(Winhead):
         head.update(self)
 
         # Now add the location parameters
-        head['LLX'] = (self.llx, 'X-ordinate of lower-left pixel')
-        head['LLY'] = (self.lly, 'Y-ordinate of lower-left pixel')
-        head['XBIN'] = (self.xbin, 'X-binning factor')
-        head['YBIN'] = (self.ybin, 'Y-binning factor')
+        head["LLX"] = (self.llx, "X-ordinate of lower-left pixel")
+        head["LLY"] = (self.lly, "Y-ordinate of lower-left pixel")
+        head["XBIN"] = (self.xbin, "X-binning factor")
+        head["YBIN"] = (self.ybin, "Y-binning factor")
 
         # Location of output amplifier
-        head['OUTAMP'] = (self.outamp,'Location of output amplifier')
+        head["OUTAMP"] = (self.outamp, "Location of output amplifier")
 
         # Now a set of parameters to facilitate ds9 display
         # using the IRAF mosaic option
-        head['CCDSUM'] = '{:d} {:d}'.format(self.xbin,self.ybin)
+        head["CCDSUM"] = "{:d} {:d}".format(self.xbin, self.ybin)
 
         # sections
-        nx,ny = self.nx, self.ny
-        head['CCDSEC'] = '[1:{:d},1:{:d}]'.format(nx,ny)
-        head['AMPSEC'] = '[1:{:d},1:{:d}]'.format(nx,ny)
-        head['DATASEC'] = '[{:d}:{:d},{:d}:{:d}]'.format(
-            self.llx,self.urx,self.lly,self.ury)
-        head['DETSEC'] = '[{:d}:{:d},{:d}:{:d}]'.format(
-            xoff+self.llx,xoff+self.urx,yoff+self.lly,yoff+self.ury)
+        nx, ny = self.nx, self.ny
+        head["CCDSEC"] = "[1:{:d},1:{:d}]".format(nx, ny)
+        head["AMPSEC"] = "[1:{:d},1:{:d}]".format(nx, ny)
+        head["DATASEC"] = "[{:d}:{:d},{:d}:{:d}]".format(
+            self.llx, self.urx, self.lly, self.ury
+        )
+        head["DETSEC"] = "[{:d}:{:d},{:d}:{:d}]".format(
+            xoff + self.llx, xoff + self.urx, yoff + self.lly, yoff + self.ury
+        )
 
         # transforms
 
         # amplifier coords
-        head['ATM1_1'] = 1.
-        head['ATM2_2'] = 1.
-        head['ATV1'] = 0.
-        head['ATV2'] = 0.
+        head["ATM1_1"] = 1.0
+        head["ATM2_2"] = 1.0
+        head["ATV1"] = 0.0
+        head["ATV2"] = 0.0
 
         # image coords
-        head['LTM1_1'] = 1./self.xbin
-        head['LTM2_2'] = 1./self.ybin
-        head['LTV1'] = 1-(self.llx+(self.xbin-1)/2)/self.xbin
-        head['LTV2'] = 1-(self.lly+(self.ybin-1)/2)/self.ybin
+        head["LTM1_1"] = 1.0 / self.xbin
+        head["LTM2_2"] = 1.0 / self.ybin
+        head["LTV1"] = 1 - (self.llx + (self.xbin - 1) / 2) / self.xbin
+        head["LTV2"] = 1 - (self.lly + (self.ybin - 1) / 2) / self.ybin
 
         # detector coords
-        head['DTM1_1'] = 1.
-        head['DTM2_2'] = 1.
-        head['DTV1'] = float(xoff)
-        head['DTV2'] = float(yoff)
+        head["DTM1_1"] = 1.0
+        head["DTM2_2"] = 1.0
+        head["DTV1"] = float(xoff)
+        head["DTV2"] = float(yoff)
 
-        head['WCSNAMEP'] = 'PHYSICAL'
-        head['CTYPE1'] = 'PIXEL'
-        head['CTYPE2'] = 'PIXEL'
-        head['CRPIX1'] = 1.
-        head['CRPIX2'] = 1.
-        head['CRVAL1'] = float(xoff+self.llx)
-        head['CRVAL2'] = float(yoff+self.lly)
-        head['CD1_1'] = float(self.xbin)
-        head['CD2_2'] = float(self.ybin)
+        head["WCSNAMEP"] = "PHYSICAL"
+        head["CTYPE1"] = "PIXEL"
+        head["CTYPE2"] = "PIXEL"
+        head["CRPIX1"] = 1.0
+        head["CRPIX2"] = 1.0
+        head["CRVAL1"] = float(xoff + self.llx)
+        head["CRVAL2"] = float(yoff + self.lly)
+        head["CD1_1"] = float(self.xbin)
+        head["CD2_2"] = float(self.ybin)
 
         # WCS mosaic
         #        cards.append(('WCSNAME', 'mosaic', 'HiPERCAM mosaic coordinates'))
@@ -882,7 +946,7 @@ class Window(Winhead):
         #        cards.append(('CD2_1', 0., 'no rotation or shear'))
 
         if extnam:
-            head['EXTNAME'] = (extnam, 'name of this image extension')
+            head["EXTNAME"] = (extnam, "name of this image extension")
 
         # Return the HDU
         return fits.ImageHDU(self.data, head.to_fits)
@@ -918,7 +982,7 @@ class Window(Winhead):
           gain : (float)
               Gain in electrons per count.
         """
-        sig = np.sqrt(readout**2+self.data/gain)
+        sig = np.sqrt(readout ** 2 + self.data / gain)
         self.data += np.random.normal(scale=sig)
 
     def min(self):
@@ -998,32 +1062,32 @@ class Window(Winhead):
         """
 
         # generate X,Y arrays
-        x,y = self.xy()
+        x, y = self.xy()
         if ndiv:
-            scale = 1/ndiv**2/self.xbin/self.ybin
+            scale = 1 / ndiv ** 2 / self.xbin / self.ybin
         try:
             for func in funcs:
                 if ndiv:
-                    for iy in range(self.ybin*ndiv):
+                    for iy in range(self.ybin * ndiv):
                         dy = (iy - (ndiv - 1) / 2) / ndiv
-                        for ix in range(self.xbin*ndiv):
+                        for ix in range(self.xbin * ndiv):
                             dx = (ix - (ndiv - 1) / 2) / ndiv
-                            ofunc = func.offset(dx,dy)
-                            ofunc(x,y,self.data,scale)
+                            ofunc = func.offset(dx, dy)
+                            ofunc(x, y, self.data, scale)
                 else:
-                    func(x,y,self.data)
+                    func(x, y, self.data)
 
         except TypeError:
             # If funcs is not iterable, assume it is just one callable
             if ndiv:
-                for iy in range(self.ybin*ndiv):
+                for iy in range(self.ybin * ndiv):
                     dy = (iy - (ndiv - 1) / 2) / ndiv
-                    for ix in range(self.xbin*ndiv):
+                    for ix in range(self.xbin * ndiv):
                         dx = (ix - (ndiv - 1) / 2) / ndiv
-                        ofunc = funcs.offset(dx,dy)
-                        ofunc(x,y,self.data,scale)
+                        ofunc = funcs.offset(dx, dy)
+                        ofunc(x, y, self.data, scale)
             else:
-                funcs(x,y,self.data)
+                funcs(x, y, self.data)
 
     def copy(self, memo=None):
         """Returns a copy (deepcopy) of the :class:`Window`
@@ -1070,9 +1134,9 @@ class Window(Winhead):
         if self.data is None:
             return Window(winh)
         else:
-            x1 = (winh.llx-self.llx)//self.xbin
-            y1 = (winh.lly-self.lly)//self.ybin
-            return Window(winh, self.data[y1:y1+winh.ny, x1:x1+winh.nx])
+            x1 = (winh.llx - self.llx) // self.xbin
+            y1 = (winh.lly - self.lly) // self.ybin
+            return Window(winh, self.data[y1 : y1 + winh.ny, x1 : x1 + winh.nx])
 
     def crop(self, win):
         """Creates a new :class:Window by cropping the current :class:Window to the
@@ -1093,19 +1157,22 @@ class Window(Winhead):
         """
         if self.outside(win):
             # first slice down to size
-            xstart = (win.llx-self.llx) // self.xbin
-            xend = xstart + win.nx*win.xbin//self.xbin
-            ystart = (win.lly-self.lly)//self.ybin
-            yend = ystart + win.ny*win.ybin//self.ybin
-            data = self.data[ystart:yend,xstart:xend]
+            xstart = (win.llx - self.llx) // self.xbin
+            xend = xstart + win.nx * win.xbin // self.xbin
+            ystart = (win.lly - self.lly) // self.ybin
+            yend = ystart + win.ny * win.ybin // self.ybin
+            data = self.data[ystart:yend, xstart:xend]
 
             if win.xbin > self.xbin or win.ybin > self.ybin:
                 # in this case we also need to rebin which is a matter of
                 # averaging over blocks of (win.xbin//self.xbin,
                 # win.ybin//self.ybin) which we do with a striding trick
-                block = (win.ybin//self.ybin, win.xbin//self.xbin)
-                shape= (data.shape[0]//block[0], data.shape[1]//block[1]) + block
-                strides= (block[0]*data.strides[0], block[1]*data.strides[1]) + data.strides
+                block = (win.ybin // self.ybin, win.xbin // self.xbin)
+                shape = (data.shape[0] // block[0], data.shape[1] // block[1]) + block
+                strides = (
+                    block[0] * data.strides[0],
+                    block[1] * data.strides[1],
+                ) + data.strides
                 data = as_strided(data, shape, strides)
                 data = data.mean(-1).mean(-1)
 
@@ -1113,8 +1180,7 @@ class Window(Winhead):
 
         else:
             raise ValueError(
-                'Cannot crop {!r} to {!r}'.format(
-                    self.format(), win.format())
+                "Cannot crop {!r} to {!r}".format(self.format(), win.format())
             )
 
     def float32(self):
@@ -1137,17 +1203,16 @@ class Window(Winhead):
         """
         if self.data.dtype != np.uint16:
             if np.any((self.data < 0) | (self.data > 65535)):
-                raise ValueError('data outside range 0 to 65535')
+                raise ValueError("data outside range 0 to 65535")
 
             if not np.equal(np.mod(self.data, 1), 0):
                 warnings.warn(
-                    'conversion to uint16 will result in'
-                    ' loss of precision'
+                    "conversion to uint16 will result in" " loss of precision"
                 )
 
             self.data = self.data.astype(np.uint16)
 
-    def search(self, fwhm, x0, y0, thresh, fft, max=False, percent=50.):
+    def search(self, fwhm, x0, y0, thresh, fft, max=False, percent=50.0):
         """Search for a target in a :class:Window. Works by convolving the image
         with a gaussian of FWHM = fwhm, and returns the location of the
         maximum in the smoothed image which exceeds a level `thresh` and lies
@@ -1206,15 +1271,13 @@ class Window(Winhead):
         """
 
         if fwhm > 0:
-            sigma = fwhm/np.sqrt(8*np.log(2))
+            sigma = fwhm / np.sqrt(8 * np.log(2))
             fedge = self.data.min()
             if fft:
                 kern = Gaussian2DKernel(sigma)
-                cimg = convolve_fft(self.data, kern, 'fill', fedge)
+                cimg = convolve_fft(self.data, kern, "fill", fedge)
             else:
-                cimg = gaussian_filter(
-                    self.data, sigma, mode='constant', cval=fedge
-                )
+                cimg = gaussian_filter(self.data, sigma, mode="constant", cval=fedge)
 
         else:
             cimg = self.data
@@ -1227,19 +1290,21 @@ class Window(Winhead):
 
         if max:
             # Locate the pixel of the global maximum
-            iy,ix = np.unravel_index(cimg.argmax(),cimg.shape)
+            iy, ix = np.unravel_index(cimg.argmax(), cimg.shape)
 
             # it must exceed thresh to count
-            if cimg[iy,ix] <= back+thresh:
+            if cimg[iy, ix] <= back + thresh:
                 raise HipercamError(
-                    'no peak higher than {:.1f} found; highest = {:.1f} (background = {:.1f})'.format(thresh, cimg[iy,ix], back)
+                    "no peak higher than {:.1f} found; highest = {:.1f} (background = {:.1f})".format(
+                        thresh, cimg[iy, ix], back
                     )
+                )
 
         else:
             # in this case we will search for the maximum > thresh and closest
             # to x0,y0 Find local maxima in smoothed image
-            dmax = maximum_filter(cimg, 3, mode='nearest')
-            iys, ixs = np.nonzero((dmax == cimg) & (cimg > back+thresh))
+            dmax = maximum_filter(cimg, 3, mode="nearest")
+            iys, ixs = np.nonzero((dmax == cimg) & (cimg > back + thresh))
 
             # Find the maximum (if there is one) nearest to the expected
             # position
@@ -1247,17 +1312,18 @@ class Window(Winhead):
                 # Locate the pixel of the global maximum
                 cmax = cimg.max()
                 raise HipercamError(
-                    ('no peak higher than {:.1f} found; highest'
-                     ' = {:.1f} (background = {:.1f})').format(
-                         thresh, cmax, back)
+                    (
+                        "no peak higher than {:.1f} found; highest"
+                        " = {:.1f} (background = {:.1f})"
+                    ).format(thresh, cmax, back)
                 )
 
             ix0, iy0 = self.x_pixel(x0), self.y_pixel(y0)
-            imin = ((ixs-ix0)**2 + (iys-iy0)**2).argmin()
+            imin = ((ixs - ix0) ** 2 + (iys - iy0) ** 2).argmin()
             iy, ix = iys[imin], ixs[imin]
 
         # return with the device coords and the value
-        return (self.x(ix),self.y(iy),self.data[iy,ix])
+        return (self.x(ix), self.y(iy), self.data[iy, ix])
 
     def __copy__(self):
         return self.copy()
@@ -1266,9 +1332,7 @@ class Window(Winhead):
         return self.copy(memo)
 
     def __repr__(self):
-        return 'Window(win={:s}, data={!r})'.format(
-            super().__repr__(), self.data
-        )
+        return "Window(win={:s}, data={!r})".format(super().__repr__(), self.data)
 
     # lots of arithematic routines
 
@@ -1359,7 +1423,6 @@ class Window(Winhead):
 
         return Window(super().copy(), data)
 
-
     def __radd__(self, other):
         """Adds `other` to a :class:`Window` as `other + wind`.  Here `other` is any
         object that can be added to a :class:`numpy.ndarray`, e.g. a float,
@@ -1412,7 +1475,7 @@ class Window(Winhead):
             num = other
 
         # carry out multiplication to a float type
-        data = self.data*num
+        data = self.data * num
         return Window(super().copy(), data)
 
     def __rmul__(self, other):
@@ -1422,7 +1485,7 @@ class Window(Winhead):
 
         """
         # carry out multiplication to a float type
-        data = self.data*other
+        data = self.data * other
         return Window(super().copy(), data)
 
     def __truediv__(self, other):

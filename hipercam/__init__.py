@@ -49,6 +49,7 @@ out the result to a new file.
 """
 
 from pkg_resources import get_distribution, DistributionNotFound
+
 try:
     __version__ = get_distribution(__name__).version
 except DistributionNotFound:
@@ -75,5 +76,12 @@ from . import fitting
 from . import defect
 from . import scripts
 
-__all__ = core.__all__ + group.__all__ + window.__all__ + ccd.__all__ + \
-    aperture.__all__ + target.__all__ + header.__all__
+__all__ = (
+    core.__all__
+    + group.__all__
+    + window.__all__
+    + ccd.__all__
+    + aperture.__all__
+    + target.__all__
+    + header.__all__
+)

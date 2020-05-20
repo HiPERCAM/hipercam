@@ -10,15 +10,16 @@ import matplotlib as mpl
 
 backend = mpl.get_backend()
 
-if backend == 'Qt4Agg' or 'Qt5Agg':
+if backend == "Qt4Agg" or "Qt5Agg":
     from matplotlib.backends.backend_qt5 import cursord as curs
-elif backend == 'GTK3agg':
+elif backend == "GTK3agg":
     from matplotlib.backends.backend_gtk3 import cursord as curs
 else:
     curs = None
 
 if curs is not None:
     from matplotlib.backend_bases import cursors
+
     try:
         curs[cursors.HAND] = curs[cursors.POINTER]
         curs[cursors.WAIT] = curs[cursors.POINTER]
@@ -33,13 +34,16 @@ import hipercam as hcam
 from hipercam import cline, utils, defect
 from hipercam.cline import Cline
 
-__all__ = ['setdefect',]
+__all__ = [
+    "setdefect",
+]
 
 #############################################
 #
 # setdefect -- defines CCD defects given an image
 #
 #############################################
+
 
 def setdefect(args=None):
     """``setdefect mccd defect ccd [linput width height] rtarg rsky1 rsky2 nx
@@ -149,100 +153,102 @@ def setdefect(args=None):
     command, args = utils.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('mccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('defect', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('width', Cline.LOCAL, Cline.HIDE)
-        cl.register('height', Cline.LOCAL, Cline.HIDE)
-        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
-        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('invert', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ffield', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('hsbox', Cline.GLOBAL, Cline.HIDE)
-        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('phi', Cline.GLOBAL, Cline.PROMPT)
+        cl.register("mccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("defect", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("width", Cline.LOCAL, Cline.HIDE)
+        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("nx", Cline.LOCAL, Cline.PROMPT)
+        cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("invert", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ffield", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("hsbox", Cline.GLOBAL, Cline.HIDE)
+        cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("phi", Cline.GLOBAL, Cline.PROMPT)
 
         # get inputs
-        mccd = cl.get_value('mccd', 'frame to plot',
-                            cline.Fname('hcam', hcam.HCAM))
+        mccd = cl.get_value("mccd", "frame to plot", cline.Fname("hcam", hcam.HCAM))
         mccd = hcam.MCCD.read(mccd)
 
         dfct = cl.get_value(
-            'defect', 'name of defect file',
-            cline.Fname('defect', hcam.DFCT, exist=False)
+            "defect",
+            "name of defect file",
+            cline.Fname("defect", hcam.DFCT, exist=False),
         )
 
         if os.path.exists(dfct):
             # read in old defects
             mccd_dfct = defect.MccdDefect.read(dfct)
-            print('Loaded existing file = {:s}'.format(dfct))
+            print("Loaded existing file = {:s}".format(dfct))
         else:
             # create empty container
             mccd_dfct = defect.MccdDefect()
             print(
-                'No file called {:s} exists; '
-                'will create from scratch'.format(dfct)
+                "No file called {:s} exists; " "will create from scratch".format(dfct)
             )
 
         # define the panel grid
         try:
-            nxdef = cl.get_default('nx')
+            nxdef = cl.get_default("nx")
         except:
             nxdef = 3
 
         max_ccd = len(mccd)
         if max_ccd > 1:
-            ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
-            if ccd == '0':
+            ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
+            if ccd == "0":
                 ccds = list(mccd.keys())
             else:
                 ccds = ccd.split()
         else:
             ccds = list(mccd.keys())
 
-        width = cl.get_value('width', 'plot width (inches)', 0.)
-        height = cl.get_value('height', 'plot height (inches)', 0.)
+        width = cl.get_value("width", "plot width (inches)", 0.0)
+        height = cl.get_value("height", "plot height (inches)", 0.0)
 
         # number of panels in X
         if len(ccds) > 1:
             nxdef = min(len(ccds), nxdef)
-            cl.set_default('nx', nxdef)
-            nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+            cl.set_default("nx", nxdef)
+            nx = cl.get_value("nx", "number of panels in X", 3, 1)
         else:
             nx = 1
 
         # define the display intensities
-        msub = cl.get_value('msub', 'subtract median from each window?', True)
+        msub = cl.get_value("msub", "subtract median from each window?", True)
 
         if msub:
-            invert = cl.get_value('invert', 'invert image intensities?', True)
+            invert = cl.get_value("invert", "invert image intensities?", True)
 
-        ffield = cl.get_value(
-            'ffield', 'flat field defects? [else hot pixels]', True)
+        ffield = cl.get_value("ffield", "flat field defects? [else hot pixels]", True)
 
-        hsbox = cl.get_value('hsbox', 'half-width of stats box (binned pixels)', 2, 1)
+        hsbox = cl.get_value("hsbox", "half-width of stats box (binned pixels)", 2, 1)
         iset = cl.get_value(
-            'iset', 'set intensity a(utomatically),'
-            ' d(irectly) or with p(ercentiles)?',
-            'a', lvals=['a','A','d','D','p','P'])
+            "iset",
+            "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+            "a",
+            lvals=["a", "A", "d", "D", "p", "P"],
+        )
         iset = iset.lower()
 
         plo, phi = 5, 95
         ilo, ihi = 0, 1000
-        if iset == 'd':
-            ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
-            ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
-        elif iset == 'p':
+        if iset == "d":
+            ilo = cl.get_value("ilo", "lower intensity limit", 0.0)
+            ihi = cl.get_value("ihi", "upper intensity limit", 1000.0)
+        elif iset == "p":
             plo = cl.get_value(
-                'plo', 'lower intensity limit percentile', 5., 0., 100.)
+                "plo", "lower intensity limit percentile", 5.0, 0.0, 100.0
+            )
             phi = cl.get_value(
-                'phi', 'upper intensity limit percentile', 95., 0., 100.)
+                "phi", "upper intensity limit percentile", 95.0, 0.0, 100.0
+            )
 
         nxmax, nymax = 0, 0
         for cnam in ccds:
@@ -250,32 +256,32 @@ def setdefect(args=None):
             nymax = max(nymax, mccd[cnam].nytot)
 
         # might be worth trying to improve this at some point
-        xlo, xhi, ylo, yhi = 0, nxmax+1, 0, nymax+1
+        xlo, xhi, ylo, yhi = 0, nxmax + 1, 0, nymax + 1
 
     # Inputs obtained.
 
     # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
     # quit_all does not seem to be universal, hence the try/except
     try:
-        mpl.rcParams['keymap.back'] = ''
-        mpl.rcParams['keymap.forward'] = ''
-        mpl.rcParams['keymap.fullscreen'] = ''
-        mpl.rcParams['keymap.grid'] = ''
-        mpl.rcParams['keymap.home'] = ''
-        mpl.rcParams['keymap.pan'] = ''
-        mpl.rcParams['keymap.quit'] = ''
-        mpl.rcParams['keymap.save'] = ''
-        mpl.rcParams['keymap.pan'] = ''
-        mpl.rcParams['keymap.save'] = ''
-        mpl.rcParams['keymap.xscale'] = ''
-        mpl.rcParams['keymap.yscale'] = ''
-        mpl.rcParams['keymap.zoom'] = ''
+        mpl.rcParams["keymap.back"] = ""
+        mpl.rcParams["keymap.forward"] = ""
+        mpl.rcParams["keymap.fullscreen"] = ""
+        mpl.rcParams["keymap.grid"] = ""
+        mpl.rcParams["keymap.home"] = ""
+        mpl.rcParams["keymap.pan"] = ""
+        mpl.rcParams["keymap.quit"] = ""
+        mpl.rcParams["keymap.save"] = ""
+        mpl.rcParams["keymap.pan"] = ""
+        mpl.rcParams["keymap.save"] = ""
+        mpl.rcParams["keymap.xscale"] = ""
+        mpl.rcParams["keymap.yscale"] = ""
+        mpl.rcParams["keymap.zoom"] = ""
     except KeyError:
         pass
 
     # start plot
     if width > 0 and height > 0:
-        fig = plt.figure(figsize=(width,height))
+        fig = plt.figure(figsize=(width, height))
     else:
         fig = plt.figure()
 
@@ -300,13 +306,13 @@ def setdefect(args=None):
 
     for n, cnam in enumerate(ccds):
         if ax is None:
-            axes = ax = fig.add_subplot(ny, nx, n+1)
-            axes.set_aspect('equal', adjustable='box')
-            axes.set_xlim(xlo,xhi)
-            axes.set_ylim(ylo,yhi)
+            axes = ax = fig.add_subplot(ny, nx, n + 1)
+            axes.set_aspect("equal", adjustable="box")
+            axes.set_xlim(xlo, xhi)
+            axes.set_ylim(ylo, yhi)
         else:
-            axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-            axes.set_aspect('equal', adjustable='datalim')
+            axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
+            axes.set_aspect("equal", adjustable="datalim")
 
         if msub:
             # subtract median from each window
@@ -316,8 +322,8 @@ def setdefect(args=None):
                 mccd *= -1
 
         hcam.mpl.pCcd(
-            axes,mccd[cnam],iset,plo,phi,ilo,ihi,'CCD {:s}'.format(cnam)
-            )
+            axes, mccd[cnam], iset, plo, phi, ilo, ihi, "CCD {:s}".format(cnam)
+        )
 
         # keep track of the CCDs associated with each axes
         cnams[axes] = cnam
@@ -357,17 +363,18 @@ def setdefect(args=None):
 # impossible, explaining some of the weirdness. Effectively the class is used
 # here to define a scope for variables that would otherwise be treated as globals
 
+
 class PickDefect:
     """Class to pick defects
     """
 
     def __init__(
-            self, mccd, cnams, anams, toolbar, fig, mccd_dfct,
-            dfctnam, ffield, hsbox, pobjs):
+        self, mccd, cnams, anams, toolbar, fig, mccd_dfct, dfctnam, ffield, hsbox, pobjs
+    ):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
-        self.fig.canvas.mpl_connect('key_press_event', self._keyPressEvent)
+        self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
         self.mccd = mccd
         self.cnams = cnams
         self.anams = anams
@@ -394,15 +401,16 @@ class PickDefect:
 
         if self.ffield:
             print(
-                'd(elete), h(elp), l(ine), m(odest), n(asty), s(how), q(uit): ',
-                end='', flush=True
+                "d(elete), h(elp), l(ine), m(odest), n(asty), s(how), q(uit): ",
+                end="",
+                flush=True,
             )
         else:
             print(
-                'd(elete), h(elp), m(odest), n(asty), s(how), q(uit): ',
-                end='', flush=True
+                "d(elete), h(elp), m(odest), n(asty), s(how), q(uit): ",
+                end="",
+                flush=True,
             )
-
 
     def _keyPressEvent(self, event):
         """
@@ -414,16 +422,16 @@ class PickDefect:
 
         if self._line_mode:
 
-            if event.key == 'q':
+            if event.key == "q":
                 self._line_mode = False
-                print('no line defect added')
+                print("no line defect added")
                 self.action_prompt(True)
                 return
 
-            elif event.key == 'm':
+            elif event.key == "m":
                 self._severity = defect.Severity.MODERATE
 
-            elif event.key == 'n':
+            elif event.key == "n":
                 self._severity = defect.Severity.SEVERE
 
             axes = event.inaxes
@@ -456,10 +464,11 @@ class PickDefect:
             self._x = x
             self._y = y
 
-            if key == 'h':
+            if key == "h":
                 # help text
                 print(key)
-                print("""
+                print(
+                    """
 
 Help on the actions available in 'setdefect':
 
@@ -473,9 +482,10 @@ Help on the actions available in 'setdefect':
 
 Hitting 'd' will delete the defect nearest to the cursor, as long as it is
 close enough (< 10 pixels)
-""")
+"""
+                )
 
-            elif key == 'm' or key == 'n':
+            elif key == "m" or key == "n":
 
                 # add a point defect
                 print(key)
@@ -489,15 +499,15 @@ close enough (< 10 pixels)
                     except ValueError:
                         pass
 
-                self._buffer = str(high+1)
+                self._buffer = str(high + 1)
 
-                if key == 'm':
+                if key == "m":
                     self._severity = defect.Severity.MODERATE
-                elif key == 'n':
+                elif key == "n":
                     self._severity = defect.Severity.SEVERE
                 self._point()
 
-            elif self.ffield and key == 'l':
+            elif self.ffield and key == "l":
                 # add a line defect
                 print(key)
                 self._line_stage = 0
@@ -512,21 +522,21 @@ close enough (< 10 pixels)
                     except ValueError:
                         pass
 
-                self._buffer = str(high+1)
+                self._buffer = str(high + 1)
 
                 self._line()
 
-            elif key == 'd':
+            elif key == "d":
                 # delete an defect
                 print(key)
                 self._delete()
 
-            elif key == 's':
+            elif key == "s":
                 # show some values
                 print(key)
                 self._show()
 
-            elif key == 'q':
+            elif key == "q":
                 print(key)
                 # quit and clear up
                 plt.close()
@@ -543,31 +553,34 @@ close enough (< 10 pixels)
                     n = 0
                     for dnam, dfct in ccd_dfct.items():
                         if dfct.severity == defect.Severity.MODERATE:
-                            ccd_dfct_out[str(n+1)] = dfct
+                            ccd_dfct_out[str(n + 1)] = dfct
                             n += 1
 
                     # then the severes
                     for dnam, dfct in ccd_dfct.items():
                         if dfct.severity == defect.Severity.SEVERE:
-                            ccd_dfct_out[str(n+1)] = dfct
+                            ccd_dfct_out[str(n + 1)] = dfct
                             n += 1
 
                 # old files are over-written at this point
                 out_dfct.write(self.dfctnam)
-                print('\nDefects saved to {:s}.\nBye'.format(self.dfctnam))
+                print("\nDefects saved to {:s}.\nBye".format(self.dfctnam))
 
-            elif key == 'enter':
+            elif key == "enter":
                 self.action_prompt(True)
 
-            elif key == 'shift' or key == 'alt' or key == 'control' or \
-                 key == 'pagedown' or key == 'pageup':
+            elif (
+                key == "shift"
+                or key == "alt"
+                or key == "control"
+                or key == "pagedown"
+                or key == "pageup"
+            ):
                 # trap some special keys to avoid irritating messages
                 pass
 
-            elif key == 'l' and not self.ffield:
-                print(
-                    '\nCannot add lines of hot pixels, only flat-field defects'
-                )
+            elif key == "l" and not self.ffield:
+                print("\nCannot add lines of hot pixels, only flat-field defects")
 
             else:
                 print('\nNo action is defined for key = "{:s}"'.format(key))
@@ -581,12 +594,11 @@ close enough (< 10 pixels)
 
         # search for enclosing window, print stats
         wnam, wind = utils.print_stats(
-            self.mccd[self._cnam], self._cnam, self._x, self._y,
-            self.hsbox, False
+            self.mccd[self._cnam], self._cnam, self._x, self._y, self.hsbox, False
         )
 
         if wnam is None:
-            print('  cannot set defects outside windows')
+            print("  cannot set defects outside windows")
 
         else:
 
@@ -601,20 +613,21 @@ close enough (< 10 pixels)
             self.mccd_dfct[self._cnam][self._buffer] = dfct
 
             # add defect to the plot, store plot objects
-            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(
-                self._axes, dfct
-            )
+            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(self._axes, dfct)
 
             # make sure it appears
             plt.draw()
 
             # let user know what has happened
-            level = 'moderate' \
-                    if self._severity == defect.Severity.MODERATE else 'severe'
+            level = (
+                "moderate" if self._severity == defect.Severity.MODERATE else "severe"
+            )
 
-            print('added {:s} level defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}'.format(
-                level, self._buffer, self._cnam, self._x, self._y)
-              )
+            print(
+                "added {:s} level defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}".format(
+                    level, self._buffer, self._cnam, self._x, self._y
+                )
+            )
 
         self.action_prompt(True)
 
@@ -628,10 +641,10 @@ close enough (< 10 pixels)
 
         if self._line_stage == 1:
 
-            wnam = self.mccd[self._cnam].inside(self._x,self._y,0)
+            wnam = self.mccd[self._cnam].inside(self._x, self._y, 0)
             if wnam is None:
                 self._line_mode = False
-                print('  cannot set defects outside windows')
+                print("  cannot set defects outside windows")
                 self.action_prompt(True)
 
             else:
@@ -646,10 +659,10 @@ close enough (< 10 pixels)
 
         elif self._line_stage == 2:
 
-            wnam = self.mccd[self._cnam].inside(self._x,self._y,0)
+            wnam = self.mccd[self._cnam].inside(self._x, self._y, 0)
             if wnam is None:
                 self._line_mode = False
-                print('  cannot set defects outside windows')
+                print("  cannot set defects outside windows")
                 self.action_prompt(True)
 
             else:
@@ -657,7 +670,7 @@ close enough (< 10 pixels)
                 # now the second x,y position
                 if self._cnam != self._line_cnam:
                     self._line_mode = False
-                    print('  cannot set defects across different CCDs')
+                    print("  cannot set defects across different CCDs")
                     self.action_prompt(True)
 
                 self._line_x2 = self._x
@@ -672,30 +685,38 @@ close enough (< 10 pixels)
 
             dfct = defect.Line(
                 self._severity,
-                self._line_x1, self._line_y1, self._line_x2, self._line_y2
+                self._line_x1,
+                self._line_y1,
+                self._line_x2,
+                self._line_y2,
             )
             self.mccd_dfct[self._cnam][self._buffer] = dfct
 
             # add defect to the plot, store plot objects
-            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(
-                self._axes, dfct
-            )
+            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(self._axes, dfct)
 
             # make sure it appears
             plt.draw()
 
             # let user know what has happened
-            level = 'moderate' if \
-                    self._severity == defect.Severity.MODERATE \
-                    else 'severe'
+            level = (
+                "moderate" if self._severity == defect.Severity.MODERATE else "severe"
+            )
 
             print(
-                ('added {:s} level line defect {:s}'
-                 ' to CCD {:s} from x1,y1 = {:.2f},{:.2f}'
-                 ' to x2,y2 = {:.2f},{:.2f}').format(
-                     level,self._buffer,self._cnam,
-                     self._line_x1,self._line_y1,
-                     self._line_x2,self._line_y2)
+                (
+                    "added {:s} level line defect {:s}"
+                    " to CCD {:s} from x1,y1 = {:.2f},{:.2f}"
+                    " to x2,y2 = {:.2f},{:.2f}"
+                ).format(
+                    level,
+                    self._buffer,
+                    self._cnam,
+                    self._line_x1,
+                    self._line_y1,
+                    self._line_x2,
+                    self._line_y2,
+                )
             )
             self.action_prompt(True)
 
@@ -706,8 +727,7 @@ close enough (< 10 pixels)
 
         # search for enclosing window, print stats
         wnam, wind = utils.print_stats(
-            self.mccd[self._cnam], self._cnam, self._x, self._y,
-            self.hsbox, False
+            self.mccd[self._cnam], self._cnam, self._x, self._y, self.hsbox, False
         )
         if wnam is None:
             print('  must hit "s" inside a window')
@@ -723,7 +743,7 @@ close enough (< 10 pixels)
         # first see if there is a Defect near enough the selected position
         dfct, dfnam, dmin = self._find_defect()
 
-        if dmin is not None and  dmin < 10:
+        if dmin is not None and dmin < 10:
 
             # near enough for deletion
             for obj in self.pobjs[self._cnam][dfnam]:
@@ -738,7 +758,7 @@ close enough (< 10 pixels)
             print('  deleted defect "{:s}"'.format(dfnam))
 
         else:
-            print('  no defect near enough the cursor position for deletion')
+            print("  no defect near enough the cursor position for deletion")
 
         self.action_prompt(True)
 
@@ -762,4 +782,3 @@ close enough (< 10 pixels)
                 dnmin = dfctnam
 
         return (dfctmin, dnmin, dmin)
-

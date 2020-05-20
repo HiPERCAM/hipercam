@@ -10,13 +10,16 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
-__all__ = ['tfixer',]
+__all__ = [
+    "tfixer",
+]
 
 ###############################
 #
 # tfixer -- timing fixer script
 #
 ###############################
+
 
 def tfixer(args=None):
     """``tfixer [source] run [mintim dcmax] details (mcdiffplot check``
@@ -103,58 +106,61 @@ def tfixer(args=None):
     command, args = utils.script_args(args)
 
     # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('source', Cline.LOCAL, Cline.HIDE)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('mintim', Cline.LOCAL, Cline.HIDE)
-        cl.register('dcmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('plot', Cline.LOCAL, Cline.PROMPT)
-        cl.register('details', Cline.LOCAL, Cline.PROMPT)
-        cl.register('check', Cline.LOCAL, Cline.PROMPT)
+        cl.register("source", Cline.LOCAL, Cline.HIDE)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("mintim", Cline.LOCAL, Cline.HIDE)
+        cl.register("dcmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("plot", Cline.LOCAL, Cline.PROMPT)
+        cl.register("details", Cline.LOCAL, Cline.PROMPT)
+        cl.register("check", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         source = cl.get_value(
-            'source', 'data source [hl, ul]',
-            'hl', lvals=('hl','ul')
+            "source", "data source [hl, ul]", "hl", lvals=("hl", "ul")
         )
 
-        run = cl.get_value('run', 'run name', 'run005')
-        if run.endswith('.fits'):
+        run = cl.get_value("run", "run name", "run005")
+        if run.endswith(".fits"):
             run = run[:-5]
 
-        mintim = cl.get_value('mintim', 'minimum number of times needed', 6, 4)
-        dcmax = cl.get_value('dcmax', 'maximum cycle number offset from an integer', 0.003, 0)
-        details = cl.get_value('details', 'print detailed diagnostics of problems', True)
-        plot = cl.get_value('plot', 'make diagnostic plots', True)
-        check = cl.get_value('check', 'check for, but do not fix, any problems', True)
+        mintim = cl.get_value("mintim", "minimum number of times needed", 6, 4)
+        dcmax = cl.get_value(
+            "dcmax", "maximum cycle number offset from an integer", 0.003, 0
+        )
+        details = cl.get_value(
+            "details", "print detailed diagnostics of problems", True
+        )
+        plot = cl.get_value("plot", "make diagnostic plots", True)
+        check = cl.get_value("check", "check for, but do not fix, any problems", True)
 
     # create name of timing file
-    tfile = os.path.join('tbytes', os.path.basename(run) + hcam.TBTS)
+    tfile = os.path.join("tbytes", os.path.basename(run) + hcam.TBTS)
     if not os.path.isfile(tfile):
-        raise hcam.HipercamError('Could not find timing file = {}'.format(tfile))
+        raise hcam.HipercamError("Could not find timing file = {}".format(tfile))
 
     # create name of run file and the copy which will only get made
     # later if problems are picked up
-    if source == 'hl':
-        rfile = run + '.fits'
-        cfile = run + '.fits.save'
+    if source == "hl":
+        rfile = run + ".fits"
+        cfile = run + ".fits.save"
     else:
-        rfile = run + '.dat'
-        cfile = run + '.dat.save'
+        rfile = run + ".dat"
+        cfile = run + ".dat.save"
 
     # first load all old time stamps, and compute MJDs
-    if source == 'hl':
-        raise NotImplementedError('HiPERCAM option not yet implemented')
+    if source == "hl":
+        raise NotImplementedError("HiPERCAM option not yet implemented")
 
-    elif source == 'ul':
+    elif source == "ul":
 
         # Load up the time stamps from the timing data file. Need also
         # the header of the original run to know how many bytes to
         # read and how to interpret them.
         rhead = hcam.ucam.Rhead(run)
-        with open(tfile,'rb') as fin:
+        with open(tfile, "rb") as fin:
             atbytes, mjds, tflags, gflags = [], [], [], []
             nframe = 0
             while 1:
@@ -175,8 +181,10 @@ def tfixer(args=None):
         # checked more stringently later, but this avoids silly crashes
         # when there are no times.
         print(
-            run,'has too few frames to work with ({} vs minimum = {})'.format(
-                len(mjds), mintim)
+            run,
+            "has too few frames to work with ({} vs minimum = {})".format(
+                len(mjds), mintim
+            ),
         )
         return
 
@@ -200,17 +208,19 @@ def tfixer(args=None):
     # Must have specified minimum of times to work with.
     if len(mjds_ok) < mintim:
         print(
-            run,'has too few non-null times to work with ({} vs minimum = {})'.format(
-                len(mjds_ok), mintim)
+            run,
+            "has too few non-null times to work with ({} vs minimum = {})".format(
+                len(mjds_ok), mintim
+            ),
         )
         return
 
     # Median time difference of GPS timestamps with guard against identical
     # times that can dominate leading to mdiff = 0
-    diffs = mjds_ok[1:]-mjds_ok[:-1]
-    pos = diffs > 1.e-9
+    diffs = mjds_ok[1:] - mjds_ok[:-1]
+    pos = diffs > 1.0e-9
     if len(diffs[pos]) == 0:
-        print(run,'has zero positive time differences to work with')
+        print(run, "has zero positive time differences to work with")
         return
     mdiff = np.median(diffs[pos])
 
@@ -218,21 +228,21 @@ def tfixer(args=None):
     # 1.e-9 ~ 1e-4 seconds, ~30x shorter than shortest ULTRACAM
     # cycle time. This could allow some bad stamps through but
     # they will be spotted later by looking at cycle numbers.
-    MDIFF = 1.e-9
+    MDIFF = 1.0e-9
 
     # Identify OK timestamps. Could miss some at this point, but
     # that's OK) kick off by marking all timestamps as False
     ok = mjds_ok == mjds_ok + 1
-    for n in range(len(mjds_ok)-1):
-        if abs(mjds_ok[n+1]-mjds_ok[n]-mdiff) < MDIFF:
+    for n in range(len(mjds_ok) - 1):
+        if abs(mjds_ok[n + 1] - mjds_ok[n] - mdiff) < MDIFF:
             # if two timestamps differ by the right amount, mark both
             # as ok
-            ok[n] = ok[n+1] = True
+            ok[n] = ok[n + 1] = True
 
     gmjds = mjds_ok[ok]
     ginds = inds_ok[ok]
     if len(gmjds) < 2:
-        print('{}: found fewer than 2 good timestamps'.format(run))
+        print("{}: found fewer than 2 good timestamps".format(run))
         return
 
     # Work out integer cycle numbers. First OK timestamp is given
@@ -243,17 +253,17 @@ def tfixer(args=None):
     # number fitted each time
 
     NMAX = 100
-    cycles = (gmjds[:NMAX]-gmjds[0])/mdiff
+    cycles = (gmjds[:NMAX] - gmjds[0]) / mdiff
     moffset = (cycles - np.round(cycles)).mean()
-    icycles = np.round(cycles-moffset).astype(int)
+    icycles = np.round(cycles - moffset).astype(int)
 
     while NMAX < len(gmjds):
         # fit linear trend of first NMAX times where hopefully NMAX is small
         # enough for there not to be a big error but large enough to allow extrapolation.
-        slope, intercept, r, p, err = stats.linregress(icycles[:NMAX],gmjds[:NMAX])
+        slope, intercept, r, p, err = stats.linregress(icycles[:NMAX], gmjds[:NMAX])
         NMAX *= 1.5
         NMAX = int(NMAX)
-        icycles = np.round((gmjds[:NMAX]-intercept)/slope).astype(int)
+        icycles = np.round((gmjds[:NMAX] - intercept) / slope).astype(int)
 
     # hope the cycle numbers should be good across the board for all the "gmjds"
     # at this point. Carry out final fits to try to refine the intercept and
@@ -265,12 +275,12 @@ def tfixer(args=None):
     nrej = 0
     while 1:
         # fit to ok ones
-        slope, intercept, r, p, err = stats.linregress(icycles[cok],gmjds[cok])
-        cycles = (gmjds-intercept)/slope
+        slope, intercept, r, p, err = stats.linregress(icycles[cok], gmjds[cok])
+        cycles = (gmjds - intercept) / slope
 
         # cdiffs, acdiffs -- cycle differences and their absolute
         # values
-        cdiffs = cycles-icycles
+        cdiffs = cycles - icycles
         acdiffs = np.abs(cdiffs)
 
         dmax = np.argmax(acdiffs[cok])
@@ -280,10 +290,10 @@ def tfixer(args=None):
             nrej += 1
         else:
             break
-    print('Rejected {} times when fitting nominally good times'.format(nrej))
+    print("Rejected {} times when fitting nominally good times".format(nrej))
 
     # now try to compute cycle numbers for *all* non-null timestamps
-    acycles = (mjds_ok-intercept)/slope
+    acycles = (mjds_ok - intercept) / slope
     iacycles = np.round(acycles).astype(int)
 
     if iacycles[-1] == iacycles[-2]:
@@ -292,28 +302,35 @@ def tfixer(args=None):
         # penultimate one. Correct this here
         iacycles[-1] += 1
 
-    cadiffs = acycles-iacycles
-    monotonic = (iacycles[1:]-iacycles[:-1] > 0).all()
+    cadiffs = acycles - iacycles
+    monotonic = (iacycles[1:] - iacycles[:-1] > 0).all()
 
     # check for early termination on run causing last frame to appear
     # early
     terminated_early = cadiffs[-1] < -dcmax
 
     # check that all is OK
-    if not nulls_present and monotonic and \
-       ((terminated_early and (np.abs(cadiffs[:-1]) < dcmax).all()) or \
-        (not terminated_early and (np.abs(cadiffs) < dcmax).all())):
+    if (
+        not nulls_present
+        and monotonic
+        and (
+            (terminated_early and (np.abs(cadiffs[:-1]) < dcmax).all())
+            or (not terminated_early and (np.abs(cadiffs) < dcmax).all())
+        )
+    ):
         if terminated_early:
             mdev = np.abs(cadiffs[:-1]).max()
             print(
-                '{} times are OK; {} frames; max. dev. all bar last = {:.2g} cyc, {:.2g} msec; last = {:.2g} cyc'.format(
-                    run, len(iacycles), mdev, 86400*1000*slope*mdev, cadiffs[-1])
+                "{} times are OK; {} frames; max. dev. all bar last = {:.2g} cyc, {:.2g} msec; last = {:.2g} cyc".format(
+                    run, len(iacycles), mdev, 86400 * 1000 * slope * mdev, cadiffs[-1]
+                )
             )
         else:
             mdev = np.abs(cadiffs).max()
             print(
-                '{} times are OK; {} frames; max. dev. all = {:.2g} cyc, {:.2g} msec'.format(
-                    run, len(iacycles), mdev, 86400*1000*slope*mdev)
+                "{} times are OK; {} frames; max. dev. all = {:.2g} cyc, {:.2g} msec".format(
+                    run, len(iacycles), mdev, 86400 * 1000 * slope * mdev
+                )
             )
         # to prevent crash during plot
         fails = cadiffs != cadiffs
@@ -331,7 +348,7 @@ def tfixer(args=None):
         nbad = len(mjds[btimes])
         fails = np.abs(cadiffs) > dcmax
         if terminated_early:
-            nfail = len(cadiffs[fails])-1
+            nfail = len(cadiffs[fails]) - 1
             mdev = np.abs(cadiffs[:-1]).max()
         else:
             nfail = len(cadiffs[fails])
@@ -341,22 +358,32 @@ def tfixer(args=None):
             # save some runs with trivial level issues from being flagged
             if nfail < len(cadiffs):
                 mdev = np.abs(cadiffs[nfail:]).max()
-            comment = ' [All fails are at start]'
+            comment = " [All fails are at start]"
             run_ok = True
         else:
-            comment = ''
+            comment = ""
             run_ok = False
 
         # Summarise problems
         print(
-            '{} timestamps corrupt. TOT,DUP,NULL,BAD,FAIL,FOK = {},{},{},{},{},{}; max dev = {:.2g} cyc, {:.2g} sec.{}'.format(
-                run, ntot, ndupe, nnull, nbad, nfail, inds_ok[ok][0]+1, mdev, 86400*slope*mdev, comment)
+            "{} timestamps corrupt. TOT,DUP,NULL,BAD,FAIL,FOK = {},{},{},{},{},{}; max dev = {:.2g} cyc, {:.2g} sec.{}".format(
+                run,
+                ntot,
+                ndupe,
+                nnull,
+                nbad,
+                nfail,
+                inds_ok[ok][0] + 1,
+                mdev,
+                86400 * slope * mdev,
+                comment,
+            )
         )
 
         if details:
 
             # Some details
-            fcadiffs = iacycles[1:]-iacycles[:-1]
+            fcadiffs = iacycles[1:] - iacycles[:-1]
             back = fcadiffs <= 0
             oinds = inds_ok[:-1][back]
             ninds = np.arange(len(fcadiffs))[back]
@@ -364,51 +391,56 @@ def tfixer(args=None):
             ncycs = iacycles[1:][back]
             tims = mjds_ok[:-1][back]
             if len(oinds):
-                print('\nInverted order times:')
+                print("\nInverted order times:")
                 for oind, nind, cyc, ncyc, mjd in zip(oinds, ninds, cycs, ncycs, tims):
                     print(
-                        '  Old index = {}, new index = {}, cycle = {}, next cycle = {}, time = {}'.format(
-                            oind, nind, cyc, ncyc, mjd)
+                        "  Old index = {}, new index = {}, cycle = {}, next cycle = {}, time = {}".format(
+                            oind, nind, cyc, ncyc, mjd
+                        )
                     )
 
             if nfail:
-                print('\nFailed times:')
+                print("\nFailed times:")
                 inds = inds_ok[fails]
                 cycs = iacycles[fails]
                 cydiffs = cadiffs[fails]
                 tims = mjds_ok[fails]
-                for ind,  cyc, cdiff, mjd in zip(inds, cycs, cydiffs, tims):
+                for ind, cyc, cdiff, mjd in zip(inds, cycs, cydiffs, tims):
                     print(
-                        '  Index = {}, cycle = {}, cycle diff. = {:.2g}, time = {}'.format(
-                            ind, cyc, cdiff, mjd)
+                        "  Index = {}, cycle = {}, cycle diff. = {:.2g}, time = {}".format(
+                            ind, cyc, cdiff, mjd
+                        )
                     )
 
     if plot:
         # diagnostic plot: cycle differences vs cycle numbers
         def c2t(x):
-            return 86400*slope*x
+            return 86400 * slope * x
 
         def t2c(x):
-            return x/slope/86400
+            return x / slope / 86400
 
         fig = plt.figure()
         ax = fig.add_subplot()
-        ax.plot(iacycles[~fails],cadiffs[~fails],'.b')
-        ax.plot(iacycles[fails],cadiffs[fails],'.r')
-#        ax.plot(icycles[~cok],cdiffs[~cok],'.',color='0.7')
-#        ax.plot(icycles[cok],cdiffs[cok],'.g')
+        ax.plot(iacycles[~fails], cadiffs[~fails], ".b")
+        ax.plot(iacycles[fails], cadiffs[fails], ".r")
+        #        ax.plot(icycles[~cok],cdiffs[~cok],'.',color='0.7')
+        #        ax.plot(icycles[cok],cdiffs[cok],'.g')
 
-        ax.set_xlabel('Cycle number')
-        ax.set_ylabel('Cycle difference')
-        secxax = ax.secondary_xaxis('top', functions=(c2t,t2c))
-        secxax.set_xlabel('Time [MJD - {}] (seconds)'.format(intercept))
-        secyax = ax.secondary_yaxis('right', functions=(lambda x: 1000*c2t(x),lambda x: t2c(x)/1000))
-        secyax.set_xlabel('$\Delta t$ (msec)'.format(intercept))
+        ax.set_xlabel("Cycle number")
+        ax.set_ylabel("Cycle difference")
+        secxax = ax.secondary_xaxis("top", functions=(c2t, t2c))
+        secxax.set_xlabel("Time [MJD - {}] (seconds)".format(intercept))
+        secyax = ax.secondary_yaxis(
+            "right", functions=(lambda x: 1000 * c2t(x), lambda x: t2c(x) / 1000)
+        )
+        secyax.set_xlabel("$\Delta t$ (msec)".format(intercept))
         plt.show()
 
     if run_ok or check:
         # go no further if run is OK or we are in check mode
         return
+
 
 #    if ginds[0] != 0:
 #        # this case needs checking
@@ -435,46 +467,53 @@ def u_tbytes_to_mjd(tbytes, rtbytes, nframe):
     GoodTime says whether the time is otherwise thought to be OK.
     """
     try:
-        ret = hcam.ucam.utimer(tbytes,rtbytes,nframe)
+        ret = hcam.ucam.utimer(tbytes, rtbytes, nframe)
     except ValueError:
-        return (0,True,False)
+        return (0, True, False)
 
-    if len(tbytes) == 32 and tbytes[12:] == 20*b'\x00':
-        return (ret[1]['gps'], False, False)
-    elif ret[1]['gps'] < 52395:
-        return (ret[1]['gps'], True, False)
+    if len(tbytes) == 32 and tbytes[12:] == 20 * b"\x00":
+        return (ret[1]["gps"], False, False)
+    elif ret[1]["gps"] < 52395:
+        return (ret[1]["gps"], True, False)
     else:
-        return (ret[1]['gps'], True, True)
+        return (ret[1]["gps"], True, True)
+
 
 def h_tbytes_to_mjd(tbytes, nframe):
     """Translates set of HiPERCAM timing bytes into an MJD"""
 
     # number of seconds in a day
-    DAYSEC = 86400.
+    DAYSEC = 86400.0
 
-    frameCount, timeStampCount, years, day_of_year, hours, mins, \
-        seconds, nanoseconds, nsats, synced = htimer(tbytes)
+    (
+        frameCount,
+        timeStampCount,
+        years,
+        day_of_year,
+        hours,
+        mins,
+        seconds,
+        nanoseconds,
+        nsats,
+        synced,
+    ) = htimer(tbytes)
     frameCount += 1
 
     if frameCount != nframe:
         if frameCount == nframe + 1:
-            warnings.warn(
-                'frame count mis-match; a frame seems to have been dropped'
-            )
+            warnings.warn("frame count mis-match; a frame seems to have been dropped")
         else:
             warnings.warn(
-                'frame count mis-match; {:d} frames seems to have been dropped'.format(
-                    frameCount-self.nframe)
+                "frame count mis-match; {:d} frames seems to have been dropped".format(
+                    frameCount - self.nframe
+                )
             )
 
     try:
         imjd = gregorian_to_mjd(years, 1, 1) + day_of_year - 1
-        fday = (hours+mins/60+(seconds+nanoseconds/1e9)/3600)/24
+        fday = (hours + mins / 60 + (seconds + nanoseconds / 1e9) / 3600) / 24
     except ValueError:
         imjd = 51544
-        fday = nframe/DAYSEC
+        fday = nframe / DAYSEC
 
-    return imjd+fday
-
-
-
+    return imjd + fday

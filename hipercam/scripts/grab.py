@@ -12,13 +12,16 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
-__all__ =  ['grab',]
+__all__ = [
+    "grab",
+]
 
 ###########################################################
 #
 # grab -- downloads a series of images from a raw data file
 #
 ###########################################################
+
 
 def grab(args=None):
     """``grab [source] run [temp] (ndigit) first last [twait tmax] trim
@@ -104,80 +107,80 @@ def grab(args=None):
     command, args = utils.script_args(args)
 
     # get inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('temp', Cline.GLOBAL, Cline.HIDE)
-        cl.register('ndigit', Cline.LOCAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('last', Cline.LOCAL, Cline.PROMPT)
-        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
-        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('dtype', Cline.LOCAL, Cline.HIDE)
+        cl.register("source", Cline.GLOBAL, Cline.HIDE)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("temp", Cline.GLOBAL, Cline.HIDE)
+        cl.register("ndigit", Cline.LOCAL, Cline.PROMPT)
+        cl.register("first", Cline.LOCAL, Cline.PROMPT)
+        cl.register("last", Cline.LOCAL, Cline.PROMPT)
+        cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ncol", Cline.GLOBAL, Cline.HIDE)
+        cl.register("nrow", Cline.GLOBAL, Cline.HIDE)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("dtype", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
-        source = cl.get_value('source', 'data source [hs, hl, us, ul]',
-                              'hl', lvals=('hs','hl','us','ul'))
+        source = cl.get_value(
+            "source",
+            "data source [hs, hl, us, ul]",
+            "hl",
+            lvals=("hs", "hl", "us", "ul"),
+        )
 
         # OK, more inputs
-        resource = cl.get_value('run', 'run name', 'run005')
+        resource = cl.get_value("run", "run name", "run005")
 
-        cl.set_default('temp', False)
+        cl.set_default("temp", False)
         temp = cl.get_value(
-            'temp', 'save to temporary automatically-generated file names?',
-            True
+            "temp", "save to temporary automatically-generated file names?", True
         )
 
         if not temp:
             ndigit = cl.get_value(
-                'ndigit', 'number of digits in frame identifier', 3, 0)
+                "ndigit", "number of digits in frame identifier", 3, 0
+            )
 
-        first = cl.get_value('first', 'first frame to grab', 1, 0)
-        last = cl.get_value('last', 'last frame to grab', 0)
+        first = cl.get_value("first", "first frame to grab", 1, 0)
+        last = cl.get_value("last", "last frame to grab", 0)
         if last < first and last != 0:
-            sys.stderr.write('last must be >= first or 0')
+            sys.stderr.write("last must be >= first or 0")
             sys.exit(1)
 
-        trim = cl.get_value(
-            'trim', 'do you want to trim edges of windows?',
-            True
-        )
+        trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
         if trim:
-            ncol = cl.get_value(
-                'ncol', 'number of columns to trim from windows', 0)
-            nrow = cl.get_value(
-                'nrow', 'number of rows to trim from windows', 0)
+            ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
+            nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
 
-        twait = cl.get_value(
-            'twait', 'time to wait for a new frame [secs]', 1., 0.)
+        twait = cl.get_value("twait", "time to wait for a new frame [secs]", 1.0, 0.0)
         tmax = cl.get_value(
-            'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+            "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+        )
 
         bias = cl.get_value(
-            'bias', "bias frame ['none' to ignore]",
-            cline.Fname('bias', hcam.HCAM), ignore='none'
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
         )
 
-        cl.set_default('dtype', 'f32')
+        cl.set_default("dtype", "f32")
         dtype = cl.get_value(
-            'dtype', 'data type [f32, f64, u16]',
-            'f32', lvals=('f32','f64','u16')
+            "dtype", "data type [f32, f64, u16]", "f32", lvals=("f32", "f64", "u16")
         )
 
     # Now the actual work.
 
     # strip off extensions
     if resource.endswith(hcam.HRAW):
-        resource = resource[:resource.find(hcam.HRAW)]
+        resource = resource[: resource.find(hcam.HRAW)]
 
     # initialisations
-    total_time = 0 # time waiting for new frame
+    total_time = 0  # time waiting for new frame
     nframe = first
     root = os.path.basename(resource)
     bframe = None
@@ -187,8 +190,10 @@ def grab(args=None):
         # create a directory on temp for the temporary file to avoid polluting
         # it too much
         fnames = []
-        tdir = os.path.join(tempfile.gettempdir(), 'hipercam-{:s}'.format(getpass.getuser()))
-        os.makedirs(tdir,exist_ok=True)
+        tdir = os.path.join(
+            tempfile.gettempdir(), "hipercam-{:s}".format(getpass.getuser())
+        )
+        os.makedirs(tdir, exist_ok=True)
 
     with spooler.data_source(source, resource, first) as spool:
 
@@ -199,10 +204,10 @@ def grab(args=None):
                 # Handle the waiting game ...
                 give_up, try_again, total_time = spooler.hang_about(
                     mccd, twait, tmax, total_time
-                    )
+                )
 
                 if give_up:
-                    print('grab stopped')
+                    print("grab stopped")
                     break
                 elif try_again:
                     continue
@@ -227,26 +232,25 @@ def grab(args=None):
 
                     mccd -= bframe
 
-                if dtype == 'u16':
+                if dtype == "u16":
                     mccd.uint16()
-                elif dtype == 'f32':
+                elif dtype == "f32":
                     mccd.float32()
-                elif dtype == 'f64':
+                elif dtype == "f64":
                     mccd.float64()
 
                 # write to disk
                 if temp:
                     # generate name automatically
                     fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
-                    mccd.write(fname,True)
+                    mccd.write(fname, True)
                     os.close(fd)
                     fnames.append(fname)
                 else:
-                    fname = '{:s}_{:0{:d}}{:s}'.format(root,nframe,ndigit,hcam.HCAM)
-                    mccd.write(fname,True)
+                    fname = "{:s}_{:0{:d}}{:s}".format(root, nframe, ndigit, hcam.HCAM)
+                    mccd.write(fname, True)
 
-                print('Written frame {:d} to {:s}'.format(nframe,fname))
-
+                print("Written frame {:d} to {:s}".format(nframe, fname))
 
                 # update the frame number
                 nframe += 1
@@ -258,25 +262,24 @@ def grab(args=None):
             if temp:
                 for fname in fnames:
                     os.remove(fname)
-                print('\ntemporary files deleted')
-                print('grab aborted')
+                print("\ntemporary files deleted")
+                print("grab aborted")
             else:
-                print('\ngrab aborted')
+                print("\ngrab aborted")
             sys.exit(1)
-
 
     if temp:
         if len(fnames) == 0:
             raise hcam.HipercamError(
                 'no files were grabbed; please check input parameters, especially "first"'
-                )
+            )
         # write the file names to a list
-        fd, fname = tempfile.mkstemp(suffix=hcam.LIST,dir=tdir)
-        with open(fname,'w') as fout:
+        fd, fname = tempfile.mkstemp(suffix=hcam.LIST, dir=tdir)
+        with open(fname, "w") as fout:
             for fnam in fnames:
-                fout.write(fnam + '\n')
+                fout.write(fnam + "\n")
         os.close(fd)
-        print('temporary file names written to {:s}'.format(fname))
+        print("temporary file names written to {:s}".format(fname))
 
         # return the name of the file list
         return fname

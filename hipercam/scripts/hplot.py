@@ -17,6 +17,7 @@ from hipercam.cline import Cline
 #
 ###################################
 
+
 def hplot(args=None):
     """``hplot input [device] ccd nx msub hsbox iset (ilo ihi | plo phi)
     xlo xhi ylo yhi [width height]``
@@ -106,70 +107,68 @@ def hplot(args=None):
 
     global fig, mccd, caxes, hsbox
 
-
     command, args = utils.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('input', Cline.LOCAL, Cline.PROMPT)
-        cl.register('device', Cline.LOCAL, Cline.HIDE)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
-        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('hsbox', Cline.GLOBAL, Cline.HIDE)
-        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('phi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('width', Cline.LOCAL, Cline.HIDE)
-        cl.register('height', Cline.LOCAL, Cline.HIDE)
+        cl.register("input", Cline.LOCAL, Cline.PROMPT)
+        cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nx", Cline.LOCAL, Cline.PROMPT)
+        cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("hsbox", Cline.GLOBAL, Cline.HIDE)
+        cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("phi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("xlo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("xhi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ylo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("width", Cline.LOCAL, Cline.HIDE)
+        cl.register("height", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
-        frame = cl.get_value('input', 'frame to plot',
-                             cline.Fname('hcam', hcam.HCAM))
+        frame = cl.get_value("input", "frame to plot", cline.Fname("hcam", hcam.HCAM))
         mccd = hcam.MCCD.read(frame)
 
-        device = cl.get_value('device', 'plot device name', '/mpl')
+        device = cl.get_value("device", "plot device name", "/mpl")
 
         # set type of plot (PGPLOT or matplotlib) and the name of the file
         # if any in the case of matplotlib
-        fslash = device.rfind('/')
+        fslash = device.rfind("/")
         if fslash > -1:
-            if device[fslash+1:] == 'mpl':
-                ptype = 'MPL'
+            if device[fslash + 1 :] == "mpl":
+                ptype = "MPL"
                 hard = device[:fslash].strip()
             else:
-                ptype = 'PGP'
+                ptype = "PGP"
 
         else:
             raise ValueError(
-                'Could not identify plot type from device = {:s}'.format(device)
-                )
+                "Could not identify plot type from device = {:s}".format(device)
+            )
 
         # define the panel grid
         try:
-            nxdef = cl.get_default('nx')
+            nxdef = cl.get_default("nx")
         except:
             nxdef = 3
 
         max_ccd = len(mccd)
         if max_ccd > 1:
-            ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
-            if ccd == '0':
+            ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
+            if ccd == "0":
                 ccds = list(mccd.keys())
             else:
                 ccds = ccd.split()
             if len(ccds) > 1:
                 nxdef = min(len(ccds), nxdef)
-                cl.set_default('nx', nxdef)
-                nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+                cl.set_default("nx", nxdef)
+                nx = cl.get_value("nx", "number of panels in X", 3, 1)
             else:
                 nx = 1
         else:
@@ -177,24 +176,33 @@ def hplot(args=None):
             nx = 1
 
         # define the display intensities
-        msub = cl.get_value('msub', 'subtract median from each window?', True)
+        msub = cl.get_value("msub", "subtract median from each window?", True)
 
-        if ptype == 'MPL' and hard == '':
-            hsbox = cl.get_value('hsbox', 'half-width of stats box (binned pixels)', 2, 1)
+        if ptype == "MPL" and hard == "":
+            hsbox = cl.get_value(
+                "hsbox", "half-width of stats box (binned pixels)", 2, 1
+            )
 
         iset = cl.get_value(
-            'iset', 'set intensity a(utomatically), d(irectly) or with p(ercentiles)?',
-            'a', lvals=['a','A','d','D','p','P'])
+            "iset",
+            "set intensity a(utomatically), d(irectly) or with p(ercentiles)?",
+            "a",
+            lvals=["a", "A", "d", "D", "p", "P"],
+        )
         iset = iset.lower()
 
         plo, phi = 5, 95
         ilo, ihi = 0, 1000
-        if iset == 'd':
-            ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
-            ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
-        elif iset == 'p':
-            plo = cl.get_value('plo', 'lower intensity limit percentile', 5., 0., 100.)
-            phi = cl.get_value('phi', 'upper intensity limit percentile', 95., 0., 100.)
+        if iset == "d":
+            ilo = cl.get_value("ilo", "lower intensity limit", 0.0)
+            ihi = cl.get_value("ihi", "upper intensity limit", 1000.0)
+        elif iset == "p":
+            plo = cl.get_value(
+                "plo", "lower intensity limit percentile", 5.0, 0.0, 100.0
+            )
+            phi = cl.get_value(
+                "phi", "upper intensity limit percentile", 95.0, 0.0, 100.0
+            )
 
         # region to plot
         for i, cnam in enumerate(ccds):
@@ -209,22 +217,22 @@ def hplot(args=None):
                 ymin = min(ymin, float(-nypad))
                 ymax = max(ymax, float(nytot + nypad + 1))
 
-        xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
-        xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
-        ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
-        yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
-        width = cl.get_value('width', 'plot width (inches)', 0.)
-        height = cl.get_value('height', 'plot height (inches)', 0.)
+        xlo = cl.get_value("xlo", "left-hand X value", xmin, xmin, xmax)
+        xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax)
+        ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax)
+        yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax)
+        width = cl.get_value("width", "plot width (inches)", 0.0)
+        height = cl.get_value("height", "plot height (inches)", 0.0)
 
     # all inputs obtained, plot
-    if ptype == 'MPL':
+    if ptype == "MPL":
         if width > 0 and height > 0:
-            fig = plt.figure(figsize=(width,height))
+            fig = plt.figure(figsize=(width, height))
         else:
             fig = plt.figure()
 
-        mpl.rcParams['xtick.labelsize'] = hcam.mpl.Params['axis.number.fs']
-        mpl.rcParams['ytick.labelsize'] = hcam.mpl.Params['axis.number.fs']
+        mpl.rcParams["xtick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
+        mpl.rcParams["ytick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
 
         nccd = len(ccds)
         ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
@@ -233,17 +241,17 @@ def hplot(args=None):
         caxes = {}
         for n, cnam in enumerate(ccds):
             if ax is None:
-                axes = ax = fig.add_subplot(ny, nx, n+1)
-                axes.set_aspect('equal', adjustable='box')
+                axes = ax = fig.add_subplot(ny, nx, n + 1)
+                axes.set_aspect("equal", adjustable="box")
             else:
-                axes = fig.add_subplot(ny, nx, n+1, sharex=ax, sharey=ax)
-                axes.set_aspect('equal')
+                axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
+                axes.set_aspect("equal")
 
             # store the CCD associated with these axes for the cursor callback
             caxes[axes] = cnam
 
-            axes.set_xlim(xlo,xhi)
-            axes.set_ylim(ylo,yhi)
+            axes.set_xlim(xlo, xhi)
+            axes.set_ylim(ylo, yhi)
 
             if msub:
                 # subtract median from each window
@@ -251,47 +259,62 @@ def hplot(args=None):
                     wind -= wind.median()
 
             vmin, vmax = hcam.mpl.pCcd(
-                axes,mccd[cnam],iset,plo,phi,ilo,ihi,
-                'CCD {:s}'.format(cnam),xlo,xhi,ylo,yhi
+                axes,
+                mccd[cnam],
+                iset,
+                plo,
+                phi,
+                ilo,
+                ihi,
+                "CCD {:s}".format(cnam),
+                xlo,
+                xhi,
+                ylo,
+                yhi,
             )
-            print('CCD =',cnam,'plot range =',vmin,'to',vmax)
+            print("CCD =", cnam, "plot range =", vmin, "to", vmax)
 
         try:
             plt.tight_layout()
         except:
             pass
 
-        if hard == '':
+        if hard == "":
 
             # add in the callback
-            fig.canvas.mpl_connect('button_press_event', buttonPressEvent)
-            print('\nClick points in windows for stats in a {:d}x{:d} box'.format(
-                2*hsbox+1,2*hsbox+1)
+            fig.canvas.mpl_connect("button_press_event", buttonPressEvent)
+            print(
+                "\nClick points in windows for stats in a {:d}x{:d} box".format(
+                    2 * hsbox + 1, 2 * hsbox + 1
+                )
             )
             plt.subplots_adjust(wspace=0.1, hspace=0.1)
             plt.show()
         else:
-            plt.savefig(hard,bbox_inches='tight',pad_inches=0)
+            plt.savefig(hard, bbox_inches="tight", pad_inches=0)
 
-    elif ptype == 'PGP':
+    elif ptype == "PGP":
         # open the plot
         dev = hcam.pgp.Device(device)
         if width > 0 and height > 0:
-            pgpap(width,height/width)
+            pgpap(width, height / width)
 
         nccd = len(ccds)
         ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
         # set up panels and axes
-        pgsubp(nx,ny)
+        pgsubp(nx, ny)
 
         for cnam in ccds:
-            pgsci(hcam.pgp.Params['axis.ci'])
-            pgsch(hcam.pgp.Params['axis.number.ch'])
+            pgsci(hcam.pgp.Params["axis.ci"])
+            pgsch(hcam.pgp.Params["axis.number.ch"])
             pgenv(xlo, xhi, ylo, yhi, 1, 0)
 
-            vmin, vmax = hcam.pgp.pCcd(mccd[cnam],iset,plo,phi,ilo,ihi,'CCD {:s}'.format(cnam))
-            print('CCD =',cnam,'plot range =',vmin,'to',vmax)
+            vmin, vmax = hcam.pgp.pCcd(
+                mccd[cnam], iset, plo, phi, ilo, ihi, "CCD {:s}".format(cnam)
+            )
+            print("CCD =", cnam, "plot range =", vmin, "to", vmax)
+
 
 def buttonPressEvent(event):
     """
@@ -299,7 +322,7 @@ def buttonPressEvent(event):
     """
     global fig, mccd, caxes, hsbox
 
-    pzoom = fig.canvas.manager.toolbar.mode == 'pan/zoom'
+    pzoom = fig.canvas.manager.toolbar.mode == "pan/zoom"
 
     if not pzoom:
         # only when not in pan/zoom mode
@@ -308,4 +331,3 @@ def buttonPressEvent(event):
             ccd = mccd[cnam]
             x, y = event.xdata, event.ydata
             utils.print_stats(ccd, cnam, x, y, hsbox)
-

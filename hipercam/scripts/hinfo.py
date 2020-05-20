@@ -9,13 +9,16 @@ import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
-__all__ = ['hinfo',]
+__all__ = [
+    "hinfo",
+]
 
 #########################################################
 #
 # hinfo -- prints essential information about an hcm file
 #
 #########################################################
+
 
 def hinfo(args=None):
     """``hinfo input``
@@ -36,19 +39,15 @@ def hinfo(args=None):
     command, args = utils.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('input', Cline.LOCAL, Cline.PROMPT)
+        cl.register("input", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
-        frame = cl.get_value('input', 'frame to plot',
-                             cline.Fname('hcam', hcam.HCAM))
+        frame = cl.get_value("input", "frame to plot", cline.Fname("hcam", hcam.HCAM))
         mccd = hcam.MCCD.read(frame)
 
-
-    print('Name of file = {:s}'.format(frame))
-    print('Number of CCDs = {:d}\n'.format(len(mccd)))
+    print("Name of file = {:s}".format(frame))
+    print("Number of CCDs = {:d}\n".format(len(mccd)))
     print(mccd)
-        
-

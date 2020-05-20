@@ -7,13 +7,14 @@ import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
 
-__all__ = ['cadd', 'csub', 'cdiv', 'cmul']
+__all__ = ["cadd", "csub", "cdiv", "cmul"]
 
 #############################################
 #
 # carith -- arithematic with multi-CCD images
 #
 #############################################
+
 
 def carith(args=None):
     """Carries out operations of the form output = input [op] constant where [op]
@@ -51,88 +52,90 @@ def carith(args=None):
     command, args = utils.script_args(args)
 
     # get inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('input', Cline.LOCAL, Cline.PROMPT)
-        cl.register('const', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.HIDE)
-        cl.register('win', Cline.LOCAL, Cline.HIDE)
-        cl.register('output', Cline.LOCAL, Cline.PROMPT)
+        cl.register("input", Cline.LOCAL, Cline.PROMPT)
+        cl.register("const", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.HIDE)
+        cl.register("win", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
-        prompts = {'cadd' : 'add', 'csub' : 'subtract',
-                   'cmul' : 'multiply by', 'cdiv' : 'divide by'}
+        prompts = {
+            "cadd": "add",
+            "csub": "subtract",
+            "cmul": "multiply by",
+            "cdiv": "divide by",
+        }
 
-        infile = cl.get_value('input', 'input file',
-                              cline.Fname('hcam', hcam.HCAM))
+        infile = cl.get_value("input", "input file", cline.Fname("hcam", hcam.HCAM))
         mccd = hcam.MCCD.read(infile)
 
-        constant = cl.get_value('const', 'constant to ' + prompts[command], 0.)
+        constant = cl.get_value("const", "constant to " + prompts[command], 0.0)
 
         if len(mccd) > 1:
-            cl.set_default('ccd', 'all')
-            ccd = cl.get_value('ccd', 'CCD(s) to process', 'all')
-            if ccd == 'all':
+            cl.set_default("ccd", "all")
+            ccd = cl.get_value("ccd", "CCD(s) to process", "all")
+            if ccd == "all":
                 ccds = list(mccd.keys())
             else:
                 ccds = ccd.split()
         else:
-            ccd = 'all'
+            ccd = "all"
             ccds = list(mccd.keys())
 
         tccd = mccd[ccds[0]]
         if len(tccd) > 1:
-            cl.set_default('win', 'all')
-            win = cl.get_value('win', 'window(s) to process', 'all')
-            if win == 'all':
-                wins = 'all'
+            cl.set_default("win", "all")
+            win = cl.get_value("win", "window(s) to process", "all")
+            if win == "all":
+                wins = "all"
             else:
                 wins = win.split()
         else:
-            win = 'all'
-            wins = 'all'
+            win = "all"
+            wins = "all"
 
         outfile = cl.get_value(
-            'output', 'output file',
-            cline.Fname('hcam', hcam.HCAM, cline.Fname.NEW)
+            "output", "output file", cline.Fname("hcam", hcam.HCAM, cline.Fname.NEW)
         )
 
     # carry out operation
-    if command == 'cadd':
+    if command == "cadd":
         # addition
         for cnam in ccds:
             tccd = mccd[cnam]
-            if wins == 'all':
+            if wins == "all":
                 tccd += constant
             else:
                 for wnam in wins:
                     tccd[wnam] += constant
 
-    elif command == 'csub':
+    elif command == "csub":
         # subtraction
         for cnam in ccds:
             tccd = mccd[cnam]
-            if wins == 'all':
+            if wins == "all":
                 tccd -= constant
             else:
                 for wnam in wins:
                     tccd[wnam] -= constant
 
-    elif command == 'cmul':
+    elif command == "cmul":
         # multiplication
         for cnam in ccds:
             tccd = mccd[cnam]
-            if wins == 'all':
+            if wins == "all":
                 tccd *= constant
             else:
                 for wnam in wins:
                     tccd[wnam] *= constant
 
-    elif command == 'cdiv':
+    elif command == "cdiv":
         # division
         for cnam in ccds:
             tccd = mccd[cnam]
-            if wins == 'all':
+            if wins == "all":
                 tccd /= constant
             else:
                 for wnam in wins:
@@ -140,14 +143,19 @@ def carith(args=None):
 
     # Add a history line
     mccd.head.add_history(
-        '{:s} {:s} {:f} {:s} {:s} {:s}'.format(
-            command, utils.sub_extension(infile, hcam.HCAM),
-            constant, ccd, win, hcam.sub_extension(outfile, hcam.HCAM) )
+        "{:s} {:s} {:f} {:s} {:s} {:s}".format(
+            command,
+            utils.sub_extension(infile, hcam.HCAM),
+            constant,
+            ccd,
+            win,
+            hcam.sub_extension(outfile, hcam.HCAM),
+        )
     )
-
 
     # save result
     mccd.write(outfile, True)
+
 
 def cadd(args=None):
     """``cadd input const [ccd win] output``
@@ -184,6 +192,7 @@ def cadd(args=None):
     # send to carith
     carith(args)
 
+
 def csub(args=None):
     """``csub input const [ccd win] output``
 
@@ -219,6 +228,7 @@ def csub(args=None):
     # send to carith
     carith(args)
 
+
 def cdiv(args=None):
     """``cdiv input const [ccd win] output``
 
@@ -253,6 +263,7 @@ def cdiv(args=None):
 
     # send to carith
     carith(args)
+
 
 def cmul(args=None):
     """``cmul input const [ccd win] output``

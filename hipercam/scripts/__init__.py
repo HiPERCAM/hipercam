@@ -43,32 +43,60 @@ from .tbytes import tbytes
 from .tfixer import tfixer
 from .uls import uls
 
-__all__ = [ \
-            'add', 'averun',
-            'cadd', 'cdiv', 'cmul', 'combine', 'csub',
-            'div',
-            'genred', 'grab',
-            'hist', 'hfilter', 'hlog2fits', 'hlogger', 'hls', 'hplot',
-            'ltimes', 'ltrans',
-            'makebias', 'makedata', 'makefield', 'makeflat', 'mstats', 'mul',
-            'pfolder', 'plog',
-            'redanal', 'reduce', 'register', 'rtplot', 'rupdate',
-            'setaper', 'setdefect', 'splice', 'stats', 'sub',
-            'tbytes', 'tfixer',
-            'uls',
-        ]
+__all__ = [
+    "add",
+    "averun",
+    "cadd",
+    "cdiv",
+    "cmul",
+    "combine",
+    "csub",
+    "div",
+    "genred",
+    "grab",
+    "hist",
+    "hfilter",
+    "hlog2fits",
+    "hlogger",
+    "hls",
+    "hplot",
+    "ltimes",
+    "ltrans",
+    "makebias",
+    "makedata",
+    "makefield",
+    "makeflat",
+    "mstats",
+    "mul",
+    "pfolder",
+    "plog",
+    "redanal",
+    "reduce",
+    "register",
+    "rtplot",
+    "rupdate",
+    "setaper",
+    "setdefect",
+    "splice",
+    "stats",
+    "sub",
+    "tbytes",
+    "tfixer",
+    "uls",
+]
 
 try:
     # allow this one to fail
     from .aligntool import aligntool
-    __all__.append('aligntool')
+
+    __all__.append("aligntool")
 except:
     pass
 
 try:
     # optional dependency on photutils, so allow failure
     from .psf_reduce import psf_reduce
-    __all__.append('psf_reduce')
+
+    __all__.append("psf_reduce")
 except:
     pass
-

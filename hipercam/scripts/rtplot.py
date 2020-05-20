@@ -12,13 +12,16 @@ from hipercam.cline import Cline
 import requests
 import socket
 
-__all__ = ['rtplot',]
+__all__ = [
+    "rtplot",
+]
 
 ######################################
 #
 # rtplot -- display of multiple images
 #
 ######################################
+
 
 def rtplot(args=None):
     """``rtplot [source device width height] (run first [twait tmax] |
@@ -266,143 +269,144 @@ def rtplot(args=None):
     command, args = utils.script_args(args)
 
     # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
-        cl.register('device', Cline.LOCAL, Cline.HIDE)
-        cl.register('width', Cline.LOCAL, Cline.HIDE)
-        cl.register('height', Cline.LOCAL, Cline.HIDE)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('trim', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ncol', Cline.GLOBAL, Cline.HIDE)
-        cl.register('nrow', Cline.GLOBAL, Cline.HIDE)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('nx', Cline.LOCAL, Cline.PROMPT)
-        cl.register('pause', Cline.LOCAL, Cline.HIDE)
-        cl.register('plotall', Cline.LOCAL, Cline.HIDE)
-        cl.register('bias', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('lowlevel', Cline.GLOBAL, Cline.HIDE)
-        cl.register('highlevel', Cline.GLOBAL, Cline.HIDE)
-        cl.register('flat', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('defect', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('setup', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('drurl', Cline.GLOBAL, Cline.HIDE)
-        cl.register('msub', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('iset', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ilo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ihi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('plo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('phi', Cline.LOCAL, Cline.PROMPT)
-        cl.register('xlo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('xhi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('ylo', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('yhi', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('profit', Cline.LOCAL, Cline.PROMPT)
-        cl.register('fdevice', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwidth', Cline.LOCAL, Cline.HIDE)
-        cl.register('fheight', Cline.LOCAL, Cline.HIDE)
-        cl.register('method', Cline.LOCAL, Cline.HIDE)
-        cl.register('beta', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwhm', Cline.LOCAL, Cline.HIDE)
-        cl.register('fwhm_min', Cline.LOCAL, Cline.HIDE)
-        cl.register('shbox', Cline.LOCAL, Cline.HIDE)
-        cl.register('smooth', Cline.LOCAL, Cline.HIDE)
-        cl.register('splot', Cline.LOCAL, Cline.HIDE)
-        cl.register('fhbox', Cline.LOCAL, Cline.HIDE)
-        cl.register('hmin', Cline.LOCAL, Cline.HIDE)
-        cl.register('read', Cline.LOCAL, Cline.HIDE)
-        cl.register('gain', Cline.LOCAL, Cline.HIDE)
-        cl.register('thresh', Cline.LOCAL, Cline.HIDE)
+        cl.register("source", Cline.GLOBAL, Cline.HIDE)
+        cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("width", Cline.LOCAL, Cline.HIDE)
+        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("first", Cline.LOCAL, Cline.PROMPT)
+        cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ncol", Cline.GLOBAL, Cline.HIDE)
+        cl.register("nrow", Cline.GLOBAL, Cline.HIDE)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("flist", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nx", Cline.LOCAL, Cline.PROMPT)
+        cl.register("pause", Cline.LOCAL, Cline.HIDE)
+        cl.register("plotall", Cline.LOCAL, Cline.HIDE)
+        cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("lowlevel", Cline.GLOBAL, Cline.HIDE)
+        cl.register("highlevel", Cline.GLOBAL, Cline.HIDE)
+        cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("defect", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("setup", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("drurl", Cline.GLOBAL, Cline.HIDE)
+        cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("phi", Cline.LOCAL, Cline.PROMPT)
+        cl.register("xlo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("xhi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ylo", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("profit", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fdevice", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("fheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("method", Cline.LOCAL, Cline.HIDE)
+        cl.register("beta", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwhm", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwhm_min", Cline.LOCAL, Cline.HIDE)
+        cl.register("shbox", Cline.LOCAL, Cline.HIDE)
+        cl.register("smooth", Cline.LOCAL, Cline.HIDE)
+        cl.register("splot", Cline.LOCAL, Cline.HIDE)
+        cl.register("fhbox", Cline.LOCAL, Cline.HIDE)
+        cl.register("hmin", Cline.LOCAL, Cline.HIDE)
+        cl.register("read", Cline.LOCAL, Cline.HIDE)
+        cl.register("gain", Cline.LOCAL, Cline.HIDE)
+        cl.register("thresh", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
-        source = cl.get_value('source', 'data source [hs, hl, us, ul, hf]',
-                              'hl', lvals=('hs','hl','us','ul','hf'))
+        source = cl.get_value(
+            "source",
+            "data source [hs, hl, us, ul, hf]",
+            "hl",
+            lvals=("hs", "hl", "us", "ul", "hf"),
+        )
 
         # set some flags
-        server_or_local = source.endswith('s') or source.endswith('l')
+        server_or_local = source.endswith("s") or source.endswith("l")
 
         # plot device stuff
-        device = cl.get_value('device', 'plot device', '1/xs')
-        width = cl.get_value('width', 'plot width (inches)', 0.)
-        height = cl.get_value('height', 'plot height (inches)', 0.)
+        device = cl.get_value("device", "plot device", "1/xs")
+        width = cl.get_value("width", "plot width (inches)", 0.0)
+        height = cl.get_value("height", "plot height (inches)", 0.0)
 
         if server_or_local:
-            resource = cl.get_value('run', 'run name', 'run005')
-            if source == 'hs':
-                first = cl.get_value('first', 'first frame to plot', 1)
+            resource = cl.get_value("run", "run name", "run005")
+            if source == "hs":
+                first = cl.get_value("first", "first frame to plot", 1)
             else:
-                first = cl.get_value('first', 'first frame to plot', 1, 0)
+                first = cl.get_value("first", "first frame to plot", 1, 0)
 
             twait = cl.get_value(
-                'twait', 'time to wait for a new frame [secs]', 1., 0.)
+                "twait", "time to wait for a new frame [secs]", 1.0, 0.0
+            )
             tmax = cl.get_value(
-                'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+                "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+            )
 
         else:
             resource = cl.get_value(
-                'flist', 'file list', cline.Fname('files.lis',hcam.LIST)
+                "flist", "file list", cline.Fname("files.lis", hcam.LIST)
             )
             first = 1
 
-        trim = cl.get_value(
-            'trim', 'do you want to trim edges of windows?',
-            True
-        )
+        trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
         if trim:
-            ncol = cl.get_value(
-                'ncol', 'number of columns to trim from windows', 0)
-            nrow = cl.get_value(
-                'nrow', 'number of rows to trim from windows', 0)
+            ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
+            nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
 
         # define the panel grid. first get the labels and maximum dimensions
         ccdinf = spooler.get_ccd_pars(source, resource)
 
         try:
-            nxdef = cl.get_default('nx')
+            nxdef = cl.get_default("nx")
         except:
             nxdef = 3
 
         if len(ccdinf) > 1:
-            ccd = cl.get_value('ccd', 'CCD(s) to plot [0 for all]', '0')
-            if ccd == '0':
+            ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
+            if ccd == "0":
                 ccds = list(ccdinf.keys())
             else:
                 ccds = ccd.split()
                 check = set(ccdinf.keys())
                 if not set(ccds) <= check:
-                    raise hcam.HipercamError(
-                        'At least one invalid CCD label supplied'
-                    )
+                    raise hcam.HipercamError("At least one invalid CCD label supplied")
 
             if len(ccds) > 1:
                 nxdef = min(len(ccds), nxdef)
-                cl.set_default('nx', nxdef)
-                nx = cl.get_value('nx', 'number of panels in X', 3, 1)
+                cl.set_default("nx", nxdef)
+                nx = cl.get_value("nx", "number of panels in X", 3, 1)
             else:
                 nx = 1
         else:
             nx = 1
             ccds = list(ccdinf.keys())
 
-        cl.set_default('pause', 0.)
+        cl.set_default("pause", 0.0)
         pause = cl.get_value(
-            'pause', 'time delay to add between'
-            ' frame plots [secs]', 0., 0.
+            "pause", "time delay to add between" " frame plots [secs]", 0.0, 0.0
         )
 
-        cl.set_default('plotall', False)
-        plotall = cl.get_value('plotall', 'plot all frames,'
-                               ' regardless of status?', False)
+        cl.set_default("plotall", False)
+        plotall = cl.get_value(
+            "plotall", "plot all frames," " regardless of status?", False
+        )
 
         # bias frame (if any)
         bias = cl.get_value(
-            'bias', "bias frame ['none' to ignore]",
-            cline.Fname('bias', hcam.HCAM), ignore='none'
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
         )
         if bias is not None:
             # read the bias frame
@@ -412,19 +416,16 @@ def rtplot(args=None):
             fprompt = "flat frame ['none' is normal choice with no bias]"
 
         lowlevel = cl.get_value(
-            'lowlevel', 'bias level lower limit for warnings',
-            2000.
+            "lowlevel", "bias level lower limit for warnings", 2000.0
         )
 
         highlevel = cl.get_value(
-            'highlevel', 'bias level upper limit for warnings',
-            3500.
+            "highlevel", "bias level upper limit for warnings", 3500.0
         )
 
         # flat (if any)
         flat = cl.get_value(
-            'flat', fprompt,
-            cline.Fname('flat', hcam.HCAM), ignore='none'
+            "flat", fprompt, cline.Fname("flat", hcam.HCAM), ignore="none"
         )
         if flat is not None:
             # read the flat frame
@@ -432,42 +433,46 @@ def rtplot(args=None):
 
         # defect file (if any)
         dfct = cl.get_value(
-            'defect', "defect file ['none' to ignore]",
-            cline.Fname('defect', hcam.DFCT), ignore='none'
+            "defect",
+            "defect file ['none' to ignore]",
+            cline.Fname("defect", hcam.DFCT),
+            ignore="none",
         )
         if dfct is not None:
             # read the defect frame
             dfct = defect.MccdDefect.read(dfct)
 
         # Get windows from hdriver
-        setup = cl.get_value(
-            'setup', 'display current hdriver window settings', False
-        )
+        setup = cl.get_value("setup", "display current hdriver window settings", False)
 
         if setup:
             drurl = cl.get_value(
-                'drurl', 'URL for driver windows', 'http://192.168.1.2:5100'
+                "drurl", "URL for driver windows", "http://192.168.1.2:5100"
             )
 
         # define the display intensities
-        msub = cl.get_value('msub', 'subtract median from each window?', True)
+        msub = cl.get_value("msub", "subtract median from each window?", True)
 
         iset = cl.get_value(
-            'iset', 'set intensity a(utomatically),'
-            ' d(irectly) or with p(ercentiles)?',
-            'a', lvals=['a','d','p'])
+            "iset",
+            "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+            "a",
+            lvals=["a", "d", "p"],
+        )
         iset = iset.lower()
 
         plo, phi = 5, 95
         ilo, ihi = 0, 1000
-        if iset == 'd':
-            ilo = cl.get_value('ilo', 'lower intensity limit', 0.)
-            ihi = cl.get_value('ihi', 'upper intensity limit', 1000.)
-        elif iset == 'p':
-            plo = cl.get_value('plo', 'lower intensity limit percentile',
-                               5., 0., 100.)
-            phi = cl.get_value('phi', 'upper intensity limit percentile',
-                               95., 0., 100.)
+        if iset == "d":
+            ilo = cl.get_value("ilo", "lower intensity limit", 0.0)
+            ihi = cl.get_value("ihi", "upper intensity limit", 1000.0)
+        elif iset == "p":
+            plo = cl.get_value(
+                "plo", "lower intensity limit percentile", 5.0, 0.0, 100.0
+            )
+            phi = cl.get_value(
+                "phi", "upper intensity limit percentile", 95.0, 0.0, 100.0
+            )
 
         # region to plot
         for i, cnam in enumerate(ccds):
@@ -481,59 +486,68 @@ def rtplot(args=None):
                 ymin = min(ymin, float(-nypad))
                 ymax = max(ymax, float(nytot + nypad + 1))
 
-        xlo = cl.get_value('xlo', 'left-hand X value', xmin, xmin, xmax)
-        xhi = cl.get_value('xhi', 'right-hand X value', xmax, xmin, xmax)
-        ylo = cl.get_value('ylo', 'lower Y value', ymin, ymin, ymax)
-        yhi = cl.get_value('yhi', 'upper Y value', ymax, ymin, ymax)
+        xlo = cl.get_value("xlo", "left-hand X value", xmin, xmin, xmax)
+        xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax)
+        ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax)
+        yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax)
 
         # profile fitting if just one CCD chosen
         if len(ccds) == 1:
             # many parameters for profile fits, although most are not plotted
             # by default
-            profit = cl.get_value('profit', 'do you want profile fits?', False)
+            profit = cl.get_value("profit", "do you want profile fits?", False)
 
             if profit:
-                fdevice = cl.get_value('fdevice', 'plot device for fits',
-                                       '2/xs')
-                fwidth = cl.get_value('fwidth', 'fit plot width (inches)', 0.)
-                fheight = cl.get_value(
-                    'fheight', 'fit plot height (inches)', 0.)
+                fdevice = cl.get_value("fdevice", "plot device for fits", "2/xs")
+                fwidth = cl.get_value("fwidth", "fit plot width (inches)", 0.0)
+                fheight = cl.get_value("fheight", "fit plot height (inches)", 0.0)
                 method = cl.get_value(
-                    'method', 'fit method g(aussian) or m(offat)',
-                    'm', lvals=['g','m'])
-                if method == 'm':
+                    "method", "fit method g(aussian) or m(offat)", "m", lvals=["g", "m"]
+                )
+                if method == "m":
                     beta = cl.get_value(
-                        'beta', 'initial exponent for Moffat fits', 5., 0.5)
+                        "beta", "initial exponent for Moffat fits", 5.0, 0.5
+                    )
                 else:
-                    beta = 0.
+                    beta = 0.0
                 fwhm_min = cl.get_value(
-                    'fwhm_min', 'minimum FWHM to allow [unbinned pixels]',
-                    1.5, 0.01
+                    "fwhm_min", "minimum FWHM to allow [unbinned pixels]", 1.5, 0.01
                 )
                 fwhm = cl.get_value(
-                    'fwhm', 'initial FWHM [unbinned pixels] for profile fits',
-                    6., fwhm_min
+                    "fwhm",
+                    "initial FWHM [unbinned pixels] for profile fits",
+                    6.0,
+                    fwhm_min,
                 )
                 shbox = cl.get_value(
-                    'shbox', 'half width of box for initial location'
-                    ' of target [unbinned pixels]', 11., 2.)
+                    "shbox",
+                    "half width of box for initial location"
+                    " of target [unbinned pixels]",
+                    11.0,
+                    2.0,
+                )
                 smooth = cl.get_value(
-                    'smooth', 'FWHM for smoothing for initial object'
-                    ' detection [binned pixels]', 6.)
-                splot = cl.get_value(
-                    'splot', 'plot outline of search box?', True)
+                    "smooth",
+                    "FWHM for smoothing for initial object"
+                    " detection [binned pixels]",
+                    6.0,
+                )
+                splot = cl.get_value("splot", "plot outline of search box?", True)
                 fhbox = cl.get_value(
-                    'fhbox', 'half width of box for profile fit'
-                    ' [unbinned pixels]', 21., 3.)
+                    "fhbox",
+                    "half width of box for profile fit" " [unbinned pixels]",
+                    21.0,
+                    3.0,
+                )
                 hmin = cl.get_value(
-                    'hmin', 'minimum peak height to accept the fit', 50.)
-                read = cl.get_value('read', 'readout noise, RMS ADU', 3.)
-                gain = cl.get_value('gain', 'gain, ADU/e-', 1.)
-                thresh = cl.get_value('thresh', 'number of RMS to reject at', 4.)
+                    "hmin", "minimum peak height to accept the fit", 50.0
+                )
+                read = cl.get_value("read", "readout noise, RMS ADU", 3.0)
+                gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
+                thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
 
         else:
             profit = False
-
 
     ################################################################
     #
@@ -542,28 +556,28 @@ def rtplot(args=None):
     # open image plot device
     imdev = hcam.pgp.Device(device)
     if width > 0 and height > 0:
-        pgpap(width,height/width)
+        pgpap(width, height / width)
 
     # set up panels and axes
     nccd = len(ccds)
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
     # slice up viewport
-    pgsubp(nx,ny)
+    pgsubp(nx, ny)
 
     # plot axes, labels, titles. Happens once only
     for cnam in ccds:
-        pgsci(hcam.pgp.Params['axis.ci'])
-        pgsch(hcam.pgp.Params['axis.number.ch'])
+        pgsci(hcam.pgp.Params["axis.ci"])
+        pgsch(hcam.pgp.Params["axis.number.ch"])
         pgenv(xlo, xhi, ylo, yhi, 1, 0)
-        pglab('X','Y','CCD {:s}'.format(cnam))
+        pglab("X", "Y", "CCD {:s}".format(cnam))
 
     # initialisations. 'last_ok' is used to store the last OK frames of each
     # CCD for retrieval when coping with skipped data.
 
-    total_time = 0 # time waiting for new frame
-    fpos = []      # list of target positions to fit
-    fframe = True   # waiting for first valid frame with profit
+    total_time = 0  # time waiting for new frame
+    fpos = []  # list of target positions to fit
+    fframe = True  # waiting for first valid frame with profit
 
     # plot images
     with spooler.data_source(source, resource, first, full=False) as spool:
@@ -579,7 +593,7 @@ def rtplot(args=None):
                 )
 
                 if give_up:
-                    print('rtplot stopped')
+                    print("rtplot stopped")
                     break
                 elif try_again:
                     continue
@@ -593,12 +607,14 @@ def rtplot(args=None):
 
             # indicate progress
             #            try:
-            tstamp = Time(mccd.head['TIMSTAMP'], format='isot', precision=3)
+            tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
             print(
-                '{:d}, utc= {:s} ({:s}), '.format(
-                    mccd.head['NFRAME'], tstamp.iso,
-                    'ok' if mccd.head.get('GOODTIME', True) else 'nok'),
-                end=''
+                "{:d}, utc= {:s} ({:s}), ".format(
+                    mccd.head["NFRAME"],
+                    tstamp.iso,
+                    "ok" if mccd.head.get("GOODTIME", True) else "nok",
+                ),
+                end="",
             )
             #            except:
             #   # sometimes times are junk.
@@ -611,15 +627,16 @@ def rtplot(args=None):
             emessages = []
 
             # bias level checks
-            if lowlevel != 0.:
+            if lowlevel != 0.0:
                 median = mccd.get_num(0).get_num(0).median()
                 if median < lowlevel:
                     emessages.append(
-                        '** low bias level, median vs limit: {:.1f} vs {:.1f}'.format(
-                            median,lowlevel)
+                        "** low bias level, median vs limit: {:.1f} vs {:.1f}".format(
+                            median, lowlevel
+                        )
                     )
 
-            if highlevel != 0.:
+            if highlevel != 0.0:
                 try:
                     median = mccd.get_num(0).get_num(1).median()
                 except:
@@ -627,8 +644,9 @@ def rtplot(args=None):
 
                 if median > highlevel:
                     emessages.append(
-                        '** high bias level, median vs limit: {:.1f} vs {:.1f}'.format(
-                            median,lowlevel)
+                        "** high bias level, median vs limit: {:.1f} vs {:.1f}".format(
+                            median, lowlevel
+                        )
                     )
 
             if n == 0:
@@ -646,51 +664,53 @@ def rtplot(args=None):
                 # found, 'hwindows' is a list of (llx,lly,nx,ny) tuples
                 # if somthing is found.
                 try:
-                    r = requests.get(drurl,timeout=0.2)
+                    r = requests.get(drurl, timeout=0.2)
 
-                    if r.text.strip() == 'No valid data available':
+                    if r.text.strip() == "No valid data available":
                         emessages.append(
-                            '** bad return from hdriver = {:s}'.format(
-                                r.text.strip())
+                            "** bad return from hdriver = {:s}".format(r.text.strip())
                         )
                         got_windows = False
 
-                    elif r.text.strip() == 'fullframe':
+                    elif r.text.strip() == "fullframe":
                         # to help Stu out a bit, effectively just
                         # ignore this one
                         got_windows = False
 
                     else:
                         # OK, got something
-                        lines = r.text.split('\r\n')
-                        xbinh,ybinh,nwinh = lines[0].split()
-                        xbinh,ybinh,nwinh = int(xbinh),int(ybinh),int(nwinh)
+                        lines = r.text.split("\r\n")
+                        xbinh, ybinh, nwinh = lines[0].split()
+                        xbinh, ybinh, nwinh = int(xbinh), int(ybinh), int(nwinh)
                         hwindows = []
-                        for line in lines[1:nwinh+1]:
-                            llxh,llyh,nxh,nyh = line.split()
-                            hwindows.append(
-                                (int(llxh),int(llyh),int(nxh),int(nyh))
-                            )
+                        for line in lines[1 : nwinh + 1]:
+                            llxh, llyh, nxh, nyh = line.split()
+                            hwindows.append((int(llxh), int(llyh), int(nxh), int(nyh)))
 
                         if nwinh != len(hwindows):
                             emessages.append(
-                                ('** expected {:d} windows from'
-                                 ' hdriver but got {:d}').format(nwinh,len(hwindows))
+                                (
+                                    "** expected {:d} windows from"
+                                    " hdriver but got {:d}"
+                                ).format(nwinh, len(hwindows))
                             )
                             got_windows = False
 
                         got_windows = True
 
-                except (requests.exceptions.ConnectionError, socket.timeout,
-                        requests.exceptions.Timeout) as err:
-                    emessages.append(' ** hdriver error: {!r}'.format(err))
+                except (
+                    requests.exceptions.ConnectionError,
+                    socket.timeout,
+                    requests.exceptions.Timeout,
+                ) as err:
+                    emessages.append(" ** hdriver error: {!r}".format(err))
                     got_windows = False
 
             else:
                 got_windows = False
 
             # display the CCDs chosen
-            message = ''
+            message = ""
             pgbbuf()
             for nc, cnam in enumerate(ccds):
                 ccd = mccd[cnam]
@@ -715,18 +735,31 @@ def rtplot(args=None):
                     # set to the correct panel and then plot CCD
                     ix = (nc % nx) + 1
                     iy = nc // nx + 1
-                    pgpanl(ix,iy)
+                    pgpanl(ix, iy)
                     vmin, vmax = hcam.pgp.pCcd(
-                        ccd,iset,plo,phi,ilo,ihi,
-                        xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
+                        ccd,
+                        iset,
+                        plo,
+                        phi,
+                        ilo,
+                        ihi,
+                        xlo=xlo,
+                        xhi=xhi,
+                        ylo=ylo,
+                        yhi=yhi,
                     )
 
                     if got_windows:
                         # plot the current hdriver windows
-                        pgsci(hcam.CNAMS['green'])
+                        pgsci(hcam.CNAMS["green"])
                         pgsls(2)
-                        for llxh,llyh,nxh,nyh in hwindows:
-                            pgrect(llxh-0.5,llxh+nxh-0.5,llyh-0.5,llyh+nyh-0.5)
+                        for llxh, llyh, nxh, nyh in hwindows:
+                            pgrect(
+                                llxh - 0.5,
+                                llxh + nxh - 0.5,
+                                llyh - 0.5,
+                                llyh + nyh - 0.5,
+                            )
 
                     if dfct is not None and cnam in dfct:
                         # plot defects
@@ -734,12 +767,12 @@ def rtplot(args=None):
 
                     # accumulate string of image scalings
                     if nc:
-                        message += ', ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
-                            cnam,vmin,vmax,mccd.head['EXPTIME']
+                        message += ", ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
+                            cnam, vmin, vmax, mccd.head["EXPTIME"]
                         )
                     else:
-                        message += 'ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}'.format(
-                            cnam,vmin,vmax,mccd.head['EXPTIME']
+                        message += "ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
+                            cnam, vmin, vmax, mccd.head["EXPTIME"]
                         )
 
             pgebuf()
@@ -754,15 +787,19 @@ def rtplot(args=None):
                 # cursor selection of targets after first plot, if profit
                 # accumulate list of starter positions
 
-                print('Please select targets for profile fitting. You can select as many as you like.')
-                x, y, reply = (xlo+xhi)/2, (ylo+yhi)/2, ''
+                print(
+                    "Please select targets for profile fitting. You can select as many as you like."
+                )
+                x, y, reply = (xlo + xhi) / 2, (ylo + yhi) / 2, ""
                 ntarg = 0
                 pgsci(2)
                 pgslw(2)
-                while reply != 'Q':
-                    print("Place cursor on fit target. Any key to register, 'q' to quit")
+                while reply != "Q":
+                    print(
+                        "Place cursor on fit target. Any key to register, 'q' to quit"
+                    )
                     x, y, reply = pgcurs(x, y)
-                    if reply == 'q':
+                    if reply == "q":
                         break
                     else:
                         # check that the position is inside a window
@@ -772,22 +809,24 @@ def rtplot(args=None):
                             # store the position, Window label, target number,
                             # box size fwhm, beta
                             ntarg += 1
-                            fpos.append(Fpar(x,y,wnam,ntarg,shbox,fwhm,beta))
+                            fpos.append(Fpar(x, y, wnam, ntarg, shbox, fwhm, beta))
 
                             # report information, overplot search box
                             print(
-                                ('Target {:d} selected at {:.1f},'
-                                 '{:.1f} in window {:s}').format(ntarg,x,y,wnam)
+                                (
+                                    "Target {:d} selected at {:.1f},"
+                                    "{:.1f} in window {:s}"
+                                ).format(ntarg, x, y, wnam)
                             )
                             if splot:
                                 fpos[-1].plot()
 
                 if len(fpos):
-                    print(len(fpos),'targets selected')
+                    print(len(fpos), "targets selected")
                     # if some targets were selected, open the fit plot device
                     fdev = hcam.pgp.Device(fdevice)
                     if fwidth > 0 and fheight > 0:
-                        pgpap(fwidth,fheight/fwidth)
+                        pgpap(fwidth, fheight / fwidth)
 
             if ccd.is_data():
 
@@ -806,49 +845,62 @@ def rtplot(args=None):
                         swind = fpar.swind(ccd)
 
                         # carry out initial search
-                        x,y,peak = swind.search(smooth, fpar.x, fpar.y, hmin, False)
+                        x, y, peak = swind.search(smooth, fpar.x, fpar.y, hmin, False)
 
                         # now for a more refined fit. First extract fit Window
                         fwind = ccd[fpar.wnam].window(
-                            x-fhbox, x+fhbox, y-fhbox, y+fhbox
+                            x - fhbox, x + fhbox, y - fhbox, y + fhbox
                         )
 
                         # crude estimate of sky background
                         sky = np.percentile(fwind.data, 50)
 
                         # refine the Aperture position by fitting the profile
-                        (sky, height, x, y, fwhm, beta), epars, \
-                            (wfit, X, Y, sigma, chisq, nok,
-                             nrej, npar, message) = hcam.fitting.combFit(
-                                fwind, method, sky, peak-sky,
-                                x, y, fpar.fwhm, fwhm_min, False,
-                                fpar.beta, read, gain, thresh
-                            )
+                        (
+                            (sky, height, x, y, fwhm, beta),
+                            epars,
+                            (wfit, X, Y, sigma, chisq, nok, nrej, npar, message),
+                        ) = hcam.fitting.combFit(
+                            fwind,
+                            method,
+                            sky,
+                            peak - sky,
+                            x,
+                            y,
+                            fpar.fwhm,
+                            fwhm_min,
+                            False,
+                            fpar.beta,
+                            read,
+                            gain,
+                            thresh,
+                        )
 
-                        print('Targ {:d}: {:s}'.format(fpar.ntarg,message))
+                        print("Targ {:d}: {:s}".format(fpar.ntarg, message))
 
-                        if peak > hmin and ccd[fpar.wnam].distance(x,y) > 1:
+                        if peak > hmin and ccd[fpar.wnam].distance(x, y) > 1:
                             # update some initial parameters for next time
-                            if method == 'g':
+                            if method == "g":
                                 fpar.x, fpar.y, fpar.fwhm = x, y, fwhm
-                            elif method == 'm':
-                                fpar.x, fpar.y, fpar.fwhm, \
-                                    fpar.beta = x, y, fwhm, beta
+                            elif method == "m":
+                                fpar.x, fpar.y, fpar.fwhm, fpar.beta = x, y, fwhm, beta
 
                             # plot values versus radial distance
                             ok = sigma > 0
-                            R = np.sqrt((X-x)**2+(Y-y)**2)
+                            R = np.sqrt((X - x) ** 2 + (Y - y) ** 2)
                             fdev.select()
-                            vmin = min(sky, sky+height, fwind.min())
-                            vmax = max(sky, sky+height, fwind.max())
-                            extent = vmax-vmin
+                            vmin = min(sky, sky + height, fwind.min())
+                            vmax = max(sky, sky + height, fwind.max())
+                            extent = vmax - vmin
                             pgeras()
                             pgvstd()
-                            pgswin(0,R.max(),vmin-0.05*extent,vmax+0.05*extent)
+                            pgswin(
+                                0, R.max(), vmin - 0.05 * extent, vmax + 0.05 * extent
+                            )
                             pgsci(4)
-                            pgbox('bcnst',0,0,'bcnst',0,0)
+                            pgbox("bcnst", 0, 0, "bcnst", 0, 0)
                             pgsci(2)
-                            pglab('Radial distance [unbinned pixels]','Counts','')
+                            pglab("Radial distance [unbinned pixels]", "Counts", "")
                             pgsci(1)
                             pgpt(R[ok].flat, fwind.data[ok].flat, 1)
                             if nrej:
@@ -857,41 +909,47 @@ def rtplot(args=None):
 
                             # line fit
                             pgsci(3)
-                            r = np.linspace(0,R.max(),400)
-                            if method == 'g':
-                                alpha = 4*np.log(2.)/fwhm**2
-                                f = sky+height*np.exp(-alpha*r**2)
-                            elif method == 'm':
-                                alpha = 4*(2**(1/beta)-1)/fwhm**2
-                                f = sky+height/(1+alpha*r**2)**beta
-                            pgline(r,f)
+                            r = np.linspace(0, R.max(), 400)
+                            if method == "g":
+                                alpha = 4 * np.log(2.0) / fwhm ** 2
+                                f = sky + height * np.exp(-alpha * r ** 2)
+                            elif method == "m":
+                                alpha = 4 * (2 ** (1 / beta) - 1) / fwhm ** 2
+                                f = sky + height / (1 + alpha * r ** 2) ** beta
+                            pgline(r, f)
 
                             # back to the image to plot a circle of radius FWHM
                             imdev.select()
                             pgsci(3)
-                            pgcirc(x,y,fwhm)
+                            pgcirc(x, y, fwhm)
 
                         else:
-                            print('  *** below detection threshold; position & FWHM will not updated')
+                            print(
+                                "  *** below detection threshold; position & FWHM will not updated"
+                            )
                             pgsci(2)
 
                         # plot location on image as a cross
                         pgpt1(x, y, 5)
 
                     except hcam.HipercamError as err:
-                        print(' >> Targ {:d}: fit failed ***: {!s}'.format(
-                            fpar.ntarg, err)
+                        print(
+                            " >> Targ {:d}: fit failed ***: {!s}".format(
+                                fpar.ntarg, err
+                            )
                         )
                         pgsci(2)
 
-            if pause > 0.:
+            if pause > 0.0:
                 # pause between frames
                 time.sleep(pause)
 
             # update the frame number
             n += 1
 
+
 # From here is support code not visible outside
+
 
 class Fpar:
     """Class for profile fits. Able to plot the search box around an x,y
@@ -907,8 +965,12 @@ class Fpar:
         self.beta = beta
 
     def region(self):
-        return (self.x-self.shbox, self.x+self.shbox,
-                self.y-self.shbox, self.y+self.shbox)
+        return (
+            self.x - self.shbox,
+            self.x + self.shbox,
+            self.y - self.shbox,
+            self.y + self.shbox,
+        )
 
     def plot(self):
         """Plots search region"""

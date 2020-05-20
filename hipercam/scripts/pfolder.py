@@ -15,6 +15,7 @@ from hipercam.cline import Cline
 #
 ###########################################################
 
+
 def pfolder(args=None):
     """``pfolder log [device width height] ccd aper``
 
@@ -55,54 +56,52 @@ def pfolder(args=None):
     command, args = utils.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('log', Cline.LOCAL, Cline.PROMPT)
-        cl.register('device', Cline.LOCAL, Cline.HIDE)
-        cl.register('width', Cline.LOCAL, Cline.HIDE)
-        cl.register('height', Cline.LOCAL, Cline.HIDE)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('aper', Cline.LOCAL, Cline.PROMPT)
-        cl.register('t0', Cline.LOCAL, Cline.PROMPT)
-        cl.register('period', Cline.LOCAL, Cline.PROMPT)
+        cl.register("log", Cline.LOCAL, Cline.PROMPT)
+        cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("width", Cline.LOCAL, Cline.HIDE)
+        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("aper", Cline.LOCAL, Cline.PROMPT)
+        cl.register("t0", Cline.LOCAL, Cline.PROMPT)
+        cl.register("period", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         log = cl.get_value(
-            'log', 'reduce log file to plot',
-            cline.Fname('hcam', hcam.LOG)
+            "log", "reduce log file to plot", cline.Fname("hcam", hcam.LOG)
         )
 
-        device = cl.get_value('device', 'plot device name', 'term')
-        width = cl.get_value('width', 'plot width (inches)', 0.)
-        height = cl.get_value('height', 'plot height (inches)', 0.)
+        device = cl.get_value("device", "plot device name", "term")
+        width = cl.get_value("width", "plot width (inches)", 0.0)
+        height = cl.get_value("height", "plot height (inches)", 0.0)
 
-        ccd = cl.get_value('ccd', 'first CCD to plot', '1')
-        aper = cl.get_value('aper', 'first aperture', '1')
-        t0 = cl.get_value('t0', 'zero point of ephemeris [MJD]', 55000.)
-        period = cl.get_value('period', 'period of ephemeris [seconds]',
-                              1., 1e-6)
+        ccd = cl.get_value("ccd", "first CCD to plot", "1")
+        aper = cl.get_value("aper", "first aperture", "1")
+        t0 = cl.get_value("t0", "zero point of ephemeris [MJD]", 55000.0)
+        period = cl.get_value("period", "period of ephemeris [seconds]", 1.0, 1e-6)
 
     # load the reduce log
     hlog = hcam.hlog.Hlog.fromLog(log)
 
     if width > 0 and height > 0:
-        fig = plt.figure(figsize=(width,height))
+        fig = plt.figure(figsize=(width, height))
     else:
         fig = plt.figure()
 
     # load counts data, fold, plot two cycles
-    data = hlog.tseries(ccd, aper, 'counts')
-    data.t = np.mod(86400.*(data.t-t0)/period,1)
-    xlabel = 'Phase [cycles]'
-    ylabel = 'Counts'
+    data = hlog.tseries(ccd, aper, "counts")
+    data.t = np.mod(86400.0 * (data.t - t0) / period, 1)
+    xlabel = "Phase [cycles]"
+    ylabel = "Counts"
     data.mplot(plt, mask=hcam.ALL_OK)
     data.t += 1
     data.mplot(plt, mask=hcam.ALL_OK)
 
-    plt.title('{:s}, CCD {:s}, Aperture {:s}'.format(log,ccd,aper))
+    plt.title("{:s}, CCD {:s}, Aperture {:s}".format(log, ccd, aper))
 
-    if device == 'term':
+    if device == "term":
         plt.show()
     else:
         plt.savefig(device)

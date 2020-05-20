@@ -77,16 +77,18 @@ from collections import OrderedDict
 
 # next two lines allow tab completion of file names
 import readline
+
 readline.parse_and_bind("tab: complete")
 
 from .core import HipercamError, HipercamWarning
 from .utils import add_extension
 
-#def complete(text,state):
+# def complete(text,state):
 #    results = ["example",None]
 #    return results[state]
 
-#readline.set_completer(complete)
+# readline.set_completer(complete)
+
 
 def clist(command):
     """Splits up a command string returning a list suitable for constructing
@@ -96,7 +98,7 @@ def clist(command):
 
     """
 
-    cl = re.findall('\"[^"]*\"|\S+', command)
+    cl = re.findall('"[^"]*"|\S+', command)
     return [c.lstrip('"').rstrip('"') for c in cl]
 
 
@@ -153,7 +155,7 @@ class Cline:
     #    _pbypos  -- parameter values by position read from arguments (list)
     #    _rpars   -- Registered parameters, keyed on the parameter name.
     #                For each one a dictionary specifies whether they are
-    #                to be found in the global or local default and whether 
+    #                to be found in the global or local default and whether
     #                they should be prompted for or not (OrderedDict)
     #    _prompt  -- force prompting or not (bool)
     #    _list    -- list the parameter name / value pairs or not (bool)
@@ -161,10 +163,10 @@ class Cline:
     #                (True ==> no access) (bool)
     #    _usedef  -- use default rather than prompt from user. (bool)
 
-    GLOBAL   = 1
-    LOCAL    = 2
-    PROMPT   = 3
-    HIDE     = 4
+    GLOBAL = 1
+    LOCAL = 2
+    PROMPT = 3
+    HIDE = 4
 
     def __init__(self, direnv, defdir, cname, args):
         """
@@ -192,24 +194,24 @@ class Cline:
 
         """
 
-        # Extract special keywords 'nodefs', 'prompt' and 'list' 
+        # Extract special keywords 'nodefs', 'prompt' and 'list'
         # from argument list, and set flags.
 
-        if 'nodefs' in args:
+        if "nodefs" in args:
             self._nodefs = True
-            args = [arg for arg in args if arg != 'nodefs']
+            args = [arg for arg in args if arg != "nodefs"]
         else:
             self._nodefs = False
 
-        if 'prompt' in args:
+        if "prompt" in args:
             self._prompt = True
-            args = [arg for arg in args if arg != 'prompt']
+            args = [arg for arg in args if arg != "prompt"]
         else:
             self._prompt = False
 
-        if 'list' in args:
+        if "list" in args:
             self._list = True
-            args = [arg for arg in args if arg != 'list']
+            args = [arg for arg in args if arg != "list"]
         else:
             self._list = False
 
@@ -217,45 +219,52 @@ class Cline:
         self._cname = cname
         if self._list:
             if self._cname is not None:
-                print ('\n' + self._cname)
+                print("\n" + self._cname)
             else:
-                print ('\nNone')
+                print("\nNone")
 
         if not self._nodefs and self._cname is not None:
 
             if direnv is None and defdir is None:
                 raise ClineError(
-                    'no default file environment variable or directory name supplied')
+                    "no default file environment variable or directory name supplied"
+                )
 
             if direnv is not None and direnv in os.environ:
                 self._ddir = os.environ[direnv]
             else:
-                home = os.environ['HOME']
+                home = os.environ["HOME"]
                 self._ddir = os.path.join(home, defdir)
 
             # read local and global default files
-            self._lname = os.path.join(self._ddir, self._cname + '.def')
+            self._lname = os.path.join(self._ddir, self._cname + ".def")
             try:
-                with open(self._lname,'rb') as flocal:
-                    self._lpars  = pickle.load(flocal)
+                with open(self._lname, "rb") as flocal:
+                    self._lpars = pickle.load(flocal)
             except IOError:
                 self._lpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    'failed to read local defaults file ' + self._lname + '; possible corrupted file.\n',
-                    ClineWarning)
+                    "failed to read local defaults file "
+                    + self._lname
+                    + "; possible corrupted file.\n",
+                    ClineWarning,
+                )
                 self._lpars = {}
 
-            self._gname = os.path.join(self._ddir, 'GLOBAL.def')
+            self._gname = os.path.join(self._ddir, "GLOBAL.def")
             try:
-                with open(self._gname,'rb') as fglobal:
-                    self._gpars  = pickle.load(fglobal)
+                with open(self._gname, "rb") as fglobal:
+                    self._gpars = pickle.load(fglobal)
             except IOError:
                 self._gpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    'failed to read global defaults file ' + self._gname +
-                    '; possible corrupted file.\n', ClineWarning)
+                    "failed to read global defaults file "
+                    + self._gname
+                    + "; possible corrupted file.\n",
+                    ClineWarning,
+                )
                 self._gpars = {}
         else:
             self._ddir = None
@@ -269,15 +278,15 @@ class Cline:
         self._pbypos = []
 
         # defines allowable parameter names
-        checker = re.compile('^[a-zA-Z0-9]+=')
+        checker = re.compile("^[a-zA-Z0-9]+=")
 
         for arg in args:
             if checker.match(arg):
-                p,v = arg.split('=',1)
+                p, v = arg.split("=", 1)
                 if p in self._pbynam:
                     raise ClineError(
-                        'parameter = ' + p +
-                        ' defined more than once in argument list.')
+                        "parameter = " + p + " defined more than once in argument list."
+                    )
                 self._pbynam[p] = v
             else:
                 self._pbypos.append(arg)
@@ -294,12 +303,12 @@ class Cline:
 
         nc = 1
         for param in self._rpars:
-            nc = max(nc,len(param))
+            nc = max(nc, len(param))
 
         slist = []
         for param, info in self._rpars.items():
             # get value
-            if info['g_or_l'] == Cline.GLOBAL:
+            if info["g_or_l"] == Cline.GLOBAL:
                 if param not in self._gpars:
                     continue
                 value = self._gpars[param]
@@ -309,9 +318,7 @@ class Cline:
                 value = self._lpars[param]
 
             # write out
-            slist.append('{:{:d}s} = {!s}\n'.format(
-                param, nc, value)
-            )
+            slist.append("{:{:d}s} = {!s}\n".format(param, nc, value))
         return slist
 
     def save(self):
@@ -328,38 +335,51 @@ class Cline:
                     os.mkdir(self._ddir, 0o755)
             except OSError:
                 warnings.warn(
-                    'failed to create defaults directory ' + self._ddir + '\n',
-                    ClineWarning)
+                    "failed to create defaults directory " + self._ddir + "\n",
+                    ClineWarning,
+                )
             except AttributeError:
                 warnings.warn(
-                    'defaults directory attribute undefined;'
-                    ' possible programming error\n', ClineWarning)
+                    "defaults directory attribute undefined;"
+                    " possible programming error\n",
+                    ClineWarning,
+                )
 
             # save local defaults
             try:
-                with open(self._lname, 'wb') as flocal:
+                with open(self._lname, "wb") as flocal:
                     pickle.dump(self._lpars, flocal)
             except (IOError, TypeError):
                 warnings.warn(
-                    'failed to save local parameter/value pairs to ' +
-                    self._lname + '\n', ClineWarning)
+                    "failed to save local parameter/value pairs to "
+                    + self._lname
+                    + "\n",
+                    ClineWarning,
+                )
             except AttributeError:
                 warnings.warn(
-                    'local parameter file attribute undefined;'
-                    ' possible programming error\n', ClineWarning)
+                    "local parameter file attribute undefined;"
+                    " possible programming error\n",
+                    ClineWarning,
+                )
 
             # save global defaults
             try:
-                with open(self._gname, 'wb') as fglobal:
+                with open(self._gname, "wb") as fglobal:
                     pickle.dump(self._gpars, fglobal)
             except (IOError, TypeError):
-                    warnings.warn(
-                        'failed to save global parameter/value pairs to ' +
-                        self._gname + '\n', ClineWarning)
+                warnings.warn(
+                    "failed to save global parameter/value pairs to "
+                    + self._gname
+                    + "\n",
+                    ClineWarning,
+                )
             except AttributeError:
-                    warnings.warn(
-                        'global parameter file attribute undefined;'
-                        ' possible programming error\n', ClineWarning)
+                warnings.warn(
+                    "global parameter file attribute undefined;"
+                    " possible programming error\n",
+                    ClineWarning,
+                )
 
     def prompt_state(self):
         """Says whether prompting is being forced or not. Note the propting state does
@@ -400,24 +420,25 @@ class Cline:
 
         """
 
-        if param.find(' ') != -1 or param.find('\t') != -1 or \
-           param.find('=') != -1 or param.find('"') != -1 or \
-           param.find("'") != -1:
-            raise ClineError('Parameter = ' + param + ' is illegal.')
+        if (
+            param.find(" ") != -1
+            or param.find("\t") != -1
+            or param.find("=") != -1
+            or param.find('"') != -1
+            or param.find("'") != -1
+        ):
+            raise ClineError("Parameter = " + param + " is illegal.")
 
         if g_or_l != Cline.GLOBAL and g_or_l != Cline.LOCAL:
-            raise ClineError(
-                'g_or_l must either be Cline.GLOBAL or Cline.LOCAL')
+            raise ClineError("g_or_l must either be Cline.GLOBAL or Cline.LOCAL")
 
         if p_or_h != Cline.PROMPT and p_or_h != Cline.HIDE:
-            raise ClineError(
-                'p_or_h must either be Cline.PROMPT or Cline.HIDE')
+            raise ClineError("p_or_h must either be Cline.PROMPT or Cline.HIDE")
 
         if param in self._rpars:
-            raise ClineError('parameter = ' + param +
-                             ' has already been registered.')
+            raise ClineError("parameter = " + param + " has already been registered.")
 
-        self._rpars[param] = {'g_or_l' : g_or_l, 'p_or_h' : p_or_h}
+        self._rpars[param] = {"g_or_l": g_or_l, "p_or_h": p_or_h}
 
     def set_default(self, param, defval):
         """Set the default value of a parameter automatically. This is often useful
@@ -426,11 +447,10 @@ class Cline:
         """
         if param not in self._rpars:
             raise ClineError(
-                'set_default: parameter = "' + param +
-                '" has not been registered.'
+                'set_default: parameter = "' + param + '" has not been registered.'
             )
 
-        if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
+        if self._rpars[param]["g_or_l"] == Cline.GLOBAL:
             self._gpars[param] = defval
         else:
             self._lpars[param] = defval
@@ -441,18 +461,27 @@ class Cline:
         """
         if param not in self._rpars:
             raise ClineError(
-                'set_default: parameter = "' + param +
-                '" has not been registered.'
+                'set_default: parameter = "' + param + '" has not been registered.'
             )
 
-        if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
+        if self._rpars[param]["g_or_l"] == Cline.GLOBAL:
             defval = self._gpars[param]
         else:
             defval = self._lpars[param]
         return defval
 
-    def get_value(self, param, prompt, defval, minval=None, maxval=None,
-                  lvals=None, fixlen=True, multipleof=None, ignore=None):
+    def get_value(
+        self,
+        param,
+        prompt,
+        defval,
+        minval=None,
+        maxval=None,
+        lvals=None,
+        fixlen=True,
+        multipleof=None,
+        ignore=None,
+    ):
         """Gets the value of a parameter, either from the command arguments, or by
         retrieving default values or by prompting the user as required. This
         is the main function of Cline. The value obtained is used to update
@@ -505,13 +534,12 @@ class Cline:
 
         if param not in self._rpars:
             raise ClineError(
-                'parameter = "{:s}" has not been registered.'.format(
-                    param.upper())
-                )
+                'parameter = "{:s}" has not been registered.'.format(param.upper())
+            )
 
         if lvals != None and defval not in lvals:
             raise ClineError(
-                'default = {!s} not in allowed list = {!s}'.format(defval,lvals)
+                "default = {!s} not in allowed list = {!s}".format(defval, lvals)
             )
 
         # Now get the parameter value by one of three methods
@@ -521,18 +549,22 @@ class Cline:
             # of the form param=value
             value = self._pbynam[param]
 
-        elif self.narg < len(self._pbypos) and \
-             (self._prompt or self._rpars[param]['p_or_h'] == Cline.PROMPT):
+        elif self.narg < len(self._pbypos) and (
+            self._prompt or self._rpars[param]["p_or_h"] == Cline.PROMPT
+        ):
             # get value from bare values in the command line such as '23' '\\'
             # indicates use the default value and also to use defaults for any
             # other unspecified parameters that come later (_usedef set to
             # True)
-            if self._pbypos[self.narg] == '\\':
-                if self._rpars[param]['g_or_l'] == Cline.GLOBAL and \
-                   param in self._gpars:
+            if self._pbypos[self.narg] == "\\":
+                if (
+                    self._rpars[param]["g_or_l"] == Cline.GLOBAL
+                    and param in self._gpars
+                ):
                     value = self._gpars[param]
-                elif self._rpars[param]['g_or_l'] == Cline.LOCAL and \
-                     param in self._lpars:
+                elif (
+                    self._rpars[param]["g_or_l"] == Cline.LOCAL and param in self._lpars
+                ):
                     value = self._lpars[param]
                 else:
                     value = defval
@@ -543,63 +575,74 @@ class Cline:
 
         else:
             # load default from values read from file or the initial value
-            if self._rpars[param]['g_or_l'] == Cline.GLOBAL and \
-               param in self._gpars:
+            if self._rpars[param]["g_or_l"] == Cline.GLOBAL and param in self._gpars:
                 value = self._gpars[param]
-            elif self._rpars[param]['g_or_l'] == Cline.LOCAL and \
-                 param in self._lpars:
+            elif self._rpars[param]["g_or_l"] == Cline.LOCAL and param in self._lpars:
                 value = self._lpars[param]
             else:
                 value = defval
 
             # prompt user for input
-            if not self._usedef and \
-               (self._prompt or self._rpars[param]['p_or_h'] == Cline.PROMPT):
-                reply = '?'
-                while reply == '?':
-                    reply = input(
-                        '{:s} - {:s} [{!s}]: '.format(param,prompt,value)
-                    )
-                    if reply == '\\':
+            if not self._usedef and (
+                self._prompt or self._rpars[param]["p_or_h"] == Cline.PROMPT
+            ):
+                reply = "?"
+                while reply == "?":
+                    reply = input("{:s} - {:s} [{!s}]: ".format(param, prompt, value))
+                    if reply == "\\":
                         self._usedef = True
-                    elif reply == '?':
+                    elif reply == "?":
                         print()
                         if minval is not None and maxval is not None:
                             print(
-                                ('Parameter = "{:s}" must lie from'
-                                 ' {!s} to {!s}').format(
-                                     param,minval,maxval))
+                                (
+                                    'Parameter = "{:s}" must lie from' " {!s} to {!s}"
+                                ).format(param, minval, maxval)
+                            )
                         elif minval is not None:
                             print(
-                                ('Parameter = "{:s}" must be'
-                                 ' greater than {!s}').format(
-                                param,minval))
+                                (
+                                    'Parameter = "{:s}" must be' " greater than {!s}"
+                                ).format(param, minval)
+                            )
                         elif maxval is not None:
                             print(
-                                ('Parameter = "{:s}" must be '
-                                 'less than {!s}').format(param,maxval))
+                                ('Parameter = "{:s}" must be ' "less than {!s}").format(
+                                    param, maxval
+                                )
+                            )
                         else:
                             print(
-                                ('Parameter = "{:s}" has no '
-                                 'restriction on its value').format(param))
+                                (
+                                    'Parameter = "{:s}" has no '
+                                    "restriction on its value"
+                                ).format(param)
+                            )
 
-                        print('"{:s}" has data type = {!s}'.format(
-                            param,type(defval)))
+                        print('"{:s}" has data type = {!s}'.format(param, type(defval)))
                         if lvals is not None:
-                            print('Only the following values are allowed:')
+                            print("Only the following values are allowed:")
                             print(lvals)
                         if isinstance(defval, (list, tuple)) and fixlen:
                             print(
-                                ('You must enter exactly'
-                                 ' {:d} values').format(len(defval)))
+                                ("You must enter exactly" " {:d} values").format(
+                                    len(defval)
+                                )
+                            )
                         print()
-                    elif reply != '':
-                        if  isinstance(defval, (list, tuple)) and fixlen and \
-                            len(reply.split()) != len(defval):
-                            print (
-                                ('You must enter exactly {:d} values.'
-                                 ' [You only entered {:d}]').format(len(defval),len(reply.split())))
-                            reply = '?'
+                    elif reply != "":
+                        if (
+                            isinstance(defval, (list, tuple))
+                            and fixlen
+                            and len(reply.split()) != len(defval)
+                        ):
+                            print(
+                                (
+                                    "You must enter exactly {:d} values."
+                                    " [You only entered {:d}]"
+                                ).format(len(defval), len(reply.split()))
+                            )
+                            reply = "?"
                         else:
                             value = reply
 
@@ -615,40 +658,45 @@ class Cline:
             elif isinstance(defval, str):
                 value = str(value)
                 if value == "''":
-                    value = ''
+                    value = ""
 
             elif isinstance(defval, bool):
                 if isinstance(value, str):
-                    if value.lower() == 'true' or value.lower() == 'yes' or \
-                       value.lower() == '1' or value.lower() == 'y':
+                    if (
+                        value.lower() == "true"
+                        or value.lower() == "yes"
+                        or value.lower() == "1"
+                        or value.lower() == "y"
+                    ):
                         value = True
-                    elif value.lower() == 'false' or value.lower() == 'no' or \
-                         value.lower() == '0' or value.lower() == 'n':
+                    elif (
+                        value.lower() == "false"
+                        or value.lower() == "no"
+                        or value.lower() == "0"
+                        or value.lower() == "n"
+                    ):
                         value = False
                     else:
                         raise ClineError(
-                            'could not translate "' + value +
-                            '" to a boolean True or False.'
-                            )
+                            'could not translate "'
+                            + value
+                            + '" to a boolean True or False.'
+                        )
             elif isinstance(defval, int):
                 # 'max' and 'min' will set to the maximum and minimum
                 # values if they have been set handle these here before
                 # attempting to convert to a float
-                if isinstance(value,str):
-                    if value == 'min':
+                if isinstance(value, str):
+                    if value == "min":
                         if minval is not None:
                             value = minval
                         else:
-                            raise ClineError(
-                                '{:s} has no minimum value'.format(param)
-                                )
-                    elif value == 'max':
+                            raise ClineError("{:s} has no minimum value".format(param))
+                    elif value == "max":
                         if maxval is not None:
                             value = maxval
                         else:
-                            raise ClineError(
-                                '{:s} has no maximum value'.format(param)
-                                )
+                            raise ClineError("{:s} has no maximum value".format(param))
 
                 value = int(value)
 
@@ -656,21 +704,17 @@ class Cline:
                 # 'max' and 'min' will set to the maximum and minimum
                 # values if they have been set handle these here before
                 # attempting to convert to a float
-                if isinstance(value,str):
-                    if value == 'min':
+                if isinstance(value, str):
+                    if value == "min":
                         if minval is not None:
                             value = minval
                         else:
-                            raise ClineError(
-                                '{:s} has no minimum value'.format(param)
-                                )
-                    elif value == 'max':
+                            raise ClineError("{:s} has no minimum value".format(param))
+                    elif value == "max":
                         if maxval is not None:
                             value = maxval
                         else:
-                            raise ClineError(
-                                '{:s} has no maximum value'.format(param)
-                                )
+                            raise ClineError("{:s} has no maximum value".format(param))
 
                 value = float(value)
 
@@ -686,35 +730,32 @@ class Cline:
                     value = tuple(value)
             else:
                 raise ClineError(
-                    'did not recognize the data type of the default supplied for parameter {:s} = {!s}'.format(param, type(defval))
+                    "did not recognize the data type of the default supplied for parameter {:s} = {!s}".format(
+                        param, type(defval)
+                    )
                 )
 
         except ValueError as err:
-            raise ClineError('{!s}'.format(err))
+            raise ClineError("{!s}".format(err))
 
         # ensure value is within range
         if minval != None and value < minval:
-            raise ClineError(
-                param + ' = ' + str(value) + ' < ' + str(minval))
+            raise ClineError(param + " = " + str(value) + " < " + str(minval))
         elif maxval != None and value > maxval:
-            raise ClineError(
-                param + ' = ' + str(value) + ' > ' + str(maxval)
-            )
+            raise ClineError(param + " = " + str(value) + " > " + str(maxval))
 
         # and that it is an OK value
         if lvals != None and value not in lvals:
             raise ClineError(
-                str(value) + ' is not one of the allowed values = ' + str(lvals)
+                str(value) + " is not one of the allowed values = " + str(lvals)
             )
 
         if multipleof != None and value % multipleof != 0:
-            raise ClineError(
-                str(value) + ' is not a multiple of ' + str(multipleof)
-            )
+            raise ClineError(str(value) + " is not a multiple of " + str(multipleof))
 
         # update appropriate set of defaults. In the case of Fnames, strip the
         # extension
-        if self._rpars[param]['g_or_l'] == Cline.GLOBAL:
+        if self._rpars[param]["g_or_l"] == Cline.GLOBAL:
             if isinstance(defval, Fname):
                 self._gpars[param] = defval.noext(value)
             else:
@@ -726,7 +767,7 @@ class Cline:
                 self._lpars[param] = value
 
         if self._list:
-            print (param,'=',value)
+            print(param, "=", value)
 
         if isinstance(defval, Fname) and value == ignore:
             # return None in this case since this is a
@@ -741,7 +782,7 @@ class Cline:
         if there aren't any
         """
         if self.narg < len(self._pbypos):
-            return self._pbypos[self.narg:]
+            return self._pbypos[self.narg :]
         else:
             return None
 
@@ -751,6 +792,7 @@ class Cline:
     def __exit__(self, *args):
         self.save()
 
+
 class Fname(str):
     """Defines a callable parameter type for the :class:`Cline` to allow for some
     early checks on file names. This is mainly to prevent a whole series of
@@ -759,11 +801,11 @@ class Fname(str):
 
     """
 
-    OLD       = 0
-    NEW       = 1
+    OLD = 0
+    NEW = 1
     NOCLOBBER = 2
 
-    def __new__(cls, root, ext='', ftype=OLD, exist=True):
+    def __new__(cls, root, ext="", ftype=OLD, exist=True):
         """Constructor distinct from __init__ because str is immutable. In the
         following text items in capitals such as 'OLD' are static variables so
         that one should use hipercam.cline.Fname.OLD or equivalent to refer to
@@ -790,18 +832,17 @@ class Fname(str):
         """
 
         if ftype != Fname.OLD and ftype != Fname.NEW and ftype != Fname.NOCLOBBER:
-            raise ClineError(
-                'ftype must be either OLD, NEW or NOCLOBBER')
+            raise ClineError("ftype must be either OLD, NEW or NOCLOBBER")
 
         # store root with no extension
         if len(ext) and root.endswith(ext):
-            fname = super().__new__(cls, root[:-len(ext)])
+            fname = super().__new__(cls, root[: -len(ext)])
         else:
             fname = super().__new__(cls, root)
 
         return fname
 
-    def __init__(self, root, ext='', ftype=OLD, exist=True):
+    def __init__(self, root, ext="", ftype=OLD, exist=True):
         """Initialiser. In the following text items in capitals such as 'OLD' are
         static variables so that one should use hipercam.cline.Fname.OLD or
         equivalent to refer to them.
@@ -852,19 +893,17 @@ class Fname(str):
         fname = add_extension(fname, self.ext)
 
         if self.exist and self.ftype == Fname.OLD and not os.path.exists(fname):
-            raise ClineError(
-                'could not find file = ' + fname)
+            raise ClineError("could not find file = " + fname)
 
         if self.ftype == Fname.NOCLOBBER and os.path.exists(fname):
-            raise ClineError(
-                'file = ' + fname + ' already exists')
+            raise ClineError("file = " + fname + " already exists")
 
         return fname
 
     def noext(self, fname):
         """Returns the suggested file name, `fname`, with the extension removed"""
         if len(self.ext) and fname.endswith(self.ext):
-            return fname[:-len(self.ext)]
+            return fname[: -len(self.ext)]
         else:
             return fname
 
@@ -874,11 +913,13 @@ class Fname(str):
         arguments that are passed off to __new__
 
         """
-        print('inside getnewargs',self)
-        return (self,self.ext,self.ftype,self.exist)
+        print("inside getnewargs", self)
+        return (self, self.ext, self.ftype, self.exist)
+
 
 class ClineError(HipercamError):
     """For throwing exceptions from hipercam.cline"""
+
 
 class ClineWarning(HipercamWarning):
     """For producing warnings from hipercam.cline"""

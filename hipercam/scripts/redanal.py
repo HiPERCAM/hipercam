@@ -17,6 +17,7 @@ from hipercam.cline import Cline
 #
 ##################################################
 
+
 def redanal(args=None):
     """``redanal aper log``
 
@@ -39,55 +40,65 @@ def redanal(args=None):
     command, args = utils.script_args(args)
 
     # get input section
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('aper', Cline.LOCAL, Cline.PROMPT)
-        cl.register('log', Cline.LOCAL, Cline.PROMPT)
+        cl.register("aper", Cline.LOCAL, Cline.PROMPT)
+        cl.register("log", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         aper_file = cl.get_value(
-            'aper', 'aperture file used for reduction',
-            cline.Fname('run001', hcam.APER)
-            )
+            "aper", "aperture file used for reduction", cline.Fname("run001", hcam.APER)
+        )
         aper = hcam.MccdAper.read(aper_file)
 
         log_file = cl.get_value(
-            'log', 'ASCII reduction log file to analyse',
-            cline.Fname('run001', hcam.LOG)
-            )
+            "log",
+            "ASCII reduction log file to analyse",
+            cline.Fname("run001", hcam.LOG),
+        )
         log = hcam.hlog.Hlog.read(log_file)
 
     for cnam in sorted(log):
         print()
-        mjds = log[cnam]['MJD']
-        mjdoks = log[cnam]['MJDok']
-        diffs = mjds[1:]-mjds[:-1]
+        mjds = log[cnam]["MJD"]
+        mjdoks = log[cnam]["MJDok"]
+        diffs = mjds[1:] - mjds[:-1]
         tgap_max = diffs.max()
         tgap_mean = diffs.mean()
         print(
-            'CCD {:s} mean / maximum time gap = {:.2f} / {:.2f} seconds'.format(
-                cnam,86400.*tgap_mean, 86400.*tgap_max)
+            "CCD {:s} mean / maximum time gap = {:.2f} / {:.2f} seconds".format(
+                cnam, 86400.0 * tgap_mean, 86400.0 * tgap_max
             )
+        )
         apnams = log.apnames[cnam]
         for apnam in apnams:
             if not aper[cnam][apnam].linked:
-                x = log[cnam]['x_{:s}'.format(apnam)]
-                xe = log[cnam]['xe_{:s}'.format(apnam)]
-                y = log[cnam]['y_{:s}'.format(apnam)]
-                ye = log[cnam]['ye_{:s}'.format(apnam)]
+                x = log[cnam]["x_{:s}".format(apnam)]
+                xe = log[cnam]["xe_{:s}".format(apnam)]
+                y = log[cnam]["y_{:s}".format(apnam)]
+                ye = log[cnam]["ye_{:s}".format(apnam)]
                 ok = (xe > 0) & (ye > 0)
-                xdiffs = x[ok][1:]-x[ok][:-1]
-                ydiffs = x[ok][1:]-x[ok][:-1]
-                jitt = np.sqrt(xdiffs**2+ydiffs**2)
+                xdiffs = x[ok][1:] - x[ok][:-1]
+                ydiffs = x[ok][1:] - x[ok][:-1]
+                jitt = np.sqrt(xdiffs ** 2 + ydiffs ** 2)
                 print(
-                    'CCD {:s}, ap {:s} has {:d}/{:d}/{:d} OK/NOK/total points. Min/mean/median/max jitter = {:.2f}/{:.2f}/{:.2f}/{:.2f} pixels {:s}'.format(
-                        cnam, apnam, len(x[ok]), len(x)-len(x[ok]), len(x), jitt.min(), jitt.mean(), np.median(jitt), jitt.max(),
-                        '[reference]' if aper[cnam][apnam].ref else '[non-reference]'
-                        )
+                    "CCD {:s}, ap {:s} has {:d}/{:d}/{:d} OK/NOK/total points. Min/mean/median/max jitter = {:.2f}/{:.2f}/{:.2f}/{:.2f} pixels {:s}".format(
+                        cnam,
+                        apnam,
+                        len(x[ok]),
+                        len(x) - len(x[ok]),
+                        len(x),
+                        jitt.min(),
+                        jitt.mean(),
+                        np.median(jitt),
+                        jitt.max(),
+                        "[reference]" if aper[cnam][apnam].ref else "[non-reference]",
                     )
+                )
             else:
                 print(
-                    'CCD {:s}, aperture {:s} is linked to aperture {:s}'.format(
-                        cnam, apnam, aper[cnam][apnam].link)
+                    "CCD {:s}, aperture {:s} is linked to aperture {:s}".format(
+                        cnam, apnam, aper[cnam][apnam].link
                     )
+                )

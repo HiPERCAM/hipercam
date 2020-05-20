@@ -24,23 +24,40 @@ from astropy.time import Time, TimeDelta
 # temporary
 import matplotlib.pyplot as plt
 
-from hipercam import (CCD, Group, MCCD, Window, Winhead, HRAW, HipercamError, Header,
-                      gregorian_to_mjd, mjd_to_gregorian, fday_to_hms)
+from hipercam import (
+    CCD,
+    Group,
+    MCCD,
+    Window,
+    Winhead,
+    HRAW,
+    HipercamError,
+    Header,
+    gregorian_to_mjd,
+    mjd_to_gregorian,
+    fday_to_hms,
+)
 from hipercam.utils import add_extension
 
 __all__ = [
-    'Rhead', 'Rdata', 'Rtime', 'Rtbytes',
-    'HCM_NXTOT', 'HCM_NYTOT', 'HCM_NPSCAN', 'HCM_NOSCAN'
+    "Rhead",
+    "Rdata",
+    "Rtime",
+    "Rtbytes",
+    "HCM_NXTOT",
+    "HCM_NYTOT",
+    "HCM_NPSCAN",
+    "HCM_NOSCAN",
 ]
 
 # Set the URL of the FileServer from the environment or default to localhost.
-URL = 'ws://' + os.environ.get('HIPERCAM_DEFAULT_URL','localhost:8007/')
+URL = "ws://" + os.environ.get("HIPERCAM_DEFAULT_URL", "localhost:8007/")
 
 # FITS offset to convert from signed to unsigned 16-bit ints and vice versa
-BZERO = (1 << 15)
+BZERO = 1 << 15
 
 # number of seconds in a day
-DAYSEC = 86400.
+DAYSEC = 86400.0
 
 # Maximum dimensions of HiPERCAM CCDs, imaging area
 HCM_NXTOT, HCM_NYTOT = 2048, 1024
@@ -54,33 +71,34 @@ HCM_NPSCAN = 50
 HCM_NOSCAN = 8
 
 # bottom-left coordinate of quadrants
-LLX = {'E': 1, 'F': HCM_NXTOT//2+1, 'G': HCM_NXTOT//2+1, 'H': 1}
-LLY = {'E': 1, 'F': 1, 'G': HCM_NYTOT//2+1, 'H': HCM_NYTOT//2+1}
+LLX = {"E": 1, "F": HCM_NXTOT // 2 + 1, "G": HCM_NXTOT // 2 + 1, "H": 1}
+LLY = {"E": 1, "F": 1, "G": HCM_NYTOT // 2 + 1, "H": HCM_NYTOT // 2 + 1}
 
 # the direction increasing X- or Y-start moves the window in a quadrant
-X_DIRN = {'E': 1, 'F': -1, 'G': -1, 'H': 1}
-Y_DIRN = {'E': 1, 'F': 1, 'G': -1, 'H': -1}
+X_DIRN = {"E": 1, "F": -1, "G": -1, "H": 1}
+Y_DIRN = {"E": 1, "F": 1, "G": -1, "H": -1}
 
 # whether we need to add size of window to find bottom-left coordinate of
 # window
-ADD_YSIZES = {'E': 0, 'F': 0, 'G': 1, 'H': 1}
-ADD_XSIZES = {'E': 0, 'F': 1, 'G': 1, 'H': 0}
+ADD_YSIZES = {"E": 0, "F": 0, "G": 1, "H": 1}
+ADD_XSIZES = {"E": 0, "F": 1, "G": 1, "H": 0}
 
 # some axes need flipping, since the data is read out such that the
 # bottom-left is not always the first pixel. Which axes need flipping
 # to get data in correct orientation uses numpy C-convention, 1=y,
 # 0=x. These are fed to numpy.flip later
-FLIP_AXES = {'E': (), 'F': (1,), 'G': (1, 0), 'H': (0,)}
+FLIP_AXES = {"E": (), "F": (1,), "G": (1, 0), "H": (0,)}
 
 # Code to account for reflections of the g [CCD 1, zero offset] and z [CCD 4]
 # CCDs, and potential 180 degree rotations (In Feb 2018 GTC run, the u-band
 # CCD was 180 degrees rotated cf intended).
 REFLECTED = (1, 4)
-QNAMS = ('E', 'F', 'G', 'H')
-QNAMS_REFLECT = {'E': 'F', 'F': 'E', 'G': 'H', 'H': 'G'}
-QNAMS_ROTATED = {'E': 'G', 'F': 'H', 'G': 'E', 'H': 'F'}
+QNAMS = ("E", "F", "G", "H")
+QNAMS_REFLECT = {"E": "F", "F": "E", "G": "H", "H": "G"}
+QNAMS_ROTATED = {"E": "G", "F": "H", "G": "E", "H": "F"}
 
-ESSENTIAL = ('MODE')
+ESSENTIAL = "MODE"
+
 
 class Rhead:
     """Reads an interprets header information from a HiPERCAM run (3D FITS file)
@@ -194,72 +212,73 @@ class Rhead:
         if server:
             # open socket connection to server
             self._ws = websocket.create_connection(URL + fname)
-            status = json.loads(self._ws.recv())['status']
-            if status == 'no such run':
-                raise HipercamError('Run not found: {}'.format(fname))
+            status = json.loads(self._ws.recv())["status"]
+            if status == "no such run":
+                raise HipercamError("Run not found: {}".format(fname))
 
             # read the header from the server
-            data = json.dumps(dict(action='get_hdr'))
+            data = json.dumps(dict(action="get_hdr"))
             self._ws.send(data)
-            hd = self.header = Header(
-                fits.Header.fromstring(self._ws.recv())
-            )
+            hd = self.header = Header(fits.Header.fromstring(self._ws.recv()))
 
-            nsamps = self.header.get('ESO DET NSAMP', 1)
-            self._framesize = 18 + (
-                self.header['ESO DET ACQ1 WIN NX'] *
-                self.header['ESO DET ACQ1 WIN NY']) // nsamps
+            nsamps = self.header.get("ESO DET NSAMP", 1)
+            self._framesize = (
+                18
+                + (
+                    self.header["ESO DET ACQ1 WIN NX"]
+                    * self.header["ESO DET ACQ1 WIN NY"]
+                )
+                // nsamps
+            )
         else:
             # open the file
-            self._ffile = open(add_extension(fname, HRAW),'rb')
+            self._ffile = open(add_extension(fname, HRAW), "rb")
 
             # read the header
-            hd = self.header = Header(
-                fits.Header.fromfile(self._ffile)
-            )
+            hd = self.header = Header(fits.Header.fromfile(self._ffile))
 
             # store number of bytes read from header. used to offset later
             # requests for data
             self._hbytes = self._ffile.tell()
-            self._framesize = self.header['NAXIS1']
+            self._framesize = self.header["NAXIS1"]
 
         # calculate the framesize in bytes
-        bitpix = abs(hd['BITPIX'])
-        self._framesize *= (bitpix // 8)
+        bitpix = abs(hd["BITPIX"])
+        self._framesize *= bitpix // 8
 
         # store the scaling and offset
-        self._bscale = hd['BSCALE']
-        self._bzero = hd['BZERO']
+        self._bscale = hd["BSCALE"]
+        self._bzero = hd["BZERO"]
 
         # create the top-level header
         self.thead = Header()
 
         # set the mode, one or two windows per quadrant, drift etc.  This is
         # essential.
-        self.mode = hd['ESO DET READ CURNAME']
+        self.mode = hd["ESO DET READ CURNAME"]
         if self.full:
-            self.thead['MODE'] = (self.mode, 'HiPERCAM readout mode')
-        self.drift = self.mode.startswith('Drift')
+            self.thead["MODE"] = (self.mode, "HiPERCAM readout mode")
+        self.drift = self.mode.startswith("Drift")
         if self.drift:
-            self.ndwins = hd.get('ESO DET DRIFT NWINS',0)
+            self.ndwins = hd.get("ESO DET DRIFT NWINS", 0)
         else:
             self.ndwins = 0
 
         # check for overscan / prescan / clear
-        self.clear = hd['ESO DET CLRCCD']
-        self.dummy = hd['ESO DET DUMMY']
-        self.oscan = hd['ESO DET INCOVSCY']
-        self.pscan = hd['ESO DET INCPRSCX']
-        self.thead['CLEAR'] = (self.clear,'Clear enabled')
+        self.clear = hd["ESO DET CLRCCD"]
+        self.dummy = hd["ESO DET DUMMY"]
+        self.oscan = hd["ESO DET INCOVSCY"]
+        self.pscan = hd["ESO DET INCPRSCX"]
+        self.thead["CLEAR"] = (self.clear, "Clear enabled")
 
         # store the NSKIP values for each CCD. These are needed for exact
         # timing for each CCD.
         self.nskips = (
-            hd['ESO DET NSKIPS1'],
-            hd['ESO DET NSKIPS2'],
-            hd['ESO DET NSKIPS3'],
-            hd['ESO DET NSKIPS4'],
-            hd['ESO DET NSKIPS5']
+            hd["ESO DET NSKIPS1"],
+            hd["ESO DET NSKIPS2"],
+            hd["ESO DET NSKIPS3"],
+            hd["ESO DET NSKIPS4"],
+            hd["ESO DET NSKIPS5"],
         )
 
         # set timing parameters toff1, toff2, toff3, toff4, tdelta, tdead
@@ -272,54 +291,54 @@ class Rhead:
         # tdelta -- multiplier of nskip (same for all frames)
         # tdead  -- dead time between frames.
 
-        E  = hd['ESO DET TDELAY']
+        E = hd["ESO DET TDELAY"]
 
         if self.clear:
             # Clear mode. NB the parameter 'TREAD' is actually a combination
             # of a frame-transfer and a read (F+R in the docs), hence it
             # is called FR here
-            W = hd['ESO DET TCLEAR']
-            FR = hd['ESO DET TREAD']
+            W = hd["ESO DET TCLEAR"]
+            FR = hd["ESO DET TREAD"]
 
-            self.tdelta = 1e-3*(FR+W+E)
-            self.toff1 = self.toff2 = 1.e-3*E/2.
-            self.toff3 = self.toff4 = 1.e-3*E
-            self.tdead = 1.e-3*(FR+W)
+            self.tdelta = 1e-3 * (FR + W + E)
+            self.toff1 = self.toff2 = 1.0e-3 * E / 2.0
+            self.toff3 = self.toff4 = 1.0e-3 * E
+            self.tdead = 1.0e-3 * (FR + W)
         elif self.drift:
             # Drift mode
-            LD = hd['ESO DET DRIFT TLINEDUMP']
-            LS = hd['ESO DET DRIFT TLINESHIFT']
+            LD = hd["ESO DET DRIFT TLINEDUMP"]
+            LS = hd["ESO DET DRIFT TLINESHIFT"]
             ND = self.ndwins
-            R = hd['ESO DET TREAD']
+            R = hd["ESO DET TREAD"]
 
             # No NSKIP here, so tdelta irrelevant. in drift
             # mode, TREAD is the read time (no frame transfer)
-            self.tdelta = 0.
-            self.toff1 = self.toff2 = 1.e-3*(
-                E+LS+(E+LD+R)/2.-ND*(E+R+LS+LD)
+            self.tdelta = 0.0
+            self.toff1 = self.toff2 = 1.0e-3 * (
+                E + LS + (E + LD + R) / 2.0 - ND * (E + R + LS + LD)
             )
-            self.toff3 = self.toff4 = 1.e-3*(E+R+LD)
-            self.tdead = 1.e-3*LS
+            self.toff3 = self.toff4 = 1.0e-3 * (E + R + LD)
+            self.tdead = 1.0e-3 * LS
 
         else:
             # No clear mode, there are zero sec dummy
             # 'wipes' so no 'W' appears here. TREAD
             # is back to being the sum of the read
             # and frame transfer times
-            FR = hd['ESO DET TREAD']
-            F = hd['ESO DET TFT']
-            R = FR-F
+            FR = hd["ESO DET TREAD"]
+            F = hd["ESO DET TFT"]
+            R = FR - F
 
-            self.tdelta = 1.e-3*(FR+E)
-            self.toff1 = 1.e-3*E/2.
-            self.toff2 = 1.e-3*(E-R)/2.
-            self.toff3 = 1.e-3*E
-            self.toff4 = 1.e-3*(R+E)
-            self.tdead = 1.e-3*F
+            self.tdelta = 1.0e-3 * (FR + E)
+            self.toff1 = 1.0e-3 * E / 2.0
+            self.toff2 = 1.0e-3 * (E - R) / 2.0
+            self.toff3 = 1.0e-3 * E
+            self.toff4 = 1.0e-3 * (R + E)
+            self.tdead = 1.0e-3 * F
 
         # binning factors
-        self.xbin = hd['ESO DET BINX1']
-        self.ybin = hd['ESO DET BINY1']
+        self.xbin = hd["ESO DET BINX1"]
+        self.ybin = hd["ESO DET BINY1"]
 
         if self.pscan:
             if HCM_NPSCAN % self.xbin == 0:
@@ -328,9 +347,10 @@ class Rhead:
 
             else:
                 raise HipercamError(
-                    ('Use of X-binning factors which are not divisors of'
-                     ' {:d} with overscan enabled is not supported').format(
-                         HCM_NPSCAN)
+                    (
+                        "Use of X-binning factors which are not divisors of"
+                        " {:d} with overscan enabled is not supported"
+                    ).format(HCM_NPSCAN)
                 )
 
         if self.oscan:
@@ -340,13 +360,14 @@ class Rhead:
 
             else:
                 raise HipercamError(
-                    ('Use of Y-binning factors which are not divisors of'
-                     ' {:d} with overscan is not supported').format(
-                         HCM_NOSCAN)
+                    (
+                        "Use of Y-binning factors which are not divisors of"
+                        " {:d} with overscan is not supported"
+                    ).format(HCM_NOSCAN)
                 )
 
-        if self.mode.startswith('TwoWindow'):
-            self.nwins = (0,1)
+        if self.mode.startswith("TwoWindow"):
+            self.nwins = (0, 1)
         else:
             self.nwins = (0,)
 
@@ -356,9 +377,7 @@ class Rhead:
         # to no rotation by default.
         self.rotate = []
         for nccd in range(5):
-            self.rotate.append(
-                hd.get('ESO DET ROTATE{:d}'.format(nccd+1),False)
-            )
+            self.rotate.append(hd.get("ESO DET ROTATE{:d}".format(nccd + 1), False))
 
         # Build window parameters for each window of each quadrant of each
         # CCDs. At this stage, windows with pre- and/or over-scans are treated
@@ -379,24 +398,31 @@ class Rhead:
                         # if CCD rotated, swap E<-->G, F<-->H, etc
                         qnam = QNAMS_ROTATED[qnam]
 
-                    if self.mode.startswith('FullFrame'):
+                    if self.mode.startswith("FullFrame"):
                         # Full frame mode, account for pre- and over-scans
                         # in the full frame.
-                        nx = (HCM_NXTOT//2+HCM_NPSCAN
-                              if self.pscan else HCM_NXTOT//2) // self.xbin
+                        nx = (
+                            HCM_NXTOT // 2 + HCM_NPSCAN
+                            if self.pscan
+                            else HCM_NXTOT // 2
+                        ) // self.xbin
 
-                        ny = (HCM_NYTOT//2+HCM_NOSCAN
-                              if self.oscan else HCM_NYTOT//2) // self.ybin
+                        ny = (
+                            HCM_NYTOT // 2 + HCM_NOSCAN
+                            if self.oscan
+                            else HCM_NYTOT // 2
+                        ) // self.ybin
 
                         llx = LLX[qnam]
                         lly = LLY[qnam]
 
-                    elif self.mode.startswith('OneWindow') or \
-                         self.mode.startswith('TwoWindow'):
+                    elif self.mode.startswith("OneWindow") or self.mode.startswith(
+                        "TwoWindow"
+                    ):
                         # windowed mode
-                        winID = 'ESO DET WIN{} '.format(nwin+1)
-                        nx = hd[winID + 'NX'] // self.xbin
-                        ny = hd[winID + 'NY'] // self.ybin
+                        winID = "ESO DET WIN{} ".format(nwin + 1)
+                        nx = hd[winID + "NX"] // self.xbin
+                        ny = hd[winID + "NY"] // self.ybin
 
                         if self.pscan:
                             # account for extra columns when a pre-scan is
@@ -408,171 +434,173 @@ class Rhead:
                             # present
                             ny += self.noscan
 
-                        win_xs = hd[winID + 'XS{}'.format(qnam)]
-                        win_nx = hd[winID + 'NX']
-                        win_ys = hd[winID + 'YS']
-                        win_ny = hd[winID + 'NY']
+                        win_xs = hd[winID + "XS{}".format(qnam)]
+                        win_nx = hd[winID + "NX"]
+                        win_ys = hd[winID + "YS"]
+                        win_ny = hd[winID + "NY"]
                         llx = (
-                            LLX[qnam] + X_DIRN[qnam] * win_xs +
-                            ADD_XSIZES[qnam] * (HCM_NXTOT//2 - win_nx)
+                            LLX[qnam]
+                            + X_DIRN[qnam] * win_xs
+                            + ADD_XSIZES[qnam] * (HCM_NXTOT // 2 - win_nx)
                         )
                         lly = (
-                            LLY[qnam] + Y_DIRN[qnam] * win_ys +
-                            ADD_YSIZES[qnam] * (HCM_NYTOT//2 - win_ny)
+                            LLY[qnam]
+                            + Y_DIRN[qnam] * win_ys
+                            + ADD_YSIZES[qnam] * (HCM_NYTOT // 2 - win_ny)
                         )
 
-                    elif self.mode.startswith('Drift'):
-                        nx = hd['ESO DET DRWIN NX'] // self.xbin
-                        ny = hd['ESO DET DRWIN NY'] // self.ybin
+                    elif self.mode.startswith("Drift"):
+                        nx = hd["ESO DET DRWIN NX"] // self.xbin
+                        ny = hd["ESO DET DRWIN NY"] // self.ybin
 
                         if self.pscan:
-                            raise HipercamError(
-                                'prescans with drift mode undefined'
-                            )
+                            raise HipercamError("prescans with drift mode undefined")
 
-                        win_xs = hd['ESO DET DRWIN XS{}'.format(qnam)]
-                        win_nx = hd['ESO DET DRWIN NX']
-                        win_ys = hd['ESO DET DRWIN YS']
-                        win_ny = hd['ESO DET DRWIN NY']
+                        win_xs = hd["ESO DET DRWIN XS{}".format(qnam)]
+                        win_nx = hd["ESO DET DRWIN NX"]
+                        win_ys = hd["ESO DET DRWIN YS"]
+                        win_ny = hd["ESO DET DRWIN NY"]
                         llx = (
-                            LLX[qnam] + X_DIRN[qnam] * win_xs +
-                            ADD_XSIZES[qnam] * (HCM_NXTOT//2 - win_nx)
+                            LLX[qnam]
+                            + X_DIRN[qnam] * win_xs
+                            + ADD_XSIZES[qnam] * (HCM_NXTOT // 2 - win_nx)
                         )
                         lly = (
-                            LLY[qnam] + Y_DIRN[qnam] * win_ys +
-                            ADD_YSIZES[qnam] * (HCM_NYTOT//2 - win_ny)
+                            LLY[qnam]
+                            + Y_DIRN[qnam] * win_ys
+                            + ADD_YSIZES[qnam] * (HCM_NYTOT // 2 - win_ny)
                         )
 
                     else:
-                        msg = 'mode {} not currently supported'.format(mode)
+                        msg = "mode {} not currently supported".format(mode)
                         raise ValueError(msg)
 
                     # store the window and the axes to flip
                     self.windows[-1][-1].append(
-                        (Winhead(llx, lly, nx, ny, self.xbin, self.ybin, ''),
-                         FLIP_AXES[qnam])
+                        (
+                            Winhead(llx, lly, nx, ny, self.xbin, self.ybin, ""),
+                            FLIP_AXES[qnam],
+                        )
                     )
-
 
         # set strings for logging purposes giving the settings used in hdriver
         self.wforms = []
 
-        if self.mode.startswith('FullFrame'):
-            self.wforms.append('Full&nbsp;Frame')
+        if self.mode.startswith("FullFrame"):
+            self.wforms.append("Full&nbsp;Frame")
 
-        elif self.mode.startswith('OneWindow') or \
-             self.mode.startswith('TwoWindow'):
-            winID = 'ESO DET WIN1 '
-            ys = hd[winID + 'YS'] + 1
-            nx = hd[winID + 'NX']
-            ny = hd[winID + 'NY']
+        elif self.mode.startswith("OneWindow") or self.mode.startswith("TwoWindow"):
+            winID = "ESO DET WIN1 "
+            ys = hd[winID + "YS"] + 1
+            nx = hd[winID + "NX"]
+            ny = hd[winID + "NY"]
 
             try:
-                xsll = hd[winID + 'XSLL']
-                xslr = hd[winID + 'XSLR']
-                xsul = hd[winID + 'XSUL']
-                xsur = hd[winID + 'XSUR']
+                xsll = hd[winID + "XSLL"]
+                xslr = hd[winID + "XSLR"]
+                xsul = hd[winID + "XSUL"]
+                xsur = hd[winID + "XSUR"]
             except:
                 # Fallback
-                xsll = hd[winID + 'XSE'] + 1
-                xsul = hd[winID + 'XSH'] + 1
-                xslr = HCM_NXTOT + 1 - hd[winID + 'XSF'] - nx
-                xsur = HCM_NXTOT + 1 - hd[winID + 'XSG'] - nx
+                xsll = hd[winID + "XSE"] + 1
+                xsul = hd[winID + "XSH"] + 1
+                xslr = HCM_NXTOT + 1 - hd[winID + "XSF"] - nx
+                xsur = HCM_NXTOT + 1 - hd[winID + "XSG"] - nx
 
             self.wforms.append(
-                '{:d},{:d},{:d},{:d},{:d},{:d},{:d}'.format(
-                    xsll, xslr, xsul, xsur, ys, nx, ny)
+                "{:d},{:d},{:d},{:d},{:d},{:d},{:d}".format(
+                    xsll, xslr, xsul, xsur, ys, nx, ny
                 )
+            )
 
-            if self.mode.startswith('TwoWindow'):
-                winID = 'ESO DET WIN2 '
-                ys = hd[winID + 'YS'] + 1
-                nx = hd[winID + 'NX']
-                ny = hd[winID + 'NY']
+            if self.mode.startswith("TwoWindow"):
+                winID = "ESO DET WIN2 "
+                ys = hd[winID + "YS"] + 1
+                nx = hd[winID + "NX"]
+                ny = hd[winID + "NY"]
 
                 try:
-                    xsll = hd[winID + 'XSLL']
-                    xslr = hd[winID + 'XSLR']
-                    xsul = hd[winID + 'XSUL']
-                    xsur = hd[winID + 'XSUR']
+                    xsll = hd[winID + "XSLL"]
+                    xslr = hd[winID + "XSLR"]
+                    xsul = hd[winID + "XSUL"]
+                    xsur = hd[winID + "XSUR"]
                 except:
                     # fallback option
-                    xsll = hd[winID + 'XSE'] + 1
-                    xsul = hd[winID + 'XSH'] + 1
-                    xslr = HCM_NXTOT + 1 - hd[winID + 'XSF'] - nx
-                    xsur = HCM_NXTOT + 1 - hd[winID + 'XSG'] - nx
+                    xsll = hd[winID + "XSE"] + 1
+                    xsul = hd[winID + "XSH"] + 1
+                    xslr = HCM_NXTOT + 1 - hd[winID + "XSF"] - nx
+                    xsur = HCM_NXTOT + 1 - hd[winID + "XSG"] - nx
 
                 self.wforms.append(
-                    '{:d},{:d},{:d},{:d},{:d},{:d},{:d}'.format(
-                        xsll, xslr, xsul, xsur, ys, nx, ny)
+                    "{:d},{:d},{:d},{:d},{:d},{:d},{:d}".format(
+                        xsll, xslr, xsul, xsur, ys, nx, ny
                     )
+                )
 
-        elif self.mode.startswith('Drift'):
-            winID = 'ESO DET DRWIN '
-            ys = hd[winID + 'YS'] + 1
-            nx = hd[winID + 'NX']
-            ny = hd[winID + 'NY']
+        elif self.mode.startswith("Drift"):
+            winID = "ESO DET DRWIN "
+            ys = hd[winID + "YS"] + 1
+            nx = hd[winID + "NX"]
+            ny = hd[winID + "NY"]
 
             try:
-                xsl = hd[winID + 'XSL']
-                xsr = hd[winID + 'XSR']
+                xsl = hd[winID + "XSL"]
+                xsr = hd[winID + "XSR"]
             except:
                 # Fallback option
-                xsl = hd[winID + 'XSE'] + 1
-                xsr = HCM_NXTOT + 1 - hd[winID + 'XSF'] - nx
+                xsl = hd[winID + "XSE"] + 1
+                xsr = HCM_NXTOT + 1 - hd[winID + "XSF"] - nx
 
-            self.wforms.append(
-                '{:d},{:d},{:d},{:d},{:d}'.format(xsl, xsr, ys, nx, ny)
-                )
+            self.wforms.append("{:d},{:d},{:d},{:d},{:d}".format(xsl, xsr, ys, nx, ny))
 
         # compute the total number of pixels (making use of symmetry between
         # quadrants and CCDs, hence factor 20)
         npixels = 0
         for nwin in self.nwins:
             win = self.windows[nwin][0][0][0]
-            npixels += 20*win.nx*win.ny
+            npixels += 20 * win.nx * win.ny
 
         # any extra bytes above those needed for the data are timing
-        self.ntbytes = self._framesize - (bitpix*npixels) // 8
+        self.ntbytes = self._framesize - (bitpix * npixels) // 8
 
         # Build (more) header info
         if self.full:
-            if 'DATE' in hd:
-                self.thead['DATE'] = hd.get_full('DATE')
+            if "DATE" in hd:
+                self.thead["DATE"] = hd.get_full("DATE")
 
-            if 'OBJECT' in hd:
-                self.thead['OBJECT'] = hd.get_full('OBJECT')
+            if "OBJECT" in hd:
+                self.thead["OBJECT"] = hd.get_full("OBJECT")
 
-            if 'FILTERS' in hd:
-                self.thead['FILTERS'] = hd.get_full('FILTERS')
+            if "FILTERS" in hd:
+                self.thead["FILTERS"] = hd.get_full("FILTERS")
 
-            if 'PI' in hd:
-                self.thead['PI'] = hd.get_full('PI')
+            if "PI" in hd:
+                self.thead["PI"] = hd.get_full("PI")
 
-            if 'OBSERVER' in hd:
-                self.thead['OBSERVER'] = hd.get_full('OBSERVER')
+            if "OBSERVER" in hd:
+                self.thead["OBSERVER"] = hd.get_full("OBSERVER")
 
-            if 'RA' in hd:
-                self.thead['RA'] = hd.get_full('RA')
+            if "RA" in hd:
+                self.thead["RA"] = hd.get_full("RA")
 
-            if 'DEC' in hd:
-                self.thead['DEC'] = hd.get_full('DEC')
+            if "DEC" in hd:
+                self.thead["DEC"] = hd.get_full("DEC")
 
-            if 'INSTRPA' in hd:
-                self.thead['INSTRPA'] = hd.get_full('INSTRPA')
+            if "INSTRPA" in hd:
+                self.thead["INSTRPA"] = hd.get_full("INSTRPA")
 
-            if 'IMAGETYP' in hd:
-                self.thead['IMAGETYP'] = hd.get_full('IMAGETYP')
+            if "IMAGETYP" in hd:
+                self.thead["IMAGETYP"] = hd.get_full("IMAGETYP")
 
-            if 'ESO DET GPS' in hd:
-                self.thead['GPS'] = hd.get_full('ESO DET GPS')
+            if "ESO DET GPS" in hd:
+                self.thead["GPS"] = hd.get_full("ESO DET GPS")
 
-            self.thead['XBIN'] = hd.get_full('ESO DET BINX1')
-            self.thead['YBIN'] = hd.get_full('ESO DET BINY1')
-            self.thead['SPEED'] = hd.get_full('ESO DET SPEED')
+            self.thead["XBIN"] = hd.get_full("ESO DET BINX1")
+            self.thead["YBIN"] = hd.get_full("ESO DET BINY1")
+            self.thead["SPEED"] = hd.get_full("ESO DET SPEED")
 
-        if 'EXPTIME' in hd:
-            self.thead['EXPTIME'] = hd.get_full('EXPTIME')
+        if "EXPTIME" in hd:
+            self.thead["EXPTIME"] = hd.get_full("EXPTIME")
 
         # Header per CCD. These are modified per CCD in Rdata
         self.cheads = []
@@ -580,28 +608,26 @@ class Rhead:
             chead = Header()
 
             # Essential items
-            hnam = 'ESO DET NSKIPS{:d}'.format(n+1)
-            chead['NCYCLE'] = (
-                hd.get(hnam,0)+1, 'readout cycle period (NSKIP+1)'
-            )
+            hnam = "ESO DET NSKIPS{:d}".format(n + 1)
+            chead["NCYCLE"] = (hd.get(hnam, 0) + 1, "readout cycle period (NSKIP+1)")
 
             # Nice-if-you-can-get-them items
             if self.full:
 
                 # whether this CCD has gone through a reflection
-                hnam = 'ESO DET REFLECT{:d}'.format(n+1)
+                hnam = "ESO DET REFLECT{:d}".format(n + 1)
                 if hnam in hd:
-                    chead['REFLECT'] = (hd[hnam], 'is image reflected')
+                    chead["REFLECT"] = (hd[hnam], "is image reflected")
 
                 # readout noise
-                hnam = 'ESO DET CHIP{:d} RON'.format(n+1)
+                hnam = "ESO DET CHIP{:d} RON".format(n + 1)
                 if hnam in hd:
-                    chead['RONOISE'] = self.header.get_full(hnam)
+                    chead["RONOISE"] = self.header.get_full(hnam)
 
                 # gain
-                hnam = 'ESO DET CHIP{:d} GAIN'.format(n+1)
+                hnam = "ESO DET CHIP{:d} GAIN".format(n + 1)
                 if hnam in self.header:
-                    chead['GAIN'] = self.header.get_full(hnam)
+                    chead["GAIN"] = self.header.get_full(hnam)
 
             self.cheads.append(chead)
 
@@ -612,22 +638,22 @@ class Rhead:
         Returns the total number of complete frames.
         """
         if self.server:
-            data = json.dumps(dict(action='get_nframes'))
+            data = json.dumps(dict(action="get_nframes"))
             self._ws.send(data)
             raw_bytes = self._ws.recv()
             if len(raw_bytes) == 0:
                 raise hcam.HipercamError(
-                    'failed to get total number of frames'
-                    ' from server; 0 bytes returned'
+                    "failed to get total number of frames"
+                    " from server; 0 bytes returned"
                 )
             d = eval(raw_bytes)
-            ntot = d['nframes']
+            ntot = d["nframes"]
         else:
             # the commented out section was an attempt to work out the number
             # of frames even when the file was growing. This fails owing the
             # 2880-byte FITS standard when one has small framesizes, thus I am
             # using NAXIS3 instead
-            ntot = self.header['NAXIS3']
+            ntot = self.header["NAXIS3"]
 
         return ntot
 
@@ -652,10 +678,10 @@ class Rhead:
         toffs = []
         ncycs = []
         for nccd, nskip in enumerate(self.nskips):
-            toff, texp, flag = self.timing(2*(nskip+1), nccd)
-            toffs.append(DAYSEC*toff)
+            toff, texp, flag = self.timing(2 * (nskip + 1), nccd)
+            toffs.append(DAYSEC * toff)
             texps.append(texp)
-            ncycs.append(nskip+1)
+            ncycs.append(nskip + 1)
 
         return (tuple(texps), tuple(toffs), tuple(ncycs), self.tdead)
 
@@ -680,24 +706,26 @@ class Rhead:
 
         nskip = self.nskips[nccd]
 
-        flag = nframe % (nskip+1) == 0
+        flag = nframe % (nskip + 1) == 0
         if nframe == nskip + 1:
             # special case for first frame of data
-            tmid = (self.toff1 - self.tdelta*nskip/2)/DAYSEC
-            texp = self.tdelta*nskip + self.toff3
+            tmid = (self.toff1 - self.tdelta * nskip / 2) / DAYSEC
+            texp = self.tdelta * nskip + self.toff3
         else:
             # regular times
-            tmid = (self.toff2 - self.tdelta*nskip/2)/DAYSEC
-            texp = self.tdelta*nskip + self.toff4
+            tmid = (self.toff2 - self.tdelta * nskip / 2) / DAYSEC
+            texp = self.tdelta * nskip + self.toff4
 
         return (tmid, texp, flag)
 
     def __del__(self):
         """Destructor closes the file or web socket"""
         if self.server:
-            if hasattr(self, '_ws'): self._ws.close()
+            if hasattr(self, "_ws"):
+                self._ws.close()
         else:
-            if hasattr(self, '_ffile'): self._ffile.close()
+            if hasattr(self, "_ffile"):
+                self._ffile.close()
 
     # Want to run this as a context manager
     def __enter__(self):
@@ -706,7 +734,8 @@ class Rhead:
     def __exit__(self, *args):
         self.__del__()
 
-class Rdata (Rhead):
+
+class Rdata(Rhead):
     """Callable, iterable object to represent HiPERCAM raw data files.
 
     The idea is to instantiate an Rdata from a HiPERCAM FITS file and then the
@@ -767,7 +796,7 @@ class Rdata (Rhead):
         Rhead.__init__(self, fname, server, full)
 
         # flag to indicate should always try to get the last frame
-        self.last = (nframe == 0)
+        self.last = nframe == 0
 
         # store initial value of first
         self.ffirst = nframe
@@ -792,7 +821,7 @@ class Rdata (Rhead):
         try:
             return self.__call__()
         except (HendError):
-            print('henderror raised')
+            print("henderror raised")
             raise StopIteration
 
     def __call__(self, nframe=None):
@@ -837,7 +866,7 @@ class Rdata (Rhead):
                 # down we check the frame counter against what we were
                 # hoping for (at least 1 further on) and if it isn't
                 # we actually return with None to indicate no progress.
-                request = json.dumps(dict(action='get_last'))
+                request = json.dumps(dict(action="get_last"))
 
             elif self.ffirst < 0:
                 # this case we are trying to get a frame -self.ffirst from
@@ -847,10 +876,9 @@ class Rdata (Rhead):
                     return None
 
                 if nget == self.nframe:
-                    request = json.dumps(dict(action='get_next'))
+                    request = json.dumps(dict(action="get_next"))
                 else:
-                    request = json.dumps(
-                        dict(action='get_frame', frame_number=nget))
+                    request = json.dumps(dict(action="get_frame", frame_number=nget))
                     self.nframe = nget
 
             elif nframe is None:
@@ -859,19 +887,19 @@ class Rdata (Rhead):
                 # from where we are
                 if self.first:
                     request = json.dumps(
-                        dict(action='get_frame', frame_number=self.nframe))
+                        dict(action="get_frame", frame_number=self.nframe)
+                    )
                 else:
-                    request = json.dumps(dict(action='get_next'))
+                    request = json.dumps(dict(action="get_next"))
 
             else:
                 # a particular frame number is being requested. Check whether
                 # we have to request it explicitly or whether we can just get
                 # the next one
                 if self.nframe == nframe:
-                    request = json.dumps(dict(action='get_next'))
+                    request = json.dumps(dict(action="get_next"))
                 else:
-                    request = json.dumps(
-                        dict(action='get_frame', frame_number=nframe))
+                    request = json.dumps(dict(action="get_frame", frame_number=nframe))
                     self.nframe = nframe
 
             # send the request
@@ -886,9 +914,9 @@ class Rdata (Rhead):
 
             # separate into the frame and timing data, correcting the frame
             # bytes for the FITS BZERO offset
-            frame  = np.fromstring(raw_bytes[:-self.ntbytes], '>u2')
+            frame = np.fromstring(raw_bytes[: -self.ntbytes], ">u2")
             frame += BZERO
-            tbytes = raw_bytes[-self.ntbytes:]
+            tbytes = raw_bytes[-self.ntbytes :]
 
         else:
 
@@ -925,12 +953,12 @@ class Rdata (Rhead):
             # the standard FITS BZERO offset. At this stage we have the data
             # as unsigned 2-byte ints
             frame = np.fromfile(
-                self._ffile, '>u2', (self._framesize - self.ntbytes) // 2
-                )
+                self._ffile, ">u2", (self._framesize - self.ntbytes) // 2
+            )
             frame += BZERO
             tbytes = self._ffile.read(self.ntbytes)
             if len(tbytes) != self.ntbytes:
-                raise HendError('failed to read frame from disk file')
+                raise HendError("failed to read frame from disk file")
 
         ##############################################################
         #
@@ -942,13 +970,25 @@ class Rdata (Rhead):
 
         # First the timing bytes. The frameCount starts from 0 so we
         # we add one to it
-        frameCount, timeStampCount, years, day_of_year, hours, mins, \
-            seconds, nanoseconds, nsats, synced = htimer(tbytes)
+        (
+            frameCount,
+            timeStampCount,
+            years,
+            day_of_year,
+            hours,
+            mins,
+            seconds,
+            nanoseconds,
+            nsats,
+            synced,
+        ) = htimer(tbytes)
         frameCount += 1
 
-        if self.server and \
-           (nframe == 0 or self.last or self.ffirst < 0) and \
-           self.nframe > frameCount:
+        if (
+            self.server
+            and (nframe == 0 or self.last or self.ffirst < 0)
+            and self.nframe > frameCount
+        ):
             # server access, trying to get the last complete frame or some
             # frames from the end. If the frame just read in is the same as
             # the one before (i.e. self.nframe > frameCount), we return None
@@ -960,24 +1000,30 @@ class Rdata (Rhead):
         elif not self.server and frameCount != self.nframe:
             if frameCount == self.nframe + 1:
                 print(
-                    '   >>> WARNING: frame count mis-match; a frame seems to have been dropped', file=sys.stderr)
+                    "   >>> WARNING: frame count mis-match; a frame seems to have been dropped",
+                    file=sys.stderr,
+                )
             else:
                 print(
-                    '   >>> WARNING: frame count mis-match; {:d} frames seem to have been dropped'.format(frameCount-self.nframe), file=sys.stderr)
+                    "   >>> WARNING: frame count mis-match; {:d} frames seem to have been dropped".format(
+                        frameCount - self.nframe
+                    ),
+                    file=sys.stderr,
+                )
 
         # set the internal frame pointer to the frame just read
         self.nframe = frameCount
 
-        time_string = '{}:{}:{}:{}:{:.9f}'.format(
-            years, day_of_year, hours, mins, seconds+nanoseconds/1e9
+        time_string = "{}:{}:{}:{}:{:.9f}".format(
+            years, day_of_year, hours, mins, seconds + nanoseconds / 1e9
         )
         try:
             imjd = gregorian_to_mjd(years, 1, 1) + day_of_year - 1
-            fday = (hours+mins/60+(seconds+nanoseconds/1e9)/3600)/24
+            fday = (hours + mins / 60 + (seconds + nanoseconds / 1e9) / 3600) / 24
         except ValueError:
-            warnings.warn('Bad timestamp: ' + time_string)
+            warnings.warn("Bad timestamp: " + time_string)
             imjd = 51544
-            fday = self.nframe/DAYSEC
+            fday = self.nframe / DAYSEC
 
             # this will mark it as unreliable down below
             synced = 0
@@ -986,24 +1032,27 @@ class Rdata (Rhead):
         # common to all MCCDs produced by the routine
         thead = self.thead.copy()
 
-        year,month,day = mjd_to_gregorian(imjd)
-        hour,minute,second = fday_to_hms(fday)
-        thead['TIMSTAMP'] = (
-            '{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}'.format(year,month,day,hour,minute,second), 'Raw frame timestamp, UTC'
+        year, month, day = mjd_to_gregorian(imjd)
+        hour, minute, second = fday_to_hms(fday)
+        thead["TIMSTAMP"] = (
+            "{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:{:012.9f}".format(
+                year, month, day, hour, minute, second
+            ),
+            "Raw frame timestamp, UTC",
         )
-        thead['MJDINT'] = (imjd, 'Integer part of MJD(UTC), raw timestamp')
-        thead['MJDFRAC'] = (fday, 'Fractional part of MJD(UTC), raw timestamp')
-        thead['MJDUTC'] = (imjd+fday, 'MJD(UTC)')
+        thead["MJDINT"] = (imjd, "Integer part of MJD(UTC), raw timestamp")
+        thead["MJDFRAC"] = (fday, "Fractional part of MJD(UTC), raw timestamp")
+        thead["MJDUTC"] = (imjd + fday, "MJD(UTC)")
         if (nsats == -1 and synced == -1) or synced == 0:
-            thead['GOODTIME'] = (False, 'TIMSTAMP OK?')
+            thead["GOODTIME"] = (False, "TIMSTAMP OK?")
         else:
-            thead['GOODTIME'] = (True, 'TIMSTAMP OK?')
-        thead['NFRAME'] = (frameCount, 'Frame number')
+            thead["GOODTIME"] = (True, "TIMSTAMP OK?")
+        thead["NFRAME"] = (frameCount, "Frame number")
 
         # second, the data bytes
 
         # build Windows-->CCDs-->MCCD
-        CNAMS = ('1', '2', '3', '4', '5')
+        CNAMS = ("1", "2", "3", "4", "5")
 
         # update the headers, initialise the CCDs
         cheads = {}
@@ -1016,10 +1065,9 @@ class Rdata (Rhead):
             # Determine whether the frame really contains data as
             # opposed to initial junk frames in the case of drift
             # mode or intermediate junk frames in the case of NSKIP>0
-            ch['DSTATUS'] = (
-                (self.nframe > self.ndwins) and \
-                (self.nframe % ch['NCYCLE'] == 0),
-                'Valid data (else junk frame)'
+            ch["DSTATUS"] = (
+                (self.nframe > self.ndwins) and (self.nframe % ch["NCYCLE"] == 0),
+                "Valid data (else junk frame)",
             )
 
             # Get time at centre of exposure. Some care here to store a
@@ -1029,25 +1077,23 @@ class Rdata (Rhead):
             # precision by offsetting ('toffset' in reduce).
             tmid, texp, flag = self.timing(frameCount, nccd)
             fdaymid = fday + tmid
-            if fdaymid >= 1.:
+            if fdaymid >= 1.0:
                 fdaymid -= 1
                 imjdmid = imjd + 1
             else:
                 imjdmid = imjd
 
-            ch['MJDINT'] = (imjdmid, 'Integer part of MJD(UTC), mid-exposure')
-            ch['MJDFRAC'] = (fdaymid, 'Fractional part of MJD(UTC), mid-exposure')
-            ch['MJDUTC'] = (imjdmid+fdaymid, 'MJD(UTC) mid-exposure')
-            ch['GOODTIME'] = (flag and thead['GOODTIME'], 'MJDs OK?')
-            ch['EXPTIME'] = (texp, 'Exposure time (secs)')
+            ch["MJDINT"] = (imjdmid, "Integer part of MJD(UTC), mid-exposure")
+            ch["MJDFRAC"] = (fdaymid, "Fractional part of MJD(UTC), mid-exposure")
+            ch["MJDUTC"] = (imjdmid + fdaymid, "MJD(UTC) mid-exposure")
+            ch["GOODTIME"] = (flag and thead["GOODTIME"], "MJDs OK?")
+            ch["EXPTIME"] = (texp, "Exposure time (secs)")
 
             # store for later recovery when creating the Windows
             cheads[cnam] = ch
 
             # Create the CCDs
-            ccds[cnam] = CCD(
-                Group(Window), HCM_NXTOT, HCM_NYTOT
-            )
+            ccds[cnam] = CCD(Group(Window), HCM_NXTOT, HCM_NYTOT)
 
         # npixel points to the start pixel of the set of windows under
         # consideration
@@ -1056,10 +1102,10 @@ class Rdata (Rhead):
 
             # get an example window for this set
             win = self.windows[nwin][0][0][0]
-            nchunk = 20*win.nx*win.ny
+            nchunk = 20 * win.nx * win.ny
 
             # allwins contains data of all windows 1 or 2
-            allwins = frame[npixel:npixel+nchunk]
+            allwins = frame[npixel : npixel + nchunk]
 
             # re-format the data as a 4D array indexed by (ccd,window,y,x)
 
@@ -1067,18 +1113,18 @@ class Rdata (Rhead):
             # data order depends on the number of samples, and the data prior
             # to implementing sampling (i.e. October 2017 WHT run) is the same
             # as nsamps = 4. Use 'as_strided' to perform the de-multiplexing.
-            nsamps = self.header.get('ESO DET NSAMP', 4)
+            nsamps = self.header.get("ESO DET NSAMP", 4)
             if nsamps == 4:
                 data = as_strided(
-                    allwins, strides=(8, 2, 40*win.nx, 40),
-                    shape=(5, 4, win.ny, win.nx)
+                    allwins,
+                    strides=(8, 2, 40 * win.nx, 40),
+                    shape=(5, 4, win.ny, win.nx),
                 )
             else:
                 # with 1 sample per pixel the data cannot be simply
                 # re-viewed but a copy must be made.
                 data = as_strided(
-                    allwins, strides=(32, 2, 160, 8),
-                    shape=(5, 4, len(frame)//80, 4)
+                    allwins, strides=(32, 2, 160, 8), shape=(5, 4, len(frame) // 80, 4)
                 ).reshape(5, 4, win.ny, win.nx)
 
             # now build the Windows. This is where we chop off any pre- and
@@ -1086,7 +1132,7 @@ class Rdata (Rhead):
 
             for nccd, cnam in enumerate(CNAMS):
                 for nquad, qnam in enumerate(QNAMS):
-                    wnam = '{:s}{:d}'.format(qnam,nwin+1)
+                    wnam = "{:s}{:d}".format(qnam, nwin + 1)
                     if nccd in REFLECTED:
                         # reflections for g (1) and z (4)
                         qnam = QNAMS_REFLECT[qnam]
@@ -1109,8 +1155,14 @@ class Rdata (Rhead):
                         # pre-scan present. Reduce the size of the data window
                         # in preparation for removal of prescan data.
                         winh = Winhead(
-                            win.llx, win.lly, win.nx-self.npscan, win.ny,
-                            win.xbin, win.ybin, win.outamp, win
+                            win.llx,
+                            win.lly,
+                            win.nx - self.npscan,
+                            win.ny,
+                            win.xbin,
+                            win.ybin,
+                            win.outamp,
+                            win,
                         )
 
                         if nwin == 0 and nquad == 0:
@@ -1118,54 +1170,66 @@ class Rdata (Rhead):
                             winh.update(cheads[cnam])
 
                         # Generate name for the prescan Window
-                        wpnam = '{:s}P'.format(wnam)
+                        wpnam = "{:s}P".format(wnam)
 
                         # work out lly-value of bottom of pre-scan windows
                         # which needs adjusting if the overscan is also on
-                        if self.oscan and (qnam == 'E' or qnam == 'F'):
-                            plly = 1-HCM_NOSCAN
+                        if self.oscan and (qnam == "E" or qnam == "F"):
+                            plly = 1 - HCM_NOSCAN
                         else:
                             plly = win.lly
 
-                        if qnam == 'E' or qnam == 'H':
+                        if qnam == "E" or qnam == "H":
                             # Prescans are on the left of quadrants E and H
                             # (outputs are on the left). Create the Window
                             # with the image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                winh, windata[:,self.npscan:].astype(
-                                    np.float32), True
+                                winh, windata[:, self.npscan :].astype(np.float32), True
                             )
 
                             # Store the prescan itself
                             winp = Winhead(
-                                1-HCM_NPSCAN, plly, self.npscan, win.ny,
-                                win.xbin, win.ybin, win.outamp, win
+                                1 - HCM_NPSCAN,
+                                plly,
+                                self.npscan,
+                                win.ny,
+                                win.xbin,
+                                win.ybin,
+                                win.outamp,
+                                win,
                             )
 
                             # Create the Window with the pre-scan
                             ccds[cnam][wpnam] = Window(
-                                winp, windata[:,:self.npscan].astype(
-                                    np.float32), True
+                                winp, windata[:, : self.npscan].astype(np.float32), True
                             )
 
                         else:
                             # Prescan on the right. Create the Window with the
                             # image data, stripping off the prescan
                             ccds[cnam][wnam] = Window(
-                                winh, windata[:,:-self.npscan].astype(
-                                    np.float32), True
+                                winh,
+                                windata[:, : -self.npscan].astype(np.float32),
+                                True,
                             )
 
                             # Now save the prescan itself
                             winp = Winhead(
-                                HCM_NXTOT+1, plly, self.npscan, win.ny,
-                                win.xbin, win.ybin, win.outamp, win
+                                HCM_NXTOT + 1,
+                                plly,
+                                self.npscan,
+                                win.ny,
+                                win.xbin,
+                                win.ybin,
+                                win.outamp,
+                                win,
                             )
 
                             # Create the Window with the pre-scan
                             ccds[cnam][wpnam] = Window(
-                                winp, windata[:,-self.npscan:].astype(
-                                    np.float32), True
+                                winp,
+                                windata[:, -self.npscan :].astype(np.float32),
+                                True,
                             )
 
                     else:
@@ -1175,9 +1239,7 @@ class Rdata (Rhead):
                             # store CCD header in the first Winhead
                             win.update(cheads[cnam])
 
-                        ccds[cnam][wnam] = Window(
-                            win, windata.astype(np.float32), True
-                        )
+                        ccds[cnam][wnam] = Window(win, windata.astype(np.float32), True)
 
                     if self.oscan:
                         # over-scan present. Leave any stripped pre-scans
@@ -1186,40 +1248,52 @@ class Rdata (Rhead):
                         win = ccds[cnam][wnam]
 
                         # Generate name for the overscan Window
-                        wonam = '{:s}O'.format(wnam)
+                        wonam = "{:s}O".format(wnam)
 
-                        if qnam == 'E' or qnam == 'F':
+                        if qnam == "E" or qnam == "F":
                             # Overscans are at the top of quadrants E and F
                             # (outputs are on the bottom).
                             wino = Winhead(
-                                win.llx, 1-HCM_NOSCAN, win.nx, self.noscan,
-                                win.xbin, win.ybin, win.outamp, win
+                                win.llx,
+                                1 - HCM_NOSCAN,
+                                win.nx,
+                                self.noscan,
+                                win.xbin,
+                                win.ybin,
+                                win.outamp,
+                                win,
                             )
 
                             # Create the Window with the over-scan from top
                             # part of data frame
                             ccds[cnam][wonam] = Window(
-                                wino, win.data[-self.noscan:,:], True
+                                wino, win.data[-self.noscan :, :], True
                             )
 
                             # Chop overscan off data array
-                            win.data = win.data[:-self.noscan,:]
+                            win.data = win.data[: -self.noscan, :]
 
                         else:
                             # Overscans at the bottom of quadrants G and H
                             # (outputs are on the top).
                             wino = Winhead(
-                                win.llx, HCM_NYTOT+1, win.nx, self.noscan,
-                                win.xbin, win.ybin, win.outamp, win
+                                win.llx,
+                                HCM_NYTOT + 1,
+                                win.nx,
+                                self.noscan,
+                                win.xbin,
+                                win.ybin,
+                                win.outamp,
+                                win,
                             )
 
                             # Create the Window with the over-scan
                             ccds[cnam][wonam] = Window(
-                                wino, win.data[:self.noscan,:], True
+                                wino, win.data[: self.noscan, :], True
                             )
 
                             # Chop overscan off data array
-                            win.data = win.data[self.noscan:,:]
+                            win.data = win.data[self.noscan :, :]
 
             # move pointer on for next set of windows
             npixel += nchunk
@@ -1244,11 +1318,11 @@ class Rdata (Rhead):
         This is not implemented for the server.
         """
         if self.server:
-            raise NotImplementedError('no seek_frame in the case of server access')
+            raise NotImplementedError("no seek_frame in the case of server access")
         else:
             # move pointer to the start of the last complete frame
             # and adjust nframe
-            self._ffile.seek(self._hbytes+self._framesize*(n-1))
+            self._ffile.seek(self._hbytes + self._framesize * (n - 1))
             self.nframe = n
 
     def seek_last(self):
@@ -1259,7 +1333,7 @@ class Rdata (Rhead):
         It returns the number of the frame it moves to
         """
         if self.server:
-            raise NotImplementedError('no seek_last in the case of server access')
+            raise NotImplementedError("no seek_last in the case of server access")
         else:
             # compute byte offset at this point and thus the total number of
             # complete frames
@@ -1270,7 +1344,8 @@ class Rdata (Rhead):
 
         return ntot
 
-class Rtbytes (Rhead):
+
+class Rtbytes(Rhead):
     """Callable, iterable object to returns timing bytes from HiPERCAM raw
     data files.
 
@@ -1307,7 +1382,9 @@ class Rtbytes (Rhead):
         # move to the start of the timing bytes
         self.nframe = nframe
         if not server:
-            self._ffile.seek(self._hbytes+self._framesize*self.nframe-self.ntbytes)
+            self._ffile.seek(
+                self._hbytes + self._framesize * self.nframe - self.ntbytes
+            )
 
     def __iter__(self):
         return self
@@ -1352,10 +1429,10 @@ class Rtbytes (Rhead):
             # define command to send to server
             if reset:
                 # requires a seek as well as a read
-                data = json.dumps(dict(action='get_frame', frame_number=self.nframe))
+                data = json.dumps(dict(action="get_frame", frame_number=self.nframe))
             else:
                 # just read next set of bytes
-                data = json.dumps(dict(action='get_next'))
+                data = json.dumps(dict(action="get_next"))
 
             # get data
             self._ws.send(data)
@@ -1368,22 +1445,24 @@ class Rtbytes (Rhead):
                 return None
 
             # extract the timing data
-            tbytes = raw_bytes[-self.ntbytes:]
+            tbytes = raw_bytes[-self.ntbytes :]
 
         elif self.nframe > self.ntotal():
             # We have attempted to access a non-existent frame
-            raise HendError('no more frames to access')
+            raise HendError("no more frames to access")
 
         else:
             # find the start of the timing data if necessary
             if reset:
-                self._ffile.seek(self._hbytes+self._framesize*self.nframe-self.ntbytes)
+                self._ffile.seek(
+                    self._hbytes + self._framesize * self.nframe - self.ntbytes
+                )
 
             # read the timing data, skip forward to next set
             tbytes = self._ffile.read(self.ntbytes)
             if len(tbytes) != self.ntbytes:
-                raise HendError('failed to read timing bytes')
-            self._ffile.seek(self._framesize-self.ntbytes, 1)
+                raise HendError("failed to read timing bytes")
+            self._ffile.seek(self._framesize - self.ntbytes, 1)
 
         # update the internal frame counter
         self.nframe += 1
@@ -1391,7 +1470,7 @@ class Rtbytes (Rhead):
         return tbytes
 
 
-class Rtime (Rtbytes):
+class Rtime(Rtbytes):
     """Callable, iterable object to generate timing data only from HiPERCAM raw data files.
 
     This is the same as Rtbytes except it interprets the bytes.
@@ -1426,27 +1505,40 @@ class Rtime (Rtbytes):
             return None
 
         # Interpret the timing bytes
-        frameCount, timeStampCount, years, day_of_year, \
-            hours, mins, seconds, nanoseconds, nsats, synced = htimer(tbytes)
+        (
+            frameCount,
+            timeStampCount,
+            years,
+            day_of_year,
+            hours,
+            mins,
+            seconds,
+            nanoseconds,
+            nsats,
+            synced,
+        ) = htimer(tbytes)
 
         tflag = nsats != -1 or synced != -1
         try:
-            time_string = '{}:{}:{}:{}:{:.7f}'.format(
-                years, day_of_year, hours, mins, seconds+nanoseconds/1e9
-                )
-            tstamp = Time(time_string, format='yday',precision=7)
+            time_string = "{}:{}:{}:{}:{:.7f}".format(
+                years, day_of_year, hours, mins, seconds + nanoseconds / 1e9
+            )
+            tstamp = Time(time_string, format="yday", precision=7)
         except ValueError:
             tflag = False
             # invalid time; pretend we are on 2000-01-01 taking one frame per second.
-            tstamp = Time(51544 + (self.nframe-1)/86400., format='mjd',precision=7)
+            tstamp = Time(
+                51544 + (self.nframe - 1) / 86400.0, format="mjd", precision=7
+            )
 
         tinfo = []
         for nccd in range(5):
-            tmid,texp,tflag = self.timing(self.nframe-1,nccd)
-            tinfo.append((tstamp.mjd+tmid,texp,tflag))
+            tmid, texp, tflag = self.timing(self.nframe - 1, nccd)
+            tinfo.append((tstamp.mjd + tmid, texp, tflag))
 
         # Return timing data
         return (tstamp, tuple(tinfo), tflag)
+
 
 def htimer(tbytes):
     """Decode the timing bytes tacked onto the end of every HiPERCAM frame in the
@@ -1489,11 +1581,11 @@ def htimer(tbytes):
     # format with 36 timing bytes (last two of which are ignored).
     # The -36 is to try to cope with cases where more than 36 bytes come through.
     buf = struct.pack(
-        '<HHHHHHHHHHHHHHHHH',
-        *(val + BZERO for val in struct.unpack('>hhhhhhhhhhhhhhhhh',
-                                               tbytes[-36:-2]))
+        "<HHHHHHHHHHHHHHHHH",
+        *(val + BZERO for val in struct.unpack(">hhhhhhhhhhhhhhhhh", tbytes[-36:-2]))
     )
-    return struct.unpack('<IIIIIIIIbb', buf)
+    return struct.unpack("<IIIIIIIIbb", buf)
+
 
 class HendError(HipercamError):
     """
@@ -1501,4 +1593,5 @@ class HendError(HipercamError):
     file (attempt to read out-of-range frame). This allows the iterator to die
     silently in this case while raising exceptions for less anticipated cases.
     """
+
     pass

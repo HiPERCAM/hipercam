@@ -9,13 +9,16 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
-__all__ = ['makeflat',]
+__all__ = [
+    "makeflat",
+]
 
 ####################################################
 #
 # makeflat -- makes flat fields from a set of frames
 #
 ####################################################
+
 
 def makeflat(args=None):
     """``makeflat [source] (run first last [twait tmax] | flist) ngroup bias
@@ -142,69 +145,78 @@ def makeflat(args=None):
     command, args = utils.script_args(args)
 
     # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('last', Cline.LOCAL, Cline.PROMPT)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('flist', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ngroup', Cline.LOCAL, Cline.PROMPT)
-        cl.register('bias', Cline.LOCAL, Cline.PROMPT)
-        cl.register('dark', Cline.LOCAL, Cline.PROMPT)
-        cl.register('ccd', Cline.LOCAL, Cline.PROMPT)
-        cl.register('lower', Cline.LOCAL, Cline.PROMPT)
-        cl.register('upper', Cline.LOCAL, Cline.PROMPT)
-        cl.register('clobber', Cline.LOCAL, Cline.HIDE)
-        cl.register('output', Cline.LOCAL, Cline.PROMPT)
+        cl.register("source", Cline.GLOBAL, Cline.HIDE)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("first", Cline.LOCAL, Cline.PROMPT)
+        cl.register("last", Cline.LOCAL, Cline.PROMPT)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("flist", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ngroup", Cline.LOCAL, Cline.PROMPT)
+        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
+        cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("lower", Cline.LOCAL, Cline.PROMPT)
+        cl.register("upper", Cline.LOCAL, Cline.PROMPT)
+        cl.register("clobber", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         source = cl.get_value(
-            'source', 'data source [hs, hl, us, ul, hf]',
-            'hl', lvals=('hs','hl','us','ul','hf')
+            "source",
+            "data source [hs, hl, us, ul, hf]",
+            "hl",
+            lvals=("hs", "hl", "us", "ul", "hf"),
         )
 
         # set a flag
-        server_or_local = source.endswith('s') or source.endswith('l')
+        server_or_local = source.endswith("s") or source.endswith("l")
 
         if server_or_local:
-            resource = cl.get_value('run', 'run name', 'run005')
-            first = cl.get_value('first', 'first frame to average', 1, 1)
-            last = cl.get_value('last', 'last frame to average (0 for all)', first, 0)
+            resource = cl.get_value("run", "run name", "run005")
+            first = cl.get_value("first", "first frame to average", 1, 1)
+            last = cl.get_value("last", "last frame to average (0 for all)", first, 0)
             twait = cl.get_value(
-                'twait', 'time to wait for a new frame [secs]', 1., 0.)
+                "twait", "time to wait for a new frame [secs]", 1.0, 0.0
+            )
             tmax = cl.get_value(
-                'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
+                "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+            )
 
         else:
-            resource = cl.get_value('flist', 'file list',
-                               cline.Fname('files.lis',hcam.LIST))
+            resource = cl.get_value(
+                "flist", "file list", cline.Fname("files.lis", hcam.LIST)
+            )
             first = 1
 
         ngroup = cl.get_value(
-            'ngroup', 'number of frames per median average group', 3, 1
+            "ngroup", "number of frames per median average group", 3, 1
         )
 
         # bias frame (if any)
         bias = cl.get_value(
-            'bias', "bias frame ['none' to ignore]",
-            cline.Fname('bias', hcam.HCAM), ignore='none'
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
         )
 
         # dark frame (if any)
         dark = cl.get_value(
-            'dark', "dark frame ['none' to ignore]",
-            cline.Fname('dark', hcam.HCAM), ignore='none'
+            "dark",
+            "dark frame ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM),
+            ignore="none",
         )
 
         ccdinf = spooler.get_ccd_pars(source, resource)
 
         if len(ccdinf) > 1:
-            ccd = cl.get_value('ccd', 'CCD(s) to process [0 for all]', '0')
-            if ccd == '0':
+            ccd = cl.get_value("ccd", "CCD(s) to process [0 for all]", "0")
+            if ccd == "0":
                 ccds = list(ccdinf.keys())
             else:
                 ccds = ccd.split()
@@ -212,26 +224,27 @@ def makeflat(args=None):
             ccds = list(ccdinf.keys())
 
         lowers = cl.get_value(
-            'lower', 'lower limits on mean count level for included flats',
-            len(ccds)*(5000,)
+            "lower",
+            "lower limits on mean count level for included flats",
+            len(ccds) * (5000,),
         )
 
         uppers = cl.get_value(
-            'upper', 'lower limits on mean count level for included flats',
-            len(ccds)*(50000,)
+            "upper",
+            "lower limits on mean count level for included flats",
+            len(ccds) * (50000,),
         )
 
         clobber = cl.get_value(
-            'clobber', 'clobber any pre-existing files on output',
-            False
+            "clobber", "clobber any pre-existing files on output", False
         )
 
         output = cl.get_value(
-            'output', 'output average',
+            "output",
+            "output average",
             cline.Fname(
-                'hcam', hcam.HCAM,
-                cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
-            )
+                "hcam", hcam.HCAM, cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
+            ),
         )
 
     # inputs done with.
@@ -244,9 +257,18 @@ def makeflat(args=None):
             print("\nCalling 'grab' ...")
 
             args = [
-                None,'prompt',source,resource,'yes',
-                str(first),str(last),'no',str(twait),
-                str(tmax),'none','f32'
+                None,
+                "prompt",
+                source,
+                resource,
+                "yes",
+                str(first),
+                str(last),
+                "no",
+                str(twait),
+                str(tmax),
+                "none",
+                "f32",
             ]
             resource = hcam.scripts.grab(args)
 
@@ -256,7 +278,7 @@ def makeflat(args=None):
         # Read all the files to determine mean levels (after bias subtraction)
         # save the bias-subtracted, mean-level normalised results to temporary
         # files
-        print('Reading all files in to determine their mean levels')
+        print("Reading all files in to determine their mean levels")
         bframe, dframe = None, None
         means = {}
         for cnam in ccds:
@@ -264,10 +286,10 @@ def makeflat(args=None):
 
         # We might have a load of temporaries from grab, but we are about to
         # make some more to save the bias-subtracted normalised versions.
-        tdir = os.path.join(tempfile.gettempdir(), 'hipercam-{:s}'.format(
-            getpass.getuser())
+        tdir = os.path.join(
+            tempfile.gettempdir(), "hipercam-{:s}".format(getpass.getuser())
         )
-        os.makedirs(tdir,exist_ok=True)
+        os.makedirs(tdir, exist_ok=True)
         fnames = []
         with spooler.HcamListSpool(resource) as spool:
 
@@ -281,10 +303,10 @@ def makeflat(args=None):
                         bframe = bframe.crop(mccd)
 
                     mccd -= bframe
-                    bexpose = bframe.head.get('EXPTIME',0.)
+                    bexpose = bframe.head.get("EXPTIME", 0.0)
 
                 else:
-                    bexpose = 0.
+                    bexpose = 0.0
 
                 if dark is not None:
 
@@ -296,10 +318,10 @@ def makeflat(args=None):
                     # Factor to scale the dark frame by before
                     # subtracting from flat. Assumes that all
                     # frames have same exposure time.
-                    scale = (mccd.head['EXPTIME']-bexpose)/dframe.head['EXPTIME']
+                    scale = (mccd.head["EXPTIME"] - bexpose) / dframe.head["EXPTIME"]
 
                     # make dark correction
-                    mccd -= scale*dframe
+                    mccd -= scale * dframe
 
                 # here we determine the mean levels, store them
                 # then normalise the CCDs by them and save the files
@@ -324,11 +346,9 @@ def makeflat(args=None):
 
                 # a bit of progress info
                 if bias is not None:
-                    print(
-                        'Saved debiassed, normalised'
-                        ' flat to {:s}'.format(fname))
+                    print("Saved debiassed, normalised" " flat to {:s}".format(fname))
                 else:
-                    print('Saved normalised flat to {:s}'.format(fname))
+                    print("Saved normalised flat to {:s}".format(fname))
 
         # now we go through CCD by CCD, using the first as a template
         # for the window names in which we will also store the results.
@@ -348,19 +368,19 @@ def makeflat(args=None):
             mvals = mvals[ok]
 
             # some more progress info
-            print('Found {:d} frames for CCD {:s}'.format(len(mkeys), cnam))
+            print("Found {:d} frames for CCD {:s}".format(len(mkeys), cnam))
             if len(mkeys) == 0:
                 print(
-                    ('.. cannot average 0 frames;'
-                     ' will skip CCD {:s}').format(cnam)
+                    (".. cannot average 0 frames;" " will skip CCD {:s}").format(cnam)
                 )
                 continue
 
             elif len(mkeys) < ngroup:
                 print(
-                    ('WARNING: fewer than ngroup = {:d} frames'
-                     ' found. Output for CCD {:s} could be poor').format(
-                        ngroup,cnam)
+                    (
+                        "WARNING: fewer than ngroup = {:d} frames"
+                        " found. Output for CCD {:s} could be poor"
+                    ).format(ngroup, cnam)
                 )
 
             nchunk = len(mkeys) // ngroup
@@ -374,12 +394,12 @@ def makeflat(args=None):
 
             # wsum used to sum all the eight factors to allow overall
             # normalisation at the end of the loop
-            wsum = 0.
+            wsum = 0.0
 
             for n in range(nchunk):
                 # loop through in chunks of ngroup at a time with a
                 # potentially larger group to sweep up the end ones.
-                n1 = ngroup*n
+                n1 = ngroup * n
                 n2 = n1 + ngroup
                 if n == nchunk:
                     n2 = len(mkeys)
@@ -410,18 +430,19 @@ def makeflat(args=None):
                     # this straight into the output Window.  afterwards we add
                     # it in (with the appropriate weight)
                     if n == 0:
-                        wind.data = weight*np.median(arr3d,axis=0)
+                        wind.data = weight * np.median(arr3d, axis=0)
                     else:
-                        wind.data += weight*np.median(arr3d,axis=0)
+                        wind.data += weight * np.median(arr3d, axis=0)
 
             # Normalise the final result to a mean = 1.
             tccd /= wsum
 
             # Add some history
             tccd.head.add_history(
-                ('result of makeflat on {:d}'
-                 ' frames, ngroup = {:d}').format(len(mkeys),ngroup)
-             )
+                ("result of makeflat on {:d}" " frames, ngroup = {:d}").format(
+                    len(mkeys), ngroup
+                )
+            )
 
         # Remove any CCDs not included to avoid impression of having done
         # something to them
@@ -431,10 +452,10 @@ def makeflat(args=None):
 
         # write out
         template.write(output, clobber)
-        print('\nFinal result written to {:s}'.format(output))
+        print("\nFinal result written to {:s}".format(output))
 
     except KeyboardInterrupt:
-        print('\nmakeflat aborted')
+        print("\nmakeflat aborted")
 
     if server_or_local:
         # grab has created a load of temporaries, including the file list
@@ -448,4 +469,4 @@ def makeflat(args=None):
     for fname in fnames:
         os.remove(fname)
 
-    print('temporary files have been removed.')
+    print("temporary files have been removed.")

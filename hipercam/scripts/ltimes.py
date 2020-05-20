@@ -9,13 +9,16 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
-__all__ = ['ltimes',]
+__all__ = [
+    "ltimes",
+]
 
 ##############################################
 #
 # ltimes -- lists the times of multiple images
 #
 ##############################################
+
 
 def ltimes(args=None):
     """``ltimes [source] run first last [twait tmax tdigit edigit]``
@@ -93,42 +96,44 @@ def ltimes(args=None):
     command, args = utils.script_args(args)
 
     # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('source', Cline.GLOBAL, Cline.HIDE)
-        cl.register('run', Cline.GLOBAL, Cline.PROMPT)
-        cl.register('first', Cline.LOCAL, Cline.PROMPT)
-        cl.register('last', Cline.LOCAL, Cline.PROMPT)
-        cl.register('twait', Cline.LOCAL, Cline.HIDE)
-        cl.register('tmax', Cline.LOCAL, Cline.HIDE)
-        cl.register('tdigit', Cline.LOCAL, Cline.HIDE)
-        cl.register('edigit', Cline.LOCAL, Cline.HIDE)
+        cl.register("source", Cline.GLOBAL, Cline.HIDE)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("first", Cline.LOCAL, Cline.PROMPT)
+        cl.register("last", Cline.LOCAL, Cline.PROMPT)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("tdigit", Cline.LOCAL, Cline.HIDE)
+        cl.register("edigit", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
-        source = cl.get_value('source', 'data source [hs, hl, us, ul]',
-                              'hl', lvals=('hs','hl','us','ul'))
+        source = cl.get_value(
+            "source",
+            "data source [hs, hl, us, ul]",
+            "hl",
+            lvals=("hs", "hl", "us", "ul"),
+        )
 
-        resource = cl.get_value('run', 'run name', 'run005')
-        if source == 'hs':
-            first = cl.get_value('first', 'first frame to list', 1)
+        resource = cl.get_value("run", "run name", "run005")
+        if source == "hs":
+            first = cl.get_value("first", "first frame to list", 1)
         else:
-            first = cl.get_value('first', 'first frame to list', 1, 0)
-        last = cl.get_value('last', 'last frame to list', 0, 0)
+            first = cl.get_value("first", "first frame to list", 1, 0)
+        last = cl.get_value("last", "last frame to list", 0, 0)
         if last < first and last != 0:
-            sys.stderr.write('last must be >= first or 0')
+            sys.stderr.write("last must be >= first or 0")
             sys.exit(1)
 
-        twait = cl.get_value(
-            'twait', 'time to wait for a new frame [secs]', 1., 0.)
+        twait = cl.get_value("twait", "time to wait for a new frame [secs]", 1.0, 0.0)
         tmax = cl.get_value(
-            'tmax', 'maximum time to wait for a new frame [secs]', 10., 0.)
-
-        tdigit = cl.get_value(
-            'tdigit', 'digits after decimal point for times', 6, 1, 9
+            "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
         )
+
+        tdigit = cl.get_value("tdigit", "digits after decimal point for times", 6, 1, 9)
         edigit = cl.get_value(
-            'edigit', 'digits after decimal point for exposure times', 3, 1, 9
+            "edigit", "digits after decimal point for exposure times", 3, 1, 9
         )
 
     ################################################################
@@ -136,10 +141,10 @@ def ltimes(args=None):
     # all the inputs have now been obtained. Get on with doing stuff
 
     # open the run as an Rtime with exact type depending on the source
-    if source.startswith('h'):
-        rtime = hcam.hcam.Rtime(resource, first, source.endswith('s'))
+    if source.startswith("h"):
+        rtime = hcam.hcam.Rtime(resource, first, source.endswith("s"))
     else:
-        rtime = hcam.ucam.Rtime(resource, first, source.endswith('s'))
+        rtime = hcam.ucam.Rtime(resource, first, source.endswith("s"))
 
     total_time = 0
     nframe = first
@@ -148,11 +153,11 @@ def ltimes(args=None):
         # Handle the waiting game ...
         give_up, try_again, total_time = spooler.hang_about(
             tdata, twait, tmax, total_time
-            )
+        )
 
         if give_up:
             if tmax > 0:
-                print('times stopped')
+                print("times stopped")
             break
         elif try_again:
             continue
@@ -163,40 +168,56 @@ def ltimes(args=None):
             tstamp, tinfo, tflag = tdata
             tstamp.precision = tdigit
             print(
-                '{:d} {:.12f} {:s} {:d}'.format(
-                    nframe, tstamp.mjd, tstamp.iso, 1 if tflag else 0), end=''
+                "{:d} {:.12f} {:s} {:d}".format(
+                    nframe, tstamp.mjd, tstamp.iso, 1 if tflag else 0
+                ),
+                end="",
             )
 
-            message = ''
+            message = ""
             for nccd, (mjd, exptime, flag) in enumerate(tinfo):
-                ts = Time(mjd, format='mjd', precision=tdigit)
-                message += ' {:d} {:.12f} {:s} {:.{:d}f} {:d}'.format(
-                    nccd+1, mjd, ts.hms_custom, exptime, edigit, 1 if flag else 0
+                ts = Time(mjd, format="mjd", precision=tdigit)
+                message += " {:d} {:.12f} {:s} {:.{:d}f} {:d}".format(
+                    nccd + 1, mjd, ts.hms_custom, exptime, edigit, 1 if flag else 0
                 )
             print(message)
 
         elif len(tdata) == 2:
             # ULTRASPEC
             time, tinfo = tdata
-            ts = Time(time.mjd, format='mjd', precision=tdigit)
-            gps = Time(tinfo['gps'], format='mjd', precision=tdigit)
+            ts = Time(time.mjd, format="mjd", precision=tdigit)
+            gps = Time(tinfo["gps"], format="mjd", precision=tdigit)
             print(
-                '{:d}, {:.12f} {:s} {:.12f} {:s} {:d} {:.5f}'.format(
-                    nframe, tinfo['gps'], gps.hms_custom, time.mjd, ts.hms_custom,
-                    1 if time.good else 0, time.expose)
+                "{:d}, {:.12f} {:s} {:.12f} {:s} {:d} {:.5f}".format(
+                    nframe,
+                    tinfo["gps"],
+                    gps.hms_custom,
+                    time.mjd,
+                    ts.hms_custom,
+                    1 if time.good else 0,
+                    time.expose,
+                )
             )
 
         elif len(tdata) == 4:
             # ULTRACAM
             time, tinfo, btime, bbad = tdata
-            ts = Time(time.mjd, format='mjd', precision=tdigit)
-            gps = Time(tinfo['gps'], format='mjd', precision=tdigit)
-            bts = Time(btime.mjd, format='mjd', precision=tdigit)
+            ts = Time(time.mjd, format="mjd", precision=tdigit)
+            gps = Time(tinfo["gps"], format="mjd", precision=tdigit)
+            bts = Time(btime.mjd, format="mjd", precision=tdigit)
             print(
-                '{:d} {:.12f} {:s} {:.12f} {:s} {:d} {:.5f} {:.12f} {:s} {:d}'.format(
-                    nframe, tinfo['gps'], gps.hms_custom, time.mjd, ts.hms_custom,
-                    1 if time.good else 0, time.expose, btime.mjd, bts.hms_custom,
-                    0 if bbad else 1)
+                "{:d} {:.12f} {:s} {:.12f} {:s} {:d} {:.5f} {:.12f} {:s} {:d}".format(
+                    nframe,
+                    tinfo["gps"],
+                    gps.hms_custom,
+                    time.mjd,
+                    ts.hms_custom,
+                    1 if time.good else 0,
+                    time.expose,
+                    btime.mjd,
+                    bts.hms_custom,
+                    0 if bbad else 1,
+                )
             )
 
         if last > 0 and nframe == last:
@@ -205,13 +226,11 @@ def ltimes(args=None):
         # increment the frame
         nframe += 1
 
+
 class TimeHMSCustom(TimeISO):
     """
     Just the HMS part of a Time as "<HH>:<MM>:<SS.sss...>".
     """
-    name = 'hms_custom'  # Unique format name
-    subfmts = (
-        ('date_hms',
-         '%H%M%S',
-         '{hour:02d}:{min:02d}:{sec:02d}'),
-        )
+
+    name = "hms_custom"  # Unique format name
+    subfmts = (("date_hms", "%H%M%S", "{hour:02d}:{min:02d}:{sec:02d}"),)

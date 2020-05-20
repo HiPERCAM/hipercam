@@ -12,7 +12,9 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
-__all__ = ['hlogger',]
+__all__ = [
+    "hlogger",
+]
 
 ############################################
 #
@@ -234,18 +236,18 @@ there are the correct number of timing bytes (36).  </p>
 """
 
 MONTHS = {
-    '01' : 'January',
-    '02' : 'February',
-    '03' : 'March',
-    '04' : 'April',
-    '05' : 'May',
-    '06' : 'June',
-    '07' : 'July',
-    '08' : 'August',
-    '09' : 'September',
-    '10' : 'October',
-    '11' : 'November',
-    '12' : 'December',
+    "01": "January",
+    "02": "February",
+    "03": "March",
+    "04": "April",
+    "05": "May",
+    "06": "June",
+    "07": "July",
+    "08": "August",
+    "09": "September",
+    "10": "October",
+    "11": "November",
+    "12": "December",
 }
 
 # HiPERCAM CSS to define the look of the log web pages
@@ -416,34 +418,36 @@ a:hover {
 """
 
 TRANSLATE_MODE = {
-    'FullFrame' : 'FULL',
-    'OneWindow' : '1-WIN',
-    'TwoWindows' : '2-WIN',
-    'DriftWindow' : 'DRIFT',
+    "FullFrame": "FULL",
+    "OneWindow": "1-WIN",
+    "TwoWindows": "2-WIN",
+    "DriftWindow": "DRIFT",
 }
+
 
 def correct_ra_dec(ra, dec):
     """Fixes up RAs and Decs"""
-    if ra == 'UNDEF':
-        ra = ''
+    if ra == "UNDEF":
+        ra = ""
     else:
-        rah,ram,ras = ra.split(':')
+        rah, ram, ras = ra.split(":")
         rah, ram, ras = int(rah), int(ram), float(ras)
-        ra = '{:02d}:{:02d}:{:05.2f}'.format(rah,ram,ras)
+        ra = "{:02d}:{:02d}:{:05.2f}".format(rah, ram, ras)
 
-    if dec == 'UNDEF':
-        dec = ''
+    if dec == "UNDEF":
+        dec = ""
     else:
-        decd,decm,decs = dec.split(':')
-        if decd.find('-') > -1:
+        decd, decm, decs = dec.split(":")
+        if decd.find("-") > -1:
             negative = True
         else:
             negative = False
         decd, decm, decs = int(decd), int(decm), float(decs)
         decd = -abs(decd) if negative else abs(decd)
-        dec = '{:+03d}:{:02d}:{:04.1f}'.format(decd,decm,decs)
+        dec = "{:+03d}:{:02d}:{:04.1f}".format(decd, decm, decs)
 
     return (ra, dec)
+
 
 def hlogger(args=None):
     """``hlogger server (dirnam)``
@@ -480,101 +484,118 @@ def hlogger(args=None):
     command, args = utils.script_args(args)
 
     # get the inputs
-    with Cline('HIPERCAM_ENV', '.hipercam', command, args) as cl:
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register('server', Cline.GLOBAL, Cline.PROMPT)
+        cl.register("server", Cline.GLOBAL, Cline.PROMPT)
 
         # get inputs
-        server = cl.get_value('server', 'access data via the server?', False)
+        server = cl.get_value("server", "access data via the server?", False)
 
     if server:
-        raise NotImplementedError('server option yet to be enabled')
+        raise NotImplementedError("server option yet to be enabled")
 
     else:
 
-        if os.path.basename(os.getcwd()) != 'logs':
+        if os.path.basename(os.getcwd()) != "logs":
             print("** hlogger must be run in a directory called 'logs'")
-            print('hlogger aborted',file=sys.stderr)
+            print("hlogger aborted", file=sys.stderr)
             return
 
         # next are regular expressions to match run directories, nights, and
         # run files
-        rre = re.compile('^\d\d\d\d-\d\d$')
-        nre = re.compile('^\d\d\d\d-\d\d-\d\d$')
-        fre = re.compile('^run\d\d\d\d\.fits$')
+        rre = re.compile("^\d\d\d\d-\d\d$")
+        nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
+        fre = re.compile("^run\d\d\d\d\.fits$")
 
         # Get list of run directories
-        rnames = [rname for rname in os.listdir('.') if \
-                      rre.match(rname) and \
-                      os.path.isdir(rname) and \
-                      os.path.isfile(os.path.join(rname, 'telescope'))
-                  ]
+        rnames = [
+            rname
+            for rname in os.listdir(".")
+            if rre.match(rname)
+            and os.path.isdir(rname)
+            and os.path.isfile(os.path.join(rname, "telescope"))
+        ]
 
         rnames.sort()
 
         if len(rnames) == 0:
-            print("there were no run directories of the form "
-                  "YYYY-MM with a file called 'telescope' in them", file=sys.stderr)
-            print('hlogger aborted',file=sys.stderr)
+            print(
+                "there were no run directories of the form "
+                "YYYY-MM with a file called 'telescope' in them",
+                file=sys.stderr,
+            )
+            print("hlogger aborted", file=sys.stderr)
             return
 
-        with open('index.html','w') as ihtml:
+        with open("index.html", "w") as ihtml:
             # start the top level index html file
             ihtml.write(INTRODUCTION_HEADER)
 
             for rname in rnames:
-                print('\nProcessing run {:s}'.format(rname))
+                print("\nProcessing run {:s}".format(rname))
 
                 # write in run date, start table of nights
                 rn = os.path.basename(rname)
-                year, month = rn.split('-')
-                with open(os.path.join(rname,'telescope')) as tel:
+                year, month = rn.split("-")
+                with open(os.path.join(rname, "telescope")) as tel:
                     telescope = tel.read().strip()
-                ihtml.write('<h2>{:s} {:s}, {:s}</h2>\n'.format(MONTHS[month],year,telescope))
-                ihtml.write('\n<p>\n<table>\n')
+                ihtml.write(
+                    "<h2>{:s} {:s}, {:s}</h2>\n".format(MONTHS[month], year, telescope)
+                )
+                ihtml.write("\n<p>\n<table>\n")
 
                 # get night directories
-                nnames = [os.path.join(rname, ndir) for ndir in os.listdir(rname) if \
-                              nre.match(ndir) and \
-                              os.path.isdir(os.path.join(rname, ndir)) and \
-                              os.path.isdir(os.path.join(rname, ndir, 'data'))
-                          ]
+                nnames = [
+                    os.path.join(rname, ndir)
+                    for ndir in os.listdir(rname)
+                    if nre.match(ndir)
+                    and os.path.isdir(os.path.join(rname, ndir))
+                    and os.path.isdir(os.path.join(rname, ndir, "data"))
+                ]
                 nnames.sort()
 
                 if len(nnames) == 0:
                     print(
                         "found no night directories of the form YYYY-MM-DD with"
                         " 'data' sub-directories in {:s}".format(rname),
-                        file=sys.stderr
-                        )
-                    print('hlogger aborted',file=sys.stderr)
+                        file=sys.stderr,
+                    )
+                    print("hlogger aborted", file=sys.stderr)
                     return
 
                 for nn, nname in enumerate(nnames):
 
-                    print('  night {:s}'.format(nname))
+                    print("  night {:s}".format(nname))
 
                     links = '\n<p><a href="../">Run index</a>'
                     if nn > 0:
-                        bnight = os.path.basename(nnames[nn-1])
-                        links += ', <a href="../{0:s}/{0:s}.html">Previous night</a>'.format(bnight)
+                        bnight = os.path.basename(nnames[nn - 1])
+                        links += ', <a href="../{0:s}/{0:s}.html">Previous night</a>'.format(
+                            bnight
+                        )
 
-                    if nn < len(nnames)-1:
-                        anight = os.path.basename(nnames[nn+1])
-                        links += ', <a href="../{0:s}/{0:s}.html">Next night</a>\n</p>\n'.format(anight)
+                    if nn < len(nnames) - 1:
+                        anight = os.path.basename(nnames[nn + 1])
+                        links += ', <a href="../{0:s}/{0:s}.html">Next night</a>\n</p>\n'.format(
+                            anight
+                        )
 
-                    links += '\n</p>\n'
+                    links += "\n</p>\n"
 
                     # Write an entry for each night linking to the log for that night.
                     night = os.path.basename(nname)
-                    fname = '{0:s}/{0:s}.html'.format(night)
-                    ihtml.write('<tr><td><a href="{:s}">{:s}</a><td></tr>\n'.format(fname, night))
+                    fname = "{0:s}/{0:s}.html".format(night)
+                    ihtml.write(
+                        '<tr><td><a href="{:s}">{:s}</a><td></tr>\n'.format(
+                            fname, night
+                        )
+                    )
 
                     # Create the html file for the night
-                    date = '{:s}, {:s}'.format(night, telescope)
+                    date = "{:s}, {:s}".format(night, telescope)
 
-                    with open(fname,'w') as nhtml:
+                    with open(fname, "w") as nhtml:
                         # write header of night file
                         nhtml.write(NIGHT_HEADER1)
                         nhtml.write(NIGHT_HEADER2.format(date))
@@ -582,18 +603,17 @@ def hlogger(args=None):
                         nhtml.write(TABLE_TOP)
 
                         # read and store the hand written log
-                        handlog = os.path.join(night,'{:s}.dat'.format(night))
+                        handlog = os.path.join(night, "{:s}.dat".format(night))
                         with open(handlog) as fin:
                             hlog = {}
                             for line in fin:
-                                if line.startswith('run'):
+                                if line.startswith("run"):
                                     arr = line.split()
-                                    hlog[arr[0]] = ' '.join(arr[1:])
+                                    hlog[arr[0]] = " ".join(arr[1:])
 
                         # load all the run names
-                        ddir = os.path.join(night,'data')
-                        runs = [run[:-5] for run in os.listdir(ddir) if \
-                                    fre.match(run)]
+                        ddir = os.path.join(night, "data")
+                        runs = [run[:-5] for run in os.listdir(ddir) if fre.match(run)]
                         runs.sort()
 
                         # now wind through the runs getting basic info and
@@ -606,41 +626,45 @@ def hlogger(args=None):
                                 nhtml.write(TABLE_HEADER)
 
                             # open the run file as an Rtime
-                            rname = os.path.join(night,'data',run)
+                            rname = os.path.join(night, "data", run)
                             try:
                                 rtime = hcam.hcam.Rtime(rname)
                             except:
                                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                                traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+                                traceback.print_tb(
+                                    exc_traceback, limit=1, file=sys.stdout
+                                )
                                 traceback.print_exc(file=sys.stdout)
-                                print('Problem on run = ',rname)
+                                print("Problem on run = ", rname)
 
                                 # dummy info line just to allow us to proceed
-                                nhtml.write('<tr>\n')
+                                nhtml.write("<tr>\n")
                                 # run number
-                                nhtml.write('<td class="lalert">{:s}</td>'.format(run[3:]))
-                                nhtml.write('</tr>\n')
+                                nhtml.write(
+                                    '<td class="lalert">{:s}</td>'.format(run[3:])
+                                )
+                                nhtml.write("</tr>\n")
                                 continue
 
                             hd = rtime.header
 
                             # start the row
-                            nhtml.write('<tr>\n')
+                            nhtml.write("<tr>\n")
 
                             # run number
                             nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
 
                             # object name
                             nhtml.write(
-                                '<td class="left">{:s}</td>'.format(
-                                    hd['OBJECT'])
+                                '<td class="left">{:s}</td>'.format(hd["OBJECT"])
                             )
 
                             # RA, Dec
-                            ra, dec = correct_ra_dec(hd['RA'], hd['Dec'])
+                            ra, dec = correct_ra_dec(hd["RA"], hd["Dec"])
                             nhtml.write(
                                 '<td class="left">{:s}</td><td class="left">{:s}</td>'.format(
-                                    ra, dec)
+                                    ra, dec
+                                )
                             )
 
                             # timing info
@@ -649,13 +673,13 @@ def hlogger(args=None):
                             # total = total time on target
                             # duty = worst duty cycle, percent
                             # tsamp = shortest sample time
-                            ttotal = 0.
+                            ttotal = 0.0
                             duty = 100
-                            tsamp = 99000.
+                            tsamp = 99000.0
                             for texp, nskip in zip(texps, nskips):
-                                ttotal = max(ttotal, (texp+tdead)*(ntotal // nskip))
-                                duty = min(duty, 100.*texp/(texp+tdead))
-                                tsamp = min(tsamp, texp+tdead)
+                                ttotal = max(ttotal, (texp + tdead) * (ntotal // nskip))
+                                duty = min(duty, 100.0 * texp / (texp + tdead))
+                                tsamp = min(tsamp, texp + tdead)
 
                             # First & last timestamp
                             try:
@@ -665,18 +689,24 @@ def hlogger(args=None):
                                 tend = tstamp.isot
                                 nhtml.write(
                                     '<td class="cen">{:s}</td><td class="cen">{:s}</td><td class="cen">{:s}</td><td class="cen">{:s}</td>'.format(
-                                        tstart[:tstart.find('T')],
-                                        tstart[tstart.find('T')+1:tstart.rfind('.')],
-                                        tend[tend.find('T')+1:tend.rfind('.')],
-                                        'OK' if tflag1 and tflag2 else 'NOK'
-                                        )
+                                        tstart[: tstart.find("T")],
+                                        tstart[
+                                            tstart.find("T") + 1 : tstart.rfind(".")
+                                        ],
+                                        tend[tend.find("T") + 1 : tend.rfind(".")],
+                                        "OK" if tflag1 and tflag2 else "NOK",
                                     )
+                                )
                             except:
                                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                                traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+                                traceback.print_tb(
+                                    exc_traceback, limit=1, file=sys.stdout
+                                )
                                 traceback.print_exc(file=sys.stdout)
-                                print('Run =',rname)
-                                nhtml.write('<td class="cen">----</td><td class="cen">----</td><td class="cen">----</td><td>NOK</td>')
+                                print("Run =", rname)
+                                nhtml.write(
+                                    '<td class="cen">----</td><td class="cen">----</td><td class="cen">----</td><td>NOK</td>'
+                                )
 
                             # sample time
                             nhtml.write('<td class="right">{:.3f}</td>'.format(tsamp))
@@ -688,167 +718,178 @@ def hlogger(args=None):
                             nhtml.write('<td class="right">{:d}</td>'.format(ntotal))
 
                             # total exposure time
-                            nhtml.write('<td class="right">{:d}</td>'.format(
-                                int(round(ttotal)))
+                            nhtml.write(
+                                '<td class="right">{:d}</td>'.format(int(round(ttotal)))
                             )
 
                             # filters used
-                            nhtml.write('<td class="cen">{:s}</td>'.format(
-                                hd.get('filters','----')
-                            ))
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(
+                                    hd.get("filters", "----")
+                                )
+                            )
 
                             # run type
                             nhtml.write(
                                 '<td class="left">{:s}</td>'.format(
-                                    hd.get('IMAGETYP', '---'))
+                                    hd.get("IMAGETYP", "---")
                                 )
+                            )
 
                             # readout mode
-                            nhtml.write('<td class="cen">{:s}</td>'.format(
-                                    TRANSLATE_MODE[rtime.mode])
-                                        )
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(
+                                    TRANSLATE_MODE[rtime.mode]
+                                )
+                            )
 
                             # cycle nums
-                            nhtml.write('<td class="cen">{:s}</td>'.format(
-                                ','.join([str(nskip) for nskip in nskips]))
-                                        )
+                            nhtml.write(
+                                '<td class="cen">{:s}</td>'.format(
+                                    ",".join([str(nskip) for nskip in nskips])
+                                )
+                            )
 
                             # window formats
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(rtime.wforms[0])
-                                )
+                            )
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
-                                    rtime.wforms[1] if len(rtime.wforms) > 1 else '')
+                                    rtime.wforms[1] if len(rtime.wforms) > 1 else ""
                                 )
+                            )
 
                             # binning
                             nhtml.write(
                                 '<td class="cen">{:d}x{:d}</td>'.format(
-                                    rtime.xbin,rtime.ybin)
+                                    rtime.xbin, rtime.ybin
                                 )
+                            )
 
                             # clear
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
-                                    'On' if rtime.clear else 'Off')
+                                    "On" if rtime.clear else "Off"
                                 )
+                            )
 
                             # dummy output in use
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
-                                    'On' if rtime.dummy else 'Off')
+                                    "On" if rtime.dummy else "Off"
                                 )
+                            )
 
                             # LED on
-                            led = hd.get('ESO DET EXPLED','--')
+                            led = hd.get("ESO DET EXPLED", "--")
                             if led == 0:
-                                led = 'Off'
+                                led = "Off"
                             elif led == 1:
-                                led = 'On'
+                                led = "On"
 
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(led)
-                                )
+                            nhtml.write('<td class="cen">{:s}</td>'.format(led))
 
                             # overscan/prescan
                             nhtml.write(
                                 '<td class="cen">{:s},{:s}</td>'.format(
-                                    'On' if rtime.oscan else 'Off',
-                                    'On' if rtime.pscan else 'Off')
+                                    "On" if rtime.oscan else "Off",
+                                    "On" if rtime.pscan else "Off",
                                 )
+                            )
 
                             # CCD speed
-                            speed = hd.get('ESO DET SPEED','--')
+                            speed = hd.get("ESO DET SPEED", "--")
                             if speed == 0:
-                                speed = 'Slow'
+                                speed = "Slow"
                             elif speed == 1:
-                                speed = 'Fast'
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(speed)
-                                )
+                                speed = "Fast"
+                            nhtml.write('<td class="cen">{:s}</td>'.format(speed))
 
                             # Fast clocks
-                            fclock = hd.get('ESO DET FASTCLK','--')
+                            fclock = hd.get("ESO DET FASTCLK", "--")
                             if fclock == 0:
-                                fclock = 'No'
+                                fclock = "No"
                             elif fclock == 1:
-                                fclock = 'Yes'
-                            nhtml.write(
-                                '<td class="cen">{!s}</td>'.format(fclock)
-                                )
+                                fclock = "Yes"
+                            nhtml.write('<td class="cen">{!s}</td>'.format(fclock))
 
                             # Tbytes problem
                             nhtml.write(
                                 '<td class="cen">{:s}</td>'.format(
-                                    'OK' if rtime.ntbytes == 36 else 'NOK'
-                                    )
+                                    "OK" if rtime.ntbytes == 36 else "NOK"
                                 )
+                            )
 
                             # Focal plane slide
                             nhtml.write(
                                 '<td class="cen">{!s}</td>'.format(
-                                    hd.get('FPslide','----')
-                                    )
+                                    hd.get("FPslide", "----")
                                 )
+                            )
 
                             # instr PA [GTC]
                             nhtml.write(
                                 '<td class="cen">{!s}</td>'.format(
-                                    hd.get('INSTRPA','UNDEF')
-                            ))
+                                    hd.get("INSTRPA", "UNDEF")
+                                )
+                            )
 
                             # CCD temps
                             nhtml.write(
                                 '<td class="cen">{:.1f},{:.1f},{:.1f},{:.1f},{:.1f}</td>'.format(
-                                    hd.get('CCD1TEMP',0.0),hd.get('CCD2TEMP',0.0),hd.get('CCD3TEMP',0.0),hd.get('CCD4TEMP',0.0),hd.get('CCD5TEMP',0.0)
-                            ))
+                                    hd.get("CCD1TEMP", 0.0),
+                                    hd.get("CCD2TEMP", 0.0),
+                                    hd.get("CCD3TEMP", 0.0),
+                                    hd.get("CCD4TEMP", 0.0),
+                                    hd.get("CCD5TEMP", 0.0),
+                                )
+                            )
 
                             # PI
                             nhtml.write(
-                                '<td class="left">{:s}</td>'.format(
-                                    hd.get('PI', '---'))
+                                '<td class="left">{:s}</td>'.format(hd.get("PI", "---"))
                             )
 
                             # Program ID
                             nhtml.write(
                                 '<td class="left">{:s}</td>'.format(
-                                    hd.get('PROGRM', '---'))
+                                    hd.get("PROGRM", "---")
+                                )
                             )
 
                             # run number again
-                            nhtml.write(
-                                '<td class="left">{:s}</td>'.format(run[3:])
-                            )
+                            nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
 
                             # comments
-                            pcomm = hd.get('RUNCOM', '').strip()
-                            if pcomm == 'None' or pcomm == 'UNDEF':
-                                pcomm = ''
-                            if pcomm != '':
-                                if not pcomm.endswith('.'):
-                                    pcomm += ' '
+                            pcomm = hd.get("RUNCOM", "").strip()
+                            if pcomm == "None" or pcomm == "UNDEF":
+                                pcomm = ""
+                            if pcomm != "":
+                                if not pcomm.endswith("."):
+                                    pcomm += " "
                                 else:
-                                    pcomm += '. '
+                                    pcomm += ". "
 
                             nhtml.write(
-                                '<td class="left">{:s}{:s}</td>'.format(pcomm,hlog[run])
+                                '<td class="left">{:s}{:s}</td>'.format(
+                                    pcomm, hlog[run]
+                                )
                             )
 
                             # end the row
-                            nhtml.write('\n</tr>\n')
+                            nhtml.write("\n</tr>\n")
 
                         # finish off the night file
-                        nhtml.write('</table>\n{:s}'.format(links))
+                        nhtml.write("</table>\n{:s}".format(links))
                         nhtml.write(NIGHT_FOOTER)
 
                 # finish off the run table
-                ihtml.write('\n</table>\n\n')
+                ihtml.write("\n</table>\n\n")
 
             # finish the main index
             ihtml.write(INTRODUCTION_FOOTER)
 
-
     # write out the css file
-    with open('hiper.css','w') as fout:
+    with open("hiper.css", "w") as fout:
         fout.write(CSS)

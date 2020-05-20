@@ -11,12 +11,27 @@ from .core import *
 from .window import *
 from . import support
 
-__all__ = (
-    'combFit', 'fitMoffat', 'fitGaussian', 'moffat', 'gaussian'
-)
+__all__ = ("combFit", "fitMoffat", "fitGaussian", "moffat", "gaussian")
 
-def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-            beta, beta_max, beta_fix, read, gain, thresh, ndiv=0):
+
+def combFit(
+    wind,
+    method,
+    sky,
+    height,
+    x,
+    y,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    beta,
+    beta_max,
+    beta_fix,
+    read,
+    gain,
+    thresh,
+    ndiv=0,
+):
     """Fits a stellar profile in a :class:Window using either a 2D Gaussian
     or Moffat profile. This is a convenient wrapper of fitMoffat and
     fitGaussian because one often wants both options.
@@ -109,49 +124,96 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
 
     """
 
-    if method == 'g':
+    if method == "g":
         # gaussian fit
-        (sky, height, x, y, fwhm), \
-            (esky, eheight, ex, ey, efwhm), \
-            (fit, X, Y, sigma, chisq, nok, nrej, npar) = fitGaussian(
-                wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-                read, gain, thresh, ndiv
-            )
-
-    elif method == 'm':
-        # moffat fit
-        (sky, height, x, y, fwhm, beta), \
-            (esky, eheight, ex, ey, efwhm, ebeta), \
-            (fit, X, Y, sigma, chisq, nok, nrej, npar,nfev) = fitMoffat(
-                wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-                beta, beta_max, beta_fix, read, gain, thresh, ndiv
-            )
-
-    else:
-        raise NotImplementedError(
-            '{:s} fitting method not implemented'.format(method)
+        (
+            (sky, height, x, y, fwhm),
+            (esky, eheight, ex, ey, efwhm),
+            (fit, X, Y, sigma, chisq, nok, nrej, npar),
+        ) = fitGaussian(
+            wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, read, gain, thresh, ndiv
         )
 
-    if method == 'g':
+    elif method == "m":
+        # moffat fit
+        (
+            (sky, height, x, y, fwhm, beta),
+            (esky, eheight, ex, ey, efwhm, ebeta),
+            (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev),
+        ) = fitMoffat(
+            wind,
+            sky,
+            height,
+            x,
+            y,
+            fwhm,
+            fwhm_min,
+            fwhm_fix,
+            beta,
+            beta_max,
+            beta_fix,
+            read,
+            gain,
+            thresh,
+            ndiv,
+        )
+
+    else:
+        raise NotImplementedError("{:s} fitting method not implemented".format(method))
+
+    if method == "g":
         message = (
-            'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),'
-            ' FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),'
-            ' sky = {:.1f}({:.1f}), counts = {:.0f}, chi**2 = {:.1f}, nok = {:d}, nrej = {:d}'
-        ).format(x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,fit.sum(),chisq,nok,nrej)
-        beta, ebeta = 0., -1.
-    elif method == 'm':
+            "x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),"
+            " FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),"
+            " sky = {:.1f}({:.1f}), counts = {:.0f}, chi**2 = {:.1f}, nok = {:d}, nrej = {:d}"
+        ).format(
+            x,
+            ex,
+            y,
+            ey,
+            fwhm,
+            efwhm,
+            height,
+            eheight,
+            sky,
+            esky,
+            fit.sum(),
+            chisq,
+            nok,
+            nrej,
+        )
+        beta, ebeta = 0.0, -1.0
+    elif method == "m":
         message = (
-            'x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),'
-            ' FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),'
-            ' sky = {:.1f}({:.1f}), counts = {:.0f}, beta = {:.2f}({:.2f}), chi**2 = {:.1f},'
-            ' nok = {:d}, nrej = {:d}'
-        ).format(x,ex,y,ey,fwhm,efwhm,height,eheight,sky,esky,fit.sum(),beta,ebeta,chisq,nok,nrej)
+            "x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),"
+            " FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),"
+            " sky = {:.1f}({:.1f}), counts = {:.0f}, beta = {:.2f}({:.2f}), chi**2 = {:.1f},"
+            " nok = {:d}, nrej = {:d}"
+        ).format(
+            x,
+            ex,
+            y,
+            ey,
+            fwhm,
+            efwhm,
+            height,
+            eheight,
+            sky,
+            esky,
+            fit.sum(),
+            beta,
+            ebeta,
+            chisq,
+            nok,
+            nrej,
+        )
 
     return (
         (sky, height, x, y, fwhm, beta),
         (esky, eheight, ex, ey, efwhm, ebeta),
-        (fit, X, Y, sigma, chisq, nok, nrej, npar, message)
+        (fit, X, Y, sigma, chisq, nok, nrej, npar, message),
     )
+
 
 ##############################
 #
@@ -159,9 +221,26 @@ def combFit(wind, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
 #
 ##############################
 
-def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
-               fwhm_fix, beta, beta_max, beta_fix, read, gain, thresh,
-               ndiv, max_nfev=None):
+
+def fitMoffat(
+    wind,
+    sky,
+    height,
+    xcen,
+    ycen,
+    fwhm,
+    fwhm_min,
+    fwhm_max,
+    fwhm_fix,
+    beta,
+    beta_max,
+    beta_fix,
+    read,
+    gain,
+    thresh,
+    ndiv,
+    max_nfev=None,
+):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
     from the centre of the aperture. The constant alpha is determined by the
@@ -290,12 +369,12 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
     """
 
     if fwhm < fwhm_min or beta > beta_max:
-        raise HipercamError('fwhm and/or beta out of range')
+        raise HipercamError("fwhm and/or beta out of range")
 
     # construct function object for Moffat fit. First the mode.
-    mode = '' if sky is None else 's'
-    mode = mode if fwhm_fix else mode + 'f'
-    mode = mode if beta_fix else mode + 'b'
+    mode = "" if sky is None else "s"
+    mode = mode if fwhm_fix else mode + "f"
+    mode = mode if beta_fix else mode + "b"
     mfit = Mfit(wind, read, gain, ndiv, mode, fwhm, beta)
 
     mode_switch = False
@@ -313,8 +392,7 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
 
         # carry out fit
         res = least_squares(
-            mfit.fun, param, jac=mfit.jac, method='lm',
-            max_nfev=max_nfev
+            mfit.fun, param, jac=mfit.jac, method="lm", max_nfev=max_nfev
         )
         if not res.success:
             raise HipercamError(res.message)
@@ -323,7 +401,7 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
         J = np.matrix(res.jac)
         try:
             # try / except for singularity
-            covar = (J.T*J).I
+            covar = (J.T * J).I
         except np.linalg.LinAlgError as err:
             raise HipercamError(err)
 
@@ -331,14 +409,14 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
         skyf, heightf, xf, yf, fwhmf, betaf = mfit.get_par(param)
         fwhmf = abs(fwhmf)
 
-        if mode.find('b') > -1 and betaf > beta_max:
+        if mode.find("b") > -1 and betaf > beta_max:
             # switch to fixed beta fit
             beta = beta_max
-            mfit.set_mode(mode.replace('b',''), fwhm, beta)
-            
-        elif mode.find('f') > -1 and fwhmf < fwhm_min:
+            mfit.set_mode(mode.replace("b", ""), fwhm, beta)
+
+        elif mode.find("f") > -1 and fwhmf < fwhm_min:
             # switch to fixed fwhm fit
-            mfit.set_mode(mode.replace('f',''), fwhm_min, beta)
+            mfit.set_mode(mode.replace("f", ""), fwhm_min, beta)
 
         else:
 
@@ -347,17 +425,17 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
 
             covs = np.diag(covar)
             if (covs < 0).any():
-                raise HipercamError('Negative covariance in fitMoffat')
+                raise HipercamError("Negative covariance in fitMoffat")
 
             # compute chi**2 and number of OK points
             ok = mfit.mask & (mfit.sigma > 0)
             resid = (wind.data - fit.data) / mfit.sigma
-            chisq = (resid[ok]**2).sum()
+            chisq = (resid[ok] ** 2).sum()
             nok1 = len(resid[ok])
-            sfac = np.sqrt(chisq/nok1)
+            sfac = np.sqrt(chisq / nok1)
 
             # reject any above the defined threshold
-            mfit.sigma[ok & (np.abs(resid)> sfac*thresh)] *= -1
+            mfit.sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
 
             # check whether any have been rejected
             ok = mfit.mask & (mfit.sigma > 0)
@@ -368,26 +446,27 @@ def fitMoffat( wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_max,
                 # many have been, re-scale the uncertainties to
                 # reflect the actual chi**2
                 nrej = len(mfit.sigma[mfit.mask]) - nok
-                skyfe, heightfe, xfe, yfe, \
-                    fwhmfe, betafe = mfit.get_epar(sfac*np.sqrt(covs))
+                skyfe, heightfe, xfe, yfe, fwhmfe, betafe = mfit.get_epar(
+                    sfac * np.sqrt(covs)
+                )
                 break
 
     # OK we are done.
     if sky is None:
         return (
-            (heightf,xf,yf,fwhmf,betaf),
-            (heightfe,xfe,yfe,fwhmfe,betafe),
-            (fit,mfit.x,mfit.y,mfit.sigma,chisq,nok,nrej,len(param),res.nfev)
+            (heightf, xf, yf, fwhmf, betaf),
+            (heightfe, xfe, yfe, fwhmfe, betafe),
+            (fit, mfit.x, mfit.y, mfit.sigma, chisq, nok, nrej, len(param), res.nfev),
         )
     else:
         return (
-            (skyf,heightf,xf,yf,fwhmf,betaf),
-            (skyfe,heightfe,xfe,yfe,fwhmfe,betafe),
-            (fit,mfit.x,mfit.y,mfit.sigma,chisq,nok,nrej,len(param),res.nfev)
+            (skyf, heightf, xf, yf, fwhmf, betaf),
+            (skyfe, heightfe, xfe, yfe, fwhmfe, betafe),
+            (fit, mfit.x, mfit.y, mfit.sigma, chisq, nok, nrej, len(param), res.nfev),
         )
 
 
-@jit(nopython=True,cache=True)
+@jit(nopython=True, cache=True)
 def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     """
     Returns a numpy array corresponding to the ordinate grids in xy
@@ -446,41 +525,45 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     on the ordinate grids in xy.
 
     """
-    tbeta = max(0.01,beta)
-    alpha = 4*(2**(1./tbeta)-1)/fwhm**2
+    tbeta = max(0.01, beta)
+    alpha = 4 * (2 ** (1.0 / tbeta) - 1) / fwhm ** 2
 
     if ndiv > 0:
         # Complicated case with sub-pixellation allowed for
 
         # mean offset within sub-pixels
-        soff = (ndiv-1)/(2*ndiv)
+        soff = (ndiv - 1) / (2 * ndiv)
 
         prof = np.zeros_like(x)
         for iy in range(ybin):
             # loop over unbinned pixels in Y
-            yoff = iy-(ybin-1)/2 - soff
+            yoff = iy - (ybin - 1) / 2 - soff
             for ix in range(xbin):
                 # loop over unbinned pixels in X
-                xoff = ix-(xbin-1)/2 - soff
+                xoff = ix - (xbin - 1) / 2 - soff
                 for isy in range(ndiv):
                     # loop over sub-pixels in y
-                    ysoff = yoff + isy/ndiv
+                    ysoff = yoff + isy / ndiv
                     for isx in range(ndiv):
                         # loop over sub-pixels in x
-                        xsoff = xoff + isx/ndiv
-                        rsq = (x+xsoff-xcen)**2+(y+ysoff-ycen)**2
-                        prof += (height/xbin/ybin/ndiv**2)*(1+alpha*rsq)**(-tbeta)
+                        xsoff = xoff + isx / ndiv
+                        rsq = (x + xsoff - xcen) ** 2 + (y + ysoff - ycen) ** 2
+                        prof += (height / xbin / ybin / ndiv ** 2) * (
+                            1 + alpha * rsq
+                        ) ** (-tbeta)
 
-        return sky+prof
+        return sky + prof
 
     else:
         # Fast as possible, compute profile at pixel centres only
-        rsq = (x-xcen)**2+(y-ycen)**2
-        return height*(1+alpha*rsq)**(-tbeta) + sky
+        rsq = (x - xcen) ** 2 + (y - ycen) ** 2
+        return height * (1 + alpha * rsq) ** (-tbeta) + sky
 
-@jit(nopython=True,cache=True)
-def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
-            comp_dfwhm, comp_dbeta):
+
+@jit(nopython=True, cache=True)
+def dmoffat(
+    x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta
+):
     """Returns a list of numpy arrays corresponding to the ordinate grids
     in xy set to the partial derivatives of a Moffat profile plus a
     constant. Defined by sky + height/(1+alpha*r**2)**beta where r is
@@ -551,7 +634,7 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
 
     """
     tbeta = max(0.01, beta)
-    alpha = 4*(2**(1/tbeta)-1)/fwhm**2
+    alpha = 4 * (2 ** (1 / tbeta) - 1) / fwhm ** 2
 
     dsky = np.ones_like(x)
 
@@ -566,47 +649,56 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
             dbeta = np.zeros_like(x)
 
         # mean offset within sub-pixels
-        soff = (ndiv-1)/(2*ndiv)
+        soff = (ndiv - 1) / (2 * ndiv)
 
         for iy in range(ybin):
             # loop over unbinned pixels in Y
-            yoff = iy-(ybin-1)/2 - soff
+            yoff = iy - (ybin - 1) / 2 - soff
             for ix in range(xbin):
                 # loop over unbinned pixels in X
-                xoff = ix-(xbin-1)/2 - soff
+                xoff = ix - (xbin - 1) / 2 - soff
                 for isy in range(ndiv):
                     # loop over sub-pixels in y
-                    ysoff = yoff + isy/ndiv
+                    ysoff = yoff + isy / ndiv
                     for isx in range(ndiv):
                         # loop over sub-pixels in x
-                        xsoff = xoff + isx/ndiv
+                        xsoff = xoff + isx / ndiv
 
                         # finally compute stuff
                         dx = x + xsoff - xcen
                         dy = y + ysoff - ycen
-                        rsq = dx**2 + dy**2
+                        rsq = dx ** 2 + dy ** 2
 
-                        denom = 1+alpha*rsq
-                        save1 = height*denom**(-tbeta-1)
-                        save2 = save1*rsq
+                        denom = 1 + alpha * rsq
+                        save1 = height * denom ** (-tbeta - 1)
+                        save2 = save1 * rsq
 
                         # derivatives. beta is a bit complicated
                         # because it appears directly through the
                         # exponent but also indirectly through alpha
-                        dh = denom**(-tbeta)
+                        dh = denom ** (-tbeta)
                         dheight += dh
-                        dxcen += (2*alpha*tbeta)*dx*save1
-                        dycen += (2*alpha*tbeta)*dy*save1
+                        dxcen += (2 * alpha * tbeta) * dx * save1
+                        dycen += (2 * alpha * tbeta) * dy * save1
 
                         if comp_dfwhm:
-                            dfwhm += (2*alpha*tbeta/fwhm)*save2
+                            dfwhm += (2 * alpha * tbeta / fwhm) * save2
 
                         if comp_dbeta:
-                            dbeta += -np.log(denom)*height*dh + \
-                                     (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
+                            dbeta += (
+                                -np.log(denom) * height * dh
+                                + (
+                                    4.0
+                                    * np.log(2)
+                                    * 2 ** (1 / tbeta)
+                                    / tbeta
+                                    / fwhm ** 2
+                                )
+                                * save2
+                            )
 
         # Normalise by number of evaluations
-        nadd = xbin*ybin*ndiv**2
+        nadd = xbin * ybin * ndiv ** 2
         dheight /= nadd
         dxcen /= nadd
         dycen /= nadd
@@ -634,43 +726,49 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv,
         # fast as possible, only compute at centre of pixels
         dx = x - xcen
         dy = y - ycen
-        rsq = dx**2 + dy**2
+        rsq = dx ** 2 + dy ** 2
 
-        denom = 1+alpha*rsq
-        save1 = height*denom**(-tbeta-1)
-        save2 = save1*rsq
+        denom = 1 + alpha * rsq
+        save1 = height * denom ** (-tbeta - 1)
+        save2 = save1 * rsq
 
         # derivatives. beta is a bit complicated because it appears directly
         # through the exponent but also indirectly through alpha
-        dheight = denom**(-tbeta)
-        dxcen = (2*alpha*tbeta)*dx*save1
-        dycen = (2*alpha*tbeta)*dy*save1
+        dheight = denom ** (-tbeta)
+        dxcen = (2 * alpha * tbeta) * dx * save1
+        dycen = (2 * alpha * tbeta) * dy * save1
 
         if comp_dfwhm and comp_dbeta:
-            dfwhm = (2*alpha*tbeta/fwhm)*save2
-            dbeta = -np.log(denom)*height*dheight + \
-                    (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
+            dfwhm = (2 * alpha * tbeta / fwhm) * save2
+            dbeta = (
+                -np.log(denom) * height * dheight
+                + (4.0 * np.log(2) * 2 ** (1 / tbeta) / tbeta / fwhm ** 2) * save2
+            )
             return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
 
         elif comp_dfwhm:
-            dfwhm = (2*alpha*tbeta/fwhm)*save2
+            dfwhm = (2 * alpha * tbeta / fwhm) * save2
             return (dsky, dheight, dxcen, dycen, dfwhm, dfwhm)
 
         elif comp_dbeta:
-            dbeta = -np.log(denom)*height*dheight + \
-                    (4.*np.log(2)*2**(1/tbeta)/tbeta/fwhm**2)*save2
+            dbeta = (
+                -np.log(denom) * height * dheight
+                + (4.0 * np.log(2) * 2 ** (1 / tbeta) / tbeta / fwhm ** 2) * save2
+            )
             return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
 
         else:
             return (dsky, dheight, dxcen, dycen, dycen, dycen)
 
+
 def _mask(wind, x, y):
     """Returns circular mask centred on wind, extending to nearest side"""
-    x1, x2 = wind.x(0), wind.x(wind.nx-1)
-    y1, y2 = wind.y(0), wind.y(wind.ny-1)
-    xc, yc = (x1+x2)/2, (y1+y2)/2.
-    rad = 1.01*min((x2-x1)/2,(y2-y1)/2)
-    return (x-xc)**2+(y-yc)**2 < rad**2
+    x1, x2 = wind.x(0), wind.x(wind.nx - 1)
+    y1, y2 = wind.y(0), wind.y(wind.ny - 1)
+    xc, yc = (x1 + x2) / 2, (y1 + y2) / 2.0
+    rad = 1.01 * min((x2 - x1) / 2, (y2 - y1) / 2)
+    return (x - xc) ** 2 + (y - yc) ** 2 < rad ** 2
+
 
 class Mfit:
     """Object providing 'fun' and 'jac' methods for least_squares for
@@ -710,7 +808,7 @@ class Mfit:
           ndiv  : int
              pixel sub-division factor. See comments in fitMoffat
         """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
+        self.sigma = np.sqrt(read ** 2 + np.maximum(0, wind.data) / gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.x, self.y = np.meshgrid(x, y)
@@ -723,12 +821,13 @@ class Mfit:
 
     def set_mode(self, mode, fwhm, beta):
         """Set the operation mode with some light checks"""
-        if mode not in ('sfb', 'sb', 'sf', 's', 'fb', 'b', 'f', ''):
-            raise HipercamError('invalid mode = {:s}'.format(mode))
+        if mode not in ("sfb", "sb", "sf", "s", "fb", "b", "f", ""):
+            raise HipercamError("invalid mode = {:s}".format(mode))
 
-        if (mode.find('f') == -1 and self.fwhm is None) or \
-           (mode.find('b') == -1 and self.beta is None):
-            raise HipercamError('invalid mode / fwhm / beta combination')
+        if (mode.find("f") == -1 and self.fwhm is None) or (
+            mode.find("b") == -1 and self.beta is None
+        ):
+            raise HipercamError("invalid mode / fwhm / beta combination")
         self.mode = mode
         self.fwhm = fwhm
         self.beta = beta
@@ -740,36 +839,36 @@ class Mfit:
         is meaningless.
 
         """
-        if self.mode == 'sfb':
+        if self.mode == "sfb":
             sky, height, xcen, ycen, fwhm, beta = param
-        elif self.mode == 'sb':
+        elif self.mode == "sb":
             sky, height, xcen, ycen, beta = param
             fwhm = self.fwhm
-        elif self.mode == 'sf':
+        elif self.mode == "sf":
             sky, height, xcen, ycen, fwhm = param
             beta = self.beta
-        elif self.mode == 's':
+        elif self.mode == "s":
             sky, height, xcen, ycen = param
             fwhm = self.fwhm
             beta = self.beta
-        elif self.mode == 'fb':
+        elif self.mode == "fb":
             height, xcen, ycen, fwhm, beta = param
-            sky = 0.
-        elif self.mode == 'b':
+            sky = 0.0
+        elif self.mode == "b":
             height, xcen, ycen, beta = param
-            sky = 0.
+            sky = 0.0
             fwhm = self.fwhm
-        elif self.mode == 'f':
+        elif self.mode == "f":
             height, xcen, ycen, fwhm = param
-            sky = 0.
+            sky = 0.0
             beta = self.beta
-        elif self.mode == '':
+        elif self.mode == "":
             height, xcen, ycen = param
-            sky = 0.
+            sky = 0.0
             fwhm = self.fwhm
             beta = self.beta
         else:
-            raise HipercamError('invalid mode')
+            raise HipercamError("invalid mode")
 
         return (sky, height, xcen, ycen, fwhm, beta)
 
@@ -788,24 +887,24 @@ class Mfit:
               area; 'fwhm' is the FWHM in unbinned
 
         """
-        if self.mode == 'sfb':
+        if self.mode == "sfb":
             return (sky, height, xcen, ycen, fwhm, beta)
-        elif self.mode == 'sb':
+        elif self.mode == "sb":
             return (sky, height, xcen, ycen, beta)
-        elif self.mode == 'sf':
+        elif self.mode == "sf":
             return (sky, height, xcen, ycen, fwhm)
-        elif self.mode == 's':
+        elif self.mode == "s":
             return (sky, height, xcen, ycen)
-        elif self.mode == 'fb':
+        elif self.mode == "fb":
             return (height, xcen, ycen, fwhm, beta)
-        elif self.mode == 'b':
-            reurn (height, xcen, ycen, beta)
-        elif self.mode == 'f':
+        elif self.mode == "b":
+            reurn(height, xcen, ycen, beta)
+        elif self.mode == "f":
             return (height, xcen, ycen, fwhm)
-        elif self.mode == '':
+        elif self.mode == "":
             return (height, xcen, ycen)
         else:
-            raise HipercamError('invalid mode')
+            raise HipercamError("invalid mode")
 
     def get_epar(self, param):
         """Gets parameter errors (skye, heighte, xcene, ycene, fwhme, betae)
@@ -814,34 +913,34 @@ class Mfit:
         -1
 
         """
-        if self.mode == 'sfb':
+        if self.mode == "sfb":
             skye, heighte, xcene, ycene, fwhme, betae = param
-        elif self.mode == 'sb':
+        elif self.mode == "sb":
             skye, heighte, xcene, ycene, betae = param
-            fwhme = -1.
-        elif self.mode == 'sf':
+            fwhme = -1.0
+        elif self.mode == "sf":
             skye, heighte, xcene, ycene, fwhme = param
-            betae = -1.
-        elif self.mode == 's':
+            betae = -1.0
+        elif self.mode == "s":
             skye, heighte, xcene, ycene = param
-            fwhme = -1.
-            betae = -1.
-        elif self.mode == 'fb':
+            fwhme = -1.0
+            betae = -1.0
+        elif self.mode == "fb":
             heighte, xcene, ycene, fwhme, betae = param
-            skye = -1.
-        elif self.mode == 'b':
+            skye = -1.0
+        elif self.mode == "b":
             heighte, xcene, ycene, betae = param
-            skye = -1.
-            fwhme = -1.
-        elif self.mode == 'f':
+            skye = -1.0
+            fwhme = -1.0
+        elif self.mode == "f":
             heighte, xcene, ycene, fwhme = param
-            skye = -1.
-            betae = -1.
-        elif self.mode == '':
+            skye = -1.0
+            betae = -1.0
+        elif self.mode == "":
             heighte, xcene, ycene = param
-            skye = -1.
-            fwhme = -1.
-            betae = -1.
+            skye = -1.0
+            fwhme = -1.0
+            betae = -1.0
 
         return (skye, heighte, xcene, ycene, fwhme, betae)
 
@@ -851,7 +950,7 @@ class Mfit:
         method for a description of the argument 'param'
         """
         mod = self.model(param)
-        diff = (self.data-mod)/self.sigma
+        diff = (self.data - mod) / self.sigma
         ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
 
@@ -863,31 +962,42 @@ class Mfit:
         """
         sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
 
-        comp_fwhm = self.mode.find('f') > -1
-        comp_beta = self.mode.find('b') > -1
+        comp_fwhm = self.mode.find("f") > -1
+        comp_beta = self.mode.find("b") > -1
 
         # work out which derivatives to bother with
-        if self.mode == 'sfb':
-            inds = (0,1,2,3,4,5)
-        elif self.mode == 'sb' or self.mode == 'sf':
-            inds = (0,1,2,3,4)
-        elif self.mode == 's':
-            inds = (0,1,2,3)
-        elif self.mode == 'fb':
-            inds = (1,2,3,4,5)
-        elif self.mode == 'b' or self.mode == 'f':
-            inds = (1,2,3,4)
-        elif self.mode == '':
-            inds = (1,2,3)
+        if self.mode == "sfb":
+            inds = (0, 1, 2, 3, 4, 5)
+        elif self.mode == "sb" or self.mode == "sf":
+            inds = (0, 1, 2, 3, 4)
+        elif self.mode == "s":
+            inds = (0, 1, 2, 3)
+        elif self.mode == "fb":
+            inds = (1, 2, 3, 4, 5)
+        elif self.mode == "b" or self.mode == "f":
+            inds = (1, 2, 3, 4)
+        elif self.mode == "":
+            inds = (1, 2, 3)
 
         derivs = dmoffat(
-            self.x, self.y, sky, height, xcen, ycen, fwhm, beta,
-            self.xbin, self.ybin, self.ndiv, comp_fwhm, comp_beta
+            self.x,
+            self.y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            beta,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
+            comp_fwhm,
+            comp_beta,
         )
 
         ok = self.mask & (self.sigma > 0)
         return np.column_stack(
-            [(-derivs[ind][ok]/self.sigma[ok]).ravel() for ind in inds]
+            [(-derivs[ind][ok] / self.sigma[ok]).ravel() for ind in inds]
         )
 
     def model(self, param):
@@ -908,9 +1018,19 @@ class Mfit:
         """
         sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
         return moffat(
-            self.x, self.y, sky, height, xcen, ycen, fwhm, beta,
-            self.xbin, self.ybin, self.ndiv
+            self.x,
+            self.y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            beta,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
         )
+
 
 ##########################################
 #
@@ -918,9 +1038,22 @@ class Mfit:
 #
 ##########################################
 
+
 def fitGaussian(
-        wind, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix,
-        read, gain, thresh, ndiv, maxfev=0):
+    wind,
+    sky,
+    height,
+    xcen,
+    ycen,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    read,
+    gain,
+    thresh,
+    ndiv,
+    maxfev=0,
+):
     """Fits the profile of one target in an Window with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
     of the aperture. The constant alpha is fixed by the FWHM. The function
@@ -1041,20 +1174,24 @@ def fitGaussian(
 
             # carry out fit
             soln, covar, info, mesg, ier = leastsq(
-                gfit2, param, Dfun=dgfit2, col_deriv=True,
-                full_output=True, maxfev=maxfev
+                gfit2,
+                param,
+                Dfun=dgfit2,
+                col_deriv=True,
+                full_output=True,
+                maxfev=maxfev,
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
             elif covar is None:
-                raise HipercamError('leastsq failed returning covar = None')
+                raise HipercamError("leastsq failed returning covar = None")
 
             # process results
             fit = Window(wind, gfit2.model(soln))
             skyf, heightf, xf, yf = soln
             covs = np.diag(covar)
             if (covs < 0).any():
-                raise HipercamError('Negative covariance in fitGaussian')
+                raise HipercamError("Negative covariance in fitGaussian")
             skyfe, heightfe, xfe, yfe = np.sqrt(covs)
             fwhmf, fwhmfe = fwhm, -1
 
@@ -1064,13 +1201,17 @@ def fitGaussian(
 
             # carry out fit
             soln, covar, info, mesg, ier = leastsq(
-                gfit1, param, Dfun=dgfit1, col_deriv=True,
-                full_output=True, maxfev=maxfev
+                gfit1,
+                param,
+                Dfun=dgfit1,
+                col_deriv=True,
+                full_output=True,
+                maxfev=maxfev,
             )
             if ier < 1 or ier > 4:
                 raise HipercamError(mesg)
             elif covar is None:
-                raise HipercamError('leastsq failed returning covar = None')
+                raise HipercamError("leastsq failed returning covar = None")
 
             # process results
             skyf, heightf, xf, yf, fwhmf = soln
@@ -1080,7 +1221,7 @@ def fitGaussian(
                 # Free fit is OK
                 covs = np.diag(covar)
                 if (covs < 0).any():
-                    raise HipercamError('Negative covariance in fitGaussian')
+                    raise HipercamError("Negative covariance in fitGaussian")
                 skyfe, heightfe, xfe, yfe, fwhmfe = np.sqrt(covs)
                 fit = Window(wind, gfit1.model(soln))
 
@@ -1093,32 +1234,36 @@ def fitGaussian(
 
                 # carry out fit
                 soln, covar, info, mesg, ier = leastsq(
-                    gfit2, param, Dfun=dgfit2, col_deriv=True,
-                    full_output=True, maxfev=maxfev
+                    gfit2,
+                    param,
+                    Dfun=dgfit2,
+                    col_deriv=True,
+                    full_output=True,
+                    maxfev=maxfev,
                 )
                 if ier < 1 or ier > 4:
                     raise HipercamError(mesg)
                 elif covar is None:
-                    raise HipercamError('leastsq failed returning covar = None')
+                    raise HipercamError("leastsq failed returning covar = None")
 
                 # process results
                 fit = Window(wind, gfit2.model(soln))
                 skyf, heightf, xf, yf = soln
                 covs = np.diag(covar)
                 if (covs < 0).any():
-                    raise HipercamError('Negative covariance in fitGaussian')
+                    raise HipercamError("Negative covariance in fitGaussian")
                 skyfe, heightfe, xfe, yfe = np.sqrt(covs)
                 fwhmf, fwhmfe = fwhm_min, -1
 
         # now look for bad outliers
         ok = gfit1.sigma > 0
         resid = (wind.data - fit.data) / gfit1.sigma
-        chisq = (resid[ok]**2).sum()
+        chisq = (resid[ok] ** 2).sum()
         nok1 = len(resid[ok])
-        sfac = np.sqrt(chisq/(nok1-len(soln)))
+        sfac = np.sqrt(chisq / (nok1 - len(soln)))
 
         # reject any above the defined threshold
-        gfit1.sigma[ok & (np.abs(resid)> sfac*thresh)] *= -1
+        gfit1.sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
 
         # check whether any have been rejected
         ok = gfit1.sigma > 0
@@ -1142,12 +1287,13 @@ def fitGaussian(
 
     # OK we are done.
     return (
-        (skyf,heightf,xf,yf,fwhmf),
-        (skyfe,heightfe,xfe,yfe,fwhmfe),
-        (fit,gfit1.x,gfit1.y,gfit1.sigma,chisq,nok,nrej,len(soln))
+        (skyf, heightf, xf, yf, fwhmf),
+        (skyfe, heightfe, xfe, yfe, fwhmfe),
+        (fit, gfit1.x, gfit1.y, gfit1.sigma, chisq, nok, nrej, len(soln)),
     )
 
-@jit(nopython=True,cache=True)
+
+@jit(nopython=True, cache=True)
 def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     """Returns a numpy array corresponding to the ordinate grids in xy set to a
     symmetric 2D Gaussian plus a constant. The profile is essentially defined
@@ -1202,38 +1348,39 @@ def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
 
     """
 
-    alpha = 4.*np.log(2.)/fwhm**2
+    alpha = 4.0 * np.log(2.0) / fwhm ** 2
 
     if ndiv > 0:
         # Complicated case with sub-pixellation allowed for
 
         # mean offset within sub-pixels
-        soff = (ndiv-1)/(2*ndiv)
+        soff = (ndiv - 1) / (2 * ndiv)
 
         prof = np.zeros_like(x)
         for iy in range(ybin):
             # loop over unbinned pixels in Y
-            yoff = iy-(ybin-1)/2 - soff
+            yoff = iy - (ybin - 1) / 2 - soff
             for ix in range(xbin):
                 # loop over unbinned pixels in X
-                xoff = ix-(xbin-1)/2 - soff
+                xoff = ix - (xbin - 1) / 2 - soff
                 for isy in range(ndiv):
                     # loop over sub-pixels in y
-                    ysoff = yoff + isy/ndiv
+                    ysoff = yoff + isy / ndiv
                     for isx in range(ndiv):
                         # loop over sub-pixels in x
-                        xsoff = xoff + isx/ndiv
-                        rsq = (x+xsoff-xcen)**2+(y+ysoff-ycen)**2
-                        prof += np.exp(-alpha*rsq)
+                        xsoff = xoff + isx / ndiv
+                        rsq = (x + xsoff - xcen) ** 2 + (y + ysoff - ycen) ** 2
+                        prof += np.exp(-alpha * rsq)
 
-        return sky+(height/xbin/ybin/ndiv**2)*prof
+        return sky + (height / xbin / ybin / ndiv ** 2) * prof
 
     else:
         # Fast as possible, compute profile at pixel centres only
-        rsq = (x-xcen)**2+(y-ycen)**2
-        return sky+height*np.exp(-alpha*rsq)
+        rsq = (x - xcen) ** 2 + (y - ycen) ** 2
+        return sky + height * np.exp(-alpha * rsq)
 
-@jit(nopython=True,cache=True)
+
+@jit(nopython=True, cache=True)
 def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     """Returns a list of four or five numpy arrays corresponding to the ordinate
     grids in xy set to the partial derivatives of a symmetric 2D Gaussian plus
@@ -1289,7 +1436,7 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     appear in the function call.
 
     """
-    alpha = 4.*np.log(2.)/fwhm**2
+    alpha = 4.0 * np.log(2.0) / fwhm ** 2
 
     dsky = np.ones_like(x)
 
@@ -1301,34 +1448,34 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
         dfwhm = np.zeros_like(x)
 
         # mean offset within sub-pixels
-        soff = (ndiv-1)/(2*ndiv)
+        soff = (ndiv - 1) / (2 * ndiv)
 
         for iy in range(ybin):
             # loop over unbinned pixels in Y
-            yoff = iy-(ybin-1)/2 - soff
+            yoff = iy - (ybin - 1) / 2 - soff
             for ix in range(xbin):
                 # loop over unbinned pixels in X
-                xoff = ix-(xbin-1)/2 - soff
+                xoff = ix - (xbin - 1) / 2 - soff
                 for isy in range(ndiv):
                     # loop over sub-pixels in y
-                    ysoff = yoff + isy/ndiv
+                    ysoff = yoff + isy / ndiv
                     for isx in range(ndiv):
                         # loop over sub-pixels in x
-                        xsoff = xoff + isx/ndiv
+                        xsoff = xoff + isx / ndiv
 
                         # finally compute stuff
                         dx = x + xsoff - xcen
                         dy = y + ysoff - ycen
-                        rsq = dx**2 + dy**2
+                        rsq = dx ** 2 + dy ** 2
 
-                        dh = np.exp(-alpha*rsq)
+                        dh = np.exp(-alpha * rsq)
                         dheight += dh
-                        dxcen += (2*alpha*height)*dh*dx
-                        dycen += (2*alpha*height)*dh*dy
-                        dfwhm += (2*alpha*height/fwhm)*dh*rsq
+                        dxcen += (2 * alpha * height) * dh * dx
+                        dycen += (2 * alpha * height) * dh * dy
+                        dfwhm += (2 * alpha * height / fwhm) * dh * rsq
 
         # Normalise by number of evaluations
-        nadd = xbin*ybin*ndiv**2
+        nadd = xbin * ybin * ndiv ** 2
         dheight /= nadd
         dxcen /= nadd
         dycen /= nadd
@@ -1341,14 +1488,15 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
         # fast as possible, only compute at centre of pixels
         dx = x - xcen
         dy = y - ycen
-        rsq = dx**2 + dy**2
+        rsq = dx ** 2 + dy ** 2
 
-        dheight = np.exp(-alpha*rsq)
-        dxcen = (2*alpha*height)*dheight*dx
-        dycen = (2*alpha*height)*dheight*dy
-        dfwhm = (2*alpha*height/fwhm)*dheight*rsq
+        dheight = np.exp(-alpha * rsq)
+        dxcen = (2 * alpha * height) * dheight * dx
+        dycen = (2 * alpha * height) * dheight * dy
+        dfwhm = (2 * alpha * height / fwhm) * dheight * rsq
         #            return np.dstack((dsky, dheight, dxcen, dycen, dfwhm))
         return (dsky, dheight, dxcen, dycen, dfwhm)
+
 
 class Gfit1:
     """
@@ -1374,7 +1522,7 @@ class Gfit1:
           ndiv : int
              pixel sub-division factor. See comments in fitGaussian.
         """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
+        self.sigma = np.sqrt(read ** 2 + np.maximum(0, wind.data) / gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.x, self.y = np.meshgrid(x, y)
@@ -1390,7 +1538,7 @@ class Gfit1:
         method for a description of the argument 'param'
         """
         mod = self.model(param)
-        diff = (self.data-mod)/self.sigma
+        diff = (self.data - mod) / self.sigma
         ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
 
@@ -1409,9 +1557,18 @@ class Gfit1:
         """
         sky, height, xcen, ycen, fwhm = param
         return support.gaussian(
-            self.x, self.y, sky, height, xcen, ycen, fwhm,
-            self.xbin, self.ybin, self.ndiv
+            self.x,
+            self.y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
         )
+
 
 class Dgfit1:
     """
@@ -1440,11 +1597,20 @@ class Dgfit1:
         """
         sky, height, xcen, ycen, fwhm = param
         derivs = dgaussian(
-            self.x, self.y, sky, height, xcen, ycen, fwhm,
-            self.xbin, self.ybin, self.ndiv
+            self.x,
+            self.y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
         )
         ok = self.mask & (self.sigma > 0)
-        return [(-deriv[ok]/self.sigma[ok]).ravel() for deriv in derivs]
+        return [(-deriv[ok] / self.sigma[ok]).ravel() for deriv in derivs]
+
 
 class Gfit2:
     """
@@ -1474,7 +1640,7 @@ class Gfit2:
              sub-pixellation factor. See fitGaussian for more.
 
         """
-        self.sigma = np.sqrt(read**2+np.maximum(0,wind.data)/gain)
+        self.sigma = np.sqrt(read ** 2 + np.maximum(0, wind.data) / gain)
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.x, self.y = np.meshgrid(x, y)
@@ -1491,7 +1657,7 @@ class Gfit2:
         """
 
         mod = self.model(param)
-        diff = (self.data-mod)/self.sigma
+        diff = (self.data - mod) / self.sigma
         ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
 
@@ -1510,9 +1676,18 @@ class Gfit2:
         """
         sky, height, xcen, ycen = param
         return gaussian(
-            self.x, self.y, sky, height, xcen, ycen, self.fwhm,
-            self.xbin, self.ybin, self.ndiv
+            self.x,
+            self.y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            self.fwhm,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
         )
+
 
 class Dgfit2:
     """
@@ -1543,12 +1718,20 @@ class Dgfit2:
         """
         sky, height, xcen, ycen = param
         derivs = dgaussian(
-            self.x, self.y, sky, height, xcen, ycen, self.fwhm,
-            self.xbin, self.ybin, self.ndiv
+            self.x,
+            self.y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            self.fwhm,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
         )
 
         # note one more derivative is resturned than we need, so
         # we cut it out (the last one)
         ok = self.mask & (self.sigma > 0)
         sigs = self.sigma[ok]
-        return [(-deriv[ok]/sigs).ravel() for deriv in derivs[:-1]]
+        return [(-deriv[ok] / sigs).ravel() for deriv in derivs[:-1]]
