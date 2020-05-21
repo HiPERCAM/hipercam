@@ -6,7 +6,7 @@ inclusion in the documentation and for portability
 
 from .arith import add, div, mul, sub
 from .atbytes import atbytes
-from .atfixer import atfixer
+from .atanalysis import atanalysis
 from .averun import averun
 from .carith import cadd, cdiv, cmul, csub
 from .combine import combine
@@ -45,6 +45,8 @@ from .uls import uls
 
 __all__ = [
     "add",
+    "atanalysis",
+    "atbytes",
     "averun",
     "cadd",
     "cdiv",

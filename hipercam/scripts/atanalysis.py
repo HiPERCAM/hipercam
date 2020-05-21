@@ -17,7 +17,7 @@ __all__ = [
 ###############################################################
 
 
-def atanlaysis(args=None):
+def atanalysis(args=None):
     """``atanalysis mintim dcmax``
 
     Specialist script to look for timing problems in all runs in
