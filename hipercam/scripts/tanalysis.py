@@ -1,13 +1,14 @@
 import sys
 import os
 import shutil
+import struct
 
 import numpy as np
 import matplotlib.pylab as plt
 from scipy import stats
 
 import hipercam as hcam
-from hipercam import cline, utils, spooler
+from hipercam import cline, utils, spooler, ucam
 from hipercam.cline import Cline
 
 __all__ = [
@@ -22,39 +23,30 @@ __all__ = [
 
 
 def tanalysis(args=None):
-    """``tanalysis [source] run [mintim dcmax] details (mcdiffplot check``
+    """``tanalysis [source] run [mintim dcmax] details (plot [check (output)])``
 
     .. Warning::
 
        This script should only be run if you know what you are doing.
 
-    Analyses timing data in |hiper|, ULTRACAM or ULTRASPEC data. This is
-    carried out by first copying the data for safety and only
-    optionally deleting the copy once the fixes have been made. It
-    also requires that a copy of the timing bytes has been made
-    previously (see ``tbytes'' and ``atbytes''). It looks for this
-    file in a sub-directory of the directory the script is run from called
-    "tbytes". If the file does not exist, the a script will exit.
+    Analyses timing data in |hiper|, ULTRACAM or ULTRASPEC data.  You
+    must first have made copy of the timing bytes (see ``tbytes'' and
+    ``atbytes''). It looks for a timing bytes file in a sub-directory
+    of the directory the script is run from called "tbytes". If the
+    file does not exist, the script will exit.
 
     On occasion there are problems with ULTRACAM, ULTRASPEC and, very
-    rarely, |hiper| timestamps. Most of these problems are
-    fixable. The aim of this script is to try to accomplish such
-    fixing is as bombproof a way as possible. These are the types of
-    problems it tries to fix:
+    rarely, |hiper| timestamps. The main purpose of this script is to
+    provide an analysis of the timing to spot these is as clear a way
+    as possible. Some of the problems are::
 
       1) ULTRASPEC null timestamps: ULTRASPEC runs occasionally feature
          weird null timestamps. They don't replace the proper ones but
          push them down the line so they turn up later.
 
-      2) Extra OK-looking timestamps: we think that owing to glitches,
-         sometimes genuine but spurious timestamps are added to the
-         FIFO buffer. Again these are extra, and push the real ones down
-         the line. They are however not as glaring as the null timestamps
-         so a bit more care is needed to identify them.
-
-    The program always defaults to safety: if there is anything that does
-    not seem right, it will do nothing. If it does run, it will report either
-    that the run times are "OK" or "corrupt".
+      2) Extra OK-looking timestamps: on three occasions, genuine but
+         spurious timestamps have been added to the FIFO buffer. Again
+         these are extra, and push the real ones down the line.
 
     Parameters:
 
@@ -91,15 +83,23 @@ def tanalysis(args=None):
         plot : bool
            True to make diagnostic plots if problem runs found
 
-        check : bool
+        check : bool [if plot, hidden]
            True simply to check a run for timing problems, not try to
-           fix them.
+           fix them. Defaults to True, and is also hidden by
+           default. If you set check=False, the code also attempts to
+           fix the times and generate a new data file. At the moment
+           it is set to try to correct for spurious extra timestamps
+           as happened for the following runs 2011-10-31 run022,
+           2013-12-31 run031 and 2015-06-22 run024.
+
+        output : str [if not check]
+           Name of the modified data file. Will not overwrite any existing file.
 
     .. Note::
 
        The final frame on many runs can be terminated early and thus ends with
        an out of sequence timestamp (it comes earlier than expected). The script
-       regards such a run as being "OK".
+       regards such a run as being "OK" if there are not other issues.
 
     """
 
@@ -115,7 +115,8 @@ def tanalysis(args=None):
         cl.register("dcmax", Cline.LOCAL, Cline.HIDE)
         cl.register("plot", Cline.LOCAL, Cline.PROMPT)
         cl.register("details", Cline.LOCAL, Cline.PROMPT)
-        cl.register("check", Cline.LOCAL, Cline.PROMPT)
+        cl.register("check", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         source = cl.get_value(
@@ -134,7 +135,17 @@ def tanalysis(args=None):
             "details", "print detailed diagnostics of problems", True
         )
         plot = cl.get_value("plot", "make diagnostic plots", True)
-        check = cl.get_value("check", "check for, but do not fix, any problems", True)
+
+        if plot:
+            cl.set_default("check", True)
+            check = cl.get_value("check", "check for, but do not fix, any problems", True)
+            if not check:
+                output = cl.get_value(
+                    "output", "output file for data with modified times",
+                    cline.Fname("modified",ftype=cline.Fname.NOCLOBBER)
+                )
+        else:
+            check = True
 
     # create name of timing file
     tfile = os.path.join("tbytes", os.path.basename(run) + hcam.TBTS)
@@ -145,16 +156,11 @@ def tanalysis(args=None):
     # later if problems are picked up
     if source == "hl":
         rfile = run + ".fits"
-        cfile = run + ".fits.save"
     else:
         rfile = run + ".dat"
-        cfile = run + ".dat.save"
 
     # first load all old time stamps, and compute MJDs
-    if source == "hl":
-        raise NotImplementedError("HiPERCAM option not yet implemented")
-
-    elif source == "ul":
+    if source == "ul":
 
         # Load up the time stamps from the timing data file. Need also
         # the header of the original run to know how many bytes to
@@ -171,10 +177,14 @@ def tanalysis(args=None):
                 atbytes.append(tbytes)
 
                 # interpret times
-                mjd, tflag, gflag = u_tbytes_to_mjd(tbytes, rhead, nframe)
+                mjd, tflag, gflag, uformat = u_tbytes_to_mjd(tbytes, rhead, nframe)
                 mjds.append(mjd)
                 tflags.append(tflag)
                 gflags.append(gflag)
+
+    else:
+        raise NotImplementedError("source = {} not yet implemented".format(source))
+
 
     if len(mjds) < mintim:
         # Must have specified minimum of times to work with. This is
@@ -424,9 +434,6 @@ def tanalysis(args=None):
         ax = fig.add_subplot()
         ax.plot(iacycles[~fails], cadiffs[~fails], ".b")
         ax.plot(iacycles[fails], cadiffs[fails], ".r")
-        #        ax.plot(icycles[~cok],cdiffs[~cok],'.',color='0.7')
-        #        ax.plot(icycles[cok],cdiffs[cok],'.g')
-
         ax.set_xlabel("Cycle number")
         ax.set_ylabel("Cycle difference")
         secxax = ax.secondary_xaxis("top", functions=(c2t, t2c))
@@ -437,23 +444,92 @@ def tanalysis(args=None):
         secyax.set_xlabel("$\Delta t$ (msec)".format(intercept))
         plt.show()
 
-    if run_ok or check:
-        # go no further if run is OK or we are in check mode
+    if not plot or run_ok or check:
+        # go no further if run is OK, no plot has been made, or we are in check mode
         return
 
+    # very specific code at this point for the post-2010 problem runs: remove duplicate
+    # time stamps.
 
-#    if ginds[0] != 0:
-#        # this case needs checking
-#        raise hcam.HipercamError(
-#            'Cannot handle case where first timestamp is no good'
-#        )
+    if ginds[0] != 0 or nfail == 0  or (source == 'ul' and uformat != 2):
+        # this case needs checking
+        raise hcam.HipercamError(
+            'Cannot yet handle cases where the first timestamp is no good, nfail == 0, or format==2 ultracam data'
+        )
 
-#    # make copy of data, if not already present
-#    if not os.path.exists(cfile):
-#        print('Copying',rfile,'to',cfile)
-#        shutil.copyfile(rfile, cfile)
-#    else:
-#        print('Copy of',rfile,'called',cfile,'already exists')
+    # these frames have been ID-ed as junk
+    skip_inds = inds_ok[fails]
+    inds_keep = inds == inds
+    inds_keep[skip_inds] = False
+
+    # inds_keep : False for any Frame we want to forget
+    new_mjds, new_atbytes = [], []
+    for keep, mjd, tbytes in zip(inds_keep, mjds, atbytes):
+        if keep:
+            new_mjds.append(mjd)
+            new_atbytes.append(tbytes)
+
+    nskip = len(mjds)-len(new_mjds)
+
+    # modify the last few times to make up for the skips
+    for tbytes in atbytes[-nskip:]:
+        mjd += slope
+        new_mjds.append(mjd)
+        unix_sec = ucam.DSEC*(mjd - ucam.UNIX)
+        nsec = int(np.floor(unix_sec))
+        nnsec = int(round(1.e7*(unix_sec-nsec)))
+        tbytes = tbytes[:12] + struct.pack("<II", nsec, nnsec) + tbytes[20:]
+        new_atbytes.append(tbytes)
+
+    new_mjds_ok = np.array(new_mjds)
+    new_mjds_ok = new_mjds_ok[tflags & gflags]
+    acycles = (new_mjds_ok - intercept) / slope
+    iacycles = np.round(acycles).astype(int)
+    diffs = acycles-iacycles
+
+    # search for duplicates
+    u, c = np.unique(iacycles, return_counts=True)
+    ndupes = len(u[c > 1])
+
+    # search for gaps
+    csteps = iacycles[1:]-iacycles[:-1]
+    ngaps = len(iacycles[1:][csteps > 1])
+
+    print('\nFound {} spurious time stamps; new times have {} duplications and {} gaps > 1'.format(nskip,ndupes,ngaps))
+    print('Ideally, the last two numbers should be 0 and 0.')
+
+    plt.plot(iacycles[:-nskip], diffs[:-nskip], '.g')
+    plt.plot(iacycles[-nskip:], diffs[-nskip:], '.b')
+    plt.xlabel('Cycle number')
+    plt.ylabel('Cycle difference')
+    plt.show()
+
+    reply = input('Generate data with corrected time stamps? [no] ')
+    if reply != 'yes':
+        print('time correction aborted')
+
+    # OK, finally, let's go for it!
+    if source == "ul":
+        with open(output,"wb") as fout:
+            with open(rfile,"rb") as fin:
+                nframe = 0
+                while 1:
+                    # Read a whole frame
+                    buff = fin.read(rhead.framesize)
+                    if len(buff) != rhead.framesize:
+                        break
+
+                    # write to output, writing modified timing
+                    # bytes in place of old ones
+                    fout.write(new_atbytes[nframe])
+                    fout.write(buff[rhead.ntbytes:])
+                    nframe += 1
+                    print('Processed frame {} / {}'.format(nframe,len(atbytes)))
+
+    else:
+        raise NotImplementedError("source = {} not yet implemented".format(source))
+
+
 
 
 def u_tbytes_to_mjd(tbytes, rtbytes, nframe):
@@ -462,9 +538,10 @@ def u_tbytes_to_mjd(tbytes, rtbytes, nframe):
     Marks ULTRASPEC null stamps as bad (32 bytes in length,
     the last 20 of which are 0)
 
-    Returns (MJD, NotNull, GoodTime) where MJD is the MJD, NotNull is
-    a flag to say whether the time stamp was not null (True=OK) and
-    GoodTime says whether the time is otherwise thought to be OK.
+    Returns (MJD, NotNull, GoodTime, format) where MJD is the MJD, NotNull is
+    a flag to say whether the time stamp was not null (True=OK),
+    GoodTime says whether the time is otherwise thought to be OK, and format
+    is an integer code to distinguish different versions of the ultracam times.
     """
     try:
         ret = hcam.ucam.utimer(tbytes, rtbytes, nframe)
@@ -472,11 +549,11 @@ def u_tbytes_to_mjd(tbytes, rtbytes, nframe):
         return (0, True, False)
 
     if len(tbytes) == 32 and tbytes[12:] == 20 * b"\x00":
-        return (ret[1]["gps"], False, False)
+        return (ret[1]["gps"], False, False, ret[1]["format"])
     elif ret[1]["gps"] < 52395:
-        return (ret[1]["gps"], True, False)
+        return (ret[1]["gps"], True, False, ret[1]["format"])
     else:
-        return (ret[1]["gps"], True, True)
+        return (ret[1]["gps"], True, True, ret[1]["format"])
 
 
 def h_tbytes_to_mjd(tbytes, nframe):
