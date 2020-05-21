@@ -40,7 +40,7 @@ from .stats import stats
 from .redanal import redanal
 from .splice import splice
 from .tbytes import tbytes
-from .tfixer import tfixer
+from .tanalysis import tanalysis
 from .uls import uls
 
 __all__ = [
@@ -80,8 +80,8 @@ __all__ = [
     "splice",
     "stats",
     "sub",
+    "tanalysis",
     "tbytes",
-    "tfixer",
     "uls",
 ]
 

@@ -7,26 +7,27 @@ from hipercam import utils, cline
 from hipercam.cline import Cline
 
 __all__ = [
-    "atfixer",
+    "atanalysis",
 ]
 
-#########################################################
+###############################################################
 #
-# atfixer -- runs tfixer on a series of night directories
+# atanalysis -- runs tanalysis on a series of night directories
 #
-#########################################################
+###############################################################
 
 
-def atfixer(args=None):
-    """``atfixer mintim dcmax``
+def atanlaysis(args=None):
+    """``atanalysis mintim dcmax``
 
-    Specialist script to look for timing problems in all runs in 
+    Specialist script to look for timing problems in all runs in
     night directories.
 
     Parameters:
 
         mintim : int
-           Minimum number of frames to reuire a run to have before running tfixer on it
+           Minimum number of frames to require a run to have before running
+           tanalysis on it
 
         dcmax : float
            Maximum differential in terms of cycle number from exact integers

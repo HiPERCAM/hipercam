@@ -11,24 +11,24 @@ from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
 __all__ = [
-    "tfixer",
+    "tanalysis",
 ]
 
-###############################
+##################################
 #
-# tfixer -- timing fixer script
+# tanalysis -- timing fixer script
 #
-###############################
+##################################
 
 
-def tfixer(args=None):
-    """``tfixer [source] run [mintim dcmax] details (mcdiffplot check``
+def tanalysis(args=None):
+    """``tanalysis [source] run [mintim dcmax] details (mcdiffplot check``
 
     .. Warning::
 
        This script should only be run if you know what you are doing.
 
-    Fixes timestamps in |hiper|, ULTRACAM or ULTRASPEC data. This is
+    Analyses timing data in |hiper|, ULTRACAM or ULTRASPEC data. This is
     carried out by first copying the data for safety and only
     optionally deleting the copy once the fixes have been made. It
     also requires that a copy of the timing bytes has been made
