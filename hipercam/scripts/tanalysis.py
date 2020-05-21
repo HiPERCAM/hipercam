@@ -88,12 +88,20 @@ def tanalysis(args=None):
            fix them. Defaults to True, and is also hidden by
            default. If you set check=False, the code also attempts to
            fix the times and generate a new data file. At the moment
-           it is set to try to correct for spurious extra timestamps
-           as happened for the following runs 2011-10-31 run022,
-           2013-12-31 run031 and 2015-06-22 run024.
+           it is very specific code set to try to correct for spurious
+           extra timestamps as happened for the following runs:
+           2011-10-31 run022, 2013-12-31 run031 and 2015-06-22
+           run024. It works by calculating its best estimate of cycle
+           numbers and rejecting any too far off being integers. The
+           corrected times are analysed for duplications and gaps. You
+           do not want any duplications (and ideally no gaps either).
+           You will be asked one final time if you want to proceed.
 
         output : str [if not check]
-           Name of the modified data file. Will not overwrite any existing file.
+           Name of the modified data file. For safety this will not overwrite
+           any existing file. It is up to the user to move / copy / rename files
+           appropriately. Take care to check the results before deleting any
+           original data. Keeping a copy is probably advisable.
 
     .. Note::
 
@@ -464,10 +472,13 @@ def tanalysis(args=None):
 
     # inds_keep : False for any Frame we want to forget
     new_mjds, new_atbytes = [], []
+    nframe = 0
+    # manipulate the frame numbers to avoid warnings
     for keep, mjd, tbytes in zip(inds_keep, mjds, atbytes):
         if keep:
+            nframe += 1
             new_mjds.append(mjd)
-            new_atbytes.append(tbytes)
+            new_atbytes.append(tbytes[:4] + struct.pack("<I",nframe) + tbytes[8:])
 
     nskip = len(mjds)-len(new_mjds)
 
@@ -478,7 +489,8 @@ def tanalysis(args=None):
         unix_sec = ucam.DSEC*(mjd - ucam.UNIX)
         nsec = int(np.floor(unix_sec))
         nnsec = int(round(1.e7*(unix_sec-nsec)))
-        tbytes = tbytes[:12] + struct.pack("<II", nsec, nnsec) + tbytes[20:]
+        nframe += 1
+        tbytes = tbytes[:4] + struct.pack("<I",nframe) + tbytes[8:12] + struct.pack("<II", nsec, nnsec) + tbytes[20:]
         new_atbytes.append(tbytes)
 
     new_mjds_ok = np.array(new_mjds)
@@ -528,7 +540,6 @@ def tanalysis(args=None):
 
     else:
         raise NotImplementedError("source = {} not yet implemented".format(source))
-
 
 
 
