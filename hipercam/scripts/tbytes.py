@@ -40,14 +40,15 @@ def tbytes(args=None):
            routinely applied to ULTRASPEC data for example. 'old' will
            switch to False by default if not explicitly set.
 
-        run : string
+        run : str
            run number to access, e.g. 'run0034'. This will also be
            used to generate the name for the timing bytes file
            (extension '.tbts'). If a file of this name already exists,
            the script will attempt to read and compare the bytes of
            the two files and report any changes.  The timing bytes
-           file will be written to the present working directory, not
-           necessarily the location of the data file.
+           file will be written to the present working directory,
+           unless it contains a sub-directory named "tbytes", in which
+           case the timing data will be read/written from/to there.
 
     """
 
@@ -75,7 +76,10 @@ def tbytes(args=None):
             run = run[:-5]
 
     # create name of timing bytes file
-    ofile = os.path.basename(run) + hcam.TBTS
+    if os.path.isdir('tbytes'):
+        ofile = os.path.join('tbytes', os.path.basename(run) + hcam.TBTS)
+    else:
+        ofile = os.path.basename(run) + hcam.TBTS
 
     if source == "hl":
 
@@ -114,6 +118,7 @@ def tbytes(args=None):
             )
 
         else:
+
             # save timing bytes to disk
             with spooler.HcamTbytesSpool(run) as rtbytes:
                 with open(ofile, "wb") as fout:
@@ -172,7 +177,7 @@ def tbytes(args=None):
 
 def u_tbytes_to_mjd(tbytes, rtbytes, nframe):
     """Translates set of ULTRACAM timing bytes into an MJD"""
-    return hcam.ucam.utimer(tbytes, rtbytes, nframe)[1]["gps"]
+    return hcam.ucam.utimer(tbytes, rtbytes.head, nframe)[1]["gps"]
 
 
 def h_tbytes_to_mjd(tbytes, nframe):

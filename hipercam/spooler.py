@@ -181,6 +181,11 @@ class UcamTbytesSpool(SpoolerBase):
         self._iter = ucam.Rtbytes(run, first, False, old)
         self.ntbytes = self._iter.ntbytes
 
+    @property
+    def head(self):
+        """Need this to pass to utimer in "tbytes"."""
+        return self._iter
+
     def __exit__(self, *args):
         self._iter.__exit__(args)
 
