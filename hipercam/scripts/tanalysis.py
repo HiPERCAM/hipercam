@@ -443,7 +443,8 @@ def tanalysis(args=None):
         ax.plot(iacycles[~fails], cadiffs[~fails], ".b")
         ax.plot(iacycles[fails], cadiffs[fails], ".r")
         ax.set_xlabel("Cycle number")
-        ax.set_ylabel("Cycle difference")
+        ax.set_ylabel('Cycle - nint(Cycle) [cycles]')
+
         secxax = ax.secondary_xaxis("top", functions=(c2t, t2c))
         secxax.set_xlabel("Time [MJD - {}] (seconds)".format(intercept))
         secyax = ax.secondary_yaxis(
@@ -482,13 +483,16 @@ def tanalysis(args=None):
 
     nskip = len(mjds)-len(new_mjds)
 
-    # modify the last few times to make up for the skips
-    for tbytes in atbytes[-nskip:]:
-        mjd += slope
-        new_mjds.append(mjd)
+    # modify the last few times to make up for the skips,
+    # extrapolating the times using the fitted time step per cycle
+    # from before. We don't simply add "slope" to the last MJD one by
+    # one because of subtle round-off issues.
+    mjds_nskip = mjd + slope*np.linspace(1,nskip,nskip)
+    for tbytes, mjd in zip(atbytes[-nskip:], mjds_nskip):
         unix_sec = ucam.DSEC*(mjd - ucam.UNIX)
         nsec = int(np.floor(unix_sec))
         nnsec = int(round(1.e7*(unix_sec-nsec)))
+        new_mjds.append(ucam.UNIX+float(nsec+nnsec/1.0e7)/ucam.DSEC)
         nframe += 1
         tbytes = tbytes[:4] + struct.pack("<I",nframe) + tbytes[8:12] + struct.pack("<II", nsec, nnsec) + tbytes[20:]
         new_atbytes.append(tbytes)
@@ -513,12 +517,19 @@ def tanalysis(args=None):
     plt.plot(iacycles[:-nskip], diffs[:-nskip], '.g')
     plt.plot(iacycles[-nskip:], diffs[-nskip:], '.b')
     plt.xlabel('Cycle number')
-    plt.ylabel('Cycle difference')
+    plt.ylabel('Cycle - int(Cycle) [cycles]')
     plt.show()
 
+    tdiffs = 86400*(mjds_ok - new_mjds_ok)
+    plt.plot(iacycles[:-nskip], tdiffs[:-nskip], '.g')
+    plt.plot(iacycles[-nskip:], tdiffs[-nskip:], '.b')
+    plt.xlabel('Cycle number')
+    plt.ylabel('Old time - new [seconds]')
+    plt.show()
     reply = input('Generate data with corrected time stamps? [no] ')
     if reply != 'yes':
         print('time correction aborted')
+        return
 
     # OK, finally, let's go for it!
     if source == "ul":
@@ -531,8 +542,8 @@ def tanalysis(args=None):
                     if len(buff) != rhead.framesize:
                         break
 
-                    # write to output, writing modified timing
-                    # bytes in place of old ones
+                    # write to output, writing modified timing bytes
+                    # in place of old ones
                     fout.write(new_atbytes[nframe])
                     fout.write(buff[rhead.ntbytes:])
                     nframe += 1
