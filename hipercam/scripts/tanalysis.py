@@ -497,6 +497,11 @@ def tanalysis(args=None):
         tbytes = tbytes[:4] + struct.pack("<I",nframe) + tbytes[8:12] + struct.pack("<II", nsec, nnsec) + tbytes[20:]
         new_atbytes.append(tbytes)
 
+    # transfer byte 0 over as this contains a flag indicating the status of the blue data for the NBLUE option
+    # (god, this is painful)
+    for n in range(len(atbytes)):
+        new_atbytes[n] = atbytes[n][0:1] + new_atbytes[n][1:]
+
     new_mjds_ok = np.array(new_mjds)
     new_mjds_ok = new_mjds_ok[tflags & gflags]
     acycles = (new_mjds_ok - intercept) / slope
