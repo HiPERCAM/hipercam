@@ -46,9 +46,9 @@ __all__ = [
 
 
 def setaper(args=None):
-    """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 
+    """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2
     xlo xhi ylo yhi nx msub iset (ilo ihi | plo phi) [profit method beta
-    fwmin fwhm fwfix shbox smooth splot fhbox read gain thresh]``
+    betafix betamax fwhm fwfix fwmin shbox smooth splot fhbox read gain thresh]``
 
     Interactive definition of photometric extraction apertures. This is
     a matplotlib-based routine allowing you to place apertures on targets
@@ -407,15 +407,28 @@ def setaper(args=None):
         )
         if method == "m":
             beta = cl.get_value("beta", "initial exponent for Moffat fits", 5.0, 0.5)
+            beta_fix = cl.get_value("betafix", "fix beta at start value?", False)
+            if beta_fix:
+                beta_max = beta
+            else:
+                beta_max = cl.get_value(
+                    "betamax", "maximum beta to allow", 20
+                )
         else:
-            beta = 0
-        fwhm_min = cl.get_value(
-            "fwmin", "minimum FWHM to allow [unbinned pixels]", 1.5, 0.01
-        )
+            beta = 0.
+            beta_fix = True
+            beta_max = 0.
+
         fwhm = cl.get_value(
             "fwhm", "initial FWHM [unbinned pixels] for profile fits", 6.0, fwhm_min
         )
         fwhm_fix = cl.get_value("fwfix", "fix the FWHM at start value?", False)
+        if fwhm_fix:
+            fwhm_min = fwhm
+        else:
+            fwhm_min = cl.get_value(
+                "fwmin", "minimum FWHM to allow [unbinned pixels]", 1.5, 0.01
+            )
 
         shbox = cl.get_value(
             "shbox",
@@ -546,6 +559,8 @@ def setaper(args=None):
         profit,
         method,
         beta,
+        beta_max,
+        beta_fix,
         fwhm,
         fwhm_min,
         fwhm_fix,
@@ -600,6 +615,8 @@ class PickStar:
         profit,
         method,
         beta,
+        beta_max,
+        beta_fix,
         fwhm,
         fwhm_min,
         fwhm_fix,
@@ -629,6 +646,8 @@ class PickStar:
         self.profit = profit
         self.method = method
         self.beta = beta
+        self.beta_max = beta_max
+        self.beta_fix = beta_fix
         self.fwhm = fwhm
         self.fwhm_min = fwhm_min
         self.fwhm_fix = fwhm_fix
@@ -987,6 +1006,8 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     self.fwhm_min,
                     self.fwhm_fix,
                     self.beta,
+                    self.beta_max,
+                    self.beta_fix,
                     self.read,
                     self.gain,
                     self.thresh,
@@ -1091,15 +1112,18 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     self._y - self.shbox,
                     self._y + self.shbox,
                 )
-
                 try:
                     # carry out initial search
                     x, y, peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
+                    print("  initial search returned x,y,peak = {},{},{}".format(x,y,peak))
 
                     # now for a more refined fit. First extract fit Window
                     fwind = ccd[wnam].window(
                         x - self.fhbox, x + self.fhbox, y - self.fhbox, y + self.fhbox
                     )
+                    if fwind.nx <= 3 and fwind.ny <= 3:
+                        print("  search box dimensions are only {}x{} binned pixels".format(fwind.nx,fwind.ny))
+
                     sky = np.percentile(fwind.data, 25)
 
                     # refine the Aperture position by fitting the profile
@@ -1118,6 +1142,8 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         self.fwhm_min,
                         self.fwhm_fix,
                         self.beta,
+                        self.beta_max,
+                        self.beta_fix,
                         self.read,
                         self.gain,
                         self.thresh,
