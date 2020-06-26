@@ -69,10 +69,10 @@ def combFit(
             exponent of Moffat function
 
         beta_max : float [if method == 'm']
-            fix beta (i.e. don't fit it)
+            maximum beta
 
         beta_fix : bool [if method == 'm']
-            exponent of Moffat function
+            fix beta (i.e. don't fit it)
 
         read : float | array
             readout noise, RMS ADU
