@@ -149,19 +149,27 @@ def setaper(args=None):
          to refine the aperture position. Either a gaussian or a moffat
          profile, 'g' or 'm'.  The latter should usually be best.
 
-      beta   : float [if method == 'm'; hidden]
+      beta : float [if method == 'm'; hidden]
          default Moffat exponent
 
-      fwmin  : float [hidden]
-         minimum FWHM to allow, unbinned pixels.
+      betafix : bool [if method == 'm'; hidden]
+         fix beta or not
 
-      fwhm   : float [hidden]
+      beta_max : bool [if method == 'm' and not betafix; hidden]
+         maximum value of beta. Moffat profiles are degenerate
+         with gaussians at large beta so the idea is to avoid wandering
+         to huge beta.
+
+      fwhm : float [hidden]
          default FWHM, unbinned pixels.
 
-      fwfix  : bool [hidden]
+      fwfix: bool [hidden]
          don't fit the FWHM. Can be more robust; the position is still fitted.
 
-      shbox  : float [hidden]
+      fwmin : float [if not fwfix; hidden]
+         minimum FWHM to allow, unbinned pixels.
+
+      shbox : float [hidden]
          half width of box for searching for a star, unbinned pixels. The
          brightest target in a region +/- shbox around an intial position will
          be found. 'shbox' should be large enough to allow for likely changes
