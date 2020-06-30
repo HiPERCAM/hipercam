@@ -185,23 +185,27 @@ def setaper(args=None):
          main purpose is to combat cosmic rays which tend only to occupy a
          single pixel.
 
-      splot  : bool [hidden]
+      splot : bool [hidden]
          Controls whether an outline of the search box and a target number
          is plotted (in red) or not.
 
-      fhbox  : float [hidden]
+      fhbox : float [hidden]
          half width of box for profile fit, unbinned pixels. The fit box is
          centred on the position located by the initial search. It should
          normally be > ~2x the expected FWHM.
 
-      read   : float [hidden]
+      read : float [hidden]
          readout noise, RMS ADU, for assigning uncertainties
 
-      gain   : float [hidden]
+      gain : float [hidden]
          gain, ADU/count, for assigning uncertainties
 
-      thresh  : float [hidden]
+      thresh : float [hidden]
          thresh rejection threshold
+
+      ndiv : int [hidden]
+         sub-division factor for fits. 0=no sub-division. Otherwise it will used
+         ndiv*ndiv sub-evaluations per *unbinned* pixel
 
 
     There are a few conveniences to make setaper easier:
@@ -286,15 +290,18 @@ def setaper(args=None):
         cl.register("profit", Cline.LOCAL, Cline.HIDE)
         cl.register("method", Cline.LOCAL, Cline.HIDE)
         cl.register("beta", Cline.LOCAL, Cline.HIDE)
+        cl.register("betafix", Cline.LOCAL, Cline.HIDE)
+        cl.register("betamax", Cline.LOCAL, Cline.HIDE)
         cl.register("fwhm", Cline.LOCAL, Cline.HIDE)
-        cl.register("fwmin", Cline.LOCAL, Cline.HIDE)
         cl.register("fwfix", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwmin", Cline.LOCAL, Cline.HIDE)
         cl.register("shbox", Cline.LOCAL, Cline.HIDE)
         cl.register("smooth", Cline.LOCAL, Cline.HIDE)
         cl.register("fhbox", Cline.LOCAL, Cline.HIDE)
         cl.register("read", Cline.LOCAL, Cline.HIDE)
         cl.register("gain", Cline.LOCAL, Cline.HIDE)
         cl.register("thresh", Cline.LOCAL, Cline.HIDE)
+        cl.register("ndiv", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         mccd = cl.get_value("mccd", "frame to plot", cline.Fname("hcam", hcam.HCAM))
@@ -420,7 +427,7 @@ def setaper(args=None):
                 beta_max = beta
             else:
                 beta_max = cl.get_value(
-                    "betamax", "maximum beta to allow", 20
+                    "betamax", "maximum beta to allow", max(beta,20) 
                 )
         else:
             beta = 0.
@@ -428,14 +435,14 @@ def setaper(args=None):
             beta_max = 0.
 
         fwhm = cl.get_value(
-            "fwhm", "initial FWHM [unbinned pixels] for profile fits", 6.0, fwhm_min
+            "fwhm", "initial FWHM [unbinned pixels] for profile fits", 6.0, 1.0
         )
         fwhm_fix = cl.get_value("fwfix", "fix the FWHM at start value?", False)
         if fwhm_fix:
             fwhm_min = fwhm
         else:
             fwhm_min = cl.get_value(
-                "fwmin", "minimum FWHM to allow [unbinned pixels]", 1.5, 0.01
+                "fwmin", "minimum FWHM to allow [unbinned pixels]", min(1.5,fwhm), 0.01, fwhm
             )
 
         shbox = cl.get_value(
@@ -456,6 +463,7 @@ def setaper(args=None):
         read = cl.get_value("read", "readout noise, RMS ADU", 3.0)
         gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
         thresh = cl.get_value("thresh", "RMS rejection threshold for fitting", 4.0)
+        ndiv = cl.get_value("ndiv", "pixel sub-division factor", 0, 0)
 
     # Inputs obtained.
 
@@ -578,6 +586,7 @@ def setaper(args=None):
         read,
         gain,
         thresh,
+        ndiv,
         aper,
         pobjs,
     )
@@ -634,6 +643,7 @@ class PickStar:
         read,
         gain,
         thresh,
+        ndiv,
         apernam,
         pobjs,
     ):
@@ -665,6 +675,7 @@ class PickStar:
         self.read = read
         self.gain = gain
         self.thresh = thresh
+        self.ndiv = ndiv
         self.apernam = apernam
         self.pobjs = pobjs
 
@@ -1019,6 +1030,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     self.read,
                     self.gain,
                     self.thresh,
+                    self.ndiv
                 )
 
                 print("Aperture {:s}: {:s}".format(self._buffer, message))
@@ -1121,6 +1133,9 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     self._y + self.shbox,
                 )
                 try:
+                    if wind.nx <= 3 and wind.ny <= 3:
+                        print("  search window dimensions are only {}x{} binned pixels".format(fwind.nx,fwind.ny))
+
                     # carry out initial search
                     x, y, peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
                     print("  initial search returned x,y,peak = {},{},{}".format(x,y,peak))
@@ -1130,7 +1145,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         x - self.fhbox, x + self.fhbox, y - self.fhbox, y + self.fhbox
                     )
                     if fwind.nx <= 3 and fwind.ny <= 3:
-                        print("  search box dimensions are only {}x{} binned pixels".format(fwind.nx,fwind.ny))
+                        print("  fit window dimensions are only {}x{} binned pixels".format(fwind.nx,fwind.ny))
 
                     sky = np.percentile(fwind.data, 25)
 
@@ -1155,9 +1170,10 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         self.read,
                         self.gain,
                         self.thresh,
+                        self.ndiv
                     )
 
-                    print("Aperture {:s}: {:s}".format(apnam, message))
+                    print("  CCD {}, aperture {}: {}".format(self._cnam, apnam, message))
                     dx = x - aper.x
                     dy = y - aper.y
                     aper.x = x
