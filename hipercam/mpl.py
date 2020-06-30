@@ -326,9 +326,11 @@ def pAper(axes, aper, label="", ccdAper=None):
                     p1.y,
                     v.x,
                     v.y,
-                    width=0.5,
+                    width=3.0,
                     length_includes_head=True,
-                    overhang=0.8,
+                    overhang=0.5,
+                    head_width=18,
+                    head_length=30,
                     lw=2,
                     color=Params["aper.link.col"],
                 )
