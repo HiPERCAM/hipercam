@@ -141,21 +141,8 @@ def combFit(
             (esky, eheight, ex, ey, efwhm, ebeta),
             (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev),
         ) = fitMoffat(
-            wind,
-            sky,
-            height,
-            x,
-            y,
-            fwhm,
-            fwhm_min,
-            fwhm_fix,
-            beta,
-            beta_max,
-            beta_fix,
-            read,
-            gain,
-            thresh,
-            ndiv,
+            wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta,
+            beta_max, beta_fix, read, gain, thresh, ndiv,
         )
 
     else:
@@ -230,7 +217,6 @@ def fitMoffat(
     ycen,
     fwhm,
     fwhm_min,
-    fwhm_max,
     fwhm_fix,
     beta,
     beta_max,
@@ -284,9 +270,6 @@ def fitMoffat(
             prevent going to silly values. Routine first fits with a free
             FWHM. If it goes below this value it tries again, setting to
             this value. (unbinned pixels)
-
-        fwhm_max : float
-            maximum value to allow FWHM to go to to avoid crazy results.
 
         fwhm_fix : bool
             fix the FWHM at the value `fwhm` during fits. Should be a bit
