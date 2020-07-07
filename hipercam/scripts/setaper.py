@@ -1001,13 +1001,20 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             )
 
             try:
+                if wind.nx <= 3 and wind.ny <= 3:
+                    print("  search window dimensions are only {}x{} binned pixels".format(wind.nx,wind.ny))
+
                 # carry out initial search
                 x, y, peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
+                print("  initial search returned x, y, peak = {}, {}, {}".format(x,y,peak))
 
                 # now for a more refined fit. First extract fit Window
                 fwind = ccd[wnam].window(
                     x - self.fhbox, x + self.fhbox, y - self.fhbox, y + self.fhbox
                 )
+                if fwind.nx <= 3 and fwind.ny <= 3:
+                    print("  fit window dimensions are only {}x{} binned pixels".format(fwind.nx,fwind.ny))
+
                 sky = np.percentile(fwind.data, 25)
 
                 # refine the Aperture position by fitting the profile
@@ -1034,7 +1041,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     self.ndiv
                 )
 
-                print("Aperture {:s}: {:s}".format(self._buffer, message))
+                print("  CCD {}, aperture {}: {}".format(self._cnam, self._buffer, message))
                 self._x = x
                 self._y = y
 
@@ -1059,7 +1066,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         plt.draw()
 
         print(
-            "added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}".format(
+            "  added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}".format(
                 self._buffer, self._cnam, self._x, self._y
             )
         )
@@ -1135,7 +1142,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 )
                 try:
                     if wind.nx <= 3 and wind.ny <= 3:
-                        print("  search window dimensions are only {}x{} binned pixels".format(fwind.nx,fwind.ny))
+                        print("  search window dimensions are only {}x{} binned pixels".format(wind.nx,wind.ny))
 
                     # carry out initial search
                     x, y, peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
@@ -1208,6 +1215,12 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                     # finally update the plot
                     plt.draw()
+
+                    print(
+                        "  shifted aperture {:s} of CCD {:s} by dx,dy = {:.3f},{:.3f} unbinned pixels".format(
+                            apnam, self._cnam, dx, dy
+                        )
+                    )
 
                 except hcam.HipercamError as err:
                     print(err, file=sys.stderr)
