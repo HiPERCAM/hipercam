@@ -1063,6 +1063,8 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                         slevel = dsky[ok].mean()
                         srms = dsky[ok].std()
                         nold = len(dsky[ok])
+                        if nold < 2:
+                            break
                         ok = ok & (np.abs(dsky - slevel) < thresh * srms)
                         nrej = nold - len(dsky[ok])
 
