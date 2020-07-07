@@ -1270,23 +1270,22 @@ class Window(Winhead):
 
         """
 
-        if fwhm > 0:
-            sigma = fwhm / np.sqrt(8 * np.log(2))
-            fedge = self.data.min()
-            if fft:
-                kern = Gaussian2DKernel(sigma)
-                cimg = convolve_fft(self.data, kern, "fill", fedge)
-            else:
-                cimg = gaussian_filter(self.data, sigma, mode="constant", cval=fedge)
-
-        else:
-            cimg = self.data
-
         # compute the background for judging peak heights
         if percent <= 0:
             back = self.data.min()
         else:
             back = np.percentile(self.data, percent)
+
+        if fwhm > 0:
+            sigma = fwhm / np.sqrt(8 * np.log(2))
+            if fft:
+                kern = Gaussian2DKernel(sigma)
+                cimg = convolve_fft(self.data, kern, "fill", back)
+            else:
+                cimg = gaussian_filter(self.data, sigma, mode="constant", cval=back)
+
+        else:
+            cimg = self.data
 
         if max:
             # Locate the pixel of the global maximum
