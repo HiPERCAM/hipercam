@@ -192,6 +192,8 @@ def combFit(
             sky,
             esky,
             fit.sum(),
+            beta,
+            ebeta,
             chisq,
             nok,
             nrej,
