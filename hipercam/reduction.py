@@ -1575,7 +1575,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     apsec["fit_ndiv"],
                 )
 
-                # check that x, y are in range of the original search box.
+                # check that x, y are within both the search and fit boxes
                 if swdata.distance(x, y) < 0.5:
                     raise hcam.HipercamError(
                         (
@@ -1585,8 +1585,17 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                             )
                         )
                     )
+                elif fwdata.distance(x, y) < 0.5:
+                    raise hcam.HipercamError(
+                        (
+                            "Fitted position ({:.1f},{:.1f}) too close to or"
+                            " beyond edge of fit window = {!s}".format(
+                                x, y, swdata.format(True)
+                            )
+                        )
+                    )
 
-                if height > apsec["fit_height_min_ref"]:
+                if height >= apsec["fit_height_min_ref"]:
 
                     # The peak height check is probably not required at this
                     # point since the search routine applies it more
@@ -1639,7 +1648,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
         # trap problems during the fits
         print(
             "CCD {:s}, reference aperture {:s},"
-            " fit failed, will abort extraction. Error = {!s}".format(cnam, apnam, err),
+            " fit failed; extraction aborted. Error = {!s}".format(cnam, apnam, err),
             file=sys.stderr,
         )
 
@@ -1734,7 +1743,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 
             print(
                 (
-                    "CCD {:s}: no reference aperture " "fit was successful; skipping"
+                    "CCD {:s}: no reference aperture " "fit was successful; extraction aborted"
                 ).format(cnam),
                 file=sys.stderr,
             )
@@ -1766,9 +1775,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 
             try:
 
-                # extract search sub-window around start position. If there
-                # were reference apertures this is only used to check that the
-                # position remains OK, but it should not be an expensive step
+                # extract search sub-window around start position.
                 swdata = wdata.window(
                     aper.x + xshift - shbox,
                     aper.x + xshift + shbox,
@@ -1776,43 +1783,25 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     aper.y + yshift + shbox,
                 )
 
-                # We carry out a search in either case because it involves a
-                # threshold check and we want that to be applied consistently.
-                x, y, peak = swdata.search(
-                    apsec["search_smooth_fwhm"],
-                    aper.x + xshift,
-                    aper.y + yshift,
-                    apsec["fit_height_min_nrf"],
-                    apsec["search_smooth_fft"],
-                )
-
                 if ref:
-                    shift = np.sqrt(
-                        (x - aper.x - xshift) ** 2 + (y - aper.y - yshift) ** 2
-                    )
-                    max_shift = (
-                        apsec["fit_max_shift"]
-                        + np.sqrt(swdata.xbin ** 2 + swdata.ybin ** 2) / 2
-                    )
-                    if shift > max_shift:
-                        # check the shift allowing for maximum pixellation
-                        # error in the position
-                        raise hcam.HipercamError(
-                            (
-                                "Position of non-reference aperture"
-                                " shifted by {:.1f} relative to prediction from reference which exceeds "
-                                "fit_max_shift+pix_diam/2 = {:.1f}"
-                            ).format(shift, max_shift)
-                        )
-
-                    # we don't actually use the position just determined on
-                    # the principle that is safer to use the shift from the
-                    # reference stars to estimate the first position.
+                    # if we have reference stars, use the shift from the
+                    # the reference stars rather than attempting a search
+                    # around the target
                     xold = x = aper.x + xshift
                     yold = y = aper.y + yshift
                     peak = swdata.data[
                         int(round(swdata.y_pixel(y))), int(round(swdata.x_pixel(x)))
                     ]
+
+                else:
+                    # no reference star, carry out an explicit search
+                    x, y, peak = swdata.search(
+                        apsec["search_smooth_fwhm"],
+                        aper.x + xshift,
+                        aper.y + yshift,
+                        apsec["fit_height_min_nrf"],
+                        apsec["search_smooth_fft"],
+                    )
 
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec["fit_half_width"]
@@ -1839,7 +1828,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 # to wander to high values and never come down.
                 fit_beta = min(fit_beta, apsec["fit_beta_max"])
 
-                # refine the Aperture position by fitting the profile
+                # finally, attempt to fit the target profile
                 (
                     (sky, height, x, y, fwhm, beta),
                     (esky, eheight, ex, ey, efwhm, ebeta),
@@ -1863,33 +1852,51 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     apsec["fit_ndiv"],
                 )
 
-                # this is where the search window gets used.
+                fit_pos_ok = True
+
+                # check the position
                 if swdata.distance(x, y) < 0.5:
-                    raise hcam.HipercamError(
-                        (
-                            "Fitted position ({:.1f},{:.1f}) too close to or"
-                            " beyond edge of search window = {!s}"
-                        ).format(x, y, swdata.format(True))
+                    fit_pos_ok = False
+                    error_message = (
+                        "Fitted position ({:.1f},{:.1f}) too close to or"
+                        " beyond edge of search window = {!s}"
+                    ).format(x, y, swdata.format(True))
+
+                    if not ref or apsec["fit_alpha"] == 1.0:
+                        raise hcam.HipercamError(error_message)
+
+                if fit_pos_ok and fwdata.distance(x, y) < 0.5:
+                    fit_pos_ok = False
+                    error_message = (
+                        "Fitted position ({:.1f},{:.1f}) too close to or"
+                        " beyond edge of fit window = {!s}".format(
+                            x, y, swdata.format(True)
+                        )
                     )
+
+                    if not ref or apsec["fit_alpha"] == 1.0:
+                        raise hcam.HipercamError(error_message)
 
                 # check for overly large shifts in the case that we have
                 # reference apertures
-                if ref:
+                if fit_pos_ok and ref:
                     shift = np.sqrt((x - xold) ** 2 + (y - yold) ** 2)
                     if shift > apsec["fit_max_shift"]:
-                        raise hcam.HipercamError(
-                            (
-                                "Position of non-reference aperture"
-                                " shifted by {:.1f} which exceeds "
-                                "fit_max_shift = {:.1f}"
-                            ).format(shift, apsec["fit_max_shift"])
-                        )
+                        fit_pos_ok = False
+                        error_message = (
+                            "Position of non-reference aperture"
+                            " shifted by {:.1f} which exceeds "
+                            "fit_max_shift = {:.1f}"
+                        ).format(shift, apsec["fit_max_shift"])
 
-                if height > apsec["fit_height_min_nrf"]:
-                    # As above, the peak height check is probably not required
-                    # at this point since the search routine applies it more
-                    # stringently but I have left it in for safety. Store some
-                    # stuff for next time and for passing onto next routine
+                        if apsec["fit_alpha"] == 1.0:
+                            raise hcam.HipercamError(error_message)
+
+                if fit_pos_ok and height >= apsec["fit_height_min_nrf"]:
+                    # Height check is important here since no search has
+                    # taken place if there are reference stars. If position has
+                    # passed checks and the height is OK, then we can save some
+                    # data.
                     store[apnam] = {
                         "xe": ex,
                         "ye": ey,
@@ -1898,18 +1905,17 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         "beta": beta,
                         "betae": ebeta,
                         "dx": x - aper.x,
-                        "dy": y - aper.y,
+                        "dy": y - aper.y
                     }
 
                     if ref and store["nok"] > 0:
-                        # apply a fraction 'fit_alpha' times the change is
-                        # position relative to the expected
-                        # position. Experimental parameter.  We only do this
-                        # after at least one successful measurement has been
-                        # made to cope with large initial shifts.
+                        # apply a fraction 'fit_alpha' times the
+                        # change is position relative to the expected
+                        # position. We only do this after at least one
+                        # successful measurement has been made to cope
+                        # with large initial shifts.
                         aper.x = xold + apsec["fit_alpha"] * (x - xold)
                         aper.y = yold + apsec["fit_alpha"] * (y - yold)
-
                     else:
                         aper.x = x
                         aper.y = y
@@ -1927,12 +1933,18 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         wbsum += wb
 
                 else:
-                    print(
-                        ("CCD {:s}, aperture {:s}," " peak = {:.1f} < {:.1f}").format(
-                            cnam, apnam, height, apsec["fit_height_min_nrf"]
-                        ),
-                        file=sys.stderr,
-                    )
+
+                    if not fit_pos_ok and store["nok"] == 0:
+                        raise hcam.HipercamError(error_message)
+
+                    # things have gone a little wrong but we will still attempt extraction
+                    if fit_pos_ok and height < apsec["fit_height_min_nrf"]:
+                        print(
+                            ("CCD {:s}, aperture {:s}," " peak = {:.1f} < {:.1f} [will still extract]").format(
+                                cnam, apnam, height, apsec["fit_height_min_nrf"]
+                            ),
+                            file=sys.stderr,
+                        )
                     aper.x += xshift
                     aper.y += yshift
 
@@ -1949,7 +1961,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 
             except (hcam.HipercamError, IndexError) as err:
                 print(
-                    "CCD {:s}, aperture {:s}, fit failed, error = {!s}".format(
+                    "CCD {:s}, aperture {:s}, fit failed (but extraction may still occur), error = {!s}".format(
                         cnam, apnam, err
                     ),
                     file=sys.stderr,
