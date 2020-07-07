@@ -31,9 +31,10 @@ def combFit(
     gain,
     thresh,
     ndiv=0,
+    max_nfev=None
 ):
     """Fits a stellar profile in a :class:Window using either a 2D Gaussian
-    or Moffat profile. This is a convenient wrapper of fitMoffat and
+    or Moffat profile. This is a convenience wrapper of fitMoffat and
     fitGaussian because one often wants both options.
 
     Arguments::
@@ -120,7 +121,7 @@ def combFit(
           fit values. `x`, `y` and `sigma` are all 2D numpy arrays matching
           the dimensions of the data.
 
-    Raises a HipercamError if the leastsq fails.
+    Raises a HipercamError if least_squares fails.
 
     """
 
@@ -129,9 +130,10 @@ def combFit(
         (
             (sky, height, x, y, fwhm),
             (esky, eheight, ex, ey, efwhm),
-            (fit, X, Y, sigma, chisq, nok, nrej, npar),
+            (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev),
         ) = fitGaussian(
-            wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, read, gain, thresh, ndiv
+            wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, read, gain, thresh,
+            ndiv, max_nfev
         )
 
     elif method == "m":
@@ -142,7 +144,7 @@ def combFit(
             (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev),
         ) = fitMoffat(
             wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta,
-            beta_max, beta_fix, read, gain, thresh, ndiv,
+            beta_max, beta_fix, read, gain, thresh, ndiv, max_nfev
         )
 
     else:
@@ -152,7 +154,8 @@ def combFit(
         message = (
             "x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),"
             " FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),"
-            " sky = {:.1f}({:.1f}), counts = {:.0f}, chi**2 = {:.1f}, nok = {:d}, nrej = {:d}"
+            " sky = {:.1f}({:.1f}), counts = {:.0f}, chi**2 = {:.1f},"
+            " nok = {:d}, nrej = {:d}, nfev = {:d}"
         ).format(
             x,
             ex,
@@ -168,6 +171,7 @@ def combFit(
             chisq,
             nok,
             nrej,
+            nfev,
         )
         beta, ebeta = 0.0, -1.0
     elif method == "m":
@@ -175,7 +179,7 @@ def combFit(
             "x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),"
             " FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),"
             " sky = {:.1f}({:.1f}), counts = {:.0f}, beta = {:.2f}({:.2f}), chi**2 = {:.1f},"
-            " nok = {:d}, nrej = {:d}"
+            " nok = {:d}, nrej = {:d}, nfev = {:d}"
         ).format(
             x,
             ex,
@@ -193,20 +197,21 @@ def combFit(
             chisq,
             nok,
             nrej,
+            nfev
         )
 
     return (
         (sky, height, x, y, fwhm, beta),
         (esky, eheight, ex, ey, efwhm, ebeta),
-        (fit, X, Y, sigma, chisq, nok, nrej, npar, message),
+        (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
     )
 
 
-##############################
+################################
 #
-# 2D Moffat + constant section
+# Symmetric 2D Moffat + constant
 #
-##############################
+################################
 
 
 def fitMoffat(
@@ -329,8 +334,8 @@ def fitMoffat(
                 on the fit parameters. If fwhm defaults to `fwhm_min` or
                 `fwhm_fix` == True, then `fwhme` will come back as -1.
 
-           extras : tuple
-                (fit, x, y, sigma, chisq, nok, nrej, npar, nfev)
+           extras : dict
+                {fit, x, y, sigma, chisq, nok, nrej, npar, nfev}
                 where: `fit` is an :class:`Window` containing the best
                 fit; `x` and `y` are the x and y positions of all
                 pixels (2D numpy arrays); `sigma` is the final set of
@@ -385,7 +390,7 @@ def fitMoffat(
         try:
             # try / except for singularity
             covar = (J.T * J).I
-        except np.linalg.LinAlgError as err:
+        except (np.linalg.LinAlgError, ValueError) as err:
             raise HipercamError(err)
 
         param = res.x
@@ -435,17 +440,26 @@ def fitMoffat(
                 break
 
     # OK we are done.
+    extras = {
+        'fit' : fit,
+        'x' : mfit.x,
+        'y' : mfit.y,
+        'sigma' : mfit.sigma,
+        'chisq' : chisq,
+        'nok' : nok,
+        'nrej' : nrej,
+        'npar' : len(param),
+        'nfev' : res.nfev
+    }
     if sky is None:
         return (
             (heightf, xf, yf, fwhmf, betaf),
-            (heightfe, xfe, yfe, fwhmfe, betafe),
-            (fit, mfit.x, mfit.y, mfit.sigma, chisq, nok, nrej, len(param), res.nfev),
+            (heightfe, xfe, yfe, fwhmfe, betafe), extras
         )
     else:
         return (
             (skyf, heightf, xf, yf, fwhmf, betaf),
-            (skyfe, heightfe, xfe, yfe, fwhmfe, betafe),
-            (fit, mfit.x, mfit.y, mfit.sigma, chisq, nok, nrej, len(param), res.nfev),
+            (skyfe, heightfe, xfe, yfe, fwhmfe, betafe), extras
         )
 
 
@@ -807,8 +821,8 @@ class Mfit:
         if mode not in ("sfb", "sb", "sf", "s", "fb", "b", "f", ""):
             raise HipercamError("invalid mode = {:s}".format(mode))
 
-        if (mode.find("f") == -1 and self.fwhm is None) or (
-            mode.find("b") == -1 and self.beta is None
+        if (mode.find("f") == -1 and fwhm is None) or (
+            mode.find("b") == -1 and beta is None
         ):
             raise HipercamError("invalid mode / fwhm / beta combination")
         self.mode = mode
@@ -1035,7 +1049,7 @@ def fitGaussian(
     gain,
     thresh,
     ndiv,
-    maxfev=0,
+    max_nfev=0,
 ):
     """Fits the profile of one target in an Window with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
@@ -1107,8 +1121,9 @@ def fitGaussian(
             simply evaluate the profile once at the centre of each pixel in
             `wind`, set ndiv = 0.
 
-        maxfev : int
-            maximum number of function evaluations passed through to leastsq.
+        max_nfev : int
+            maximum number of function evaluations during fits. Passed directly
+            to leastsq.
 
     Returns:: tuple of tuples
 
@@ -1131,150 +1146,100 @@ def fitGaussian(
                 uncertainties on each pixels [option for future: some may come
                 back < 0 indicating rejection].
 
-    Raises a HipercamError if the leastsq fails.
+    Raises a HipercamError least_squares fails.
 
     """
 
-    # construct function objects of both types from the first because during
-    # rejection, we assume both exist. sigma arrays are constructed here all > 0
-    gfit1 = Gfit1(wind, read, gain, ndiv)
-    dgfit1 = Dgfit1(gfit1)
-    gfit2 = Gfit2(wind, read, gain, fwhm, ndiv)
-    dgfit2 = Dgfit2(gfit2)
+    if fwhm < fwhm_min:
+        raise HipercamError("fwhm out of range")
+
+    # construct function object for gaussian fit. First the mode.
+    mode = "" if sky is None else "s"
+    mode = mode if fwhm_fix else mode + "f"
+    gfit = Gfit(wind, read, gain, ndiv, mode, fwhm)
+
+    mode_switch = False
 
     while True:
-        # Rejection loop. There is a break statement at the end of the loop
-        # if no pixels have been rejected.
 
-        # Two pass strategy: fit with a free FWHM, and if it is
-        # below fwhm_min, re-fit with the fwhm set = fwhm_min
+        # retrieve current fit mode
+        mode = gfit.mode
 
-        if fwhm_fix:
-            # FWHM held fixed
-            gfit2.fwhm = fwhm
-            dgfit2.fwhm = fwhm
-            param = (sky, height, xcen, ycen)
+        # Rejection loop. There is a break statement at the end of the
+        # loop if no pixels have been rejected.
 
-            # carry out fit
-            soln, covar, info, mesg, ier = leastsq(
-                gfit2,
-                param,
-                Dfun=dgfit2,
-                col_deriv=True,
-                full_output=True,
-                maxfev=maxfev,
-            )
-            if ier < 1 or ier > 4:
-                raise HipercamError(mesg)
-            elif covar is None:
-                raise HipercamError("leastsq failed returning covar = None")
+        # set parameters
+        param = gfit.set_par(sky, height, xcen, ycen, fwhm)
 
-            # process results
-            fit = Window(wind, gfit2.model(soln))
-            skyf, heightf, xf, yf = soln
+        # carry out fit
+        res = least_squares(
+            gfit.fun, param, jac=gfit.jac, method="lm", max_nfev=max_nfev
+        )
+        if not res.success:
+            raise HipercamError(res.message)
+
+        # get Jacobian
+        J = np.matrix(res.jac)
+        try:
+            # try / except for singularity
+            covar = (J.T * J).I
+        except (np.linalg.LinAlgError, ValueError) as err:
+            raise HipercamError(err)
+
+        param = res.x
+        skyf, heightf, xf, yf, fwhmf = gfit.get_par(param)
+        fwhmf = abs(fwhmf)
+
+        if mode.find("f") > -1 and fwhmf < fwhm_min:
+            # switch to fixed fwhm fit
+            gfit.set_mode(mode.replace("f", ""), fwhm_min)
+
+        else:
+
+            # no mode switch, compute fit
+            fit = Window(wind, gfit.model(param))
+
             covs = np.diag(covar)
             if (covs < 0).any():
                 raise HipercamError("Negative covariance in fitGaussian")
-            skyfe, heightfe, xfe, yfe = np.sqrt(covs)
-            fwhmf, fwhmfe = fwhm, -1
 
-        else:
-            # FWHM free to vary
-            param = (sky, height, xcen, ycen, fwhm)
+            # compute chi**2 and number of OK points
+            ok = gfit.mask & (gfit.sigma > 0)
+            resid = (wind.data - fit.data) / gfit.sigma
+            chisq = (resid[ok] ** 2).sum()
+            nok1 = len(resid[ok])
+            sfac = np.sqrt(chisq / nok1)
 
-            # carry out fit
-            soln, covar, info, mesg, ier = leastsq(
-                gfit1,
-                param,
-                Dfun=dgfit1,
-                col_deriv=True,
-                full_output=True,
-                maxfev=maxfev,
-            )
-            if ier < 1 or ier > 4:
-                raise HipercamError(mesg)
-            elif covar is None:
-                raise HipercamError("leastsq failed returning covar = None")
+            # reject any above the defined threshold
+            gfit.sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
 
-            # process results
-            skyf, heightf, xf, yf, fwhmf = soln
-            fwhmf = abs(fwhmf)
+            # check whether any have been rejected
+            ok = gfit.mask & (gfit.sigma > 0)
+            nok = len(gfit.sigma[ok])
 
-            if fwhmf > fwhm_min:
-                # Free fit is OK
-                covs = np.diag(covar)
-                if (covs < 0).any():
-                    raise HipercamError("Negative covariance in fitGaussian")
-                skyfe, heightfe, xfe, yfe, fwhmfe = np.sqrt(covs)
-                fit = Window(wind, gfit1.model(soln))
-
-            else:
-
-                # fall back to fixed FWHM
-                gfit2.fwhm = fwhm_min
-                dgfit2.fwhm = fwhm_min
-                param = (sky, height, xcen, ycen)
-
-                # carry out fit
-                soln, covar, info, mesg, ier = leastsq(
-                    gfit2,
-                    param,
-                    Dfun=dgfit2,
-                    col_deriv=True,
-                    full_output=True,
-                    maxfev=maxfev,
+            if nok == nok1:
+                # no more pixels have been rejected.  calculate how
+                # many have been, re-scale the uncertainties to
+                # reflect the actual chi**2
+                nrej = len(gfit.sigma[gfit.mask]) - nok
+                skyfe, heightfe, xfe, yfe, fwhmfe = gfit.get_epar(
+                    sfac * np.sqrt(covs)
                 )
-                if ier < 1 or ier > 4:
-                    raise HipercamError(mesg)
-                elif covar is None:
-                    raise HipercamError("leastsq failed returning covar = None")
-
-                # process results
-                fit = Window(wind, gfit2.model(soln))
-                skyf, heightf, xf, yf = soln
-                covs = np.diag(covar)
-                if (covs < 0).any():
-                    raise HipercamError("Negative covariance in fitGaussian")
-                skyfe, heightfe, xfe, yfe = np.sqrt(covs)
-                fwhmf, fwhmfe = fwhm_min, -1
-
-        # now look for bad outliers
-        ok = gfit1.sigma > 0
-        resid = (wind.data - fit.data) / gfit1.sigma
-        chisq = (resid[ok] ** 2).sum()
-        nok1 = len(resid[ok])
-        sfac = np.sqrt(chisq / (nok1 - len(soln)))
-
-        # reject any above the defined threshold
-        gfit1.sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
-
-        # check whether any have been rejected
-        ok = gfit1.sigma > 0
-        nok = len(gfit1.sigma[ok])
-        if nok < nok1:
-            # some more pixels have been rejected
-            gfit2.sigma = gfit1.sigma
-            dgfit1.sigma = gfit1.sigma
-            dgfit2.sigma = gfit1.sigma
-        else:
-            # no more pixels have been rejected.  calculate how many have
-            # been, re-scale the uncertainties to reflect the actual chi**2
-            nrej = gfit1.sigma.size - nok
-            skyfe *= sfac
-            heightfe *= sfac
-            xfe *= sfac
-            yfe *= sfac
-            if fwhmfe > 0:
-                fwhmfe *= sfac
-            break
+                break
 
     # OK we are done.
-    return (
-        (skyf, heightf, xf, yf, fwhmf),
-        (skyfe, heightfe, xfe, yfe, fwhmfe),
-        (fit, gfit1.x, gfit1.y, gfit1.sigma, chisq, nok, nrej, len(soln)),
-    )
-
+    if sky is None:
+        return (
+            (heightf, xf, yf, fwhmf),
+            (heightfe, xfe, yfe, fwhmfe),
+            (fit, gfit.x, gfit.y, gfit.sigma, chisq, nok, nrej, len(param), res.nfev),
+        )
+    else:
+        return (
+            (skyf, heightf, xf, yf, fwhmf),
+            (skyfe, heightfe, xfe, yfe, fwhmfe),
+            (fit, gfit.x, gfit.y, gfit.sigma, chisq, nok, nrej, len(param), res.nfev),
+        )
 
 @jit(nopython=True, cache=True)
 def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
@@ -1364,7 +1329,7 @@ def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
 
 
 @jit(nopython=True, cache=True)
-def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
+def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
     """Returns a list of four or five numpy arrays corresponding to the ordinate
     grids in xy set to the partial derivatives of a symmetric 2D Gaussian plus
     a constant. Defined by sky + height*exp(-alpha*r**2) where r is the
@@ -1413,6 +1378,10 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
          obviously will slow things. To simply evaluate the profile once at
          the centre of each pixel, set ndiv = 0.
 
+    comp_dfwhm : bool
+         compute derivative wrt FWHM (or not). If False, derivative with respect
+         to FWHM will not be computed
+
     Returns:: a list of five 2D numpy arrays containing the partial
     derivatives of a symmetric 2D Gaussian plus constant evaluated on
     the ordinate grids in xy. They come in the same order as they
@@ -1428,7 +1397,8 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
         dheight = np.zeros_like(x)
         dxcen = np.zeros_like(x)
         dycen = np.zeros_like(x)
-        dfwhm = np.zeros_like(x)
+        if comp_dfwhm:
+            dfwhm = np.zeros_like(x)
 
         # mean offset within sub-pixels
         soff = (ndiv - 1) / (2 * ndiv)
@@ -1455,17 +1425,21 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
                         dheight += dh
                         dxcen += (2 * alpha * height) * dh * dx
                         dycen += (2 * alpha * height) * dh * dy
-                        dfwhm += (2 * alpha * height / fwhm) * dh * rsq
+                        if comp_dfwhm:
+                            dfwhm += (2 * alpha * height / fwhm) * dh * rsq
 
         # Normalise by number of evaluations
         nadd = xbin * ybin * ndiv ** 2
         dheight /= nadd
         dxcen /= nadd
         dycen /= nadd
-
-        dfwhm /= nadd
+        if comp_dfwhm:
+            dfwhm /= nadd
         #            return np.dstack((dsky, dheight, dxcen, dycen, dfwhm))
-        return (dsky, dheight, dxcen, dycen, dfwhm)
+        if comp_dfwhm:
+            return (dsky, dheight, dxcen, dycen, dfwhm)
+        else:
+            return (dsky, dheight, dxcen, dycen, dycen)
 
     else:
         # fast as possible, only compute at centre of pixels
@@ -1476,34 +1450,51 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
         dheight = np.exp(-alpha * rsq)
         dxcen = (2 * alpha * height) * dheight * dx
         dycen = (2 * alpha * height) * dheight * dy
-        dfwhm = (2 * alpha * height / fwhm) * dheight * rsq
-        #            return np.dstack((dsky, dheight, dxcen, dycen, dfwhm))
-        return (dsky, dheight, dxcen, dycen, dfwhm)
+        if comp_dfwhm:
+            dfwhm = (2 * alpha * height / fwhm) * dheight * rsq
+            return (dsky, dheight, dxcen, dycen, dfwhm)
+        else:
+            return (dsky, dheight, dxcen, dycen, dycen)
 
+class Gfit:
+    """Object providing 'fun' and 'jac' methods for least_squares for
+    Gaussian models. Four operating modes each of which allows the
+    following to be free [else not]. Sky assumed = 0 when not free.
 
-class Gfit1:
+       mode == 'sf' : sky, FWHM
+       mode == 's' : sky
+       mode == 'f' : FWHM
+       mode == '' : None of the above.
+
+    It is up to the user to set the value of fwhm appropriate to the
+    mode. A method 'set_mode' provides some basic checks.
+
     """
-    Function object to pass to leastsq for Gaussian + constant
-    background model with free FWHM.
-    """
 
-    def __init__(self, wind, read, gain, ndiv):
+    def __init__(self, wind, read, gain, ndiv, mode, fwhm=None):
         """
         Arguments::
 
-          wind : Window
+          wind  : Window
              the Window containing data to fit
 
-          read : float / array
+          read  : float | array
              readout noise in RMS counts. Can be a 2D array if dimensions
              same as the data in wind
 
-          gain : float / array
+          gain  : float | array
              gain in electrons / count. Can be a 2D array if dimensions
              same as the data in wind
 
           ndiv : int
-             pixel sub-division factor. See comments in fitGaussian.
+             pixel sub-division factor. See comments in fitMoffat
+
+          mode : str
+             see comments about operating mode in class description
+
+          fwhm : float
+             FWHM in unbinned pixels
+
         """
         self.sigma = np.sqrt(read ** 2 + np.maximum(0, wind.data) / gain)
         x = wind.x(np.arange(wind.nx))
@@ -1514,8 +1505,83 @@ class Gfit1:
         self.ybin = wind.ybin
         self.ndiv = ndiv
         self.mask = _mask(wind, self.x, self.y)
+        self.set_mode(mode, fwhm)
 
-    def __call__(self, param):
+    def set_mode(self, mode, fwhm):
+        """Set the operation mode with some light checks"""
+        if mode not in ("sf", "s", "f", ""):
+            raise HipercamError("invalid mode = {}".format(mode))
+
+        if mode.find("f") == -1 and fwhm is None:
+            raise HipercamError("invalid mode / fwhm combination")
+        self.mode = mode
+        self.fwhm = fwhm
+
+    def get_par(self, param):
+        """Gets parameters (sky, height, xcen, ycen, fwhm) according to
+        current least_squares parameter vector, accounting for the
+        operating mode. All five are returned in each case, even when this
+        is meaningless.
+
+        """
+        if self.mode == "sf":
+            sky, height, xcen, ycen, fwhm = param
+        elif self.mode == "s":
+            sky, height, xcen, ycen = param
+            fwhm = self.fwhm
+        elif self.mode == "f":
+            height, xcen, ycen, fwhm = param
+            sky = 0.0
+        elif self.mode == "":
+            height, xcen, ycen = param
+            sky = 0.0
+            fwhm = self.fwhm
+        else:
+            raise HipercamError("invalid mode")
+
+        return (sky, height, xcen, ycen, fwhm)
+
+    def set_par(self, sky, height, xcen, ycen, fwhm):
+        """Sets parameters (sky, height, xcen, ycen, fwhm) into correct
+        vector for least_squares according to the operating mode. The
+        vector is returned. e.g. if self.mode == "s", then (sky, height, xcen, ycen)
+        will be returned.
+        """
+        if self.mode == "sf":
+            return (sky, height, xcen, ycen, fwhm)
+        elif self.mode == "s":
+            return (sky, height, xcen, ycen)
+        elif self.mode == "f":
+            return (height, xcen, ycen, fwhm)
+        elif self.mode == "":
+            return (height, xcen, ycen)
+        else:
+            raise HipercamError("invalid mode")
+
+    def get_epar(self, param):
+        """Gets parameter errors (skye, heighte, xcene, ycene, fwhme)
+        passed a vector of errors, accounting for the operating
+        mode. All five are returned in each case, with fixed ones set =
+        -1.
+        """
+        if self.mode == "sf":
+            skye, heighte, xcene, ycene, fwhme = param
+        elif self.mode == "s":
+            skye, heighte, xcene, ycene = param
+            fwhme = -1.0
+        elif self.mode == "f":
+            heighte, xcene, ycene, fwhme = param
+            skye = -1.0
+        elif self.mode == "":
+            heighte, xcene, ycene = param
+            skye = -1.0
+            fwhme = -1.0
+        else:
+            raise HipercamError("invalid mode")
+
+        return (skye, heighte, xcene, ycene, fwhme)
+
+    def fun(self, param):
         """
         Returns 1D array of normalised residuals. See the model
         method for a description of the argument 'param'
@@ -1525,60 +1591,28 @@ class Gfit1:
         ok = self.mask & (self.sigma > 0)
         return diff[ok].ravel()
 
-    def model(self, param):
-        """Returns 2D array with model given a parameter vector.
-
-        Argument::
-
-           param : 1D array
-              unpacks to (sky, height, xcen, ycen, fwhm) where: 'sky' is the
-              background per pixel; 'height' is the central height of the
-              Gaussian; 'xcen' and 'ycen' are the ordinates of its centre in
-              unbinned CCD pixels with (1,1) at the left corner of the
-              physical imagine area; 'fwhm' is the FWHM in unbinned pixels.
-
+    def jac(self, param):
         """
-        sky, height, xcen, ycen, fwhm = param
-        return support.gaussian(
-            self.x,
-            self.y,
-            sky,
-            height,
-            xcen,
-            ycen,
-            fwhm,
-            self.xbin,
-            self.ybin,
-            self.ndiv,
-        )
-
-
-class Dgfit1:
-    """
-    Function object to pass to leastsq to calculate the Jacobian equivalent
-    to Gfit1
-    """
-
-    def __init__(self, gfit):
+        Returns list of 1D arrays of the partial derivatives of
+        the normalised residuals with respect to the variable
+        parameters.
         """
-        Arguments::
+        sky, height, xcen, ycen, fwhm = self.get_par(param)
 
-          gfit : Gfit1
-             the Gfit1 object passed as 'func' to leastsq
-        """
-        self.mask = gfit.mask
-        self.sigma = gfit.sigma
-        self.x, self.y = gfit.x, gfit.y
-        self.xbin = gfit.xbin
-        self.ybin = gfit.ybin
-        self.ndiv = gfit.ndiv
+        comp_fwhm = self.mode.find("f") > -1
 
-    def __call__(self, param):
-        """Returns list of 1D arrays of the partial derivatives of the normalised
-        residuals with respect to the variable parameters.
+        # work out which derivatives to bother with
+        if self.mode == "sf":
+            inds = (0, 1, 2, 3, 4)
+        elif self.mode == "s":
+            inds = (0, 1, 2, 3)
+        elif self.mode == "f":
+            inds = (1, 2, 3, 4)
+        elif self.mode == "":
+            inds = (1, 2, 3)
+        else:
+            raise HipercamError("invalid mode")
 
-        """
-        sky, height, xcen, ycen, fwhm = param
         derivs = dgaussian(
             self.x,
             self.y,
@@ -1590,74 +1624,31 @@ class Dgfit1:
             self.xbin,
             self.ybin,
             self.ndiv,
+            comp_fwhm,
         )
+
         ok = self.mask & (self.sigma > 0)
-        return [(-deriv[ok] / self.sigma[ok]).ravel() for deriv in derivs]
-
-
-class Gfit2:
-    """
-    Function object to pass to leastsq for Gaussian + constant
-    background model with a fixed FWHM.
-    """
-
-    def __init__(self, wind, read, gain, fwhm, ndiv):
-        """
-        Arguments:
-
-          wind : Window
-             the Window containing data to fit
-
-          read : float / array
-             readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
-
-          gain : float / array
-             gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
-
-          fwhm : float
-             the fixed FWHM to use
-
-          ndiv : int
-             sub-pixellation factor. See fitGaussian for more.
-
-        """
-        self.sigma = np.sqrt(read ** 2 + np.maximum(0, wind.data) / gain)
-        x = wind.x(np.arange(wind.nx))
-        y = wind.y(np.arange(wind.ny))
-        self.x, self.y = np.meshgrid(x, y)
-        self.data = wind.data
-        self.fwhm = fwhm
-        self.xbin = wind.xbin
-        self.ybin = wind.ybin
-        self.ndiv = ndiv
-        self.mask = _mask(wind, self.x, self.y)
-
-    def __call__(self, param):
-        """
-        Returns 1D array of normalised residuals
-        """
-
-        mod = self.model(param)
-        diff = (self.data - mod) / self.sigma
-        ok = self.mask & (self.sigma > 0)
-        return diff[ok].ravel()
+        return np.column_stack(
+            [(-derivs[ind][ok] / self.sigma[ok]).ravel() for ind in inds]
+        )
 
     def model(self, param):
-        """Returns 2D array with model given a parameter vector.
+        """
+        Returns 2D array with model given a parameter vector.
 
         Argument::
 
            param : 1D array
-              unpacks to (sky, height, xcen, ycen) where: 'sky' is the
-              background per pixel; 'height' is the central height of the
-              Moffat function; 'xcen' and 'ycen' are the ordinates of its
-              centre in unbinned CCD pixels with (1,1) at the left corner of
-              the physical imagine area.
-
+              parameter vector, with values that depend upon the mode,
+              but could include some or all of (sky, height, xcen, ycen,
+              fwhm) where 'sky' is the background per pixel;
+              'height' is the central height of the gaussian function;
+              'xcen' and 'ycen' are the ordinates of its centre in
+              unbinned CCD pixels with (1,1) at the left corner of the
+              physical imaging area; 'fwhm' is the FWHM in unbinned
+              pixels.
         """
-        sky, height, xcen, ycen = param
+        sky, height, xcen, ycen, fwhm = self.get_par(param)
         return gaussian(
             self.x,
             self.y,
@@ -1665,56 +1656,9 @@ class Gfit2:
             height,
             xcen,
             ycen,
-            self.fwhm,
+            fwhm,
             self.xbin,
             self.ybin,
             self.ndiv,
         )
 
-
-class Dgfit2:
-    """
-    Function object to pass to leastsq to calculate the Jacobian equivalent
-    to Gfit2
-    """
-
-    def __init__(self, gfit):
-        """
-        Arguments::
-
-          gfit : Gfit2
-             the Gfit2 object passed as 'func' to leastsq
-        """
-        self.mask = gfit.mask
-        self.sigma = gfit.sigma
-        self.x, self.y = gfit.x, gfit.y
-        self.fwhm = gfit.fwhm
-        self.xbin = gfit.xbin
-        self.ybin = gfit.ybin
-        self.ndiv = gfit.ndiv
-
-    def __call__(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        sky, height, xcen, ycen = param
-        derivs = dgaussian(
-            self.x,
-            self.y,
-            sky,
-            height,
-            xcen,
-            ycen,
-            self.fwhm,
-            self.xbin,
-            self.ybin,
-            self.ndiv,
-        )
-
-        # note one more derivative is resturned than we need, so
-        # we cut it out (the last one)
-        ok = self.mask & (self.sigma > 0)
-        sigs = self.sigma[ok]
-        return [(-deriv[ok] / sigs).ravel() for deriv in derivs[:-1]]
