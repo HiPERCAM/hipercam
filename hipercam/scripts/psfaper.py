@@ -53,8 +53,9 @@ __all__ = [
 #############################################################
 def psfaper(args=None):
     """``psfaper mccd aper ccd [linput width height] nx method thresh
-    niters gfac msub iset (ilo ihi | plo phi) [beta fwmin fwhm
-    shbox smooth splot fhbox read gain rejthresh]``
+    niters gfac msub iset (ilo ihi | plo phi) [method (beta betafix
+    betamax) fwhm fwfix (fwmin) shbox smooth splot fhbox read gain
+    rejthresh]``
 
     Definition of apertures for PSF photometry. This occurs in three
     steps - first the user draws a box around the region of interest,
@@ -143,14 +144,30 @@ def psfaper(args=None):
       phi    : float [if iset=='p']
          upper percentile level
 
-      beta   : float [if method == 'm'; hidden]
+      method : string [hidden]
+         this defines the profile fitting method, if profile fitting is used
+         to refine the aperture position. Either a gaussian or a moffat
+         profile, 'g' or 'm'.  The latter should usually be best.
+
+      beta : float [if method == 'm'; hidden]
          default Moffat exponent
 
-      fwmin  : float [hidden]
-         minimum FWHM to allow, unbinned pixels.
+      betafix : bool [if method == 'm'; hidden]
+         fix beta or not
 
-      fwhm   : float [hidden]
+      beta_max : bool [if method == 'm' and not betafix; hidden]
+         maximum value of beta. Moffat profiles are degenerate
+         with gaussians at large beta so the idea is to avoid wandering
+         to huge beta.
+
+      fwhm : float [hidden]
          default FWHM, unbinned pixels.
+
+      fwfix: bool [hidden]
+         don't fit the FWHM. Can be more robust; the position is still fitted.
+
+      fwmin : float [if not fwfix; hidden]
+         minimum FWHM to allow, unbinned pixels.
 
       shbox  : float [hidden]
          half width of box for searching for a star, unbinned pixels. The
@@ -191,6 +208,7 @@ def psfaper(args=None):
     mode is a rather indistinct hand where one can't tell what is being
     pointed at. I have therefore suppressed this, but only for the tested
     backends. Others would need require further investigation.
+
     """
 
     command, args = utils.script_args(args)
@@ -216,8 +234,12 @@ def psfaper(args=None):
         cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
         cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("phi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("method", Cline.LOCAL, Cline.HIDE)
         cl.register("beta", Cline.LOCAL, Cline.HIDE)
+        cl.register("betafix", Cline.LOCAL, Cline.HIDE)
+        cl.register("betamax", Cline.LOCAL, Cline.HIDE)
         cl.register("fwhm", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwfix", Cline.LOCAL, Cline.HIDE)
         cl.register("fwmin", Cline.LOCAL, Cline.HIDE)
         cl.register("shbox", Cline.LOCAL, Cline.HIDE)
         cl.register("smooth", Cline.LOCAL, Cline.HIDE)
@@ -278,14 +300,29 @@ def psfaper(args=None):
         )
         if method == "m":
             beta = cl.get_value("beta", "initial exponent for Moffat fits", 5.0, 0.5)
+            beta_fix = cl.get_value("betafix", "fix beta at start value?", False)
+            if beta_fix:
+                beta_max = beta
+            else:
+                beta_max = cl.get_value(
+                    "betamax", "maximum beta to allow", max(beta,20) 
+                )
+            beta = cl.get_value("beta", "initial exponent for Moffat fits", 5.0, 0.5)
         else:
-            beta = 0
-        fwhm_min = cl.get_value(
-            "fwmin", "minimum FWHM to allow [unbinned pixels]", 1.5, 0.01
-        )
+            beta = 0.
+            beta_fix = True
+            beta_max = 0.
+
         fwhm = cl.get_value(
-            "fwhm", "initial FWHM [unbinned pixels] for profile fits", 6.0, fwhm_min
+            "fwhm", "initial FWHM [unbinned pixels] for profile fits", 6.0, 1.0
         )
+        fwhm_fix = cl.get_value("fwfix", "fix the FWHM at start value?", False)
+        if fwhm_fix:
+            fwhm_min = fwhm
+        else:
+            fwhm_min = cl.get_value(
+                "fwmin", "minimum FWHM to allow [unbinned pixels]", min(1.5,fwhm), 0.01, fwhm
+            )
 
         gfac = cl.get_value(
             "gfac", "multiple of FWHM used to group stars for fitting", 2.0, 0.1
@@ -473,7 +510,10 @@ close enough.
         mccdaper,
         method,
         beta,
+        beta_max,
         fwhm,
+        fwhm_min,
+        fwhm_fix,
         gfac,
         niters,
         thresh,
@@ -514,7 +554,11 @@ class PickRef:
         mccdaper,
         method,
         beta,
+        beta_max,
+        beta_fix,
         fwhm,
+        fwhm_min,
+        fwhm_fix,
         gfac,
         niters,
         thresh,
@@ -539,7 +583,11 @@ class PickRef:
         self.mccdaper = mccdaper
         self.method = method
         self.beta = beta
+        self.beta_max = beta_max
+        self.beta_fix = beta_fix
         self.fwhm = fwhm
+        self.fwhm_min = fwhm_min
+        self.fwhm_fix = fwhm_fix
         self.gfac = gfac
         self.niters = niters
         self.thresh = thresh
@@ -635,7 +683,7 @@ class PickRef:
             (
                 (sky, height, x, y, fwhm, beta),
                 (esky, eheight, ex, ey, efwhm, ebeta),
-                (wfit, X, Y, sigma, chisq, nok, nrej, npar, message),
+                (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
             ) = hcam.fitting.combFit(
                 fwind,
                 self.method,
@@ -645,8 +693,10 @@ class PickRef:
                 y,
                 self.fwhm,
                 self.fwhm_min,
-                False,
+                self.fwhm_fix,
                 self.beta,
+                self.beta_max,
+                self.beta_fix,
                 self.read,
                 self.gain,
                 self.rejthresh,

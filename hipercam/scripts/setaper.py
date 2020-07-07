@@ -46,9 +46,10 @@ __all__ = [
 
 
 def setaper(args=None):
-    """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2
-    xlo xhi ylo yhi nx msub iset (ilo ihi | plo phi) [profit method beta
-    betafix betamax fwhm fwfix fwmin shbox smooth splot fhbox read gain thresh]``
+    """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 xlo
+    xhi ylo yhi nx msub iset (ilo ihi | plo phi) [profit method (beta
+    betafix betamax) fwhm fwfix (fwmin) shbox smooth splot fhbox read
+    gain thresh]``
 
     Interactive definition of photometric extraction apertures. This is
     a matplotlib-based routine allowing you to place apertures on targets
@@ -699,7 +700,7 @@ class PickStar:
 
         print(
             "a(dd), b(reak), c(entre), d(elete), e(xtra) h(elp), "
-            " l(ink), m(ask), p(rofit), q(uit), r(eference), "
+            "l(ink), m(ask), p(rofit), q(uit), r(eference), "
             "C(opy): ",
             end="",
             flush=True,
@@ -1013,7 +1014,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 (
                     (sky, height, x, y, fwhm, beta),
                     epars,
-                    (wfit, X, Y, sigma, chisq, nok, nrej, npar, message),
+                    (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
                 ) = hcam.fitting.combFit(
                     fwind,
                     self.method,
@@ -1138,7 +1139,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                     # carry out initial search
                     x, y, peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
-                    print("  initial search returned x,y,peak = {},{},{}".format(x,y,peak))
+                    print("  initial search returned x, y, peak = {}, {}, {}".format(x,y,peak))
 
                     # now for a more refined fit. First extract fit Window
                     fwind = ccd[wnam].window(
@@ -1153,7 +1154,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     (
                         (sky, height, x, y, fwhm, beta),
                         epars,
-                        (wfit, X, Y, sigma, chisq, nok, nrej, npar, message),
+                        (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
                     ) = hcam.fitting.combFit(
                         fwind,
                         self.method,

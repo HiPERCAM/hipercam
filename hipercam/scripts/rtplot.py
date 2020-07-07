@@ -506,7 +506,7 @@ def rtplot(args=None):
                 )
                 if method == "m":
                     beta = cl.get_value(
-                        "beta", "initial exponent for Moffat fits", 5.0, 0.5
+                        "beta", "initial exponent for Moffat fits", 5.0, 0.5, 20.
                     )
                 else:
                     beta = 0.0
@@ -859,7 +859,7 @@ def rtplot(args=None):
                         (
                             (sky, height, x, y, fwhm, beta),
                             epars,
-                            (wfit, X, Y, sigma, chisq, nok, nrej, npar, message),
+                            (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
                         ) = hcam.fitting.combFit(
                             fwind,
                             method,
@@ -871,6 +871,8 @@ def rtplot(args=None):
                             fwhm_min,
                             False,
                             fpar.beta,
+                            20.,
+                            False,
                             read,
                             gain,
                             thresh,
