@@ -130,7 +130,7 @@ def combFit(
         (
             (sky, height, x, y, fwhm),
             (esky, eheight, ex, ey, efwhm),
-            (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev),
+            (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev)
         ) = fitGaussian(
             wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, read, gain, thresh,
             ndiv, max_nfev
@@ -141,7 +141,7 @@ def combFit(
         (
             (sky, height, x, y, fwhm, beta),
             (esky, eheight, ex, ey, efwhm, ebeta),
-            (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev),
+            (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev)
         ) = fitMoffat(
             wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta,
             beta_max, beta_fix, read, gain, thresh, ndiv, max_nfev
@@ -152,7 +152,7 @@ def combFit(
 
     if method == "g":
         message = (
-            "x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),"
+            "x, y = {:.1f}({:.1f}), {:.1f}({:.1f}),"
             " FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),"
             " sky = {:.1f}({:.1f}), counts = {:.0f}, chi**2 = {:.1f},"
             " nok = {:d}, nrej = {:d}, nfev = {:d}"
@@ -192,12 +192,10 @@ def combFit(
             sky,
             esky,
             fit.sum(),
-            beta,
-            ebeta,
             chisq,
             nok,
             nrej,
-            nfev
+            nfev,
         )
 
     return (
@@ -320,7 +318,7 @@ def fitMoffat(
            maximum number of function evaluations during fits. Passed
            direct to least_squares.
 
-    Returns:: tuple of tuples
+    Returns:: tuple
 
         (pars, sigs, extras) where::
 
@@ -334,15 +332,15 @@ def fitMoffat(
                 on the fit parameters. If fwhm defaults to `fwhm_min` or
                 `fwhm_fix` == True, then `fwhme` will come back as -1.
 
-           extras : dict
-                {fit, x, y, sigma, chisq, nok, nrej, npar, nfev}
+           extras : tuple
+                (fit, x, y, sigma, chisq, nok, nrej, npar, nfev)
                 where: `fit` is an :class:`Window` containing the best
                 fit; `x` and `y` are the x and y positions of all
                 pixels (2D numpy arrays); `sigma` is the final set of
                 RMS uncertainties on each pixel (2D numpy array);
                 `chisq` is the raw chi**2; `nok` is the number of
                 points fitted; `nrej` is the number rejected; `npar`
-                is the number of parameters fitted (5 or 6), `nfev` is
+                is the number of parameters fitted (3 to 6), `nfev` is
                 the number of functions evaluations.
 
     The program re-scales the uncertainties on the fit parameters by
@@ -440,17 +438,17 @@ def fitMoffat(
                 break
 
     # OK we are done.
-    extras = {
-        'fit' : fit,
-        'x' : mfit.x,
-        'y' : mfit.y,
-        'sigma' : mfit.sigma,
-        'chisq' : chisq,
-        'nok' : nok,
-        'nrej' : nrej,
-        'npar' : len(param),
-        'nfev' : res.nfev
-    }
+    extras = (
+        fit,
+        mfit.x,
+        mfit.y,
+        mfit.sigma,
+        chisq,
+        nok,
+        nrej,
+        len(param),
+        res.nfev
+    )
     if sky is None:
         return (
             (heightf, xf, yf, fwhmf, betaf),
@@ -1140,11 +1138,15 @@ def fitGaussian(
                 `fwhm_fix` == True, then `fwhme` will come back as -1.
 
            extras : tuple
-                (fit, x, y, sigma) where `fit` is a :class:`Window` containing
-                the best fit, `x` and `y` are the x and y positions of all
-                pixels (2D numpy arrays) and `sigma` is the final set of RMS
-                uncertainties on each pixels [option for future: some may come
-                back < 0 indicating rejection].
+                (fit, x, y, sigma, chisq, nok, nrej, npar, nfev)
+                where: `fit` is an :class:`Window` containing the best
+                fit; `x` and `y` are the x and y positions of all
+                pixels (2D numpy arrays); `sigma` is the final set of
+                RMS uncertainties on each pixel (2D numpy array);
+                `chisq` is the raw chi**2; `nok` is the number of
+                points fitted; `nrej` is the number rejected; `npar`
+                is the number of parameters fitted (3 to 5), `nfev` is
+                the number of functions evaluations.
 
     Raises a HipercamError least_squares fails.
 
@@ -1228,17 +1230,29 @@ def fitGaussian(
                 break
 
     # OK we are done.
+    extras = (
+        fit,
+        gfit.x,
+        gfit.y,
+        gfit.sigma,
+        chisq,
+        nok,
+        nrej,
+        len(param),
+        res.nfev
+    )
+
     if sky is None:
         return (
             (heightf, xf, yf, fwhmf),
             (heightfe, xfe, yfe, fwhmfe),
-            (fit, gfit.x, gfit.y, gfit.sigma, chisq, nok, nrej, len(param), res.nfev),
+            extras
         )
     else:
         return (
             (skyf, heightf, xf, yf, fwhmf),
             (skyfe, heightfe, xfe, yfe, fwhmfe),
-            (fit, gfit.x, gfit.y, gfit.sigma, chisq, nok, nrej, len(param), res.nfev),
+            extras
         )
 
 @jit(nopython=True, cache=True)
