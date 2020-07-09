@@ -1293,11 +1293,6 @@ class ProcessCCDs:
               parallelisation step.  See 'scripts/reduce.py' for its calling
               signature.
 
-           ccdproc : function
-              function that carries out the per-CCD processing needed for the
-              parallelisation step.  See 'scripts/reduce.py' for its calling
-              signature.
-
            pool : multiprocessing.Pool | None
               for parallel processing. If 'None', it will be done in serial
               mode.
@@ -1324,7 +1319,7 @@ class ProcessCCDs:
 
     def __call__(self, pccds, mccds, nframes):
 
-        """Carries out the multi-processing reuction of a set of frames
+        """Carries out the multi-processing reduction of a set of frames
 
         Arguments::
 
@@ -1423,6 +1418,16 @@ class ProcessCCDs:
             # delayed reduction now carried out in parallel
             allres = self.pool.starmap(self.ccdproc, arglist)
 
+            # update store and rfile.aper with the final results for
+            # each CCD. This is necessary because the alterations to
+            # these made within the routine are otherwise lost
+            for cnam, res in allres:
+                if len(res):
+                    (nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose) = res[-1]
+                    self.store[cnam] = store
+                    self.rfile.aper[cnam] = ccdaper
+
+        # pass back the results
         return allres
 
 
