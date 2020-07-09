@@ -61,7 +61,7 @@ def hlog2fits(args=None):
         )
 
         origin = cl.get_value(
-            "origin", "h(ipercam) or u(ltracam)", "h", lvals=["h", "u"]
+            "origin", "h(ipercam) or u(ltracam) pipeline?", "h", lvals=["h", "u"]
         )
 
     oname = os.path.basename(log)
