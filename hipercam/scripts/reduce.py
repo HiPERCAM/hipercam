@@ -1063,15 +1063,22 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                         slevel = dsky[ok].mean()
                         srms = dsky[ok].std()
                         nold = len(dsky[ok])
-                        if nold < 2:
-                            break
                         ok = ok & (np.abs(dsky - slevel) < thresh * srms)
                         nrej = nold - len(dsky[ok])
+                        if len(dsky[ok]) == 0:
+                            # no sky. will still return the flux in
+                            # the aperture but set flag and the sky
+                            # uncertainty to -1
+                            flag |= hcam.NO_SKY
+                            slevel = 0
+                            serror = -1
+                            nrej = 0
+                            break
 
                     nsky = len(dsky[ok])
-
-                    # serror -- error in the sky estimate.
-                    serror = srms / np.sqrt(nsky)
+                    if nsky:
+                        # serror -- error in the sky estimate.
+                        serror = srms / np.sqrt(nsky)
 
                 else:
 
