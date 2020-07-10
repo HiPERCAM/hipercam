@@ -21,7 +21,8 @@ you should update.
    There are many changes here, and I expect there to be bugs as a result,
    but some of the changes are significant enough that it is better to
    release now rather than wait longer. See also the
-   :doc:`full list of changes <change_log_0.19.8_0.20.0>`.
+   :doc:`full list of changes, 0.19.8 to 0.20.0 <change_log_0.19.8_0.20.0>`,
+   and the :doc:`additional changes since 0.20.0 <change_log_0.20.0_to_now>`,
 
 #. **26 February 2020, Version 0.19.8**: there have been many changes since
    the 0.16 versions. Apart from many bugfixes, the main ones are:

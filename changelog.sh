@@ -23,3 +23,19 @@ EOF
 
 git log ${tag1}..${tag2} --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' --reverse >> $clog
 
+clog=docs/change_log_${tag2}_to_now.rst
+
+cat<<EOF > $clog
+.. changelog created on `date`
+
+.. include:: globals.rst
+
+|hiper| pipeline change log from ${tag2}
+****************************************
+
+List of changes from git, oldest first, with the commit keys linked to github:
+
+EOF
+
+git log ${tag2}..HEAD --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' --reverse >> $clog
+
