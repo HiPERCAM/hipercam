@@ -44,7 +44,7 @@ step process as follows:
     If reference targets are chosen to be bright and isolated, one can carry
     out broad searches which allow for very poor guiding. Following the
     search, 2D profile fits are carried out and the mean x,y shift relative to
-    the starting positions calculated. If this stage fails (e.g.  because of
+    the starting position is calculated. If this stage fails (e.g.  because of
     clouds), then the rest of the frame is skipped on the basis that if the
     reference targets cannot be located, then no others will be
     either. **All** the reference stars must be successfully relocated each
@@ -57,26 +57,31 @@ step process as follows:
 
  #. Next, the positions of non-reference, non-linked apertures are
     determined. This is done through 2D profile fits starting from the shift
-    determined from the reference targets. An initial search is carried out to
-    check that a sufficiently high maximum (``fit_height_min_nrf``) exists,
-    but is only actually used to change position if there are no reference
-    stars on the basis that it is more reliable to trust the reference stars
-    than a search on a faint target.  The idea is that the mean shift from the
-    reference targets should provide a good start. An extra parameter
-    ``fit_max_shift`` can be used to control how far the profile fits are
+    determined from the reference targets. This allows a possibly wide-ranging
+    initial search step as used for the reference stars to be skipped. The
+    parameter ``fit_max_shift`` can be used to control how far the profile fits are
     allowed to wander from the initial positions obtained via the reference
     stars. If the fits to non-reference stars fail, and there are reference
     stars available, an extraction will still be carried out. This allows one
     to cross over deep eclipses while still extracting flux at the known
-    position of your target.
+    position offset of your target from the references.
 
 The combination of the options available in |setaper| and the |reduce|
-configuration file are a powerful means to track objects over thousands of
+configuration file are a powerful means to track objects over many thousands of
 exposures in a row. The main risk of failure comes when a combination of
 clouds and cosmic rays cause a target to be too faint to register while a
 cosmic ray does. Multiple reference stars and careful use of ``fit_max_shift``
-and ``fit_diff`` can help in such cases. Once the aperture positions are
+and ``fit_diff`` can help in such cases. A final option is ``fit_alpha`` which
+enables averaging of the offset used to get from the reference stars to the
+target position. This allows one to cope with, for example, stars that disappear
+during eclipses, without simply fixing the offset in perpetuity using the link
+option. ``fit_alpha = 0.01`` for instance only applies a fraction of 0.01 of the
+correction to the x,y offsets  measured on a given frame. This has the effect of
+smoothing the offsets over the scale of 100 frames or so. This should make the relative
+aperture positions less jumpy than simply applying them directly. Experimentation is
+advised to compare and optimise results. Once the aperture positions are
 determined, |reduce| moves onto extracting the flux.
+
 
 Target detection
 ================
@@ -89,7 +94,7 @@ important at this point. The effect of smoothing on a single pixel can be writte
 
    \hat{y} = \frac{\sum_i w_i y_i}{\sum_i w_i},
 
-where the :math:`w_i` are the gaussian weights 
+where the :math:`w_i` are the gaussian weights
 
 .. math::
 
@@ -99,7 +104,7 @@ with :math:`r` the distance in binned pixels from the particular pixel under
 consideration, and :math:`\sigma` is the RMS of the smoothing being applied
 (:math:`= \mathrm{FWHM}/2.3548`) and :math:`y_i` are the values
 of the contributing surrounding pixels. A quantity of interest is the
-statistical uncertainty of this smoothed value since it is this which sets the
+statistical uncertainty of this smoothed value, since it is this which sets the
 desirable threshold level. Assuming the contributing pixels are independent,
 the variance is given by
 
@@ -161,7 +166,6 @@ as what is sometimes called a "matched filter".
    specified as a multiplier of the above estimate.
 
 
-
 Sky background estimation
 =========================
 
@@ -176,7 +180,7 @@ target aperture, i.e. :math:`R^2_\text{out}-R^2_\text{in} \gg
 R^2_\text{targ}`, in order to minimise the uncertainty due to the sky
 estimate. The downside of this is the possibility of picking up more nearby
 stars, starting to overlap the sky annulus with the edge of the window
-within which the target falls and increasing the size so much that
+within which the target falls, and increasing the size so much that
 quadratic variations in the sky background become important. Overlap of the
 sky aperture with the edge of the window is not desirable as one always wants
 the sky to be symmetrical around the object to eliminate any gradients in the
@@ -198,24 +202,27 @@ whereby a pixel which has its centre exactly on the edge of the circle gets
 a weight of 0.5, which is linearly ramped from 0 to 1 as the pixel approaches
 the aperture over a length scale comparable to its size.
 
-An important element of normal extraction is the radius to extract the target
-flux from. In an ideal world with steady seeing, this would have a single
-value. However seeing is very rarely steady, and can exhibit very variable
-behaviour in a night, or even within minutes. Thus a commonly used option is
-the 'variable' aperture option (set in the reduce file). This scales the
-radius of the extraction aperture to a multiple of the FWHM of the stellar
-profiles of the given frame. A single mean value of FWHM is established
-through profile fits to the targets and thus the same extraction radius is
-used for all targets. Useful values for the scale factor range from 1.5 to
-2.5. Stellar profiles can have extended wings, so one should expect not to
-include all the target flux in the aperture. Instead the hope is that the same
-fraction of flux is missed from both target and comparison, which then cancels
-when performing relative photometry. The exact choice of scale is not easy, as
-it represents a balance between increasing statistical noise for large radii
-versus increasing systematic noise for small radii where the fraction of flux
-lost from the apertures becomes large. Bright targets tend to push the choice
-towards large radii, while faint targets are better with small radii. The key
-is to try different values and compare the results side by side.
+An important element of normal extraction is the radius to extract the
+target flux from. In an ideal world with steady seeing, this would
+have a single value. However, seeing is very rarely steady, and can
+exhibit very variable behaviour in a night, or even within
+minutes. Thus a commonly used option is the 'variable' aperture option
+(set in the reduce file). This scales the radius of the extraction
+aperture to a multiple of the FWHM of the stellar profiles of the
+given frame. A single mean value of FWHM is established through
+profile fits to the targets and thus the same extraction radius is
+used for all targets. Useful values for the scale factor range from
+1.5 to 2.5. Stellar profiles have extended wings, so one cane never
+include all the target flux in the aperture. Instead the hope is that
+the *same* fraction of flux is missed from both target and comparison,
+which then cancels when performing relative photometry. The exact
+choice of scale is not easy, as it represents a balance between
+increasing statistical noise for large radii versus increasing
+systematic noise for small radii when the fraction of flux lost from
+the apertures becomes large. Bright targets tend to push the choice
+towards large radii, while faint targets are better with small
+radii. The key is to try different values and compare the results side
+by side.
 
 Sometimes one might have no suitable comparison star, or only ones of very
 different colour to the target such that they are bright in some bands but
@@ -327,4 +334,4 @@ the *same* profile. If this is not the case, e.g. the CCDs have significant
 tilt leading to a FWHM that varies with position, then optimal photometry can
 suffer from systematic errors that make things worse. As usual, such problems
 manifest themselves most on bright targets, so one should not simply choose
-'optimal' over 'normal' by default.
+'optimal' over 'normal' by default. (I use 'normal' most of the time.)
