@@ -90,7 +90,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         'sep','numpy','astropy','matplotlib','requests',
-        'numba','websocket-client'
+        'numba','websocket-client', 'fitsio'
     ],
 
     # need numpy version 1.12
