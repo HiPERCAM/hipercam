@@ -8,6 +8,21 @@
 This page documents important changes in the pipeline, as a help to whether
 you should update.
 
+#. **10 July 2020, Version 0.20.0**: a large number of updates and
+   fixes in this version. Apart from fixes to problems that would have
+   been obvious as they were show-stoppers, the main changes are:
+
+     * greatly improved target location for small windows
+     * fixed bug with target location and parallel processing
+     * added option to limit maximum beta for Moffat fits
+     * added various specialist routines to do with timing
+     * started on a routine |ftargets| which uses 'sep' to automate reduction
+
+   There are many changes here, and I expect there to be bugs as a result,
+   but some of the changes are significant enough that it is better to
+   release now rather than wait longer. See also the
+   :doc:`full list of changes <change_log_0.19.8_0.20.0.rst>`.
+
 #. **26 February 2020, Version 0.19.8**: there have been many changes since
    the 0.16 versions. Apart from many bugfixes, the main ones are:
 
