@@ -13,6 +13,7 @@
 .. |ol-csub|     replace:: subtract a constant from a frame
 .. |ol-div|      replace:: divide one frame by another
 .. |ol-fits2hcm| replace:: convert foreign FITs files to hcm format
+.. |ol-ftargets| replace:: automatically find targets using "sep"
 .. |ol-genred|   replace:: create a reduce file
 .. |ol-grab|     replace:: split frames out of a run
 .. |ol-hfilter|  replace:: filter a HiPERCAM image
@@ -21,6 +22,8 @@
 .. |ol-hlog2fits| replace:: convert a reduction log file to FITS
 .. |ol-hls|      replace:: list the runs on the |hiper| server
 .. |ol-hplot|    replace:: plot a frame
+.. |ol-ltimes|   replace:: list times of a run
+.. |ol-ltrans|   replace:: computes transforms to align frames
 .. |ol-makebias| replace:: combine a run to make a bias frame
 .. |ol-makedark| replace:: combine a run to make a dark frame
 .. |ol-makeflat| replace:: combine a list of frames into a flat
@@ -36,7 +39,6 @@
 .. |ol-splice|   replace:: splice two frames together
 .. |ol-stats|    replace:: report statistics of a frame
 .. |ol-sub|      replace:: subtract two frames
-.. |ol-times|    replace:: list times of a run
 .. |ol-uls|      replace:: list the runs on the ULTRACAM server
 
 .. highlightlang:: rest
@@ -89,6 +91,8 @@ useful.
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |fits2hcm|   | |ol-fits2hcm|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |ftargets|   | |ol-ftargets|  | Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
    | |genred|     | |ol-genred|    | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |grab|       | |ol-grab|      | Yes      | Yes      |         |           |            |
@@ -104,6 +108,8 @@ useful.
    | |hls|        | |ol-hls|       | Yes      |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hplot|      | |ol-hplot|     | Yes      | Yes      |  Yes    |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |ltimes|     | |ol-ltimes|    |          |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |makebias|   | |ol-makebias|  | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -134,8 +140,6 @@ useful.
    | |stats|      | |ol-stats|     |          |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |sub|        | |ol-sub|       |          |          |         |   Yes     |            |
-   +--------------+----------------+----------+----------+---------+-----------+------------+
-   | |times|      | |ol-times|     |          |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |uls|        | |ol-uls|       | Yes      |          |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -416,6 +420,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.csub
 .. autofunction:: hipercam.scripts.div
 .. autofunction:: hipercam.scripts.fits2hcm
+.. autofunction:: hipercam.scripts.ftargets
 .. autofunction:: hipercam.scripts.genred
 .. autofunction:: hipercam.scripts.grab
 .. autofunction:: hipercam.scripts.hfilter
@@ -424,6 +429,8 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.hlog2fits
 .. autofunction:: hipercam.scripts.hls
 .. autofunction:: hipercam.scripts.hplot
+.. autofunction:: hipercam.scripts.ltimes
+.. autofunction:: hipercam.scripts.ltrans
 .. autofunction:: hipercam.scripts.makebias
 .. autofunction:: hipercam.scripts.makedark
 .. autofunction:: hipercam.scripts.makeflat
@@ -439,7 +446,6 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.splice
 .. autofunction:: hipercam.scripts.stats
 .. autofunction:: hipercam.scripts.sub
-.. autofunction:: hipercam.scripts.times
 .. autofunction:: hipercam.scripts.uls
 
 .. [#f1] Six other commands (``aligntool``, ``digest``, ``hlogger``,

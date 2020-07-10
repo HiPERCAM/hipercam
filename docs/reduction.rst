@@ -305,7 +305,7 @@ than a particular form of FITS. If your data requires only a small level of
 tweaking then there are a few simple aritematical commands such as |add| and
 |cmul| that might help, but it is not the intention to provide a full suite of
 tools that can deal with all cases. Instead, the recommended route is to code
-Python scripts to manipulate your data, and the :doc:`api` is designed to make
+Python scripts to manipulate your data, and the :doc:`api/api` is designed to make
 it relatively easy to access |hiper| data. If you devise routines of generic
 interest, you are encouraged to submit them for possible inclusion within the
 main pipeline commands. The existing pipeline commands are a good place to

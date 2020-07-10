@@ -150,7 +150,7 @@ exposures to disk using the command |grab| as e.g.::
 In this case the first 5 exposures have been saved to "hcm" files. These
 are in fact FITS files but the extension is to indicate that they have
 a format specific to |hiper|. For more on the format of these files consult
-:doc:`hcmformat`.
+:doc:`api/hcmformat`.
 
 You can then look at these with the |hiper| command |hplot| which, if you use
 the matplotlib option (``device=/mpl``), can allow you to zoom in on the same

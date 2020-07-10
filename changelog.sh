@@ -17,9 +17,9 @@ cat<<EOF > $clog
 |hiper| pipeline change log from ${tag1} to ${tag2}
 ***************************************************
 
-List of changes from git, oldest first:
+List of changes from git, oldest first, with the commit keys linked to github:
 
 EOF
 
-git log ${tag1}..${tag2} --pretty=format:'  * `view commit &bull; <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' --reverse >> $clog
+git log ${tag1}..${tag2} --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' --reverse >> $clog
 

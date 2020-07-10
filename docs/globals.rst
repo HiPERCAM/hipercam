@@ -19,6 +19,7 @@
 .. |csub| replace:: :func:`csub <hipercam.scripts.csub>`
 .. |div| replace:: :func:`div <hipercam.scripts.div>`
 .. |fits2hcm| replace:: :func:`fits2hcm <hipercam.scripts.fits2hcm>`
+.. |ftargets| replace:: :func:`ftargets <hipercam.scripts.ftargets>`
 .. |genred| replace:: :func:`genred <hipercam.scripts.genred>`
 .. |grab| replace:: :func:`grab <hipercam.scripts.grab>`
 .. |hfilter| replace:: :func:`hfilter <hipercam.scripts.hfilter>`
@@ -27,6 +28,8 @@
 .. |hlog2fits| replace:: :func:`hlog2fits <hipercam.scripts.hlog2fits>`
 .. |hls| replace:: :func:`hls <hipercam.scripts.hls>`
 .. |hplot| replace:: :func:`hplot <hipercam.scripts.hplot>`
+.. |ltimes| replace:: :func:`ltimes <hipercam.scripts.ltimes>`
+.. |ltrans| replace:: :func:`ltrans <hipercam.scripts.ltrans>`
 .. |makebias| replace:: :func:`makebias <hipercam.scripts.makebias>`
 .. |makedark| replace:: :func:`makedark <hipercam.scripts.makedark>`
 .. |makeflat| replace:: :func:`makeflat <hipercam.scripts.makeflat>`
@@ -43,7 +46,6 @@
 .. |splice| replace:: :func:`splice <hipercam.scripts.splice>`
 .. |stats| replace:: :func:`stats <hipercam.scripts.stats>`
 .. |sub| replace:: :func:`sub <hipercam.scripts.sub>`
-.. |times| replace:: :func:`times <hipercam.scripts.times>`
 .. |uls| replace:: :func:`uls <hipercam.scripts.uls>`
 
 .. |musec| replace:: :math:`\mu\text{s}`

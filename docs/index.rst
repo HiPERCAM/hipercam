@@ -34,7 +34,7 @@ more information on
    api/api
    installation
    files
-   bugs
+   api/bugs
 
 Indices and tables
 ==================
