@@ -327,12 +327,14 @@ def fitMoffat(
            pars : tuple
                 (sky, height, xcen, yce, fwhm, beta), the fitted parameters.
                 fwhm = fwhm_min if initial fit returns an fwhm < fwhm_min,
-                or == initial fwhm if fwhm_fix == True.
+                or == initial fwhm if fwhm_fix == True. sky = 0 if sky
+                not fitted.
 
            sigs : tuple
                 (skye, heighte, xcene, ycene, fwhme, betae), standard errors
                 on the fit parameters. If fwhm defaults to `fwhm_min` or
-                `fwhm_fix` == True, then `fwhme` will come back as -1.
+                `fwhm_fix` == True, then `fwhme` will come back as -1. If
+                the sky is not fitted, skye comes back as -1.
 
            extras : tuple
                 (fit, x, y, sigma, chisq, nok, nrej, npar, nfev)
@@ -453,8 +455,8 @@ def fitMoffat(
     )
     if sky is None:
         return (
-            (heightf, xf, yf, fwhmf, betaf),
-            (heightfe, xfe, yfe, fwhmfe, betafe), extras
+            (0., heightf, xf, yf, fwhmf, betaf),
+            (-1., heightfe, xfe, yfe, fwhmfe, betafe), extras
         )
     else:
         return (
@@ -1246,8 +1248,8 @@ def fitGaussian(
 
     if sky is None:
         return (
-            (heightf, xf, yf, fwhmf),
-            (heightfe, xfe, yfe, fwhmfe),
+            (0., heightf, xf, yf, fwhmf),
+            (-1., heightfe, xfe, yfe, fwhmfe),
             extras
         )
     else:
