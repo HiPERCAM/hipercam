@@ -24,7 +24,7 @@ __all__ = [
 
 
 def grab(args=None):
-    """``grab [source] run [temp] (ndigit) first last [twait tmax] trim
+    """``grab [source] run [temp] (ndigit) first last trim [twait tmax]
     ([ncol nrow]) bias [dtype]``
 
     This downloads a sequence of images from a raw data file and writes them
@@ -32,7 +32,7 @@ def grab(args=None):
 
     Parameters:
 
-       source  : string [hidden]
+       source : string [hidden]
            Data source, four options:
 
               | 'hs' : HiPERCAM server
@@ -40,10 +40,10 @@ def grab(args=None):
               | 'us' : ULTRACAM server
               | 'ul' : local ULTRACAM .xml/.dat files
 
-       run     : string
+       run : string
            run name to access
 
-       temp    : bool [hidden, defaults to False]
+       temp : bool [hidden, defaults to False]
            True to indicate that the frames should be written to temporary
            files with automatically-generated names in the expectation of
            deleting them later. This also writes out a file listing the names.
@@ -52,24 +52,17 @@ def grab(args=None):
            the name of the list of hcm files. Look at 'makebias' for an
            example that uses this feature.
 
-       ndigit  : int [if not temp]
+       ndigit : int [if not temp]
            Files created will be written as 'run005_0013.fits' etc. `ndigit`
            is the number of digits used for the frame number (4 in this
            case). Any pre-existing files of the same name will be
            over-written.
 
-       first   : int
+       first : int
            First frame to access
 
-       last    : int
+       last : int
            Last frame to access, 0 for the lot
-
-       twait   : float [hidden]
-           time to wait between attempts to find a new exposure, seconds.
-
-       tmax    : float [hidden]
-           maximum time to wait between attempts to find a new exposure,
-           seconds.
 
        trim : bool
            True to trim columns and/or rows off the edges of windows nearest
@@ -83,11 +76,17 @@ def grab(args=None):
        nrow : int [if trim, hidden]
            Number of rows to remove (bottom of windows)
 
+       twait : float [hidden]
+           time to wait between attempts to find a new exposure, seconds.
 
-       bias    : string
+       tmax : float [hidden]
+           maximum time to wait between attempts to find a new exposure,
+           seconds.
+
+       bias : string
            Name of bias frame to subtract, 'none' to ignore.
 
-       dtype   : string [hidden, defaults to 'f32']
+       dtype : string [hidden, defaults to 'f32']
            Data type on output. Options:
 
             | 'f32' : output as 32-bit floats (default)
