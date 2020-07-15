@@ -198,7 +198,13 @@ def pCcd(
     """
     if iset == "p":
         # Set intensities from percentiles
-        vmin, vmax = ccd.percentile((plo, phi), xlo, xhi, ylo, yhi)
+        vmin, vmax = ccd.percentile(
+            (plo, phi),
+            min(xlo,xhi),
+            max(xlo,xhi),
+            min(ylo,yhi),
+            max(ylo,yhi)
+        )
 
     elif iset == "a":
         # Set intensities from min/max range
