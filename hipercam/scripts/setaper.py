@@ -53,7 +53,7 @@ def setaper(args=None):
 
     Interactive definition of photometric extraction apertures. This is
     a matplotlib-based routine allowing you to place apertures on targets
-    using the cursor.
+    using the cursor. It is an essential prerequisite to running |reduce|.
 
     Parameters:
 
@@ -162,7 +162,8 @@ def setaper(args=None):
          to huge beta.
 
       fwhm : float [hidden]
-         default FWHM, unbinned pixels.
+         default FWHM, unbinned pixels. Take care to set it something of the right
+         order of magnitude to avoid spurious rejection of good pixels.
 
       fwfix: bool [hidden]
          don't fit the FWHM. Can be more robust; the position is still fitted.
@@ -202,7 +203,9 @@ def setaper(args=None):
          gain, ADU/count, for assigning uncertainties
 
       thresh : float [hidden]
-         thresh rejection threshold
+         thresh rejection threshold. Be careful. Bad combinations of this
+         and the initial FWHM can cause wholessale rejection of good pixels,
+         so don't be overzealous.
 
       ndiv : int [hidden]
          sub-division factor for fits. 0=no sub-division. Otherwise it will used
