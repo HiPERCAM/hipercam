@@ -148,7 +148,7 @@ def makedark(args=None):
         "no",
         str(twait),
         str(tmax),
-        "none",
+        bias,
         "f32",
     ]
     flist = hcam.scripts.grab(args)
