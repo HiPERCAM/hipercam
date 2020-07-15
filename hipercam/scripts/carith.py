@@ -149,7 +149,7 @@ def carith(args=None):
             constant,
             ccd,
             win,
-            hcam.sub_extension(outfile, hcam.HCAM),
+            utils.sub_extension(outfile, hcam.HCAM),
         )
     )
 
