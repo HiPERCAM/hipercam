@@ -340,7 +340,7 @@ Trouble shooting reduction
 ==========================
 
 There are several things you can do to avoid problems during reduction. The
-main thing to avoid is that |reduce| simply loses your target or the
+main thing to avoid is that |reduce| loses your target or the
 comparison stars.
 
 Aperture positioning
@@ -350,11 +350,13 @@ Tracking multiple targets in multiple CCDs over potentially tens of
 thousands of frames is a challenge. A single meteor or cosmic ray can
 throw the position of a target off and you may never recover. This
 could happen after many minutes of reduction have gone by, which can be
-annoying. The 'apertures' section of reduce files has multiple
-parameters designed to help avoid such problems.
+annoying. It is by far the most likely problem that you will encounter,
+because once the aperture positions are determined, extraction is trivial.
+The 'apertures' section of reduce files has multiple parameters designed
+to help avoid such problems.
 
 As emphasised above, if you identify a star (or stars) as (a) reference
-aperture(s), their position are the first to be determined and then used to
+aperture(s), their position(s) are the first to be determined and then used to
 offset the location before carrying out profile fits for other stars. If you
 choose well-isolated reference stars, this can allow you to cope with large
 changes in position from frame-to-frame, whilst maintaining a tight search on
@@ -374,11 +376,11 @@ or perhaps a few minutes. In this case, careful use of the
 `fit_height_min_ref` and `fit_height_min_nrf` parameters in the reduce
 file might get you through.  The idea is that if the target gets too
 faint, you don't want to trust any position from it, so that no
-attempt is made to update the position. Provided the telescope is not
-moving too much, you should have a chance of re-locating apertures
-successfully when the target re-appears. If conditions are good, the
-aperture location can work without problem for many thousands of
-images in a row.
+attempt is made to update the position (relative to the reference star
+if appropriate). Provided the telescope is not moving too much, you should
+have a chance of re-locating apertures successfully when the target
+re-appears. If conditions are good, the aperture location can work without
+problem for many thousands of images in a row.
 
 I have had a case where a particularly bright and badly-placed cosmic ray
 caused the reference aperture positioning to fail after a reduction had run
@@ -386,13 +388,14 @@ successfully for more than 10,000 frames. Very annoying. It was easily fixed
 by shifting the reference to another aperture, but it does highlight the
 importance of choosing a good reference star if at all possible. Choosing
 multiple reference stars can help. In this case, a new parameter, `fit_diff`,
-comes into play. In this case, if the position shifts of the different
-reference targets from one frame to the next differ by more than this number,
+comes into play. In this case, if the positions of the reference targets
+from one frame to the next shift differentially by more than this number,
 all apertures are flagged as unreliable and no shift or extraction is
-attempted. This can be effective as a back-stop for a cosmic ray affecting the
+attempted. This is effective as a back-stop for a cosmic ray affecting the
 position of one of the reference apertures. However, it has the downside of
 requiring all reference stars to be successfully re-located, which could
-introduce a higher drop-out rate from double jeapardy.
+introduce a higher drop-out rate from double jeapardy. Careful selection of
+reference stars is important.
 
 In bad cases, nothing you try will work. Then the final fallback is to reduce
 the run in chunks using the `first` parameter (prompted in |reduce|) to skip
@@ -407,10 +410,10 @@ Defocussing is often used in exoplanet work. Defocussed images are not well
 fit by either gaussian or moffat profiles. In this case, when measuring the
 object position, you should hold the FWHM fixed and use a large FWHM,
 comparable to the width of the image. Experiment for best results. You should
-also raise the threshold for bad data rejection as well. The idea is simply to
-get a sort of weighted centroid, and you will not get a good profile fit. For
-very defocussed images, it is important to avoid too narrow a FWHM otherwise
-you could end up zeroing in on random peaks in the doughnut-like profile.
+also raise the threshold for bad data rejection, `fit_thresh`, to a large value like 20 as well. The idea is simply to get a sort of weighted centroid, and
+you will not get a good profile fit (if someone is interested in implementing a better model profile for such cases, we would welcome the input). For very
+defocussed images, it is important to avoid too narrow a FWHM otherwise you
+could end up zeroing in on random peaks in the doughnut-like profile.
 
 .. _linked_apertures:
 
@@ -422,14 +425,14 @@ others to track well. However, they should only be used as a last resort,
 especially for long runs, because of differential image motion due to
 atmospheric refraction which can lead to loss of flux. This is particularly
 the case in the u-band. If you have to link an aperture, try to do so with a
-nearby object to minimise the distortion. It does not need to be super-bright
+nearby object to minimise such drift. It does not need to be super-bright
 (although preferably it should be brighter than your target), or your main
 comparison; the key point should be that its position can be securely tracked.
-If your target is reasonably trackable but simply a bit faint, then the
-``fit_alpha`` parameter is worth exploring as it effectively offsets from the
-reference targets by a variable amount that averages over the previous
-1/fit_alpha frames. This allows you to ride over frames that are too
-faint. This for example is an effective way to cope with deep eclipses whilst
+If your target is trackable at all, then the `fit_alpha` parameter is a better
+alternative. It allows for variable offsets from the
+reference targets by but average over the previous
+1/`fit_alpha` frames. This allows you to ride over frames that are too
+faint. This can be an effective way to cope with deep eclipses or clouds whilst
 allowing for differential image motion in a way that linked apertures cannot
 manage.
 
@@ -438,7 +441,7 @@ extracted from the middle of the run. This will reduce the problems caused by
 refraction. However, if positions change a lot, it can make the start of
 reduction tricky. If so, then having set the apertures from an image taken
 near the middle of a run, tweak it using one taken from the start of the run
-(basically re-centre each aperture, but leave the linked apertures to follow
+(re-centre each aperture, but leave the linked apertures to follow
 whatever target they are linked to).
 
 Problems with PGPLOT windows
