@@ -448,9 +448,10 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.sub
 .. autofunction:: hipercam.scripts.uls
 
-.. [#f1] Six other commands (``aligntool``, ``digest``, ``hlogger``,
-         ``makefield``, ``makedata``, ``pfolder``) are not documented here as
-         they are of specialist usage.  Information on these is however
-         available via ``pydoc``.
+.. [#f1] Several other commands (``aligntool``, ``atanalysis``, ``atbytes``,
+         ``digest``, ``hlogger``, ``makefield``, ``makedata``, ``pfolder``,
+         ``tanalysis`` and ``tbytes``) are not documented here as they are
+         of specialist usage.  Information on these is however available via
+         ``pydoc``.
 
 
