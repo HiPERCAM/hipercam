@@ -75,6 +75,7 @@ def ltrans(args=None):
             axes = fig.add_subplot(111)
             axes.set_aspect("equal")
             plt.errorbar(xs, ys, eys, exs, ".")
+            plt.title('Raw positions from all frames')
             plt.show()
 
             nfmax = 0
@@ -110,12 +111,13 @@ def ltrans(args=None):
             axes = fig.add_subplot(111)
             axes.set_aspect("equal")
             plt.errorbar(xts, yts, eys, exs, ".")
+            plt.title('Corrected positions from all frames')
             plt.show()
 
 
 def matchpos(x, y, xref, yref):
     """
-    Match pairs of position, looking for the nearest neighbour.
+    Match pairs of positions, looking for the nearest neighbour.
 
     Parameters
     ----------
