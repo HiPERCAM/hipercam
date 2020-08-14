@@ -565,15 +565,16 @@ def ftargets(args=None):
                                         i
                                         for i in range(len(results))
                                         if ok[i] and len(results[i]) == 1
-                                    ]
+                                    ], dtype=int
                                 )
 
                                 # pick the brightest. 'dfwhms' are the
                                 # indices of the selected targets for
                                 # FWHM measurement
-                                fluxes = objects["flux"][dfwhms]
-                                isort = np.argsort(fluxes)[::-1]
-                                dfwhms = dfwhms[isort[:nmax]]
+                                if len(dfwhms):
+                                    fluxes = objects["flux"][dfwhms]
+                                    isort = np.argsort(fluxes)[::-1]
+                                    dfwhms = dfwhms[isort[:nmax]]
 
                                 # buffer for storing the FWHMs, including NaNs
                                 # for the ones thet are skipped
@@ -582,12 +583,12 @@ def ftargets(args=None):
                                 nfevs = np.zeros_like(peaks, dtype=np.int32)
 
                                 for i, (x, y, peak, fwhm) in enumerate(
-                                    zip(
-                                        objects["x"],
-                                        objects["y"],
-                                        peaks,
-                                        objects["fwhm"],
-                                    )
+                                        zip(
+                                            objects["x"],
+                                            objects["y"],
+                                            peaks,
+                                            objects["fwhm"],
+                                        )
                                 ):
                                     # fit FWHMs of selected targets
 
@@ -603,7 +604,7 @@ def ftargets(args=None):
                                             ofwhm = fwhm
                                             obeta = beta
                                             (
-                                                (height, x, y, fwhm, beta),
+                                                (sky, height, x, y, fwhm, beta),
                                                 epars,
                                                 (
                                                     wfit,
@@ -626,6 +627,8 @@ def ftargets(args=None):
                                                 2.0,
                                                 False,
                                                 beta,
+                                                beta_max,
+                                                False,
                                                 readout,
                                                 gain,
                                                 rej,
@@ -671,6 +674,7 @@ def ftargets(args=None):
                                 # save the objects and the
                                 objs.append(objects)
                                 dofwhms.append(dfwhms + nobj)
+                                print(dfwhms,nobj,dofwhms)
                                 nobj += len(objects)
 
                             except hcam.HipercamError:
@@ -724,10 +728,12 @@ def ftargets(args=None):
                                 pgline(xs, ys)
 
                             pgsci(core.CNAMS["blue"])
-                            for x, y in zip(objs["x"][dofwhms], objs["y"][dofwhms]):
-                                xs = [x - rmin, x + rmin, x + rmin, x - rmin, x - rmin]
-                                ys = [y - rmin, y - rmin, y + rmin, y + rmin, y - rmin]
-                                pgline(xs, ys)
+                            if len(dofwhms):
+                                print(dofwhms)
+                                for x, y in zip(objs["x"][dofwhms], objs["y"][dofwhms]):
+                                    xs = [x - rmin, x + rmin, x + rmin, x - rmin, x - rmin]
+                                    ys = [y - rmin, y - rmin, y + rmin, y + rmin, y - rmin]
+                                    pgline(xs, ys)
 
                             # remove some less useful fields to save a
                             # bit more space prior to saving to disk
