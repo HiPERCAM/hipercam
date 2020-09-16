@@ -619,6 +619,15 @@ warn = 1 60000 64000
             "1": "green",
         }
 
+    else:
+        CCD_COLS = {
+            "1": "green",
+            "2": "blue",
+            "3": "red",
+            "4": "orange",
+            "5": "purple",
+        }
+
     # Generate the light curve plot lines
     light_plot = ""
     no_light = True
@@ -628,21 +637,21 @@ warn = 1 60000 64000
             light_plot += (
                 "plot = {:s} 1 2 0 1 {:10s} !  "
                 " # ccd, targ, comp, off, fac, dcol, ecol\n"
-            ).format(cnam, CCD_COLS[cnam])
+            ).format(cnam, CCD_COLS.get(cnam,"black"))
             no_light = False
 
         elif "1" in ccdaper and "2" not in ccdaper:
             light_plot += (
                 "plot = {:s} 1 ! 0 1 {:10s} !  "
                 " # ccd, targ, comp, off, fac, dcol, ecol\n"
-            ).format(cnam, CCD_COLS[cnam])
+            ).format(cnam, CCD_COLS.get(cnam,"black"))
             no_light = False
 
         if "2" in ccdaper and "3" in ccdaper:
             light_plot += (
                 "plot = {:s} 3 2 0 1 {:10s} !  "
                 " # ccd, targ, domp, off, fac, dcol, ecol\n"
-            ).format(cnam, CCD_COLS[cnam])
+            ).format(cnam, CCD_COLS.get(cnam,"black"))
             no_light = False
 
     if no_light:
@@ -658,19 +667,19 @@ warn = 1 60000 64000
     if "2" in ccdaper:
         position_plot += (
             "{:s}plot = {:s} 2 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-        ).format(comm_position, ccd, CCD_COLS[ccd])
+        ).format(comm_position, ccd, CCD_COLS.get(cnam,"black"))
         no_position = False
 
     elif "3" in ccdaper:
         position_plot += (
             "{:s}plot = {:s} 3 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-        ).format(comm_position, ccd, CCD_COLS[ccd])
+        ).format(comm_position, ccd, CCD_COLS.get(cnam,"black"))
         no_position = False
 
     elif "1" in ccdaper:
         position_plot += (
             "{:s}plot = {:s} 1 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-        ).format(comm_position, ccd, CCD_COLS[ccd])
+        ).format(comm_position, ccd, CCD_COLS.get(cnam,"black"))
         no_position = False
 
     if no_position:
@@ -687,19 +696,19 @@ warn = 1 60000 64000
         if "2" in ccdaper:
             transmission_plot += (
                 "plot = {:s} 2 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(cnam, CCD_COLS[cnam])
+            ).format(cnam, CCD_COLS.get(cnam,"black"))
             no_transmission = False
 
         elif "3" in ccdaper:
             transmission_plot += (
                 "plot = {:s} 3 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(cnam, CCD_COLS[cnam])
+            ).format(cnam, CCD_COLS.get(cnam,"black"))
             no_transmission = False
 
         elif "1" in ccdaper:
             transmission_plot += (
                 "plot = {:s} 1 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(cnam, CCD_COLS[cnam])
+            ).format(cnam, CCD_COLS.get(cnam,"black"))
             no_transmission = False
 
     if no_transmission:
@@ -715,19 +724,19 @@ warn = 1 60000 64000
         if "1" in ccdaper and not ccdaper["1"].linked:
             seeing_plot += (
                 "{:s}plot = {:s} 1 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(comm_seeing, cnam, CCD_COLS[cnam])
+            ).format(comm_seeing, cnam, CCD_COLS.get(cnam,"black"))
             no_seeing = False
 
         elif "2" in ccdaper and not ccdaper["2"].linked:
             seeing_plot += (
                 "{:s}plot = {:s} 2 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(comm_seeing, cnam, CCD_COLS[cnam])
+            ).format(comm_seeing, cnam, CCD_COLS.get(cnam,"black"))
             no_seeing = False
 
         elif "3" in ccdaper and not ccdaper["3"].linked:
             seeing_plot += (
                 "{:s}plot = {:s} 3 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(comm_seeing, cnam, CCD_COLS[cnam])
+            ).format(comm_seeing, cnam, CCD_COLS.get(cnam,"black"))
             no_seeing = False
 
     if no_seeing:
