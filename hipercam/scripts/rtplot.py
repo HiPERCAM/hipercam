@@ -583,7 +583,7 @@ def rtplot(args=None):
     with spooler.data_source(source, resource, first, full=False) as spool:
 
         # 'spool' is an iterable source of MCCDs
-        n = 0
+        nframe = 0
         for mccd in spool:
 
             if server_or_local:
@@ -610,7 +610,7 @@ def rtplot(args=None):
             tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
             print(
                 "{:d}, utc= {:s} ({:s}), ".format(
-                    mccd.head["NFRAME"],
+                    mccd.head.get("NFRAME",nframe+1),
                     tstamp.iso,
                     "ok" if mccd.head.get("GOODTIME", True) else "nok",
                 ),
@@ -649,7 +649,7 @@ def rtplot(args=None):
                         )
                     )
 
-            if n == 0:
+            if nframe == 0:
                 if bias is not None:
                     # crop the bias on the first frame only
                     bias = bias.crop(mccd)
@@ -947,7 +947,7 @@ def rtplot(args=None):
                 time.sleep(pause)
 
             # update the frame number
-            n += 1
+            nframe += 1
 
 
 # From here is support code not visible outside
