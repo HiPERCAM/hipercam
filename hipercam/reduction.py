@@ -1510,6 +1510,10 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     # next to store shifts
     shifts = []
 
+    # next is a shift that will be updated after the first fit. This allows
+    # the later reference stars to be not so good as the first. 
+    xshift, yshift = 0., 0.
+
     try:
         for apnam, aper in ccdaper.items():
             if aper.ref:
@@ -1526,14 +1530,15 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 
                 # get sub-window around start position
                 swdata = wdata.window(
-                    aper.x - shbox, aper.x + shbox, aper.y - shbox, aper.y + shbox
+                    aper.x + xshift - shbox, aper.x + xshift + shbox,
+                    aper.y + yshift - shbox, aper.y + yshift + shbox
                 )
 
                 # carry out initial search
                 x, y, peak = swdata.search(
                     apsec["search_smooth_fwhm"],
-                    aper.x,
-                    aper.y,
+                    aper.x + xshift,
+                    aper.y + yshift,
                     apsec["fit_height_min_ref"],
                     apsec["search_smooth_fft"],
                 )
@@ -1614,7 +1619,12 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     wysum += wy
                     ysum += wy * dy
 
+                    if len(shifts) == 0:
+                        # store the first to help any subsequent ones
+                        xshift, yshift = dx, dy
+
                     shifts.append((dx, dy))
+
 
                     # store stuff
                     store[apnam] = {
