@@ -347,7 +347,7 @@ Aperture positioning
 --------------------
 
 Tracking multiple targets in multiple CCDs over potentially tens of
-thousands of frames is a challenge. A single meteor or cosmic ray can
+thousands of frames can be a considerable challenge. A single meteor or cosmic ray can
 throw the position of a target off and you may never recover. This
 could happen after many minutes of reduction have gone by, which can be
 annoying. It is by far the most likely problem that you will encounter,
@@ -355,20 +355,38 @@ because once the aperture positions are determined, extraction is trivial.
 The 'apertures' section of reduce files has multiple parameters designed
 to help avoid such problems.
 
-As emphasised above, if you identify a star (or stars) as (a) reference
-aperture(s), their position(s) are the first to be determined and then used to
-offset the location before carrying out profile fits for other stars. If you
-choose well-isolated reference stars, this can allow you to cope with large
-changes in position from frame-to-frame, whilst maintaining a tight search on
-non-reference stars which may be close to other objects and be difficult to
-locate using a more wide-ranging search. Sensible use of this can avoid the
-need to link apertures in some cases. Reference targets don't have to be ones
-that you will use for photometry, although they usually are of course. As you
-get a feel for your data, be alert to reducing the size of the search box as
-the smaller the region you search over, the less likely are you to be affected
-by cosmic rays and similar problems. However, it is not unusual to make
-position shifts during observation and if these are large, you could lose your
-targets.
+As emphasised above, if you identify a star (or stars) as (a)
+reference aperture(s), their position(s) are the first to be
+determined and then used to offset the location before carrying out
+profile fits for other stars. If you choose well-isolated reference
+stars, this can allow you to cope with large changes in position from
+frame-to-frame, whilst maintaining a tight search on non-reference
+stars which may be close to other objects and be difficult to locate
+using a more wide-ranging search. Sensible use of this can avoid the
+need to link apertures in some cases. Reference targets don't have to
+be ones that you will use for photometry, although they usually are of
+course. As you get a feel for your data, be alert to reducing the size
+of the search box as the smaller the region you search over, the less
+likely are you to be affected by cosmic rays and similar
+problems. However, it is not unusual to make position shifts during
+observation and if these are large, you could lose your targets. Key
+parameters are ``search_half_width``, ``search_smooth_fwhm``,
+``fit_height_min_ref`` and ``fit_diff`` (the latter for multiple
+reference stars).  ``search_half_width`` sets the size of the search
+region around the last measured position of a reference star. It has
+to be large enough to cope with any jumps between frames. For large
+values, there could be multiple targets in the search region, so the
+valid target closest to the start position is chosen. Valid here means
+higher than ``fit_height_min_ref`` in the image after smoothing by
+``search_smooth_fwhm``. The latter makes the process more robust to
+variable seeing and cosmic rays.
+
+There is a slight difference in how the first reference star of a
+frame is treated compared with any others. The first one is simply
+searched for starting from its position on the previous frame. Any
+shift is then used to refine the start position for the remaining
+reference stars.  Therefore you should try to choose the most robust
+star (bright, well isolated) as your first reference star.
 
 Cloudy conditions can be hard to cope with: clouds may come completely
 wipe out your targets, only for them to re-appear after a few seconds
@@ -377,25 +395,26 @@ or perhaps a few minutes. In this case, careful use of the
 file might get you through.  The idea is that if the target gets too
 faint, you don't want to trust any position from it, so that no
 attempt is made to update the position (relative to the reference star
-if appropriate). Provided the telescope is not moving too much, you should
-have a chance of re-locating apertures successfully when the target
-re-appears. If conditions are good, the aperture location can work without
-problem for many thousands of images in a row.
+if appropriate). Provided the telescope is not moving too much, you
+should have a chance of re-locating apertures successfully when the
+target re-appears. If conditions are good, the aperture location can
+work without problem for many thousands of images in a row.
 
-I have had a case where a particularly bright and badly-placed cosmic ray
-caused the reference aperture positioning to fail after a reduction had run
-successfully for more than 10,000 frames. Very annoying. It was easily fixed
-by shifting the reference to another aperture, but it does highlight the
-importance of choosing a good reference star if at all possible. Choosing
-multiple reference stars can help. In this case, a new parameter, `fit_diff`,
-comes into play. In this case, if the positions of the reference targets
-from one frame to the next shift differentially by more than this number,
-all apertures are flagged as unreliable and no shift or extraction is
-attempted. This is effective as a back-stop for a cosmic ray affecting the
-position of one of the reference apertures. However, it has the downside of
-requiring all reference stars to be successfully re-located, which could
-introduce a higher drop-out rate from double jeapardy. Careful selection of
-reference stars is important.
+I have had a case where a particularly bright and badly-placed cosmic
+ray caused the reference aperture positioning to fail after a
+reduction had run successfully for more than 10,000 frames. Very
+annoying. It was easily fixed by shifting the reference to another
+aperture, but it does highlight the importance of choosing a good
+reference star if at all possible. Choosing multiple reference stars
+can help. In this case, a new parameter, `fit_diff`, comes into
+play. In this case, if the positions of the reference targets from one
+frame to the next shift differentially by more than this number, all
+apertures are flagged as unreliable and no shift or extraction is
+attempted. This is effective as a back-stop for a cosmic ray affecting
+the position of one of the reference apertures. However, it has the
+downside of requiring all reference stars to be successfully
+re-located, which could introduce a higher drop-out rate from double
+jeapardy. Careful selection of reference stars is important.
 
 In bad cases, nothing you try will work. Then the final fallback is to reduce
 the run in chunks using the `first` parameter (prompted in |reduce|) to skip
@@ -406,14 +425,18 @@ other way.
 Defocussed images
 -----------------
 
-Defocussing is often used in exoplanet work. Defocussed images are not well
-fit by either gaussian or moffat profiles. In this case, when measuring the
-object position, you should hold the FWHM fixed and use a large FWHM,
-comparable to the width of the image. Experiment for best results. You should
-also raise the threshold for bad data rejection, `fit_thresh`, to a large value like 20 as well. The idea is simply to get a sort of weighted centroid, and
-you will not get a good profile fit (if someone is interested in implementing a better model profile for such cases, we would welcome the input). For very
-defocussed images, it is important to avoid too narrow a FWHM otherwise you
-could end up zeroing in on random peaks in the doughnut-like profile.
+Defocussing is often used in exoplanet work. Defocussed images are not
+well fit by either gaussian or moffat profiles. In this case, when
+measuring the object position, you should hold the FWHM fixed and use
+a large FWHM, comparable to the width of the image. Experiment for
+best results. You should also raise the threshold for bad data
+rejection, `fit_thresh`, to a large value like 20 as well. The idea is
+simply to get a sort of weighted centroid, and you will not get a good
+profile fit (if someone is interested in implementing a better model
+profile for such cases, we would welcome the input). For very
+defocussed images, it is important to avoid too narrow a FWHM
+otherwise you could end up zeroing in on random peaks in the
+doughnut-like profile.
 
 .. _linked_apertures:
 
