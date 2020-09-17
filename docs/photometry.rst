@@ -42,13 +42,16 @@ step process as follows:
     The position of this maximum is used as the starting position for a 2D
     profile fit. This method is fairly robust against even bright cosmic rays
     as long as they lie further from the expected position than the target.
+    The smoothing helps this as cosmic rays tend to be confined to 1 or 2 pixels. 
     If reference targets are chosen to be bright and isolated, one can carry
     out broad searches which allow for very poor guiding. The shift measured
     from the first reference star is used to provide a better starting position
     for any remaining reference stars to improve things still more. This means
     that you should try to make the first reference star that appears in an aperture
     file for any given CCD the most robust of all. This is particularly the case if
-    you have to make ``search_half_width`` large because of bad guiding. Following the
+    you have to make ``search_half_width`` large because of bad guiding. Note that
+    "robust" means unlikely to jumpt to another star so the key aspect is that it has
+    no near stars of reference star type brightness. Following the
     search, 2D profile fits are carried out and the mean x,y shift relative to
     the starting position is calculated. If this stage fails (e.g.  because of
     clouds), then the rest of the frame is skipped on the basis that if the
