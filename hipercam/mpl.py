@@ -15,11 +15,7 @@ from . import defect
 
 
 # Font scale factor
-SCALE_FACTOR = (
-    float(os.environ["HIPERCAM_MPL_FSCALE"])
-    if "HIPERCAM_MPL_FSCALE" in os.environ
-    else 1.0
-)
+SCALE_FACTOR = float(os.environ.get("HIPERCAM_MPL_FSCALE",1.))
 
 # some look-and-feel globals.
 Params = {
@@ -52,7 +48,7 @@ Params = {
     # aperture mask colour
     "aper.mask.col": CIS[5],
     # aperture extra colour
-    "aper.extra.col": CIS[14],
+    "aper.extra.col": CIS[1],
     # moderate defect colour
     "defect.moderate.col": CIS[15],
     # severe defect colour
