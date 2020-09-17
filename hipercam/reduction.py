@@ -1623,7 +1623,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         # store the first to help any subsequent ones
                         xshift, yshift = dx, dy
 
-                    shifts.append((dx, dy))
+                    shifts.append((apnam, dx, dy))
 
 
                     # store stuff
@@ -1693,8 +1693,8 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
         # shifts for consistency as a guard against cosmic rays and other
         # offsets
         if len(shifts) > 1:
-            for n, (x1, y1) in enumerate(shifts[:-1]):
-                for (x2, y2) in shifts[n + 1 :]:
+            for n, (apn1, x1, y1) in enumerate(shifts[:-1]):
+                for (apn2, x2, y2) in shifts[n + 1 :]:
                     diff = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
                     if np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) > apsec["fit_diff"]:
@@ -1714,6 +1714,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         store["mfwhm"] = -1.0
                         store["mbeta"] = -1.0
 
+                        # give some info on the problem
                         print(
                             (
                                 "CCD {:s}: reference aperture differential "
@@ -1721,6 +1722,13 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                             ).format(cnam, diff, apsec["fit_diff"]),
                             file=sys.stderr,
                         )
+                        for apn, xs, ys in shifts:
+                            print(
+                                (
+                                    "  Aperture {:s}: xshift, yshift = {:.2f}, {:.2f}"
+                                ).format(apn, xs, ys),
+                                file=sys.stderr,
+                            )
                         return False
 
         if wxsum > 0.0 and wysum > 0.0:
