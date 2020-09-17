@@ -22,6 +22,7 @@ and plot the result with matplotlib:
 """
 
 import struct
+import warnings
 import numpy as np
 import copy
 from astropy.io import fits
@@ -107,6 +108,11 @@ class Hlog(dict):
 
     @classmethod
     def read(cls, fname):
+        warnings.warn("Hlog.read() is deprecated; use Hlog.rascii() instead.", DeprecationWarning)
+        return Hlog.rascii(fname)
+
+    @classmethod
+    def rascii(cls, fname):
         """
         Loads a HiPERCAM ASCII log file written by reduce. Each CCD is loaded
         into a separate structured array, returned in a dictionary keyed by
@@ -559,7 +565,7 @@ class Tseries:
              use to select points according to the internal mask
              array. A match is made if any of the bits in the mask
              array value for a given point match the set bits in
-             mvalue. e.g. if mvalue=(NO_FWHM | NO_SKY) would select
+             mvalue. e.g. mvalue=(NO_FWHM | NO_SKY) would select
              all points without a FWHM or sky aperture, while
              mvalue=ALL_OK selects perfect points only. Everything BUT
              the matching points can be selected using the 'invert'
