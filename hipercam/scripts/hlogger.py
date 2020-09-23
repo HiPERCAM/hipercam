@@ -6,6 +6,7 @@ import glob
 import re
 
 import numpy as np
+import pandas as pd
 from astropy.time import Time, TimeDelta
 
 import hipercam as hcam
@@ -456,439 +457,404 @@ def hlogger(args=None):
 
     hlogger expects to work on directories containing the runs for each
     night. It should be run from the top-level of the hipercam/logs directory.
-    It extracts information from each run file which it writes to a file in
-    JSON format and also as an html file. The JSON file acts as a short-cut
-    for any re-run.
-
-    Parameters:
-
-        server   : bool
-           True if the log is to be compiled from the server data. This option
-           might be useful during observing. If server is True, the JSON and
-           html files will be written in the current working directory.
-
-        dirnam : string [if not server]
-           Directory name to work on. This is run through 'glob' which gives
-           UNIX-style name matching, so e.g. '2017*' will match 2017-10-17,
-           2017-10-18 etc. The JSON and html files will be written into the
-           directory or directories. In this case this expects the data to be
-           available as a link called 'data' within the night directory. This
-           is the standard configuration of my 'logs' directory as created by
-           'digest'. This script should be run from the log directory. To run
-           it on the command line, to prevent the shell from globbing, you
-           must escape or quote the glob as in "hlogger no '*'" or "hlogger no
-           \*".
+    It extracts information from each run file. It runs without any parameters.
+    hlogger also writes out a spreadsheet with useful info line-by-line for each
+    run.
 
     """
 
-    command, args = utils.script_args(args)
+    if os.path.basename(os.getcwd()) != "logs":
+        print("** hlogger must be run in a directory called 'logs'")
+        print("hlogger aborted", file=sys.stderr)
+        return
 
-    # get the inputs
-    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
+    # next are regular expressions to match run directories, nights, and
+    # run files
+    rre = re.compile("^\d\d\d\d-\d\d$")
+    nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
+    fre = re.compile("^run\d\d\d\d\.fits$")
 
-        # register parameters
-        cl.register("server", Cline.GLOBAL, Cline.PROMPT)
+    # Get list of run directories
+    rnames = [
+        rname
+        for rname in os.listdir(".")
+        if rre.match(rname)
+        and os.path.isdir(rname)
+        and os.path.isfile(os.path.join(rname, "telescope"))
+    ]
 
-        # get inputs
-        server = cl.get_value("server", "access data via the server?", False)
+    rnames.sort()
 
-    if server:
-        raise NotImplementedError("server option yet to be enabled")
+    if len(rnames) == 0:
+        print(
+            "there were no run directories of the form "
+            "YYYY-MM with a file called 'telescope' in them",
+            file=sys.stderr,
+        )
+        print("hlogger aborted", file=sys.stderr)
+        return
 
-    else:
+    with open("index.html", "w") as ihtml:
+        # start the top level index html file
+        ihtml.write(INTRODUCTION_HEADER)
 
-        if os.path.basename(os.getcwd()) != "logs":
-            print("** hlogger must be run in a directory called 'logs'")
-            print("hlogger aborted", file=sys.stderr)
-            return
+        for rname in rnames:
+            print("\nProcessing run {:s}".format(rname))
 
-        # next are regular expressions to match run directories, nights, and
-        # run files
-        rre = re.compile("^\d\d\d\d-\d\d$")
-        nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
-        fre = re.compile("^run\d\d\d\d\.fits$")
-
-        # Get list of run directories
-        rnames = [
-            rname
-            for rname in os.listdir(".")
-            if rre.match(rname)
-            and os.path.isdir(rname)
-            and os.path.isfile(os.path.join(rname, "telescope"))
-        ]
-
-        rnames.sort()
-
-        if len(rnames) == 0:
-            print(
-                "there were no run directories of the form "
-                "YYYY-MM with a file called 'telescope' in them",
-                file=sys.stderr,
+            # write in run date, start table of nights
+            rn = os.path.basename(rname)
+            year, month = rn.split("-")
+            with open(os.path.join(rname, "telescope")) as tel:
+                telescope = tel.read().strip()
+            ihtml.write(
+                "<h2>{:s} {:s}, {:s}</h2>\n".format(MONTHS[month], year, telescope)
             )
-            print("hlogger aborted", file=sys.stderr)
-            return
+            ihtml.write("\n<p>\n<table>\n")
 
-        with open("index.html", "w") as ihtml:
-            # start the top level index html file
-            ihtml.write(INTRODUCTION_HEADER)
+            # get night directories
+            nnames = [
+                os.path.join(rname, ndir)
+                for ndir in os.listdir(rname)
+                if nre.match(ndir)
+                and os.path.isdir(os.path.join(rname, ndir))
+                and os.path.isdir(os.path.join(rname, ndir, "data"))
+            ]
+            nnames.sort()
 
-            for rname in rnames:
-                print("\nProcessing run {:s}".format(rname))
-
-                # write in run date, start table of nights
-                rn = os.path.basename(rname)
-                year, month = rn.split("-")
-                with open(os.path.join(rname, "telescope")) as tel:
-                    telescope = tel.read().strip()
-                ihtml.write(
-                    "<h2>{:s} {:s}, {:s}</h2>\n".format(MONTHS[month], year, telescope)
+            if len(nnames) == 0:
+                print(
+                    "found no night directories of the form YYYY-MM-DD with"
+                    " 'data' sub-directories in {:s}".format(rname),
+                    file=sys.stderr,
                 )
-                ihtml.write("\n<p>\n<table>\n")
+                print("hlogger aborted", file=sys.stderr)
+                return
 
-                # get night directories
-                nnames = [
-                    os.path.join(rname, ndir)
-                    for ndir in os.listdir(rname)
-                    if nre.match(ndir)
-                    and os.path.isdir(os.path.join(rname, ndir))
-                    and os.path.isdir(os.path.join(rname, ndir, "data"))
-                ]
-                nnames.sort()
+            for nn, nname in enumerate(nnames):
 
-                if len(nnames) == 0:
-                    print(
-                        "found no night directories of the form YYYY-MM-DD with"
-                        " 'data' sub-directories in {:s}".format(rname),
-                        file=sys.stderr,
-                    )
-                    print("hlogger aborted", file=sys.stderr)
-                    return
+                print("  night {:s}".format(nname))
 
-                for nn, nname in enumerate(nnames):
-
-                    print("  night {:s}".format(nname))
-
-                    links = '\n<p><a href="../">Run index</a>'
-                    if nn > 0:
-                        bnight = os.path.basename(nnames[nn - 1])
-                        links += ', <a href="../{0:s}/{0:s}.html">Previous night</a>'.format(
-                            bnight
-                        )
-
-                    if nn < len(nnames) - 1:
-                        anight = os.path.basename(nnames[nn + 1])
-                        links += ', <a href="../{0:s}/{0:s}.html">Next night</a>\n</p>\n'.format(
-                            anight
-                        )
-
-                    links += "\n</p>\n"
-
-                    # Write an entry for each night linking to the log for that night.
-                    night = os.path.basename(nname)
-                    fname = "{0:s}/{0:s}.html".format(night)
-                    ihtml.write(
-                        '<tr><td><a href="{:s}">{:s}</a><td></tr>\n'.format(
-                            fname, night
-                        )
+                links = '\n<p><a href="../">Run index</a>'
+                if nn > 0:
+                    bnight = os.path.basename(nnames[nn - 1])
+                    links += ', <a href="../{0:s}/{0:s}.html">Previous night</a>'.format(
+                        bnight
                     )
 
-                    # Create the html file for the night
-                    date = "{:s}, {:s}".format(night, telescope)
+                if nn < len(nnames) - 1:
+                    anight = os.path.basename(nnames[nn + 1])
+                    links += ', <a href="../{0:s}/{0:s}.html">Next night</a>\n</p>\n'.format(
+                        anight
+                    )
 
-                    with open(fname, "w") as nhtml:
-                        # write header of night file
-                        nhtml.write(NIGHT_HEADER1)
-                        nhtml.write(NIGHT_HEADER2.format(date))
-                        nhtml.write(links)
-                        nhtml.write(TABLE_TOP)
+                links += "\n</p>\n"
 
-                        # read and store the hand written log
-                        handlog = os.path.join(night, "{:s}.dat".format(night))
-                        with open(handlog) as fin:
-                            hlog = {}
-                            for line in fin:
-                                if line.startswith("run"):
-                                    arr = line.split()
-                                    hlog[arr[0]] = " ".join(arr[1:])
+                # Write an entry for each night linking to the log for that night.
+                night = os.path.basename(nname)
+                fname = "{0:s}/{0:s}.html".format(night)
+                ihtml.write(
+                    '<tr><td><a href="{:s}">{:s}</a><td></tr>\n'.format(
+                        fname, night
+                    )
+                )
 
-                        # load all the run names
-                        ddir = os.path.join(night, "data")
-                        runs = [run[:-5] for run in os.listdir(ddir) if fre.match(run)]
-                        runs.sort()
+                # Create the html file for the night
+                date = "{:s}, {:s}".format(night, telescope)
 
-                        # now wind through the runs getting basic info and
-                        # writing a row of info to the html file for the night
-                        # in question.
-                        for nrun, run in enumerate(runs):
+                with open(fname, "w") as nhtml:
+                    # write header of night file
+                    nhtml.write(NIGHT_HEADER1)
+                    nhtml.write(NIGHT_HEADER2.format(date))
+                    nhtml.write(links)
+                    nhtml.write(TABLE_TOP)
 
-                            if nrun % 20 == 0:
-                                # write table header
-                                nhtml.write(TABLE_HEADER)
+                    # read and store the hand written log
+                    handlog = os.path.join(night, "{:s}.dat".format(night))
+                    with open(handlog) as fin:
+                        hlog = {}
+                        for line in fin:
+                            if line.startswith("run"):
+                                arr = line.split()
+                                hlog[arr[0]] = " ".join(arr[1:])
 
-                            # open the run file as an Rtime
-                            rname = os.path.join(night, "data", run)
-                            try:
-                                rtime = hcam.hcam.Rtime(rname)
-                            except:
-                                exc_type, exc_value, exc_traceback = sys.exc_info()
-                                traceback.print_tb(
-                                    exc_traceback, limit=1, file=sys.stdout
-                                )
-                                traceback.print_exc(file=sys.stdout)
-                                print("Problem on run = ", rname)
+                    # load all the run names
+                    ddir = os.path.join(night, "data")
+                    runs = [run[:-5] for run in os.listdir(ddir) if fre.match(run)]
+                    runs.sort()
 
-                                # dummy info line just to allow us to proceed
-                                nhtml.write("<tr>\n")
-                                # run number
-                                nhtml.write(
-                                    '<td class="lalert">{:s}</td>'.format(run[3:])
-                                )
-                                nhtml.write("</tr>\n")
-                                continue
+                    # now wind through the runs getting basic info and
+                    # writing a row of info to the html file for the night
+                    # in question.
+                    for nrun, run in enumerate(runs):
 
-                            hd = rtime.header
+                        if nrun % 20 == 0:
+                            # write table header
+                            nhtml.write(TABLE_HEADER)
 
-                            # start the row
+                        # open the run file as an Rtime
+                        rname = os.path.join(night, "data", run)
+                        try:
+                            rtime = hcam.hcam.Rtime(rname)
+                        except:
+                            exc_type, exc_value, exc_traceback = sys.exc_info()
+                            traceback.print_tb(
+                                exc_traceback, limit=1, file=sys.stdout
+                            )
+                            traceback.print_exc(file=sys.stdout)
+                            print("Problem on run = ", rname)
+
+                            # dummy info line just to allow us to proceed
                             nhtml.write("<tr>\n")
-
                             # run number
-                            nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
-
-                            # object name
                             nhtml.write(
-                                '<td class="left">{:s}</td>'.format(hd["OBJECT"])
+                                '<td class="lalert">{:s}</td>'.format(run[3:])
                             )
+                            nhtml.write("</tr>\n")
+                            continue
 
-                            # RA, Dec
-                            ra, dec = correct_ra_dec(hd["RA"], hd["Dec"])
+                        hd = rtime.header
+
+                        # start the row
+                        nhtml.write("<tr>\n")
+
+                        # run number
+                        nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
+
+                        # object name
+                        nhtml.write(
+                            '<td class="left">{:s}</td>'.format(hd["OBJECT"])
+                        )
+
+                        # RA, Dec
+                        ra, dec = correct_ra_dec(hd["RA"], hd["Dec"])
+                        nhtml.write(
+                            '<td class="left">{:s}</td><td class="left">{:s}</td>'.format(
+                                ra, dec
+                            )
+                        )
+
+                        # timing info
+                        ntotal = rtime.ntotal()
+                        texps, toffs, nskips, tdead = rtime.tinfo()
+                        # total = total time on target
+                        # duty = worst duty cycle, percent
+                        # tsamp = shortest sample time
+                        ttotal = 0.0
+                        duty = 100
+                        tsamp = 99000.0
+                        for texp, nskip in zip(texps, nskips):
+                            ttotal = max(ttotal, (texp + tdead) * (ntotal // nskip))
+                            duty = min(duty, 100.0 * texp / (texp + tdead))
+                            tsamp = min(tsamp, texp + tdead)
+
+                        # First & last timestamp
+                        try:
+                            tstamp, tinfo, tflag1 = rtime(1)
+                            tstart = tstamp.isot
+                            tstamp, tinfo, tflag2 = rtime(ntotal)
+                            tend = tstamp.isot
                             nhtml.write(
-                                '<td class="left">{:s}</td><td class="left">{:s}</td>'.format(
-                                    ra, dec
+                                '<td class="cen">{:s}</td><td class="cen">{:s}</td><td class="cen">{:s}</td><td class="cen">{:s}</td>'.format(
+                                    tstart[: tstart.find("T")],
+                                    tstart[
+                                        tstart.find("T") + 1 : tstart.rfind(".")
+                                    ],
+                                    tend[tend.find("T") + 1 : tend.rfind(".")],
+                                    "OK" if tflag1 and tflag2 else "NOK",
                                 )
                             )
-
-                            # timing info
-                            ntotal = rtime.ntotal()
-                            texps, toffs, nskips, tdead = rtime.tinfo()
-                            # total = total time on target
-                            # duty = worst duty cycle, percent
-                            # tsamp = shortest sample time
-                            ttotal = 0.0
-                            duty = 100
-                            tsamp = 99000.0
-                            for texp, nskip in zip(texps, nskips):
-                                ttotal = max(ttotal, (texp + tdead) * (ntotal // nskip))
-                                duty = min(duty, 100.0 * texp / (texp + tdead))
-                                tsamp = min(tsamp, texp + tdead)
-
-                            # First & last timestamp
-                            try:
-                                tstamp, tinfo, tflag1 = rtime(1)
-                                tstart = tstamp.isot
-                                tstamp, tinfo, tflag2 = rtime(ntotal)
-                                tend = tstamp.isot
-                                nhtml.write(
-                                    '<td class="cen">{:s}</td><td class="cen">{:s}</td><td class="cen">{:s}</td><td class="cen">{:s}</td>'.format(
-                                        tstart[: tstart.find("T")],
-                                        tstart[
-                                            tstart.find("T") + 1 : tstart.rfind(".")
-                                        ],
-                                        tend[tend.find("T") + 1 : tend.rfind(".")],
-                                        "OK" if tflag1 and tflag2 else "NOK",
-                                    )
-                                )
-                            except:
-                                exc_type, exc_value, exc_traceback = sys.exc_info()
-                                traceback.print_tb(
-                                    exc_traceback, limit=1, file=sys.stdout
-                                )
-                                traceback.print_exc(file=sys.stdout)
-                                print("Run =", rname)
-                                nhtml.write(
-                                    '<td class="cen">----</td><td class="cen">----</td><td class="cen">----</td><td>NOK</td>'
-                                )
-
-                            # sample time
-                            nhtml.write('<td class="right">{:.3f}</td>'.format(tsamp))
-
-                            # duty cycle
-                            nhtml.write('<td class="right">{:.1f}</td>'.format(duty))
-
-                            # number of frames
-                            nhtml.write('<td class="right">{:d}</td>'.format(ntotal))
-
-                            # total exposure time
+                        except:
+                            exc_type, exc_value, exc_traceback = sys.exc_info()
+                            traceback.print_tb(
+                                exc_traceback, limit=1, file=sys.stdout
+                            )
+                            traceback.print_exc(file=sys.stdout)
+                            print("Run =", rname)
                             nhtml.write(
-                                '<td class="right">{:d}</td>'.format(int(round(ttotal)))
+                                '<td class="cen">----</td><td class="cen">----</td><td class="cen">----</td><td>NOK</td>'
                             )
 
-                            # filters used
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(
-                                    hd.get("filters", "----")
-                                )
+                        # sample time
+                        nhtml.write('<td class="right">{:.3f}</td>'.format(tsamp))
+
+                        # duty cycle
+                        nhtml.write('<td class="right">{:.1f}</td>'.format(duty))
+
+                        # number of frames
+                        nhtml.write('<td class="right">{:d}</td>'.format(ntotal))
+
+                        # total exposure time
+                        nhtml.write(
+                            '<td class="right">{:d}</td>'.format(int(round(ttotal)))
+                        )
+
+                        # filters used
+                        nhtml.write(
+                            '<td class="cen">{:s}</td>'.format(
+                                hd.get("filters", "----")
                             )
+                        )
 
-                            # run type
-                            nhtml.write(
-                                '<td class="left">{:s}</td>'.format(
-                                    hd.get("IMAGETYP", "---")
-                                )
+                        # run type
+                        nhtml.write(
+                            '<td class="left">{:s}</td>'.format(
+                                hd.get("IMAGETYP", "---")
                             )
+                        )
 
-                            # readout mode
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(
-                                    TRANSLATE_MODE[rtime.mode]
-                                )
+                        # readout mode
+                        nhtml.write(
+                            '<td class="cen">{:s}</td>'.format(
+                                TRANSLATE_MODE[rtime.mode]
                             )
+                        )
 
-                            # cycle nums
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(
-                                    ",".join([str(nskip) for nskip in nskips])
-                                )
+                        # cycle nums
+                        nhtml.write(
+                            '<td class="cen">{:s}</td>'.format(
+                                ",".join([str(nskip) for nskip in nskips])
                             )
+                        )
 
-                            # window formats
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(rtime.wforms[0])
+                        # window formats
+                        nhtml.write(
+                            '<td class="cen">{:s}</td>'.format(rtime.wforms[0])
+                        )
+                        nhtml.write(
+                            '<td class="cen">{:s}</td>'.format(
+                                rtime.wforms[1] if len(rtime.wforms) > 1 else ""
                             )
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(
-                                    rtime.wforms[1] if len(rtime.wforms) > 1 else ""
-                                )
+                        )
+
+                        # binning
+                        nhtml.write(
+                            '<td class="cen">{:d}x{:d}</td>'.format(
+                                rtime.xbin, rtime.ybin
                             )
+                        )
 
-                            # binning
-                            nhtml.write(
-                                '<td class="cen">{:d}x{:d}</td>'.format(
-                                    rtime.xbin, rtime.ybin
-                                )
+                        # clear
+                        nhtml.write(
+                            '<td class="cen">{:s}</td>'.format(
+                                "On" if rtime.clear else "Off"
                             )
+                        )
 
-                            # clear
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(
-                                    "On" if rtime.clear else "Off"
-                                )
+                        # dummy output in use
+                        nhtml.write(
+                            '<td class="cen">{:s}</td>'.format(
+                                "On" if rtime.dummy else "Off"
                             )
+                        )
 
-                            # dummy output in use
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(
-                                    "On" if rtime.dummy else "Off"
-                                )
+                        # LED on
+                        led = hd.get("ESO DET EXPLED", "--")
+                        if led == 0:
+                            led = "Off"
+                        elif led == 1:
+                            led = "On"
+
+                        nhtml.write('<td class="cen">{:s}</td>'.format(led))
+
+                        # overscan/prescan
+                        nhtml.write(
+                            '<td class="cen">{:s},{:s}</td>'.format(
+                                "On" if rtime.oscan else "Off",
+                                "On" if rtime.pscan else "Off",
                             )
+                        )
 
-                            # LED on
-                            led = hd.get("ESO DET EXPLED", "--")
-                            if led == 0:
-                                led = "Off"
-                            elif led == 1:
-                                led = "On"
+                        # CCD speed
+                        speed = hd.get("ESO DET SPEED", "--")
+                        if speed == 0:
+                            speed = "Slow"
+                        elif speed == 1:
+                            speed = "Fast"
+                        nhtml.write('<td class="cen">{:s}</td>'.format(speed))
 
-                            nhtml.write('<td class="cen">{:s}</td>'.format(led))
+                        # Fast clocks
+                        fclock = hd.get("ESO DET FASTCLK", "--")
+                        if fclock == 0:
+                            fclock = "No"
+                        elif fclock == 1:
+                            fclock = "Yes"
+                        nhtml.write('<td class="cen">{!s}</td>'.format(fclock))
 
-                            # overscan/prescan
-                            nhtml.write(
-                                '<td class="cen">{:s},{:s}</td>'.format(
-                                    "On" if rtime.oscan else "Off",
-                                    "On" if rtime.pscan else "Off",
-                                )
+                        # Tbytes problem
+                        nhtml.write(
+                            '<td class="cen">{:s}</td>'.format(
+                                "OK" if rtime.ntbytes == 36 else "NOK"
                             )
+                        )
 
-                            # CCD speed
-                            speed = hd.get("ESO DET SPEED", "--")
-                            if speed == 0:
-                                speed = "Slow"
-                            elif speed == 1:
-                                speed = "Fast"
-                            nhtml.write('<td class="cen">{:s}</td>'.format(speed))
-
-                            # Fast clocks
-                            fclock = hd.get("ESO DET FASTCLK", "--")
-                            if fclock == 0:
-                                fclock = "No"
-                            elif fclock == 1:
-                                fclock = "Yes"
-                            nhtml.write('<td class="cen">{!s}</td>'.format(fclock))
-
-                            # Tbytes problem
-                            nhtml.write(
-                                '<td class="cen">{:s}</td>'.format(
-                                    "OK" if rtime.ntbytes == 36 else "NOK"
-                                )
+                        # Focal plane slide
+                        nhtml.write(
+                            '<td class="cen">{!s}</td>'.format(
+                                hd.get("FPslide", "----")
                             )
+                        )
 
-                            # Focal plane slide
-                            nhtml.write(
-                                '<td class="cen">{!s}</td>'.format(
-                                    hd.get("FPslide", "----")
-                                )
+                        # instr PA [GTC]
+                        nhtml.write(
+                            '<td class="cen">{!s}</td>'.format(
+                                hd.get("INSTRPA", "UNDEF")
                             )
+                        )
 
-                            # instr PA [GTC]
-                            nhtml.write(
-                                '<td class="cen">{!s}</td>'.format(
-                                    hd.get("INSTRPA", "UNDEF")
-                                )
+                        # CCD temps
+                        nhtml.write(
+                            '<td class="cen">{:.1f},{:.1f},{:.1f},{:.1f},{:.1f}</td>'.format(
+                                hd.get("CCD1TEMP", 0.0),
+                                hd.get("CCD2TEMP", 0.0),
+                                hd.get("CCD3TEMP", 0.0),
+                                hd.get("CCD4TEMP", 0.0),
+                                hd.get("CCD5TEMP", 0.0),
                             )
+                        )
 
-                            # CCD temps
-                            nhtml.write(
-                                '<td class="cen">{:.1f},{:.1f},{:.1f},{:.1f},{:.1f}</td>'.format(
-                                    hd.get("CCD1TEMP", 0.0),
-                                    hd.get("CCD2TEMP", 0.0),
-                                    hd.get("CCD3TEMP", 0.0),
-                                    hd.get("CCD4TEMP", 0.0),
-                                    hd.get("CCD5TEMP", 0.0),
-                                )
+                        # PI
+                        nhtml.write(
+                            '<td class="left">{:s}</td>'.format(hd.get("PI", "---"))
+                        )
+
+                        # Program ID
+                        nhtml.write(
+                            '<td class="left">{:s}</td>'.format(
+                                hd.get("PROGRM", "---")
                             )
+                        )
 
-                            # PI
-                            nhtml.write(
-                                '<td class="left">{:s}</td>'.format(hd.get("PI", "---"))
+                        # run number again
+                        nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
+
+                        # comments
+                        pcomm = hd.get("RUNCOM", "").strip()
+                        if pcomm == "None" or pcomm == "UNDEF":
+                            pcomm = ""
+                        if pcomm != "":
+                            if not pcomm.endswith("."):
+                                pcomm += " "
+                            else:
+                                pcomm += ". "
+
+                        nhtml.write(
+                            '<td class="left">{:s}{:s}</td>'.format(
+                                pcomm, hlog[run]
                             )
+                        )
 
-                            # Program ID
-                            nhtml.write(
-                                '<td class="left">{:s}</td>'.format(
-                                    hd.get("PROGRM", "---")
-                                )
-                            )
+                        # end the row
+                        nhtml.write("\n</tr>\n")
 
-                            # run number again
-                            nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
+                    # finish off the night file
+                    nhtml.write("</table>\n{:s}".format(links))
+                    nhtml.write(NIGHT_FOOTER)
 
-                            # comments
-                            pcomm = hd.get("RUNCOM", "").strip()
-                            if pcomm == "None" or pcomm == "UNDEF":
-                                pcomm = ""
-                            if pcomm != "":
-                                if not pcomm.endswith("."):
-                                    pcomm += " "
-                                else:
-                                    pcomm += ". "
+            # finish off the run table
+            ihtml.write("\n</table>\n\n")
 
-                            nhtml.write(
-                                '<td class="left">{:s}{:s}</td>'.format(
-                                    pcomm, hlog[run]
-                                )
-                            )
-
-                            # end the row
-                            nhtml.write("\n</tr>\n")
-
-                        # finish off the night file
-                        nhtml.write("</table>\n{:s}".format(links))
-                        nhtml.write(NIGHT_FOOTER)
-
-                # finish off the run table
-                ihtml.write("\n</table>\n\n")
-
-            # finish the main index
-            ihtml.write(INTRODUCTION_FOOTER)
+        # finish the main index
+        ihtml.write(INTRODUCTION_FOOTER)
 
     # write out the css file
     with open("hiper.css", "w") as fout:
