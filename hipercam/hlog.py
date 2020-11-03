@@ -943,7 +943,7 @@ class Tseries:
         """
         if not hasattr(others, "__iter__"):
             others = [others]
-        new_lc = copy.copy(self)
+        new_lc = copy.deepcopy(self)
         for i in range(len(others)):
             new_lc.t = np.append(new_lc.t, others[i].t)
             new_lc.y = np.append(new_lc.y, others[i].y)
@@ -995,7 +995,7 @@ class Tseries:
             A new ``Tseries`` in which `y` and `ye` are divided
             by the median y value.
         """
-        lc = copy.copy(self)
+        lc = copy.deepcopy(self)
         median_y = np.nanmedian(lc.y)
         lc.ye = lc.ye / median_y
         lc.y = lc.y / median_y
@@ -1083,7 +1083,7 @@ class Tseries:
                 self.t[nstart:], self.y[nstart:], self.ye[nstart:], self.mask[nstart:]
             )
         else:
-            return copy.copy(self)
+            return copy.deepcopy(self)
 
     def set_clouds(self, nwin, vmax, tmin):
         """This tries automatically to flag points as being affected by clouds using
@@ -1171,10 +1171,10 @@ class Tseries:
         Convert to magnitudes, i.e. take -2.5*log10(y)
         """
         ok = (self.y > 0) & (self.ye > 0)
-        new_ts = copy.copy(self)
+        new_ts = copy.deepcopy(self)
         new_ts.y[ok] = -2.5 * np.log10(self.y[ok])
         new_ts.y[~ok] = 0
-        new_ts.ye[ok] = 2.5 / np.log(10) * self.ye[ok] / self.y[ok]
+        new_ts.ye[ok] = 2.5 / np.log(10.) * self.ye[ok] / self.y[ok]
         new_ts.ye[~ok] = -1
         return new_ts
 
