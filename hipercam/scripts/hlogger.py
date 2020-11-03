@@ -509,8 +509,11 @@ def hlogger(args=None):
         print("hlogger aborted", file=sys.stderr)
         return
 
-    # Get started. Ensure the root directory exists.
-    os.makedirs(root, 0o755, True)
+    # Get started. First make sure all files are created with the right permissions
+    os.umask(0o022)
+
+    # Ensure the root directory exists.
+    os.makedirs(root, exist_ok=True)
 
     # Index file
     index = os.path.join(root, 'index.html')
