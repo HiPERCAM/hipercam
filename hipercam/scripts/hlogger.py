@@ -173,7 +173,9 @@ TABLE_HEADER = """
 <td><button id="hidden30" onclick="hide(30)"></button></td>
 <td><button id="hidden31" onclick="hide(31)"></button></td>
 <td><button id="hidden32" onclick="hide(32)"></button></td>
-<td align="left"><button id="hidden33" onclick="hide(33)"></button></td>
+<td><button id="hidden33" onclick="hide(33)"></button></td>
+<td><button id="hidden34" onclick="hide(34)"></button></td>
+<td align="left"><button id="hidden35" onclick="hide(35)"></button></td>
 </tr>
 
 <tr>
@@ -571,7 +573,7 @@ def hlogger(args=None):
 
                 print(f"  night {nname}")
 
-                links = '\n<p><a href="../">Run index</a>'
+                links = '\n<p><a href="index.html">Run index</a>'
                 if nn > 0:
                     bnight = os.path.basename(nnames[nn - 1])
                     links += f', <a href="{bnight}.html">Previous night</a>'
