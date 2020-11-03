@@ -41,8 +41,11 @@ INDEX_HEADER = """<html>
 
 <p>
 These on-line logs summarise all HiPERCAM runs. They were automatically generated from
-the data files and hand-written logs. For a searchable file summarising the same
-information, see this <a href="hipercam-log.xlsx">spreadsheet</a>.
+the data files and hand-written logs.
+
+<p>For a searchable file summarising the same information, see this
+<a href="hipercam-log.xlsx">spreadsheet</a>. The run numbers at the start
+of each line of this file should link to the night it was observed.
 """
 
 # Footer of the main file
@@ -202,7 +205,9 @@ Quad2</th>
 <th class="cen">Clr</th>
 <th class="cen">Dum</th>
 <th class="cen">LED</th>
-<th class="cen">Ov-/Pre-<br>scan</th>
+<th class="cen">Over-<br>scan</th>
+<th class="cen">Pre-<br>scan</th>
+<th class="cen">Nod</th>
 <th class="cen">Readout<br>speed</th>
 <th class="cen">Fast<br>clocks</th>
 <th class="cen">Tbytes</th>
@@ -219,23 +224,28 @@ Quad2</th>
 
 NIGHT_FOOTER = """
 
-<p> 'Instr. PA' is the instrumental PA. On the GTC this is measured East of North in degrees, but has
-an offset which may vary somewhat from night-to-night. 'Clr' indicates whether clears were enabled; 'Dum' whether the dummy
-output was being used to reduce pickup noise; 'Ov-Pre-scan' whether the over-
-and pre-scans were on or off. 'Time flag' is set to NOK (not OK) if the number
-of satellites == -1 and the GPS was not synced or if the time that came back
-could not be understood. 'Read mode' is the readout mode which can be one of 4
-options, namely 'FULL' for a full frame, 1-WIN or 2-WIN for standard windows
-mode, and 'DRIFT' for drift-mode. The 'xsll,xslr,..' column gives the 7
-parameters that appear at the bottom of the top-right window of hdriver (or 5
-parameters in DRIFT mode).  In hdriver these are called xsll, xslr, xsul,
-xsur, ys, nx and ny (or xsl, xsr, ys, nx, ny in drift mode), and there are up
-to two sets of them. In fullframe mode, these parameters do not need to be
-specified. 'Nskips' refers to how often each CCD is read out. The numbers
-correspond to nu, ng, nr, ni, nz listed in hdriver. 'Duty cycle' shows the
-fractional time collecting photons; the 'cadence' is the (minimum) time
-between exposures, minimised over the different arms. 'Tbytes' says whether
-there are the correct number of timing bytes (36).  </p>
+<p> 'Instr. PA' is the instrumental PA. On the GTC this is measured
+East of North in degrees, but has an offset which may vary somewhat
+from night-to-night. 'Clr' indicates whether clears were enabled;
+'Dum' whether the dummy output was being used to reduce pickup noise;
+'Over-scan' and 'Pre-scan' whether the over- and pre-scans were on or
+off; 'Nod' whether each exposure was paused to allow the telescope to
+be moved. 'Time flag' is set to NOK (not OK) if the number of
+satellites == -1 and the GPS was not synced or if the time that came
+back could not be understood. 'Read mode' is the readout mode which
+can be one of 4 options, namely 'FULL' for a full frame, 1-WIN or
+2-WIN for standard windows mode, and 'DRIFT' for drift-mode. The
+'xsll,xslr,..' column gives the 7 parameters that appear at the bottom
+of the top-right window of hdriver (or 5 parameters in DRIFT mode).
+In hdriver these are called xsll, xslr, xsul, xsur, ys, nx and ny (or
+xsl, xsr, ys, nx, ny in drift mode), and there are up to two sets of
+them. In fullframe mode, these parameters do not need to be
+specified. 'Nskips' refers to how often each CCD is read out. The
+numbers correspond to nu, ng, nr, ni, nz listed in hdriver. 'Duty
+cycle' shows the fractional time collecting photons; the 'cadence' is
+the (minimum) time between exposures, minimised over the different
+arms. 'Tbytes' says whether there are the correct number of timing
+bytes (36).  </p>
 
 <address>Tom Marsh, Warwick</address>
 </body>
@@ -642,8 +652,14 @@ def hlogger(args=None):
                         nhtml.write("<tr>\n")
 
                         # run number
-                        nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
-                        link = f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/{night}.html", {run[3:]})'
+                        runno = run[3:]
+                        nhtml.write('<td class="left">{:s}</td>'.format(runno))
+                        link = f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/{night}.html", "{runno}")'
+
+                        # this is the start of a list to be appended
+                        # to the array sent to a pandas.DataFrame at
+                        # the end of the script in order to write out
+                        # a spreadsheet
                         brow = [link,]
 
                         # object name
@@ -671,22 +687,21 @@ def hlogger(args=None):
 
                         # First & last timestamp
                         try:
+
                             tstamp, tinfo, tflag1 = rtime(1)
                             tstart = tstamp.isot
                             tstamp, tinfo, tflag2 = rtime(ntotal)
                             tend = tstamp.isot
+
+                            datestart = tstart[:tstart.find("T")]
+                            utcstart = tstart[tstart.find("T")+1:tstart.rfind(".")]
+                            utcend = tend[tend.find("T")+1:tend.rfind(".")]
+                            tflag = "OK" if tflag1 and tflag2 else "NOK"
                             nhtml.write(
-                                f'<td class="cen">{tstart[:tstart.find("T")]}</td>' +
-                                f'<td class="cen">{tstart[tstart.find("T")+1:tstart.rfind(".")]}</td>' +
-                                f'<td class="cen">{tend[tend.find("T") + 1 : tend.rfind(".")]}</td>' +
-                                f'<td class="cen">{"OK" if tflag1 and tflag2 else "NOK"}</td>'
+                                f'<td class="cen">{datestart}</td> <td class="cen">{utcstart}</td>' +
+                                f'<td class="cen">{utcend}</td> <td class="cen">{tflag}</td>'
                             )
-                            brow += [
-                                tstart[:tstart.find("T")],
-                                tstart[tstart.find("T")+1:tstart.rfind(".")],
-                                tend[tend.find("T")+1:tend.rfind(".")],
-                                "OK" if tflag1 and tflag2 else "NOK",
-                            ]
+                            brow += [datestart, utcstart, utcend, tflag]
 
                         except:
                             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -706,6 +721,7 @@ def hlogger(args=None):
 
                         # duty cycle
                         nhtml.write(f'<td class="right">{duty:.1f}</td>')
+                        brow.append(round(duty,1))
 
                         # number of frames
                         nhtml.write(f'<td class="right">{ntotal:d}</td>')
@@ -722,7 +738,7 @@ def hlogger(args=None):
                         brow.append(filters)
 
                         # run type
-                        itype = hd.get("IMAGETYP", "---")
+                        itype = hd.get("IMAGETYP", "----")
                         nhtml.write(f'<td class="left">{itype}</td>')
                         brow.append(itype)
 
@@ -762,22 +778,30 @@ def hlogger(args=None):
                         brow.append(dummy)
 
                         # LED on
-                        led = hd.get("ESO DET EXPLED", "--")
-                        if led == 0:
-                            led = "Off"
-                        elif led == 1:
-                            led = "On"
+                        led = hd.get("ESO DET EXPLED", "----")
+                        led = "On" if led == 1 else "Off"
 
                         nhtml.write(f'<td class="cen">{led}</td>')
                         brow.append(led)
 
-                        # overscan/prescan
-                        opscan = f'{"On" if rtime.oscan else "Off"},{"On" if rtime.pscan else "Off"}'
-                        nhtml.write(f'<td class="cen">{opscan}</td>')
-                        brow.append(opscan)
+                        # over-scan
+                        oscan = "On" if rtime.oscan else "Off"
+                        nhtml.write(f'<td class="cen">{oscan}</td>')
+                        brow.append(oscan)
+
+                        # pre-scan
+                        pscan = "On" if rtime.pscan else "Off"
+                        nhtml.write(f'<td class="cen">{pscan}</td>')
+                        brow.append(pscan)
+
+                        # Nodding
+                        nod = hd.get("ESO DET SEQ1 TRIGGER", 0)
+                        nod = "On" if nod == 1 else "Off"
+                        nhtml.write(f'<td class="cen">{nod}</td>')
+                        brow.append(nod)
 
                         # CCD speed
-                        speed = hd.get("ESO DET SPEED", "--")
+                        speed = hd.get("ESO DET SPEED", "----")
                         if speed == 0:
                             speed = "Slow"
                         elif speed == 1:
@@ -786,7 +810,7 @@ def hlogger(args=None):
                         brow.append(speed)
 
                         # Fast clocks
-                        fclock = hd.get("ESO DET FASTCLK", "--")
+                        fclock = hd.get("ESO DET FASTCLK", "----")
                         if fclock == 0:
                             fclock = "No"
                         elif fclock == 1:
@@ -805,7 +829,7 @@ def hlogger(args=None):
                         brow.append(fpslide)
 
                         # instr PA [GTC]
-                        instpa = hd.get("INSTRPA", "UNDEF")
+                        instpa = hd.get("INSTRPA", "----")
                         nhtml.write(f'<td class="cen">{instpa}</td>')
                         brow.append(instpa)
 
@@ -818,22 +842,22 @@ def hlogger(args=None):
                         brow.append(ccdtemps)
 
                         # Observers
-                        observers = hd.get("OBSERVER", "")
+                        observers = hd.get("OBSERVER", "----")
                         nhtml.write(f'<td class="cen">{observers}</td>')
                         brow.append(observers)
 
                         # PI
-                        pi = hd.get("PI", "---")
+                        pi = hd.get("PI", "----")
                         nhtml.write(f'<td class="left">{pi}</td>')
                         brow.append(pi)
 
                         # Program ID
-                        pid = hd.get("PROGRM", "---")
+                        pid = hd.get("PROGRM", "----")
                         nhtml.write(f'<td class="left">{pid}</td>')
                         brow.append(pid)
 
                         # run number again
-                        nhtml.write(f'<td class="left">{run[3:]}</td>')
+                        nhtml.write(f'<td class="left">{runno}</td>')
 
                         # comments
                         pcomm = hd.get("RUNCOM", "").strip()
@@ -872,9 +896,9 @@ def hlogger(args=None):
     colnames = (
         'Run no.', 'Target name', 'RA (J2000)', 'Dec (J2000)', 'Obs run',
         'Night', 'Date\n(start)', 'UTC\nStart', 'UTC\nEnd', 'Tflag',
-        'Cadence\n(sec)', 'Nframe', 'Dwell\n(sec)', 'Filters', 'Run\ntype',
+        'Cadence\n(sec)', 'Duty\ncycle(%)', 'Nframe', 'Dwell\n(sec)', 'Filters', 'Run\ntype',
         'Readout\nmode', 'Nskips', 'Win1', 'Win2' , 'XxY\nbin', 'Clr', 'Dum',
-        'LED', 'Ov-/Pre-\nscan', 'Readout\nspeed', 'Fast\nclocks', 'Tbytes',
+        'LED', 'Over-\nscan', 'Pre-\nscan', 'Nod', 'Readout\nspeed', 'Fast\nclocks', 'Tbytes',
         'FPslide', 'Instr\nPA', 'CCD temperatures', 'Observers', 'PI', 'PID', 'Comment'
     )
 
@@ -895,20 +919,22 @@ def hlogger(args=None):
     worksheet.set_column('C:D', 11)
     worksheet.set_column('F:G', 10)
     worksheet.set_column('H:I', 9)
-    worksheet.set_column('J:J', 7)
-    worksheet.set_column('L:M', 8)
-    worksheet.set_column('N:O', 12)
-    worksheet.set_column('P:P', 8)
-    worksheet.set_column('Q:Q', 10)
-    worksheet.set_column('R:S', 16)
-    worksheet.set_column('T:W', 4)
-    worksheet.set_column('X:Y', 8)
-    worksheet.set_column('Z:AC', 7)
-    worksheet.set_column('AD:AD', 26)
-    worksheet.set_column('AE:AE', 12)
-    worksheet.set_column('AF:AF', 14)
-    worksheet.set_column('AG:AG', 18)
-    worksheet.set_column('AH:AH', 200)
+    worksheet.set_column('J:J', 6)
+    worksheet.set_column('M:N', 8)
+    worksheet.set_column('O:P', 12)
+    worksheet.set_column('Q:R', 8)
+    worksheet.set_column('S:T', 18)
+    worksheet.set_column('U:X', 4)
+    worksheet.set_column('Y:Z', 5)
+    worksheet.set_column('AA:AA', 4)
+    worksheet.set_column('AB:AB', 7)
+    worksheet.set_column('AC:AD', 5)
+    worksheet.set_column('AE:AF', 7)
+    worksheet.set_column('AG:AG', 26)
+    worksheet.set_column('AH:AH', 15)
+    worksheet.set_column('AI:AI', 14)
+    worksheet.set_column('AJ:AJ', 18)
+    worksheet.set_column('AK:AK', 200)
 
     worksheet.set_row(0,28)
     worksheet.freeze_panes(1, 0)
