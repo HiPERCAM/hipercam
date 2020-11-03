@@ -79,7 +79,7 @@ for ( i = 0; i < tbl.rows.length; i++ )
 }
 
 function shrink () {
-var hcols = [4, 6, 7, 9, 15, 19, 20, 21, 22, 24, 25, 26, 27, 28];
+var hcols = [4, 6, 7, 9, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 34];
 
 var tbl = document.getElementById( "tbl" );
 var i;
