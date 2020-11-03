@@ -515,6 +515,8 @@ def hlogger(args=None):
     # Ensure the root directory exists.
     os.makedirs(root, exist_ok=True)
 
+    print(f'Will write to {root}.')
+
     # Index file
     index = os.path.join(root, 'index.html')
     with open(index, "w") as ihtml:
@@ -896,4 +898,6 @@ def hlogger(args=None):
     worksheet.freeze_panes(1, 0)
     worksheet.set_zoom(200)
     writer.save()
+
+    print(f'\nAll done. Look in {root} for the outputs.')
 
