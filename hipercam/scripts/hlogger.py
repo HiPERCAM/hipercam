@@ -110,7 +110,7 @@ function toggleAutoRefresh(cb) {
 window.onload=checkReloading;
 </script>
 
-<link rel="stylesheet" type="text/css" href="../hiper.css" />
+<link rel="stylesheet" type="text/css" href="hiper.css" />
 """
 
 NIGHT_HEADER2 = """<title>HiPERCAM log {0:s}</title>
@@ -127,8 +127,8 @@ to focus on those of most interest.
 """
 
 TABLE_TOP = """<p>
-<button style="width: 100px; height: 25px;" onclick="shrink();">Shrink table</button>
-<button style="width: 125px; height: 25px;" onclick="restore();">Restore columns</button>
+<button style="width: 120px; height: 30px;" onclick="shrink();">Shrink table</button>
+<button style="width: 140px; height: 30px;" onclick="restore();">Restore columns</button>
 
 
 <p>
@@ -169,7 +169,8 @@ TABLE_HEADER = """
 <td><button id="hidden29" onclick="hide(29)"></button></td>
 <td><button id="hidden30" onclick="hide(30)"></button></td>
 <td><button id="hidden31" onclick="hide(31)"></button></td>
-<td align="left"><button id="hidden32" onclick="hide(32)"></button></td>
+<td><button id="hidden32" onclick="hide(32)"></button></td>
+<td align="left"><button id="hidden33" onclick="hide(33)"></button></td>
 </tr>
 
 <tr>
@@ -208,6 +209,7 @@ Quad2</th>
 <th class="cen">FPslide</th>
 <th class="cen">Instr.<br>PA</th>
 <th class="cen">CCD<br>temps</th>
+<th class="cen">Observers</th>
 <th class="left">PI</th>
 <th class="left">PID</th>
 <th class="left">Run<br>no.</th>
@@ -262,7 +264,7 @@ CSS = """
 
 body{
     background-color: #000000;
-    font: 9pt sans-serif;
+    font: 10pt sans-serif;
     color: #FFFFFF;
     margin: 10px;
     border: 0px;
@@ -315,7 +317,7 @@ input.text {margin-right: 20px; margin-left: 10px}
 spa {margin-right: 20px; margin-left: 20px}
 
 table {
-    font: 9pt sans-serif;
+    font: 10pt sans-serif;
     padding: 1px;
     border-top:1px solid #655500;
     border-right:1px solid #655500;
@@ -406,21 +408,23 @@ th.cen {
 a:link {
     color: #7070ff;
     text-decoration:underline;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 
 a:visited {
     color: #e0b0e0;
     text-decoration:underline;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 
 a:hover {
     color: red;
     text-decoration:underline;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 """
+
+# end of CSS
 
 TRANSLATE_MODE = {
     "FullFrame": "FULL",
@@ -515,7 +519,7 @@ def hlogger(args=None):
     # Ensure the root directory exists.
     os.makedirs(root, exist_ok=True)
 
-    print(f'Will write to {root}.')
+    print(f'Will write to directory = "{root}".')
 
     # Index file
     index = os.path.join(root, 'index.html')
@@ -639,7 +643,7 @@ def hlogger(args=None):
 
                         # run number
                         nhtml.write('<td class="left">{:s}</td>'.format(run[3:]))
-                        link = f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/{night}/{night}.html", {run[3:]})'
+                        link = f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/{night}.html", {run[3:]})'
                         brow = [link,]
 
                         # object name
@@ -698,7 +702,7 @@ def hlogger(args=None):
 
                         # sample time
                         nhtml.write(f'<td class="right">{tsamp:.3f}</td>')
-                        brow.append(f'{tsamp:.3f}')
+                        brow.append(round(tsamp,4))
 
                         # duty cycle
                         nhtml.write(f'<td class="right">{duty:.1f}</td>')
@@ -813,6 +817,11 @@ def hlogger(args=None):
                         nhtml.write(f'<td class="cen">{ccdtemps}</td>')
                         brow.append(ccdtemps)
 
+                        # Observers
+                        observers = hd.get("OBSERVER", "")
+                        nhtml.write(f'<td class="cen">{observers}</td>')
+                        brow.append(observers)
+
                         # PI
                         pi = hd.get("PI", "---")
                         nhtml.write(f'<td class="left">{pi}</td>')
@@ -866,17 +875,22 @@ def hlogger(args=None):
         'Cadence\n(sec)', 'Nframe', 'Dwell\n(sec)', 'Filters', 'Run\ntype',
         'Readout\nmode', 'Nskips', 'Win1', 'Win2' , 'XxY\nbin', 'Clr', 'Dum',
         'LED', 'Ov-/Pre-\nscan', 'Readout\nspeed', 'Fast\nclocks', 'Tbytes',
-        'FPslide', 'Instr\nPA', 'CCD temperatures', 'PI', 'PID', 'Comment'
+        'FPslide', 'Instr\nPA', 'CCD temperatures', 'Observers', 'PI', 'PID', 'Comment'
     )
 
     spreadsheet = os.path.join(root, "hipercam-log.xlsx")
     writer = pd.ExcelWriter(spreadsheet, engine='xlsxwriter')
     ptable = pd.DataFrame(barr, columns=colnames)
     ptable.to_excel(writer, sheet_name='Hipercam logs', index=False)
+
     workbook = writer.book
+    cell_format = workbook.add_format()
+    cell_format.set_font_color('blue')
+
     worksheet = writer.sheets["Hipercam logs"]
 
     # Column widths. Should probably automate.
+    worksheet.set_column('A:A', 8, cell_format)
     worksheet.set_column('B:B', 30)
     worksheet.set_column('C:D', 11)
     worksheet.set_column('F:G', 10)
@@ -891,8 +905,10 @@ def hlogger(args=None):
     worksheet.set_column('X:Y', 8)
     worksheet.set_column('Z:AC', 7)
     worksheet.set_column('AD:AD', 26)
-    worksheet.set_column('AE:AF', 14)
-    worksheet.set_column('AG:AG', 60)
+    worksheet.set_column('AE:AE', 12)
+    worksheet.set_column('AF:AF', 14)
+    worksheet.set_column('AG:AG', 18)
+    worksheet.set_column('AH:AH', 200)
 
     worksheet.set_row(0,28)
     worksheet.freeze_panes(1, 0)
