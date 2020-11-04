@@ -8,6 +8,7 @@ import re
 import numpy as np
 import pandas as pd
 from astropy.time import Time, TimeDelta
+from astropy.coordinates import get_sun, get_moon, EarthLocation, SkyCoord, AltAz
 
 import hipercam as hcam
 from hipercam import cline, utils, spooler
@@ -470,6 +471,7 @@ def correct_ra_dec(ra, dec):
 
     return (ra, dec)
 
+observatory = EarthLocation.of_site('Roque de los Muchachos')
 
 def hlogger(args=None):
     """``hlogger server (dirnam)``
@@ -513,6 +515,7 @@ def hlogger(args=None):
     # next are regular expressions to match run directories, nights, and
     # run files
     rre = re.compile("^\d\d\d\d-\d\d$")
+    rre = re.compile("^2019-09$")
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
     fre = re.compile("^run\d\d\d\d\.fits$")
 
@@ -536,7 +539,8 @@ def hlogger(args=None):
         print("hlogger aborted", file=sys.stderr)
         return
 
-    # Get started. First make sure all files are created with the right permissions
+    # Get started. First make sure all files are created with the
+    # right permissions
     os.umask(0o022)
 
     # Ensure the root directory exists.
@@ -702,10 +706,11 @@ def hlogger(args=None):
                         # First & last timestamp
                         try:
 
-                            tstamp, tinfo, tflag1 = rtime(1)
-                            tstart = tstamp.isot
-                            tstamp, tinfo, tflag2 = rtime(ntotal)
-                            tend = tstamp.isot
+                            tstamp_start, tinfo, tflag1 = rtime(1)
+                            tstart = tstamp_start.isot
+
+                            tstamp_end, tinfo, tflag2 = rtime(ntotal)
+                            tend = tstamp_end.isot
 
                             datestart = tstart[:tstart.find("T")]
                             utcstart = tstart[tstart.find("T")+1:tstart.rfind(".")]
@@ -728,6 +733,7 @@ def hlogger(args=None):
                                 '<td class="cen">----</td><td class="cen">----</td><td class="cen">----</td><td>NOK</td>'
                             )
                             brow += 4*[None]
+                            tstamp_start, tstamp_end = None,None
 
                         # sample time
                         nhtml.write(f'<td class="right">{tsamp:.3f}</td>')
@@ -889,6 +895,15 @@ def hlogger(args=None):
                         nhtml.write(f'<td class="left">{comments}</td>')
                         brow.append(comments)
 
+                        # Finally tack on some extras for the spreadsheet only
+                        if tstamp_start:
+                            frame = AltAz(obstime=tstamp_start, location=observatory)
+                            sun = get_sun(tstamp_start).transform_to(frame)
+                            moon = get_sun(tstamp_start).transform_to(frame)
+                            brow += [round(sun.alt.value,1), round(moon.alt.value,1)]
+                        else:
+                            brow += [None, None]
+
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
                         barr.append(brow)
@@ -915,7 +930,8 @@ def hlogger(args=None):
         'Cadence\n(sec)', 'Duty\ncycle(%)', 'Nframe', 'Dwell\n(sec)', 'Filters', 'Run\ntype',
         'Readout\nmode', 'Nskips', 'Win1', 'Win2' , 'XxY\nbin', 'Clr', 'Dum',
         'LED', 'Over-\nscan', 'Pre-\nscan', 'Nod', 'Readout\nspeed', 'Fast\nclocks', 'Tbytes',
-        'FPslide', 'Instr\nPA', 'CCD temperatures', 'Observers', 'PI', 'PID', 'Nlink', 'Comment'
+        'FPslide', 'Instr\nPA', 'CCD temperatures', 'Observers', 'PI', 'PID', 'Nlink', 'Comment',
+        'Sun alt\nstart', 'Moon alt\nstart'
     )
 
     spreadsheet = os.path.join(root, "hipercam-log.xlsx")
@@ -962,6 +978,8 @@ def hlogger(args=None):
 
     # huge width for comments
     worksheet.set_column('AL:AL', 200)
+
+    worksheet.set_column('AM:AN', 6)
     worksheet.set_row(0,28)
     worksheet.freeze_panes(1, 0)
     worksheet.set_zoom(200)
