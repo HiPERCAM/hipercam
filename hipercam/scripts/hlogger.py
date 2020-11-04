@@ -485,6 +485,13 @@ def hlogger(args=None):
     If run at Warwick, it writes data to the web pages. Otherwise it
     writes them to a sub-directory of raw_data called "logs".
 
+    Bit of a specialist routine this one; if you have access to the
+    on-line logs at Warwick, it should be unnecessary. It requires the
+    installation of the python module xlsxwriter in order to write an
+    excel spreadsheet; this is not a required module for the whole
+    pipeline and may not exist. The script will fail early on if it is
+    not installed.
+
     """
 
     barr = []
@@ -499,6 +506,9 @@ def hlogger(args=None):
         root = '/storage/astro2/www/phsaap/hipercam/logs'
     else:
         root = 'logs'
+
+    # Try an import now to get an early warning of problems
+    import xlsxwriter
 
     # next are regular expressions to match run directories, nights, and
     # run files
