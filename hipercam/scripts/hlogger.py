@@ -39,13 +39,14 @@ INDEX_HEADER = """<html>
 <body>
 <h1>HiPERCAM data logs</h1>
 
-<p>
-These on-line logs summarise all HiPERCAM runs. They were automatically generated from
-the data files and hand-written logs.
+<p> These on-line logs summarise all HiPERCAM runs. They were
+automatically generated from the FITS headers of the data files
+and hand-written logs.
 
 <p>For a searchable file summarising the same information, see this
-<a href="hipercam-log.xlsx">spreadsheet</a>. The run numbers at the start
-of each line of this file should link to the night it was observed.
+<a href="hipercam-log.xlsx">spreadsheet</a>. The penultimate column
+'Nlink' provides hyperlinks to the particular night that contained
+the run, but the same information is contained in the spreadsheet.
 """
 
 # Footer of the main file
@@ -656,13 +657,14 @@ def hlogger(args=None):
                         # run number
                         runno = run[3:]
                         nhtml.write('<td class="left">{:s}</td>'.format(runno))
-                        link = f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/{night}.html", "{runno}")'
 
                         # this is the start of a list to be appended
                         # to the array sent to a pandas.DataFrame at
                         # the end of the script in order to write out
                         # a spreadsheet
-                        brow = [link,]
+                        #link = f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/{night}.html", "{runno}")'
+                        #brow = [link,]
+                        brow = [runno,]
 
                         # object name
                         nhtml.write(f'<td class="left">{hd["OBJECT"]}</td>')
@@ -858,8 +860,10 @@ def hlogger(args=None):
                         nhtml.write(f'<td class="left">{pid}</td>')
                         brow.append(pid)
 
-                        # run number again
+                        # run number again. Add null to the spreadsheet
+                        # to allow a formula
                         nhtml.write(f'<td class="left">{runno}</td>')
+                        brow.append('NULL')
 
                         # comments
                         pcomm = hd.get("RUNCOM", "").strip()
@@ -901,7 +905,7 @@ def hlogger(args=None):
         'Cadence\n(sec)', 'Duty\ncycle(%)', 'Nframe', 'Dwell\n(sec)', 'Filters', 'Run\ntype',
         'Readout\nmode', 'Nskips', 'Win1', 'Win2' , 'XxY\nbin', 'Clr', 'Dum',
         'LED', 'Over-\nscan', 'Pre-\nscan', 'Nod', 'Readout\nspeed', 'Fast\nclocks', 'Tbytes',
-        'FPslide', 'Instr\nPA', 'CCD temperatures', 'Observers', 'PI', 'PID', 'Comment'
+        'FPslide', 'Instr\nPA', 'CCD temperatures', 'Observers', 'PI', 'PID', 'Nlink', 'Comment'
     )
 
     spreadsheet = os.path.join(root, "hipercam-log.xlsx")
@@ -909,14 +913,11 @@ def hlogger(args=None):
     ptable = pd.DataFrame(barr, columns=colnames)
     ptable.to_excel(writer, sheet_name='Hipercam logs', index=False)
 
-    workbook = writer.book
-    cell_format = workbook.add_format()
-    cell_format.set_font_color('blue')
 
     worksheet = writer.sheets["Hipercam logs"]
 
     # Column widths. Should probably automate.
-    worksheet.set_column('A:A', 8, cell_format)
+    worksheet.set_column('A:A', 8)
     worksheet.set_column('B:B', 30)
     worksheet.set_column('C:D', 11)
     worksheet.set_column('F:G', 10)
@@ -930,14 +931,27 @@ def hlogger(args=None):
     worksheet.set_column('Y:Z', 5)
     worksheet.set_column('AA:AA', 4)
     worksheet.set_column('AB:AB', 7)
-    worksheet.set_column('AC:AD', 5)
+    worksheet.set_column('AC:AC', 5)
+    worksheet.set_column('AD:AD', 6)
     worksheet.set_column('AE:AF', 7)
     worksheet.set_column('AG:AG', 26)
     worksheet.set_column('AH:AH', 15)
     worksheet.set_column('AI:AI', 14)
     worksheet.set_column('AJ:AJ', 18)
-    worksheet.set_column('AK:AK', 200)
 
+    # Fancy stuff with links in penultimate column
+    cell_format = writer.book.add_format({'font_color': 'blue'})
+    worksheet.set_column('AK:AK', 10, cell_format)
+
+    # set links using a formula
+    for nr in range(2,len(ptable)+2):
+        worksheet.write_formula(
+            f'AK{nr}',
+            f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/" & F{nr}, A{nr})'
+        )
+
+    # huge width for comments
+    worksheet.set_column('AL:AL', 200)
     worksheet.set_row(0,28)
     worksheet.freeze_panes(1, 0)
     worksheet.set_zoom(200)
