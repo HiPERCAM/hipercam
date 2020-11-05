@@ -1,10 +1,20 @@
 #!/usr/bin/env python
 
 """
-Filters HiPERCAM logs for runs suited to making fringe maps. Basically requires full frames,
-longish runs that were (probably) nodded, no binning. This works on the spreadsheet hipercam
-log produced by 'hlogger' called 'hipercam-log.xlsx'. One line of selection criteria should
-be easily adaptable.
+Filters HiPERCAM logs for runs suited to making fringe maps. Selection criteria:
+
+  1) >= 5 frames in the run
+  2) Full frame readout
+  3) No binning
+  4) Nodding / dithering enabled
+  5) Slide out or undefined
+  6) Run type == data
+  7) Cadence > 10 secs
+  8) No binning
+  9) Sun < -18 at start and end
+ 10) Moon phase < 0.3 or the Moon is below the horizon.
+
+This returns relatively few runs; manual work after that.
 """
 
 import numpy as np
@@ -18,15 +28,7 @@ if __name__ == '__main__':
         dtype=object
     )
 
-    # Filter the logs. Criteria:
-    #
-    # -- at least 5 frames
-    # -- Full frame readout
-    # -- Nodding mode enabled
-    # -- Slide position suitable
-    # -- run type = data
-    # -- longish exposures
-    # -- 1x1 binning
+    # Filter the logs.
 
     flog = log.loc[
         (log['Nframe'] >= 5) &
