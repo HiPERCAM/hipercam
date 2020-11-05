@@ -519,16 +519,16 @@ class Tseries:
     Class representing a basic time series with times, y values,
     y errors and flags. Attributes are::
 
-       t    : (ndarray)
+       t : ndarray
          times
 
-       y    : (ndarray)
+       y : ndarray
          y values
 
-       ye   : (ndarray)
+       ye : ndarray
          y errors
 
-       mask : (ndarray)
+       mask : ndarray
          bitmask propagated through from reduce log
 
     Errors are set = -1 and values = 0 if some sort of problem occurs. This
@@ -856,21 +856,26 @@ class Tseries:
         copy_self.mask = self.mask[key]
         return copy_self
 
-    def bin(self, binsize=10, method="mean"):
+    def bin(self, binsize, mvalue=None):
         """
-        Bins the Timeseries using the function defined by `method` in blocks of binsize.
+        Bins the Timeseries into blocks of binsize; bitmask mvalue
+        can be used to skip points.
 
         Parameters
         -----------
         binsize : int
             Number of observations to incude in every bin
-        method : str, one of 'mean' or 'median'
-            The summary statistic to return
+
+        mvalue : int | None
+            Bitmask that selects elements to ignore before binning, in addition to points
+            with negative errors. e.g. mvalue=hcam.TARGET_SATURATED will skip points
+            flagged as saturated.
 
         Returns
         -------
         TSeries : Tseries object
             Binned Timeseries
+
         Notes
         -----
         - If the ratio between the Tseries length and the binsize is not
@@ -878,25 +883,34 @@ class Tseries:
             ignored.
         - The binned TSeries will report the root-mean-square error.
         - The bitwise OR of the quality flags will be returned per bin.
+        - Any bins with no points will have their errors set negative to mask them
         """
-        available_methods = ["mean", "median"]
-        if method not in available_methods:
-            raise ValueError("method must be one of: {}".format(available_methods))
-        methodf = np.__dict__["nan" + method]
-        n_bins = len(self.t) // binsize
 
-        t = np.array([methodf(a) for a in np.array_split(self.t, n_bins)])
-        y = np.array([methodf(a) for a in np.array_split(self.y, n_bins)])
-        ye = (
-            np.array(
-                [np.sqrt(np.nansum(a ** 2)) for a in np.array_split(self.ye, n_bins)]
-            )
-            / binsize
-        )
-        mask = np.array(
-            [np.bitwise_or.reduce(a) for a in np.array_split(self.mask, n_bins)]
-        )
-        return Tseries(t, y, ye, mask)
+        n_bins = len(self.t) // binsize
+        n_used = n_bins*binsize
+
+        # Turn into numpy masked arrays, reshape to allow operations over x axis
+        mask = ~self.get_mask(mvalue, True)[:n_used].reshape(n_bins, binsize)
+
+        # compute number of points per bin
+        ones = np.ma.masked_array(np.ones_like(mask), mask)
+        nbin = np.ma.getdata(np.sum(ones, 1))
+        
+        t = np.ma.masked_array(self.t[:n_used].reshape(n_bins, binsize), mask)
+        y = np.ma.masked_array(self.y[:n_used].reshape(n_bins, binsize), mask)
+        ye = np.ma.masked_array(self.ye[:n_used].reshape(n_bins, binsize), mask)
+        bmask = np.ma.masked_array(self.mask[:n_used].reshape(n_bins, binsize), mask)
+
+        # take mean along x-axis, convert back to ordinary arrays
+        t = np.ma.getdata(np.mean(t,1))
+        y = np.ma.getdata(np.mean(y, 1))
+        ye = np.ma.getdata(np.sqrt(np.sum(ye*ye,1)))
+        ye[nbin == 0] = -1
+        ye[nbin > 0] /= nbin[nbin > 0]
+        bmask = np.ma.getdata(np.bitwise_or.accumulate(bmask, 1))
+
+        # Return the binned Tseries
+        return Tseries(t, y, ye, bmask)
 
     def remove_outliers(self, sigma=5.0, return_mask=False, **kwargs):
         """
