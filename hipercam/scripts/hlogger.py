@@ -14,8 +14,7 @@ from astroplan import moon_phase_angle
 import astropy.units as u
 
 import hipercam as hcam
-from hipercam import cline, utils, spooler
-from hipercam.cline import Cline
+from hipercam.utils import format_hlogger_table
 
 __all__ = [
     "hlogger",
@@ -477,76 +476,6 @@ def correct_ra_dec(ra, dec):
         dec = "{:+03d}:{:02d}:{:04.1f}".format(decd, decm, decs)
 
     return (ra, dec)
-
-def format_hlogger_table(fname, table):
-    """
-
-    Formats the column widths etc of the excel file produced by
-    |hlogger| ('hipercam-log.xlsx') and writes it to disk. It is made
-    available as a utility function to allow the same styling to be
-    applied to derived versions of this file.
-
-    Arguments::
-
-      fname : str
-         The file name to write to
-
-      table : pandas.DataFrame
-         DataFrame containing the data to be written that is assumed to be
-         derived from the |hlogger| file. In particular it is expected to
-         have columns called 'Nlink', 'Run no.' and 'Night'. The latter two
-         must lie somewhere in the column range 1-26 [A-Z].
-    """
-
-    writer = pd.ExcelWriter(fname, engine='xlsxwriter')
-    table.to_excel(writer, sheet_name='Hipercam logs', index=False)
-
-    # format
-    worksheet = writer.sheets["Hipercam logs"]
-
-    # loop through all columns, work out maximum length needed to span
-    # columns
-    cnames = table.columns
-
-    # integer index of 'Nlink' column
-    idx_nlink = cnames.get_loc('Nlink')
-
-    # Labels of 'Night' and 'Run no.' columns
-    lab_night = chr(ord('A')+cnames.get_loc('Night'))
-    lab_runno = chr(ord('A')+cnames.get_loc('Run no.'))
-
-    def clen(mlen):
-        return int(math.ceil(0.88*max_len+1.5))
-
-    for idx, col in enumerate(table):
-        series = table[col]
-        max_len = max(
-            series.astype(str).map(len).max(),
-            max(map(len, str(series.name).split('\n')))
-        )
-        if idx == idx_nlink:
-            width_nlink = clen(max_len)
-
-        # set column width
-        worksheet.set_column(idx, idx, clen(max_len))
-
-    # Fancy stuff with links column
-    cell_format = writer.book.add_format({'font_color': 'blue'})
-
-    worksheet.set_column(idx_nlink, idx_nlink, width_nlink, cell_format)
-
-    # set links using a formula
-    for nr in range(1,len(table)+1):
-        worksheet.write_formula(
-            nr, idx_nlink,
-            f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/" & {lab_night}{nr+1}, {lab_runno}{nr+1})'
-        )
-
-    # make first row high enough, freeze it, set a decent zoom
-    worksheet.set_row(0,28)
-    worksheet.freeze_panes(1, 0)
-    worksheet.set_zoom(150)
-    writer.save()
 
 observatory = EarthLocation.of_site('Roque de los Muchachos')
 
