@@ -4,11 +4,14 @@ import os
 import time
 import glob
 import re
+import math
 
 import numpy as np
 import pandas as pd
 from astropy.time import Time, TimeDelta
 from astropy.coordinates import get_sun, get_moon, EarthLocation, SkyCoord, AltAz
+from astroplan import moon_phase_angle
+import astropy.units as u
 
 import hipercam as hcam
 from hipercam import cline, utils, spooler
@@ -44,11 +47,15 @@ INDEX_HEADER = """<html>
 automatically generated from the FITS headers of the data files
 and hand-written logs.
 
-<p>For a searchable file summarising the same information, see this
-<a href="hipercam-log.xlsx">spreadsheet</a>. The penultimate column
-'Nlink' provides hyperlinks to the particular night that contained
-the run, but the same information is contained in the spreadsheet.
-"""
+<p>For a searchable file summarising the same information and more,
+see this <a href="hipercam-log.xlsx">spreadsheet</a>. This contains a
+column 'Nlink' with hyperlinks to the on-line log of whichever night
+contains a given run. In addition after the comment column the
+spreadsheet has a number of angles (altitudes and azimuths etc, all in
+degrees) and the lunar phase. 'Start' and 'end' refer to the mid-time
+of the first and last frame of a run, while 'mid' is half-way between
+them. These parameters could allow one to select dark runs for
+instance.  """
 
 # Footer of the main file
 
@@ -471,6 +478,76 @@ def correct_ra_dec(ra, dec):
 
     return (ra, dec)
 
+def format_hlogger_table(fname, table):
+    """
+
+    Formats the column widths etc of the excel file produced by
+    |hlogger| ('hipercam-log.xlsx') and writes it to disk. It is made
+    available as a utility function to allow the same styling to be
+    applied to derived versions of this file.
+
+    Arguments::
+
+      fname : str
+         The file name to write to
+
+      table : pandas.DataFrame
+         DataFrame containing the data to be written that is assumed to be
+         derived from the |hlogger| file. In particular it is expected to
+         have columns called 'Nlink', 'Run no.' and 'Night'. The latter two
+         must lie somewhere in the column range 1-26 [A-Z].
+    """
+
+    writer = pd.ExcelWriter(fname, engine='xlsxwriter')
+    table.to_excel(writer, sheet_name='Hipercam logs', index=False)
+
+    # format
+    worksheet = writer.sheets["Hipercam logs"]
+
+    # loop through all columns, work out maximum length needed to span
+    # columns
+    cnames = table.columns
+
+    # integer index of 'Nlink' column
+    idx_nlink = cnames.get_loc('Nlink')
+
+    # Labels of 'Night' and 'Run no.' columns
+    lab_night = chr(ord('A')+cnames.get_loc('Night'))
+    lab_runno = chr(ord('A')+cnames.get_loc('Run no.'))
+
+    def clen(mlen):
+        return int(math.ceil(0.88*max_len+1.5))
+
+    for idx, col in enumerate(table):
+        series = table[col]
+        max_len = max(
+            series.astype(str).map(len).max(),
+            max(map(len, str(series.name).split('\n')))
+        )
+        if idx == idx_nlink:
+            width_nlink = clen(max_len)
+
+        # set column width
+        worksheet.set_column(idx, idx, clen(max_len))
+
+    # Fancy stuff with links column
+    cell_format = writer.book.add_format({'font_color': 'blue'})
+
+    worksheet.set_column(idx_nlink, idx_nlink, width_nlink, cell_format)
+
+    # set links using a formula
+    for nr in range(1,len(table)+1):
+        worksheet.write_formula(
+            nr, idx_nlink,
+            f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/" & {lab_night}{nr+1}, {lab_runno}{nr+1})'
+        )
+
+    # make first row high enough, freeze it, set a decent zoom
+    worksheet.set_row(0,28)
+    worksheet.freeze_panes(1, 0)
+    worksheet.set_zoom(150)
+    writer.save()
+
 observatory = EarthLocation.of_site('Roque de los Muchachos')
 
 def hlogger(args=None):
@@ -515,7 +592,6 @@ def hlogger(args=None):
     # next are regular expressions to match run directories, nights, and
     # run files
     rre = re.compile("^\d\d\d\d-\d\d$")
-    rre = re.compile("^2019-09$")
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
     fre = re.compile("^run\d\d\d\d\.fits$")
 
@@ -706,10 +782,15 @@ def hlogger(args=None):
                         # First & last timestamp
                         try:
 
+                            # get mid-exposure time of first and last frame.
                             tstamp_start, tinfo, tflag1 = rtime(1)
-                            tstart = tstamp_start.isot
-
                             tstamp_end, tinfo, tflag2 = rtime(ntotal)
+
+                            # compute mid-time
+                            tstamp_mid = tstamp_start + (tstamp_end-tstamp_start)/2
+
+                            # Extract understandable times
+                            tstart = tstamp_start.isot
                             tend = tstamp_end.isot
 
                             datestart = tstart[:tstart.find("T")]
@@ -733,7 +814,9 @@ def hlogger(args=None):
                                 '<td class="cen">----</td><td class="cen">----</td><td class="cen">----</td><td>NOK</td>'
                             )
                             brow += 4*[None]
-                            tstamp_start, tstamp_end = None,None
+
+                            # set start to a bad value for later
+                            tstamp_start = None
 
                         # sample time
                         nhtml.write(f'<td class="right">{tsamp:.3f}</td>')
@@ -895,14 +978,50 @@ def hlogger(args=None):
                         nhtml.write(f'<td class="left">{comments}</td>')
                         brow.append(comments)
 
-                        # Finally tack on some extras for the spreadsheet only
+                        # Finally tack on extra positional stuff for the spreadsheet only
                         if tstamp_start:
+
+                            if ra != '' and dec != '':
+                                # Target stuff. Calculate the Alt & Az at start, middle, end
+                                frames = AltAz(obstime=[tstamp_start,tstamp_mid,tstamp_end], location=observatory)
+                                points = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg)).transform_to(frames)
+                                alts = [round(alt,1) for alt in points.alt.degree]
+                                azs = [round(az,1) for az in points.az.degree]
+                                brow += alts + azs
+
+                                # Now calculate the angular distance from the Sun and Moon at the mid-time
+                                sun_mid = get_sun(tstamp_mid).transform_to(frames[1])
+                                moon_mid = get_moon(tstamp_mid).transform_to(frames[1])
+                                point_mid = points[1]
+                                sun_dist = point_mid.separation(sun_mid).degree
+                                moon_dist = point_mid.separation(moon_mid).degree
+                                brow += [round(sun_dist,1),round(moon_dist,1)]
+                            else:
+                                brow += 8*[None]
+
+
+                            # Now some data on the altitude of the Sun & Moon
                             frame = AltAz(obstime=tstamp_start, location=observatory)
-                            sun = get_sun(tstamp_start).transform_to(frame)
-                            moon = get_sun(tstamp_start).transform_to(frame)
-                            brow += [round(sun.alt.value,1), round(moon.alt.value,1)]
+                            sun_start = get_sun(tstamp_start).transform_to(frame)
+                            moon_start = get_moon(tstamp_start).transform_to(frame)
+
+                            # end
+                            frame = AltAz(obstime=tstamp_end, location=observatory)
+                            sun_end = get_sun(tstamp_start).transform_to(frame)
+                            moon_end = get_moon(tstamp_start).transform_to(frame)
+
+                            # Lunar phase at the mid-point only.
+                            moon_phase = moon_phase_angle(tstamp_mid).value / np.pi
+
+                            # write out info
+                            brow += [
+                                round(sun_start.alt.degree,1), round(sun_end.alt.degree,1),
+                                round(moon_start.alt.degree,1), round(moon_end.alt.degree,1),
+                                round(moon_phase,2),
+                            ]
+
                         else:
-                            brow += [None, None]
+                            brow += 13*[None]
 
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
@@ -931,59 +1050,15 @@ def hlogger(args=None):
         'Readout\nmode', 'Nskips', 'Win1', 'Win2' , 'XxY\nbin', 'Clr', 'Dum',
         'LED', 'Over-\nscan', 'Pre-\nscan', 'Nod', 'Readout\nspeed', 'Fast\nclocks', 'Tbytes',
         'FPslide', 'Instr\nPA', 'CCD temperatures', 'Observers', 'PI', 'PID', 'Nlink', 'Comment',
-        'Sun alt\nstart', 'Moon alt\nstart'
+        'Alt\nstart', 'Alt\nmiddle', 'Alt\nend', 'Az\nstart', 'Az\nmiddle', 'Az\nend',
+        'Sun sep\nmid', 'Moon sep\nmid',
+        'Sun alt\nstart', 'Sun alt\nend', 'Moon alt\nstart', 'Moon alt\nend', 'Moon\nphase',
     )
+    ptable = pd.DataFrame(barr, columns=colnames)
 
     spreadsheet = os.path.join(root, "hipercam-log.xlsx")
-    writer = pd.ExcelWriter(spreadsheet, engine='xlsxwriter')
-    ptable = pd.DataFrame(barr, columns=colnames)
-    ptable.to_excel(writer, sheet_name='Hipercam logs', index=False)
 
-
-    worksheet = writer.sheets["Hipercam logs"]
-
-    # Column widths. Should probably automate.
-    worksheet.set_column('A:A', 8)
-    worksheet.set_column('B:B', 30)
-    worksheet.set_column('C:D', 11)
-    worksheet.set_column('F:G', 10)
-    worksheet.set_column('H:I', 9)
-    worksheet.set_column('J:J', 6)
-    worksheet.set_column('M:N', 8)
-    worksheet.set_column('O:P', 12)
-    worksheet.set_column('Q:R', 8)
-    worksheet.set_column('S:T', 18)
-    worksheet.set_column('U:X', 4)
-    worksheet.set_column('Y:Z', 5)
-    worksheet.set_column('AA:AA', 4)
-    worksheet.set_column('AB:AB', 7)
-    worksheet.set_column('AC:AC', 5)
-    worksheet.set_column('AD:AD', 6)
-    worksheet.set_column('AE:AF', 7)
-    worksheet.set_column('AG:AG', 26)
-    worksheet.set_column('AH:AH', 15)
-    worksheet.set_column('AI:AI', 14)
-    worksheet.set_column('AJ:AJ', 18)
-
-    # Fancy stuff with links in penultimate column
-    cell_format = writer.book.add_format({'font_color': 'blue'})
-    worksheet.set_column('AK:AK', 10, cell_format)
-
-    # set links using a formula
-    for nr in range(2,len(ptable)+2):
-        worksheet.write_formula(
-            f'AK{nr}',
-            f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/" & F{nr}, A{nr})'
-        )
-
-    # huge width for comments
-    worksheet.set_column('AL:AL', 200)
-
-    worksheet.set_column('AM:AN', 6)
-    worksheet.set_row(0,28)
-    worksheet.freeze_panes(1, 0)
-    worksheet.set_zoom(200)
-    writer.save()
+    format_hlogger_table(spreadsheet, ptable)
 
     print(f'\nAll done. Look in {root} for the outputs.')
 
