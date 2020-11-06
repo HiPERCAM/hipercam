@@ -1128,7 +1128,9 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                     flag |= hcam.TARGET_NONLINEAR
 
             else:
-                warnings.warn("CCD {:s} has no nonlinearity or saturation levels set")
+                warnings.warn(
+                    "CCD {:s} has no nonlinearity or saturation levels set".format(cnam)
+                )
 
             # Pixellation amelioration:
             #

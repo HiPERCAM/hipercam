@@ -33,16 +33,25 @@ usual case one defines one or more targets as ``reference`` apertures in
 |setaper|. The aperture movement inside |reduce| then proceeds through a two
 step process as follows:
 
- #. First search for each reference target in boxes of half width
-    ``search_half_width`` around the last valid position of each one. This
-    search is carried out by smoothing the image and taking the location of
+ #. First search for the first reference target in a box of half width
+    ``search_half_width`` around its last valid position. This
+    search is carried out by smoothing the image (``search_smooth_fwhm``)
+    and taking the location of
     whatever local maximum exceeds a pre-defined threshold
     (``fit_height_min_ref``) and lies closest to the last-measured position.
     The position of this maximum is used as the starting position for a 2D
     profile fit. This method is fairly robust against even bright cosmic rays
     as long as they lie further from the expected position than the target.
+    The smoothing helps this as cosmic rays tend to be confined to 1 or 2 pixels. 
     If reference targets are chosen to be bright and isolated, one can carry
-    out broad searches which allow for very poor guiding. Following the
+    out broad searches which allow for very poor guiding. The shift measured
+    from the first reference star is used to provide a better starting position
+    for any remaining reference stars to improve things still more. This means
+    that you should try to make the first reference star that appears in an aperture
+    file for any given CCD the most robust of all. This is particularly the case if
+    you have to make ``search_half_width`` large because of bad guiding. Note that
+    "robust" means unlikely to jumpt to another star so the key aspect is that it has
+    no near stars of reference star type brightness. Following the
     search, 2D profile fits are carried out and the mean x,y shift relative to
     the starting position is calculated. If this stage fails (e.g.  because of
     clouds), then the rest of the frame is skipped on the basis that if the
@@ -53,7 +62,10 @@ step process as follows:
     problems: the  parameter ``fit_diff`` is used for this by guarding against
     mutually discrepant reference positions. Again this acts in a
     severe all-or-nothing manner. The benefit is a lowered risk of losing the
-    reference position altogether.
+    reference position altogether. If you find are losing the location of the stars on some
+    frames then it is probably a case of adjusting the values of ``search_half_width``,
+    ``search_smooth_fwhm``, ``fit_height_min_ref`` and ``fit_diff``.
+    ``
 
  #. Next, the positions of non-reference, non-linked apertures are
     determined. This is done through 2D profile fits starting from the shift

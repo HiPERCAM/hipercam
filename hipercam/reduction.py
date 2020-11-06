@@ -1510,6 +1510,10 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     # next to store shifts
     shifts = []
 
+    # next is a shift that will be updated after the first fit. This allows
+    # the later reference stars to be not so good as the first. 
+    xshift, yshift = 0., 0.
+
     try:
         for apnam, aper in ccdaper.items():
             if aper.ref:
@@ -1526,14 +1530,15 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 
                 # get sub-window around start position
                 swdata = wdata.window(
-                    aper.x - shbox, aper.x + shbox, aper.y - shbox, aper.y + shbox
+                    aper.x + xshift - shbox, aper.x + xshift + shbox,
+                    aper.y + yshift - shbox, aper.y + yshift + shbox
                 )
 
                 # carry out initial search
                 x, y, peak = swdata.search(
                     apsec["search_smooth_fwhm"],
-                    aper.x,
-                    aper.y,
+                    aper.x + xshift,
+                    aper.y + yshift,
                     apsec["fit_height_min_ref"],
                     apsec["search_smooth_fft"],
                 )
@@ -1614,7 +1619,12 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     wysum += wy
                     ysum += wy * dy
 
-                    shifts.append((dx, dy))
+                    if len(shifts) == 0:
+                        # store the first to help any subsequent ones
+                        xshift, yshift = dx, dy
+
+                    shifts.append((apnam, dx, dy))
+
 
                     # store stuff
                     store[apnam] = {
@@ -1683,8 +1693,8 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
         # shifts for consistency as a guard against cosmic rays and other
         # offsets
         if len(shifts) > 1:
-            for n, (x1, y1) in enumerate(shifts[:-1]):
-                for (x2, y2) in shifts[n + 1 :]:
+            for n, (apn1, x1, y1) in enumerate(shifts[:-1]):
+                for (apn2, x2, y2) in shifts[n + 1 :]:
                     diff = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
                     if np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) > apsec["fit_diff"]:
@@ -1704,6 +1714,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         store["mfwhm"] = -1.0
                         store["mbeta"] = -1.0
 
+                        # give some info on the problem
                         print(
                             (
                                 "CCD {:s}: reference aperture differential "
@@ -1711,6 +1722,13 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                             ).format(cnam, diff, apsec["fit_diff"]),
                             file=sys.stderr,
                         )
+                        for apn, xs, ys in shifts:
+                            print(
+                                (
+                                    "  Aperture {:s}: xshift, yshift = {:.2f}, {:.2f}"
+                                ).format(apn, xs, ys),
+                                file=sys.stderr,
+                            )
                         return False
 
         if wxsum > 0.0 and wysum > 0.0:
