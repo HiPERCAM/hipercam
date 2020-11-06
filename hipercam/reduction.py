@@ -35,6 +35,7 @@ from trm.pgplot import (
 import matplotlib.pyplot as plt
 from hipercam import mpl
 
+NaN = float('NaN')
 
 class Rfile(OrderedDict):
     """Class to read and interpret reduce setup files. Similar to
@@ -1381,7 +1382,7 @@ class ProcessCCDs:
 
             if cnam not in self.store:
                 # initialisation
-                self.store[cnam] = {"mfwhm": -1.0, "mbeta": -1.0}
+                self.store[cnam] = {"mfwhm": -1., "mbeta": -1.}
 
             if self.pool is None:
                 # carry out processing serially, store results
@@ -1484,14 +1485,14 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     if apsec["location"] == "fixed":
         for apnam in ccdaper:
             store[apnam] = {
-                "xe": -1.0,
-                "ye": -1.0,
-                "fwhm": 0.0,
-                "fwhme": -1.0,
-                "beta": 0.0,
-                "betae": -1.0,
-                "dx": 0.0,
-                "dy": 0.0,
+                "xe": NaN,
+                "ye": NaN,
+                "fwhm": NaN,
+                "fwhme": NaN,
+                "beta": NaN,
+                "betae": NaN,
+                "dx": 0.,
+                "dy": 0.,
             }
         return True
 
@@ -1668,18 +1669,18 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 
         for apnam, aper in ccdaper.items():
             store[apnam] = {
-                "xe": -1.0,
-                "ye": -1.0,
-                "fwhm": 0.0,
-                "fwhme": -1.0,
-                "beta": 0.0,
-                "betae": -1.0,
-                "dx": 0.0,
-                "dy": 0.0,
+                "xe": NaN,
+                "ye": NaN,
+                "fwhm": NaN,
+                "fwhme": NaN,
+                "beta": NaN,
+                "betae": NaN,
+                "dx": 0.,
+                "dy": 0.,
             }
 
-        store["mfwhm"] = -1.0
-        store["mbeta"] = -1.0
+        store["mfwhm"] = NaN
+        store["mbeta"] = NaN
         return False
 
     # at this point we are done with measuring the positions of the reference
@@ -1701,18 +1702,18 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                         # have exceeded threshold differential shift
                         for apnam, aper in ccdaper.items():
                             store[apnam] = {
-                                "xe": -1.0,
-                                "ye": -1.0,
-                                "fwhm": 0.0,
-                                "fwhme": -1.0,
-                                "beta": 0.0,
-                                "betae": -1.0,
-                                "dx": 0.0,
-                                "dy": 0.0,
+                                "xe": NaN,
+                                "ye": NaN,
+                                "fwhm": NaN,
+                                "fwhme": NaN,
+                                "beta": NaN,
+                                "betae": NaN,
+                                "dx": 0.,
+                                "dy": 0.,
                             }
 
-                        store["mfwhm"] = -1.0
-                        store["mbeta"] = -1.0
+                        store["mfwhm"] = NaN
+                        store["mbeta"] = NaN
 
                         # give some info on the problem
                         print(
@@ -1751,17 +1752,17 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
             for apnam, aper in ccdaper.items():
                 if not aper.ref:
                     store[apnam] = {
-                        "xe": -1.0,
-                        "ye": -1.0,
-                        "fwhm": 0.0,
-                        "fwhme": -1.0,
-                        "beta": 0.0,
-                        "betae": -1.0,
-                        "dx": 0.0,
-                        "dy": 0.0,
+                        "xe": NaN,
+                        "ye": NaN,
+                        "fwhm": NaN,
+                        "fwhme": NaN,
+                        "beta": NaN,
+                        "betae": NaN,
+                        "dx": 0.,
+                        "dy": 0.,
                     }
-            store["mfwhm"] = -1.0
-            store["mbeta"] = -1.0
+            store["mfwhm"] = NaN
+            store["mbeta"] = NaN
 
             print(
                 (
@@ -1963,12 +1964,12 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 aper.y += yshift
 
                 store[apnam] = {
-                    "xe": -1.0,
-                    "ye": -1.0,
-                    "fwhm": 0.0,
-                    "fwhme": -1.0,
-                    "beta": 0.0,
-                    "betae": -1.0,
+                    "xe": NaN,
+                    "ye": NaN,
+                    "fwhm": NaN,
+                    "fwhme": NaN,
+                    "beta": NaN,
+                    "betae": NaN,
                     "dx": xshift,
                     "dy": yshift,
                 }
@@ -1981,12 +1982,12 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
             aper.y += store[aper.link]["dy"]
 
             store[apnam] = {
-                "xe": -1.0,
-                "ye": -1.0,
-                "fwhm": 0.0,
-                "fwhme": -1.0,
-                "beta": 0.0,
-                "betae": -1.0,
+                "xe": NaN,
+                "ye": NaN,
+                "fwhm": NaN,
+                "fwhme": NaN,
+                "beta": NaN,
+                "betae": NaN,
                 "dx": store[aper.link]["dx"],
                 "dy": store[aper.link]["dy"],
             }
