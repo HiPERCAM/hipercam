@@ -2429,7 +2429,7 @@ class LightCurve(BaseBuffer):
                 fte = targ["countse"]
                 saturated = targ["flag"] & hcam.TARGET_SATURATED
 
-                if fte > 0:
+                if fte == fte:
 
                     if self.comp != "!":
                         comp = reses[self.comp]
@@ -2437,14 +2437,11 @@ class LightCurve(BaseBuffer):
                         fce = comp["countse"]
                         saturated |= comp["flag"] & hcam.TARGET_SATURATED
 
-                        if fc > 0:
-                            if fce > 0.0:
-                                f = ft / fc
-                                fe = np.sqrt(
-                                    (fte / fc) ** 2 + (ft * fce / fc ** 2) ** 2
-                                )
-                            else:
-                                continue
+                        if fc == fc and fce == fce:
+                            f = ft / fc
+                            fe = np.sqrt(
+                                (fte / fc) ** 2 + (ft * fce / fc ** 2) ** 2
+                            )
                         else:
                             continue
                     else:
@@ -2550,7 +2547,7 @@ class Xposition(BaseBuffer):
                 x = targ["x"]
                 xe = targ["xe"]
 
-                if xe <= 0:
+                if xe != xe:
                     # skip junk
                     continue
 
@@ -2644,7 +2641,7 @@ class Yposition(BaseBuffer):
                 y = targ["y"]
                 ye = targ["ye"]
 
-                if ye <= 0:
+                if ye != ye:
                     # skip junk
                     continue
 
@@ -2722,7 +2719,7 @@ class Transmission(BaseBuffer):
                 f = targ["counts"]
                 fe = targ["countse"]
 
-                if f <= 0 or fe <= 0:
+                if f <= 0 or fe != fe:
                     # skip junk
                     continue
 
@@ -2799,7 +2796,7 @@ class Seeing(BaseBuffer):
                 f = targ["fwhm"]
                 fe = targ["fwhme"]
 
-                if f <= 0 or fe <= 0:
+                if f <= 0 or fe != fe:
                     # skip junk
                     continue
 
@@ -2941,6 +2938,16 @@ class LogWriter:
         """
         monitor = self.rfile["monitor"]
 
+        def float2str(value, form, sval=None):
+            """Formats a float as a string accounting for NaNs. value is the value,
+            form is the format to be used for the string, e.g. '.2f'. If value matches
+            the special value sval then also convert to NaN.
+            """
+            if value == sval or np.isnan(value):
+                return 'nan'
+            else:
+                return f'{value:{form}}'
+
         alerts = []
         for cnam, res in results:
             # Loop over all CCDs
@@ -2959,10 +2966,12 @@ class LogWriter:
                 mfwhm = store["mfwhm"]
                 mbeta = store["mbeta"]
 
-                # write generic data
+                # write generic data. have to take a little care because of NaN values
                 self.log.write(
-                    "{:s} {:d} {:.14f} {:b} {:.8g} {:.2f} {:.2f} ".format(
-                        cnam, nframe, mjd, mjdok, expose, mfwhm, mbeta
+                    "{:s} {:d} {:.14f} {:b} {:.8g} {} {} ".format(
+                        cnam, nframe, mjd, mjdok, expose,
+                        float2str(mfwhm,'.2f',-1.),
+                        float2str(mbeta,'.2f',-1.),
                     )
                 )
 
@@ -2970,22 +2979,20 @@ class LogWriter:
                 for apnam in ccdaper:
                     r = reses[apnam]
                     self.log.write(
-                        "{:.4f} {:.4f} {:.4f} {:.4f} "
-                        "{:.3f} {:.3f} {:.3f} {:.3f} "
-                        "{:.1f} {:.1f} {:.2f} {:.2f} "
+                        "{} {} {} {} {} {} {} {} {} {} {} {} "
                         "{:d} {:d} {:d} {:d} ".format(
-                            r["x"],
-                            r["xe"],
-                            r["y"],
-                            r["ye"],
-                            r["fwhm"],
-                            r["fwhme"],
-                            r["beta"],
-                            r["betae"],
-                            r["counts"],
-                            r["countse"],
-                            r["sky"],
-                            r["skye"],
+                            float2str(r["x"],'.4f'),
+                            float2str(r["xe"],'.4f'),
+                            float2str(r["y"],'.4f'),
+                            float2str(r["ye"],'.4f'),
+                            float2str(r["fwhm"],'.3f'),
+                            float2str(r["fwhme"],'.3f',-1.),
+                            float2str(r["beta"],'.3f'),
+                            float2str(r["betae"],'.3f'),
+                            float2str(r["counts"],'.1f'),
+                            float2str(r["countse"],'.1f'),
+                            float2str(r["sky"],'.2f'),
+                            float2str(r["skye"],'.2f'),
                             r["nsky"],
                             r["nrej"],
                             r["cmax"],

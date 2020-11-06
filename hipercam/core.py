@@ -43,6 +43,7 @@ __all__ = (
     "BAD_COLUMN",
     "BAD_TIME",
     "FLAGS",
+    "OUTLIER",
 )
 
 # Constants for general use
@@ -127,6 +128,7 @@ JUNK = bmask(1 << 9)  # Unspecified junk data (e.g. cosmic ray hit)
 BAD_FLAT = bmask(1 << 10)  # Bad flat field pixel (e.g. deep dust speck)
 BAD_COLUMN = bmask(1 << 11)  # Bad column (e.g. target aperture includes such data)
 BAD_TIME = bmask(1 << 12)  # Bad time
+OUTLIER = bmask(1 << 13)  # Point far from local trend (for Tseries)
 
 # all flags for useful reference in other places
 FLAGS = (
@@ -145,6 +147,7 @@ FLAGS = (
     ("BAD_FLAT", BAD_FLAT),
     ("BAD_COLUMN", BAD_COLUMN),
     ("BAD_TIME", BAD_TIME),
+    ("OUTLIER", OUTLIER),
 )
 
 

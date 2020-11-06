@@ -29,6 +29,7 @@ __all__ = [
     "reduce",
 ]
 
+NaN = float('NaN')
 
 ################################################
 #
@@ -920,10 +921,10 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                     "fwhme": info["fwhme"],
                     "beta": info["beta"],
                     "betae": info["betae"],
-                    "counts": 0.0,
-                    "countse": -1,
-                    "sky": 0.0,
-                    "skye": 0.0,
+                    "counts": NaN,
+                    "countse": NaN,
+                    "sky": NaN,
+                    "skye": NaN,
                     "nsky": 0,
                     "nrej": 0,
                     "flag": flag,
@@ -1099,8 +1100,8 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 # no sky. will still return the flux in the aperture but set
                 # flag and the sky uncertainty to -1
                 flag |= hcam.NO_SKY
-                slevel = 0
-                serror = -1
+                slevel = NaN
+                serror = NaN
                 nsky = 0
                 nrej = 0
 
@@ -1268,10 +1269,10 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 "fwhme": info["fwhme"],
                 "beta": info["beta"],
                 "betae": info["betae"],
-                "counts": 0.0,
-                "countse": -1,
-                "sky": 0.0,
-                "skye": 0.0,
+                "counts": NaN,
+                "countse": NaN,
+                "sky": NaN,
+                "skye": NaN,
                 "nsky": 0,
                 "nrej": 0,
                 "flag": flag,

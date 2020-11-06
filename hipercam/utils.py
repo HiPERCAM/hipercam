@@ -283,3 +283,21 @@ def format_hlogger_table(fname, table):
     worksheet.set_zoom(150)
     writer.save()
 
+def what_flags(bitmask):
+    """
+    Given a bitmask value, this routine prints which flags have been set, ignoring
+    the two catch alls, ANY_FLAG and ALL_GOOD.
+    """
+    flags_raised = {}
+    for fname, flag in FLAGS:
+        if flag != ANY_FLAG and flag != ALL_GOOD: 
+            if bitmask & flag:
+                flags_raised.append(fname)
+                flags_raised = ', '.join(flags_raised)
+
+    if len(flags_raised):
+        flags_raised = ", ".join(flags_raised)
+        print(f"{bitmask} corresponds to flags = {flags_raised}")
+    else:
+        print(f"{bitmask} means no flags have been set")
+

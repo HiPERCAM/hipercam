@@ -287,16 +287,18 @@ class Hlog(dict):
 
             # per CCD corrections
             for key, corrs in fixes['perccd'].items():
-                bad = ccd[key] <= 0.
+                ok = ~np.isnan(ccd[key])
+                bad = ccd[key][ok] <= 0.
                 for corr in corrs:
-                    ccd[corr][bad] = NaN
+                    ccd[corr][ok][bad] = NaN
 
             # per aperture corrections
             for key, corrs in fixes['peraper'].items():
                 for apnam in hlog.apnames[cnam]:
-                    bad = ccd[f"{key}_{apnam}"] <= 0.
+                    ok = ~np.isnan(ccd[f"{key}_{apnam}"])
+                    bad = ccd[f"{key}_{apnam}"][ok] <= 0.
                     for corr in corrs:
-                        ccd[f"{corr}_{apnam}"][bad] = NaN
+                        ccd[f"{corr}_{apnam}"][ok][bad] = NaN
 
         hlog.writable = True
         return hlog
@@ -567,45 +569,56 @@ class Tseries:
        ye : ndarray
          y errors
 
-       mask : ndarray
+       bmask : ndarray
          bitmask propagated through from reduce log, that indicates possible
-         problems affecting each data point.
+         problems affecting each data point. See core.py for the defined flags.
 
-    Bad data is indicated by any/all of t,y,ye being set = NaN. Errors
-    are set = -1 and values = 0 if some sort of problem occurs. This
-    should be used in addition to the mask to spot bad values. The
-    bitmask valued are OR-ed when an operation on two Tseries is
-    performed. Thus the child of two Tseries inherits all the problems
-    of each of its parents.
+    Data can be bad, or it can be flagged, or it can be both. Some
+    flags imply that the associated data will be bad, but there are
+    some you may be able to live with. Bad data are indicated by
+    any/all of t,y,ye being set = NaN. The bitmask values correspond
+    to flags defined in hipercam.core. The bitmask values are OR-ed
+    when an operation on two Tseries is performed. Thus the child of
+    two Tseries inherits all the problems of each of its parents.
 
     """
 
-    def __init__(self, t, y, ye, mask):
+    def __init__(self, t, y, ye, bmask):
         self.t = t
         self.y = y
         self.ye = ye
-        self.mask = mask
+        self.bmask = bmask
 
     def __len__(self):
         return len(self.t)
 
-    def set_mask(self, bitmask, mask):
+    def set_bitmask(self, bitmask, mask):
         """
-        This updates the internal mask by 'bitwise_or'-ing it with the input mask value
-        'bitmask' for all values for which 'mask' is true
+        This updates the internal bitmask by 'bitwise_or'-ing it with the input bitmask value
+        'bitmask' for all values for which 'mask' is true. 'mask' should match the Tseries length.
+        Arguments::
+
+           bitmask : int
+             a bitmask value which will be OR-ed with elements of the current bitmask array
+
+           mask: np.ndarray
+             the bitmask will be applied to every element for which mask is True.
         """
-        self.mask[mask] = np.bitwise_or(self.mask[mask], bitmask)
+        self.bmask[mask] = np.bitwise_or(self.bmask[mask], bitmask)
 
     def get_bad(self):
         """Returns with a numpy boolean array of bad data defined as data
-        where any one of t, y, ye has been set to NaN.
+        where any one of t, y, ye has been set to NaN or Inf
         """
-        return np.isnan(self.t) | np.isnan(self.y) | np.isnan(self.ye)
+        return (
+            np.isnan(self.t) | np.isnan(self.y) | np.isnan(self.ye) |
+            np.isinf(self.t) | np.isinf(self.y) | np.isinf(self.ye)
+        )
 
     def get_mask(self, bitmask=None, flag_bad=True):
         """Returns logical array of all points which contain NaN values or
         which match the bitmask 'bitmask'. The intention is to return
-        a mask suitable for creating numpy.ma.masked_array
+        a boolean mask suitable for creating numpy.ma.masked_array
         objects. i.e. bitmask=(hcam.NOSKY | hcam.TARGET_SATURATED)
         would pick up all points said to have no sky or saturated
         target pixels. Thus the array returned flags bad data.
@@ -613,7 +626,7 @@ class Tseries:
         Arguments::
 
            bitmask : None | numpy.uint32
-              32-bit bitmask to select points according to the internal mask
+              32-bit bitmask to select points according to the internal bmask
               array.  e.g. mvalue=(NO_FWHM | NO_SKY) would select
               all points without a FWHM or sky aperture.
               See Tseries.report for how to get a full list of
@@ -632,7 +645,7 @@ class Tseries:
         .. Note::
 
            The logical array returned is not the same as the internal
-           attribute 'mask' which contains the bitmask itself.
+           attribute 'bmask' which contains the bitmask array itself.
 
         .. Note::
 
@@ -641,7 +654,7 @@ class Tseries:
            bitmask=ALL_OK (it would actually be equivalent to setting
            bitmask=None in terms of operation) and so to do so raises
            a ValueErrror. In this instance you may want to set it to
-           ANY_FLAG instead.
+           ANY_FLAG instead to flag up points flagged for any reason.
 
         """
 
@@ -657,24 +670,24 @@ class Tseries:
 
         if bitmask is not None:
             # Flag data matching the bitmask
-            bad |= np.bitwise_and(self.mask, bitmask) > 0
+            bad |= np.bitwise_and(self.bmask, bitmask) > 0
 
         return bad
 
     def get_data(self, bitmask=None, flagged=False):
         """
-        Returns the data as (times, values, errors). 'mask' is a bitmask
-        to define which the data to exclude in addition to NaN values.
+        Returns the data as (times, values, errors). 'bitmask' is a bitmask
+        to define which the data to exclude in addition to any NaN values.
 
         Arguments::
 
            bitmask : int | None
-             bitmask to identify points flagged in the internal mask array. Use to
+             bitmask to identify points flagged in the internal bmask array. Use to
              exclude bad data (in addition to data with NaN). See get_mask for usage.
 
            flagged : bool
-             If set True, rather than using 'bitmask' to exclude data, this returns
-             data that does match 'bitmask' (but still avoids bad NaN data)
+             If set True, rather than using 'bitmask' to exclude data, this uses it
+             to include data (but still avoids bad NaN data)
         """
         if flagged:
             bad = self.get_mask(bitmask,False)
@@ -682,7 +695,6 @@ class Tseries:
         else:
             good = ~self.get_mask(bitmask)
             return (self.t[good], self.y[good], self.ye[good])
-
 
     def mplot(
         self,
@@ -730,21 +742,21 @@ class Tseries:
               Two element tuple to limit the time range
 
         """
-        # Generate a mask to apply
+        # Generate boolean array of the points to plot
         if flagged:
-            mask = ~self.get_mask(bitmask)
+            plot = self.get_mask(bitmask)
         else:
-            mask = self.get_mask(bitmask)
+            plot = ~self.get_mask(bitmask)
 
         if trange is not None:
             # add in time range limits
             t1, t2 = trange
-            mask &= (self.t < t1) | (self.t > t2)
+            plot &= (self.t > t1) & (self.t < t2)
 
         # create masked arrays
-        t = np.ma.masked_array(self.t,mask)
-        y = np.ma.masked_array(self.y,mask)
-        ye = np.ma.masked_array(self.ye,mask)
+        t = self.t[plot]
+        y = self.y[plot]
+        ye = self.ye[plot]
 
         if erry:
             axes.errorbar(
@@ -759,7 +771,7 @@ class Tseries:
 
     def __repr__(self):
         return "Tseries(t={!r}, y={!r}, ye={!r}, mask={!r}".format(
-            self.t, self.y, self.ye, self.mask
+            self.t, self.y, self.ye, self.bmask
         )
 
     def __truediv__(self, other):
@@ -782,14 +794,14 @@ class Tseries:
                 self.ye**2 + (other.ye*self.y/other.y)**2
             ) / np.abs(other.y)
 
-            mask = np.bitwise_or(self.mask, other.mask)
+            mask = np.bitwise_or(self.bmask, other.bmask)
 
         else:
 
             # division by a constant or an array of constants
             y = self.y / other
             ye = self.ye / np.abs(other)
-            mask = self.mask.copy()
+            mask = self.bmask.copy()
 
         return Tseries(self.t.copy(), y, ye, mask)
 
@@ -812,13 +824,13 @@ class Tseries:
             ye = np.sqrt(
                 (other.y * self.ye) ** 2 + (self.ye * other.y) ** 2
             )
-            mask = np.bitwise_or(self.mask, other.mask)
+            mask = np.bitwise_or(self.bmask, other.bmask)
 
         else:
             # multiplication by a constant or an array of constants
             y = self.y * other
             ye = self.ye * np.abs(other)
-            mask = self.mask.copy()
+            mask = self.bmask.copy()
 
         return Tseries(self.t.copy(), y, ye, mask)
 
@@ -842,7 +854,7 @@ class Tseries:
             ye = np.empty_like(y)
             ye[ok] = np.sqrt(self.ye[ok] ** 2 + other.ye[ok] ** 2)
             ye[~ok] = -1
-            mask = np.bitwise_or(self.mask, other.mask)
+            mask = np.bitwise_or(self.bmask, other.bmask)
 
         else:
             # addition of a constant or an array of constants
@@ -851,7 +863,7 @@ class Tseries:
             ok = self.ye > 0
             ye[ok] = self.ye[ok]
             ye[~ok] = -1
-            mask = self.mask.copy()
+            mask = self.bmask.copy()
 
         return Tseries(self.t.copy(), y, ye, mask)
 
@@ -872,13 +884,13 @@ class Tseries:
 
             y = self.y - other.y
             ye = np.sqrt(self.ye**2 + other.ye**2)
-            mask = np.bitwise_or(self.mask, other.mask)
+            mask = np.bitwise_or(self.bmask, other.bmask)
 
         else:
             # subtraction of a constant or an array of constants
             y = self.y - other
             ye = self.ye.copy()
-            mask = self.mask.copy()
+            mask = self.bmask.copy()
 
         return Tseries(self.t.copy(), y, ye, mask)
 
@@ -887,7 +899,7 @@ class Tseries:
         copy_self.t = self.t[key]
         copy_self.y = self.y[key]
         copy_self.ye = self.ye[key]
-        copy_self.mask = self.mask[key]
+        copy_self.bmask = self.bmask[key]
         return copy_self
 
     def bin(self, binsize, bitmask=None):
@@ -934,7 +946,7 @@ class Tseries:
         t = np.ma.masked_array(self.t[:n_used].reshape(n_bins, binsize), mask)
         y = np.ma.masked_array(self.y[:n_used].reshape(n_bins, binsize), mask)
         ye = np.ma.masked_array(self.ye[:n_used].reshape(n_bins, binsize), mask)
-        bmask = np.ma.masked_array(self.mask[:n_used].reshape(n_bins, binsize), mask)
+        bmask = np.ma.masked_array(self.bmask[:n_used].reshape(n_bins, binsize), mask)
 
         # take mean along x-axis, convert back to ordinary arrays
         t = np.ma.getdata(np.mean(t,1))
@@ -942,27 +954,25 @@ class Tseries:
         ye = np.ma.getdata(np.sqrt(np.sum(ye*ye,1)))
         ye[nbin == 0] = -1
         ye[nbin > 0] /= nbin[nbin > 0]
-        bmask = np.ma.getdata(np.bitwise_or.accumulate(bmask, 1))
+        bmask = np.bitwise_or.reduce(bmask, 1).data
 
         # Return the binned Tseries
         return Tseries(t, y, ye, bmask)
 
-    def remove_outliers(self, sigma=5.0, return_mask=False, **kwargs):
+    def flag_outliers(self, sigma=5.0, **kwargs):
         """
-        Removes outlier flux values using sigma-clipping.
+        Flags outlier flux values using sigma-clipping.
 
-        This method returns a new Tseries object from which flux values
-        are removed if they are separated from the mean flux by `sigma` times
-        the standard deviation.
+        This method returns a new Tseries object with any flux values
+        more than `sigma` times the standard deviation flagged with OUTLIER,
+        applied to the internal bmask.
 
         Parameters
         ----------
         sigma : float
             The number of standard deviations to use for clipping outliers.
             Defaults to 5.
-        return_mask : bool
-            Whether or not to return the mask indicating which data points
-            were removed. Entries marked as `True` are considered outliers.
+
         **kwargs : dict
             Dictionary of arguments to be passed to `astropy.stats.sigma_clip`.
 
@@ -971,10 +981,18 @@ class Tseries:
         clean_tseries : Tseries object
             A new ``Tseries`` in which outliers have been removed.
         """
-        outlier_mask = sigma_clip(data=self.y, sigma=sigma, **kwargs).mask
-        if return_mask:
-            return self[~outlier_mask], outlier_mask
-        return self[~outlier_mask]
+
+        # identify outliers
+        bad = self.get_bad()
+        ymask = np.ma.masked_array(self.y, mask=bad)
+        mask = sigma_clip(data=ymask, sigma=sigma, **kwargs).mask
+
+        # remove any NaNs or Infs
+        mask &= ~bad
+
+        new_ts = copy.deepcopy(self)
+        new_ts.set_bitmask(OUTLIER, mask)
+        return new_ts
 
     def append(self, others):
         """
@@ -1029,7 +1047,7 @@ class Tseries:
             fold_time[sorted_args],
             self.y[sorted_args],
             self.ye[sorted_args],
-            self.mask[sorted_args],
+            self.bmask[sorted_args],
         )
 
     def normalise(self, bitmask=None, method='median'):
@@ -1093,7 +1111,7 @@ class Tseries:
         return self.bin(lself // lother, bitmask)
 
     def ymean(self, bitmask=None):
-        ymask = np.ma.masked_array(lc.y, lc.get_mask(bitmask))
+        ymask = np.ma.masked_array(self.y, self.get_mask(bitmask))
         return np.mean(ymask)
 
     def clip_ends(self, nstart, nend):
@@ -1116,11 +1134,11 @@ class Tseries:
                 self.t[nstart:-nend],
                 self.y[nstart:-nend],
                 self.ye[nstart:-nend],
-                self.mask[nstart:-nend],
+                self.bmask[nstart:-nend],
             )
         elif nstart:
             return Tseries(
-                self.t[nstart:], self.y[nstart:], self.ye[nstart:], self.mask[nstart:]
+                self.t[nstart:], self.y[nstart:], self.ye[nstart:], self.bmask[nstart:]
             )
         else:
             return copy.deepcopy(self)
@@ -1197,7 +1215,7 @@ class Tseries:
         ntot = len(self)
         bad = self.get_mask()
         nbad = len(bad[bad])
-        flagged = np.bitwise_and(self.mask, ANY_FLAG) > 0
+        flagged = np.bitwise_and(self.bmask, ANY_FLAG) > 0
         nflag = len(flagged[flagged])
 
         print(f"There were {nbad} bad data points out of {ntot}")
@@ -1207,7 +1225,7 @@ class Tseries:
             print('\nFlags raised:\n')
             for fname, flag in FLAGS:
                 if flag != ALL_OK and flag != ANY_FLAG:
-                    match = np.bitwise_and(self.mask, flag) > 0
+                    match = np.bitwise_and(self.bmask, flag) > 0
                     if (nfl := len(match[match])):
                         print(f"   Flag = {fname} was raised for {nfl} points out of {ntot}")
 
@@ -1221,7 +1239,7 @@ class Tseries:
                         flags_raised = []
                         for fname, flag in FLAGS:
                             if flag != ANY_FLAG: 
-                                if self.mask[i] & flag:
+                                if self.bmask[i] & flag:
                                     flags_raised.append(fname)
                         flags_raised = ', '.join(flags_raised)
                     else:
@@ -1255,7 +1273,7 @@ times    y-values  y-errors  integer mask
         kwargs["header"] = header
         np.savetxt(
             fname,
-            np.column_stack([self.t, self.y, self.ye, self.mask]),
+            np.column_stack([self.t, self.y, self.ye, self.bmask]),
             fmt=fmt,
             **kwargs
         )
