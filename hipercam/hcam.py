@@ -821,7 +821,6 @@ class Rdata(Rhead):
         try:
             return self.__call__()
         except (HendError):
-            print("henderror raised")
             raise StopIteration
 
     def __call__(self, nframe=None):
