@@ -1523,3 +1523,90 @@ Five columns: times exposures y-values y-errors  bitmask
         else:
             t, y, ye, bmask = np.loadtxt(fname, unpack=True)
             return Tseries(t, y, ye, mask, None)
+
+
+def scatter(
+        axes, xts, yts, colour="b", fmt=".", bitmask=None,
+        flagged=False, capsize=0, errx=True, erry=True,
+        trange=None, **kwargs):
+    """
+    Plots data in one Tseries versus another.
+
+    Arguments::
+
+         axes : Axes
+            An Axes instance to plot to
+
+         xts : Tseries
+            The X-axis data
+
+         yts : Tseries
+            The Y-axis data
+
+         color: str | rgb tuple
+            matplotlib colour
+
+         fmt: str
+            matplotlib marker symbol to use
+
+         bitmask : None | int
+            bitmask to remove bad points. See 'get_mask' for usage.
+
+         flagged : bool
+            set True to plot points that match the bitmask rather than
+            ones that don't.
+
+         capsize : float
+            if error bars are plotted with points, this sets
+            the length of terminals
+
+         errx : bool
+            True / False for bars indicating exposure length (i.e. +/- 1/2
+            whatever is in the te array)
+
+         erry : bool
+            True / False for vertical error bars or not
+
+         trange : None | (t1,t2)
+            Two element tuple to limit the time range
+
+         kwargs : extra arguments
+            These will be fed to the plot routine which is either
+            matplotlib.pyplot.errorbar or matplotlib.pyplot.plot.
+            e.g. 'ms=2' will set the markersize to 2.
+    """
+
+    # Generate boolean array of the points to plot
+    if flagged:
+        plot = self.get_mask(bitmask)
+    else:
+        plot = ~self.get_mask(bitmask)
+
+    if trange is not None:
+        # add in time range limits
+        t1, t2 = trange
+        plot &= (self.t > t1) & (self.t < t2)
+
+    # create arrays to plot
+    x = xts.y[plot]
+    y = yts.y[plot]
+
+    kwargs["color"] = color
+    kwargs["fmt"] = fmt
+    kwargs["capsize"] = capsize
+
+    if errx and erry:
+        xe = xts.ye[plot]
+        ye = yts.ye[plot]
+        axes.errorbar(x, y, ye, xe, **kwargs)
+
+    elif errx:
+        xe = xts.ye[plot]
+        axes.errorbar(x, y, xerr=te, **kwargs)
+
+    elif erry:
+        ye = self.ye[plot]
+        axes.errorbar(x, y, ye, **kwargs)
+
+    else:
+        axes.plot(x, y, fmt, **kwargs)
