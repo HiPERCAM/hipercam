@@ -602,7 +602,7 @@ class Tseries:
          Exposure times (not much is done with these, but sometimes it's good
          to have them on output.
 
-       copy : bool
+       cpy : bool
          If True, copy the arrays by value, not reference.
 
     Data can be bad, or it can be flagged, or it can be both. Some
@@ -615,24 +615,32 @@ class Tseries:
 
     """
 
-    def __init__(self, t, y, ye, bmask, te=None, copy=False):
+    def __init__(self, t, y, ye=None, bmask=None, te=None, cpy=False):
+        """
+        ye=None and bmask=None means their arrays will be set=0
+        """
         if isinstance(t, np.ndarray) and (
-                len(t) != len(y) or len(t)!= len(ye) or \
-                len(t) != len(bmask) or \
+                len(t) != len(y) or \
+                (ye is not None and len(t)!= len(ye)) or \
+                (bmask is not None and len(t) != len(bmask)) or \
                 (te is not None and len(t) != len(te))):
-            raise ValueError("problem with one of t,y, ye, bmask, te")
+            raise ValueError("problem with one or more of t,y, ye, bmask, te")
 
-        if copy:
+        if cpy:
             self.t = copy.copy(t)
             self.y = copy.copy(y)
-            self.ye = copy.copy(ye)
-            self.bmask = copy.copy(bmask)
+            self.ye = copy.copy(ye) if ye is not None else \
+                np.zeros_like(t)
+            self.bmask = copy.copy(bmask) if bmask is not None else \
+                np.zeros_like(t,dtype=np.uint32)
             self.te = copy.copy(te)
         else:
             self.t = t
             self.y = y
-            self.ye = ye
-            self.bmask = bmask
+            self.ye = ye if ye is not None else \
+                np.zeros_like(t)
+            self.bmask = bmask if bmask is not None else \
+                np.zeros_like(t,dtype=np.uint32)
             self.te = te
 
     def __len__(self):
@@ -663,11 +671,12 @@ class Tseries:
 
     def get_mask(self, bitmask=None, flag_bad=True):
         """Returns logical array of all points which contain NaN values or
-        which match the bitmask 'bitmask'. The intention is to return
-        a boolean mask suitable for creating numpy.ma.masked_array
-        objects. i.e. bitmask=(hcam.NOSKY | hcam.TARGET_SATURATED)
-        would pick up all points said to have no sky or saturated
-        target pixels. Thus the array returned flags bad data.
+        which match the bitmask 'bitmask' (i.e. bitwise_and > 0) The
+        intention is to return a boolean mask suitable for creating
+        numpy.ma.masked_array objects. i.e. bitmask=(hcam.NOSKY |
+        hcam.TARGET_SATURATED) would pick up all points said to have
+        no sky or saturated target pixels. Thus the array returned
+        flags bad data.
 
         Arguments::
 
@@ -718,7 +727,7 @@ class Tseries:
 
         if bitmask is not None:
             # Flag data matching the bitmask
-            bad |= (self.bmask | bitmask) > 0
+            bad |= (self.bmask & bitmask) > 0
 
         return bad
 
@@ -757,7 +766,7 @@ class Tseries:
         bitmask=None,
         flagged=False,
         capsize=0,
-        errx=True,
+        errx=False,
         erry=True,
         trange=None,
         **kwargs
@@ -816,34 +825,39 @@ class Tseries:
             t1, t2 = trange
             plot &= (self.t > t1) & (self.t < t2)
 
-        errx = errx and self.te is not None
+        errx &= (self.te is not None) and np.any(self.te > 0)
+        erry &= np.any(self.ye[~np.isnan(self.ye)] > 0)
 
         # create masked arrays
         t = self.t[plot]
         y = self.y[plot]
 
         kwargs["color"] = color
-        kwargs["fmt"] = fmt
-        kwargs["capsize"] = capsize
 
         if errx and erry:
             te = self.te[plot]/2.
             ye = self.ye[plot]
+            kwargs["fmt"] = fmt
+            kwargs["capsize"] = capsize
             axes.errorbar(t, y, ye, te, **kwargs)
 
         elif errx:
             te = self.te[plot]/2.
+            kwargs["fmt"] = fmt
+            kwargs["capsize"] = capsize
             axes.errorbar(t, y, xerr=te, **kwargs)
 
         elif erry:
             ye = self.ye[plot]
+            kwargs["fmt"] = fmt
+            kwargs["capsize"] = capsize
             axes.errorbar(t, y, ye, **kwargs)
 
         else:
             axes.plot(t, y, fmt, **kwargs)
 
     def __repr__(self):
-        return f"Tseries(t={self.t}, y={self.y}, ye={self.ye}, bmask={self.bmask}, te={self.te}"
+        return f"Tseries(t={self.t!r}, y={self.y!r}, ye={self.ye!r}, bmask={self.bmask!r}, te={self.te!r}"
 
     def __truediv__(self, other):
         """Divides the Tseries by 'other' returning the result as another
@@ -894,6 +908,8 @@ class Tseries:
             self.y /= other
             self.ye /= np.abs(other)
 
+        return self
+
     def __mul__(self, other):
         """Multiplies the Tseries by 'other' returning the result as another
         Tseries. Propagates errors where possible. 'other' can be a constant
@@ -938,6 +954,8 @@ class Tseries:
             self.y *= other
             self.ye *= np.abs(other)
 
+        return self
+
     def __add__(self, other):
         """Add 'other' to the Tseries returning the result as another
         Tseries. Propagates errors where possible. 'other' can be a constant
@@ -976,6 +994,8 @@ class Tseries:
         else:
             # addition of a constant or an array of constants
             self.y += other
+
+        return self
 
     def __sub__(self, other):
         """Subtracts 'other' from the Tseries returning the result as another
@@ -1016,6 +1036,8 @@ class Tseries:
             # subtraction of a constant or an array of constants
             self.y -= other
 
+        return self
+
     def __getitem__(self, key):
         copy_self = copy.deepcopy(self)
         copy_self.t = self.t[key]
@@ -1053,7 +1075,7 @@ class Tseries:
         if self.te is not None:
             self.te /= np.abs(other)
 
-    def bin(self, binsize, bitmask=None):
+    def bin(self, binsize, bitmask=None, inplace=True):
         """
         Bins the Timeseries into blocks of binsize; bitmask mvalue
         can be used to skip points.
@@ -1103,7 +1125,8 @@ class Tseries:
         t = np.ma.masked_array(self.t[:n_used].reshape(n_bins, binsize), mask)
         y = np.ma.masked_array(self.y[:n_used].reshape(n_bins, binsize), mask)
         ye = np.ma.masked_array(self.ye[:n_used].reshape(n_bins, binsize), mask)
-        bmask = np.ma.masked_array(self.bmask[:n_used].reshape(n_bins, binsize), mask)
+        bmask = self.bmask[:n_used].reshape(n_bins, binsize)
+        bmask[mask] = 0
 
         # Define minimum and maximum times to cope with the exposure times
         if self.te is None:
@@ -1114,7 +1137,7 @@ class Tseries:
             tmin = t - te
             tmax = t + te
 
-        # take mean along x-axis, convert back to ordinary arrays
+        # take mean / sum along x-axis of 2D reshaped arrays, convert back to ordinary arrays
         t = np.ma.getdata(np.mean(t,1))
         y = np.ma.getdata(np.mean(y, 1))
         ye = np.ma.getdata(np.sqrt(np.sum(ye*ye,1)))
@@ -1127,10 +1150,16 @@ class Tseries:
         y[nbin == 0] = NaN
         ye[nbin == 0] = NaN
         ye[nbin > 0] /= nbin[nbin > 0]
-        bmask = np.bitwise_or.reduce(bmask, 1).data
-
-        # Return the binned Tseries
-        return Tseries(t, y, ye, bmask, te)
+        bmask = np.bitwise_or.reduce(bmask, 1)
+        if inplace:
+            self.t = t
+            self.y = y
+            self.ye = ye
+            self.bmask = bmask
+            self.te = te
+        else:
+            # Return the binned Tseries
+            return Tseries(t, y, ye, bmask, te)
 
     def flag_outliers(self, sigma=4.0, inplace=True, **kwargs):
         """
@@ -1209,17 +1238,23 @@ class Tseries:
 
         return new_lc
 
-    def ttrans(self, offset, mfac=1, inplace=True):
+    def ttrans(self, func, efunc=None, inplace=True):
         """
-        Often useful to transform the time scale. This subtracts a constant
-        'offset' from the time and multiplies them by factor 'mfac'. Also
-        scales any exposure times. If not 'inplace' return new Tseries.
+        Applies "func" to transform a time scale. "func" should return
+        an array of transformed times given an array of raw times. "efunc"
+        if defined will transform the exposure times (if they exist).
+
+        For instance:
+
+           >>> ts.ttrans(lambda t : 1440*(t-T0), lambda te : 1440*te)
+
+        would convert times in days to minutes offset from T0.
         """
+
         if inplace:
-            self.t -= offset
-            self.t *= mfac
-            if self.te is not None:
-                self.te *= np.abs(mfac)
+            self.t = func(self.t)
+            if efunc is not None and self.te is not None:
+                self.te = efunc(self.te)
         else:
             new_ts = copy.deepcopy(self)
             new_ts.t -= offset
@@ -1526,9 +1561,9 @@ Five columns: times exposures y-values y-errors  bitmask
 
 
 def scatter(
-        axes, xts, yts, colour="b", fmt=".", bitmask=None,
+        axes, xts, yts, color="b", fmt=".", bitmask=None,
         flagged=False, capsize=0, errx=True, erry=True,
-        trange=None, **kwargs):
+        **kwargs):
     """
     Plots data in one Tseries versus another.
 
@@ -1567,9 +1602,6 @@ def scatter(
          erry : bool
             True / False for vertical error bars or not
 
-         trange : None | (t1,t2)
-            Two element tuple to limit the time range
-
          kwargs : extra arguments
             These will be fed to the plot routine which is either
             matplotlib.pyplot.errorbar or matplotlib.pyplot.plot.
@@ -1578,34 +1610,36 @@ def scatter(
 
     # Generate boolean array of the points to plot
     if flagged:
-        plot = self.get_mask(bitmask)
+        plot = xts.get_mask(bitmask) & yts.get_mask(bitmask)
     else:
-        plot = ~self.get_mask(bitmask)
-
-    if trange is not None:
-        # add in time range limits
-        t1, t2 = trange
-        plot &= (self.t > t1) & (self.t < t2)
+        plot = ~(xts.get_mask(bitmask) & yts.get_mask(bitmask))
 
     # create arrays to plot
     x = xts.y[plot]
     y = yts.y[plot]
 
+    errx &= np.any(x.ye[~np.isnan(x.ye)] > 0)
+    erry &= np.any(y.ye[~np.isnan(y.ye)] > 0)
+
     kwargs["color"] = color
-    kwargs["fmt"] = fmt
-    kwargs["capsize"] = capsize
 
     if errx and erry:
         xe = xts.ye[plot]
         ye = yts.ye[plot]
+        kwargs["fmt"] = fmt
+        kwargs["capsize"] = capsize
         axes.errorbar(x, y, ye, xe, **kwargs)
 
     elif errx:
         xe = xts.ye[plot]
+        kwargs["fmt"] = fmt
+        kwargs["capsize"] = capsize
         axes.errorbar(x, y, xerr=te, **kwargs)
 
     elif erry:
         ye = self.ye[plot]
+        kwargs["fmt"] = fmt
+        kwargs["capsize"] = capsize
         axes.errorbar(x, y, ye, **kwargs)
 
     else:
