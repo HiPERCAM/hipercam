@@ -2889,19 +2889,6 @@ def toBool(rfile, section, param):
         )
 
 
-# messages if various bitflags are set
-FLAG_MESSAGES = {
-    hcam.NO_FWHM: "no FWHM could be measured",
-    hcam.NO_SKY: "zero sky pixels",
-    hcam.SKY_AT_EDGE: "sky aperture overlaps edge of window",
-    hcam.TARGET_AT_EDGE: "target aperture overlaps edge of window",
-    hcam.TARGET_SATURATED: "target aperture has saturated pixels",
-    hcam.TARGET_NONLINEAR: "target aperture has nonlinear pixels",
-    hcam.NO_EXTRACTION: "no extraction possible",
-    hcam.NO_DATA: "no valid pixels in target aperture",
-}
-
-
 class LogWriter:
     """Context manager to handle opening logfiles, writing headers to logfiles
     and safe exit.
@@ -3006,8 +2993,8 @@ class LogWriter:
                         flag = r["flag"]
                         messes = []
                         for bitmask in bitmasks:
-                            if (flag & bitmask) and bitmask in FLAG_MESSAGES:
-                                messes.append(FLAG_MESSAGES[bitmask])
+                            if (flag & bitmask) and bitmask in hcam.FLAG_MESSAGES:
+                                messes.append(hcam.FLAG_MESSAGES[bitmask])
 
                         if len(messes):
                             alerts.append(
