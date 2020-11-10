@@ -2,10 +2,10 @@
 defines one class `Hlog` to hold log files and another `Tseries` to represent
 time series to allow quick development of scripts to plot results.
 
-For example, suppose a log file 'eg.log' has been written with 2 CCDs, '1' and
-'2', and that CCD '2' has apertures labelled 't' and 'c' for target and
-comparison. Then the following commands would load it, divide target by comparison
-and plot the result with matplotlib:
+For example, suppose a log file 'eg.log' has been written with 2 CCDs,
+'1' and '2', and that CCD '2' has apertures labelled 't' and 'c' for
+target and comparison. Then the following commands would load it,
+divide target by comparison and plot the result with matplotlib:
 
   >> import matplotlib.pyplot as plt
   >> import hipercam as hcam
@@ -18,8 +18,9 @@ and plot the result with matplotlib:
   >> ratio.mplot(plt, 'r')
   >> plt.show()
 
-The `Tseries` object know about bad data and carray a bitmask array reflecting problems
-flagged during reduction.
+The `Tseries` object know about bad data and carray a bitmask array
+reflecting problems flagged during reduction.
+
 """
 
 import struct
@@ -88,14 +89,14 @@ class Hlog(dict):
 
     Hlog objects have four attributes:
 
-     1) 'apnames', a dictionary keyed by CCD label giving a list of the 
+     1) 'apnames', a dictionary keyed by CCD label giving a list of the
         aperture labels used for each CCD. i.e.
 
         >> print(hlog.apnames['2'])
 
         might return ['1','2','3'].
 
-    2) 'cnames', a dictionary keyed by CCD label giving a list of the column 
+    2) 'cnames', a dictionary keyed by CCD label giving a list of the column
         names in the order they appeared in the original file. This is to
         help write out the data
 
@@ -125,7 +126,7 @@ class Hlog(dict):
 
            fname : string | list
               Can be a single log file name or a list of log file names. If a list,
-              just the first file's comments will be read, the others ignored, and 
+              just the first file's comments will be read, the others ignored, and
               it will be assumed, but not checked, that the later files have the
               same number and order of columns.
 
@@ -513,17 +514,18 @@ class Hlog(dict):
         """
         ccd = self[str(cnam)]
 
-        # Work out bad times which will be OR-ed onto the aperture
-        # specific mask array
+        # Work out bad times which will be OR-ed onto the
+        # aperture-specific bitmask array
         mjdok = ccd["MJDok"]
         tmask = np.zeros_like(mjdok, dtype=np.uint)
         tmask[~mjdok] = BAD_TIME
 
         return Tseries(
             ccd["MJD"].copy(),
-            ccd["{:s}_{:s}".format(name, str(apnam))],
-            ccd["{:s}e_{!s}".format(name, apnam)],
-            np.bitwise_or(ccd["flag_{!s}".format(apnam)], tmask),
+            ccd[f"{name}_{apnam}"].copy(),
+            ccd[f"{name}e_{apnam}"].copy(),
+            np.bitwise_or(ccd[f"flag_{apnam}"], tmask),
+            ccd["Exptim"].copy()/86400,
         )
 
     def write(self, fname):
@@ -561,7 +563,7 @@ class Tseries:
     errors and flags, and allowing bad data. Attributes are::
 
        t : ndarray
-         times
+         mid-times
 
        y : ndarray
          y values
@@ -573,6 +575,13 @@ class Tseries:
          bitmask propagated through from reduce log, that indicates possible
          problems affecting each data point. See core.py for the defined flags.
 
+       te : None : ndarray
+         Exposure times (not much is done with these, but sometimes it's good
+         to have them on output.
+
+       copy : bool
+         If True, copy the arrays by value, not reference.
+
     Data can be bad, or it can be flagged, or it can be both. Some
     flags imply that the associated data will be bad, but there are
     some you may be able to live with. Bad data are indicated by
@@ -583,26 +592,40 @@ class Tseries:
 
     """
 
-    def __init__(self, t, y, ye, bmask):
-        self.t = t
-        self.y = y
-        self.ye = ye
-        self.bmask = bmask
+    def __init__(self, t, y, ye, bmask, te=None, copy=False):
+        if isinstance(t, np.ndarray) and (
+                len(t) != len(y) or len(t)!= len(ye) or \
+                len(t) != len(bmask) or \
+                (te is not None and len(t) != len(te))):
+            raise ValueError("problem with one of t,y, ye, bmask, te")
+
+        if copy:
+            self.t = copy.copy(t)
+            self.y = copy.copy(y)
+            self.ye = copy.copy(ye)
+            self.bmask = copy.copy(bmask)
+            self.te = copy.copy(te)
+        else:
+            self.t = t
+            self.y = y
+            self.ye = ye
+            self.bmask = bmask
+            self.te = te
 
     def __len__(self):
         return len(self.t)
 
     def set_bitmask(self, bitmask, mask):
-        """
-        This updates the internal bitmask by 'bitwise_or'-ing it with the input bitmask value
-        'bitmask' for all values for which 'mask' is true. 'mask' should match the Tseries length.
-        Arguments::
+        """This updates the internal bitmask by 'bitwise_or'-ing it with the
+        input bitmask value 'bitmask' for all values for which 'mask'
+        is true. 'mask' should match the Tseries length.  Arguments::
 
            bitmask : int
              a bitmask value which will be OR-ed with elements of the current bitmask array
 
            mask: np.ndarray
              the bitmask will be applied to every element for which mask is True.
+
         """
         self.bmask[mask] = np.bitwise_or(self.bmask[mask], bitmask)
 
@@ -659,7 +682,9 @@ class Tseries:
         """
 
         if bitmask == ALL_OK:
-            raise ValueError('bitmask=ALL_OK is invalid; ANY_FLAG may be what you want')
+            raise ValueError(
+                'bitmask=ALL_OK is invalid; ANY_FLAG may be what you want'
+            )
 
         if flag_bad:
             # Flag bad data
@@ -676,7 +701,7 @@ class Tseries:
 
     def get_data(self, bitmask=None, flagged=False):
         """
-        Returns the data as (times, values, errors). 'bitmask' is a bitmask
+        Returns the data as (times, exposures, values, errors). 'bitmask' is a bitmask
         to define which the data to exclude in addition to any NaN values.
 
         Arguments::
@@ -688,13 +713,18 @@ class Tseries:
            flagged : bool
              If set True, rather than using 'bitmask' to exclude data, this uses it
              to include data (but still avoids bad NaN data)
+
+        Returns::
+           data : tuple
+             times, exposures times [or None if they are not defined], y values and their 
+             uncertainties
         """
         if flagged:
             bad = self.get_mask(bitmask,False)
-            return (self.t[bad], self.y[bad], self.ye[bad])
+            return (self.t[bad], self.te if self.te is None else self.te[bad], self.y[bad], self.ye[bad])
         else:
             good = ~self.get_mask(bitmask)
-            return (self.t[good], self.y[good], self.ye[good])
+            return (self.t[good], self.te if self.te is None else self.te[good], self.y[good], self.ye[good])
 
     def mplot(
         self,
@@ -704,6 +734,7 @@ class Tseries:
         bitmask=None,
         flagged=False,
         capsize=0,
+        errx=True,
         erry=True,
         trange=None,
         **kwargs
@@ -735,13 +766,22 @@ class Tseries:
               if error bars are plotted with points, this sets
               the length of terminals
 
+           errx : boolean
+              True / False for bars indicating exposure length (i.e. +/- 1/2
+              whatever is in the te array)
+
            erry : boolean
-              True / False for error bars or not
+              True / False for vertical error bars or not
 
            trange : None | (t1,t2)
               Two element tuple to limit the time range
 
+           kwargs : extra arguments
+              These will be fed to the plot routine which is either
+              matplotlib.pyplot.errorbar or matplotlib.pyplot.plot.
+              e.g. 'ms=2' will set the markersize to 2.
         """
+
         # Generate boolean array of the points to plot
         if flagged:
             plot = self.get_mask(bitmask)
@@ -753,12 +793,33 @@ class Tseries:
             t1, t2 = trange
             plot &= (self.t > t1) & (self.t < t2)
 
+        errx = errx and self.te is not None
+
         # create masked arrays
         t = self.t[plot]
         y = self.y[plot]
-        ye = self.ye[plot]
 
-        if erry:
+        if errx and erry:
+            te = self.te[plot]/2.
+            ye = self.ye[plot]
+            axes.errorbar(
+                t, y, ye, te,
+                fmt=fmt,
+                color=colour,
+                capsize=capsize,
+                **kwargs
+            )
+        elif errx:
+            te = self.te[plot]/2.
+            axes.errorbar(
+                t, y, xerr=te,
+                fmt=fmt,
+                color=colour,
+                capsize=capsize,
+                **kwargs
+            )
+        elif erry:
+            ye = self.ye[plot]
             axes.errorbar(
                 t, y, ye,
                 fmt=fmt,
@@ -770,13 +831,12 @@ class Tseries:
             axes.plot(t, y, fmt, color=colour, **kwargs)
 
     def __repr__(self):
-        return "Tseries(t={!r}, y={!r}, ye={!r}, mask={!r}".format(
-            self.t, self.y, self.ye, self.bmask
-        )
+        return f"Tseries(t={self.t}, y={self.y}, ye={self.ye}, bmask={self.bmask}, te={self.te}"
 
     def __truediv__(self, other):
         """Divides the Tseries by 'other' returning the result as another
-        Tseries. Propagates errors where possible. 'other' can be a constant
+        Tseries. Propagates errors where possible, but just takes one of the
+        sets of exposure times (if present). 'other' can be a constant
         or another Tseries or a compatible numpy array. If it is a Tseries,
         the bit masks are bitwise_or-ed together. If any input errors are
         negative, the equivalent output errors are set = -1.
@@ -794,16 +854,19 @@ class Tseries:
                 self.ye**2 + (other.ye*self.y/other.y)**2
             ) / np.abs(other.y)
 
-            mask = np.bitwise_or(self.bmask, other.bmask)
+            bmask = np.bitwise_or(self.bmask, other.bmask)
+            te = self.te.copy() if self.te is not None else \
+                other.te.copy() if other.te is not None else None
 
         else:
 
             # division by a constant or an array of constants
             y = self.y / other
             ye = self.ye / np.abs(other)
-            mask = self.bmask.copy()
+            bmask = self.bmask.copy()
+            te = self.te.copy() if self.te is not None else None
 
-        return Tseries(self.t.copy(), y, ye, mask)
+        return Tseries(self.t.copy(), y, ye, bmask, te)
 
     def __mul__(self, other):
         """Multiplies the Tseries by 'other' returning the result as another
@@ -824,15 +887,18 @@ class Tseries:
             ye = np.sqrt(
                 (other.y * self.ye) ** 2 + (self.ye * other.y) ** 2
             )
-            mask = np.bitwise_or(self.bmask, other.bmask)
+            bmask = np.bitwise_or(self.bmask, other.bmask)
+            te = self.te.copy() if self.te is not None else \
+                other.te.copy() if other.te is not None else None
 
         else:
             # multiplication by a constant or an array of constants
             y = self.y * other
             ye = self.ye * np.abs(other)
-            mask = self.bmask.copy()
+            bmask = self.bmask.copy()
+            te = self.te.copy() if self.te is not None else None
 
-        return Tseries(self.t.copy(), y, ye, mask)
+        return Tseries(self.t.copy(), y, ye, bmask, te)
 
     def __add__(self, other):
         """Add 'other' to the Tseries returning the result as another
@@ -850,22 +916,19 @@ class Tseries:
                 )
 
             y = self.y + other.y
-
-            ye = np.empty_like(y)
-            ye[ok] = np.sqrt(self.ye[ok] ** 2 + other.ye[ok] ** 2)
-            ye[~ok] = -1
-            mask = np.bitwise_or(self.bmask, other.bmask)
+            ye = np.sqrt(self.ye**2+ other.ye**2)
+            bmask = np.bitwise_or(self.bmask, other.bmask)
+            te = self.te.copy() if self.te is not None else \
+                other.te.copy() if other.te is not None else None
 
         else:
             # addition of a constant or an array of constants
             y = self.y + other
-            ye = np.empty_like(y)
-            ok = self.ye > 0
-            ye[ok] = self.ye[ok]
-            ye[~ok] = -1
-            mask = self.bmask.copy()
+            ye = self.ye.copy()
+            bmask = self.bmask.copy()
+            te = self.te.copy() if self.te is not None else None
 
-        return Tseries(self.t.copy(), y, ye, mask)
+        return Tseries(self.t.copy(), y, ye, bmask, te)
 
     def __sub__(self, other):
         """Subtracts 'other' from the Tseries returning the result as another
@@ -884,22 +947,26 @@ class Tseries:
 
             y = self.y - other.y
             ye = np.sqrt(self.ye**2 + other.ye**2)
-            mask = np.bitwise_or(self.bmask, other.bmask)
+            bmask = np.bitwise_or(self.bmask, other.bmask)
+            te = self.te.copy() if self.te is not None else \
+                other.te.copy() if other.te is not None else None
 
         else:
             # subtraction of a constant or an array of constants
             y = self.y - other
             ye = self.ye.copy()
-            mask = self.bmask.copy()
+            bmask = self.bmask.copy()
+            te = self.te.copy() if self.te is not None else None
 
-        return Tseries(self.t.copy(), y, ye, mask)
+        return Tseries(self.t.copy(), y, ye, bmask, te)
 
     def __getitem__(self, key):
-        copy_self = copy.copy(self)
+        copy_self = copy.deepcopy(self)
         copy_self.t = self.t[key]
         copy_self.y = self.y[key]
         copy_self.ye = self.ye[key]
         copy_self.bmask = self.bmask[key]
+        copy_self.te = self.te[key] if self.te is not None else None
         return copy_self
 
     def bin(self, binsize, bitmask=None):
@@ -923,14 +990,20 @@ class Tseries:
             Binned Timeseries. If any output bin has no allowed input points (all
             bad or flagged by bitmask
 
-        Notes
-        -----
-        - If the ratio between the Tseries length and the binsize is not
-            a whole number, then the remainder of the data points will be
-            ignored.
-        - The binned TSeries will report the root-mean-square error.
-        - The bitwise OR of the quality flags will be returned per bin.
-        - Any bins with no points will have their errors set negative to mask them
+        .. Notes::
+
+           (1) If the ratio between the Tseries length and the binsize is not
+           a whole number, then the remainder of the data points will be
+           ignored.
+
+           (2) The binned TSeries will report the root-mean-square error.
+
+           (3) The bitwise OR of the quality flags will be returned per bin.
+
+           (4) Any bins with no points will have their data set bad to mask them
+
+           (5) The exposure time will be set to span the first to last time contributing
+               to the bin.
         """
 
         n_bins = len(self) // binsize
@@ -948,24 +1021,37 @@ class Tseries:
         ye = np.ma.masked_array(self.ye[:n_used].reshape(n_bins, binsize), mask)
         bmask = np.ma.masked_array(self.bmask[:n_used].reshape(n_bins, binsize), mask)
 
+        # Define minimum and maximum times to cope with the exposure times
+        if self.te is None:
+            tmin = t
+            tmax = t
+        else:
+            te = np.ma.masked_array(self.te[:n_used].reshape(n_bins, binsize), mask)/2
+            tmin = t - te
+            tmax = t + te
+
         # take mean along x-axis, convert back to ordinary arrays
         t = np.ma.getdata(np.mean(t,1))
         y = np.ma.getdata(np.mean(y, 1))
         ye = np.ma.getdata(np.sqrt(np.sum(ye*ye,1)))
-        ye[nbin == 0] = -1
+
+        # note this next bit is not quite right since the time had
+        # been set to the mean, but it will do
+        tmin = np.ma.getdata(np.min(tmin,1))
+        tmax = np.ma.getdata(np.max(tmax,1))
+        te = tmax-tmin
+        y[nbin == 0] = NaN
+        ye[nbin == 0] = NaN
         ye[nbin > 0] /= nbin[nbin > 0]
         bmask = np.bitwise_or.reduce(bmask, 1).data
 
         # Return the binned Tseries
-        return Tseries(t, y, ye, bmask)
+        return Tseries(t, y, ye, bmask, te)
 
-    def flag_outliers(self, sigma=5.0, **kwargs):
+    def flag_outliers(self, sigma=4.0, inplace=True, **kwargs):
         """
-        Flags outlier flux values using sigma-clipping.
-
-        This method returns a new Tseries object with any flux values
-        more than `sigma` times the standard deviation flagged with OUTLIER,
-        applied to the internal bmask.
+        Flags outlier flux values using sigma-clipping according to
+        `astropy.stats.sigma_clip` [see docs on that for details].
 
         Parameters
         ----------
@@ -973,13 +1059,17 @@ class Tseries:
             The number of standard deviations to use for clipping outliers.
             Defaults to 5.
 
+        inplace : bool
+            Default action is to apply the mask in place. Otherwise returns
+            a new Tseries, leaving the current one untouched.
+
         **kwargs : dict
             Dictionary of arguments to be passed to `astropy.stats.sigma_clip`.
 
         Returns
         -------
-        clean_tseries : Tseries object
-            A new ``Tseries`` in which outliers have been removed.
+        clean_tseries : Tseries object [if not inplace]
+            Modified Tseries
         """
 
         # identify outliers
@@ -987,12 +1077,16 @@ class Tseries:
         ymask = np.ma.masked_array(self.y, mask=bad)
         mask = sigma_clip(data=ymask, sigma=sigma, **kwargs).mask
 
-        # remove any NaNs or Infs
+        # remove any NaNs or Infs from this as they do not
+        # count as "outliers"
         mask &= ~bad
 
-        new_ts = copy.deepcopy(self)
-        new_ts.set_bitmask(OUTLIER, mask)
-        return new_ts
+        if inplace:
+            self.set_bitmask(OUTLIER, mask)
+        else:
+            new_ts = copy.deepcopy(self)
+            new_ts.set_bitmask(OUTLIER, mask)
+            return new_ts
 
     def append(self, others):
         """
@@ -1007,19 +1101,51 @@ class Tseries:
         -------
         new_ts : Tseries object
             Concatenated time series
+
+        .. Note::
+
+           To end with any exposure times, all contributing series
+           will need to have exposure times defined.
         """
         if not hasattr(others, "__iter__"):
             others = [others]
+
         new_lc = copy.deepcopy(self)
+        edef = new_lc.te is not None
         for i in range(len(others)):
             new_lc.t = np.append(new_lc.t, others[i].t)
             new_lc.y = np.append(new_lc.y, others[i].y)
             new_lc.ye = np.append(new_lc.ye, others[i].ye)
-            new_lc.mask = np.append(new_lc.mask, others[i].mask)
+            new_lc.bmask = np.append(new_lc.bmask, others[i].bmask)
+            edef &= others[i].te is not None
+            if edef:
+                new_lc.te = np.append(new_lc.te, others[i].te)
+            else:
+                new_lc.te = None
+
         return new_lc
 
-    def fold(self, period, t0=0.0):
-        """Folds the time series at a specified ``period`` and ``phase``.
+    def ttrans(self, offset, mfac=1, inplace=True):
+        """
+        Often useful to transform the time scale. This subtracts a constant
+        'offset' from the time and multiplied them by factor 'mfac'. Also
+        scales any exposure times. If not 'inplace' return new Tseries.
+        """
+        if inplace:
+            self.t -= offset
+            self.t *= mfac
+            if self.te is not None:
+                self.te *= mfac
+        else:
+            new_ts = copy.deepcopy(self)
+            new_ts.t -= offset
+            new_ts.t *= mfac
+            if new_ts.te is not None:
+                new_ts.te *= mfac
+            return new_ts
+
+    def phase(self, t0, period, fold=False, inplace=True):
+        """Convert the time into phase.
 
         This method returns a new ``Tseries`` object in which the time
         values range between -0.5 to +0.5.  Data points which occur exactly
@@ -1028,29 +1154,40 @@ class Tseries:
 
         Parameters
         ----------
-        period : float
-            The period upon which to fold.
-        t0 : float, optional
+
+        t0 : float
             Time reference point.
+
+        period : float
+            The period
+
+        fold : bool
+            If True, map the phases to -0.5 to 0.5, and sort them.
+
+        inplace : bool
+            Operation in place, else return a new Tseries
 
         Returns
         -------
         folded_tseries: Tseries object
-            A new ``Tseries`` in which the data are folded and sorted by
-            phase.
+            A new ``Tseries`` with the time converted to phase
+            (if inplace=False)
         """
-        fold_time = ((self.t - t0) / period) % 1
-        # fold time domain from -.5 to .5
-        fold_time[fold_time > 0.5] -= 1
-        sorted_args = np.argsort(fold_time)
-        return Tseries(
-            fold_time[sorted_args],
-            self.y[sorted_args],
-            self.ye[sorted_args],
-            self.bmask[sorted_args],
-        )
+        phase = (self.t - t0) / period
+        if fold:
+            phase = np.mod(phase, 1)
+            phase[phase > 0.5] -= 1
+        pexpose = self.te/period if self.te is not None else None
 
-    def normalise(self, bitmask=None, method='median'):
+        if inplace:
+            self.t = phase
+            self.te = pexpose
+        else:
+            return Tseries(
+                phase, self.y, self.ye, self.bmask, pexpose, True
+            )
+
+    def normalise(self, bitmask=None, method='median', weighted=False):
         """Returns a normalized version of the time series.
 
         The normalized timeseries is obtained by dividing `y` and `ye`
@@ -1062,6 +1199,9 @@ class Tseries:
           method : str
              method to apply, either 'median' or 'mean'
 
+          weighted : bool
+             if method == 'mean', compute an inverse-variance weighted mean
+
         Returns
         -------
         normalized_tseries : Tseries object
@@ -1069,11 +1209,16 @@ class Tseries:
             by the median / mean y value.
         """
         lc = copy.deepcopy(self)
-        ymask = np.ma.masked_array(lc.y, lc.get_mask(bitmask))
+        mask = lc.get_mask(bitmask)
+        ymask = np.ma.masked_array(lc.y, mask)
         if method == 'median':
             norm_factor = np.median(ymask)
-        else:
-            norm_factor = np.mean(ymask)
+        elif method == 'mean':
+            if weighted:
+                wgt = 1/np.ma.masked_array(lc.ye, mask)**2
+                norm_factor = np.sum(wgt*ymask)/np.sum(wgt)
+            else:
+                norm_factor = np.mean(ymask)
         lc.y /= norm_factor
         lc.ye /= norm_factor
         return lc
@@ -1110,9 +1255,19 @@ class Tseries:
 
         return self.bin(lself // lother, bitmask)
 
-    def ymean(self, bitmask=None):
-        ymask = np.ma.masked_array(self.y, self.get_mask(bitmask))
-        return np.mean(ymask)
+    def ymean(self, bitmask=None, weighted=True):
+        """
+        Computes the mean of the y-values. "weighted=True"
+        means the mean is calculated with inverse variance
+        weighting.
+        """
+        mask = self.get_mask(bitmask)
+        ymask = np.ma.masked_array(self.y,mask)
+        if weighted:
+            wgt = 1/np.ma.masked_array(lc.ye, mask)**2
+            return np.sum(wgt*ymask)/np.sum(wgt)
+        else:
+            return np.mean(ymask)
 
     def clip_ends(self, nstart, nend):
         """
@@ -1130,84 +1285,22 @@ class Tseries:
         if nstart < 0 or nend < 0:
             raise ValueError("nstart and nend must be >= 0")
         if nend:
+            te = self.te[nstart:-nend] if self.te is not None else None
             return Tseries(
                 self.t[nstart:-nend],
                 self.y[nstart:-nend],
                 self.ye[nstart:-nend],
                 self.bmask[nstart:-nend],
+                te
             )
         elif nstart:
+            te = self.te[nstart:] if self.te is not None else None
             return Tseries(
-                self.t[nstart:], self.y[nstart:], self.ye[nstart:], self.bmask[nstart:]
+                self.t[nstart:], self.y[nstart:], self.ye[nstart:],
+                self.bmask[nstart:], te
             )
         else:
             return copy.deepcopy(self)
-
-    def set_clouds(self, nwin, vmax, tmin):
-        """This tries automatically to flag points as being affected by clouds using
-        two criteria: (1) is a measure of the fractional RMS measured in a
-        moving window of width nwin, (2) is a minimum transmission limit
-        defined relative to the maximum value of the Tseries.
-
-        It modifies the mask of the Tseries by bitwise OR-ing it with the flag
-        hipercam.CLOUDS. No substitute for doing it by hand mind you as it
-        tends to spread the period of clouds out to neighbouring points
-        rather. It's main use is probably to clean up quick look plots.
-
-        Arguments::
-
-           nwin : int
-              moving average window width. Must be odd
-
-           vlim : float
-              maximum relative variability (RMS/mean) above
-              which a point will be flagged as cloud.
-
-           tmin : float
-              minimum transmission below which a point will
-              be flagged as cloud.
-
-        Modifies Tseries in place; returns three element tuple
-        (clouds,rvar,trans) containing the logical cloud mask, the running
-        relative variability and the running transmission. The "clouds"
-        array can be used to transfer the clouds to other Tseries of
-        the same length.
-
-        For ULTRACAM / HIPERCAM / ULTRASPEC data it is often advisable
-        to clip a point off the start and end to avoid end effects before
-        applying this routine.
-
-        """
-        if nwin % 2 == 0:
-            raise ValueError("nwin must be odd")
-        WINDOW = np.ones(nwin) / nwin
-
-        # extend ends with end values to get around end
-        # effects
-        y = np.concatenate(
-            [self.y[0] * np.ones(nwin // 2), self.y, self.y[-1] * np.ones(nwin // 2)]
-        )
-
-        # apply running mean
-        y_mave = np.convolve(y, WINDOW, "valid")
-
-        # form squared differences
-        ydsq = (self.y - y_mave) ** 2
-
-        # extend at ends again
-        ydsq = np.concatenate(
-            [ydsq[0] * np.ones(nwin // 2), ydsq, ydsq[-1] * np.ones(nwin // 2)]
-        )
-
-        # compute running relative variability array
-        rvar = np.sqrt(np.convolve(ydsq, WINDOW, "valid")) / y_mave
-        trans = self.y / self.y.max()
-        clouds = (rvar > vmax) | (trans < tmin)
-
-        # modify Tseries mask
-        self.set_mask(CLOUDS, clouds)
-
-        return (clouds, rvar, trans)
 
     def report(self):
         """Reports numbers and types of bad points and details which are problematical."""
@@ -1247,41 +1340,102 @@ class Tseries:
 
                     print(f"   Index {i}: (t,y,ye) = ({self.t[i]},{self.y[i]},{self.ye[i]}), bad = {bad[i]}, flags raised = {flags_raised}")
 
-    def to_mag(self):
+    def to_mag(self, inplace=True):
         """
         Convert to magnitudes, i.e. take -2.5*log10(y)
         """
-        new_ts = copy.deepcopy(self)
-        new_ts.y = -2.5 * np.log10(self.y)
-        new_ts.ye = 2.5 / np.log(10.) * self.ye / self.y
-        return new_ts
+        if inplace:
+            self.ye *=  2.5 / np.log(10.) / self.y
+            self.y = -2.5 * np.log10(self.y)
+        else:
+            new_ts = copy.deepcopy(self)
+            new_ts.y = -2.5 * np.log10(self.y)
+            new_ts.ye = 2.5 / np.log(10.) * self.ye / self.y
+            return new_ts
 
-    def write(self, fname, fmt="%.14e %.6e %.2e  %d", **kwargs):
-        """
-        Writes out the Tseries to an ASCII file using numpy.savetxt
-        Other arguments to savetxt can be passed via kwargs
-        """
-        header = (
-            kwargs.get("header", "")
-            + """
+    def write(self, fname, **kwargs):
+        """Writes out the Tseries to an ASCII file using numpy.savetxt. Other
+        arguments to savetxt can be passed via kwargs. The data are written with
+        a default choice of "fmt" sent to savtxt unless overridden using kwargs.
+        The default uses a high precision on the times based upon typical usage
+        for 
 
-Data written by hipercam.hlog.Tseries.write.
-Four columns:
-times    y-values  y-errors  integer mask
+        """
+        flags = []
+        for flag, message in FLAG_MESSAGES.items():
+            flags.append(f"   Flag = {flag:6d}: {message}")
+        flags = '\n'.join(flags)
+
+        if self.te is None:
+            header = (
+                kwargs.get("header", "")
+                + f"""
+
+Bitmask flag values & meanings:
+
+{flags}
+
+Thus 20=16+4 would indicate that the sky aperture had crossed the edge of
+the data window and that the saturation level had been breached. A value of
+0 means no flags were set. The flags vary in their severity and do not always
+indicate that data is to be thrown away.
+
+-----------------------------------------------------------------
+Data written by hipercam.hlog.Tseries.write. 
+
+Four columns: times y-values y-errors bitmask
 """
-        )
-        kwargs["header"] = header
-        np.savetxt(
-            fname,
-            np.column_stack([self.t, self.y, self.ye, self.bmask]),
-            fmt=fmt,
-            **kwargs
-        )
+            )
+            kwargs["header"] = header
+            fmt=kwargs.get("fmt", "%.16g %.6e %.3e %d")
+
+            np.savetxt(
+                fname,
+                np.column_stack([self.t, self.y, self.ye, self.bmask]),
+                fmt=fmt,
+                **kwargs
+            )
+        else:
+            header = (
+                kwargs.get("header", "")
+                + f"""
+
+Bitmask flag values & meanings:
+
+{flags}
+
+Thus 20=16+4 would indicate that the sky aperture had crossed the edge of
+the data window and that the saturation level had been breached. A value of
+0 means no flags were set. The flags vary in their severity and do not always
+indicate that data is to be thrown away.
+
+-----------------------------------------------------------------
+Data written by hipercam.hlog.Tseries.write.
+
+Five columns: times exposures y-values y-errors  bitmask
+"""
+            )
+            kwargs["header"] = header
+            fmt=kwargs.get("fmt", "%.16g %.3e %.6e %.3e %d")
+
+            np.savetxt(
+                fname,
+                np.column_stack([self.t, self.te, self.y, self.ye, self.bmask]),
+                fmt=fmt,
+                **kwargs
+            )
+
 
     @classmethod
-    def read(cls, fname):
+    def read(cls, fname, has_exposures=True):
         """
-        Creates a Tseries from an ASCII column data file
+        Creates a Tseries from an ASCII column data file. This
+        should either contain times, y-values, y-errors, bitmask
+        or times, exposures, y-values, y-errors, bitmask
         """
-        t, y, ye, mask = np.loadtxt(fname, unpack=True)
-        return Tseries(t, y, ye, mask)
+        if has_exposures:
+            t, te, y, ye, bmask = np.loadtxt(fname, unpack=True)
+            return Tseries(t, y, ye, mask, te)
+        else:
+            t, y, ye, bmask = np.loadtxt(fname, unpack=True)
+            return Tseries(t, y, ye, mask, None)
