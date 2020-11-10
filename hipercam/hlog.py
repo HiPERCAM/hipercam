@@ -531,7 +531,7 @@ class Hlog(dict):
         tmask = np.zeros_like(mjdok, dtype=np.uint)
         tmask[~mjdok] = BAD_TIME
 
-        times = ccd["MJD"].copy(),
+        times = ccd["MJD"].copy()
         texps = ccd["Exptim"].copy()/86400
 
         if apnam is None:
@@ -542,7 +542,7 @@ class Hlog(dict):
                 errors = np.zeros_like(mjdok)
             bmask = tmask
         else:
-            data = ccd[f"{name}_{apnam}"].copy(),
+            data = ccd[f"{name}_{apnam}"].copy()
             if ecol:
                 errors = ccd[f"{name}e_{apnam}"].copy()
             else:
