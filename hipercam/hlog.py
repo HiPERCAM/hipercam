@@ -1013,6 +1013,34 @@ class Tseries:
         copy_self.te = self.te[key] if self.te is not None else None
         return copy_self
 
+    def tadd(self, other):
+        """
+        Adds 'other' to the times, in place.
+        """
+        self.t += other
+
+    def tsub(self, other):
+        """
+        Subtracts 'other' to the times, in place.
+        """
+        self.t -= other
+
+    def tmul(self, other):
+        """
+        Multiplies the times by 'other', in place.
+        """
+        self.t *= other
+        if self.te is not None:
+            self.te *= np.abs(other)
+
+    def tdiv(self, other):
+        """
+        Divides the times by 'other', in place.
+        """
+        self.t /= other
+        if self.te is not None:
+            self.te /= np.abs(other)
+
     def bin(self, binsize, bitmask=None):
         """
         Bins the Timeseries into blocks of binsize; bitmask mvalue
@@ -1172,20 +1200,20 @@ class Tseries:
     def ttrans(self, offset, mfac=1, inplace=True):
         """
         Often useful to transform the time scale. This subtracts a constant
-        'offset' from the time and multiplied them by factor 'mfac'. Also
+        'offset' from the time and multiplies them by factor 'mfac'. Also
         scales any exposure times. If not 'inplace' return new Tseries.
         """
         if inplace:
             self.t -= offset
             self.t *= mfac
             if self.te is not None:
-                self.te *= mfac
+                self.te *= np.abs(mfac)
         else:
             new_ts = copy.deepcopy(self)
             new_ts.t -= offset
             new_ts.t *= mfac
             if new_ts.te is not None:
-                new_ts.te *= mfac
+                new_ts.te *= np.abs(mfac)
             return new_ts
 
     def phase(self, t0, period, fold=False, inplace=True):
@@ -1221,7 +1249,7 @@ class Tseries:
         if fold:
             phase = np.mod(phase, 1)
             phase[phase > 0.5] -= 1
-        pexpose = self.te/period if self.te is not None else None
+        pexpose = self.te/np.abs(period) if self.te is not None else None
 
         if inplace:
             self.t = phase
