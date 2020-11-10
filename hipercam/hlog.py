@@ -495,22 +495,33 @@ class Hlog(dict):
         hlog.writable = False
         return hlog
 
-    def tseries(self, cnam, apnam, name="counts"):
+    def tseries(self, cnam, apnam, name="counts", ecol=True):
         """
         Returns with a Tseries corresponding to CCD cnam and
         aperture apnam. By default it accesses the 'counts',
         but 'x', 'y', 'fwhm', 'beta' and 'sky' are alternative
-        choices.
+        choices. Looks at the column names in a HiPERCAM log.
+        Can also access items not specific to apertures.
 
         Arguments:
 
-           cnam    : (string)
+           cnam : str
               CCD label. 'str' will be used to make a string of non-string
               entries.
 
-           apnam   : (string)
-              Aperture label. 'str' will be used to make a string of non-string
-              entries.
+           apnam : str
+              Aperture label. Set = 'None' if the item of interest is not
+              specific to apertures, e.g. 'mfwhm'.
+
+           name : str
+              Item to return. e.g. 'counts', 'x', 'fwhm', 'mfwhm'. If apnam is
+              not None, then f"{name}_{apnam}" will be used as the column name,
+              else f"{name}"
+
+           ecol : bool
+              If True, an attempt will be made to read errors from a column called
+              f"{name}e_{apnam}" or f"{name}e" will be made. Otherwise the errors
+              are set = 0.
         """
         ccd = self[str(cnam)]
 
@@ -520,13 +531,25 @@ class Hlog(dict):
         tmask = np.zeros_like(mjdok, dtype=np.uint)
         tmask[~mjdok] = BAD_TIME
 
-        return Tseries(
-            ccd["MJD"].copy(),
-            ccd[f"{name}_{apnam}"].copy(),
-            ccd[f"{name}e_{apnam}"].copy(),
-            ccd[f"flag_{apnam}"] | tmask,
-            ccd["Exptim"].copy()/86400,
-        )
+        times = ccd["MJD"].copy(),
+        texps = ccd["Exptim"].copy()/86400
+
+        if apnam is None:
+            data = ccd[f"{name}_{apnam}"].copy()
+            if ecol:
+                errors = ccd[f"{name}e"].copy()
+            else:
+                errors = np.zeros_like(mjdok)
+            bmask = tmask
+        else:
+            data = ccd[f"{name}"].copy(),
+            if ecol:
+                errors = ccd[f"{name}e_{apnam}"].copy()
+            else:
+                errors = np.zeros_like(mjdok)
+            bmask = ccd[f"flag_{apnam}"] | tmask
+
+        return Tseries(times, data, errors, bmask, texps)
 
     def write(self, fname):
         """
@@ -729,7 +752,7 @@ class Tseries:
     def mplot(
         self,
         axes,
-        colour="b",
+        color="b",
         fmt=".",
         bitmask=None,
         flagged=False,
@@ -747,13 +770,13 @@ class Tseries:
            axes : Axes
               the axis instance to plot to. Can just be matplotlib.pyplot
 
-           colour : valid matplotlib colour
-              the colour to use
+           color : valid matplotlib colour
+              the colour to use (fed into kwargs to establish a fixed default)
 
            fmt : string
               marker to use for points or style for line plots, e.g. ',',
               '.', 'o' give different points while '-' and '--' give
-              different lines.
+              different lines. (fed into kwargs)
 
            bitmask : None | int
               bitmask to remove bad points. See 'get_mask' for usage.
@@ -764,7 +787,7 @@ class Tseries:
 
            capsize : float
               if error bars are plotted with points, this sets
-              the length of terminals
+              the length of terminals (fed into kwargs)
 
            errx : boolean
               True / False for bars indicating exposure length (i.e. +/- 1/2
@@ -776,7 +799,7 @@ class Tseries:
            trange : None | (t1,t2)
               Two element tuple to limit the time range
 
-           kwargs : extra arguments
+           kwargs : keyword arguments
               These will be fed to the plot routine which is either
               matplotlib.pyplot.errorbar or matplotlib.pyplot.plot.
               e.g. 'ms=2' will set the markersize to 2.
@@ -799,36 +822,25 @@ class Tseries:
         t = self.t[plot]
         y = self.y[plot]
 
+        kwargs["color"] = color
+        kwargs["fmt"] = fmt
+        kwargs["capsize"] = capsize
+
         if errx and erry:
             te = self.te[plot]/2.
             ye = self.ye[plot]
-            axes.errorbar(
-                t, y, ye, te,
-                fmt=fmt,
-                color=colour,
-                capsize=capsize,
-                **kwargs
-            )
+            axes.errorbar(t, y, ye, te, **kwargs)
+
         elif errx:
             te = self.te[plot]/2.
-            axes.errorbar(
-                t, y, xerr=te,
-                fmt=fmt,
-                color=colour,
-                capsize=capsize,
-                **kwargs
-            )
+            axes.errorbar(t, y, xerr=te, **kwargs)
+
         elif erry:
             ye = self.ye[plot]
-            axes.errorbar(
-                t, y, ye,
-                fmt=fmt,
-                color=colour,
-                capsize=capsize,
-                **kwargs
-            )
+            axes.errorbar(t, y, ye, **kwargs)
+
         else:
-            axes.plot(t, y, fmt, color=colour, **kwargs)
+            axes.plot(t, y, fmt, **kwargs)
 
     def __repr__(self):
         return f"Tseries(t={self.t}, y={self.y}, ye={self.ye}, bmask={self.bmask}, te={self.te}"
