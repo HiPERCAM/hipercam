@@ -535,14 +535,14 @@ class Hlog(dict):
         texps = ccd["Exptim"].copy()/86400
 
         if apnam is None:
-            data = ccd[f"{name}_{apnam}"].copy()
+            data = ccd[f"{name}"].copy()
             if ecol:
                 errors = ccd[f"{name}e"].copy()
             else:
                 errors = np.zeros_like(mjdok)
             bmask = tmask
         else:
-            data = ccd[f"{name}"].copy(),
+            data = ccd[f"{name}_{apnam}"].copy(),
             if ecol:
                 errors = ccd[f"{name}e_{apnam}"].copy()
             else:
