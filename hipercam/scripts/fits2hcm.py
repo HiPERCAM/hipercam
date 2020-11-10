@@ -8,6 +8,7 @@ from astropy.time import Time
 import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
+from hipercam.core import *
 
 ############################################
 #
@@ -163,16 +164,44 @@ def fits2hcm(args=None):
                     ophdu.header["TIMSTAMP"] = (time.isot, "Time stamp; fits2hcm")
 
                     # Copy data into first HDU
-                    ofhdu = fits.ImageHDU(hdul[0].data)
+                    if hdul[0].data is not None:
+                        ofhdu = fits.ImageHDU(hdul[0].data)
+                    elif hdul[1].data is not None:
+                        ofhdu = fits.ImageHDU(hdul[1].data)
+                    else:
+                        raise HipercamError(
+                            'Failed to find any data in first two HDUs'
+                        )
 
+                    try:
+                        wsec1 = ihead['WINSEC1']
+                        wsec2 = ihead['WINSEC2']
+                        wsec3 = ihead['WINSEC3']
+                        wsec4 = ihead['WINSEC4']
+                        nenabled = 0
+                        for wsec in (wsec1,wsec2,wsec3,wsec4):
+                            if wsec.find('enabled') > -1:
+                                nenabled += 1
+                                win = wsec
+                            
+                        if nenabled != 1:
+                            raise HipercamError(
+                                f'File = {fname}: incorrect number window segments enabled ({nenabled})'
+                            )
+                        xrng,yrng,rest = wsec.split(',')
+                        xl,xr = xrng[1:].split(':')
+                        yb,yt = yrng.split(':')
+                    except:
+                        xl,yb = 1,1
+                    
                     # Get header into right format
                     ofhdu.header["CCD"] = ("1", "CCD label")
                     ofhdu.header["NXTOT"] = (2154, "Total unbinned X dimension")
                     ofhdu.header["NYTOT"] = (4200, "Total unbinned X dimension")
                     ofhdu.header["NUMWIN"] = (1, "Total number of windows")
                     ofhdu.header["WINDOW"] = ("1", "Window label")
-                    ofhdu.header["LLX"] = (1, "X-ordinate of lower-left pixel")
-                    ofhdu.header["LLY"] = (1, "Y-ordinate of lower-left pixel")
+                    ofhdu.header["LLX"] = (int(xl), "X-ordinate of lower-left pixel")
+                    ofhdu.header["LLY"] = (int(yb), "Y-ordinate of lower-left pixel")
                     ofhdu.header["XBIN"] = (ihead["CCDXBIN"], "X-binning factor")
                     ofhdu.header["YBIN"] = (ihead["CCDYBIN"], "Y-binning factor")
                     ofhdu.header["MJDUTC"] = (mjd, "MJD at centre of exposure")
