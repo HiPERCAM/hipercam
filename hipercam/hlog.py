@@ -524,7 +524,7 @@ class Hlog(dict):
             ccd["MJD"].copy(),
             ccd[f"{name}_{apnam}"].copy(),
             ccd[f"{name}e_{apnam}"].copy(),
-            np.bitwise_or(ccd[f"flag_{apnam}"], tmask),
+            ccd[f"flag_{apnam}"] | tmask,
             ccd["Exptim"].copy()/86400,
         )
 
@@ -627,7 +627,7 @@ class Tseries:
              the bitmask will be applied to every element for which mask is True.
 
         """
-        self.bmask[mask] = np.bitwise_or(self.bmask[mask], bitmask)
+        self.bmask[mask] |= bitmask
 
     def get_bad(self):
         """Returns with a numpy boolean array of bad data defined as data
@@ -695,7 +695,7 @@ class Tseries:
 
         if bitmask is not None:
             # Flag data matching the bitmask
-            bad |= np.bitwise_and(self.bmask, bitmask) > 0
+            bad |= (self.bmask | bitmask) > 0
 
         return bad
 
@@ -838,23 +838,16 @@ class Tseries:
         Tseries. Propagates errors where possible, but just takes one of the
         sets of exposure times (if present). 'other' can be a constant
         or another Tseries or a compatible numpy array. If it is a Tseries,
-        the bit masks are bitwise_or-ed together. If any input errors are
-        negative, the equivalent output errors are set = -1.
+        the bit masks are bitwise_or-ed together.
         """
         if isinstance(other, Tseries):
-            if len(self) != len(other):
-                raise ValueError(
-                    "input lengths [{:d} vs {:d}] do not match".format(
-                        len(self), len(other)
-                    )
-                )
 
             y = self.y / other.y
             ye = np.sqrt(
-                self.ye**2 + (other.ye*self.y/other.y)**2
+                self.ye**2 + (self.y*other.ye/other.y)**2
             ) / np.abs(other.y)
 
-            bmask = np.bitwise_or(self.bmask, other.bmask)
+            bmask = self.bmask | other.bmask
             te = self.te.copy() if self.te is not None else \
                 other.te.copy() if other.te is not None else None
 
@@ -868,26 +861,41 @@ class Tseries:
 
         return Tseries(self.t.copy(), y, ye, bmask, te)
 
+    def __itruediv__(self, other):
+        """
+        Divides the Tseries by 'other' in place. See __truediv__ for more details.
+        """
+        if isinstance(other, Tseries):
+
+            self.np.sqrt(
+                self.ye**2 + (self.y*other.ye/other.y)**2
+            ) / np.abs(other.y)
+
+            self.y /= other.y
+            self.bmask |= other.bmask
+            if self.te is None and other.te is not None:
+                self.te = other.te.copy()
+
+        else:
+
+            # division by a constant or an array of constants
+            self.y /= other
+            self.ye /= np.abs(other)
+
     def __mul__(self, other):
         """Multiplies the Tseries by 'other' returning the result as another
         Tseries. Propagates errors where possible. 'other' can be a constant
         or another Tseries or a compatible numpy array. If it is a Tseries,
-        the bit masks are bitwise_or-ed together. If any input errors are
-        negative, the equivalent output errors are set = -1.
+        the bit masks are bitwise_or-ed together. bad data also propagates,
+        i.e. if either input on a given pixel is bad, then so too is the output
         """
         if isinstance(other, Tseries):
-            if len(self) != len(other):
-                raise ValueError(
-                    "input lengths [{:d} vs {:d}] do not match".format(
-                        len(self), len(other)
-                    )
-                )
 
             y = self.y * other.y
             ye = np.sqrt(
-                (other.y * self.ye) ** 2 + (self.ye * other.y) ** 2
+                (other.y*self.ye)**2 + (self.y*other.ye)**2
             )
-            bmask = np.bitwise_or(self.bmask, other.bmask)
+            bmask = self.bmask | other.bmask
             te = self.te.copy() if self.te is not None else \
                 other.te.copy() if other.te is not None else None
 
@@ -900,24 +908,35 @@ class Tseries:
 
         return Tseries(self.t.copy(), y, ye, bmask, te)
 
+    def __imul__(self, other):
+        """Multiplies the Tseries by 'other' in place. See __mul__ for more.
+        """
+        if isinstance(other, Tseries):
+
+            self.ye = np.sqrt(
+                (other.y*self.ye)**2 + (self.y*other.ye)**2
+            )
+            self.y *= other.y
+            self.bmask |= other.bmask
+            if self.te is None and other.te is not None:
+                self.te = other.te.copy()
+
+        else:
+            # multiplication by a constant or an array of constants
+            self.y *= other
+            self.ye *= np.abs(other)
+
     def __add__(self, other):
         """Add 'other' to the Tseries returning the result as another
         Tseries. Propagates errors where possible. 'other' can be a constant
         or another Tseries or a compatible numpy array. If it is a Tseries,
-        the bit masks are bitwise_or-ed together. If any input errors are
-        negative, the equivalent output errors are set = -1.
+        the bit masks are bitwise_or-ed together.
         """
         if isinstance(other, Tseries):
-            if len(self) != len(other):
-                raise ValueError(
-                    "input lengths [{:d} vs {:d}] do not match".format(
-                        len(self), len(other)
-                    )
-                )
 
             y = self.y + other.y
             ye = np.sqrt(self.ye**2+ other.ye**2)
-            bmask = np.bitwise_or(self.bmask, other.bmask)
+            bmask = self.bmask | other.bmask
             te = self.te.copy() if self.te is not None else \
                 other.te.copy() if other.te is not None else None
 
@@ -930,24 +949,33 @@ class Tseries:
 
         return Tseries(self.t.copy(), y, ye, bmask, te)
 
+    def __iadd__(self, other):
+        """
+        Add 'other' to the Tseries in place. See __add_ for more details.
+        """
+        if isinstance(other, Tseries):
+
+            self.y += other.y
+            self.ye = np.sqrt(self.ye**2+ other.ye**2)
+            self.bmask |= other.bmask
+            if self.te is None and other.te is not None:
+                self.te = other.te.copy()
+
+        else:
+            # addition of a constant or an array of constants
+            self.y += other
+
     def __sub__(self, other):
         """Subtracts 'other' from the Tseries returning the result as another
         Tseries. Propagates errors where possible. 'other' can be a constant
         or another Tseries or a compatible numpy array. If it is a Tseries,
-        the bit masks are bitwise_or-ed together. If any input errors are
-        negative, the equivalent output errors are set = -1.
+        the bit masks are bitwise_or-ed together.
         """
         if isinstance(other, Tseries):
-            if len(self) != len(other):
-                raise ValueError(
-                    "input lengths [{:d} vs {:d}] do not match".format(
-                        len(self), len(other)
-                    )
-                )
 
             y = self.y - other.y
             ye = np.sqrt(self.ye**2 + other.ye**2)
-            bmask = np.bitwise_or(self.bmask, other.bmask)
+            bmask = self.bmask | other.bmask
             te = self.te.copy() if self.te is not None else \
                 other.te.copy() if other.te is not None else None
 
@@ -959,6 +987,22 @@ class Tseries:
             te = self.te.copy() if self.te is not None else None
 
         return Tseries(self.t.copy(), y, ye, bmask, te)
+
+    def __isub__(self, other):
+        """
+        Subtracts 'other' from the Tseries in place. See __sub__ for more.
+        """
+        if isinstance(other, Tseries):
+
+            self.y -= other.y
+            self.ye = np.sqrt(self.ye**2 + other.ye**2)
+            self.bmask |= other.bmask
+            if self.te is None and other.te is not None:
+                self.te = other.te.copy()
+
+        else:
+            # subtraction of a constant or an array of constants
+            self.y -= other
 
     def __getitem__(self, key):
         copy_self = copy.deepcopy(self)
