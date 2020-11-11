@@ -513,7 +513,7 @@ def ulogger(args=None):
     # location to write files
     if cwd.find("ultracam") > -1 and os.path.exists('/storage/astro2/www/phsaap/ultracam/logs'):
         root = '/storage/astro2/www/phsaap/ultracam/logs'
-    elif if cwd.find("ultraspec") > -1 and os.path.exists('/storage/astro2/www/phsaap/ultraspec/logs'):
+    elif cwd.find("ultraspec") > -1 and os.path.exists('/storage/astro2/www/phsaap/ultraspec/logs'):
         root = '/storage/astro2/www/phsaap/ultraspec/logs'
     else:
         root = 'logs'
