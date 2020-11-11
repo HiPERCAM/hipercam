@@ -24,9 +24,11 @@ def hlog2fits(args=None):
 
     Converts a |hiper| ASCII log into a FITS file. As well as a modest
     reduction in file size (~40%, the ASCII logs are written relatively
-    efficiently), the resulting file is much faster to read than the ASCII log
+    efficiently), the resulting file is faster to read than the ASCII log
     so this may be useful for very large log files [test of 78,000 frame file:
-    12.9 seconds to read the ASCII file, 1.9 to read the FITS version]. At the
+    12.9 seconds to read the ASCII file, 1.9 to read the FITS version]. The FITS
+    log is also much easier to understand than the ASCII files, but they don't
+    have all the header information, so are not a replacement. At the
     moment no significant header information is transferred beyond the CCD
     names. Each CCD appears as a single binary table, starting at the second
     HDU (or HDU 1 if you number them 0,1,2 ..). This can be read using
