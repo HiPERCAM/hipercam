@@ -1490,17 +1490,23 @@ class Tseries:
                 kwargs.get("header", "")
                 + f"""
 
-Bitmask flag values & meanings:
+Unrecoverably bad data are indicated by "nan" (not-a-number)
+values. There are also a series of flags which are combined into a
+single integer "bitmask". The values & meanings of these bitmask flags
+are as follows:
 
 {flags}
 
-Thus 20=16+4 would indicate that the sky aperture had crossed the edge of
-the data window and that the saturation level had been breached. A value of
-0 means no flags were set. The flags vary in their severity and do not always
-indicate that data is to be thrown away.
+Thus for instance a value of 20 (=16+4) would indicate that the
+annulus used to measure the sky had crossed the edge of the data
+window and that the saturation level had been breached. A value of 0
+means no flags were set. The flags vary in their severity and do not
+always indicate that data is to be thrown away. There will also be
+some data affected by glitches such as cosmic rays, so don't expect
+all bad data to be indicated as such.
 
 -----------------------------------------------------------------
-Data written by hipercam.hlog.Tseries.write. 
+Data written by hipercam.hlog.Tseries.write.
 
 Four columns: times y-values y-errors bitmask
 """
@@ -1519,14 +1525,20 @@ Four columns: times y-values y-errors bitmask
                 kwargs.get("header", "")
                 + f"""
 
-Bitmask flag values & meanings:
+Unrecoverably bad data are indicated by "nan" (not-a-number)
+values. There are also a series of flags which are combined into a
+single integer "bitmask". The values & meanings of these bitmask flags
+are as follows:
 
 {flags}
 
-Thus 20=16+4 would indicate that the sky aperture had crossed the edge of
-the data window and that the saturation level had been breached. A value of
-0 means no flags were set. The flags vary in their severity and do not always
-indicate that data is to be thrown away.
+Thus for instance a value of 20 (=16+4) would indicate that the
+annulus used to measure the sky had crossed the edge of the data
+window and that the saturation level had been breached. A value of 0
+means no flags were set. The flags vary in their severity and do not
+always indicate that data is to be thrown away. There will also be
+some data affected by glitches such as cosmic rays, so don't expect
+all bad data to be indicated as such.
 
 -----------------------------------------------------------------
 Data written by hipercam.hlog.Tseries.write.
