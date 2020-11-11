@@ -171,6 +171,7 @@ setup(
             'tbytes=hipercam.scripts.tbytes:tbytes',
             'uls=hipercam.scripts.uls:uls',
         ],
+
     },
 
     # tests
