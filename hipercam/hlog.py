@@ -1383,7 +1383,7 @@ class Tseries:
         mask = self.get_mask(bitmask)
         ymask = np.ma.masked_array(self.y,mask)
         if weighted:
-            wgt = 1/np.ma.masked_array(lc.ye, mask)**2
+            wgt = 1/np.ma.masked_array(self.ye, mask)**2
             return np.sum(wgt*ymask)/np.sum(wgt)
         else:
             return np.mean(ymask)
