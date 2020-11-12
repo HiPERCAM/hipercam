@@ -1472,18 +1472,37 @@ class Tseries:
             new_ts.ye = 2.5 / np.log(10.) * self.ye / self.y
             return new_ts
 
-    def write(self, fname, **kwargs):
+    def write(self, fname, lcurve=False, bitmask=None, **kwargs):
         """Writes out the Tseries to an ASCII file using numpy.savetxt. Other
         arguments to savetxt can be passed via kwargs. The data are written with
         a default choice of "fmt" sent to savtxt unless overridden using kwargs.
         The default uses a high precision on the times based upon typical usage
-        for 
+        for ULTRACAM derived data.
+
+        Arguments::
+
+           fname : str
+             output file name
+
+           lcurve : bool
+             if true, tack on two extra columns to make it easy to read the data
+             into the program lcurve 
+
+           bitmask : None | int
+             if lcurve and set, this is used to set the weight on a point to 0
 
         """
         flags = []
         for flag, message in FLAG_MESSAGES.items():
             flags.append(f"   Flag = {flag:6d}: {message}")
         flags = '\n'.join(flags)
+
+        if lcurve:
+            good = ~self.get_mask()
+            mask = self.get_mask(bitmask)
+            wgt = np.ones_like(good[good])
+            wgt[mask[good]] = 0.0
+
 
         if self.te is None:
             header = (
@@ -1512,14 +1531,25 @@ Four columns: times y-values y-errors bitmask
 """
             )
             kwargs["header"] = header
-            fmt=kwargs.get("fmt", "%.16g %.6e %.3e %d")
+            if lcurve:
+                fmt=kwargs.get("fmt", "%.16g %.6e %.3e %.1f 1")
+            else:
+                fmt=kwargs.get("fmt", "%.16g %.6e %.3e %d")
 
-            np.savetxt(
-                fname,
-                np.column_stack([self.t, self.y, self.ye, self.bmask]),
-                fmt=fmt,
-                **kwargs
-            )
+            if lcurve:
+                np.savetxt(
+                    fname,
+                    np.column_stack([self.t[good], self.y[good], self.ye[good], wgt]),
+                    fmt=fmt,
+                    **kwargs
+                )
+            else:
+                np.savetxt(
+                    fname,
+                    np.column_stack([self.t, self.y, self.ye, self.bmask]),
+                    fmt=fmt,
+                    **kwargs
+                )
         else:
             header = (
                 kwargs.get("header", "")
@@ -1547,14 +1577,25 @@ Five columns: times exposures y-values y-errors  bitmask
 """
             )
             kwargs["header"] = header
-            fmt=kwargs.get("fmt", "%.16g %.3e %.6e %.3e %d")
+            if lcurve:
+                fmt=kwargs.get("fmt", "%.16g %.3e %.6e %.3e %.1f 1")
+            else:
+                fmt=kwargs.get("fmt", "%.16g %.3e %.6e %.3e %d")
 
-            np.savetxt(
-                fname,
-                np.column_stack([self.t, self.te, self.y, self.ye, self.bmask]),
-                fmt=fmt,
-                **kwargs
-            )
+            if lcurve:
+                np.savetxt(
+                    fname,
+                    np.column_stack([self.t[good], self.te[good], self.y[good], self.ye[good], wgt]),
+                    fmt=fmt,
+                    **kwargs
+                )
+            else:
+                np.savetxt(
+                    fname,
+                    np.column_stack([self.t, self.te, self.y, self.ye, self.bmask]),
+                    fmt=fmt,
+                    **kwargs
+                )
 
 
     @classmethod
