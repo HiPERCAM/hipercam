@@ -1257,10 +1257,9 @@ class Tseries:
                 self.te = efunc(self.te)
         else:
             new_ts = copy.deepcopy(self)
-            new_ts.t -= offset
-            new_ts.t *= mfac
-            if new_ts.te is not None:
-                new_ts.te *= np.abs(mfac)
+            new_ts.t = func(new_ts.t)
+            if efunc is not None and self.te is not None:
+                new_ts.te = efunc(new_ts.te)
             return new_ts
 
     def phase(self, t0, period, fold=False, inplace=True):
