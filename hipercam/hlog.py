@@ -1473,10 +1473,11 @@ class Tseries:
 
     def write(self, fname, lcurve=False, bitmask=None, **kwargs):
         """Writes out the Tseries to an ASCII file using numpy.savetxt. Other
-        arguments to savetxt can be passed via kwargs. The data are written with
-        a default choice of "fmt" sent to savtxt unless overridden using kwargs.
-        The default uses a high precision on the times based upon typical usage
-        for ULTRACAM derived data.
+        arguments to savetxt can be passed via kwargs. The data are
+        written with a default choice of "fmt" sent to savetxt unless
+        overridden using kwargs.  The default "fmt" uses a high
+        precision on the times based upon typical usage for ULTRACAM
+        derived (MJD) data.
 
         Arguments::
 
@@ -1484,75 +1485,55 @@ class Tseries:
              output file name
 
            lcurve : bool
-             if true, tack on two extra columns to make it easy to read the data
-             into the program lcurve 
+             if True, tack on two extra columns to make it easy to read the data
+             into the program lcurve. This does not write bad data or the bitmask
+             but uses the supplied bitmask to set weights on bad points to zero.
+             If False all data including bad data are written and the fill bitmask
+             value is given. Explanotory header info is tacked onto to whatever header
+             is passed via kwargs to savetxt.
 
            bitmask : None | int
-             if lcurve and set, this is used to set the weight on a point to 0
+             if lcurve=True, this is used to set the weight on matching points to 0.
+             This allows bad data to be plotted but not fitted e.g. by "lroche"
 
         """
-        flags = []
-        for flag, message in FLAG_MESSAGES.items():
-            flags.append(f"   Flag = {flag:6d}: {message}")
-        flags = '\n'.join(flags)
 
         if lcurve:
+            if self.te is None:
+                raise ValueError("Can only write to an lcurve file with exposure times")
+
+            # Avoid bad data in the case of lcurve data
             good = ~self.get_mask()
             mask = self.get_mask(bitmask)
             wgt = np.ones_like(good[good])
             wgt[mask[good]] = 0.0
 
+            # we don't supply bitmask flags in this case
+            header = kwargs.get("header", "") + \
+                """
 
-        if self.te is None:
-            header = (
-                kwargs.get("header", "")
-                + f"""
-
-Unrecoverably bad data are indicated by "nan" (not-a-number)
-values. There are also a series of flags which are combined into a
-single integer "bitmask". The values & meanings of these bitmask flags
-are as follows:
-
-{flags}
-
-Thus for instance a value of 20 (=16+4) would indicate that the
-annulus used to measure the sky had crossed the edge of the data
-window and that the saturation level had been breached. A value of 0
-means no flags were set. The flags vary in their severity and do not
-always indicate that data is to be thrown away. There will also be
-some data affected by glitches such as cosmic rays, so don't expect
-all bad data to be indicated as such.
+The data are written in a format suitable for using in the lcurve
+light-curve modelling program and include two final columns of weights
+and integer sub-division factors. The weights might be zero for data
+thought to be dubious.
 
 -----------------------------------------------------------------
 Data written by hipercam.hlog.Tseries.write.
 
-Four columns: times y-values y-errors bitmask
-"""
-            )
-            kwargs["header"] = header
-            if lcurve:
-                fmt=kwargs.get("fmt", "%.16g %.6e %.3e %.1f 1")
-            else:
-                fmt=kwargs.get("fmt", "%.16g %.6e %.3e %d")
+Six columns: times exposures fluxes flux-errors weights sub-div-facs
+                """
+            fmt = kwargs.get("fmt", "%.16g %.3e %.6e %.3e %.1f 1")
+            data = np.column_stack([self.t[good], self.y[good], self.ye[good], wgt])
 
-            if lcurve:
-                np.savetxt(
-                    fname,
-                    np.column_stack([self.t[good], self.y[good], self.ye[good], wgt]),
-                    fmt=fmt,
-                    **kwargs
-                )
-            else:
-                np.savetxt(
-                    fname,
-                    np.column_stack([self.t, self.y, self.ye, self.bmask]),
-                    fmt=fmt,
-                    **kwargs
-                )
         else:
-            header = (
-                kwargs.get("header", "")
-                + f"""
+
+            flags = []
+            for flag, message in FLAG_MESSAGES.items():
+                flags.append(f"   Flag = {flag:6d}: {message}")
+            flags = '\n'.join(flags)
+
+            header = kwargs.get("header", "") + \
+                f"""
 
 Unrecoverably bad data are indicated by "nan" (not-a-number)
 values. There are also a series of flags which are combined into a
@@ -1572,30 +1553,21 @@ all bad data to be indicated as such.
 -----------------------------------------------------------------
 Data written by hipercam.hlog.Tseries.write.
 
-Five columns: times exposures y-values y-errors  bitmask
-"""
-            )
-            kwargs["header"] = header
-            if lcurve:
-                fmt=kwargs.get("fmt", "%.16g %.3e %.6e %.3e %.1f 1")
-            else:
-                fmt=kwargs.get("fmt", "%.16g %.3e %.6e %.3e %d")
+                """
 
-            if lcurve:
-                np.savetxt(
-                    fname,
-                    np.column_stack([self.t[good], self.te[good], self.y[good], self.ye[good], wgt]),
-                    fmt=fmt,
-                    **kwargs
-                )
+            if sel.te is None:
+                header += "Four columns: times y-values y-errors bitmask"
+                fmt = kwargs.get("fmt", "%.16g %.6e %.3e %d")
+                data = np.column_stack([self.t, self.y, self.ye, self.bmask])
             else:
-                np.savetxt(
-                    fname,
-                    np.column_stack([self.t, self.te, self.y, self.ye, self.bmask]),
-                    fmt=fmt,
-                    **kwargs
-                )
+                header += "Five columns: times exposures y-values y-errors bitmask"
+                fmt = kwargs.get("fmt", "%.16g %.3e %.6e %.3e %d")
+                data = np.column_stack([self.t, self.te, self.y, self.ye, self.bmask])
 
+        kwargs["header"] = header
+
+        # Finally we are ready for savetxt
+        np.savetxt(fname, data, fmt=fmt, **kwargs)
 
     @classmethod
     def read(cls, fname, has_exposures=True):
