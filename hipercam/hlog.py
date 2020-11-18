@@ -1460,15 +1460,29 @@ class Tseries:
 
     def to_mag(self, inplace=True):
         """
-        Convert to magnitudes, i.e. take -2.5*log10(y)
+        Convert to magnitudes, i.e. take -2.5*log10(y) (inverse of from_mag)
         """
         if inplace:
-            self.ye *=  2.5 / np.log(10.) / self.y
+            self.ye *= (2.5 / np.log(10.)) / self.y
             self.y = -2.5 * np.log10(self.y)
         else:
             new_ts = copy.deepcopy(self)
             new_ts.y = -2.5 * np.log10(self.y)
-            new_ts.ye = 2.5 / np.log(10.) * self.ye / self.y
+            new_ts.ye = (2.5 / np.log(10.)) * self.ye / self.y
+            return new_ts
+
+    def from_mag(self, inplace=True):
+        """
+        Convert from magnitudes to a linear scale (inverse of to_mag)
+        """
+        if inplace:
+            self.y = 10**(-self.y/2.5)
+            self.ye *= (np.log(10.) / 2.5) * self.y
+
+        else:
+            new_ts = copy.deepcopy(self)
+            new_ts.y = 10**(-self.y/2.5)
+            new_ts.ye = (np.log(10.) / 2.5) * new_ts.y * self.ye
             return new_ts
 
     def write(self, fname, lcurve=False, bitmask=None, **kwargs):
@@ -1511,7 +1525,6 @@ class Tseries:
             # we don't supply bitmask flags in this case
             header = kwargs.get("header", "") + \
                 """
-
 The data are written in a format suitable for using in the lcurve
 light-curve modelling program and include two final columns of weights
 and integer sub-division factors. The weights might be zero for data
@@ -1523,7 +1536,7 @@ Data written by hipercam.hlog.Tseries.write.
 Six columns: times exposures fluxes flux-errors weights sub-div-facs
                 """
             fmt = kwargs.get("fmt", "%.16g %.3e %.6e %.3e %.1f 1")
-            data = np.column_stack([self.t[good], self.y[good], self.ye[good], wgt])
+            data = np.column_stack([self.t[good], self.te[good], self.y[good], self.ye[good], wgt])
 
         else:
 
@@ -1534,7 +1547,6 @@ Six columns: times exposures fluxes flux-errors weights sub-div-facs
 
             header = kwargs.get("header", "") + \
                 f"""
-
 Unrecoverably bad data are indicated by "nan" (not-a-number)
 values. There are also a series of flags which are combined into a
 single integer "bitmask". The values & meanings of these bitmask flags
@@ -1553,9 +1565,9 @@ all bad data to be indicated as such.
 -----------------------------------------------------------------
 Data written by hipercam.hlog.Tseries.write.
 
-                """
+"""
 
-            if sel.te is None:
+            if self.te is None:
                 header += "Four columns: times y-values y-errors bitmask"
                 fmt = kwargs.get("fmt", "%.16g %.6e %.3e %d")
                 data = np.column_stack([self.t, self.y, self.ye, self.bmask])
