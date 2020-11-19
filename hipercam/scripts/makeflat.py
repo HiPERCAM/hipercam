@@ -127,7 +127,7 @@ def makeflat(args=None):
 
         upper   : list of floats
            Upper limits to the mean count level for a flat to be included. The
-           count level is determined after bias subtraction.  Should be the
+           count level is determined *after* bias subtraction.  Should be the
            same number as the selected CCDs, and will be assumed to be in the
            same order. Use this to eliminate saturated, peppered or non-linear
            frames. Suggested hipercam values: 58000, 58000, 58000, 40000 and
@@ -223,15 +223,25 @@ def makeflat(args=None):
         else:
             ccds = list(ccdinf.keys())
 
+        # need to check that the default has the right number of items, if not
+        # overr-ride it
+        lowers = cl.get_default("lower")
+        if len(lowers) != len(ccds):
+            cl.set_default("lower", len(ccds) * (5000,))
+
         lowers = cl.get_value(
             "lower",
-            "lower limits on mean count level for included flats",
+            "lower limits on mean count level for included flats, 1 per CCD",
             len(ccds) * (5000,),
         )
 
+        uppers = cl.get_default("upper")
+        if len(uppers) != len(ccds):
+            cl.set_default("upper", len(ccds) * (50000,))
+
         uppers = cl.get_value(
             "upper",
-            "lower limits on mean count level for included flats",
+            "lower limits on mean count level for included flats, 1 per CCD",
             len(ccds) * (50000,),
         )
 
