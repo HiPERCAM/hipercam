@@ -1366,7 +1366,8 @@ class Tseries:
              allows the binned and coarse Tseries to stay 'in step'.
         """
 
-        if (lself := len(self)) % (lother := len(other)) != 0:
+        lself, lother = len(self), len(other)
+        if lself % lother != 0:
             raise ValueError(
                 f"length of other ({lother:d}) not a divisor of self ({lself:d})"
             )
@@ -1437,7 +1438,8 @@ class Tseries:
             for fname, flag in FLAGS:
                 if flag != ALL_OK and flag != ANY_FLAG:
                     match = np.bitwise_and(self.bmask, flag) > 0
-                    if (nfl := len(match[match])):
+                    nfl = len(match[match])
+                    if nfl:
                         print(f"   Flag = {fname} was raised for {nfl} points out of {ntot}")
 
         if nbad or nflag:
