@@ -93,6 +93,9 @@ setup(
         'numba','websocket-client', 'fitsio', 'astroplan'
     ],
 
+    # Makes significant use of f-strings which came in in 3.6
+    python_requires='>=3.6',
+
     # need numpy version 1.12
 
     # List additional groups of dependencies here (e.g. development
