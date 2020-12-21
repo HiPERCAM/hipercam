@@ -1330,7 +1330,7 @@ class Tseries:
         mask = lc.get_mask(bitmask)
         ymask = np.ma.masked_array(lc.y, mask)
         if method == 'median':
-            norm_factor = np.median(lc.y[~mask])
+            norm_factor = np.ma.median(ymask)
         elif method == 'mean':
             if weighted:
                 wgt = 1/np.ma.masked_array(lc.ye, mask)**2
