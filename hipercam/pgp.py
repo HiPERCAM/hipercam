@@ -187,10 +187,14 @@ def pCcd(
     """
     if iset == "p":
         # Set intensities from percentiles
+        if xlo is not None and xhi is not None:
+            xlo = min(xlo, xhi)
+            xhi = max(xlo, xhi)
+        if ylo is not None and yhi is not None:
+            xlo = min(ylo, yhi)
+            xhi = max(ylo, yhi)
         vmin, vmax = ccd.percentile(
-            (plo, phi),
-            min(xlo,xhi), max(xlo,xhi),
-            min(ylo,yhi), max(ylo,yhi)
+            (plo, phi), xlo, xhi, ylo, yhi
         )
         if vmin is None:
             # no intensity limits calculated
