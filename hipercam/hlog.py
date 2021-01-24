@@ -1090,6 +1090,10 @@ class Tseries:
             bad points. e.g. bitmask=hcam.TARGET_SATURATED will skip points
             flagged as saturated.
 
+        inplace : bool
+            If True, self is modified, else a new Tseries is created
+            and self is untouched. A reference to a Tseries is always returned
+
         Returns
         -------
         TSeries : Tseries object
@@ -1157,6 +1161,7 @@ class Tseries:
             self.ye = ye
             self.bmask = bmask
             self.te = te
+            return self
         else:
             # Return the binned Tseries
             return Tseries(t, y, ye, bmask, te)
@@ -1305,7 +1310,7 @@ class Tseries:
                 phase, self.y, self.ye, self.bmask, pexpose, True
             )
 
-    def normalise(self, bitmask=None, method='median', weighted=False):
+    def normalise(self, bitmask=None, method='median', weighted=False, inplace=True):
         """Returns a normalized version of the time series.
 
         The normalized timeseries is obtained by dividing `y` and `ye`
@@ -1320,13 +1325,20 @@ class Tseries:
           weighted : bool
              if method == 'mean', compute an inverse-variance weighted mean
 
+          inplace: bool
+             if True, self is modfied, else a new Tseries is created. A
+             reference to a Tseries is always returned.
+
         Returns
         -------
         normalized_tseries : Tseries object
             A new ``Tseries`` in which `y` and `ye` are divided
             by the median / mean y value.
         """
-        lc = copy.deepcopy(self)
+        if inplace:
+            lc = self
+        else:
+            lc = copy.deepcopy(self)
         mask = lc.get_mask(bitmask)
         ymask = np.ma.masked_array(lc.y, mask)
         if method == 'median':
@@ -1341,7 +1353,7 @@ class Tseries:
         lc.ye /= norm_factor
         return lc
 
-    def downsize(self, other, bitmask=None):
+    def downsize(self, other, bitmask=None, inplace=True):
         """
         Bins the Tseries down to match the times from 'other'.
         Useful for dealing with data taken with nskips
@@ -1358,6 +1370,10 @@ class Tseries:
             Bitmask to feed through to the binning routine used; see 'bin'.
             Use to try to exclude bad data where possible.
 
+          inplace : bool
+            If True, overwrite the Tseries, else just return a new one.
+            A reference to a Tseries is always returned
+
         Returns
         -------
           TSeries : Tseries
@@ -1372,7 +1388,7 @@ class Tseries:
                 f"length of other ({lother:d}) not a divisor of self ({lself:d})"
             )
 
-        return self.bin(lself // lother, bitmask)
+        return self.bin(lself // lother, bitmask, inplace=inplace)
 
     def ymean(self, bitmask=None, weighted=True):
         """
