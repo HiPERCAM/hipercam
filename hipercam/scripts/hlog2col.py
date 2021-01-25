@@ -23,7 +23,9 @@ def hlog2col(args=None):
     """``hlog2col log ap1 ap2``
 
     Converts a |hiper| ASCII log into one or more column format files
-    of one aperture versus another for each CCD.
+    of one aperture versus another for each CCD. This tacks on the date
+    of the start of the night in order to distinguish run log names of the
+    the same number.
 
     Parameters:
 
@@ -46,8 +48,8 @@ def hlog2col(args=None):
          output type 'l' for linear; 'm' for magnitudes. Linear has the
          advantage of handling negative values.
 
-    The output files will get names like run014_2_3_4.dat meaning
-    CCD 2, aperture 3 divided by 4.
+    The output files will get names like 2021-01-12_run014_2_3_4.dat meaning
+    CCD 2, aperture 3 divided by 4 of run014 from the night starting 2021-01-12.
     """
 
     command, args = utils.script_args(args)
@@ -98,16 +100,16 @@ def hlog2col(args=None):
     for cnam in hlg.cnames:
         apnames = hlg.apnames[cnam]
         if ap1 in apnames and ap2 in apnames:
-            oname = f'{bname}_{cnam}_{ap1}_{ap2}.asc'
             lc = hlg.tseries(cnam, ap1) / hlg.tseries(cnam, ap2)
-            time = Time(lc.t[0], format='mjd', scale='utc')
-            ftime = time.iso
+            time = Time(round(lc.t[0]-0.5), format='mjd', scale='utc')
+            start = time.iso[:10]
+            oname = f'{start}_{bname}_{cnam}_{ap1}_{ap2}.asc'
 
             if otype == 'm':
                 lc.to_mag()
                 fmt = '%.10f %.3e %.4f %.4f %d'
                 header = \
-                    f"""Data derived from {log}. First point = {ftime}
+                    f"""Data derived from {log}, taken on night starting {start}.
 
 CCD = {cnam}, mag (aperture {ap1}) - mag(aperture {ap2})
 
@@ -119,7 +121,7 @@ MJD (centre of exposure), exposure time (sec), mags, uncertainty (mags), flag
             else:
                 fmt = '%.10f %.3e %.4e %.3e %d'
                 header = \
-                    f"""Data derived from {log}. First point = {ftime}
+                    f"""Data derived from {log}, taken on night starting {start}.
 
 CCD = {cnam}, aperture {ap1} / aperture {ap2}
 
