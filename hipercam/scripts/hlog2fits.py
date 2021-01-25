@@ -36,10 +36,14 @@ def hlog2fits(args=None):
 
     Parameters:
 
-      log : string
+      log : str
          name of the log file (should end .log). The output FITS file
          will have the same root name but end .fits. The routine will abort
          if there is a pre-existing file of the same name.
+
+      origin : str
+         'h' or 'u' depending upon whether the log file was created with
+         the hipercam or old ultracam pipeline.
 
     NB Because of the danger of over-writing raw data (also ends .fits), this 
     routine will not over-write pre-existing files. You should delete clashing
