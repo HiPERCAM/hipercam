@@ -147,6 +147,7 @@ setup(
             'hist=hipercam.scripts.hist:hist',
             'hlogger=hipercam.scripts.hlogger:hlogger',
             'hlog2fits=hipercam.scripts.hlog2fits:hlog2fits',
+            'hlog2col=hipercam.scripts.hlog2col:hlog2col',
             'hls=hipercam.scripts.hls:hls',
             'hplot=hipercam.scripts.hplot:hplot',
             'ltimes=hipercam.scripts.ltimes:ltimes',

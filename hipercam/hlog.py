@@ -893,7 +893,7 @@ class Tseries:
         """
         if isinstance(other, Tseries):
 
-            self.np.sqrt(
+            self.ye = np.sqrt(
                 self.ye**2 + (self.y*other.ye/other.y)**2
             ) / np.abs(other.y)
 

@@ -20,6 +20,7 @@ from .hinfo import hinfo
 from .hfilter import hfilter
 from .hlogger import hlogger
 from .hlog2fits import hlog2fits
+from .hlog2col import hlog2col
 from .hls import hls
 from .hplot import hplot
 from .ltimes import ltimes
