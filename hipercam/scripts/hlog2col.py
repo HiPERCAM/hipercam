@@ -38,6 +38,11 @@ def hlog2col(args=None):
          'h' or 'u' depending upon whether the log file was created with
          the hipercam or old ultracam pipeline.
 
+      offset :float [hidden]
+         offset in days to subtract from first time to get date at start
+         of the night. 0.7 should mostly work. offset is subtracted and
+         the MJD truncated to integer
+
       ap1 : str
          name of first aperture
 
@@ -60,6 +65,7 @@ def hlog2col(args=None):
         # register parameters
         cl.register("log", Cline.LOCAL, Cline.PROMPT)
         cl.register("origin", Cline.LOCAL, Cline.PROMPT)
+        cl.register("offset", Cline.LOCAL, Cline.HIDE)
         cl.register("ap1", Cline.LOCAL, Cline.PROMPT)
         cl.register("ap2", Cline.LOCAL, Cline.PROMPT)
         cl.register("type", Cline.LOCAL, Cline.PROMPT)
@@ -73,6 +79,10 @@ def hlog2col(args=None):
 
         origin = cl.get_value(
             "origin", "h(ipercam) or u(ltracam) pipeline?", "h", lvals=["h", "u"]
+        )
+
+        offset = cl.get_value(
+            "offset", "offset in days to get date at start of night", 0.7
         )
 
         ap1 = cl.get_value(
@@ -101,7 +111,7 @@ def hlog2col(args=None):
         apnames = hlg.apnames[cnam]
         if ap1 in apnames and ap2 in apnames:
             lc = hlg.tseries(cnam, ap1) / hlg.tseries(cnam, ap2)
-            time = Time(round(lc.t[0]-0.5), format='mjd', scale='utc')
+            time = Time(int(lc.t[0]-offset), format='mjd', scale='utc')
             start = time.iso[:10]
             oname = f'{start}_{bname}_{cnam}_{ap1}_{ap2}.asc'
 
