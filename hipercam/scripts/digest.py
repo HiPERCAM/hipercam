@@ -99,8 +99,9 @@ def digest(args=None):
         print("digest aborted", file=sys.stderr)
         return
 
-    # regular expression to match run directory, e.g. 2018-10
-    rdre = re.compile("^\d\d\d\d-\d\d$")
+    # regular expression to match run directory, e.g. 2018-10 [2018, October],
+    # 2020-21 [season 2020 to 2021], 2021-P106 [ESO period 106]
+    rdre = re.compile("^\d\d\d\d-(\d\d|P\d\d\d)$")
 
     # regular expression to match input night directory, e.g. 2018_10_30
     ndre = re.compile("^\d\d\d\d_\d\d_\d\d$")
