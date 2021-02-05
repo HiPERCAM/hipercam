@@ -30,19 +30,21 @@ def splice(args=None):
 
     Parameters:
 
-       input1 : string
+       input1 : str
            first input frame
 
-       input2 : string
+       input2 : str
            second input frame
 
-       ccd : string
-           the CCD to transfer, '0' for all of them.
+       ccd : str
+           the CCD(s) to transfer, '0' for all of them. '1 3', i.e.
+           separate with spaces for more than one CCD.
 
-       win : string [hidden]
-           the window to transfer, '0' for all of them (default).
+       win : str [hidden]
+           the window(s) to transfer, '0' for all of them (default). The
+           same windows must exist in the selected CCDs of both inputs 
 
-       output : string
+       output : str
            output file.
 
     """
@@ -53,7 +55,7 @@ def splice(args=None):
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
         # register parameters
-        cl.register("input1", Cline.GLOBAL, Cline.HIDE)
+        cl.register("input1", Cline.GLOBAL, Cline.PROMPT)
         cl.register("input2", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("win", Cline.LOCAL, Cline.HIDE)
@@ -84,9 +86,9 @@ def splice(args=None):
         wins = None
         for cnam in ccds:
             if wins is None:
-                wins = set(ccds[cnam].keys())
+                wins = set(mccd1[cnam].keys())
             else:
-                wins &= set(ccds[cnam].keys())
+                wins &= set(mccd1[cnam].keys())
 
         if len(wins) == 0:
             raise hcam.HipercamError(
