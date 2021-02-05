@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from astropy.time import Time, TimeDelta
 from astropy.coordinates import get_sun, get_moon, EarthLocation, SkyCoord, AltAz
-from astroplan import moon_phase_angle
 import astropy.units as u
 
 import hipercam as hcam
@@ -501,6 +500,7 @@ def hlogger(args=None):
     not installed.
 
     """
+    from astroplan import moon_phase_angle
 
     barr = []
 
