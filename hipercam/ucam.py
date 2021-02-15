@@ -133,6 +133,9 @@ class Rhead:
           but the windows of each CCD are identical so the information is only
           stored once for all CCDs.
 
+       wforms : tuple of strings
+          formats of each set of windows as strings designed to match the input
+          expected for udriver/usdriver
     """
 
     def __init__(self, run, server=False):
@@ -600,6 +603,26 @@ class Rhead:
         head["EXPDELAY"] = (exposeTime, "Exposure delay (seconds)")
         self.exposeTime = exposeTime
 
+
+        # set strings for logging purposes giving the window formats used in udriver / usdriver
+        self.wforms = []
+
+        if self.mode == "FFCLR" or self.mode == "FFNCLR":
+            self.wforms.append("Full&nbsp;Frame")
+
+        elif self.mode == '1-PAIR' or self.mode == '1-PCLR' or self.mode == "DRIFT":
+
+            xsl = self.win[0].llx
+            xsr = self.win[1].llx
+            ys = self.win[0].lly
+            nx = self.win[0].nx
+            ny = self.win[0].ny
+
+            self.wforms.append(f"{xls},{xsr},{ys},{nx},{ny}")
+
+        else:
+            self.wforms.append("---TBD---")
+
         # Finally have reached end of constructor / initialiser
 
     def npix(self):
@@ -630,16 +653,16 @@ class Utime:
     """
     Represents a time for a CCD. Four attributes::
 
-       mjd : (float)
+       mjd : float
           modified Julian day number
 
-       expose : (float)
+       expose : float
           exposure time, seconds.
 
-       good : (bool)
+       good : bool
           is the time thought to be reliable?
 
-       reason : (string)
+       reason : str
           if good == False, this is the reason.
     """
 
@@ -1676,6 +1699,9 @@ def utimer(tbytes, rhead, fnum):
          midnightCorr : bool
              was the midnight bug correction applied
 
+         fnum : int
+             the frame number used for the call to utimer
+
      ULTRACAM only:
 
          blueTime : Utime
@@ -2483,6 +2509,7 @@ def utimer(tbytes, rhead, fnum):
         "frameError": frameError,
         "midnightCorr": midnightCorr,
         "ntmin": ntmin,
+        "fnum": fnum
     }
 
     if rhead.instrument == "ULTRACAM":
