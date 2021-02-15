@@ -936,8 +936,8 @@ def hlogger(args=None):
 
                             # end
                             frame = AltAz(obstime=tstamp_end, location=observatory)
-                            sun_end = get_sun(tstamp_start).transform_to(frame)
-                            moon_end = get_moon(tstamp_start).transform_to(frame)
+                            sun_end = get_sun(tstamp_end).transform_to(frame)
+                            moon_end = get_moon(tstamp_end).transform_to(frame)
 
                             # Lunar phase at the mid-point only.
                             moon_phase = moon_phase_angle(tstamp_mid).value / np.pi
