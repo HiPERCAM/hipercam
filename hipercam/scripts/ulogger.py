@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from astropy.time import Time, TimeDelta
 from astropy.coordinates import get_sun, get_moon, EarthLocation, SkyCoord, AltAz
-from astroplan import moon_phase_angle
 import astropy.units as u
 
 import hipercam as hcam
@@ -20,11 +19,11 @@ __all__ = [
     "ulogger",
 ]
 
-###########################################################
+############################################################################
 #
-# ulogger -- generates html logs for ultracam and ultraspec
+# ulogger -- generates html logs and spreadsheets for ultracam and ultraspec
 #
-###########################################################
+############################################################################
 
 ###########
 #
@@ -36,18 +35,17 @@ __all__ = [
 INDEX_HEADER = """<html>
 <head>
 
-<title>HiPERCAM data logs</title>
+<title>{instrument} data logs</title>
 </head>
 
 <body>
 <h1>HiPERCAM data logs</h1>
 
-<p> These on-line logs summarise all HiPERCAM runs. They were
-automatically generated from the FITS headers of the data files
-and hand-written logs.
+<p> These on-line logs summarise all {instrument} runs. They were
+automatically generated from the data files and hand-written logs.
 
 <p>For a searchable file summarising the same information and more,
-see this <a href="hipercam-log.xlsx">spreadsheet</a>. This contains a
+see this <a href="{linstrument}-log.xlsx">spreadsheet</a>. This contains a
 column 'Nlink' with hyperlinks to the on-line log of whichever night
 contains a given run. In addition after the comment column the
 spreadsheet has a number of angles (altitudes and azimuths etc, all in
@@ -446,14 +444,6 @@ a:hover {
 
 # end of CSS
 
-TRANSLATE_MODE = {
-    "FullFrame": "FULL",
-    "OneWindow": "1-WIN",
-    "TwoWindows": "2-WIN",
-    "DriftWindow": "DRIFT",
-}
-
-
 def correct_ra_dec(ra, dec):
     """Fixes up RAs and Decs"""
     if ra == "UNDEF":
@@ -502,6 +492,7 @@ def ulogger(args=None):
     not installed.
 
     """
+    from astroplan import moon_phase_angle
 
     barr = []
     cwd = os.getcwd()
@@ -510,11 +501,19 @@ def ulogger(args=None):
         print("ulogger aborted", file=sys.stderr)
         return
 
+    if cwd.find("ultracam") > -1:
+        instrument = "ULTRACAM"
+    elif cwd.find("ultraspec") > -1:
+        instrument = "ULTRASPEC"
+    else:
+        print("** ulogger: cannot finf either ultracam or ultraspec in path")
+        print("ulogger aborted", file=sys.stderr)
+        return
+    linstrument = instrument.lower()
+
     # location to write files
-    if cwd.find("ultracam") > -1 and os.path.exists('/storage/astro2/www/phsaap/ultracam/logs'):
-        root = '/storage/astro2/www/phsaap/ultracam/logs'
-    elif cwd.find("ultraspec") > -1 and os.path.exists('/storage/astro2/www/phsaap/ultraspec/logs'):
-        root = '/storage/astro2/www/phsaap/ultraspec/logs'
+    if os.path.exists(f'/storage/astro2/www/phsaap/{linstrument}/logs'):
+        root = f'/storage/astro2/www/phsaap/{linstrument}/logs'
     else:
         root = 'logs'
 
@@ -525,7 +524,7 @@ def ulogger(args=None):
     # run files
     rre = re.compile("^\d\d\d\d-\d\d$")
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
-    fre = re.compile("^run\d\d\d\d\.fits$")
+    fre = re.compile("^run\d\d\d\.xml$")
 
     # Get list of run directories
     rnames = [
@@ -535,7 +534,6 @@ def ulogger(args=None):
         and os.path.isdir(rname)
         and os.path.isfile(os.path.join(rname, "telescope"))
     ]
-
     rnames.sort()
 
     if len(rnames) == 0:
@@ -544,7 +542,7 @@ def ulogger(args=None):
             "YYYY-MM with a file called 'telescope' in them",
             file=sys.stderr,
         )
-        print("hlogger aborted", file=sys.stderr)
+        print("ulogger aborted", file=sys.stderr)
         return
 
     # Get started. First make sure all files are created with the
@@ -556,11 +554,23 @@ def ulogger(args=None):
 
     print(f'Will write to directory = "{root}".')
 
+    # Load target positional information
+    targets = Targets('TARGETS')
+    auto_targets = Targets('AUTO_TARGETS')
+
+    # Load targets to skip and failed targets
+    skip_targets, failed_targets = load_skip_fail()
+
     # Index file
     index = os.path.join(root, 'index.html')
     with open(index, "w") as ihtml:
         # start the top level index html file
-        ihtml.write(INDEX_HEADER)
+        ihtml.write(
+            INDEX_HEADER.format(
+                instrument=instrument,
+                linstrument=linstrument
+            )
+        )
 
         for rname in rnames:
             print(f"\nProcessing run {rname}")
@@ -589,7 +599,7 @@ def ulogger(args=None):
                     "found no night directories of the form YYYY-MM-DD"
                     f" in {rname}", file=sys.stderr,
                 )
-                print("hlogger aborted", file=sys.stderr)
+                print("ulogger aborted", file=sys.stderr)
                 return
 
             for nn, nname in enumerate(nnames):
@@ -639,7 +649,7 @@ def ulogger(args=None):
                                 hlog[arr[0]] = " ".join(arr[1:])
 
                     # load all the run names
-                    runs = [run[:-5] for run in os.listdir(night) if fre.match(run)]
+                    runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
                     runs.sort()
 
                     # now wind through the runs getting basic info and
@@ -654,7 +664,10 @@ def ulogger(args=None):
                         # open the run file as an Rtime
                         runname = os.path.join(night, run)
                         try:
-                            rtime = hcam.hcam.Rtime(runname)
+                            rtime = hcam.ucam.Rtime(runname)
+                        except hcam.ucam.PowerOnOffError:
+                            # not interesting
+                            continue
                         except:
                             exc_type, exc_value, exc_traceback = sys.exc_info()
                             traceback.print_tb(
@@ -689,81 +702,59 @@ def ulogger(args=None):
                         brow = [runno,]
 
                         # object name
-                        nhtml.write(f'<td class="left">{hd["OBJECT"]}</td>')
-                        brow.append(hd["OBJECT"])
+                        target = hd["TARGET"]
+                        nhtml.write(f'<td class="left">{target}</td>')
+                        brow.append(target)
 
-                        # RA, Dec
-                        ra, dec = correct_ra_dec(hd["RA"], hd["Dec"])
+                        # RA, Dec lookup
+                        if target in skip_targets:
+                            # don't even try
+                            ra, dec = '', ''
+                        elif target in targets.lnames:
+                            dct = targets.lnames[target]
+                            ra, dec = dct['ra'], dct['dec']
+                        elif target in auto_targets.lnames:
+                            dct = auto_targets.lnames[target]
+                            ra, dec = dct['ra'], dct['dec']
+                        else:
+                            # add simbad lookup here
+                            ra, dec = '', ''
+
                         nhtml.write(f'<td class="left">{ra}</td><td class="left">{dec}</td>')
                         brow += [ra, dec, rname, night]
 
                         # timing info
-                        ntotal = rtime.ntotal()
-                        texps, toffs, nskips, tdead = rtime.tinfo()
-                        # total = total time on target
-                        # duty = worst duty cycle, percent
-                        # tsamp = shortest sample time
-                        ttotal = 0.0
-                        duty = 100
-                        tsamp = 99000.0
-                        for texp, nskip in zip(texps, nskips):
-                            ttotal = max(ttotal, (texp + tdead) * (ntotal // nskip))
-                            duty = min(duty, 100.0 * texp / (texp + tdead))
-                            tsamp = min(tsamp, texp + tdead)
+                        utime1, info1 = rtime(1)[:2]
+                        utime2, info2 = rtime(0)[:2]
+                        mjd1 = utime1.mjd
+                        mjd2 = utime1.mjd
+                        ntotal = info2['fnum']
+                        cadence = 86400.*(mjd2-mjd1)/max(1,ntotal-1)
+                        ttime = 1440.*(mjd2-mjd1)
 
-                        # First & last timestamp
-                        try:
+                        tstart = Time(mjd1, format='mjd').isot
+                        tend = Time(mjd2, format='mjd').isot
 
-                            # get mid-exposure time of first and last frame.
-                            tstamp_start, tinfo, tflag1 = rtime(1)
-                            tstamp_end, tinfo, tflag2 = rtime(ntotal)
+                        datestart = tstart[:tstart.find("T")]
+                        utcstart = tstart[tstart.find("T")+1:tstart.rfind(".")]
+                        utcend = tend[tend.find("T")+1:tend.rfind(".")]
 
-                            # compute mid-time
-                            tstamp_mid = tstamp_start + (tstamp_end-tstamp_start)/2
+                        nhtml.write(
+                            f'<td class="cen">{datestart}</td> <td class="cen">{utcstart}</td>' +
+                            f'<td class="cen">{utcend}</td>'
+                        )
+                        brow += [datestart, utcstart, utcend]
 
-                            # Extract understandable times
-                            tstart = tstamp_start.isot
-                            tend = tstamp_end.isot
-
-                            datestart = tstart[:tstart.find("T")]
-                            utcstart = tstart[tstart.find("T")+1:tstart.rfind(".")]
-                            utcend = tend[tend.find("T")+1:tend.rfind(".")]
-                            tflag = "OK" if tflag1 and tflag2 else "NOK"
-                            nhtml.write(
-                                f'<td class="cen">{datestart}</td> <td class="cen">{utcstart}</td>' +
-                                f'<td class="cen">{utcend}</td> <td class="cen">{tflag}</td>'
-                            )
-                            brow += [datestart, utcstart, utcend, tflag]
-
-                        except:
-                            exc_type, exc_value, exc_traceback = sys.exc_info()
-                            traceback.print_tb(
-                                exc_traceback, limit=1, file=sys.stdout
-                            )
-                            traceback.print_exc(file=sys.stdout)
-                            print("Run =", runname)
-                            nhtml.write(
-                                '<td class="cen">----</td><td class="cen">----</td><td class="cen">----</td><td>NOK</td>'
-                            )
-                            brow += 4*[None]
-
-                            # set start to a bad value for later
-                            tstamp_start = None
-
-                        # sample time
-                        nhtml.write(f'<td class="right">{tsamp:.3f}</td>')
-                        brow.append(round(tsamp,4))
-
-                        # duty cycle
-                        nhtml.write(f'<td class="right">{duty:.1f}</td>')
-                        brow.append(round(duty,1))
+                        # cadence time
+                        nhtml.write(f'<td class="right">{cadence:.3f}</td>')
+                        brow.append(round(cadence,4))
 
                         # number of frames
                         nhtml.write(f'<td class="right">{ntotal:d}</td>')
                         brow.append(ntotal)
 
                         # total exposure time
-                        ttime = int(round(ttotal))
+                        ttime = int(round(ttime))
                         nhtml.write(f'<td class="right">{ttime:d}</td>')
                         brow.append(ttime)
 
@@ -778,13 +769,13 @@ def ulogger(args=None):
                         brow.append(itype)
 
                         # readout mode
-                        nhtml.write(f'<td class="cen">{TRANSLATE_MODE[rtime.mode]}</td>')
-                        brow.append(TRANSLATE_MODE[rtime.mode])
+                        nhtml.write(f'<td class="cen">{rtime.mode}</td>')
+                        brow.append(rtime.mode)
 
-                        # cycle nums
-                        skips = ",".join([str(nskip) for nskip in nskips])
-                        nhtml.write(f'<td class="cen">{skips}</td>')
-                        brow.append(skips)
+                        # nblue
+                        nblue = hd['NBLUE']
+                        nhtml.write(f'<td class="cen">{nblue}</td>')
+                        brow.append(nblue)
 
                         # window formats
                         win1 = rtime.wforms[0]
@@ -798,86 +789,33 @@ def ulogger(args=None):
                         brow.append(win2)
 
                         # binning
-                        binning = f'{rtime.xbin:d}x{rtime.ybin:d}'
+                        binning = f'{rtime.xbin}x{rtime.ybin}'
                         nhtml.write(f'<td class="cen">{binning}</td>')
                         brow.append(binning)
 
                         # clear
-                        clear = "On" if rtime.clear else "Off"
+                        clear = "On" if hd['CLEAR'] else "Off"
                         nhtml.write(f'<td class="cen">{clear}</td>')
                         brow.append(clear)
 
-                        # dummy output in use
-                        dummy = "On" if rtime.dummy else "Off"
-                        nhtml.write(f'<td class="cen">{dummy}</td>')
-                        brow.append(dummy)
-
-                        # LED on
-                        led = hd.get("ESO DET EXPLED", "----")
-                        led = "On" if led == 1 else "Off"
-
-                        nhtml.write(f'<td class="cen">{led}</td>')
-                        brow.append(led)
-
-                        # over-scan
-                        oscan = "On" if rtime.oscan else "Off"
-                        nhtml.write(f'<td class="cen">{oscan}</td>')
-                        brow.append(oscan)
-
-                        # pre-scan
-                        pscan = "On" if rtime.pscan else "Off"
-                        nhtml.write(f'<td class="cen">{pscan}</td>')
-                        brow.append(pscan)
-
-                        # Nodding
-                        nod = hd.get("ESO DET SEQ1 TRIGGER", 0)
-                        nod = "On" if nod == 1 else "Off"
-                        nhtml.write(f'<td class="cen">{nod}</td>')
-                        brow.append(nod)
-
                         # CCD speed
-                        speed = hd.get("ESO DET SPEED", "----")
-                        if speed == 0:
-                            speed = "Slow"
-                        elif speed == 1:
-                            speed = "Fast"
+                        speed = hd['GAINSPED']
                         nhtml.write(f'<td class="cen">{speed}</td>')
                         brow.append(speed)
 
-                        # Fast clocks
-                        fclock = hd.get("ESO DET FASTCLK", "----")
-                        if fclock == 0:
-                            fclock = "No"
-                        elif fclock == 1:
-                            fclock = "Yes"
-                        nhtml.write(f'<td class="cen">{fclock}</td>')
-                        brow.append(fclock)
-
-                        # Tbytes problem
-                        tbytes = "OK" if rtime.ntbytes == 36 else "NOK"
-                        nhtml.write(f'<td class="cen">{tbytes}</td>')
-                        brow.append(tbytes)
-
                         # Focal plane slide
-                        fpslide = hd.get("FPslide", "----")
+                        fpslide = hd.get('SLIDEPOS','UNKNOWN')
                         nhtml.write(f'<td class="cen">{fpslide}</td>')
                         brow.append(fpslide)
 
-                        # instr PA [GTC]
-                        instpa = hd.get("INSTRPA", "----")
-                        nhtml.write(f'<td class="cen">{instpa}</td>')
-                        brow.append(instpa)
-
-                        # CCD temps
-                        t1,t2,t3,t4,t5 = hd.get("CCD1TEMP", 0.0), hd.get("CCD2TEMP", 0.0), \
-                            hd.get("CCD3TEMP", 0.0), hd.get("CCD4TEMP", 0.0), hd.get("CCD5TEMP", 0.0),
-
-                        ccdtemps = f'{t1:.1f},{t2:.1f},{t3:.1f},{t4:.1f},{t5:.1f}'
-                        nhtml.write(f'<td class="cen">{ccdtemps}</td>')
-                        brow.append(ccdtemps)
+                        if instrument == 'ULTRASPEC':
+                            # instr PA [GTC]
+                            instpa = hd.get("INSTRPA", "----")
+                            nhtml.write(f'<td class="cen">{instpa}</td>')
+                            brow.append(instpa)
 
                         # Observers
-                        observers = hd.get("OBSERVER", "----")
+                        observers = hd.get("OBSERVERS", "----")
                         nhtml.write(f'<td class="cen">{observers}</td>')
                         brow.append(observers)
 
@@ -887,12 +825,12 @@ def ulogger(args=None):
                         brow.append(pi)
 
                         # Program ID
-                        pid = hd.get("PROGRM", "----")
+                        pid = hd.get("ID", "----")
                         nhtml.write(f'<td class="left">{pid}</td>')
                         brow.append(pid)
 
-                        # run number again. Add null to the spreadsheet
-                        # to allow a formula
+                        # run number again. Add null to the
+                        # spreadsheet to allow a formula
                         nhtml.write(f'<td class="left">{runno}</td>')
                         brow.append('NULL')
 
@@ -911,11 +849,11 @@ def ulogger(args=None):
                         brow.append(comments)
 
                         # Finally tack on extra positional stuff for the spreadsheet only
-                        if tstamp_start:
+                        if tstart:
 
                             if ra != '' and dec != '':
                                 # Target stuff. Calculate the Alt & Az at start, middle, end
-                                frames = AltAz(obstime=[tstamp_start,tstamp_mid,tstamp_end], location=observatory)
+                                frames = AltAz(obstime=[tstart,tmid,tend], location=observatory)
                                 points = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg)).transform_to(frames)
                                 alts = [round(alt,1) for alt in points.alt.degree]
                                 azs = [round(az,1) for az in points.az.degree]
@@ -931,19 +869,18 @@ def ulogger(args=None):
                             else:
                                 brow += 8*[None]
 
-
                             # Now some data on the altitude of the Sun & Moon
-                            frame = AltAz(obstime=tstamp_start, location=observatory)
-                            sun_start = get_sun(tstamp_start).transform_to(frame)
-                            moon_start = get_moon(tstamp_start).transform_to(frame)
+                            frame = AltAz(obstime=tstart, location=observatory)
+                            sun_start = get_sun(tstart).transform_to(frame)
+                            moon_start = get_moon(tstart).transform_to(frame)
 
                             # end
-                            frame = AltAz(obstime=tstamp_end, location=observatory)
-                            sun_end = get_sun(tstamp_start).transform_to(frame)
-                            moon_end = get_moon(tstamp_start).transform_to(frame)
+                            frame = AltAz(obstime=tend, location=observatory)
+                            sun_end = get_sun(tend).transform_to(frame)
+                            moon_end = get_moon(tend).transform_to(frame)
 
                             # Lunar phase at the mid-point only.
-                            moon_phase = moon_phase_angle(tstamp_mid).value / np.pi
+                            moon_phase = moon_phase_angle(tmid).value / np.pi
 
                             # write out info
                             brow += [
@@ -970,7 +907,7 @@ def ulogger(args=None):
         ihtml.write(INDEX_FOOTER)
 
     # write out the css file
-    css = os.path.join(root, "hiper.css")
+    css = os.path.join(root, "ultra.css")
     with open(css, "w") as fout:
         fout.write(CSS)
 
@@ -988,9 +925,197 @@ def ulogger(args=None):
     )
     ptable = pd.DataFrame(barr, columns=colnames)
 
-    spreadsheet = os.path.join(root, "hipercam-log.xlsx")
+    spreadsheet = os.path.join(root, f"{linstrument}-log.xlsx")
 
     format_hlogger_table(spreadsheet, ptable)
 
     print(f'\nAll done. Look in {root} for the outputs.')
+
+
+class Targets(dict):
+    """Class to read and store the target positions and regular expressions.
+
+    It is a dictionary keyed on target names. Each item is in turn a
+    dictionary with the following keys:
+
+    'ra'     -- RA (decimal hours)
+    'dec'    -- Dec (decimal degrees)
+    'names'  -- A list of matching names. These are names from the logs with
+                their typos etc that will be identified with the object.
+
+    """
+
+    def __init__(self, *fnames):
+        """Constructs a new Targets object. Makes empty dictionaries if none
+        found and reports an error. Multiple file names can be
+        specified; any which do not exist will be skipped.  The files
+        must have the format
+
+        name hh:mm:ss.ss [+-]dd:mm:ss.s lname1 lname2 .. lnameN
+
+        where name is the name that will be attached to the target,
+        and lname1, lname2 etc, are the names in the logs that will be
+        matched to give name. The set of 'name's must be unique as
+        must the set of 'lname's
+
+        The RA and Dec are assumed to be ICRS. Any '~' in either name
+        or lname will be replaced by single spaces.
+
+        An attribute called lnames is maintained which is a dictionary
+        keyed on the lnames and translating to the name
+        """
+        self.lnames = {}
+        for fname in fnames:
+            if os.path.isfile(fname):
+                with open(fname) as f:
+                    for line in f:
+                        if not line.startswith('#') and not line.isspace():
+                            tokens = line.strip().split()
+                            if len(tokens) < 4:
+                                # must have at least one log name
+                                raise Exception('Targets: invalid target, file = ' + fname + ', line = ' + line)
+
+                            # prepare data
+                            target,ra,dec = tokens[:3]
+                            target = target.replace('~',' ')
+                            ra,dec,system = subs.str2radec(ra + ' ' + dec)
+                            names = [token.replace('~',' ') for token in tokens[3:]]
+
+                            # check that, if the target has been
+                            # entered before, as is possible, that it
+                            # is self-consistent
+                            if target in self:
+                                entry = self[target]
+                                if entry['ra'] != ra or entry['dec'] != dec:
+                                    raise Exception(
+                                        'Targets: file = ' + fname + ', line = ' + line + \
+                                        '\nTarget =' + target + ' already has an entry but with a different position.'
+                                    )
+
+                            # add names to the dictionary maintained to check for uniqueness
+                            for name in names:
+                                if name in self.lnames:
+                                    raise Exception(
+                                        'Targets: file = ' + fname + ', line = ' + line + \
+                                        '\nName = ' + name + ' already exists.'
+                                    )
+                                self.lnames[name] = target
+
+                            self[target] = {'ra' : ra, 'dec' : dec, 'names' : names}
+
+                print(len(self),'targets after loading',fname)
+            else:
+                print('No targets loaded from',fname,'as it does not exist.')
+
+    def write(self, fname):
+        """
+        Write targets out to disk file fname.
+        """
+
+        # write in RA order
+        ras   = dict([(targ,entry['ra']) for targ, entry in self.items()])
+        targs = sorted(ras, key=ras.get)
+
+        with open(fname,'w') as f:
+            f.write("""
+#
+# File of targets written by ulogger.Targets.write
+#
+
+""")
+
+            for targ in targs:
+                entry = self[targ]
+                pos = subs.d2hms(entry['ra'],dp=2) + '   ' + subs.d2hms(entry['dec'],dp=1,sign=True)
+                f.write('%-32s %s' % (targ.replace(' ','~'),pos))
+                lnames = ' '.join([name.replace(' ','~') for name in entry['names']])
+                f.write(' ' + lnames + '\n')
+
+    def tohtml(self, fname):
+        """
+        Write targets out to an html file (give full name)
+        """
+
+        # write in RA order
+        ras   = dict([(targ,entry['ra']) for targ, entry in self.items()])
+        targs = sorted(ras, key=ras.get)
+
+        with open(fname,'w') as f:
+            f.write("""
+<html>
+<head>
+<title>Complete list of ULTRACAM targets</title>
+<link rel="stylesheet" type="text/css" href="ultracam_logs.css" />
+</head>
+<body>
+<h1>RA-ordered list of ULTRACAM targets</h1>
+
+<p> 
+This table shows the identifier name, position and matching strings used
+to attach coordinates to objects in the ULTRACAM database. Since ULTRACAM does
+not talk to telescopes, this is pretty much all we have to go on. If you spot
+problems please let me (trm) know about them. Matching is exact and case-sensitive.
+The positions are ICRS. Where you see "~" in the matching strings, they actually 
+count as blanks. If you are searching for a name to use for a previously observed
+object while observing which will be recognised (good for you), use one of the 
+match strings rather than the ID string.
+
+<p>
+You can search for runs on particular positions <a href="ulogs.php">here</a>. Clicking
+on the IDs should take you to a list of runs. If it returns no runs, try reducing the
+minimum run length.
+
+<p>
+<table>
+<tr><th class="left">ID</th><th>RA</th><th>Dec</th><th class="left">Matching strings</th></tr>
+""")
+
+            for targ in targs:
+                entry = self[targ]
+                rad = entry['ra']
+                decd = entry['dec']
+                ra = subs.d2hms(rad,sep=' ')
+                dec = subs.d2hms(decd,sep=' ',sign=True)
+                req = urllib.urlencode(
+                    {'slimits' : 'manual', 'target' : '', 'delta' : 2., 'RA1' : rad-0.01, \
+                     'RA2' : rad + 0.01, 'Dec1' : decd - 0.01, 'Dec2' : decd + 0.01, 'emin' : 10.}
+                )
+                f.write(
+                    f'<tr><td class="left"><a href="ulogs.php?{req}">{targ}<td>{ra}</td><td>{dec}</td><td class="left">'
+                )
+                lnames = ' '.join([name.replace(' ','~') for name in entry['names']])
+                f.write(lnames + '</td></tr>\n')
+                f.write('</table>\n</body>\n</html>\n')
+
+def load_skip_fail():
+    """Looks for a file called SKIP_TARGETS containing a list of target
+    names to skip as far as target position lookup, and another called
+    FAILED_TARGETS of targets that have failed target lokup. Returns
+    a list of names to skip and a dictionary keyed by target name that
+    returns a tuple containing run name, date and run number of the failed
+    name.
+    """
+    if os.path.exists('SKIP_TARGETS'):
+        with open('SKIP_TARGETS') as fp:
+            skip_targets = fp.readlines()
+            skip_targets = [name.strip() for name in sskip if not name.startswith('#')]
+        print(f'Loaded {len(skip_targets)} target names to skip from SKIP_TARGETS')
+    else:
+        print('No file called SKIP_TARGETS')
+        skip_targets = []
+
+    failed_targets = {}
+    if os.path.exists('FAILED_TARGETS'):
+        with open('FAILED_TARGETS') as fp:
+            for line in fp:
+                if not line.startswith('#'):
+                    target,rdir,ndir,run = line.split()
+                    failed_targets[target] = (rdir,ndir,run)
+                    skip_targets.append(target.replace('~',' '))
+
+        print(f'Loaded {len(failed_targets)} target names from FAILED_TARGETS')
+    else:
+        print('No file called FAILED_TARGETS')
+
+    return (skip_targets, failed_targets)
 
