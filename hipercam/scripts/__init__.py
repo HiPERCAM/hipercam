@@ -42,6 +42,7 @@ from .redanal import redanal
 from .splice import splice
 from .tbytes import tbytes
 from .tanalysis import tanalysis
+from .ulogger import ulogger
 from .uls import uls
 
 __all__ = [
@@ -85,6 +86,7 @@ __all__ = [
     "sub",
     "tanalysis",
     "tbytes",
+    "ulogger",
     "uls",
 ]
 
