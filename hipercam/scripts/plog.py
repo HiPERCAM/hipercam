@@ -18,7 +18,7 @@ from hipercam.cline import Cline
 
 def plog(args=None):
     """``plog log [device width height] ccd1 aper1 param1 ccd2 (aper2 param2
-    scheme)``
+    scheme) [title]``
 
     Provides quick-look plots of HiPERCAM |reduce| logs.
 
@@ -38,33 +38,36 @@ def plog(args=None):
          plot height (inches). Set = 0 to let the program choose. BOTH
          width AND height must be non-zero to have any effect
 
-      ccd1 : string
+      ccd1 : str
          first CCD to consider, e.g. '1'
 
-      aper1 : string
+      aper1 : str
          first aperture to consider
 
-      param1 : string
+      param1 : str
          first parameter to consider. Choices are 'x' = X position,
          'y' = Y position, 'f' = FWHM, 'b' = Moffat beta, 's' = sky.
 
-      ccd2 : string
+      ccd2 : str
          second CCD to consider; '!' to ignore. Can be (and typically
          would be) the same as ccd1.
 
-      aper2 : string [if ccd2 != '!']
+      aper2 : str [if ccd2 != '!']
          second aperture to consider
 
-      param2 : string [if ccd2 != '!']
+      param2 : str [if ccd2 != '!']
          second parameter. See param1 for choices
 
-      scheme : string [if ccd2 != '!']
+      scheme : str [if ccd2 != '!']
          how to plot if both apertures are chosen. Choices:
 
             | 'd' = difference, i.e. plot 1-2
             | 'b' = both plotted on same panel
             | 'r' = ratio, i.e. 1 / 2, good for relative photom
             | 's' = scatter plot, 2 vs 1.
+
+      title : str [hidden]
+         plot title. Defaults to the run number if not specified
 
     .. Note::
 
@@ -91,6 +94,7 @@ def plog(args=None):
         cl.register("aper2", Cline.LOCAL, Cline.PROMPT)
         cl.register("param2", Cline.LOCAL, Cline.PROMPT)
         cl.register("scheme", Cline.LOCAL, Cline.PROMPT)
+        cl.register("title", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         log = cl.get_value(
@@ -133,6 +137,9 @@ def plog(args=None):
                 "b",
                 lvals=("b", "d", "r", "s"),
             )
+
+        cl.set_default("title", log)
+        title = cl.get_value("title", "plot title", "Plot Title")
 
     # load the reduce log
     hlog = hcam.hlog.Hlog.read(log)
@@ -185,7 +192,7 @@ def plog(args=None):
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title(log)
+    plt.title(title)
 
     if device == "term":
         plt.show()
