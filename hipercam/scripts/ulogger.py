@@ -620,12 +620,7 @@ def ulogger(args=None):
 
                     # read and store the hand written log
                     handlog = os.path.join(night, f"{night}.dat")
-                    with open(handlog) as fin:
-                        hlog = {}
-                        for line in fin:
-                            if line.startswith("run"):
-                                arr = line.split()
-                                hlog[arr[0]] = " ".join(arr[1:])
+                    hlog = Log(handlog)
 
                     # load all the run names
                     runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
@@ -873,7 +868,10 @@ def ulogger(args=None):
                         brow = [runno,]
 
                         # object name
-                        target = hd["TARGET"]
+                        if hlog.format == 1:
+                            target = hlog.target[run]
+                        else:
+                            target = hd["TARGET"]
                         nhtml.write(f'<td class="left">{target}</td>')
                         brow.append(target)
 
@@ -939,7 +937,10 @@ def ulogger(args=None):
                         brow.append(ttime)
 
                         # filters used
-                        filters = hd.get("filters", "----")
+                        if hlog.format == 1:
+                            filters = hlog.filters.get(run, "----")
+                        else:
+                            filters = hd.get("filters", "----")
                         nhtml.write(f'<td class="cen">{filters}</td>')
                         brow.append(filters)
 
@@ -1040,7 +1041,7 @@ def ulogger(args=None):
                             else:
                                 pcomm += ". "
 
-                        lcomm = hlog.get(run,'No comment in log')
+                        lcomm = hlog.comment.get(run,'No comment in log')
                         comments = f'{pcomm}{lcomm}'
                         nhtml.write(f'<td class="left">{comments}</td>')
                         brow.append(comments)
@@ -1085,6 +1086,60 @@ def ulogger(args=None):
     format_ulogger_table(spreadsheet, ptable, linstrument)
 
     print(f'\nAll done. Look in {root} for the outputs.')
+
+
+
+class Log(object):
+    """
+    Class to read and store log file data. These come in two formats:
+
+    1) Old style: run, target name, filters, comment
+    2) New style: run, comment (target names are in the xml files)
+
+    The class just stores the data in a couple of dictionaries
+    'comment' and 'target'; 'format' is an integer specifying
+    the format as above. 'target' is blank in the case of format == 2.
+    """
+
+    def __init__(self, fname):
+        """
+        Constructs a new Log given a file. Makes empty
+        dictionaries if none found and reports an error
+        """
+        self.format  = 2
+        self.target  = {}
+        self.filters = {}
+        self.comment = {}
+
+        try:
+            rec    = re.compile('file\s+object\s+filter', re.I)
+            old    = re.compile('\s*(\S+)\s+(\S+)\s+(.*)$')
+            oldii  = re.compile('\s*(\S+)\s*$')
+            with open(fname) as f:
+                for line in f:
+                    m = rec.search(line)
+                    if m:
+                        self.format = 1
+                        if len(self.comment):
+                            raise Exception('Error in night log = ' + fname + ', line = ' + line)
+
+                    if line.startswith('run'):
+                        run = line[:6]
+                        if self.format == 2:
+                            self.comment[run] = line[6:].strip()
+                        else:
+                            m = old.search(line[6:])
+                            if m:
+                                self.target[run]  = m.group(1)
+                                self.filters[run] = m.group(2)
+                                self.comment[run] = m.group(3)
+                            else:
+                                m = oldii.search(line[6:])
+                                if m:
+                                    self.target[run]  = m.group(1)
+
+        except Exception as err:
+           sys.stderr.write('Night log problem:' + str(err) + '\n')
 
 
 class Targets(dict):
