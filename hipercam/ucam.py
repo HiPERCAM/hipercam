@@ -618,7 +618,7 @@ class Rhead:
             nx = self.win[0].nx
             ny = self.win[0].ny
 
-            self.wforms.append(f"{xls},{xsr},{ys},{nx},{ny}")
+            self.wforms.append(f"{xsl},{xsr},{ys},{nx},{ny}")
 
         else:
             self.wforms.append("---TBD---")
