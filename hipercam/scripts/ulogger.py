@@ -8,12 +8,12 @@ import math
 
 import numpy as np
 import pandas as pd
-from astropy.time import Time, TimeDelta
+from astropy.time import Time, TimeDelta, TimeISO
 from astropy.coordinates import get_sun, get_moon, EarthLocation, SkyCoord, AltAz
 import astropy.units as u
 
 import hipercam as hcam
-from hipercam.utils import format_hlogger_table
+from hipercam.utils import format_ulogger_table
 
 __all__ = [
     "ulogger",
@@ -39,7 +39,7 @@ INDEX_HEADER = """<html>
 </head>
 
 <body>
-<h1>HiPERCAM data logs</h1>
+<h1>{instrument} data logs</h1>
 
 <p> These on-line logs summarise all {instrument} runs. They were
 automatically generated from the data files and hand-written logs.
@@ -85,7 +85,7 @@ for ( i = 0; i < tbl.rows.length; i++ )
 }
 
 function shrink () {
-var hcols = [4, 6, 7, 9, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 34];
+var hcols = [4, 9];
 
 var tbl = document.getElementById( "tbl" );
 var i;
@@ -119,17 +119,18 @@ function toggleAutoRefresh(cb) {
 window.onload=checkReloading;
 </script>
 
-<link rel="stylesheet" type="text/css" href="hiper.css" />
+<link rel="stylesheet" type="text/css" href="ultra.css" />
 """
 
-NIGHT_HEADER2 = """<title>HiPERCAM log {0:s}</title>
+NIGHT_HEADER2 = """<title>{instrument} log {date}</title>
 </head>
 
 <body>
-<h1>HiPERCAM log {0:s}</h1>
+
+<h1>{instrument} log {date}</h1>
 
 <p>
-The table below lists information on runs from the night starting on {0:s}.
+The table below lists information on runs from the night starting on {date}.
 See the end of the table for some more details on the meanings of the various columns.
 You can hide any column using the buttons in the top line and "shrink" will reduce clutter
 to focus on those of most interest.
@@ -170,62 +171,38 @@ TABLE_HEADER = """
 <td><button id="hidden21" onclick="hide(21)"></button></td>
 <td><button id="hidden22" onclick="hide(22)"></button></td>
 <td><button id="hidden23" onclick="hide(23)"></button></td>
-<td><button id="hidden24" onclick="hide(24)"></button></td>
-<td><button id="hidden25" onclick="hide(25)"></button></td>
-<td><button id="hidden26" onclick="hide(26)"></button></td>
-<td><button id="hidden27" onclick="hide(27)"></button></td>
-<td><button id="hidden28" onclick="hide(28)"></button></td>
-<td><button id="hidden29" onclick="hide(29)"></button></td>
-<td><button id="hidden30" onclick="hide(30)"></button></td>
-<td><button id="hidden31" onclick="hide(31)"></button></td>
-<td><button id="hidden32" onclick="hide(32)"></button></td>
-<td><button id="hidden33" onclick="hide(33)"></button></td>
-<td><button id="hidden34" onclick="hide(34)"></button></td>
-<td align="left"><button id="hidden35" onclick="hide(35)"></button></td>
+<td align="left"><button id="hidden24" onclick="hide(24)"></button></td>
 </tr>
 
 <tr>
 <th class="left">Run<br>no.</th>
 <th class="left">Target<br>name</th>
-<th class="left">RA (J2000)<br>(telescope)</th>
-<th class="left">Dec&nbsp;(J2000)<br>(telescope)</th>
+<th class="left">RA (J2000)</th>
+<th class="left">Dec&nbsp;(J2000)</th>
 <th class="cen">Date<br>(start)</th>
 <th class="cen">Start</th>
 <th class="cen">End</th>
-<th class="cen">Time<br>flag</th>
 <th class="right">Cadence<br>(sec)</th>
-<th class="right">Duty<br>cycle, %</th>
 <th class="right">Nframe</th>
+<th class="right">Nok</th>
 <th class="right">Dwell<br>(sec)</th>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
-<th class="cen">Nskips</th>
+<th class="left">Nb</th>
 <th class="cen">
-xll,xlr,xul,xur,ys,nx,ny<br>
-xsl,xsr,ys,nx,ny&nbsp;[DRIFT]<br>
-Quad1</th>
-<th class="cen">
-xll,xlr,xul,xur,ys,nx,ny<br>
-xsl,xsr,ys,nx,ny&nbsp;[DRIFT]<br>
-Quad2</th>
+xl1,xr1,ys1,nx1,ny1<br>
+xl2,xr2,ys2,nx2,ny2<br>
+xl3,xr3,ys3,nx3,ny3</th>
 <th class="cen">XxY<br>bin</th>
 <th class="cen">Clr</th>
-<th class="cen">Dum</th>
-<th class="cen">LED</th>
-<th class="cen">Over-<br>scan</th>
-<th class="cen">Pre-<br>scan</th>
-<th class="cen">Nod</th>
-<th class="cen">Readout<br>speed</th>
-<th class="cen">Fast<br>clocks</th>
-<th class="cen">Tbytes</th>
+<th class="cen">Read<br>speed</th>
 <th class="cen">FPslide</th>
-<th class="cen">Instr.<br>PA</th>
-<th class="cen">CCD<br>temps</th>
 <th class="cen">Observers</th>
 <th class="left">PI</th>
 <th class="left">PID</th>
 <th class="left">Run<br>no.</th>
+<th class="left">Tel</th>
 <th class="left">Comment</th>
 </tr>
 """
@@ -235,25 +212,15 @@ NIGHT_FOOTER = """
 <p> 'Instr. PA' is the instrumental PA. On the GTC this is measured
 East of North in degrees, but has an offset which may vary somewhat
 from night-to-night. 'Clr' indicates whether clears were enabled;
-'Dum' whether the dummy output was being used to reduce pickup noise;
-'Over-scan' and 'Pre-scan' whether the over- and pre-scans were on or
-off; 'Nod' whether each exposure was paused to allow the telescope to
-be moved. 'Time flag' is set to NOK (not OK) if the number of
-satellites == -1 and the GPS was not synced or if the time that came
-back could not be understood. 'Read mode' is the readout mode which
-can be one of 4 options, namely 'FULL' for a full frame, 1-WIN or
-2-WIN for standard windows mode, and 'DRIFT' for drift-mode. The
-'xsll,xslr,..' column gives the 7 parameters that appear at the bottom
-of the top-right window of hdriver (or 5 parameters in DRIFT mode).
-In hdriver these are called xsll, xslr, xsul, xsur, ys, nx and ny (or
-xsl, xsr, ys, nx, ny in drift mode), and there are up to two sets of
-them. In fullframe mode, these parameters do not need to be
-specified. 'Nskips' refers to how often each CCD is read out. The
-numbers correspond to nu, ng, nr, ni, nz listed in hdriver. 'Duty
-cycle' shows the fractional time collecting photons; the 'cadence' is
-the (minimum) time between exposures, minimised over the different
-arms. 'Tbytes' says whether there are the correct number of timing
-bytes (36).  </p>
+'Read mode' is the readout mode which can be one of 4 options, namely
+'FULL' for a full frame, 1-WIN or 2-WIN for standard windows mode, and
+'DRIFT' for drift-mode. The 'xsll,xslr,..' column gives the 7
+parameters that appear at the bottom of the top-right window of
+hdriver (or 5 parameters in DRIFT mode).  In hdriver these are called
+xsll, xslr, xsul, xsur, ys, nx and ny (or xsl, xsr, ys, nx, ny in
+drift mode), and there are up to two sets of them. In fullframe mode,
+these parameters do not need to be specified. The 'cadence' is the
+time between exposures.  </p>
 
 <address>Tom Marsh, Warwick</address>
 </body>
@@ -275,8 +242,8 @@ MONTHS = {
     "12": "December",
 }
 
-# HiPERCAM CSS to define the look of the log web pages
-# This is written to 'hiper.css' and referred to in the
+# CSS to define the look of the log web pages
+# This is written to 'ultra.css' and referred to in the
 # html pages
 CSS = """
 
@@ -467,8 +434,6 @@ def correct_ra_dec(ra, dec):
 
     return (ra, dec)
 
-observatory = EarthLocation.of_site('Roque de los Muchachos')
-
 def ulogger(args=None):
     """``ulogger``
 
@@ -506,7 +471,7 @@ def ulogger(args=None):
     elif cwd.find("ultraspec") > -1:
         instrument = "ULTRASPEC"
     else:
-        print("** ulogger: cannot finf either ultracam or ultraspec in path")
+        print("** ulogger: cannot find either ultracam or ultraspec in path")
         print("ulogger aborted", file=sys.stderr)
         return
     linstrument = instrument.lower()
@@ -585,6 +550,16 @@ def ulogger(args=None):
             )
             ihtml.write("\n<p>\n<table>\n")
 
+            # set site
+            if telescope == 'WHT':
+                observatory = EarthLocation.of_site('Roque de los Muchachos')
+            elif telescope == 'VLT':
+                observatory = EarthLocation.of_site('Cerro Paranal')
+            elif telescope == 'NTT':
+                observatory = EarthLocation.of_site('Cerro La Silla')
+            else:
+                raise ValueError('did not recognise telescope =',telescope)
+
             # get night directories
             nnames = [
                 os.path.join(rname, ndir)
@@ -605,6 +580,10 @@ def ulogger(args=None):
             for nn, nname in enumerate(nnames):
 
                 print(f"  night {nname}")
+
+                # create directory for any meta info such as the times
+                meta = os.path.join(nname, 'meta')
+                os.makedirs(meta, exist_ok=True)
 
                 links = '\n<p><a href="index.html">Run index</a>'
                 if nn > 0:
@@ -635,7 +614,7 @@ def ulogger(args=None):
 
                     # write header of night file
                     nhtml.write(NIGHT_HEADER1)
-                    nhtml.write(NIGHT_HEADER2.format(date))
+                    nhtml.write(NIGHT_HEADER2.format(date=date,instrument=instrument))
                     nhtml.write(links)
                     nhtml.write(TABLE_TOP)
 
@@ -652,28 +631,225 @@ def ulogger(args=None):
                     runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
                     runs.sort()
 
-                    # now wind through the runs getting basic info and
-                    # writing a row of info to the html file for the night
-                    # in question.
+                    ####################################
+                    #
+                    # Get or create timing info
+
+                    times = os.path.join(meta, 'times')
+                    tdata = {}
+                    if os.path.exists(times):
+                        # pre-existing file found
+                        with open(times) as tin:
+                            for line in tin:
+                                arr = line.split()
+                                tdata[arr[0]] = [
+                                    val if val != 'UNDEF' else '' for val in arr[1:]
+                                ]
+                        print('Read timing data from',times)
+
+                    else:
+                        # need to generate timing data, which can take a while so
+                        # we store the results to a disk file for fast lookup later.
+                        with open(times,'w') as tout:
+                            for run in runs:
+                                dfile = os.path.join(night, run)
+                                try:
+                                    rtime = hcam.ucam.Rtime(dfile)
+                                    first = True
+                                    for n, tdat in enumerate(rtime):
+                                        time, tinfo = tdat[:2]
+                                        mjd = time.mjd
+                                        ts = Time(mjd, format="mjd", precision=2)
+                                        utc = ts.hms_custom
+                                        ok = True if time.good else False
+                                        expose = time.expose
+                                        if first and ok:
+                                            first = False
+                                            ut_start = utc
+                                            mjd_start = mjd
+                                            n_start = n
+
+                                        if ok:
+                                            ut_end = utc
+                                            mjd_end = mjd
+                                            n_end = n
+
+                                    ntotal = n
+                                    if first:
+                                        nok = 0
+                                        tdata[run] = ['','','','',nok,ntotal]
+                                        tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF {nok} {ntotal}\n')
+                                    else:
+                                        nok = n_end-n_start+1
+                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,nok,ntotal]
+                                        tout.write(f'{run} {ut_start} {mjd_start} {ut_end} {mjd_end} {nok} {ntotal}\n')
+
+                                except hcam.ucam.PowerOnOffError:
+                                    # boring
+                                    tdata[run] = ['power-on-off',]
+                                    tout.write(f'{run} power-on-off\n')
+
+                                except:
+                                    # some other failure
+                                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                                    traceback.print_tb(
+                                        exc_traceback, limit=1, file=sys.stderr
+                                    )
+                                    traceback.print_exc(file=sys.stderr)
+                                    print("Problem on run = ", dfile)
+
+                                    # Load of undefined
+                                    tdata[run] = 6*['']
+                                    tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF UNDEF UNDEF\n')
+
+                        print('Written timing data to',times)
+
+
+                    ###############################
+                    # Get or create positional info
+
+                    posdata = os.path.join(meta, 'posdata')
+                    pdata = {}
+                    if os.path.exists(posdata):
+                        # pre-existing file found
+                        with open(posdata) as pin:
+                            for line in pin:
+                                arr = line.split()
+                                pdata[arr[0]] = [
+                                    val if val != 'UNDEF' else '' for val in arr[1:]
+                                ]
+                        print('Read position data from',posdata)
+
+                    else:
+                        # need to generate sun / moon / airmass data
+                        # which takes a while so store the results
+                        # to a disk file for fast lookup in the future. Only
+                        # bother with runs for which we can find a position
+                        with open(posdata,'w') as pout:
+                            for run in runs:
+
+                                if len(tdata[run]) == 1:
+                                    # means its a power on/off
+                                    continue
+
+                                # open the run file as an R
+                                runname = os.path.join(night, run)
+                                try:
+                                    rhead = hcam.ucam.Rhead(runname)
+                                except:
+                                    continue
+
+                                target = rhead.header["TARGET"]
+
+                                # RA, Dec lookup
+                                if target in skip_targets:
+                                    ra, dec = 'UNDEF', 'UNDEF'
+                                elif target in targets.lnames:
+                                    dct = targets(target)
+                                    ra, dec = dct['ra'], dct['dec']
+                                elif target in auto_targets.lnames:
+                                    dct = auto_targets(target)
+                                    ra, dec = dct['ra'], dct['dec']
+                                else:
+                                    # attempt simbad lookup here
+                                    ra, dec = 'UNDEF', 'UNDEF'
+
+                                # start accumulating stuff to write out
+                                arr = [ra, dec]
+
+                                # time-dependent info
+                                ut_start, mjd_start, ut_end, mjd_end, nok, ntotal = tdata[run]
+                                try:
+
+                                    mjd_start = float(mjd_start)
+                                    mjd_end = float(mjd_end)
+                                    tstart = Time(mjd_start, format='mjd')
+                                    tmid = Time((mjd_start+mjd_end)/2, format='mjd')
+                                    tend = Time(mjd_end, format='mjd')
+
+                                    if ra != 'UNDEF' and dec != 'UNDEF':
+                                        # Calculate the Alt, Az at
+                                        # start, middle, end
+                                        frames = AltAz(obstime=[tstart,tmid,tend], location=observatory)
+                                        points = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg)).transform_to(frames)
+                                        alts = [round(alt,1) for alt in points.alt.degree]
+                                        azs = [round(az,1) for az in points.az.degree]
+                                        arr += alts + azs
+
+                                        # Now calculate the angular
+                                        # distance from the Sun and
+                                        # Moon at the mid-time
+                                        sun_mid = get_sun(tmid).transform_to(frames[1])
+                                        moon_mid = get_moon(tmid).transform_to(frames[1])
+                                        point_mid = points[1]
+                                        sun_dist = point_mid.separation(sun_mid).degree
+                                        moon_dist = point_mid.separation(moon_mid).degree
+                                        arr += [round(sun_dist,1),round(moon_dist,1)]
+
+                                    else:
+                                        arr += 8*['UNDEF']
+
+                                    # Now some data on the altitude of the Sun & Moon
+                                    frame = AltAz(obstime=tstart, location=observatory)
+                                    sun_start = get_sun(tstart).transform_to(frame)
+                                    moon_start = get_moon(tstart).transform_to(frame)
+
+                                    # end
+                                    frame = AltAz(obstime=tend, location=observatory)
+                                    sun_end = get_sun(tend).transform_to(frame)
+                                    moon_end = get_moon(tend).transform_to(frame)
+
+                                    # Lunar phase at the mid-point only.
+                                    moon_phase = moon_phase_angle(tmid).value / np.pi
+
+                                    arr += [
+                                        round(sun_start.alt.degree,1), round(sun_end.alt.degree,1),
+                                        round(moon_start.alt.degree,1), round(moon_end.alt.degree,1),
+                                        round(moon_phase,2),
+                                    ]
+
+                                except:
+                                    # write out info
+                                    arr += 13*['UNDEF']
+
+                                pout.write(
+                                    f'{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} ' +
+                                    f'{arr[4]} {arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} ' +
+                                    f'{arr[10]} {arr[11]} {arr[12]} {arr[13]} {arr[14]}\n'
+                                )
+
+                                pdata[run] = [
+                                    val if val != 'UNDEF' else '' for val in arr
+                                ]
+
+                        print('Written positional data to',posdata)
+
+
+                    # Have now either read or created (and dumped)
+                    # basic timing and positional data for all runs
+                    # for this night.  now wind through the runs
+                    # getting basic info and writing a row of info to
+                    # the html file for the night in question.
                     for nrun, run in enumerate(runs):
 
                         if nrun % 20 == 0:
                             # write table header
                             nhtml.write(TABLE_HEADER)
 
-                        # open the run file as an Rtime
+                        if len(tdata[run]) == 1:
+                            # means its a power on/off
+                            continue
+
+                        # open the run file as an Rhead
                         runname = os.path.join(night, run)
                         try:
-                            rtime = hcam.ucam.Rtime(runname)
-                        except hcam.ucam.PowerOnOffError:
-                            # not interesting
-                            continue
+                            rhead = hcam.ucam.Rhead(runname)
                         except:
                             exc_type, exc_value, exc_traceback = sys.exc_info()
                             traceback.print_tb(
-                                exc_traceback, limit=1, file=sys.stdout
+                                exc_traceback, limit=1, file=sys.stderr
                             )
-                            traceback.print_exc(file=sys.stdout)
+                            traceback.print_exc(file=sys.stderr)
                             print("Problem on run = ", runname)
 
                             # dummy info line just to allow us to proceed
@@ -681,10 +857,10 @@ def ulogger(args=None):
                             # run number
                             nhtml.write(f'<td class="lalert">{run[3:]}</td>')
                             nhtml.write("</tr>\n")
-                            brow = [run[3:]] + 23*[None]
+                            brow = [run[3:]] + 41*[None]
                             continue
 
-                        hd = rtime.header
+                        hd = rhead.header
 
                         # start the row
                         nhtml.write("<tr>\n")
@@ -693,12 +869,7 @@ def ulogger(args=None):
                         runno = run[3:]
                         nhtml.write('<td class="left">{:s}</td>'.format(runno))
 
-                        # this is the start of a list to be appended
-                        # to the array sent to a pandas.DataFrame at
-                        # the end of the script in order to write out
-                        # a spreadsheet
-                        #link = f'=HYPERLINK("http://deneb.astro.warwick.ac.uk/phsaap/hipercam/logs/{night}.html", "{runno}")'
-                        #brow = [link,]
+                        # start list to append to array for spreadsheet
                         brow = [runno,]
 
                         # object name
@@ -706,56 +877,65 @@ def ulogger(args=None):
                         nhtml.write(f'<td class="left">{target}</td>')
                         brow.append(target)
 
-                        # RA, Dec lookup
-                        if target in skip_targets:
-                            # don't even try
-                            ra, dec = '', ''
-                        elif target in targets.lnames:
-                            dct = targets.lnames[target]
-                            ra, dec = dct['ra'], dct['dec']
-                        elif target in auto_targets.lnames:
-                            dct = auto_targets.lnames[target]
-                            ra, dec = dct['ra'], dct['dec']
-                        else:
-                            # add simbad lookup here
-                            ra, dec = '', ''
-
-                        nhtml.write(f'<td class="left">{ra}</td><td class="left">{dec}</td>')
-                        brow += [ra, dec, rname, night]
+                        pdat = pdata[run]
+                        ra, dec = pdat[:2]
+                        try:
+                            ra, dec = float(ra), float(dec)
+                            rastr = dec2sexg(ra, False, 2)
+                            decstr = dec2sexg(dec, True, 1)
+                            ra *= 15
+                            ra = round(ra,5)
+                            dec = round(dec,4)
+                        except:
+                            rastr, decstr = '', ''
+                        nhtml.write(f'<td class="left">{rastr}</td><td class="left">{decstr}</td>')
+                        brow.insert(0,night)
+                        brow += [rastr, decstr, ra, dec, rname]
 
                         # timing info
-                        utime1, info1 = rtime(1)[:2]
-                        utime2, info2 = rtime(0)[:2]
-                        mjd1 = utime1.mjd
-                        mjd2 = utime1.mjd
-                        ntotal = info2['fnum']
-                        cadence = 86400.*(mjd2-mjd1)/max(1,ntotal-1)
-                        ttime = 1440.*(mjd2-mjd1)
+                        ut_start, mjd_start, ut_end, mjd_end, nok, ntotal = tdata[run]
+                        try:
+                            mjd_start = float(mjd_start)
+                            mjd_end = float(mjd_end)
+                            nok = int(nok)
+                            tstart = Time(mjd_start, format='mjd').isot
+                            datestart = tstart[:tstart.find("T")]
+                            utcstart = ut_start if ut_start != 'UNDEF' else ''
+                            utcend = ut_end if ut_end != 'UNDEF' else ''
+                            nhtml.write(
+                                f'<td class="cen">{datestart}</td> <td class="cen">{utcstart}</td>' +
+                                f'<td class="cen">{utcend}</td>'
+                            )
+                            brow += [datestart, utcstart, utcend]
 
-                        tstart = Time(mjd1, format='mjd').isot
-                        tend = Time(mjd2, format='mjd').isot
+                            ttime = 86400.*(mjd_end - mjd_start)
+                            if nok > 1:
+                                cadence = ttime/(nok-1)
+                                nhtml.write(f'<td class="right">{cadence:.3f}</td>')
+                                brow.append(round(cadence,4))
+                            else:
+                                nhtml.write('<td></td>')
+                                brow.append('')
+                            ttime = int(round(ttime,1))
 
-                        datestart = tstart[:tstart.find("T")]
-                        utcstart = tstart[tstart.find("T")+1:tstart.rfind(".")]
-                        utcend = tend[tend.find("T")+1:tend.rfind(".")]
+                        except:
+                            nhtml.write(4*'<td></td>')
+                            brow += 4*['']
+                            ttime = ''
+                            mjd_start = None
 
-                        nhtml.write(
-                            f'<td class="cen">{datestart}</td> <td class="cen">{utcstart}</td>' +
-                            f'<td class="cen">{utcend}</td>'
-                        )
-                        brow += [datestart, utcstart, utcend]
-
-                        # cadence time
-                        nhtml.write(f'<td class="right">{cadence:.3f}</td>')
-                        brow.append(round(cadence,4))
-
-                        # number of frames
-                        nhtml.write(f'<td class="right">{ntotal:d}</td>')
-                        brow.append(ntotal)
+                        # number of frames, ok and total
+                        try:
+                            ntotal = int(ntotal)
+                            nok = int(nok)
+                            nhtml.write(f'<td class="right">{ntotal}</td><td class="right">{nok}</td>')
+                            brow.append(ntotal)
+                        except:
+                            nhtml.write(2*'<td></td>')
+                            brow.append(2*[''])
 
                         # total exposure time
-                        ttime = int(round(ttime))
-                        nhtml.write(f'<td class="right">{ttime:d}</td>')
+                        nhtml.write(f'<td class="right">{ttime}</td>')
                         brow.append(ttime)
 
                         # filters used
@@ -764,13 +944,13 @@ def ulogger(args=None):
                         brow.append(filters)
 
                         # run type
-                        itype = hd.get("IMAGETYP", "----")
+                        itype = hd.get("DTYPE", "----")
                         nhtml.write(f'<td class="left">{itype}</td>')
                         brow.append(itype)
 
                         # readout mode
-                        nhtml.write(f'<td class="cen">{rtime.mode}</td>')
-                        brow.append(rtime.mode)
+                        nhtml.write(f'<td class="cen">{rhead.mode}</td>')
+                        brow.append(rhead.mode)
 
                         # nblue
                         nblue = hd['NBLUE']
@@ -778,23 +958,32 @@ def ulogger(args=None):
                         brow.append(nblue)
 
                         # window formats
-                        win1 = rtime.wforms[0]
-                        nhtml.write(f'<td class="cen">{win1}</td>')
+                        win1 = rhead.wforms[0]
+                        nhtml.write(f'<td class="cen">{win1}')
                         win1 = win1.replace('&nbsp;',' ')
                         brow.append(win1)
 
-                        win2 = rtime.wforms[1] if len(rtime.wforms) > 1 else ""
-                        nhtml.write(f'<td class="cen">{win2}</td>')
+                        win2 = rhead.wforms[1] if len(rhead.wforms) > 1 else ""
+                        if win2 != '':
+                            nhtml.write(f'<br>{win2}')
                         win2 = win2.replace('&nbsp;',' ')
                         brow.append(win2)
 
+                        win3 = rhead.wforms[1] if len(rhead.wforms) > 2 else ""
+                        if win3 != '':
+                            nhtml.write(f'<br>{win3}</td>')
+                        else:
+                            nhtml.write('</td>')
+                        win3 = win3.replace('&nbsp;',' ')
+                        brow.append(win3)
+
                         # binning
-                        binning = f'{rtime.xbin}x{rtime.ybin}'
+                        binning = f'{rhead.xbin}x{rhead.ybin}'
                         nhtml.write(f'<td class="cen">{binning}</td>')
                         brow.append(binning)
 
                         # clear
-                        clear = "On" if hd['CLEAR'] else "Off"
+                        clear = "Y" if hd['CLEAR'] else "N"
                         nhtml.write(f'<td class="cen">{clear}</td>')
                         brow.append(clear)
 
@@ -805,17 +994,22 @@ def ulogger(args=None):
 
                         # Focal plane slide
                         fpslide = hd.get('SLIDEPOS','UNKNOWN')
+                        try:
+                            fpslide = float(fpslide)
+                            fpslide = round(fpslide,1)
+                        except:
+                            fpslide = '----'
                         nhtml.write(f'<td class="cen">{fpslide}</td>')
                         brow.append(fpslide)
 
                         if instrument == 'ULTRASPEC':
-                            # instr PA [GTC]
+                            # instr PA
                             instpa = hd.get("INSTRPA", "----")
                             nhtml.write(f'<td class="cen">{instpa}</td>')
                             brow.append(instpa)
 
                         # Observers
-                        observers = hd.get("OBSERVERS", "----")
+                        observers = hd.get("OBSERVRS", "----")
                         nhtml.write(f'<td class="cen">{observers}</td>')
                         brow.append(observers)
 
@@ -834,6 +1028,8 @@ def ulogger(args=None):
                         nhtml.write(f'<td class="left">{runno}</td>')
                         brow.append('NULL')
 
+                        brow.append(telescope)
+
                         # comments
                         pcomm = hd.get("RUNCOM", "").strip()
                         if pcomm == "None" or pcomm == "UNDEF":
@@ -844,56 +1040,17 @@ def ulogger(args=None):
                             else:
                                 pcomm += ". "
 
-                        comments = f'{pcomm}{hlog[run]}'
+                        lcomm = hlog.get(run,'No comment in log')
+                        comments = f'{pcomm}{lcomm}'
                         nhtml.write(f'<td class="left">{comments}</td>')
                         brow.append(comments)
 
                         # Finally tack on extra positional stuff for the spreadsheet only
-                        if tstart:
-
-                            if ra != '' and dec != '':
-                                # Target stuff. Calculate the Alt & Az at start, middle, end
-                                frames = AltAz(obstime=[tstart,tmid,tend], location=observatory)
-                                points = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg)).transform_to(frames)
-                                alts = [round(alt,1) for alt in points.alt.degree]
-                                azs = [round(az,1) for az in points.az.degree]
-                                brow += alts + azs
-
-                                # Now calculate the angular distance from the Sun and Moon at the mid-time
-                                sun_mid = get_sun(tstamp_mid).transform_to(frames[1])
-                                moon_mid = get_moon(tstamp_mid).transform_to(frames[1])
-                                point_mid = points[1]
-                                sun_dist = point_mid.separation(sun_mid).degree
-                                moon_dist = point_mid.separation(moon_mid).degree
-                                brow += [round(sun_dist,1),round(moon_dist,1)]
-                            else:
-                                brow += 8*[None]
-
-                            # Now some data on the altitude of the Sun & Moon
-                            frame = AltAz(obstime=tstart, location=observatory)
-                            sun_start = get_sun(tstart).transform_to(frame)
-                            moon_start = get_moon(tstart).transform_to(frame)
-
-                            # end
-                            frame = AltAz(obstime=tend, location=observatory)
-                            sun_end = get_sun(tend).transform_to(frame)
-                            moon_end = get_moon(tend).transform_to(frame)
-
-                            # Lunar phase at the mid-point only.
-                            moon_phase = moon_phase_angle(tmid).value / np.pi
-
-                            # write out info
-                            brow += [
-                                round(sun_start.alt.degree,1), round(sun_end.alt.degree,1),
-                                round(moon_start.alt.degree,1), round(moon_end.alt.degree,1),
-                                round(moon_phase,2),
-                            ]
-
-                        else:
-                            brow += 13*[None]
+                        brow += pdat[2:]
 
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
+
                         barr.append(brow)
 
                     # finish off the night file
@@ -913,21 +1070,19 @@ def ulogger(args=None):
 
     # Create and write out spreadsheet
     colnames = (
-        'Run no.', 'Target name', 'RA (J2000)', 'Dec (J2000)', 'Obs run',
-        'Night', 'Date\n(start)', 'UTC\nStart', 'UTC\nEnd', 'Tflag',
-        'Cadence\n(sec)', 'Duty\ncycle(%)', 'Nframe', 'Dwell\n(sec)', 'Filters', 'Run\ntype',
-        'Readout\nmode', 'Nskips', 'Win1', 'Win2' , 'XxY\nbin', 'Clr', 'Dum',
-        'LED', 'Over-\nscan', 'Pre-\nscan', 'Nod', 'Readout\nspeed', 'Fast\nclocks', 'Tbytes',
-        'FPslide', 'Instr\nPA', 'CCD temperatures', 'Observers', 'PI', 'PID', 'Nlink', 'Comment',
-        'Alt\nstart', 'Alt\nmiddle', 'Alt\nend', 'Az\nstart', 'Az\nmiddle', 'Az\nend',
-        'Sun sep\nmid', 'Moon sep\nmid',
-        'Sun alt\nstart', 'Sun alt\nend', 'Moon alt\nstart', 'Moon alt\nend', 'Moon\nphase',
+        'Night', 'Run no.', 'Target name', 'RA (J2000)', 'Dec (J2000)', 'RA (deg)', 'Dec (deg)',
+        'Obs run', 'Date\n(start)', 'UTC\nStart', 'UTC\nEnd', 'Cadence\n(sec)', 'Nframe',
+        'Dwell\n(sec)', 'Filters', 'Run\ntype', 'Read\nmode', 'Nb', 'Win1', 'Win2' , 'Win3',
+        'XxY\nbin', 'Clr', 'Read\nspeed', 'FPslide', 'Observers', 'PI', 'PID', 'Nlink', 'Tel',
+        'Comment', 'Alt\nstart', 'Alt\nmiddle', 'Alt\nend', 'Az\nstart', 'Az\nmiddle', 'Az\nend',
+        'Sun sep\nmid', 'Moon sep\nmid', 'Sun alt\nstart', 'Sun alt\nend', 'Moon alt\nstart',
+        'Moon alt\nend', 'Moon\nphase',
     )
     ptable = pd.DataFrame(barr, columns=colnames)
 
     spreadsheet = os.path.join(root, f"{linstrument}-log.xlsx")
 
-    format_hlogger_table(spreadsheet, ptable)
+    format_ulogger_table(spreadsheet, ptable, linstrument)
 
     print(f'\nAll done. Look in {root} for the outputs.')
 
@@ -978,7 +1133,7 @@ class Targets(dict):
                             # prepare data
                             target,ra,dec = tokens[:3]
                             target = target.replace('~',' ')
-                            ra,dec,system = subs.str2radec(ra + ' ' + dec)
+                            ra,dec,system = str2radec(ra + ' ' + dec)
                             names = [token.replace('~',' ') for token in tokens[3:]]
 
                             # check that, if the target has been
@@ -1007,6 +1162,10 @@ class Targets(dict):
             else:
                 print('No targets loaded from',fname,'as it does not exist.')
 
+    def __call__(self, name):
+        target = self.lnames[name]
+        return self[target]
+
     def write(self, fname):
         """
         Write targets out to disk file fname.
@@ -1026,7 +1185,7 @@ class Targets(dict):
 
             for targ in targs:
                 entry = self[targ]
-                pos = subs.d2hms(entry['ra'],dp=2) + '   ' + subs.d2hms(entry['dec'],dp=1,sign=True)
+                pos = dec2sexg(entry['ra'],False,2) + '   ' + dec2sexg(entry['dec'],True,1)
                 f.write('%-32s %s' % (targ.replace(' ','~'),pos))
                 lnames = ' '.join([name.replace(' ','~') for name in entry['names']])
                 f.write(' ' + lnames + '\n')
@@ -1074,8 +1233,8 @@ minimum run length.
                 entry = self[targ]
                 rad = entry['ra']
                 decd = entry['dec']
-                ra = subs.d2hms(rad,sep=' ')
-                dec = subs.d2hms(decd,sep=' ',sign=True)
+                ra = dec2sexg(rad,False,2)
+                dec = dec2sexg(decd,True,1)
                 req = urllib.urlencode(
                     {'slimits' : 'manual', 'target' : '', 'delta' : 2., 'RA1' : rad-0.01, \
                      'RA2' : rad + 0.01, 'Dec1' : decd - 0.01, 'Dec2' : decd + 0.01, 'emin' : 10.}
@@ -1086,6 +1245,19 @@ minimum run length.
                 lnames = ' '.join([name.replace(' ','~') for name in entry['names']])
                 f.write(lnames + '</td></tr>\n')
                 f.write('</table>\n</body>\n</html>\n')
+
+def dec2sexg(value, sign, dp):
+    v = abs(value)
+    v1 = int(v)
+    v2 = int(60*(v-v1))
+    v3 = 3600*(v-v1-v2/60)
+    if sign:
+        if v >= 0.:
+            return f'+{v1:02d} {v2:02d} {v3:0{3+dp}.{dp}f}'
+        else:
+            return f'-{v1:02d} {v2:02d} {v3:0{3+dp}.{dp}f}'
+    else:
+        return f'{v1:02d} {v2:02d} {v3:0{3+dp}.{dp}f}'
 
 def load_skip_fail():
     """Looks for a file called SKIP_TARGETS containing a list of target
@@ -1098,7 +1270,7 @@ def load_skip_fail():
     if os.path.exists('SKIP_TARGETS'):
         with open('SKIP_TARGETS') as fp:
             skip_targets = fp.readlines()
-            skip_targets = [name.strip() for name in sskip if not name.startswith('#')]
+            skip_targets = [name.strip() for name in skip_targets if not name.startswith('#')]
         print(f'Loaded {len(skip_targets)} target names to skip from SKIP_TARGETS')
     else:
         print('No file called SKIP_TARGETS')
@@ -1118,4 +1290,103 @@ def load_skip_fail():
         print('No file called FAILED_TARGETS')
 
     return (skip_targets, failed_targets)
+
+
+def str2radec(position):
+    """ra,dec,system = str2radec(position) -- translates an astronomical
+    coordinate string to double precision RA and Dec.
+
+    'ra' is the RA in decimal hours; 'dec' is the declination in
+    degrees; 'system' is one of 'ICRS', 'B1950', 'J2000'. Entering
+    coordinates is an error-prone and often irritating chore.  This
+    routine is designed to make it as safe as possible while
+    supporting a couple of common formats.
+
+    Here are example input formats, both good and bad:
+
+     12 34 56.1 -23 12 12.1     -- OK. 'system' will default to ICRS
+     234.5 34.2  B1950          -- OK. RA, Dec entered in decimal degrees, B1950 to override default ICRS
+     11 02 12.1 -00 00 02       -- OK. - sign will be picked up
+     12:32:02.4 -12:11 10.2     -- OK. Colon separators allowed.
+
+     11 02 12.1 -23.2 J2000     -- NOK. Cannot mix HMS/DMS with decimals
+     11 02 12.1 -23 01 12 J4000 -- NOK. Only 'ICRS', 'B1950', 'J2000' allowed at end.
+     1.02323e2 -32.5            -- NOK. Scientific notation not supported.
+     11 02 12.1 23 01 12        -- NOK. In HMS mode, the sign of the declination must be supplied
+     25 01 61.2 +90 61 78       -- NOK. various items out of range.
+
+    A ValueError is raised on failure
+
+    """
+
+    # Try out three types of match
+    m = re.search(r'^\s*(\d{1,2})(?:\:|\s+)(\d{1,2})(?:\:|\s+)(\d{1,2}(?:\.\d*)?)\s+([\+-])(\d{1,2})(?:\:|\s+)(\d{1,2})(?:\:|\s+)(\d{1,2}(?:\.\d*)?)(?:\s+(\w+))?\s*$', position)
+    if m:
+        rah,ram,ras,decsign,decd,decm,decs,system = m.groups()
+        rah  = int(rah)
+        ram  = int(ram)
+        ras  = float(ras)
+        decd = int(decd)
+        decm = int(decm)
+        decs = float(decs)
+        if (rah > 23 and ram > 0 and ras > 0.) or ram > 60 or ras > 60. \
+                or (decd > 89 and decm > 0 and decs > 0.) or decm > 60 or decs > 60.:
+            raise ValueError('one or more of the entries in the astronomical coordinates "' + position + '" is out of range')
+
+        if not system: system = 'ICRS'
+        if system != 'ICRS' and system != 'J2000' and system != 'B1950':
+            raise ValueError('astronomical coordinate system must be one of ICRS, B1950, J2000; ' + system + ' is not recognised.')
+
+        ra  = rah + ram/60. + ras/3600.
+        dec = decd + decm/60. + decs/3600.
+        if decsign == '-': dec = -dec
+        return (ra,dec,system)
+
+    # No arcseconds of dec as sometimes is the case with coords from simbad
+    m = re.search(r'^\s*(\d{1,2})(?:\:|\s+)(\d{1,2})(?:\:|\s+)(\d{1,2}(?:\.\d*)?)\s+([\+-])(\d{1,2})(?:\:|\s+)(\d{1,2}\.\d*)(?:\s+(\w+))?\s*$', position)
+    if m:
+        rah,ram,ras,decsign,decd,decm,system = m.groups()
+        rah  = int(rah)
+        ram  = int(ram)
+        ras  = float(ras)
+        decd = int(decd)
+        decm = float(decm)
+        if (rah > 23 and ram > 0 and ras > 0.) or ram > 60 or ras > 60. \
+                or (decd > 89 and decm > 0.) or decm > 60.:
+            raise ValueError('one or more of the entries in the astronomical coordinates "' + position + '" is out of range')
+
+        if not system: system = 'ICRS'
+        if system != 'ICRS' and system != 'J2000' and system != 'B1950':
+            raise ValueError('astronomical coordinate system must be one of ICRS, B1950, J2000; ' + system + ' is not recognised.')
+
+        ra  = rah + ram/60. + ras/3600.
+        dec = decd + decm/60.
+        if decsign == '-': dec = -dec
+        return (ra,dec,system)
+
+    # Decimal entries
+    m = re.search(r'^\s*(\d{1,3}(?:\.\d*)?)\s+([+-]?\d{1,2}(?:\.\d*)?)\s+(\w+)?\s*$', position)
+    if m:
+        print ('matched decimal entries')
+        (rad,dec,system) = m.groups()
+        ra   = float(rad)/15.
+        dec  = float(dec)
+        if ra >= 24. or dec < -90. or dec > 90.:
+            raise ValueError('one or more of the entries in the astronomical coordinates "' + position + '" is out of range')
+
+        if not system: system = 'ICRS'
+        if system != 'ICRS' and system != 'J2000' and system != 'B1950':
+            raise ValueError('astronomical coordinate system must be one of ICRS, B1950, J2000; ' + system + ' is not recognised.')
+
+        return (ra,dec,system)
+
+    raise ValueError('could not interpret "' + position + '" as astronomical coordinates')
+
+class TimeHMSCustom(TimeISO):
+    """
+    Just the HMS part of a Time as "<HH>:<MM>:<SS.sss...>".
+    """
+
+    name = "hms_custom"  # Unique format name
+    subfmts = (("date_hms", "%H%M%S", "{hour:02d}:{min:02d}:{sec:02d}"),)
 
