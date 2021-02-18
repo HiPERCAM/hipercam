@@ -478,7 +478,7 @@ def ulogger(args=None):
 
     # location to write files
     if os.path.exists(f'/storage/astro2/www/phsaap/{linstrument}/logs'):
-        root = f'/storage/astro2/www/phsaap/{linstrument}/logs'
+        root = f'/storage/astro2/www/phsaap/{linstrument}/logs/logs'
     else:
         root = 'logs'
 
@@ -548,7 +548,7 @@ def ulogger(args=None):
             ihtml.write(
                 f"<h2>{MONTHS[month]} {year}, {telescope}</h2>\n"
             )
-            ihtml.write("\n<p>\n<table>\n")
+            ihtml.write("\n<p>\n")
 
             # set site
             if telescope == 'WHT':
@@ -603,7 +603,7 @@ def ulogger(args=None):
                 # Write an entry for each night linking to the log for that night.
                 night = os.path.basename(nname)
                 ihtml.write(
-                    f'<tr><td><a href="{night}.html">{night}</a><td></tr>\n'
+                    f'<a href="{night}.html">{night}</a> \n'
                 )
 
                 # Create the html file for the night
@@ -734,7 +734,11 @@ def ulogger(args=None):
                                 except:
                                     continue
 
-                                target = rhead.header["TARGET"]
+                                # object name
+                                if hlog.format == 1:
+                                    target = hlog.target[run]
+                                else:
+                                    target = rhead.header["TARGET"]
 
                                 # RA, Dec lookup
                                 if target in skip_targets:
@@ -1057,9 +1061,6 @@ def ulogger(args=None):
                     # finish off the night file
                     nhtml.write("</table>\n{:s}".format(links))
                     nhtml.write(NIGHT_FOOTER)
-
-            # finish off the run table
-            ihtml.write("\n</table>\n\n")
 
         # finish the main index
         ihtml.write(INDEX_FOOTER)
