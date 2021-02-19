@@ -5,6 +5,7 @@ import time
 import glob
 import re
 import math
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -44,15 +45,18 @@ INDEX_HEADER = """<html>
 <p> These on-line logs summarise all {instrument} runs. They were
 automatically generated from the data files and hand-written logs.
 
-<p>For a searchable file summarising the same information and more,
-see this <a href="{linstrument}-log.xlsx">spreadsheet</a>. This contains a
-column 'Nlink' with hyperlinks to the on-line log of whichever night
-contains a given run. In addition after the comment column the
-spreadsheet has a number of angles (altitudes and azimuths etc, all in
-degrees) and the lunar phase. 'Start' and 'end' refer to the mid-time
-of the first and last frame of a run, while 'mid' is half-way between
-them. These parameters could allow one to select dark runs for
-instance.  """
+<p>For a searchable file summarising the same information, along with
+calculated data on the Sun and Moon for each run, see this <a
+href="{linstrument}-log.xlsx">spreadsheet</a>. This also contains a column
+'Nlink' with hyperlinks to the on-line log of whichever night contains
+a given run. In addition after the comment column the spreadsheet has
+a number of angles (altitudes and azimuths etc, all in degrees) and
+the lunar phase. 'Start' and 'end' refer to the mid-time of the first
+and last frame of a run, while 'mid' is half-way between them. These
+parameters could allow one to select dark runs for instance. If there is
+anything else that you think could be added to this file let me know.
+
+"""
 
 # Footer of the main file
 
@@ -171,7 +175,9 @@ TABLE_HEADER = """
 <td><button id="hidden21" onclick="hide(21)"></button></td>
 <td><button id="hidden22" onclick="hide(22)"></button></td>
 <td><button id="hidden23" onclick="hide(23)"></button></td>
-<td align="left"><button id="hidden24" onclick="hide(24)"></button></td>
+<td><button id="hidden24" onclick="hide(24)"></button></td>
+<td><button id="hidden25" onclick="hide(25)"></button></td>
+<td align="left"><button id="hidden25" onclick="hide(25)"></button></td>
 </tr>
 
 <tr>
@@ -182,10 +188,10 @@ TABLE_HEADER = """
 <th class="cen">Date<br>(start)</th>
 <th class="cen">Start</th>
 <th class="cen">End</th>
+<th class="right">Total<br>(sec)</th>
 <th class="right">Cadence<br>(sec)</th>
+<th class="right">Exposure<br>(sec)</th>
 <th class="right">Nframe</th>
-<th class="right">Nok</th>
-<th class="right">Dwell<br>(sec)</th>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
@@ -201,8 +207,9 @@ xl3,xr3,ys3,nx3,ny3</th>
 <th class="cen">Observers</th>
 <th class="left">PI</th>
 <th class="left">PID</th>
-<th class="left">Run<br>no.</th>
 <th class="left">Tel</th>
+<th class="cen">Size<br>(MB)</th>
+<th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
 </tr>
 """
@@ -458,6 +465,7 @@ def ulogger(args=None):
 
     """
     from astroplan import moon_phase_angle
+    warnings.filterwarnings('ignore')
 
     barr = []
     cwd = os.getcwd()
@@ -487,7 +495,7 @@ def ulogger(args=None):
 
     # next are regular expressions to match run directories, nights, and
     # run files
-    rre = re.compile("^\d\d\d\d-\d\d$")
+    rre = re.compile("^\d\d\d\d-(\d\d|P\d\d\d)$")
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
     fre = re.compile("^run\d\d\d\.xml$")
 
@@ -638,7 +646,7 @@ def ulogger(args=None):
                             for line in tin:
                                 arr = line.split()
                                 tdata[arr[0]] = [
-                                    val if val != 'UNDEF' else '' for val in arr[1:]
+                                    None if val == 'UNDEF' else val for val in arr[1:]
                                 ]
                         print('Read timing data from',times)
 
@@ -650,39 +658,75 @@ def ulogger(args=None):
                                 dfile = os.path.join(night, run)
                                 try:
                                     rtime = hcam.ucam.Rtime(dfile)
-                                    first = True
+
+                                    # Find first good time
                                     for n, tdat in enumerate(rtime):
                                         time, tinfo = tdat[:2]
-                                        mjd = time.mjd
-                                        ts = Time(mjd, format="mjd", precision=2)
-                                        utc = ts.hms_custom
-                                        ok = True if time.good else False
-                                        expose = time.expose
-                                        if first and ok:
-                                            first = False
-                                            ut_start = utc
-                                            mjd_start = mjd
-                                            n_start = n
-
-                                        if ok:
-                                            ut_end = utc
-                                            mjd_end = mjd
-                                            n_end = n
-
-                                    ntotal = n
-                                    if first:
-                                        nok = 0
-                                        tdata[run] = ['','','','',nok,ntotal]
-                                        tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF {nok} {ntotal}\n')
+                                        if time.good:
+                                            mjd_start = time.mjd
+                                            ts = Time(mjd_start, format="mjd", precision=2)
+                                            ut_start = ts.hms_custom
+                                            expose = round(time.expose,3)
+                                            n_start = n+1
+                                            break
                                     else:
-                                        nok = n_end-n_start+1
-                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,nok,ntotal]
-                                        tout.write(f'{run} {ut_start} {mjd_start} {ut_end} {mjd_end} {nok} {ntotal}\n')
+                                        raise hcam.HipercamError(f'No good time found in {dfile}')
+
+                                    # Find last good time, whilst
+                                    # avoiding running through all
+                                    # frames of long runs. 'nback' here
+                                    # is probably 1 more than needed.
+                                    if rtime.header['MODE'] == 'DRIFT':
+                                        # ultracam
+                                        win = rhead.win[0]
+                                        nyu = win.ny*rhead.ybin
+                                        nback = int((1033/nyu + 1) / 2) + 3
+                                    elif rtime.header['MODE'] == 'UDRIFT':
+                                        # ultraspec
+                                        win = rhead.win[0]
+                                        nyu = win.ny*rhead.ybin
+                                        nback = int((1037/nyu + 1) / 2) + 3
+                                    else:
+                                        # non drift mode
+                                        nback = 4
+
+                                    nbytes = os.stat(dfile + '.dat').st_size
+                                    ntotal = nbytes // rtime.framesize
+                                    nreset = max(1, ntotal - nback)
+                                    rtime.set(nreset)
+
+                                    flast = False
+                                    for n, tdat in enumerate(rtime):
+                                        time, tinfo = tdat[:2]
+                                        if time.good:
+                                            mjd_end = time.mjd
+                                            ts = Time(mjd_start, format="mjd", precision=2)
+                                            ut_end = ts.hms_custom
+                                            n_end = nreset + n
+                                            expose = max(expose, round(time.expose,3))
+                                            flast = True
+
+                                    if flast:
+                                        if n_end > n_start:
+                                            cadence = round(86400*(mjd_end-mjd_start)/(n_end-n_start),3)
+                                            tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,cadence,expose,ntotal]
+                                        else:
+                                            cadence = 'UNDEF'
+                                            tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,'',expose,ntotal]
+                                        tout.write(f'{run} {ut_start} {mjd_start} {ut_end} {mjd_end} {cadence} {expose} {ntotal}\n')
+                                    else:
+                                        tdata[run] = [ut_start,mjd_start,None,None,None,expose,ntotal]
+                                        tout.write(f'{run} {ut_start} {mjd_start} UNDEF UNDEF UNDEF {expose} {ntotal}\n')
 
                                 except hcam.ucam.PowerOnOffError:
-                                    # boring
+                                    # Power on/off
                                     tdata[run] = ['power-on-off',]
                                     tout.write(f'{run} power-on-off\n')
+
+                                except hcam.HipercamError:
+                                    # No good times
+                                    tdata[run] = ['','','','','','',ntotal]
+                                    tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF UNDEF UNDEF {ntotal}\n')
 
                                 except:
                                     # some other failure
@@ -694,8 +738,8 @@ def ulogger(args=None):
                                     print("Problem on run = ", dfile)
 
                                     # Load of undefined
-                                    tdata[run] = 6*['']
-                                    tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF UNDEF UNDEF\n')
+                                    tdata[run] = 7*['']
+                                    tout.write(f'{run} {" ".join(7*["UNDEF"])}\n')
 
                         print('Written timing data to',times)
 
@@ -757,7 +801,7 @@ def ulogger(args=None):
                                 arr = [ra, dec]
 
                                 # time-dependent info
-                                ut_start, mjd_start, ut_end, mjd_end, nok, ntotal = tdata[run]
+                                ut_start, mjd_start, ut_end, mjd_end, cadence, expose, ntotal = tdata[run]
                                 try:
 
                                     mjd_start = float(mjd_start)
@@ -823,12 +867,15 @@ def ulogger(args=None):
 
                         print('Written positional data to',posdata)
 
-
+                    # Right, finally!
+                    #
                     # Have now either read or created (and dumped)
                     # basic timing and positional data for all runs
-                    # for this night.  now wind through the runs
+                    # for this night.  Now wind through the runs
                     # getting basic info and writing a row of info to
-                    # the html file for the night in question.
+                    # the html file for the night in question, and accccumulating
+                    # data for the spreadsheet
+    
                     for nrun, run in enumerate(runs):
 
                         if nrun % 20 == 0:
@@ -856,7 +903,7 @@ def ulogger(args=None):
                             # run number
                             nhtml.write(f'<td class="lalert">{run[3:]}</td>')
                             nhtml.write("</tr>\n")
-                            brow = [run[3:]] + 41*[None]
+                            brow = [run[3:]] + 45*[None]
                             continue
 
                         hd = rhead.header
@@ -894,64 +941,54 @@ def ulogger(args=None):
                         brow.insert(0,night)
                         brow += [rastr, decstr, ra, dec, rname]
 
-                        # timing info
-                        ut_start, mjd_start, ut_end, mjd_end, nok, ntotal = tdata[run]
+                        # Timing info
+                        ut_start, mjd_start, ut_end, mjd_end, cadence, expose, ntotal = tdata[run]
+
                         try:
+                            # Start time, date
                             mjd_start = float(mjd_start)
-                            mjd_end = float(mjd_end)
-                            nok = int(nok)
                             tstart = Time(mjd_start, format='mjd').isot
-                            datestart = tstart[:tstart.find("T")]
-                            utcstart = ut_start if ut_start != 'UNDEF' else ''
-                            utcend = ut_end if ut_end != 'UNDEF' else ''
+                            date_start = tstart[:tstart.find("T")]
                             nhtml.write(
-                                f'<td class="cen">{datestart}</td> <td class="cen">{utcstart}</td>' +
-                                f'<td class="cen">{utcend}</td>'
+                                f'<td class="cen">{date_start}</td> <td class="cen">{ut_start}</td>'
                             )
-                            brow += [datestart, utcstart, utcend]
-
-                            ttime = 86400.*(mjd_end - mjd_start)
-                            if nok > 1:
-                                cadence = ttime/(nok-1)
-                                nhtml.write(f'<td class="right">{cadence:.3f}</td>')
-                                brow.append(round(cadence,4))
-                            else:
-                                nhtml.write('<td></td>')
-                                brow.append('')
-                            ttime = int(round(ttime,1))
-
-                        except:
-                            nhtml.write(4*'<td></td>')
-                            brow += 4*['']
-                            ttime = ''
-                            mjd_start = None
-
-                        # number of frames, ok and total
-                        try:
-                            ntotal = int(ntotal)
-                            nok = int(nok)
-                            nhtml.write(f'<td class="right">{ntotal}</td><td class="right">{nok}</td>')
-                            brow.append(ntotal)
+                            brow += [date_start, ut_start]
                         except:
                             nhtml.write(2*'<td></td>')
-                            brow.append(2*[''])
+                            brow += 2*['']
 
-                        # total exposure time
-                        nhtml.write(f'<td class="right">{ttime}</td>')
-                        brow.append(ttime)
+                        try:
+                            # End time, total time, cadence (assumes we have a valid start time)
+                            mjd_end = float(mjd_end)
+                            ttime = round(86400.*(mjd_end - mjd_start))
+                            nhtml.write(
+                                f'<td class="cen">{ut_end}</td> <td class="right">{ttime}</td> <td class="right">{cadence}</td>'
+                            )
+                            brow += [ut_end, ttime, cadence]
+                        except:
+                            nhtml.write(3*'<td></td>')
+                            brow += 3*['']
+
+                        # Actual exposure time per frame
+                        nhtml.write(f'<td class="right">{expose}</td>')
+                        brow.append(expose)
+
+                        # number of frames
+                        nhtml.write(f'<td class="right">{ntotal}</td>')
+                        brow.append(ntotal)
 
                         # filters used
                         if hlog.format == 1:
-                            filters = hlog.filters.get(run, "----")
+                            filters = hlog.filters.get(run, '')
                         else:
-                            filters = hd.get("filters", "----")
+                            filters = hd.get("filters", '')
                         nhtml.write(f'<td class="cen">{filters}</td>')
-                        brow.append(filters)
+                        brow.append(None if filters == '' else filters)
 
                         # run type
-                        itype = hd.get("DTYPE", "----")
+                        itype = hd.get("DTYPE", '')
                         nhtml.write(f'<td class="left">{itype}</td>')
-                        brow.append(itype)
+                        brow.append(None if itype == '' else itype)
 
                         # readout mode
                         nhtml.write(f'<td class="cen">{rhead.mode}</td>')
@@ -1003,9 +1040,9 @@ def ulogger(args=None):
                             fpslide = float(fpslide)
                             fpslide = round(fpslide,1)
                         except:
-                            fpslide = '----'
+                            fpslide = ''
                         nhtml.write(f'<td class="cen">{fpslide}</td>')
-                        brow.append(fpslide)
+                        brow.append(None if fpslide == '' else fpslide)
 
                         if instrument == 'ULTRASPEC':
                             # instr PA
@@ -1014,26 +1051,37 @@ def ulogger(args=None):
                             brow.append(instpa)
 
                         # Observers
-                        observers = hd.get("OBSERVRS", "----")
+                        observers = hd.get("OBSERVRS", '')
                         nhtml.write(f'<td class="cen">{observers}</td>')
-                        brow.append(observers)
+                        brow.append(None if observers == '' else observers)
 
                         # PI
-                        pi = hd.get("PI", "----")
+                        pi = hd.get("PI", '')
                         nhtml.write(f'<td class="left">{pi}</td>')
-                        brow.append(pi)
+                        brow.append(None if pi == '' else pi)
 
                         # Program ID
-                        pid = hd.get("ID", "----")
+                        pid = hd.get("ID", "")
                         nhtml.write(f'<td class="left">{pid}</td>')
-                        brow.append(pid)
+                        brow.append(None if pid == '' else pid)
+
+                        # Telescope name
+                        nhtml.write(f'<td class="left">{telescope}</td>')
+                        brow.append(telescope)
+
+                        try:
+                            # file size
+                            mbytes = round(os.stat(runname + '.dat').st_size / (1024*1024),1)
+                            nhtml.write(f'<td class="cen">{mbytes}</td>')
+                            brow.append(mbytes)
+                        except:
+                            nhtml.write(f'<td class="cen"></td>')
+                            brow.append(None)
 
                         # run number again. Add null to the
                         # spreadsheet to allow a formula
                         nhtml.write(f'<td class="left">{runno}</td>')
                         brow.append('NULL')
-
-                        brow.append(telescope)
 
                         # comments
                         pcomm = hd.get("RUNCOM", "").strip()
@@ -1072,14 +1120,19 @@ def ulogger(args=None):
 
     # Create and write out spreadsheet
     colnames = (
-        'Night', 'Run no.', 'Target name', 'RA (J2000)', 'Dec (J2000)', 'RA (deg)', 'Dec (deg)',
-        'Obs run', 'Date\n(start)', 'UTC\nStart', 'UTC\nEnd', 'Cadence\n(sec)', 'Nframe',
-        'Dwell\n(sec)', 'Filters', 'Run\ntype', 'Read\nmode', 'Nb', 'Win1', 'Win2' , 'Win3',
-        'XxY\nbin', 'Clr', 'Read\nspeed', 'FPslide', 'Observers', 'PI', 'PID', 'Nlink', 'Tel',
-        'Comment', 'Alt\nstart', 'Alt\nmiddle', 'Alt\nend', 'Az\nstart', 'Az\nmiddle', 'Az\nend',
-        'Sun sep\nmid', 'Moon sep\nmid', 'Sun alt\nstart', 'Sun alt\nend', 'Moon alt\nstart',
-        'Moon alt\nend', 'Moon\nphase',
+        'Night', 'Run no.', 'Target name', 'RA (J2000)', 'Dec (J2000)',
+        'RA (deg)', 'Dec (deg)', 'Obs run', 'Date\n(start)',
+        'UTC\nStart', 'UTC\nEnd', 'Total\n(sec)', 'Cadence\n(sec)',
+        'Exposure\n(sec)', 'Nframe', 'Filters', 'Run\ntype',
+        'Read\nmode', 'Nb', 'Win1', 'Win2' , 'Win3', 'XxY\nbin',
+        'Clr', 'Read\nspeed', 'FPslide', 'Observers', 'PI', 'PID',
+        'Tel', 'Size\n(MB)', 'Nlink', 'Comment', 'Alt\nstart',
+        'Alt\nmiddle', 'Alt\nend', 'Az\nstart', 'Az\nmiddle',
+        'Az\nend', 'Sun sep\nmid', 'Moon sep\nmid', 'Sun alt\nstart',
+        'Sun alt\nend', 'Moon alt\nstart', 'Moon alt\nend',
+        'Moon\nphase',
     )
+
     ptable = pd.DataFrame(barr, columns=colnames)
 
     spreadsheet = os.path.join(root, f"{linstrument}-log.xlsx")
