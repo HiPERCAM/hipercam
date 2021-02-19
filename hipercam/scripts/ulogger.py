@@ -672,7 +672,8 @@ def ulogger(args=None):
                                             ut_start = ts.hms_custom
                                             expose = round(time.expose,3)
                                             n_start = n+1
-                                            break
+                                            if expose < 10000:
+                                                break
                                     else:
                                         raise hcam.HipercamError(f'No good time found in {dfile}')
 
@@ -714,29 +715,37 @@ def ulogger(args=None):
                                     for n, tdat in enumerate(rtime):
                                         time, tinfo = tdat[:2]
                                         if time.good:
-                                            mjd_end = time.mjd
-                                            ts = Time(mjd_start, format="mjd", precision=2)
-                                            ut_end = ts.hms_custom
-                                            n_end = nreset + n
-                                            expose = max(expose, round(time.expose,3))
-                                            flast = True
+                                            mjd = time.mjd
+                                            if mjd > mjd_start and mjd < mjd_start + 0.5:
+                                                mjd_end = mjd
+                                                ts = Time(mjd_end, format="mjd", precision=2)
+                                                ut_end = ts.hms_custom
+                                                n_end = nreset + n
+                                                nexpose = round(time.expose,3)
+                                                if nexpose < 10000:
+                                                    expose = max(expose, nexpose)
+                                                    flast = True
 
                                     if not flast:
-                                        # no time found near
+                                        # no good time found near
                                         # end. There must be one or we
                                         # wouldn't get to this point,
-                                        # so grind it out thehard way
+                                        # so grind it out the hard way
                                         # by going through the whole
                                         # run, which can be slow.
                                         rtime.set()
                                         for n, tdat in enumerate(rtime):
                                             time, tinfo = tdat[:2]
                                             if time.good:
-                                                mjd_end = time.mjd
-                                                ts = Time(mjd_start, format="mjd", precision=2)
-                                                ut_end = ts.hms_custom
-                                                n_end = n + 1
-                                                expose = max(expose, round(time.expose,3))
+                                                mjd = time.mjd
+                                                if mjd > mjd_start and mjd < mjd_start + 0.5:
+                                                    mjd_end = mjd
+                                                    ts = Time(mjd_end, format="mjd", precision=2)
+                                                    ut_end = ts.hms_custom
+                                                    n_end = n + 1
+                                                    nexpose = round(time.expose,3)
+                                                    if nexpose < 10000:
+                                                        expose = max(expose, nexpose)
 
                                     nok = n_end-n_start+1
                                     if n_end > n_start:
@@ -773,7 +782,7 @@ def ulogger(args=None):
                         print('Written timing data to',times)
 
 
-                    ###############################
+                    ##################################
                     # Get or create positional info
 
                     posdata = os.path.join(meta, 'posdata')
@@ -783,7 +792,7 @@ def ulogger(args=None):
                         with open(posdata) as pin:
                             for line in pin:
                                 arr = line.split()
-                                arr[3] = arr[3].replace(' ','~')
+                                arr[3] = arr[3].replace('~',' ')
                                 pdata[arr[0]] = [
                                     val if val != 'UNDEF' else '' for val in arr[1:]
                                 ]
@@ -894,6 +903,7 @@ def ulogger(args=None):
                                     f'{arr[10]} {arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n'
                                 )
 
+                                arr[2] = arr[2].replace('~',' ')
                                 pdata[run] = [
                                     '' if val == 'UNDEF' else val for val in arr
                                 ]
