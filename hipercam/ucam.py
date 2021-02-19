@@ -101,7 +101,7 @@ class Rhead:
        headerwords : int
           number of words (2-bytes/word) in timing info at start of a frame.
 
-       instrument : string
+       instrument : str
           'ULTRACAM' or 'ULTRASPEC'
 
        nccd : int
@@ -125,7 +125,7 @@ class Rhead:
        version : int
           version number
 
-       whichRun : string [ULTRACAM]
+       whichRun : str [ULTRACAM]
           to do with timing.
 
        win : list
@@ -133,9 +133,9 @@ class Rhead:
           but the windows of each CCD are identical so the information is only
           stored once for all CCDs.
 
-       wforms : tuple of strings
-          formats of each set of windows as strings designed to match the input
-          expected for udriver/usdriver
+       wforms : tuple of str
+          formats of each set of windows as strings on integers separted by commas
+          designed to match the input expected for udriver/usdriver, for logging purposes.
     """
 
     def __init__(self, run, server=False):
@@ -607,21 +607,24 @@ class Rhead:
         # set strings for logging purposes giving the window formats used in udriver / usdriver
         self.wforms = []
 
-        if self.mode == "FFCLR" or self.mode == "FFNCLR":
-            self.wforms.append("Full&nbsp;Frame")
+        if instrument == "ULTRACAM":
 
-        elif self.mode == '1-PAIR' or self.mode == '1-PCLR' or self.mode == "DRIFT":
+            for wl, wr in zip(self.win[::2],self.win[1::2]):
+                xsl = wl.llx
+                xsr = wr.llx
+                ys = wl.lly
+                nx = wl.nx
+                ny = wk.ny
+                self.wforms.append(f"{xsl},{xsr},{ys},{nx},{ny}")
 
-            xsl = self.win[0].llx
-            xsr = self.win[1].llx
-            ys = self.win[0].lly
-            nx = self.win[0].nx
-            ny = self.win[0].ny
+        elif instrument == "ULTRASPEC":
 
-            self.wforms.append(f"{xsl},{xsr},{ys},{nx},{ny}")
-
-        else:
-            self.wforms.append("---TBD---")
+            for w in self.win:
+                xs = w.llx
+                ys = w.lly
+                nx = w.nx
+                ny = w.ny
+                self.wforms.append(f"{xs},{ys},{nx},{ny}")
 
         # Finally have reached end of constructor / initialiser
 
