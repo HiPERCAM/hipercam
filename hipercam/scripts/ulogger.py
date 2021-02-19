@@ -179,7 +179,9 @@ TABLE_HEADER = """
 <td><button id="hidden25" onclick="hide(25)"></button></td>
 <td><button id="hidden26" onclick="hide(26)"></button></td>
 <td><button id="hidden27" onclick="hide(27)"></button></td>
-<td align="left"><button id="hidden28" onclick="hide(28)"></button></td>
+<td><button id="hidden28" onclick="hide(29)"></button></td>
+<td><button id="hidden29" onclick="hide(29)"></button></td>
+<td align="left"><button id="hidden30" onclick="hide(30)"></button></td>
 </tr>
 
 <tr>
@@ -200,10 +202,9 @@ TABLE_HEADER = """
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
 <th class="left">Nb</th>
-<th class="cen">
-xl1,xr1,ys1,nx1,ny1<br>
-xl2,xr2,ys2,nx2,ny2<br>
-xl3,xr3,ys3,nx3,ny3</th>
+<th class="cen">xl,xr,ys,nx,ny<br>(1)</th>
+<th class="cen">xl,xr,ys,nx,ny<br>(2)</th>
+<th class="cen">xl,xr,ys,nx,ny<br>(3)</th>
 <th class="cen">XxY<br>bin</th>
 <th class="cen">Clr</th>
 <th class="cen">Read<br>speed</th>
@@ -692,6 +693,17 @@ def ulogger(args=None):
                                         # non drift mode
                                         nback = 4
 
+                                    if ntotal > 20000:
+                                        # this is a risk-reducing
+                                        # strategy in case the end of
+                                        # a long run is
+                                        # corrupt. Better to look at
+                                        # more than the necessary
+                                        # number of frames if it
+                                        # prevents us from having to
+                                        # wind through the whole lot.
+                                        nback = max(nback, 500)
+
                                     nbytes = os.stat(dfile + '.dat').st_size
                                     ntotal = nbytes // rtime.framesize
                                     nreset = max(1, ntotal - nback)
@@ -709,9 +721,12 @@ def ulogger(args=None):
                                             flast = True
 
                                     if not flast:
-                                        # no time found near end,
-                                        # grind it out by going
-                                        # through the whole run
+                                        # no time found near
+                                        # end. There must be one or we
+                                        # wouldn't get to this point,
+                                        # so grind it out thehard way
+                                        # by going through the whole
+                                        # run, which can be slow.
                                         rtime.set()
                                         for n, tdat in enumerate(rtime):
                                             time, tinfo = tdat[:2]
@@ -1018,24 +1033,14 @@ def ulogger(args=None):
                         brow.append(nblue)
 
                         # window formats
-                        win1 = rhead.wforms[0]
-                        nhtml.write(f'<td class="cen">{win1}')
-                        win1 = win1.replace('&nbsp;',' ')
-                        brow.append(win1)
-
-                        win2 = rhead.wforms[1] if len(rhead.wforms) > 1 else ""
-                        if win2 != '':
-                            nhtml.write(f'<br>{win2}')
-                        win2 = win2.replace('&nbsp;',' ')
-                        brow.append(win2)
-
-                        win3 = rhead.wforms[1] if len(rhead.wforms) > 2 else ""
-                        if win3 != '':
-                            nhtml.write(f'<br>{win3}</td>')
-                        else:
-                            nhtml.write('</td>')
-                        win3 = win3.replace('&nbsp;',' ')
-                        brow.append(win3)
+                        for n in range(3):
+                            if n < len(rhead.wforms):
+                                win = rhead.wforms[n]
+                                nhtml.write(f'<td class="cen">{win}</td>')
+                                brow.append(win)
+                            else:
+                                nhtml.write(f'<td></td>')
+                                brow.append('')
 
                         # binning
                         binning = f'{rhead.xbin}x{rhead.ybin}'
