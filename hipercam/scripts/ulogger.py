@@ -671,7 +671,7 @@ def ulogger(args=None):
                                         time, tinfo = tdat[:2]
                                         if time.good:
                                             mjd_start = time.mjd
-                                            if abs(mjd_start-mjd_ref) < 86400:
+                                            if abs(mjd_start-mjd_ref-0.5) < 2.:
                                                 ts = Time(mjd_start, format="mjd", precision=2)
                                                 ut_start = ts.hms_custom
                                                 expose = round(time.expose,3)
@@ -720,7 +720,7 @@ def ulogger(args=None):
                                         time, tinfo = tdat[:2]
                                         if time.good:
                                             mjd = time.mjd
-                                            if mjd > mjd_start and mjd < mjd_start + 0.5:
+                                            if mjd >= mjd_start and mjd < mjd_start + 0.5:
                                                 mjd_end = mjd
                                                 ts = Time(mjd_end, format="mjd", precision=2)
                                                 ut_end = ts.hms_custom
@@ -742,7 +742,7 @@ def ulogger(args=None):
                                             time, tinfo = tdat[:2]
                                             if time.good:
                                                 mjd = time.mjd
-                                                if mjd > mjd_start and mjd < mjd_start + 0.5:
+                                                if mjd >= mjd_start and mjd < mjd_start + 0.5:
                                                     mjd_end = mjd
                                                     ts = Time(mjd_end, format="mjd", precision=2)
                                                     ut_end = ts.hms_custom
