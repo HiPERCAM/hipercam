@@ -614,7 +614,7 @@ class Rhead:
                 xsr = wr.llx
                 ys = wl.lly
                 nx = wl.nx
-                ny = wk.ny
+                ny = wl.ny
                 self.wforms.append(f"{xsl},{xsr},{ys},{nx},{ny}")
 
         elif instrument == "ULTRASPEC":
