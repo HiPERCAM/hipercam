@@ -1403,7 +1403,7 @@ def dec2sexg(value, sign, dp):
     v2 = int(60*(v-v1))
     v3 = 3600*(v-v1-v2/60)
     if sign:
-        if v >= 0.:
+        if value >= 0.:
             return f'+{v1:02d} {v2:02d} {v3:0{3+dp}.{dp}f}'
         else:
             return f'-{v1:02d} {v2:02d} {v3:0{3+dp}.{dp}f}'
