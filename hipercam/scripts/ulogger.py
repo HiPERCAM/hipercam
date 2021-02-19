@@ -693,6 +693,9 @@ def ulogger(args=None):
                                         # non drift mode
                                         nback = 4
 
+                                    nbytes = os.stat(dfile + '.dat').st_size
+                                    ntotal = nbytes // rtime.framesize
+
                                     if ntotal > 20000:
                                         # this is a risk-reducing
                                         # strategy in case the end of
@@ -704,8 +707,6 @@ def ulogger(args=None):
                                         # wind through the whole lot.
                                         nback = max(nback, 500)
 
-                                    nbytes = os.stat(dfile + '.dat').st_size
-                                    ntotal = nbytes // rtime.framesize
                                     nreset = max(1, ntotal - nback)
                                     rtime.set(nreset)
 
