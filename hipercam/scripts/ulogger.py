@@ -671,10 +671,9 @@ def ulogger(args=None):
                                     else:
                                         raise hcam.HipercamError(f'No good time found in {dfile}')
 
-                                    # Find last good time, whilst
-                                    # avoiding running through all
-                                    # frames of long runs. 'nback' here
-                                    # is probably 1 more than needed.
+                                    # Find last good time. First we just go for times near the
+                                    # end of the run. Failing that, we try again from the start,
+                                    # to account for runs with time stamp issues.
                                     if rtime.header['MODE'] == 'DRIFT':
                                         # ultracam
                                         win = rhead.win[0]
@@ -705,17 +704,27 @@ def ulogger(args=None):
                                             expose = max(expose, round(time.expose,3))
                                             flast = True
 
-                                    if flast:
-                                        if n_end > n_start:
-                                            cadence = round(86400*(mjd_end-mjd_start)/(n_end-n_start),3)
-                                            tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,cadence,expose,ntotal]
-                                        else:
-                                            cadence = 'UNDEF'
-                                            tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,'',expose,ntotal]
-                                        tout.write(f'{run} {ut_start} {mjd_start} {ut_end} {mjd_end} {cadence} {expose} {ntotal}\n')
+                                    if not flast:
+                                        # no time found near end,
+                                        # grind it out by going
+                                        # through the whole run
+                                        rtime.set()
+                                        for n, tdat in enumerate(rtime):
+                                            time, tinfo = tdat[:2]
+                                            if time.good:
+                                                mjd_end = time.mjd
+                                                ts = Time(mjd_start, format="mjd", precision=2)
+                                                ut_end = ts.hms_custom
+                                                n_end = n + 1
+                                                expose = max(expose, round(time.expose,3))
+
+                                    if n_end > n_start:
+                                        cadence = round(86400*(mjd_end-mjd_start)/(n_end-n_start),3)
+                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,cadence,expose,ntotal]
                                     else:
-                                        tdata[run] = [ut_start,mjd_start,None,None,None,expose,ntotal]
-                                        tout.write(f'{run} {ut_start} {mjd_start} UNDEF UNDEF UNDEF {expose} {ntotal}\n')
+                                        cadence = 'UNDEF'
+                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,'',expose,ntotal]
+                                    tout.write(f'{run} {ut_start} {mjd_start} {ut_end} {mjd_end} {cadence} {expose} {ntotal}\n')
 
                                 except hcam.ucam.PowerOnOffError:
                                     # Power on/off
