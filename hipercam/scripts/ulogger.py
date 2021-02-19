@@ -227,7 +227,9 @@ NIGHT_FOOTER = """
 parameters defining the window pair (ULTRACAM). In fullframe mode,
 these parameters do not need to be specified. The 'cadence' is the
 time between exposures, the 'exposure' the actual time spent integrating, although
-note that these numbers are not always entirely accurate.
+note that these numbers are not always entirely accurate. 'Nok' is the number of OK
+frames judged as having OK times. If it grossly disagrees with Nframe, there might be
+timing problems present, such as the GPS dropping out. 
 </p>
 
 <address>Tom Marsh, Warwick</address>
