@@ -177,12 +177,14 @@ TABLE_HEADER = """
 <td><button id="hidden23" onclick="hide(23)"></button></td>
 <td><button id="hidden24" onclick="hide(24)"></button></td>
 <td><button id="hidden25" onclick="hide(25)"></button></td>
-<td align="left"><button id="hidden25" onclick="hide(25)"></button></td>
+<td><button id="hidden26" onclick="hide(26)"></button></td>
+<td align="left"><button id="hidden27" onclick="hide(27)"></button></td>
 </tr>
 
 <tr>
 <th class="left">Run<br>no.</th>
 <th class="left">Target<br>name</th>
+<th class="left">Auto<br>ID</th>
 <th class="left">RA (J2000)</th>
 <th class="left">Dec&nbsp;(J2000)</th>
 <th class="cen">Date<br>(start)</th>
@@ -216,18 +218,15 @@ xl3,xr3,ys3,nx3,ny3</th>
 
 NIGHT_FOOTER = """
 
-<p> 'Instr. PA' is the instrumental PA. On the GTC this is measured
-East of North in degrees, but has an offset which may vary somewhat
-from night-to-night. 'Clr' indicates whether clears were enabled;
-'Read mode' is the readout mode which can be one of 4 options, namely
-'FULL' for a full frame, 1-WIN or 2-WIN for standard windows mode, and
-'DRIFT' for drift-mode. The 'xsll,xslr,..' column gives the 7
-parameters that appear at the bottom of the top-right window of
-hdriver (or 5 parameters in DRIFT mode).  In hdriver these are called
-xsll, xslr, xsul, xsur, ys, nx and ny (or xsl, xsr, ys, nx, ny in
-drift mode), and there are up to two sets of them. In fullframe mode,
+<p> 'Instr. PA' is the instrumental PA. 'Clr' indicates whether clears were enabled;
+'Read mode' is the readout mode which can be one of several options:
+'FFCLR' for full frames with clear; 'FFNCLR' full frames with no clear;
+'1-PAIR', '2-PAIR', '3-PAIR', for standard windowed modes, etc. The 'xl1,xr1,..' column gives the 5
+parameters defining the window pair (ULTRACAM). In fullframe mode,
 these parameters do not need to be specified. The 'cadence' is the
-time between exposures.  </p>
+time between exposures, the 'exposure' the actual time spent integrating, although
+note that these numbers are not always entirely accurate.
+</p>
 
 <address>Tom Marsh, Warwick</address>
 </body>
@@ -646,7 +645,7 @@ def ulogger(args=None):
                             for line in tin:
                                 arr = line.split()
                                 tdata[arr[0]] = [
-                                    None if val == 'UNDEF' else val for val in arr[1:]
+                                    '' if val == 'UNDEF' else val for val in arr[1:]
                                 ]
                         print('Read timing data from',times)
 
@@ -754,6 +753,7 @@ def ulogger(args=None):
                         with open(posdata) as pin:
                             for line in pin:
                                 arr = line.split()
+                                arr[3] = arr[3].replace(' ','~')
                                 pdata[arr[0]] = [
                                     val if val != 'UNDEF' else '' for val in arr[1:]
                                 ]
@@ -782,23 +782,25 @@ def ulogger(args=None):
                                 if hlog.format == 1:
                                     target = hlog.target[run]
                                 else:
-                                    target = rhead.header["TARGET"]
+                                    target = rhead.header.get("TARGET",'')
 
                                 # RA, Dec lookup
-                                if target in skip_targets:
-                                    ra, dec = 'UNDEF', 'UNDEF'
+                                if target == '':
+                                    ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
+                                elif target in skip_targets:
+                                    ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
                                 elif target in targets.lnames:
-                                    dct = targets(target)
+                                    autoid, dct = targets(target)
                                     ra, dec = dct['ra'], dct['dec']
                                 elif target in auto_targets.lnames:
-                                    dct = auto_targets(target)
+                                    autoid, dct = auto_targets(target)
                                     ra, dec = dct['ra'], dct['dec']
                                 else:
                                     # attempt simbad lookup here
-                                    ra, dec = 'UNDEF', 'UNDEF'
+                                    ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
 
                                 # start accumulating stuff to write out
-                                arr = [ra, dec]
+                                arr = [ra, dec, autoid]
 
                                 # time-dependent info
                                 ut_start, mjd_start, ut_end, mjd_end, cadence, expose, ntotal = tdata[run]
@@ -855,14 +857,15 @@ def ulogger(args=None):
                                     # write out info
                                     arr += 13*['UNDEF']
 
+                                autoid_nospace = arr[2].replace(' ','~')
                                 pout.write(
-                                    f'{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} ' +
+                                    f'{run} {arr[0]} {arr[1]} {autoid_nospace} {arr[3]} ' +
                                     f'{arr[4]} {arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} ' +
-                                    f'{arr[10]} {arr[11]} {arr[12]} {arr[13]} {arr[14]}\n'
+                                    f'{arr[10]} {arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n'
                                 )
 
                                 pdata[run] = [
-                                    val if val != 'UNDEF' else '' for val in arr
+                                    '' if val == 'UNDEF' else val for val in arr
                                 ]
 
                         print('Written positional data to',posdata)
@@ -875,7 +878,7 @@ def ulogger(args=None):
                     # getting basic info and writing a row of info to
                     # the html file for the night in question, and accccumulating
                     # data for the spreadsheet
-    
+
                     for nrun, run in enumerate(runs):
 
                         if nrun % 20 == 0:
@@ -903,7 +906,7 @@ def ulogger(args=None):
                             # run number
                             nhtml.write(f'<td class="lalert">{run[3:]}</td>')
                             nhtml.write("</tr>\n")
-                            brow = [run[3:]] + 45*[None]
+                            brow = [night, run[3:]] + 46*[None]
                             continue
 
                         hd = rhead.header
@@ -916,18 +919,18 @@ def ulogger(args=None):
                         nhtml.write('<td class="left">{:s}</td>'.format(runno))
 
                         # start list to append to array for spreadsheet
-                        brow = [runno,]
+                        brow = [night, runno,]
 
                         # object name
                         if hlog.format == 1:
                             target = hlog.target[run]
                         else:
-                            target = hd["TARGET"]
-                        nhtml.write(f'<td class="left">{target}</td>')
-                        brow.append(target)
+                            target = hd.get("TARGET",'')
 
+                        # position
                         pdat = pdata[run]
-                        ra, dec = pdat[:2]
+                        ra, dec, autoid = pdat[:3]
+
                         try:
                             ra, dec = float(ra), float(dec)
                             rastr = dec2sexg(ra, False, 2)
@@ -937,9 +940,10 @@ def ulogger(args=None):
                             dec = round(dec,4)
                         except:
                             rastr, decstr = '', ''
+
+                        nhtml.write(f'<td class="left">{target}</td><td class="left">{autoid}</td>')
                         nhtml.write(f'<td class="left">{rastr}</td><td class="left">{decstr}</td>')
-                        brow.insert(0,night)
-                        brow += [rastr, decstr, ra, dec, rname]
+                        brow += [target,autoid, rastr, decstr, ra, dec, rname]
 
                         # Timing info
                         ut_start, mjd_start, ut_end, mjd_end, cadence, expose, ntotal = tdata[run]
@@ -1099,7 +1103,7 @@ def ulogger(args=None):
                         brow.append(comments)
 
                         # Finally tack on extra positional stuff for the spreadsheet only
-                        brow += pdat[2:]
+                        brow += pdat[3:]
 
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
@@ -1272,8 +1276,12 @@ class Targets(dict):
                 print('No targets loaded from',fname,'as it does not exist.')
 
     def __call__(self, name):
+        """
+        Call with name to lookup. Returns standardised name plus
+        dictionary with 'ra', 'dec' and 'names'
+        """
         target = self.lnames[name]
-        return self[target]
+        return target, self[target]
 
     def write(self, fname):
         """
@@ -1281,7 +1289,7 @@ class Targets(dict):
         """
 
         # write in RA order
-        ras   = dict([(targ,entry['ra']) for targ, entry in self.items()])
+        ras = dict([(targ,entry['ra']) for targ, entry in self.items()])
         targs = sorted(ras, key=ras.get)
 
         with open(fname,'w') as f:
