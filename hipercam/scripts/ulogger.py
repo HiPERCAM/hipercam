@@ -568,7 +568,11 @@ def ulogger(args=None):
             elif telescope == 'VLT':
                 observatory = EarthLocation.of_site('Cerro Paranal')
             elif telescope == 'NTT':
-                observatory = EarthLocation.of_site('Cerro La Silla')
+                observatory = EarthLocation.of_site('La Silla Observatory')
+            elif telescope == 'TNT':
+                observatory = EarthLocation.from_geodetic(
+                    '98 29 12','18 35 26',2457
+                )
             else:
                 raise ValueError('did not recognise telescope =',telescope)
 
