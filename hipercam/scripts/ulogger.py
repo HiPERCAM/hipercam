@@ -178,7 +178,8 @@ TABLE_HEADER = """
 <td><button id="hidden24" onclick="hide(24)"></button></td>
 <td><button id="hidden25" onclick="hide(25)"></button></td>
 <td><button id="hidden26" onclick="hide(26)"></button></td>
-<td align="left"><button id="hidden27" onclick="hide(27)"></button></td>
+<td><button id="hidden27" onclick="hide(27)"></button></td>
+<td align="left"><button id="hidden28" onclick="hide(28)"></button></td>
 </tr>
 
 <tr>
@@ -194,6 +195,7 @@ TABLE_HEADER = """
 <th class="right">Cadence<br>(sec)</th>
 <th class="right">Exposure<br>(sec)</th>
 <th class="right">Nframe</th>
+<th class="right">Nok</th>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
@@ -718,13 +720,14 @@ def ulogger(args=None):
                                                 n_end = n + 1
                                                 expose = max(expose, round(time.expose,3))
 
+                                    nok = n_end-n_start+1
                                     if n_end > n_start:
                                         cadence = round(86400*(mjd_end-mjd_start)/(n_end-n_start),3)
-                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,cadence,expose,ntotal]
+                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,cadence,expose,nok,ntotal]
                                     else:
                                         cadence = 'UNDEF'
-                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,'',expose,ntotal]
-                                    tout.write(f'{run} {ut_start} {mjd_start} {ut_end} {mjd_end} {cadence} {expose} {ntotal}\n')
+                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,'',expose,nok,ntotal]
+                                    tout.write(f'{run} {ut_start} {mjd_start} {ut_end} {mjd_end} {cadence} {expose} {nok} {ntotal}\n')
 
                                 except hcam.ucam.PowerOnOffError:
                                     # Power on/off
@@ -733,8 +736,8 @@ def ulogger(args=None):
 
                                 except hcam.HipercamError:
                                     # No good times
-                                    tdata[run] = ['','','','','','',ntotal]
-                                    tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF UNDEF UNDEF {ntotal}\n')
+                                    tdata[run] = ['','','','','','',0,ntotal]
+                                    tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF UNDEF UNDEF 0 {ntotal}\n')
 
                                 except:
                                     # some other failure
@@ -746,8 +749,8 @@ def ulogger(args=None):
                                     print("Problem on run = ", dfile)
 
                                     # Load of undefined
-                                    tdata[run] = 7*['']
-                                    tout.write(f'{run} {" ".join(7*["UNDEF"])}\n')
+                                    tdata[run] = 8*['']
+                                    tout.write(f'{run} {" ".join(8*["UNDEF"])}\n')
 
                         print('Written timing data to',times)
 
@@ -812,7 +815,7 @@ def ulogger(args=None):
                                 arr = [ra, dec, autoid]
 
                                 # time-dependent info
-                                ut_start, mjd_start, ut_end, mjd_end, cadence, expose, ntotal = tdata[run]
+                                ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
                                 try:
 
                                     mjd_start = float(mjd_start)
@@ -915,7 +918,7 @@ def ulogger(args=None):
                             # run number
                             nhtml.write(f'<td class="lalert">{run[3:]}</td>')
                             nhtml.write("</tr>\n")
-                            brow = [night, run[3:]] + 46*[None]
+                            brow = [night, run[3:]] + 45*[None]
                             continue
 
                         hd = rhead.header
@@ -955,7 +958,7 @@ def ulogger(args=None):
                         brow += [target,autoid, rastr, decstr, ra, dec, rname]
 
                         # Timing info
-                        ut_start, mjd_start, ut_end, mjd_end, cadence, expose, ntotal = tdata[run]
+                        ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
 
                         try:
                             # Start time, date
@@ -986,9 +989,9 @@ def ulogger(args=None):
                         nhtml.write(f'<td class="right">{expose}</td>')
                         brow.append(expose)
 
-                        # number of frames
-                        nhtml.write(f'<td class="right">{ntotal}</td>')
-                        brow.append(ntotal)
+                        # number of frames, number ok
+                        nhtml.write(f'<td class="right">{ntotal}</td><td class="right">{nok}</td>')
+                        brow += [ntotal,nok]
 
                         # filters used
                         if hlog.format == 1:
@@ -1136,7 +1139,7 @@ def ulogger(args=None):
         'Night', 'Run no.', 'Target name', 'RA (J2000)', 'Dec (J2000)',
         'RA (deg)', 'Dec (deg)', 'Obs run', 'Date\n(start)',
         'UTC\nStart', 'UTC\nEnd', 'Total\n(sec)', 'Cadence\n(sec)',
-        'Exposure\n(sec)', 'Nframe', 'Filters', 'Run\ntype',
+        'Exposure\n(sec)', 'Nframe', 'Nok', 'Filters', 'Run\ntype',
         'Read\nmode', 'Nb', 'Win1', 'Win2' , 'Win3', 'XxY\nbin',
         'Clr', 'Read\nspeed', 'FPslide', 'Observers', 'PI', 'PID',
         'Tel', 'Size\n(MB)', 'Nlink', 'Comment', 'Alt\nstart',
