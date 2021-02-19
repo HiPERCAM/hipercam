@@ -612,11 +612,14 @@ def ulogger(args=None):
 
                 links += "\n</p>\n"
 
-                # Write an entry for each night linking to the log for that night.
+                # Write an entry for each night linking to the log for
+                # that night.
                 night = os.path.basename(nname)
                 ihtml.write(
                     f'<a href="{night}.html">{night}</a> \n'
                 )
+                # use this to check times are vaguely right
+                mjd_ref = Time(night).mjd
 
                 # Create the html file for the night
                 date = f"{night}, {telescope}"
@@ -668,12 +671,13 @@ def ulogger(args=None):
                                         time, tinfo = tdat[:2]
                                         if time.good:
                                             mjd_start = time.mjd
-                                            ts = Time(mjd_start, format="mjd", precision=2)
-                                            ut_start = ts.hms_custom
-                                            expose = round(time.expose,3)
-                                            n_start = n+1
-                                            if expose < 10000:
-                                                break
+                                            if abs(mjd_start-mjd_ref) < 86400:
+                                                ts = Time(mjd_start, format="mjd", precision=2)
+                                                ut_start = ts.hms_custom
+                                                expose = round(time.expose,3)
+                                                n_start = n+1
+                                                if expose < 10000:
+                                                    break
                                     else:
                                         raise hcam.HipercamError(f'No good time found in {dfile}')
 
