@@ -558,7 +558,7 @@ def ulogger(args=None):
             with open(os.path.join(rname, "telescope")) as tel:
                 telescope = tel.read().strip()
             ihtml.write(
-                f"<h2>{MONTHS.get(month,month)]} {year}, {telescope}</h2>\n"
+                f"<h2>{MONTHS.get(month,month)} {year}, {telescope}</h2>\n"
             )
             ihtml.write("\n<p>\n")
 
