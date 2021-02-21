@@ -30,28 +30,35 @@ def digest(args=None):
     description = """Ingests hipercam/ultra(cam|spec) data from the telescope for
     archiving purposes.
 
-    This should be of little interest to most users. It does what the scripts
-    checker, import_data, make_log_dirs and make_derived_dirs did for ULTRACAM
-    data, but all in one go to reduce the need for thought.
+    This should be of little interest to most users. It does what the
+    scripts checker, import_data, make_log_dirs and make_derived_dirs
+    did for ULTRACAM data, but all in one go to reduce the need for
+    thought.
 
-    HiPERCAM run data from the telescope comes in a standarized form. The
-    purpose of this script is run a few checks and set up a different
-    standardised directory structure for it. It must be run inside a directory
-    'hipercam', 'ultracam' or 'ultraspec' which should contain a sub-directory
-    'raw_data' which contains run directories of the form 2017-10 which
-    themselves contain night-by-night directories of the form YYYY_MM_DD. In
-    these, it expects to find files in these of the form 'run1234.fits',
-    (always 4 digits), a file called MD5SUM_YYYY_MM_DD (i.e. matching the
-    directory date), and a file called YYYY_MM_DD_log.dat. It will stop if any
-    of these are not found and it is then up to the user to do something about
-    it. It will also check that every run file appears in the MD5SUM
-    file. Assuming these initial checks are past, it will then run 'md5sum -c'
-    to check that the file md5sums match.
+    HiPERCAM run data from the telescope comes in a standarized
+    form. The purpose of this script is run a few checks and set up a
+    different standardised directory structure for it. It must be run
+    inside a directory 'hipercam', 'ultracam' or 'ultraspec' which
+    should contain a sub-directory 'raw_data' which contains run
+    directories of the form 2017-10 which themselves contain
+    night-by-night directories of the form YYYY_MM_DD. In these, it
+    expects to find files in these of the form 'run1234.fits', (always
+    4 digits), a file called MD5SUM_YYYY_MM_DD (i.e. matching the
+    directory date), and a file called YYYY_MM_DD_log.dat. It will
+    stop if any of these are not found and it is then up to the user
+    to do something about it. It will also check that every run file
+    appears in the MD5SUM file. Assuming these initial checks are
+    past, it will then run 'md5sum -c' to check that the file md5sums
+    match. 
 
-    This program uses standard unix command-line switches. Run with '-h' to
-    see help. It is not uncommon for there to be more log entries that there
-    are runs if people pre-populate the log file but never take the runs. This
-    causes an error that can be skipped with the '-i' option.
+    This program uses standard unix command-line switches. Run with
+    '-h' to see help. It is not uncommon for there to be more log
+    entries that there are runs if people pre-populate the log file
+    but never take the runs. This causes an error that can be skipped
+    with the '-i' option. 'digest' also now takes a more relaxed approach
+    to any directories grouped under 'Others' where it will try to carry
+    out checks but ignore problems where possible.
+
     """
 
     username = getpass.getuser()
@@ -140,6 +147,9 @@ def digest(args=None):
 
         print(f"Run directory = {rdir}")
 
+        # strict checking
+        strict = rdir.find('Others') == -1
+
         # get the imported night-by-night directories. These are
         # distinguished from the processed directories by having names
         # like 2018_10_31 rather than 2018-10-31
@@ -179,7 +189,7 @@ def digest(args=None):
             else:
                 lruns = None
                 print(f"** no log file called {log} found", file=sys.stderr)
-                if rdir.find('Others') == -1:
+                if strict:
                     print("digest aborted", file=sys.stderr)
                     return
 
@@ -200,7 +210,7 @@ def digest(args=None):
                 print(
                     f"** no md5sum file called {md5} found", file=sys.stderr
                 )
-                if rdir.find('Others') == -1:
+                if strict:
                     print("digest aborted", file=sys.stderr)
                     return
 
@@ -222,7 +232,7 @@ def digest(args=None):
                     and os.path.isfile(os.path.join(ndir, run[:-4] + ".xml"))
                 ]
 
-            if lruns is not None and set(lruns) < set(runs):
+            if strict and set(lruns) < set(runs):
                 # complain if the log does not cover some of the runs
                 print(
                     f"** {log} has missing runs cf the directory",
@@ -236,7 +246,7 @@ def digest(args=None):
                     return
 
 
-            if mruns is not None and set(mruns) != set(runs):
+            if strict and set(mruns) != set(runs):
                 print(
                     "The runs in the md5sum file do not match "
                     "those in the directory",
@@ -261,18 +271,21 @@ def digest(args=None):
                         hash, run = line.split()
                         fname = os.path.join(ndir, run)
 
-                        # run the md5sum
-                        output = subprocess.check_output(["md5sum", fname]).decode()
-                        hashc = output.split()[0]
-                        if hashc == hash:
-                            print(f"md5sum of {fname} is OK")
-                        else:
-                            print(
-                                f"** md5sum of {fname} is NOT OK!",
-                                file=sys.stderr,
-                            )
-                            print("digest aborted")
-                            return
+                        if os.path.exists(fname):
+
+                            # run the md5sum
+                            output = subprocess.check_output(["md5sum", fname]).decode()
+                            hashc = output.split()[0]
+                            if hashc == hash:
+                                print(f"md5sum of {fname} is OK")
+                            else:
+                                print(
+                                    f"** md5sum of {fname} is NOT OK!",
+                                    file=sys.stderr,
+                                )
+                                if strict:
+                                    print("digest aborted")
+                                    return
 
         # Now change the data structure into my standard form:
         #
