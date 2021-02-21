@@ -726,12 +726,12 @@ def ulogger(args=None):
                                     # to account for runs with time stamp issues.
                                     if rtime.header['MODE'] == 'DRIFT':
                                         # ultracam
-                                        win = rhead.win[0]
+                                        win = rtime.win[0]
                                         nyu = win.ny*rhead.ybin
                                         nback = int((1033/nyu + 1) / 2) + 3
                                     elif rtime.header['MODE'] == 'UDRIFT':
                                         # ultraspec
-                                        win = rhead.win[0]
+                                        win = rtime.win[0]
                                         nyu = win.ny*rhead.ybin
                                         nback = int((1037/nyu + 1) / 2) + 3
                                     else:
