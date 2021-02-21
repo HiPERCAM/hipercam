@@ -1430,18 +1430,18 @@ minimum run length.
                 f.write(lnames + '</td></tr>\n')
                 f.write('</table>\n</body>\n</html>\n')
 
-def dec2sexg(value, sign, dp):
+def dec2sexg(value, sign, dp, sep=':'):
     v = abs(value)
     v1 = int(v)
     v2 = int(60*(v-v1))
     v3 = 3600*(v-v1-v2/60)
     if sign:
         if value >= 0.:
-            return f'+{v1:02d} {v2:02d} {v3:0{3+dp}.{dp}f}'
+            return f'+{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
         else:
-            return f'-{v1:02d} {v2:02d} {v3:0{3+dp}.{dp}f}'
+            return f'-{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
     else:
-        return f'{v1:02d} {v2:02d} {v3:0{3+dp}.{dp}f}'
+        return f'{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
 
 def load_skip_fail():
     """Looks for a file called SKIP_TARGETS containing a list of target
@@ -1628,3 +1628,150 @@ UCAM_COLNAMES = (
     ('moon_alt_and', 'altitude of Moon at end of run'),
     ('moon_phase','lunar phase (fraction illuminated')
 )
+
+
+def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simbad.u-strasbg.fr'):
+    """
+    Tries to determine coordinates of a target in
+    one of three ways:
+
+      1) First it attempts to find coordinates in simbad by running
+         a query ID with target (unless target is None or ''). 
+
+      2) If (1) fails, try to find coordinates within the name in the
+         form JHHMMSS.S[+/-]DDMMSS [can be more precise, but not less]
+
+      3) If 1 and 2 fail or target == '' or None, then attempt a coordinate
+         search in simbad within a limit of dist arcmin (default equals half
+         diagonal of ULTRASPEC. It needs a unique match in this case. The
+         search position comes from ra_tel and dec_tel
+
+    If successful, it comes back with (name, ra, dec), the matched name and position.
+    ra, dec are in col-separated sexagesimal form. If it fails, it returns ('','','')
+    """
+
+    if url.endswith('/'):
+        url += 'simbad/sim-script'
+    else:
+        url += '/simbad/sim-script'
+    RESPC = re.compile('\s+')
+
+    if target is not None and target != '':
+        # simbad query script
+        query = f"""set limit 2
+format object form1 "Target: %IDLIST(1) | %COO(A D;ICRS)"
+query id {target}"""
+
+        payload = {'submit' : 'submit script', 'script' : query}
+        rep = requests.post(url, data=payload)
+        
+        data = False
+        found = False
+        fail = False
+        nres = 0
+        for line in rep.text.split('\n'):
+            if line.startswith('::data::'):
+                data = True
+                
+            if line.startswith('::error::'):
+                print(f'  Error occured querying simbad for {target}')
+                fail = True
+                break
+            
+            if data:
+                
+                if line.startswith('Target:'):
+                    nres += 1
+                    if nres > 1:
+                        print(f'  More than one target returned when querying simbad for {target}')
+                        fail = True
+                        break
+                
+                    name, coords = line[7:].split(' | ')
+                    found = True
+                    print(name, coords)
+
+        if found and not fail:
+            # OK we have found one, but we are still not done --
+            # some SIMBAD lookups are no good
+            name = name.strip()
+            name = re.sub(RESPC, ' ', name)
+            try:
+                ra, dec, syst = str2radec(coords)
+                ra = dec2sexg(ra,False,2)
+                dec = dec2sexg(dec,True,1)
+                print(f'  Matched "{target}" with "{name}", position = {ra} {dec}')
+                return (name,ra,dec)
+            except:
+                print(f'  Matched "{target}" with "{name}", but failed to translate position = {coords}')
+                                    
+        # simbad ID lookup failed, so now try to read position from
+        # coordinates
+        REPOS = re.compile(r'J(\d\d)(\d\d)(\d\d\.\d(?:\d*)?)([+-])(\d\d)(\d\d)(\d\d(?:\.\d*)?)$')
+            
+        m = REPOS.search(target)
+        if m:
+            rah,ram,ras,decsgn,decd,decm,decs = m.group(1,2,3,4,5,6,7)
+            ra = f'{rah}:{ram}:{ras}'
+            dec = f'{decsgn}{decd}:{decm}:{decs}'
+            rah,ram,ras,decd,decm,decs = int(rah),int(ram),float(ras),int(decd),int(decm),float(decs)
+            if rah > 23 or ram > 59 or ras >= 60. or decd > 89 or decm > 59 or decs >= 60.:
+                print(
+                    f'  Warning: {target} matched the positional regular expression but the numbers were out of range',
+                    file=sys.stderr
+                )
+            else:
+                print(f'  Identified {target} as a positional name')
+                return (target,ra,dec)
+
+        print(f'  Could not extract position from {target}')
+            
+    if ra_tel is not None and dec_tel is not None and dist is not None:
+        # Second
+        query = f"""set limit 2
+format object form1 "Target: %IDLIST(1) | %COO(A D;ICRS)"
+query coo {ra_tel} {dec_tel} radius={dist}m"""
+
+        payload = {'submit' : 'submit script', 'script' : query}
+        rep = requests.post(url, data=payload)
+
+        data = False
+        found = False
+        fail = False
+        nres = 0
+        for line in rep.text.split('\n'):
+            if line.startswith('::data::'):
+                data = True
+                
+            if line.startswith('::error::'):
+                print(f'  Error occured querying simbad for {target}')
+                fail = True
+                break
+            
+            if data:
+                if line.startswith('Target:'):
+                    nres += 1
+                    if nres > 1:
+                        print(f'  More than one target returned when querying simbad for telescope position = {ra_tel} {dec_tel} ({target})')
+                        fail = True
+                        break
+                
+                    name, coords = line[7:].split(' | ')
+                    found = True
+
+        if found and not fail:
+            # OK we have found one, but we are still not done --
+            # some SIMBAD lookups are no good
+            name = name.strip()
+            name = re.sub(RESPC, ' ', name)
+            try:
+                ra, dec, syst = str2radec(coords)
+                ra = dec2sexg(ra,False,2)
+                dec = dec2sexg(dec,True,1)
+                print(f'  Matched telescope position = {ra} {dec} ({target}) with "{name}", position = {ra} {dec}')
+                return (name,ra,dec)
+            except:
+                print(f'  Matched telescope position = {ra} {dec} ({target}) with "{name}", but failed to translate position = {coords}')
+        
+    return ('','','')
+
