@@ -6,6 +6,7 @@ import glob
 import re
 import math
 import warnings
+import sqlite3
 
 import numpy as np
 import pandas as pd
@@ -45,16 +46,11 @@ INDEX_HEADER = """<html>
 <p> These on-line logs summarise all {instrument} runs. They were
 automatically generated from the data files and hand-written logs.
 
-<p>For a searchable file summarising the same information, along with
+<p>For a searchable file summarising the same information, plus
 calculated data on the Sun and Moon for each run, see this <a
-href="{linstrument}-log.xlsx">spreadsheet</a>. This also contains a column
-'Nlink' with hyperlinks to the on-line log of whichever night contains
-a given run. In addition after the comment column the spreadsheet has
-a number of angles (altitudes and azimuths etc, all in degrees) and
-the lunar phase. 'Start' and 'end' refer to the mid-time of the first
-and last frame of a run, while 'mid' is half-way between them. These
-parameters could allow one to select dark runs for instance. If there is
-anything else that you think could be added to this file let me know.
+href="{linstrument}-log.xlsx">spreadsheet</a>. This is also
+available as an <a href="{linstrument}.db">sqlite3 database</a>
+(<a href="colnames.html">column name definitions</a>).
 
 """
 
@@ -531,6 +527,35 @@ def ulogger(args=None):
 
     print(f'Will write to directory = "{root}".')
 
+    # column name definitions
+    cdefs = os.path.join(root, 'colnames.html')
+    colnames = []
+    with open(cdefs, "w") as chtml:
+        chtml.write(f"""<html>
+<head>
+
+<title>{instrument} database column definitions</title>
+</head>
+
+<body>
+<h1>{instrument} database column definitions</h1>
+
+<p>
+<table>
+<tr><th class="left">Column name</th><th class="left">Definition</th></tr>
+""")
+        for cname, definition in UCAM_COLNAMES:
+            chtml.write(
+                f'<tr><td class="left">{cname}</td><td class="left">{definition}</td></tr>\n'
+            )
+            colnames.append(cname)
+        chtml.write("""</table>
+
+<address>Tom Marsh, Warwick</address>
+</body>
+</html>
+""")
+
     # Load target positional information
     targets = Targets('TARGETS')
     auto_targets = Targets('AUTO_TARGETS')
@@ -619,11 +644,19 @@ def ulogger(args=None):
                 # Write an entry for each night linking to the log for
                 # that night.
                 night = os.path.basename(nname)
-                ihtml.write(
-                    f'<a href="{night}.html">{night}</a> \n'
-                )
-                # use this to check times are vaguely right
-                mjd_ref = Time(night).mjd
+                if nn == 0:
+                    ihtml.write(
+                        f'<a href="{night}.html">{night}</a>'
+                    )
+                else:
+                    ihtml.write(
+                        f'\n, <a href="{night}.html">{night}</a>'
+                    )
+    
+                # use this to check times are vaguely right. time of runs
+                # must lie between 06.00 local time on date corresponding to
+                # start of night date and 1.5 days later
+                mjd_ref = Time(night).mjd - observatory.lon.degree/360 + 0.25
 
                 # Create the html file for the night
                 date = f"{night}, {telescope}"
@@ -670,17 +703,20 @@ def ulogger(args=None):
                                 try:
                                     rtime = hcam.ucam.Rtime(dfile)
 
-                                    # Find first good time
+                                    # Find first good time, has to roughly match
+                                    # the start date of the night because some times
+                                    # can just be junk
                                     for n, tdat in enumerate(rtime):
                                         time, tinfo = tdat[:2]
                                         if time.good:
                                             mjd_start = time.mjd
-                                            if abs(mjd_start-mjd_ref-0.5) < 2.:
+                                            tdelta = mjd_start-mjd_ref
+                                            if tdelta > 0 and tdelta < 1.5:
                                                 ts = Time(mjd_start, format="mjd", precision=2)
                                                 ut_start = ts.hms_custom
                                                 expose = round(time.expose,3)
                                                 n_start = n+1
-                                                if expose < 10000:
+                                                if expose > 0 and expose < 500:
                                                     break
                                     else:
                                         raise hcam.HipercamError(f'No good time found in {dfile}')
@@ -724,13 +760,13 @@ def ulogger(args=None):
                                         time, tinfo = tdat[:2]
                                         if time.good:
                                             mjd = time.mjd
-                                            if mjd >= mjd_start and mjd < mjd_start + 0.5:
+                                            if mjd >= mjd_start and mjd < mjd_start + 0.4:
                                                 mjd_end = mjd
                                                 ts = Time(mjd_end, format="mjd", precision=2)
                                                 ut_end = ts.hms_custom
                                                 n_end = nreset + n
                                                 nexpose = round(time.expose,3)
-                                                if nexpose < 10000:
+                                                if nexpose < 500:
                                                     expose = max(expose, nexpose)
                                                     flast = True
 
@@ -746,13 +782,13 @@ def ulogger(args=None):
                                             time, tinfo = tdat[:2]
                                             if time.good:
                                                 mjd = time.mjd
-                                                if mjd >= mjd_start and mjd < mjd_start + 0.5:
+                                                if mjd >= mjd_start and mjd < mjd_start + 0.4:
                                                     mjd_end = mjd
                                                     ts = Time(mjd_end, format="mjd", precision=2)
                                                     ut_end = ts.hms_custom
                                                     n_end = n + 1
                                                     nexpose = round(time.expose,3)
-                                                    if nexpose < 10000:
+                                                    if nexpose < 500:
                                                         expose = max(expose, nexpose)
 
                                     nok = n_end-n_start+1
@@ -845,6 +881,7 @@ def ulogger(args=None):
                                 else:
                                     # attempt simbad lookup here
                                     ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
+                                    print(f'  No position found for {run}, target = {target}')
 
                                 # start accumulating stuff to write out
                                 arr = [ra, dec, autoid]
@@ -954,7 +991,7 @@ def ulogger(args=None):
                             # run number
                             nhtml.write(f'<td class="lalert">{run[3:]}</td>')
                             nhtml.write("</tr>\n")
-                            brow = [night, run[3:]] + 45*[None]
+                            brow = [night, run[3:]] + 46*[None]
                             continue
 
                         hd = rhead.header
@@ -1016,10 +1053,10 @@ def ulogger(args=None):
                             nhtml.write(
                                 f'<td class="cen">{ut_end}</td> <td class="right">{ttime}</td> <td class="right">{cadence}</td>'
                             )
-                            brow += [ut_end, ttime, cadence]
+                            brow += [ut_end, mjd_start, mjd_end, ttime, cadence]
                         except:
                             nhtml.write(3*'<td></td>')
-                            brow += 3*['']
+                            brow += ['',mjd_start,'','','']
 
                         # Actual exposure time per frame
                         nhtml.write(f'<td class="right">{expose}</td>')
@@ -1160,30 +1197,21 @@ def ulogger(args=None):
     with open(css, "w") as fout:
         fout.write(CSS)
 
-    # Create and write out spreadsheet
-    colnames = (
-        'Night', 'Run no.', 'Target name', 'RA (J2000)', 'Dec (J2000)',
-        'RA (deg)', 'Dec (deg)', 'Obs run', 'Date\n(start)',
-        'UTC\nStart', 'UTC\nEnd', 'Total\n(sec)', 'Cadence\n(sec)',
-        'Exposure\n(sec)', 'Nframe', 'Nok', 'Filters', 'Run\ntype',
-        'Read\nmode', 'Nb', 'Win1', 'Win2' , 'Win3', 'XxY\nbin',
-        'Clr', 'Read\nspeed', 'FPslide', 'Observers', 'PI', 'PID',
-        'Tel', 'Size\n(MB)', 'Nlink', 'Comment', 'Alt\nstart',
-        'Alt\nmiddle', 'Alt\nend', 'Az\nstart', 'Az\nmiddle',
-        'Az\nend', 'Sun sep\nmid', 'Moon sep\nmid', 'Sun alt\nstart',
-        'Sun alt\nend', 'Moon alt\nstart', 'Moon alt\nend',
-        'Moon\nphase',
-    )
-
+    # write out spreadsheet
     ptable = pd.DataFrame(barr, columns=colnames)
-
     spreadsheet = os.path.join(root, f"{linstrument}-log.xlsx")
-
     format_ulogger_table(spreadsheet, ptable, linstrument)
 
+    # write out sqlite database
+    sqldb = os.path.join(root, f'{linstrument}.db')
+    cnx = sqlite3.connect(sqldb)
+    ptable.to_sql(name=f'{linstrument}', con=cnx, if_exists='replace')
+    cnx.commit()
+    cnx.close()
+    
     print(f'\nAll done. Look in {root} for the outputs.')
 
-
+# End of main section
 
 class Log(object):
     """
@@ -1545,3 +1573,57 @@ class TimeHMSCustom(TimeISO):
     name = "hms_custom"  # Unique format name
     subfmts = (("date_hms", "%H%M%S", "{hour:02d}:{min:02d}:{sec:02d}"),)
 
+
+# Create and write out spreadsheet
+UCAM_COLNAMES = (
+    ('night' , 'date at start of night'),
+    ('run_no', 'run number'),
+    ('target', 'target name'),
+    ('auto_id', 'lookup name'),
+    ('ra_hms', 'RA (J2000), HMS'),
+    ('dec_dms', 'Dec (J2000), DMS'),
+    ('ra_deg', 'RA (J2000), degrees'),
+    ('dec_deg', 'Dec (J2000), degrees'),
+    ('obs_run', 'Run group title'),
+    ('date_start', 'date at start of run'),
+    ('utc_start', 'UTC at start of run'),
+    ('utc_end', 'UTC at end of run'),
+    ('mjd_start', 'MJD (UTC) at start of run'),
+    ('mjd_end', 'MJD (UTC) at end of run'),
+    ('total', 'total exposure time (seconds)'),
+    ('cadence', 'sampling time (seconds)'),
+    ('exposure', 'actual exposure times (seconds)'),
+    ('nframe', 'number of frames'),
+    ('nok', 'number of frames from first to last with OK times'),
+    ('filters', 'colour filters used'),
+    ('run_type', 'provisional type of run'),
+    ('read_mode', 'ULTRACAM readout mode'),
+    ('nb', 'Nblue, CCD 1 readout skip'),
+    ('win1', 'format of window pair 1'),
+    ('win2', 'format of window pair 2'),
+    ('win3', 'format of window pair 3'),
+    ('binning', 'x by Y binning'),
+    ('clr', 'clear enabled'),
+    ('read_speed', 'readout speed'),
+    ('fpslide', 'Focal plane slide'),
+    ('observers', 'observers'),
+    ('pi', 'PI of data'),
+    ('pid', 'proposal ID'),
+    ('tel', 'telescope'),
+    ('size', 'data file size, MB'),
+    ('nlink', 'link to html log of night containing run'),
+    ('comment', 'hand comments from night'),
+    ('alt_start','target altitude at start of run, degrees'),
+    ('alt_middle','target altitude in middle of run, degrees'),
+    ('alt_end','target altitude at end of run, degrees'),
+    ('az_start','target azimuth at start of run, degrees'),
+    ('az_middle','target azimuth in middle of run, degrees'),
+    ('az_end','target azimuth at end of run, degrees'),
+    ('sun_dist', 'distance from Sun, degrees, middle of run'),
+    ('moon_dist', 'distance from Moon, degrees, middle of run'),
+    ('sun_alt_start', 'altitude of Sun at start of run'),
+    ('sun_alt_and', 'altitude of Sun at end of run'),
+    ('moon_alt_start', 'altitude of Moon at start of run'),
+    ('moon_alt_and', 'altitude of Moon at end of run'),
+    ('moon_phase','lunar phase (fraction illuminated')
+)
