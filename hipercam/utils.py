@@ -300,7 +300,7 @@ def format_ulogger_table(fname, table, instrument):
       table : pandas.DataFrame
          DataFrame containing the data to be written that is assumed to be
          derived from the |hlogger| file. In particular it is expected to
-         have columns called 'Nlink', 'Run no.' and 'Night'. The latter two
+         have columns called 'nlink', 'run_no' and 'night'. The latter two
          must lie somewhere in the column range 1-26 [A-Z].
 
       instrument : str
@@ -319,11 +319,11 @@ def format_ulogger_table(fname, table, instrument):
     cnames = table.columns
 
     # integer index of 'Nlink' column
-    idx_nlink = cnames.get_loc('Nlink')
+    idx_nlink = cnames.get_loc('nlink')
 
     # Labels of 'Night' and 'Run no.' columns
-    lab_night = chr(ord('A')+cnames.get_loc('Night'))
-    lab_runno = chr(ord('A')+cnames.get_loc('Run no.'))
+    lab_night = chr(ord('A')+cnames.get_loc('night'))
+    lab_runno = chr(ord('A')+cnames.get_loc('run_no'))
 
     def clen(mlen):
         return min(150,int(math.ceil(0.88*max_len+1.5)))
