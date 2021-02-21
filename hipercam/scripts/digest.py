@@ -93,7 +93,7 @@ def digest(args=None):
         print(
             "** digest must be run in a directory called "
             "'hipercam', 'ultracam' or 'ultraspec' which "
-            "has sub-directories '{:s}', '{:s}' and '{:s}'".format(RAW, DERIVED, LOGS),
+            f"has sub-directories '{RAW}', '{DERIVED}' and '{LOGS}'",
             file=sys.stderr,
         )
         print("digest aborted", file=sys.stderr)
@@ -152,9 +152,9 @@ def digest(args=None):
         nds = [os.path.basename(ndir) for ndir in ndirs]
 
         if len(ndirs):
-            print("\nFound night directories: {!s}".format(", ".join(nds)))
+            print(f"\nFound night directories: {nds}")
         else:
-            print("\n** No night directories in {:s}".format(rdir))
+            print(f"\n** No night directories in {rdir}")
             continue
 
         for ndir in ndirs:
@@ -165,20 +165,44 @@ def digest(args=None):
             log = os.path.join(ndir, f"{night}_log.dat")
             if os.path.isfile(log):
                 print(f"... found the log file = {log}")
+
+                # extract runs from the log file
+                lruns = []
+                with open(log) as fin:
+                    for line in fin:
+                        try:
+                            name = line.split()[0]
+                            lruns.append(name)
+                        except IndexError:
+                            pass
+
             else:
+                lruns = None
                 print(f"** no log file called {log} found", file=sys.stderr)
-                print("digest aborted", file=sys.stderr)
-                return
+                if rdir.find('Others') == -1:
+                    print("digest aborted", file=sys.stderr)
+                    return
 
             md5 = os.path.join(ndir, f"MD5SUM_{night}")
             if os.path.isfile(md5):
                 print(f"... found the md5sum file = {md5}")
+
+                # extract runs from the MD5SUM file
+                mruns = []
+                with open(md5) as fin:
+                    for line in fin:
+                        hash, name = line.split()
+                        if not name.endswith(".old"):
+                            mruns.append(name[: name.rfind(".")])
+
             else:
+                mruns = None
                 print(
                     f"** no md5sum file called {md5} found", file=sys.stderr
                 )
-                print("digest aborted", file=sys.stderr)
-                return
+                if rdir.find('Others') == -1:
+                    print("digest aborted", file=sys.stderr)
+                    return
 
             # compile list of runs in the directory
             if basename.startswith("hiper"):
@@ -198,44 +222,27 @@ def digest(args=None):
                     and os.path.isfile(os.path.join(ndir, run[:-4] + ".xml"))
                 ]
 
-            # extract runs from the log file
-            lruns = []
-            with open(log) as fin:
-                for line in fin:
-                    try:
-                        name = line.split()[0]
-                        lruns.append(name)
-                    except IndexError:
-                        pass
-
-            if set(lruns) < set(runs):
+            if lruns is not None and set(lruns) < set(runs):
                 # complain if the log does not cover some of the runs
                 print(
                     f"** {log} has missing runs cf the directory",
                     file=sys.stderr,
                 )
-                print("Missing runs are: {!s}".format(set(runs) - set(lruns)))
+                print(f"Missing runs are: {set(runs) - set(lruns)}")
                 if ignore:
                     print("ignoring problem and continuing.")
                 else:
                     print("digest aborted", file=sys.stderr)
                     return
 
-            # extract runs from the MD5SUM file
-            mruns = []
-            with open(md5) as fin:
-                for line in fin:
-                    hash, name = line.split()
-                    if not name.endswith(".old"):
-                        mruns.append(name[: name.rfind(".")])
 
-            if set(mruns) != set(runs):
+            if mruns is not None and set(mruns) != set(runs):
                 print(
                     "The runs in the md5sum file do not match "
                     "those in the directory",
                     file=sys.stderr,
                 )
-                print("Runs not in common are: {!s}".format(set(runs) ^ set(mruns)))
+                print(f"Runs not in common are: {set(runs) ^ set(mruns)}")
                 print("digest aborted", file=sys.stderr)
 
             print("... found all the runs listed in the md5sum file")
@@ -244,27 +251,28 @@ def digest(args=None):
         print("\nNow running md5sum checks; these might take a while.\n")
 
         for ndir in ndirs:
-            print("Night directory = {:s}".format(ndir))
+            print(f"Night directory = {ndir}")
             night = os.path.basename(ndir)
 
-            md5 = os.path.join(ndir, "MD5SUM_{:s}".format(night))
-            with open(md5) as fin:
-                for line in fin:
-                    hash, run = line.split()
-                    fname = os.path.join(ndir, run)
+            md5 = os.path.join(ndir, f"MD5SUM_{night}")
+            if os.path.exists(md5):
+                with open(md5) as fin:
+                    for line in fin:
+                        hash, run = line.split()
+                        fname = os.path.join(ndir, run)
 
-                    # run the md5sum
-                    output = subprocess.check_output(["md5sum", fname]).decode()
-                    hashc = output.split()[0]
-                    if hashc == hash:
-                        print("md5sum of {:s} is OK".format(fname))
-                    else:
-                        print(
-                            "** md5sum of {:s} is NOT OK!".format(fname),
-                            file=sys.stderr,
-                        )
-                        print("digest aborted")
-                        return
+                        # run the md5sum
+                        output = subprocess.check_output(["md5sum", fname]).decode()
+                        hashc = output.split()[0]
+                        if hashc == hash:
+                            print(f"md5sum of {fname} is OK")
+                        else:
+                            print(
+                                f"** md5sum of {fname} is NOT OK!",
+                                file=sys.stderr,
+                            )
+                            print("digest aborted")
+                            return
 
         # Now change the data structure into my standard form:
         #
@@ -280,14 +288,14 @@ def digest(args=None):
 
         if not os.path.exists(lrdir):
             os.mkdir(lrdir)
-            print("mkdir {:s}".format(lrdir))
+            print(f"mkdir {lrdir}")
 
         # make a link to the telescope file
         tfile = os.path.join("..", "..", RAW, rd, "telescope")
         link = os.path.join(lrdir, "telescope")
         if not os.path.exists(link):
             os.symlink(tfile, link)
-            print("ln -s {:s} {:s}".format(tfile, link))
+            print(f"ln -s {tfile} {link}")
 
         for ndir in ndirs:
             night = os.path.basename(ndir)
@@ -297,41 +305,43 @@ def digest(args=None):
 
             # move the data directory up a level _ to -
             os.rename(ndir, nndir)
-            print("\nmv {:s} {:s}".format(ndir, nndir))
+            print(f"\nmv {ndir} {nndir}")
 
             # link back into the run directory
-            file = os.path.join("..", nnight)
-            os.symlink(file, lndir)
-            print("ln -s {:s} {:s}".format(file, lndir))
+            nfile = os.path.join("..", nnight)
+            os.symlink(nfile, lndir)
+            print(f"ln -s {nfile} {lndir}")
 
             # copy the hand-written log file to a new version without
             # underscores or 'log' in the name
-            oldlog = os.path.join(nndir, "{:s}_log.dat".format(night))
-            newlog = os.path.join(nndir, "{:s}.dat".format(nnight))
-            shutil.copyfile(oldlog, newlog)
-            print("cp {:s} {:s}".format(oldlog, newlog))
+            oldlog = os.path.join(nndir, f"{night}_log.dat")
+            if os.path.exists(oldlog):
+                newlog = os.path.join(nndir, f"{nnight}.dat")
+                shutil.copyfile(oldlog, newlog)
+                print(f"cp {oldlog} {newlog}")
 
             # make an equivalent night directory for log stuff
             logndir = os.path.join(LOGS, nnight)
             os.mkdir(logndir)
             os.chmod(logndir, 0o755)
-            print("mkdir {:s}".format(logndir))
+            print(f"mkdir {logndir}")
 
             # create a link to the log night directory in the log run directory
-            file = os.path.join("..", nnight)
+            nfile = os.path.join("..", nnight)
             link = os.path.join(lrdir, nnight)
-            os.symlink(file, link)
-            print("ln -s {:s} {:s}".format(file, link))
+            os.symlink(nfile, link)
+            print(f"ln -s {nfile} {link}")
 
             # create a link to the hand-written log in the log directory
-            lname = "{:s}.dat".format(nnight)
-            file = os.path.join("..", "..", nndir, lname)
-            link = os.path.join(logndir, lname)
-            os.symlink(file, link)
-            print("ln -s {:s} {:s}".format(file, link))
+            if os.path.exists(oldlog):
+                lname = f"{nnight}.dat"
+                lfile = os.path.join("..", "..", nndir, lname)
+                link = os.path.join(logndir, lname)
+                os.symlink(lfile, link)
+                print(f"ln -s {lfile} {link}")
 
             # create a link to the data directory in the log directory
-            file = os.path.join("..", "..", nndir)
+            dfile = os.path.join("..", "..", nndir)
             link = os.path.join(logndir, "data")
-            os.symlink(file, link)
-            print("ln -s {:s} {:s}".format(file, link))
+            os.symlink(dfile, link)
+            print(f"ln -s {dfile} {link}")
