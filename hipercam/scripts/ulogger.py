@@ -556,11 +556,11 @@ def ulogger(args=None):
 </html>
 """)
 
-    # Load target positional information
+    # Load target positional information. Hand written, automatically
+    # looked up, target names to skip and failed ones potentially
+    # recoverable with some work
     targets = Targets('TARGETS')
     auto_targets = Targets('AUTO_TARGETS')
-
-    # Load targets to skip and failed targets
     skip_targets, failed_targets = load_skip_fail()
 
     # Index file
@@ -866,7 +866,8 @@ def ulogger(args=None):
                                     target = hlog.target[run]
                                 else:
                                     target = rhead.header.get("TARGET",'')
-
+                                target = target.strip()
+        
                                 # RA, Dec lookup
                                 if target == '':
                                     ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
@@ -881,7 +882,7 @@ def ulogger(args=None):
                                 else:
                                     # attempt simbad lookup here
                                     ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
-                                    print(f'  No position found for {run}, target = {target}')
+                                    print(f'  No position found for {runname}, target = {target}')
 
                                 # start accumulating stuff to write out
                                 arr = [ra, dec, autoid]
