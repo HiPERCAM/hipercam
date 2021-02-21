@@ -1025,11 +1025,11 @@ def ulogger(args=None):
                             ra = round(ra,5)
                             dec = round(dec,4)
                         except:
-                            rastr, decstr = '', ''
+                            rastr, decstr, ra, dec = 4*[None]
 
                         nhtml.write(f'<td class="left">{target}</td><td class="left">{autoid}</td>')
                         nhtml.write(f'<td class="left">{rastr}</td><td class="left">{decstr}</td>')
-                        brow += [target,autoid, rastr, decstr, ra, dec, rname]
+                        brow += [target, autoid, rastr, decstr, ra, dec, rname]
 
                         # Timing info
                         ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
@@ -1045,7 +1045,7 @@ def ulogger(args=None):
                             brow += [date_start, ut_start]
                         except:
                             nhtml.write(2*'<td></td>')
-                            brow += 2*['']
+                            brow += 2*[None]
 
                         try:
                             # End time, total time, cadence (assumes we have a valid start time)
@@ -1057,7 +1057,7 @@ def ulogger(args=None):
                             brow += [ut_end, mjd_start, mjd_end, ttime, cadence]
                         except:
                             nhtml.write(3*'<td></td>')
-                            brow += ['',mjd_start,'','','']
+                            brow += [None,mjd_start,None,None,None]
 
                         # Actual exposure time per frame
                         nhtml.write(f'<td class="right">{expose}</td>')
@@ -1097,7 +1097,7 @@ def ulogger(args=None):
                                 brow.append(win)
                             else:
                                 nhtml.write(f'<td></td>')
-                                brow.append('')
+                                brow.append(None)
 
                         # binning
                         binning = f'{rhead.xbin}x{rhead.ybin}'
