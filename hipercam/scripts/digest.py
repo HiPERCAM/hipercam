@@ -101,7 +101,7 @@ def digest(args=None):
 
     # regular expression to match run directory, e.g. 2018-10 [2018, October],
     # 2020-21 [season 2020 to 2021], 2021-P106 [ESO period 106]
-    rdre = re.compile("^\d\d\d\d-(\d\d|P\d\d\d)$")
+    rdre = re.compile("^(Others|\d\d\d\d-(\d\d|P\d\d\d))$")
 
     # regular expression to match input night directory, e.g. 2018_10_30
     ndre = re.compile("^\d\d\d\d_\d\d_\d\d$")
@@ -138,7 +138,7 @@ def digest(args=None):
             if os.path.exists(lrdir) or os.path.exists(drdir):
                 continue
 
-        print("Run directory = {:s}".format(rdir))
+        print(f"Run directory = {rdir}")
 
         # get the imported night-by-night directories. These are
         # distinguished from the processed directories by having names
@@ -162,20 +162,20 @@ def digest(args=None):
             # run elementary checks that are fast
             night = os.path.basename(ndir)
 
-            log = os.path.join(ndir, "{:s}_log.dat".format(night))
+            log = os.path.join(ndir, f"{night}_log.dat")
             if os.path.isfile(log):
-                print("... found the log file = {:s}".format(log))
+                print(f"... found the log file = {log}")
             else:
-                print("** no log file called {:s} found".format(log), file=sys.stderr)
+                print(f"** no log file called {log} found", file=sys.stderr)
                 print("digest aborted", file=sys.stderr)
                 return
 
-            md5 = os.path.join(ndir, "MD5SUM_{:s}".format(night))
+            md5 = os.path.join(ndir, f"MD5SUM_{night}")
             if os.path.isfile(md5):
-                print("... found the md5sum file = {:s}".format(md5))
+                print(f"... found the md5sum file = {md5}")
             else:
                 print(
-                    "** no md5sum file called {:s} found".format(md5), file=sys.stderr
+                    f"** no md5sum file called {md5} found", file=sys.stderr
                 )
                 print("digest aborted", file=sys.stderr)
                 return
@@ -211,7 +211,7 @@ def digest(args=None):
             if set(lruns) < set(runs):
                 # complain if the log does not cover some of the runs
                 print(
-                    "** {:s} has missing runs cf the directory".format(log),
+                    f"** {log} has missing runs cf the directory",
                     file=sys.stderr,
                 )
                 print("Missing runs are: {!s}".format(set(runs) - set(lruns)))
