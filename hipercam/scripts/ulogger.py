@@ -1224,6 +1224,8 @@ cnx.close()
 </html>
 """)
 
+    print('\nFinished generation of web pages; now generating a spreadsheet and an SQL database')
+
     # create pd.DataFrame containing all info
     ptable = pd.DataFrame(data=barr,columns=cnames)
 
