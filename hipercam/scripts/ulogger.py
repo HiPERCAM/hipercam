@@ -49,8 +49,7 @@ automatically generated from the data files and hand-written logs.
 <p>For a searchable file summarising the same information, plus
 calculated data on the Sun and Moon for each run, see this <a
 href="{linstrument}-log.xlsx">spreadsheet</a>. This is also
-available as an <a href="{linstrument}.db">sqlite3 database</a>
-(<a href="colnames.html">column name definitions</a>).
+available as an <a href="sqldb.html">sqlite3 database</a>.
 
 """
 
@@ -527,35 +526,6 @@ def ulogger(args=None):
 
     print(f'Will write to directory = "{root}".')
 
-    # column name definitions
-    cdefs = os.path.join(root, 'colnames.html')
-    colnames = []
-    with open(cdefs, "w") as chtml:
-        chtml.write(f"""<html>
-<head>
-
-<title>{instrument} database column definitions</title>
-</head>
-
-<body>
-<h1>{instrument} database column definitions</h1>
-
-<p>
-<table>
-<tr><th class="left">Column name</th><th class="left">Definition</th></tr>
-""")
-        for cname, definition in UCAM_COLNAMES:
-            chtml.write(
-                f'<tr><td class="left">{cname}</td><td class="left">{definition}</td></tr>\n'
-            )
-            colnames.append(cname)
-        chtml.write("""</table>
-
-<address>Tom Marsh, Warwick</address>
-</body>
-</html>
-""")
-
     # Load target positional information. Hand written, automatically
     # looked up, target names to skip and failed ones potentially
     # recoverable with some work
@@ -652,7 +622,7 @@ def ulogger(args=None):
                     ihtml.write(
                         f'\n, <a href="{night}.html">{night}</a>'
                     )
-    
+
                 # use this to check times are vaguely right. time of runs
                 # must lie between 06.00 local time on date corresponding to
                 # start of night date and 1.5 days later
@@ -838,7 +808,7 @@ def ulogger(args=None):
                                 arr = line.split()
                                 arr[3] = arr[3].replace('~',' ')
                                 pdata[arr[0]] = [
-                                    val if val != 'UNDEF' else '' for val in arr[1:]
+                                    '' if val == 'UNDEF' else val for val in arr[1:]
                                 ]
                         print('Read position data from',posdata)
 
@@ -867,7 +837,7 @@ def ulogger(args=None):
                                 else:
                                     target = rhead.header.get("TARGET",'')
                                 target = target.strip()
-        
+
                                 # RA, Dec lookup
                                 if target == '':
                                     ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
@@ -1046,6 +1016,7 @@ def ulogger(args=None):
                         except:
                             nhtml.write(2*'<td></td>')
                             brow += 2*[None]
+                            mjd_start = None
 
                         try:
                             # End time, total time, cadence (assumes we have a valid start time)
@@ -1054,18 +1025,18 @@ def ulogger(args=None):
                             nhtml.write(
                                 f'<td class="cen">{ut_end}</td> <td class="right">{ttime}</td> <td class="right">{cadence}</td>'
                             )
-                            brow += [ut_end, mjd_start, mjd_end, ttime, cadence]
+                            brow += [ut_end, mjd_start, mjd_end, ttime, noval(cadence)]
                         except:
                             nhtml.write(3*'<td></td>')
                             brow += [None,mjd_start,None,None,None]
 
                         # Actual exposure time per frame
                         nhtml.write(f'<td class="right">{expose}</td>')
-                        brow.append(expose)
+                        brow.append(noval(expose))
 
                         # number of frames, number ok
                         nhtml.write(f'<td class="right">{ntotal}</td><td class="right">{nok}</td>')
-                        brow += [ntotal,nok]
+                        brow += [noval(ntotal), noval(nok)]
 
                         # filters used
                         if hlog.format == 1:
@@ -1073,12 +1044,12 @@ def ulogger(args=None):
                         else:
                             filters = hd.get("filters", '')
                         nhtml.write(f'<td class="cen">{filters}</td>')
-                        brow.append(None if filters == '' else filters)
+                        brow.append(noval(filters))
 
                         # run type
                         itype = hd.get("DTYPE", '')
                         nhtml.write(f'<td class="left">{itype}</td>')
-                        brow.append(None if itype == '' else itype)
+                        brow.append(noval(itype))
 
                         # readout mode
                         nhtml.write(f'<td class="cen">{rhead.mode}</td>')
@@ -1122,7 +1093,7 @@ def ulogger(args=None):
                         except:
                             fpslide = ''
                         nhtml.write(f'<td class="cen">{fpslide}</td>')
-                        brow.append(None if fpslide == '' else fpslide)
+                        brow.append(noval(fpslide))
 
                         if instrument == 'ULTRASPEC':
                             # instr PA
@@ -1133,17 +1104,17 @@ def ulogger(args=None):
                         # Observers
                         observers = hd.get("OBSERVRS", '')
                         nhtml.write(f'<td class="cen">{observers}</td>')
-                        brow.append(None if observers == '' else observers)
+                        brow.append(noval(observers))
 
                         # PI
                         pi = hd.get("PI", '')
                         nhtml.write(f'<td class="left">{pi}</td>')
-                        brow.append(None if pi == '' else pi)
+                        brow.append(noval(pi))
 
                         # Program ID
                         pid = hd.get("ID", "")
                         nhtml.write(f'<td class="left">{pid}</td>')
-                        brow.append(None if pid == '' else pid)
+                        brow.append(noval(pid))
 
                         # Telescope name
                         nhtml.write(f'<td class="left">{telescope}</td>')
@@ -1179,7 +1150,7 @@ def ulogger(args=None):
                         brow.append(comments)
 
                         # Finally tack on extra positional stuff for the spreadsheet only
-                        brow += pdat[3:]
+                        brow += [noval(v) for v in pdat[3:]]
 
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
@@ -1198,10 +1169,70 @@ def ulogger(args=None):
     with open(css, "w") as fout:
         fout.write(CSS)
 
-    # write out spreadsheet
-    ptable = pd.DataFrame(barr, columns=colnames)
+    # write out page of info about sql database
+    sqdb = os.path.join(root, 'sqldb.html')
+    dtypes = {}
+    cnames = []
+    with open(sqdb, "w") as sqout:
+        sqout.write(f"""<html>
+<head>
+
+<title>{instrument} sqlite3 database</title>
+</head>
+
+<body>
+<h1>{instrument} sqlite3 database</h1>
+
+<p>
+The sqlite3 database file <a href="{linstrument}.db">{linstrument}.db</a> is designed to allow SQL queries
+to be applied using Python's sqlite3 module. This has a single table called "{linstrument}". The columns of
+the database are defined below. Note although some are naturally integers, they are converted to floats to
+allow null values due to details of pandas.
+
+<p>
+Here is an example of carrying out a search. The position selected matches AR Sco and in this case
+only runs longer than 200 seconds are returned (37 runs in the ULTRACAM database as of Feb 2021).
+<pre>
+import sqlite3
+import pandas as pd
+
+# Connect to the database
+cnx = sqlite3.connect('{linstrument}.db')
+
+# Query string
+query = 'select * from ultracam WHERE ra_deg > 245 and ra_deg < 246 and dec_deg > -23 and dec_deg < -22 and total > 200'
+
+# return the result as a pandas DataFrame
+res = pd.read_sql_query(query, cnx)
+print(res)
+cnx.close()
+</pre>
+
+<table>
+<tr><th class="left">Column name</th><th class="left">Data type</th><th class="left">Definition</th></tr>
+""")
+        for cname, dtype, definition in UCAM_COLNAMES:
+            sqout.write(
+                f'<tr><td class="left">{cname}</td><td>{dtype}</td><td class="left">{definition}</td></tr>\n'
+            )
+            cnames.append(cname)
+            dtypes[cname] = dtype
+        sqout.write("""</table>
+
+<address>Tom Marsh, Warwick</address>
+</body>
+</html>
+""")
+
+    # create pd.DataFrame containing all info
+    ptable = pd.DataFrame(data=barr,columns=cnames)
+
+    # enforce data types
+    ptable = ptable.astype(dtypes)
+
     spreadsheet = os.path.join(root, f"{linstrument}-log.xlsx")
     format_ulogger_table(spreadsheet, ptable, linstrument)
+    print(f'Written spreadsheet to {linstrument}-log.xlsx')
 
     # write out sqlite database
     sqldb = os.path.join(root, f'{linstrument}.db')
@@ -1209,7 +1240,8 @@ def ulogger(args=None):
     ptable.to_sql(name=f'{linstrument}', con=cnx, if_exists='replace')
     cnx.commit()
     cnx.close()
-    
+    print(f'Written sqlite database to {linstrument}.db')
+
     print(f'\nAll done. Look in {root} for the outputs.')
 
 # End of main section
@@ -1577,56 +1609,56 @@ class TimeHMSCustom(TimeISO):
 
 # Create and write out spreadsheet
 UCAM_COLNAMES = (
-    ('night' , 'date at start of night'),
-    ('run_no', 'run number'),
-    ('target', 'target name'),
-    ('auto_id', 'lookup name'),
-    ('ra_hms', 'RA (J2000), HMS'),
-    ('dec_dms', 'Dec (J2000), DMS'),
-    ('ra_deg', 'RA (J2000), degrees'),
-    ('dec_deg', 'Dec (J2000), degrees'),
-    ('obs_run', 'Run group title'),
-    ('date_start', 'date at start of run'),
-    ('utc_start', 'UTC at start of run'),
-    ('utc_end', 'UTC at end of run'),
-    ('mjd_start', 'MJD (UTC) at start of run'),
-    ('mjd_end', 'MJD (UTC) at end of run'),
-    ('total', 'total exposure time (seconds)'),
-    ('cadence', 'sampling time (seconds)'),
-    ('exposure', 'actual exposure times (seconds)'),
-    ('nframe', 'number of frames'),
-    ('nok', 'number of frames from first to last with OK times'),
-    ('filters', 'colour filters used'),
-    ('run_type', 'provisional type of run'),
-    ('read_mode', 'ULTRACAM readout mode'),
-    ('nb', 'Nblue, CCD 1 readout skip'),
-    ('win1', 'format of window pair 1'),
-    ('win2', 'format of window pair 2'),
-    ('win3', 'format of window pair 3'),
-    ('binning', 'x by Y binning'),
-    ('clr', 'clear enabled'),
-    ('read_speed', 'readout speed'),
-    ('fpslide', 'Focal plane slide'),
-    ('observers', 'observers'),
-    ('pi', 'PI of data'),
-    ('pid', 'proposal ID'),
-    ('tel', 'telescope'),
-    ('size', 'data file size, MB'),
-    ('nlink', 'link to html log of night containing run'),
-    ('comment', 'hand comments from night'),
-    ('alt_start','target altitude at start of run, degrees'),
-    ('alt_middle','target altitude in middle of run, degrees'),
-    ('alt_end','target altitude at end of run, degrees'),
-    ('az_start','target azimuth at start of run, degrees'),
-    ('az_middle','target azimuth in middle of run, degrees'),
-    ('az_end','target azimuth at end of run, degrees'),
-    ('sun_dist', 'distance from Sun, degrees, middle of run'),
-    ('moon_dist', 'distance from Moon, degrees, middle of run'),
-    ('sun_alt_start', 'altitude of Sun at start of run'),
-    ('sun_alt_and', 'altitude of Sun at end of run'),
-    ('moon_alt_start', 'altitude of Moon at start of run'),
-    ('moon_alt_and', 'altitude of Moon at end of run'),
-    ('moon_phase','lunar phase (fraction illuminated')
+    ('night' , 'str', 'date at start of night'),
+    ('run_no', 'str', 'run number'),
+    ('target', 'str', 'target name'),
+    ('auto_id', 'str', 'lookup name'),
+    ('ra_hms', 'str', 'RA (J2000), HMS'),
+    ('dec_dms', 'str', 'Dec (J2000), DMS'),
+    ('ra_deg', 'float64', 'RA (J2000), degrees'),
+    ('dec_deg', 'float64', 'Dec (J2000), degrees'),
+    ('obs_run', 'str', 'Run group title'),
+    ('date_start', 'str', 'date at start of run'),
+    ('utc_start', 'str', 'UTC at start of run'),
+    ('utc_end', 'str', 'UTC at end of run'),
+    ('mjd_start', 'float64', 'MJD (UTC) at start of run'),
+    ('mjd_end', 'float64', 'MJD (UTC) at end of run'),
+    ('total', 'float32', 'total exposure time (seconds)'),
+    ('cadence', 'float32', 'sampling time (seconds)'),
+    ('exposure', 'float32', 'actual exposure times (seconds)'),
+    ('nframe', 'float32', 'number of frames'),
+    ('nok', 'float32', 'number of frames from first to last with OK times'),
+    ('filters', 'str', 'colour filters used'),
+    ('run_type', 'str', 'provisional type of run'),
+    ('read_mode', 'str', 'ULTRACAM readout mode'),
+    ('nb', 'int', 'Nblue, CCD 1 readout skip'),
+    ('win1', 'str', 'format of window pair 1'),
+    ('win2', 'str', 'format of window pair 2'),
+    ('win3', 'str', 'format of window pair 3'),
+    ('binning', 'str', 'x by Y binning'),
+    ('clr', 'str', 'clear enabled'),
+    ('read_speed', 'str', 'readout speed'),
+    ('fpslide', 'float32', 'Focal plane slide'),
+    ('observers', 'str', 'observers'),
+    ('pi', 'str', 'PI of data'),
+    ('pid', 'str', 'proposal ID'),
+    ('tel', 'str', 'telescope'),
+    ('size', 'float32', 'data file size, MB'),
+    ('nlink', 'str', 'link to html log of night containing run (lost in the sql database)'),
+    ('comment', 'str', 'hand comments from night'),
+    ('alt_start', 'float32', 'target altitude at start of run, degrees'),
+    ('alt_middle', 'float32', 'target altitude in middle of run, degrees'),
+    ('alt_end', 'float32', 'target altitude at end of run, degrees'),
+    ('az_start', 'float32', 'target azimuth at start of run, degrees'),
+    ('az_middle', 'float32', 'target azimuth in middle of run, degrees'),
+    ('az_end', 'float32', 'target azimuth at end of run, degrees'),
+    ('sun_dist', 'float32', 'distance from Sun, degrees, middle of run'),
+    ('moon_dist', 'float32', 'distance from Moon, degrees, middle of run'),
+    ('sun_alt_start', 'float32', 'altitude of Sun at start of run'),
+    ('sun_alt_end', 'float32', 'altitude of Sun at end of run'),
+    ('moon_alt_start', 'float32', 'altitude of Moon at start of run'),
+    ('moon_alt_end', 'float32', 'altitude of Moon at end of run'),
+    ('moon_phase', 'float32', 'lunar phase (fraction illuminated')
 )
 
 
@@ -1664,7 +1696,7 @@ query id {target}"""
 
         payload = {'submit' : 'submit script', 'script' : query}
         rep = requests.post(url, data=payload)
-        
+
         data = False
         found = False
         fail = False
@@ -1672,21 +1704,21 @@ query id {target}"""
         for line in rep.text.split('\n'):
             if line.startswith('::data::'):
                 data = True
-                
+
             if line.startswith('::error::'):
                 print(f'  Error occured querying simbad for {target}')
                 fail = True
                 break
-            
+
             if data:
-                
+
                 if line.startswith('Target:'):
                     nres += 1
                     if nres > 1:
                         print(f'  More than one target returned when querying simbad for {target}')
                         fail = True
                         break
-                
+
                     name, coords = line[7:].split(' | ')
                     found = True
                     print(name, coords)
@@ -1704,11 +1736,11 @@ query id {target}"""
                 return (name,ra,dec)
             except:
                 print(f'  Matched "{target}" with "{name}", but failed to translate position = {coords}')
-                                    
+
         # simbad ID lookup failed, so now try to read position from
         # coordinates
         REPOS = re.compile(r'J(\d\d)(\d\d)(\d\d\.\d(?:\d*)?)([+-])(\d\d)(\d\d)(\d\d(?:\.\d*)?)$')
-            
+
         m = REPOS.search(target)
         if m:
             rah,ram,ras,decsgn,decd,decm,decs = m.group(1,2,3,4,5,6,7)
@@ -1725,7 +1757,7 @@ query id {target}"""
                 return (target,ra,dec)
 
         print(f'  Could not extract position from {target}')
-            
+
     if ra_tel is not None and dec_tel is not None and dist is not None:
         # Second
         query = f"""set limit 2
@@ -1742,12 +1774,12 @@ query coo {ra_tel} {dec_tel} radius={dist}m"""
         for line in rep.text.split('\n'):
             if line.startswith('::data::'):
                 data = True
-                
+
             if line.startswith('::error::'):
                 print(f'  Error occured querying simbad for {target}')
                 fail = True
                 break
-            
+
             if data:
                 if line.startswith('Target:'):
                     nres += 1
@@ -1755,7 +1787,7 @@ query coo {ra_tel} {dec_tel} radius={dist}m"""
                         print(f'  More than one target returned when querying simbad for telescope position = {ra_tel} {dec_tel} ({target})')
                         fail = True
                         break
-                
+
                     name, coords = line[7:].split(' | ')
                     found = True
 
@@ -1772,6 +1804,8 @@ query coo {ra_tel} {dec_tel} radius={dist}m"""
                 return (name,ra,dec)
             except:
                 print(f'  Matched telescope position = {ra} {dec} ({target}) with "{name}", but failed to translate position = {coords}')
-        
+
     return ('','','')
 
+def noval(value):
+    return None if value == '' else value
