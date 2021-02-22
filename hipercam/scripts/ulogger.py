@@ -32,27 +32,6 @@ __all__ = [
 # Some constant stuff
 #
 
-# Header of the main file
-
-INDEX_HEADER = """<html>
-<head>
-
-<title>{instrument} data logs</title>
-</head>
-
-<body>
-<h1>{instrument} data logs</h1>
-
-<p> These on-line logs summarise all {instrument} runs. They were
-automatically generated from the data files and hand-written logs.
-
-<p>For a searchable file summarising the same information, plus
-calculated data on the Sun and Moon for each run, see this <a
-href="{linstrument}-log.xlsx">spreadsheet</a>. This is also
-available as an <a href="sqldb.html">sqlite3 database</a>.
-
-"""
-
 def ulogger(args=None):
     """``ulogger``
 
@@ -166,9 +145,8 @@ def ulogger(args=None):
             with open(os.path.join(rname, "telescope")) as tel:
                 telescope = tel.read().strip()
             ihtml.write(
-                f"<h2>{MONTHS.get(month,month)} {year}, {telescope}</h2>\n"
+                f"<tr><td>{MONTHS.get(month,month)} {year}</td><td>{telescope}</td><td>"
             )
-            ihtml.write("\n<p>\n")
 
             # set site
             if telescope == 'WHT':
@@ -233,7 +211,7 @@ def ulogger(args=None):
                     )
                 else:
                     ihtml.write(
-                        f'\n, <a href="{night}.html">{night}</a>'
+                        f', <a href="{night}.html">{night}</a>'
                     )
 
                 # use this to check times are vaguely right. time of runs
@@ -773,6 +751,8 @@ def ulogger(args=None):
                     # finish off the night file
                     nhtml.write("</table>\n{:s}".format(links))
                     nhtml.write(NIGHT_FOOTER)
+
+            ihtml.write('</td></tr>\n')
 
         # finish the main index
         ihtml.write(INDEX_FOOTER)
@@ -1426,9 +1406,36 @@ def noval(value):
     return None if value == '' else value
 
 
+# Header of the main file
+
+INDEX_HEADER = """<html>
+<head>
+
+<title>{instrument} data logs</title>
+</head>
+
+<body>
+<h1>{instrument} data logs</h1>
+
+<p> These on-line logs summarise all {instrument} runs. They were
+automatically generated from the data files and hand-written logs.
+
+<p>For a searchable file summarising the same information, plus
+calculated data on the Sun and Moon for each run, see this <a
+href="{linstrument}-log.xlsx">spreadsheet</a>. This is also
+available as an <a href="sqldb.html">sqlite3 database</a> to
+allow SQL queries.
+
+<p>
+<table border=1 cellspacing="0" cellpadding="4">
+<tr><th>Run</th><th>Telescope</th><th>Dates at the start of the nights</th></tr>
+"""
+
 # Footer of the main file
 
 INDEX_FOOTER = """
+</table>
+
 <address>Tom Marsh, Warwick</address>
 </body>
 </html>
