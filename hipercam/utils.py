@@ -5,13 +5,17 @@ Classes and functions of general use
 import os
 import sys
 import math
+import re
+import requests
+import hipercam as hcam
+
 import numpy as np
 import pandas as pd
 from .core import *
 
 __all__ = (
     "Vec2D", "add_extension", "sub_extension", "script_args", "rgb",
-    "format_hlogger_table", "format_ulogger_table"
+    "format_hlogger_table", "format_ulogger_table", "what_flags",
 )
 
 
@@ -375,4 +379,454 @@ def what_flags(bitmask):
         print(f"{bitmask} corresponds to flags = {flags_raised}")
     else:
         print(f"{bitmask} means no flags have been set")
+
+def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simbad.u-strasbg.fr'):
+    """
+    Tries to determine coordinates of a target in
+    one of three ways:
+
+      1) First it attempts to find coordinates in simbad by running
+         a query ID with target (unless target is None or ''). 
+
+      2) If (1) fails, try to find coordinates within the name in the
+         form JHHMMSS.S[+/-]DDMMSS [can be more precise, but not less]
+
+      3) If 1 and 2 fail or target == '' or None, then attempt a coordinate
+         search in simbad within a limit of dist arcmin (default equals half
+         diagonal of ULTRASPEC. It needs a unique match in this case. The
+         search position comes from ra_tel and dec_tel
+
+    If successful, it comes back with (name, ra, dec), the matched name and position.
+    ra, dec are in col-separated sexagesimal form. If it fails, it returns ('UNDEF','UNDEF','UNDEF').
+    This is for use by the logging scripts.
+    """
+
+    err_msgs = []
+    
+    if url.endswith('/'):
+        url += 'simbad/sim-script'
+    else:
+        url += '/simbad/sim-script'
+    RESPC = re.compile('\s+')
+
+    if target is not None and target != '':
+        # simbad query script
+        query = f"""set limit 2
+format object form1 "Target: %IDLIST(1) | %COO(A D;ICRS)"
+query id {target}"""
+
+        payload = {'submit' : 'submit script', 'script' : query}
+        rep = requests.post(url, data=payload)
+
+        data = False
+        found = False
+        fail = False
+        nres = 0
+        for line in rep.text.split('\n'):
+            if line.startswith('::data::'):
+                data = True
+
+            if line.startswith('::error::'):
+                err_msgs.append(
+                    f'  Error occurred querying simbad for {target}'
+                )
+                fail = True
+                break
+
+            if data:
+
+                if line.startswith('Target:'):
+                    nres += 1
+                    if nres > 1:
+                        err_msgs.append(
+                            f'More than one target returned when querying simbad for {target}'
+                        )
+                        fail = True
+                        break
+
+                    name, coords = line[7:].split(' | ')
+                    found = True
+
+        if found and not fail:
+            # OK we have found one, but we are still not done --
+            # some SIMBAD lookups are no good
+            name = name.strip()
+            name = re.sub(RESPC, ' ', name)
+            try:
+                ra, dec, syst = str2radec(coords)
+                ra = dec2sexg(ra,False,2)
+                dec = dec2sexg(dec,True,1)
+                return (name,ra,dec)
+            except:
+                err_msgs.append(
+                    f'Matched "{target}" with "{name}", but failed to translate position = {coords}'
+                )
+
+        # simbad ID lookup failed, so now try to read position from
+        # coordinates
+        REPOS = re.compile(r'J(\d\d)(\d\d)(\d\d\.\d(?:\d*)?)([+-])(\d\d)(\d\d)(\d\d(?:\.\d*)?)$')
+
+        m = REPOS.search(target)
+        if m:
+            rah,ram,ras,decsgn,decd,decm,decs = m.group(1,2,3,4,5,6,7)
+            ra = f'{rah}:{ram}:{ras}'
+            dec = f'{decsgn}{decd}:{decm}:{decs}'
+            rah,ram,ras,decd,decm,decs = int(rah),int(ram),float(ras),int(decd),int(decm),float(decs)
+            if rah > 23 or ram > 59 or ras >= 60. or decd > 89 or decm > 59 or decs >= 60.:
+                err_msgs.append(
+                    f'{target} matched the positional regular expression but the numbers were out of range'
+                )
+            else:
+                name = re.sub(RESPC, ' ', target)
+                return (name,ra,dec)
+
+        err_msgs.append(
+            f'Could not extract position from {target}'
+        )
+
+    if ra_tel is not None and dec_tel is not None and dist is not None:
+        # Second
+        query = f"""set limit 2
+format object form1 "Target: %IDLIST(1) | %COO(A D;ICRS)"
+query coo {ra_tel} {dec_tel} radius={dist}m"""
+
+        payload = {'submit' : 'submit script', 'script' : query}
+        rep = requests.post(url, data=payload)
+
+        data = False
+        found = False
+        fail = False
+        nres = 0
+        for line in rep.text.split('\n'):
+            if line.startswith('::data::'):
+                data = True
+
+            if line.startswith('::error::'):
+                err_msgs.append(
+                    f'Error occured during simbad coordinate query for {target}'
+                )
+                fail = True
+                break
+
+            if data:
+                if line.startswith('Target:'):
+                    nres += 1
+                    if nres > 1:
+                        err_msgs.append(
+                            f'More than one target returned when querying simbad for telescope position = {ra_tel} {dec_tel} ({target})'
+                        )
+                        fail = True
+                        break
+
+                    name, coords = line[7:].split(' | ')
+                    found = True
+
+        if found and not fail:
+            # OK we have found one, but we are still not done --
+            # some SIMBAD lookups are no good
+            name = name.strip()
+            name = re.sub(RESPC, ' ', name)
+            try:
+                ra, dec, syst = str2radec(coords)
+                ra = dec2sexg(ra,False,2)
+                dec = dec2sexg(dec,True,1)
+                print(f'  Matched telescope position = {ra} {dec} ({target}) with "{name}", position = {ra} {dec}')
+                return (name,ra,dec)
+            except:
+                err_msgs.append(
+                    f'Matched telescope position = {ra} {dec} ({target}) with "{name}", but failed to translate position = {coords}'
+                )
+
+    raise hcam.HipercamError('\n'.join(err_msgs))
+
+
+def str2radec(position):
+    """ra,dec,system = str2radec(position) -- translates an astronomical
+    coordinate string to double precision RA and Dec.
+
+    'ra' is the RA in decimal hours; 'dec' is the declination in
+    degrees; 'system' is one of 'ICRS', 'B1950', 'J2000'. Entering
+    coordinates is an error-prone and often irritating chore.  This
+    routine is designed to make it as safe as possible while
+    supporting a couple of common formats.
+
+    Here are example input formats, both good and bad:
+
+     12 34 56.1 -23 12 12.1     -- OK. 'system' will default to ICRS
+     234.5 34.2  B1950          -- OK. RA, Dec entered in decimal degrees, B1950 to override default ICRS
+     11 02 12.1 -00 00 02       -- OK. - sign will be picked up
+     12:32:02.4 -12:11 10.2     -- OK. Colon separators allowed.
+
+     11 02 12.1 -23.2 J2000     -- NOK. Cannot mix HMS/DMS with decimals
+     11 02 12.1 -23 01 12 J4000 -- NOK. Only 'ICRS', 'B1950', 'J2000' allowed at end.
+     1.02323e2 -32.5            -- NOK. Scientific notation not supported.
+     11 02 12.1 23 01 12        -- NOK. In HMS mode, the sign of the declination must be supplied
+     25 01 61.2 +90 61 78       -- NOK. various items out of range.
+
+    A ValueError is raised on failure
+
+    """
+
+    # Try out three types of match
+    m = re.search(r'^\s*(\d{1,2})(?:\:|\s+)(\d{1,2})(?:\:|\s+)(\d{1,2}(?:\.\d*)?)\s+([\+-])(\d{1,2})(?:\:|\s+)(\d{1,2})(?:\:|\s+)(\d{1,2}(?:\.\d*)?)(?:\s+(\w+))?\s*$', position)
+    if m:
+        rah,ram,ras,decsign,decd,decm,decs,system = m.groups()
+        rah  = int(rah)
+        ram  = int(ram)
+        ras  = float(ras)
+        decd = int(decd)
+        decm = int(decm)
+        decs = float(decs)
+        if (rah > 23 and ram > 0 and ras > 0.) or ram > 60 or ras > 60. \
+                or (decd > 89 and decm > 0 and decs > 0.) or decm > 60 or decs > 60.:
+            raise ValueError('one or more of the entries in the astronomical coordinates "' + position + '" is out of range')
+
+        if system is None: system = 'ICRS'
+
+        if system != 'ICRS' and system != 'J2000' and system != 'B1950':
+            raise ValueError('astronomical coordinate system must be one of ICRS, B1950, J2000; ' + system + ' is not recognised.')
+
+        ra  = rah + ram/60. + ras/3600.
+        dec = decd + decm/60. + decs/3600.
+        if decsign == '-': dec = -dec
+        return (ra,dec,system)
+
+    # No arcseconds of dec as sometimes is the case with coords from simbad
+    m = re.search(r'^\s*(\d{1,2})(?:\:|\s+)(\d{1,2})(?:\:|\s+)(\d{1,2}(?:\.\d*)?)\s+([\+-])(\d{1,2})(?:\:|\s+)(\d{1,2}\.\d*)(?:\s+(\w+))?\s*$', position)
+    if m:
+        rah,ram,ras,decsign,decd,decm,system = m.groups()
+        rah  = int(rah)
+        ram  = int(ram)
+        ras  = float(ras)
+        decd = int(decd)
+        decm = float(decm)
+        if (rah > 23 and ram > 0 and ras > 0.) or ram > 60 or ras > 60. \
+                or (decd > 89 and decm > 0.) or decm > 60.:
+            raise ValueError('one or more of the entries in the astronomical coordinates "' + position + '" is out of range')
+
+        if not system: system = 'ICRS'
+        if system != 'ICRS' and system != 'J2000' and system != 'B1950':
+            raise ValueError('astronomical coordinate system must be one of ICRS, B1950, J2000; ' + system + ' is not recognised.')
+
+        ra  = rah + ram/60. + ras/3600.
+        dec = decd + decm/60.
+        if decsign == '-': dec = -dec
+        return (ra,dec,system)
+
+    # Decimal entries
+    m = re.search(r'^\s*(\d{1,3}(?:\.\d*)?)\s+([+-]?\d{1,2}(?:\.\d*)?)\s+(\w+)?\s*$', position)
+    if m:
+        print ('matched decimal entries')
+        (rad,dec,system) = m.groups()
+        ra   = float(rad)/15.
+        dec  = float(dec)
+        if ra >= 24. or dec < -90. or dec > 90.:
+            raise ValueError('one or more of the entries in the astronomical coordinates "' + position + '" is out of range')
+
+        if not system: system = 'ICRS'
+        if system != 'ICRS' and system != 'J2000' and system != 'B1950':
+            raise ValueError('astronomical coordinate system must be one of ICRS, B1950, J2000; ' + system + ' is not recognised.')
+
+        return (ra,dec,system)
+
+    raise ValueError('could not interpret "' + position + '" as astronomical coordinates')
+
+def dec2sexg(value, sign, dp, sep=':'):
+    """
+    Converts deciaml to sexagesimal
+    """
+    v = abs(value)
+    v1 = int(v)
+    v2 = int(60*(v-v1))
+    v3 = 3600*(v-v1-v2/60)
+    if sign:
+        if value >= 0.:
+            return f'+{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
+        else:
+            return f'-{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
+    else:
+        return f'{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
+
+# Used to translate month numbers
+LOG_MONTHS = {
+    "01": "January",
+    "02": "February",
+    "03": "March",
+    "04": "April",
+    "05": "May",
+    "06": "June",
+    "07": "July",
+    "08": "August",
+    "09": "September",
+    "10": "October",
+    "11": "November",
+    "12": "December",
+}
+
+# CSS to define the look of the log web pages
+LOG_CSS = """
+
+body{
+    background-color: #000000;
+    font: 10pt sans-serif;
+    color: #FFFFFF;
+    margin: 10px;
+    border: 0px;
+    overflow: auto;
+    height: 100%;
+    max-height: 100%;
+}
+
+/* This for the left-hand side guide */
+
+#guidecontent{
+    position: absolute;
+    margin: 10px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 200px;
+    height: 100%;
+    overflow: auto;
+}
+
+#titlecontent{
+    position: fixed;
+    margin: 10px;
+    top: 0;
+    left: 200px;
+    right: 0;
+    bottom: 220px;
+    overflow: auto;
+}
+
+#logcontent{
+    position: fixed;
+    margin: 10px;
+    top: 220px;
+    left: 200px;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+}
+
+button {font-family: Arial,Helvetica,sans-serif;font-size: 10px;width: 10px; height: 10px; border-radius: 0%;}
+
+p {color: #ffffe0}
+
+h1 {color: #ffffff}
+
+input.text {margin-right: 20px; margin-left: 10px}
+
+spa {margin-right: 20px; margin-left: 20px}
+
+table {
+    font: 10pt sans-serif;
+    padding: 1px;
+    border-top:1px solid #655500;
+    border-right:1px solid #655500;
+    border-bottom:2px solid #655500;
+    border-left:1px solid #655500;
+}
+
+td {
+    vertical-align: top;
+    text-align: center;
+    white-space: nowrap;
+    padding-right: 5px;
+}
+
+td.left {
+    vertical-align: top;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 5px;
+}
+
+td.lalert {
+    color: #FFAAAA;
+    vertical-align: top;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 5px;
+}
+
+td.right {
+    vertical-align: top;
+    text-align: right;
+    white-space: nowrap;
+    padding-right: 5px;
+}
+
+td.cen {
+    vertical-align: top;
+    text-align: center;
+    white-space: nowrap;
+}
+
+td.undef {
+    background-color: #100000;
+}
+
+td.format {
+    vertical-align: top;
+    text-align: center;
+    white-space: nowrap;
+}
+
+td.long {
+    vertical-align: top;
+    text-align: left;
+    padding-right: 5px;
+    font: 9pt sans-serif;
+    white-space: normal;
+}
+
+td.bleft {
+    color: #ffffa0;
+    vertical-align: top;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 5px;
+    font: 9pt sans-serif;
+    font-weight: bold;
+}
+
+th {
+    vertical-align:top;
+    text-align: center;
+}
+
+th.left {
+    vertical-align: top;
+    text-align: left;
+}
+
+th.cen {
+    vertical-align: top;
+    text-align: center;
+}
+
+/* links */
+
+a:link {
+    color: #7070ff;
+    text-decoration:underline;
+    font-size: 10pt;
+}
+
+a:visited {
+    color: #e0b0e0;
+    text-decoration:underline;
+    font-size: 10pt;
+}
+
+a:hover {
+    color: red;
+    text-decoration:underline;
+    font-size: 10pt;
+}
+"""
+
+# end of CSS
 
