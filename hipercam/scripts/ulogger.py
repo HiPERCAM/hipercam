@@ -53,393 +53,6 @@ available as an <a href="sqldb.html">sqlite3 database</a>.
 
 """
 
-# Footer of the main file
-
-INDEX_FOOTER = """
-<address>Tom Marsh, Warwick</address>
-</body>
-</html>
-"""
-
-NIGHT_HEADER1 = """<html>
-<head>
-
-<!-- script to hide/reveal selected columns -->
-<script type="text/javascript">
-
-function hide ( column ) {
-var tbl = document.getElementById( "tbl" );
-var i;
-for ( i = 0; i < tbl.rows.length; i++ )
-        tbl.rows[ i ].cells[ column ].style.display = "none";
-}
-
-function restore () {
-var tbl = document.getElementById( "tbl" );
-var i;
-var j;
-for ( i = 0; i < tbl.rows.length; i++ )
-        for ( j = 0; j < tbl.rows[ i ].cells.length; j++ )
-                tbl.rows[ i ].cells[ j ].style.display = "table-cell";
-}
-
-function shrink () {
-var hcols = [4, 9];
-
-var tbl = document.getElementById( "tbl" );
-var i;
-var j;
-for ( i = 0; i < tbl.rows.length; i++ )
-        for ( j = 0; j < hcols.length; j++ )
-                tbl.rows[ i ].cells[ hcols[j] ].style.display = "none";
-}
-
-</script>
-
-<!-- script to toggle auto refresh -->
-
-<script>
-var reloading;
-function checkReloading() {
-    if (window.location.hash=="#autoreload") {
-        reloading=setTimeout("window.location.reload();",10000);
-        document.getElementById("reloadCB").checked=true;
-    }
-}
-function toggleAutoRefresh(cb) {
-    if (cb.checked) {
-        window.location.replace("#autoreload");
-        reloading=setTimeout("window.location.reload();",10000);
-    } else {
-        window.location.replace("#");
-        clearTimeout(reloading);
-    }
-}
-window.onload=checkReloading;
-</script>
-
-<link rel="stylesheet" type="text/css" href="ultra.css" />
-"""
-
-NIGHT_HEADER2 = """<title>{instrument} log {date}</title>
-</head>
-
-<body>
-
-<h1>{instrument} log {date}</h1>
-
-<p>
-The table below lists information on runs from the night starting on {date}.
-See the end of the table for some more details on the meanings of the various columns.
-You can hide any column using the buttons in the top line and "shrink" will reduce clutter
-to focus on those of most interest.
-"""
-
-TABLE_TOP = """<p>
-<button style="width: 120px; height: 30px;" onclick="shrink();">Shrink table</button>
-<button style="width: 140px; height: 30px;" onclick="restore();">Restore columns</button>
-
-
-<p>
-<table border=1 cellspacing="0" cellpadding="4" id="tbl">
-"""
-
-TABLE_HEADER = """
-<tr>
-<td><button id="hidden0" onclick="hide(0)"></button></td>
-<td><button id="hidden1" onclick="hide(1)"></button></td>
-<td><button id="hidden2" onclick="hide(2)"></button></td>
-<td><button id="hidden3" onclick="hide(3)"></button></td>
-<td><button id="hidden4" onclick="hide(4)"></button></td>
-<td><button id="hidden5" onclick="hide(5)"></button></td>
-<td><button id="hidden6" onclick="hide(6)"></button></td>
-<td><button id="hidden7" onclick="hide(7)"></button></td>
-<td><button id="hidden8" onclick="hide(8)"></button></td>
-<td><button id="hidden9" onclick="hide(9)"></button></td>
-<td><button id="hidden10" onclick="hide(10)"></button></td>
-<td><button id="hidden11" onclick="hide(11)"></button></td>
-<td><button id="hidden12" onclick="hide(12)"></button></td>
-<td><button id="hidden13" onclick="hide(13)"></button></td>
-<td><button id="hidden14" onclick="hide(14)"></button></td>
-<td><button id="hidden15" onclick="hide(15)"></button></td>
-<td><button id="hidden16" onclick="hide(16)"></button></td>
-<td><button id="hidden17" onclick="hide(17)"></button></td>
-<td><button id="hidden18" onclick="hide(18)"></button></td>
-<td><button id="hidden19" onclick="hide(19)"></button></td>
-<td><button id="hidden20" onclick="hide(20)"></button></td>
-<td><button id="hidden21" onclick="hide(21)"></button></td>
-<td><button id="hidden22" onclick="hide(22)"></button></td>
-<td><button id="hidden23" onclick="hide(23)"></button></td>
-<td><button id="hidden24" onclick="hide(24)"></button></td>
-<td><button id="hidden25" onclick="hide(25)"></button></td>
-<td><button id="hidden26" onclick="hide(26)"></button></td>
-<td><button id="hidden27" onclick="hide(27)"></button></td>
-<td><button id="hidden28" onclick="hide(29)"></button></td>
-<td><button id="hidden29" onclick="hide(29)"></button></td>
-<td align="left"><button id="hidden30" onclick="hide(30)"></button></td>
-</tr>
-
-<tr>
-<th class="left">Run<br>no.</th>
-<th class="left">Target<br>name</th>
-<th class="left">Auto<br>ID</th>
-<th class="left">RA (J2000)</th>
-<th class="left">Dec&nbsp;(J2000)</th>
-<th class="cen">Date<br>(start)</th>
-<th class="cen">Start</th>
-<th class="cen">End</th>
-<th class="right">Total<br>(sec)</th>
-<th class="right">Cadence<br>(sec)</th>
-<th class="right">Exposure<br>(sec)</th>
-<th class="right">Nframe</th>
-<th class="right">Nok</th>
-<th class="cen">Filters</th>
-<th class="left">Type</th>
-<th class="cen">Read<br>mode</th>
-<th class="left">Nb</th>
-<th class="cen">xl,xr,ys,nx,ny<br>(1)</th>
-<th class="cen">xl,xr,ys,nx,ny<br>(2)</th>
-<th class="cen">xl,xr,ys,nx,ny<br>(3)</th>
-<th class="cen">XxY<br>bin</th>
-<th class="cen">Clr</th>
-<th class="cen">Read<br>speed</th>
-<th class="cen">FPslide</th>
-<th class="cen">Observers</th>
-<th class="left">PI</th>
-<th class="left">PID</th>
-<th class="left">Tel</th>
-<th class="cen">Size<br>(MB)</th>
-<th class="left">Run<br>no.</th>
-<th class="left">Comment</th>
-</tr>
-"""
-
-NIGHT_FOOTER = """
-
-<p> 'Instr. PA' is the instrumental PA. 'Clr' indicates whether clears were enabled;
-'Read mode' is the readout mode which can be one of several options:
-'FFCLR' for full frames with clear; 'FFNCLR' full frames with no clear;
-'1-PAIR', '2-PAIR', '3-PAIR', for standard windowed modes, etc. The 'xl1,xr1,..' column gives the 5
-parameters defining the window pair (ULTRACAM). In fullframe mode,
-these parameters do not need to be specified. The 'cadence' is the
-time between exposures, the 'exposure' the actual time spent integrating, although
-note that these numbers are not always entirely accurate. 'Nok' is the number of OK
-frames judged as having OK times. If it grossly disagrees with Nframe, there might be
-timing problems present, such as the GPS dropping out. 
-</p>
-
-<address>Tom Marsh, Warwick</address>
-</body>
-</html>
-"""
-
-MONTHS = {
-    "01": "January",
-    "02": "February",
-    "03": "March",
-    "04": "April",
-    "05": "May",
-    "06": "June",
-    "07": "July",
-    "08": "August",
-    "09": "September",
-    "10": "October",
-    "11": "November",
-    "12": "December",
-}
-
-# CSS to define the look of the log web pages
-# This is written to 'ultra.css' and referred to in the
-# html pages
-CSS = """
-
-body{
-    background-color: #000000;
-    font: 10pt sans-serif;
-    color: #FFFFFF;
-    margin: 10px;
-    border: 0px;
-    overflow: auto;
-    height: 100%;
-    max-height: 100%;
-}
-
-/* This for the left-hand side guide */
-
-#guidecontent{
-    position: absolute;
-    margin: 10px;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 200px;
-    height: 100%;
-    overflow: auto;
-}
-
-#titlecontent{
-    position: fixed;
-    margin: 10px;
-    top: 0;
-    left: 200px;
-    right: 0;
-    bottom: 220px;
-    overflow: auto;
-}
-
-#logcontent{
-    position: fixed;
-    margin: 10px;
-    top: 220px;
-    left: 200px;
-    right: 0;
-    bottom: 0;
-    overflow: auto;
-}
-
-button {font-family: Arial,Helvetica,sans-serif;font-size: 10px;width: 10px; height: 10px; border-radius: 0%;}
-
-p {color: #ffffe0}
-
-h1 {color: #ffffff}
-
-input.text {margin-right: 20px; margin-left: 10px}
-
-spa {margin-right: 20px; margin-left: 20px}
-
-table {
-    font: 10pt sans-serif;
-    padding: 1px;
-    border-top:1px solid #655500;
-    border-right:1px solid #655500;
-    border-bottom:2px solid #655500;
-    border-left:1px solid #655500;
-}
-
-td {
-    vertical-align: top;
-    text-align: center;
-    white-space: nowrap;
-    padding-right: 5px;
-}
-
-td.left {
-    vertical-align: top;
-    text-align: left;
-    white-space: nowrap;
-    padding-right: 5px;
-}
-
-td.lalert {
-    color: #FFAAAA;
-    vertical-align: top;
-    text-align: left;
-    white-space: nowrap;
-    padding-right: 5px;
-}
-
-td.right {
-    vertical-align: top;
-    text-align: right;
-    white-space: nowrap;
-    padding-right: 5px;
-}
-
-td.cen {
-    vertical-align: top;
-    text-align: center;
-    white-space: nowrap;
-}
-
-td.undef {
-    background-color: #100000;
-}
-
-td.format {
-    vertical-align: top;
-    text-align: center;
-    white-space: nowrap;
-}
-
-td.long {
-    vertical-align: top;
-    text-align: left;
-    padding-right: 5px;
-    font: 9pt sans-serif;
-    white-space: normal;
-}
-
-td.bleft {
-    color: #ffffa0;
-    vertical-align: top;
-    text-align: left;
-    white-space: nowrap;
-    padding-right: 5px;
-    font: 9pt sans-serif;
-    font-weight: bold;
-}
-
-th {
-    vertical-align:top;
-    text-align: center;
-}
-
-th.left {
-    vertical-align: top;
-    text-align: left;
-}
-
-th.cen {
-    vertical-align: top;
-    text-align: center;
-}
-
-/* links */
-
-a:link {
-    color: #7070ff;
-    text-decoration:underline;
-    font-size: 10pt;
-}
-
-a:visited {
-    color: #e0b0e0;
-    text-decoration:underline;
-    font-size: 10pt;
-}
-
-a:hover {
-    color: red;
-    text-decoration:underline;
-    font-size: 10pt;
-}
-"""
-
-# end of CSS
-
-def correct_ra_dec(ra, dec):
-    """Fixes up RAs and Decs"""
-    if ra == "UNDEF":
-        ra = ""
-    else:
-        rah, ram, ras = ra.split(":")
-        rah, ram, ras = int(rah), int(ram), float(ras)
-        ra = "{:02d}:{:02d}:{:05.2f}".format(rah, ram, ras)
-
-    if dec == "UNDEF":
-        dec = ""
-    else:
-        decd, decm, decs = dec.split(":")
-        if decd.find("-") > -1:
-            negative = True
-        else:
-            negative = False
-        decd, decm, decs = int(decd), int(decm), float(decs)
-        decd = -abs(decd) if negative else abs(decd)
-        dec = "{:+03d}:{:02d}:{:04.1f}".format(decd, decm, decs)
-
-    return (ra, dec)
-
 def ulogger(args=None):
     """``ulogger``
 
@@ -1811,3 +1424,392 @@ query coo {ra_tel} {dec_tel} radius={dist}m"""
 
 def noval(value):
     return None if value == '' else value
+
+
+# Footer of the main file
+
+INDEX_FOOTER = """
+<address>Tom Marsh, Warwick</address>
+</body>
+</html>
+"""
+
+NIGHT_HEADER1 = """<html>
+<head>
+
+<!-- script to hide/reveal selected columns -->
+<script type="text/javascript">
+
+function hide ( column ) {
+var tbl = document.getElementById( "tbl" );
+var i;
+for ( i = 0; i < tbl.rows.length; i++ )
+        tbl.rows[ i ].cells[ column ].style.display = "none";
+}
+
+function restore () {
+var tbl = document.getElementById( "tbl" );
+var i;
+var j;
+for ( i = 0; i < tbl.rows.length; i++ )
+        for ( j = 0; j < tbl.rows[ i ].cells.length; j++ )
+                tbl.rows[ i ].cells[ j ].style.display = "table-cell";
+}
+
+function shrink () {
+var hcols = [4, 9];
+
+var tbl = document.getElementById( "tbl" );
+var i;
+var j;
+for ( i = 0; i < tbl.rows.length; i++ )
+        for ( j = 0; j < hcols.length; j++ )
+                tbl.rows[ i ].cells[ hcols[j] ].style.display = "none";
+}
+
+</script>
+
+<!-- script to toggle auto refresh -->
+
+<script>
+var reloading;
+function checkReloading() {
+    if (window.location.hash=="#autoreload") {
+        reloading=setTimeout("window.location.reload();",10000);
+        document.getElementById("reloadCB").checked=true;
+    }
+}
+function toggleAutoRefresh(cb) {
+    if (cb.checked) {
+        window.location.replace("#autoreload");
+        reloading=setTimeout("window.location.reload();",10000);
+    } else {
+        window.location.replace("#");
+        clearTimeout(reloading);
+    }
+}
+window.onload=checkReloading;
+</script>
+
+<link rel="stylesheet" type="text/css" href="ultra.css" />
+"""
+
+NIGHT_HEADER2 = """<title>{instrument} log {date}</title>
+</head>
+
+<body>
+
+<h1>{instrument} log {date}</h1>
+
+<p>
+The table below lists information on runs from the night starting on {date}.
+See the end of the table for some more details on the meanings of the various columns.
+You can hide any column using the buttons in the top line and "shrink" will reduce clutter
+to focus on those of most interest.
+"""
+
+TABLE_TOP = """<p>
+<button style="width: 120px; height: 30px;" onclick="shrink();">Shrink table</button>
+<button style="width: 140px; height: 30px;" onclick="restore();">Restore columns</button>
+
+
+<p>
+<table border=1 cellspacing="0" cellpadding="4" id="tbl">
+"""
+
+TABLE_HEADER = """
+<tr>
+<td><button id="hidden0" onclick="hide(0)"></button></td>
+<td><button id="hidden1" onclick="hide(1)"></button></td>
+<td><button id="hidden2" onclick="hide(2)"></button></td>
+<td><button id="hidden3" onclick="hide(3)"></button></td>
+<td><button id="hidden4" onclick="hide(4)"></button></td>
+<td><button id="hidden5" onclick="hide(5)"></button></td>
+<td><button id="hidden6" onclick="hide(6)"></button></td>
+<td><button id="hidden7" onclick="hide(7)"></button></td>
+<td><button id="hidden8" onclick="hide(8)"></button></td>
+<td><button id="hidden9" onclick="hide(9)"></button></td>
+<td><button id="hidden10" onclick="hide(10)"></button></td>
+<td><button id="hidden11" onclick="hide(11)"></button></td>
+<td><button id="hidden12" onclick="hide(12)"></button></td>
+<td><button id="hidden13" onclick="hide(13)"></button></td>
+<td><button id="hidden14" onclick="hide(14)"></button></td>
+<td><button id="hidden15" onclick="hide(15)"></button></td>
+<td><button id="hidden16" onclick="hide(16)"></button></td>
+<td><button id="hidden17" onclick="hide(17)"></button></td>
+<td><button id="hidden18" onclick="hide(18)"></button></td>
+<td><button id="hidden19" onclick="hide(19)"></button></td>
+<td><button id="hidden20" onclick="hide(20)"></button></td>
+<td><button id="hidden21" onclick="hide(21)"></button></td>
+<td><button id="hidden22" onclick="hide(22)"></button></td>
+<td><button id="hidden23" onclick="hide(23)"></button></td>
+<td><button id="hidden24" onclick="hide(24)"></button></td>
+<td><button id="hidden25" onclick="hide(25)"></button></td>
+<td><button id="hidden26" onclick="hide(26)"></button></td>
+<td><button id="hidden27" onclick="hide(27)"></button></td>
+<td><button id="hidden28" onclick="hide(29)"></button></td>
+<td><button id="hidden29" onclick="hide(29)"></button></td>
+<td align="left"><button id="hidden30" onclick="hide(30)"></button></td>
+</tr>
+
+<tr>
+<th class="left">Run<br>no.</th>
+<th class="left">Target<br>name</th>
+<th class="left">Auto<br>ID</th>
+<th class="left">RA (J2000)</th>
+<th class="left">Dec&nbsp;(J2000)</th>
+<th class="cen">Date<br>(start)</th>
+<th class="cen">Start</th>
+<th class="cen">End</th>
+<th class="right">Total<br>(sec)</th>
+<th class="right">Cadence<br>(sec)</th>
+<th class="right">Exposure<br>(sec)</th>
+<th class="right">Nframe</th>
+<th class="right">Nok</th>
+<th class="cen">Filters</th>
+<th class="left">Type</th>
+<th class="cen">Read<br>mode</th>
+<th class="left">Nb</th>
+<th class="cen">xl,xr,ys,nx,ny<br>(1)</th>
+<th class="cen">xl,xr,ys,nx,ny<br>(2)</th>
+<th class="cen">xl,xr,ys,nx,ny<br>(3)</th>
+<th class="cen">XxY<br>bin</th>
+<th class="cen">Clr</th>
+<th class="cen">Read<br>speed</th>
+<th class="cen">FPslide</th>
+<th class="cen">Observers</th>
+<th class="left">PI</th>
+<th class="left">PID</th>
+<th class="left">Tel</th>
+<th class="cen">Size<br>(MB)</th>
+<th class="left">Run<br>no.</th>
+<th class="left">Comment</th>
+</tr>
+"""
+
+NIGHT_FOOTER = """
+
+<p> 'Instr. PA' is the instrumental PA. 'Clr' indicates whether clears were enabled;
+'Read mode' is the readout mode which can be one of several options:
+'FFCLR' for full frames with clear; 'FFNCLR' full frames with no clear;
+'1-PAIR', '2-PAIR', '3-PAIR', for standard windowed modes, etc. The 'xl1,xr1,..' column gives the 5
+parameters defining the window pair (ULTRACAM). In fullframe mode,
+these parameters do not need to be specified. The 'cadence' is the
+time between exposures, the 'exposure' the actual time spent integrating, although
+note that these numbers are not always entirely accurate. 'Nok' is the number of OK
+frames judged as having OK times. If it grossly disagrees with Nframe, there might be
+timing problems present, such as the GPS dropping out.
+</p>
+
+<address>Tom Marsh, Warwick</address>
+</body>
+</html>
+"""
+
+MONTHS = {
+    "01": "January",
+    "02": "February",
+    "03": "March",
+    "04": "April",
+    "05": "May",
+    "06": "June",
+    "07": "July",
+    "08": "August",
+    "09": "September",
+    "10": "October",
+    "11": "November",
+    "12": "December",
+}
+
+# CSS to define the look of the log web pages
+# This is written to 'ultra.css' and referred to in the
+# html pages
+CSS = """
+
+body{
+    background-color: #000000;
+    font: 10pt sans-serif;
+    color: #FFFFFF;
+    margin: 10px;
+    border: 0px;
+    overflow: auto;
+    height: 100%;
+    max-height: 100%;
+}
+
+/* This for the left-hand side guide */
+
+#guidecontent{
+    position: absolute;
+    margin: 10px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 200px;
+    height: 100%;
+    overflow: auto;
+}
+
+#titlecontent{
+    position: fixed;
+    margin: 10px;
+    top: 0;
+    left: 200px;
+    right: 0;
+    bottom: 220px;
+    overflow: auto;
+}
+
+#logcontent{
+    position: fixed;
+    margin: 10px;
+    top: 220px;
+    left: 200px;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+}
+
+button {font-family: Arial,Helvetica,sans-serif;font-size: 10px;width: 10px; height: 10px; border-radius: 0%;}
+
+p {color: #ffffe0}
+
+h1 {color: #ffffff}
+
+input.text {margin-right: 20px; margin-left: 10px}
+
+spa {margin-right: 20px; margin-left: 20px}
+
+table {
+    font: 10pt sans-serif;
+    padding: 1px;
+    border-top:1px solid #655500;
+    border-right:1px solid #655500;
+    border-bottom:2px solid #655500;
+    border-left:1px solid #655500;
+}
+
+td {
+    vertical-align: top;
+    text-align: center;
+    white-space: nowrap;
+    padding-right: 5px;
+}
+
+td.left {
+    vertical-align: top;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 5px;
+}
+
+td.lalert {
+    color: #FFAAAA;
+    vertical-align: top;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 5px;
+}
+
+td.right {
+    vertical-align: top;
+    text-align: right;
+    white-space: nowrap;
+    padding-right: 5px;
+}
+
+td.cen {
+    vertical-align: top;
+    text-align: center;
+    white-space: nowrap;
+}
+
+td.undef {
+    background-color: #100000;
+}
+
+td.format {
+    vertical-align: top;
+    text-align: center;
+    white-space: nowrap;
+}
+
+td.long {
+    vertical-align: top;
+    text-align: left;
+    padding-right: 5px;
+    font: 9pt sans-serif;
+    white-space: normal;
+}
+
+td.bleft {
+    color: #ffffa0;
+    vertical-align: top;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 5px;
+    font: 9pt sans-serif;
+    font-weight: bold;
+}
+
+th {
+    vertical-align:top;
+    text-align: center;
+}
+
+th.left {
+    vertical-align: top;
+    text-align: left;
+}
+
+th.cen {
+    vertical-align: top;
+    text-align: center;
+}
+
+/* links */
+
+a:link {
+    color: #7070ff;
+    text-decoration:underline;
+    font-size: 10pt;
+}
+
+a:visited {
+    color: #e0b0e0;
+    text-decoration:underline;
+    font-size: 10pt;
+}
+
+a:hover {
+    color: red;
+    text-decoration:underline;
+    font-size: 10pt;
+}
+"""
+
+# end of CSS
+
+def correct_ra_dec(ra, dec):
+    """Fixes up RAs and Decs"""
+    if ra == "UNDEF":
+        ra = ""
+    else:
+        rah, ram, ras = ra.split(":")
+        rah, ram, ras = int(rah), int(ram), float(ras)
+        ra = "{:02d}:{:02d}:{:05.2f}".format(rah, ram, ras)
+
+    if dec == "UNDEF":
+        dec = ""
+    else:
+        decd, decm, decs = dec.split(":")
+        if decd.find("-") > -1:
+            negative = True
+        else:
+            negative = False
+        decd, decm, decs = int(decd), int(decm), float(decs)
+        decd = -abs(decd) if negative else abs(decd)
+        dec = "{:+03d}:{:02d}:{:04.1f}".format(decd, decm, decs)
+
+    return (ra, dec)
+
