@@ -15,7 +15,7 @@ from astropy.coordinates import get_sun, get_moon, EarthLocation, SkyCoord, AltA
 import astropy.units as u
 
 import hipercam as hcam
-from hipercam.utils import format_ulogger_table
+from hipercam.utils import format_ulogger_table, target_lookup, dec2sexg, str2radec, LOG_CSS, LOG_MONTHS
 
 __all__ = [
     "ulogger",
@@ -35,18 +35,17 @@ __all__ = [
 def ulogger(args=None):
     """``ulogger``
 
-    Generates html logs for ULTRACAM and ULTRASPEC runs, and also generates
-    a searchable spreadsheet.
+    Generates html logs for ULTRACAM and ULTRASPEC runs, a searchable
+    spreadsheet and an sqlite3 database for programmatic SQL
+    enquiries.
 
     ulogger expects to work on directories containing the runs for
     each night. It should be run from the ultra(cam|spec)/raw_data
     directory.  It extracts information from each run file. It runs
-    without any parameters.  ulogger also writes out a spreadsheet
-    with useful info line-by-line for each run.
+    without any parameters.
 
     If run at Warwick, it writes data to the web pages. Otherwise it
     writes them to a sub-directory of raw_data called "logs".
-
     Bit of a specialist routine this one; if you have access to the
     on-line logs at Warwick, it should be unnecessary. It requires the
     installation of the python module xlsxwriter in order to write an
@@ -58,6 +57,7 @@ def ulogger(args=None):
     from astroplan import moon_phase_angle
     warnings.filterwarnings('ignore')
 
+    print(len(ULTRACAM_COLNAMES),len(ULTRASPEC_COLNAMES))
     barr = []
     cwd = os.getcwd()
     if os.path.basename(cwd) != "raw_data":
@@ -121,8 +121,7 @@ def ulogger(args=None):
     # Load target positional information. Hand written, automatically
     # looked up, target names to skip and failed ones potentially
     # recoverable with some work
-    targets = Targets('TARGETS')
-    auto_targets = Targets('AUTO_TARGETS')
+    targets = Targets('TARGETS', 'AUTO_TARGETS')
     skip_targets, failed_targets = load_skip_fail()
 
     # Index file
@@ -145,7 +144,7 @@ def ulogger(args=None):
             with open(os.path.join(rname, "telescope")) as tel:
                 telescope = tel.read().strip()
             ihtml.write(
-                f"<tr><td>{MONTHS.get(month,month)} {year}</td><td>{telescope}</td><td>"
+                f"<tr><td>{LOG_MONTHS.get(month,month)} {year}</td><td>{telescope}</td><td>"
             )
 
             # set site
@@ -293,7 +292,7 @@ def ulogger(args=None):
                                     elif rtime.header['MODE'] == 'UDRIFT':
                                         # ultraspec
                                         win = rtime.win[0]
-                                        nyu = win.ny*rhead.ybin
+                                        nyu = win.ny*rtime.ybin
                                         nback = int((1037/nyu + 1) / 2) + 3
                                     else:
                                         # non drift mode
@@ -430,20 +429,20 @@ def ulogger(args=None):
                                 target = target.strip()
 
                                 # RA, Dec lookup
-                                if target == '':
-                                    ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
-                                elif target in skip_targets:
-                                    ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
-                                elif target in targets.lnames:
-                                    autoid, dct = targets(target)
-                                    ra, dec = dct['ra'], dct['dec']
-                                elif target in auto_targets.lnames:
-                                    autoid, dct = auto_targets(target)
-                                    ra, dec = dct['ra'], dct['dec']
+                                if target == '' or target in skip_targets or target in failed_targets:
+                                    autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
                                 else:
-                                    # attempt simbad lookup here
-                                    ra, dec, autoid = 'UNDEF', 'UNDEF', 'UNDEF'
-                                    print(f'  No position found for {runname}, target = {target}')
+                                    try:
+                                        autoid, ra, dec = targets(target)
+                                    except:
+                                        try:
+                                            # attempt simbad lookup here
+                                            autoid, ra, dec = target_lookup(target)
+                                            targets.add_target(target, ra, dec, autoid)
+                                            print(f'  Added {target} to targets')
+                                        except:
+                                            print(f'  No position found for {runname}, target = "{target}"')
+                                            failed_targets[target] = (rname,nname,run)
 
                                 # start accumulating stuff to write out
                                 arr = [ra, dec, autoid]
@@ -530,7 +529,10 @@ def ulogger(args=None):
 
                         if nrun % 20 == 0:
                             # write table header
-                            nhtml.write(TABLE_HEADER)
+                            nhtml.write(
+                                ULTRACAM_TABLE_HEADER if instrument == 'ULTRACAM' else
+                                ULTRASPEC_TABLE_HEADER
+                            )
 
                         if len(tdata[run]) == 1:
                             # means its a power on/off
@@ -553,7 +555,10 @@ def ulogger(args=None):
                             # run number
                             nhtml.write(f'<td class="lalert">{run[3:]}</td>')
                             nhtml.write("</tr>\n")
-                            brow = [night, run[3:]] + 46*[None]
+                            if instrument == 'ULTRACAM':
+                                brow = [night, run[3:]] + 49*[None]
+                            else:
+                                brow = [night, run[3:]] + 51*[None]
                             continue
 
                         hd = rhead.header
@@ -586,11 +591,20 @@ def ulogger(args=None):
                             ra = round(ra,5)
                             dec = round(dec,4)
                         except:
-                            rastr, decstr, ra, dec = 4*[None]
+                            rastr, decstr, ra, dec = ['','',None,None]
 
                         nhtml.write(f'<td class="left">{target}</td><td class="left">{autoid}</td>')
                         nhtml.write(f'<td class="left">{rastr}</td><td class="left">{decstr}</td>')
-                        brow += [target, autoid, rastr, decstr, ra, dec, rname]
+
+                        if instrument == 'ULTRASPEC':
+                            # instr PA
+                            tel_ra = hd.get("RA", "")
+                            tel_dec = hd.get("Dec", "")
+                            tel_pa = hd.get("PA", "")
+                            nhtml.write(f'<td class="cen">{tel_ra}</td><td class="cen">{tel_dec}</td><td class="cen">{tel_pa}</td>')
+                            brow += [target, autoid, rastr, decstr, ra, dec, tel_ra, tel_dec, noval(tel_pa), rname]
+                        else:
+                            brow += [target, autoid, rastr, decstr, ra, dec, rname]
 
                         # Timing info
                         ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
@@ -606,7 +620,7 @@ def ulogger(args=None):
                             brow += [date_start, ut_start]
                         except:
                             nhtml.write(2*'<td></td>')
-                            brow += 2*[None]
+                            brow += ['','']
                             mjd_start = None
 
                         try:
@@ -619,7 +633,7 @@ def ulogger(args=None):
                             brow += [ut_end, mjd_start, mjd_end, ttime, noval(cadence)]
                         except:
                             nhtml.write(3*'<td></td>')
-                            brow += [None,mjd_start,None,None,None]
+                            brow += ['',mjd_start,None,None,None]
 
                         # Actual exposure time per frame
                         nhtml.write(f'<td class="right">{expose}</td>')
@@ -635,31 +649,33 @@ def ulogger(args=None):
                         else:
                             filters = hd.get("filters", '')
                         nhtml.write(f'<td class="cen">{filters}</td>')
-                        brow.append(noval(filters))
+                        brow.append(filters)
 
                         # run type
                         itype = hd.get("DTYPE", '')
                         nhtml.write(f'<td class="left">{itype}</td>')
-                        brow.append(noval(itype))
+                        brow.append(itype)
 
                         # readout mode
                         nhtml.write(f'<td class="cen">{rhead.mode}</td>')
                         brow.append(rhead.mode)
 
                         # nblue
-                        nblue = hd['NBLUE']
-                        nhtml.write(f'<td class="cen">{nblue}</td>')
-                        brow.append(nblue)
+                        if instrument == 'ULTRACAM':
+                            nblue = hd['NBLUE']
+                            nhtml.write(f'<td class="cen">{nblue}</td>')
+                            brow.append(nblue)
 
                         # window formats
-                        for n in range(3):
+                        nwmax = 3 if instrument == 'ULTRACAM' else 4
+                        for n in range(nwmax):
                             if n < len(rhead.wforms):
                                 win = rhead.wforms[n]
                                 nhtml.write(f'<td class="cen">{win}</td>')
                                 brow.append(win)
                             else:
                                 nhtml.write(f'<td></td>')
-                                brow.append(None)
+                                brow.append('')
 
                         # binning
                         binning = f'{rhead.xbin}x{rhead.ybin}'
@@ -672,7 +688,8 @@ def ulogger(args=None):
                         brow.append(clear)
 
                         # CCD speed
-                        speed = hd['GAINSPED']
+                        speed = hd['GAINSPED'] if instrument == 'ULTRACAM' else \
+                            hd['SPEED']
                         nhtml.write(f'<td class="cen">{speed}</td>')
                         brow.append(speed)
 
@@ -686,26 +703,20 @@ def ulogger(args=None):
                         nhtml.write(f'<td class="cen">{fpslide}</td>')
                         brow.append(noval(fpslide))
 
-                        if instrument == 'ULTRASPEC':
-                            # instr PA
-                            instpa = hd.get("INSTRPA", "----")
-                            nhtml.write(f'<td class="cen">{instpa}</td>')
-                            brow.append(instpa)
-
                         # Observers
                         observers = hd.get("OBSERVRS", '')
                         nhtml.write(f'<td class="cen">{observers}</td>')
-                        brow.append(noval(observers))
+                        brow.append(observers)
 
                         # PI
                         pi = hd.get("PI", '')
                         nhtml.write(f'<td class="left">{pi}</td>')
-                        brow.append(noval(pi))
+                        brow.append(pi)
 
                         # Program ID
                         pid = hd.get("ID", "")
                         nhtml.write(f'<td class="left">{pid}</td>')
-                        brow.append(noval(pid))
+                        brow.append(pid)
 
                         # Telescope name
                         nhtml.write(f'<td class="left">{telescope}</td>')
@@ -760,14 +771,12 @@ def ulogger(args=None):
     # write out the css file
     css = os.path.join(root, "ultra.css")
     with open(css, "w") as fout:
-        fout.write(CSS)
+        fout.write(LOG_CSS)
 
     # write out page of info about sql database
     sqdb = os.path.join(root, 'sqldb.html')
-    dtypes = {}
-    cnames = []
     with open(sqdb, "w") as sqout:
-        sqout.write(f"""<html>
+        sqout.write(f'''<html>
 <head>
 
 <title>{instrument} sqlite3 database</title>
@@ -783,7 +792,7 @@ the database are defined below. Note although some are naturally integers, they 
 allow null values due to details of pandas.
 
 <p>
-Here is an example of carrying out a search. The position selected matches AR Sco and in this case
+Here is a simple example of carrying out a search for ULTRACAM. The position selected matches AR Sco and in this case
 only runs longer than 200 seconds are returned (37 runs in the ULTRACAM database as of Feb 2021).
 <pre>
 import sqlite3
@@ -801,18 +810,76 @@ print(res)
 cnx.close()
 </pre>
 
+<p>
+Here is a more complex example in which we carry out the same simple search as before
+to derive a sub-table labelled t2, but then search through the original table (t1) for
+all runs taken within 2 days of the t2 ones which match them in terms of format. This returns
+matching calibration frames, checks that the filters are right for flats and the red speed
+is OK for biases. It also writes the results to disk.
+
+<pre>
+import sqlite3
+import pandas as pd
+from hipercam.utils import format_ulogger_table
+
+# Connect to the database
+cnx = sqlite3.connect('ultracam.db')
+
+query = """
+SELECT t1.*
+FROM ultracam AS t1, (
+   SELECT *
+   FROM ultracam
+   WHERE ra_deg > 245 AND ra_deg < 246 AND dec_deg > -23 AND dec_deg < -22 AND total > 200
+) as t2
+WHERE ABS(t1.mjd_start-t2.mjd_start) < 2
+AND (t1.run_type != 'flat' OR t1.filters == t2.filters)
+AND (t1.run_type != 'bias' OR t1.read_speed == t2.read_speed)
+AND (
+     (t1.win1 == t2.win1 AND t1.binning == t2.binning AND ((t1.ra_hms == t2.ra_hms) OR t1.ra_deg is NULL))
+     OR
+     (t1.win1 == '1,513,1,512,1024' AND t1.binning == '1x1') AND ((t1.ra_hms == t2.ra_hms) OR t1.ra_deg is NULL)
+    )
+GROUP BY t1.night, t1.run_no
+"""
+
+res = pd.read_sql_query(query, cnx)
+cnx.close()
+print(res)
+format_ulogger_table('results.xlsx', res, 'ultracam')
+</pre>
+
+<p>
+This search comes up with 283 runs as of 22 Feb; there tend to be a fair few matching calibrations for
+each bit of real data, but this does cut down significantly on what to look through.
+
 <h2>Column names, definitions and data types</h2>
+
+<p>
+The database is called {linstrument}.db and contains a single table called '{linstrument}' with the following columns:
 
 <p>
 <table>
 <tr><th class="left">Column name</th><th class="left">Data type</th><th class="left">Definition</th></tr>
-""")
-        for cname, dtype, definition in UCAM_COLNAMES:
-            sqout.write(
-                f'<tr><td class="left">{cname}</td><td>{dtype}</td><td class="left">{definition}</td></tr>\n'
-            )
-            cnames.append(cname)
-            dtypes[cname] = dtype
+''')
+
+        dtypes = {}
+        cnames = []
+        if instrument == 'ULTRACAM':
+            for cname, dtype, definition in ULTRACAM_COLNAMES:
+                sqout.write(
+                    f'<tr><td class="left">{cname}</td><td>{dtype}</td><td class="left">{definition}</td></tr>\n'
+                )
+                cnames.append(cname)
+                dtypes[cname] = dtype
+        else:
+            for cname, dtype, definition in ULTRASPEC_COLNAMES:
+                sqout.write(
+                    f'<tr><td class="left">{cname}</td><td>{dtype}</td><td class="left">{definition}</td></tr>\n'
+                )
+                cnames.append(cname)
+                dtypes[cname] = dtype
+
         sqout.write("""</table>
 
 <hr>
@@ -973,13 +1040,50 @@ class Targets(dict):
             else:
                 print('No targets loaded from',fname,'as it does not exist.')
 
-    def __call__(self, name):
+    def add_target(self, target, ra, dec, uid, dmax=10):
+        """
+        Add a target at position ra, dec. dmax is maximum
+        separation in arcsec from previous entry with
+        matching lookup name. 'target' is a name that
+        will be matched to a unique identifier uid 
+        """
+
+        if target in self.lnames:
+            raise hcam.HipercamError(
+                'Target = {target} name = {name} already has an entry'
+            )
+
+        ra,dec,system = str2radec(ra + ' ' + dec)
+        if uid in self:
+            entry = self[uid]
+            ora, odec = entry['ra'], entry['dec']
+            dist = np.sqrt((15*(ra-ora))**2+(np.cos(np.radians(dec))*(dec-odec))**2)
+            if 3600*dist > dmax:
+                raise hcam.HipercamError(
+                    f'Target id = {uid} already entered but the new position is {3600*dist}" (>{dmax}) way from first position'
+                )
+
+            # add target to the list of names associated with ID
+            self[uid]['names'].append(target)
+            
+        else:
+            # new entry
+            self[uid] = {'ra' : ra, 'dec' : dec, 'names' : [target]}
+            
+        # ensure target maps to the id
+        self.lnames[target] = uid
+
+    def __call__(self, target):
         """
         Call with name to lookup. Returns standardised name plus
         dictionary with 'ra', 'dec' and 'names'
         """
-        target = self.lnames[name]
-        return target, self[target]
+        if target in self:
+            uid = target
+        else:
+            uid = self.lnames[target]
+        dct = self[uid]
+        return uid, dct['ra'], dct['dec']
 
     def write(self, fname):
         """
@@ -1061,19 +1165,6 @@ minimum run length.
                 f.write(lnames + '</td></tr>\n')
                 f.write('</table>\n</body>\n</html>\n')
 
-def dec2sexg(value, sign, dp, sep=':'):
-    v = abs(value)
-    v1 = int(v)
-    v2 = int(60*(v-v1))
-    v3 = 3600*(v-v1-v2/60)
-    if sign:
-        if value >= 0.:
-            return f'+{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
-        else:
-            return f'-{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
-    else:
-        return f'{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
-
 def load_skip_fail():
     """Looks for a file called SKIP_TARGETS containing a list of target
     names to skip as far as target position lookup, and another called
@@ -1107,96 +1198,6 @@ def load_skip_fail():
     return (skip_targets, failed_targets)
 
 
-def str2radec(position):
-    """ra,dec,system = str2radec(position) -- translates an astronomical
-    coordinate string to double precision RA and Dec.
-
-    'ra' is the RA in decimal hours; 'dec' is the declination in
-    degrees; 'system' is one of 'ICRS', 'B1950', 'J2000'. Entering
-    coordinates is an error-prone and often irritating chore.  This
-    routine is designed to make it as safe as possible while
-    supporting a couple of common formats.
-
-    Here are example input formats, both good and bad:
-
-     12 34 56.1 -23 12 12.1     -- OK. 'system' will default to ICRS
-     234.5 34.2  B1950          -- OK. RA, Dec entered in decimal degrees, B1950 to override default ICRS
-     11 02 12.1 -00 00 02       -- OK. - sign will be picked up
-     12:32:02.4 -12:11 10.2     -- OK. Colon separators allowed.
-
-     11 02 12.1 -23.2 J2000     -- NOK. Cannot mix HMS/DMS with decimals
-     11 02 12.1 -23 01 12 J4000 -- NOK. Only 'ICRS', 'B1950', 'J2000' allowed at end.
-     1.02323e2 -32.5            -- NOK. Scientific notation not supported.
-     11 02 12.1 23 01 12        -- NOK. In HMS mode, the sign of the declination must be supplied
-     25 01 61.2 +90 61 78       -- NOK. various items out of range.
-
-    A ValueError is raised on failure
-
-    """
-
-    # Try out three types of match
-    m = re.search(r'^\s*(\d{1,2})(?:\:|\s+)(\d{1,2})(?:\:|\s+)(\d{1,2}(?:\.\d*)?)\s+([\+-])(\d{1,2})(?:\:|\s+)(\d{1,2})(?:\:|\s+)(\d{1,2}(?:\.\d*)?)(?:\s+(\w+))?\s*$', position)
-    if m:
-        rah,ram,ras,decsign,decd,decm,decs,system = m.groups()
-        rah  = int(rah)
-        ram  = int(ram)
-        ras  = float(ras)
-        decd = int(decd)
-        decm = int(decm)
-        decs = float(decs)
-        if (rah > 23 and ram > 0 and ras > 0.) or ram > 60 or ras > 60. \
-                or (decd > 89 and decm > 0 and decs > 0.) or decm > 60 or decs > 60.:
-            raise ValueError('one or more of the entries in the astronomical coordinates "' + position + '" is out of range')
-
-        if not system: system = 'ICRS'
-        if system != 'ICRS' and system != 'J2000' and system != 'B1950':
-            raise ValueError('astronomical coordinate system must be one of ICRS, B1950, J2000; ' + system + ' is not recognised.')
-
-        ra  = rah + ram/60. + ras/3600.
-        dec = decd + decm/60. + decs/3600.
-        if decsign == '-': dec = -dec
-        return (ra,dec,system)
-
-    # No arcseconds of dec as sometimes is the case with coords from simbad
-    m = re.search(r'^\s*(\d{1,2})(?:\:|\s+)(\d{1,2})(?:\:|\s+)(\d{1,2}(?:\.\d*)?)\s+([\+-])(\d{1,2})(?:\:|\s+)(\d{1,2}\.\d*)(?:\s+(\w+))?\s*$', position)
-    if m:
-        rah,ram,ras,decsign,decd,decm,system = m.groups()
-        rah  = int(rah)
-        ram  = int(ram)
-        ras  = float(ras)
-        decd = int(decd)
-        decm = float(decm)
-        if (rah > 23 and ram > 0 and ras > 0.) or ram > 60 or ras > 60. \
-                or (decd > 89 and decm > 0.) or decm > 60.:
-            raise ValueError('one or more of the entries in the astronomical coordinates "' + position + '" is out of range')
-
-        if not system: system = 'ICRS'
-        if system != 'ICRS' and system != 'J2000' and system != 'B1950':
-            raise ValueError('astronomical coordinate system must be one of ICRS, B1950, J2000; ' + system + ' is not recognised.')
-
-        ra  = rah + ram/60. + ras/3600.
-        dec = decd + decm/60.
-        if decsign == '-': dec = -dec
-        return (ra,dec,system)
-
-    # Decimal entries
-    m = re.search(r'^\s*(\d{1,3}(?:\.\d*)?)\s+([+-]?\d{1,2}(?:\.\d*)?)\s+(\w+)?\s*$', position)
-    if m:
-        print ('matched decimal entries')
-        (rad,dec,system) = m.groups()
-        ra   = float(rad)/15.
-        dec  = float(dec)
-        if ra >= 24. or dec < -90. or dec > 90.:
-            raise ValueError('one or more of the entries in the astronomical coordinates "' + position + '" is out of range')
-
-        if not system: system = 'ICRS'
-        if system != 'ICRS' and system != 'J2000' and system != 'B1950':
-            raise ValueError('astronomical coordinate system must be one of ICRS, B1950, J2000; ' + system + ' is not recognised.')
-
-        return (ra,dec,system)
-
-    raise ValueError('could not interpret "' + position + '" as astronomical coordinates')
-
 class TimeHMSCustom(TimeISO):
     """
     Just the HMS part of a Time as "<HH>:<MM>:<SS.sss...>".
@@ -1207,7 +1208,7 @@ class TimeHMSCustom(TimeISO):
 
 
 # Create and write out spreadsheet
-UCAM_COLNAMES = (
+ULTRACAM_COLNAMES = (
     ('night' , 'str', 'Date at the start of the night'),
     ('run_no', 'str', 'Run number'),
     ('target', 'str', 'Target name'),
@@ -1260,151 +1261,63 @@ UCAM_COLNAMES = (
     ('moon_phase', 'float32', 'Lunar phase (fraction illuminated')
 )
 
+# Create and write out spreadsheet
+ULTRASPEC_COLNAMES = (
+    ('night' , 'str', 'Date at the start of the night'),
+    ('run_no', 'str', 'Run number'),
+    ('target', 'str', 'Target name'),
+    ('auto_id', 'str', 'Lookup name, from disk files or SIMBAD'),
+    ('ra_hms', 'str', 'Target RA (J2000), HMS'),
+    ('dec_dms', 'str', 'Target Dec (J2000), DMS'),
+    ('ra_deg', 'float64', 'Target RA (J2000), degrees'),
+    ('dec_deg', 'float64', 'Target Dec (J2000), degrees'),
+    ('ra_tel', 'str', 'Telescope pointing RA (J2000), HMS'),
+    ('dec_tel', 'str', 'Telescope pointing Dec (J2000), DMS'),
+    ('pa', 'float32', 'PA on sky (degrees)'),
+    ('obs_run', 'str', 'Run group title'),
+    ('date_start', 'str', 'Date at the start of the run'),
+    ('utc_start', 'str', 'UTC at the start of the run'),
+    ('utc_end', 'str', 'UTC at the end of the run'),
+    ('mjd_start', 'float64', 'MJD (UTC) at the start of the run'),
+    ('mjd_end', 'float64', 'MJD (UTC) at the end of the run'),
+    ('total', 'float32', 'Total exposure time (seconds)'),
+    ('cadence', 'float32', 'Sampling time between exposures (seconds)'),
+    ('exposure', 'float32', 'Actual exposure time (seconds)'),
+    ('nframe', 'float32', 'Total number of frames in file'),
+    ('nok', 'float32', 'Number of frames from first to last with OK times'),
+    ('filters', 'str', 'Colour filters used'),
+    ('run_type', 'str', 'Provisional type of the run, indicative only'),
+    ('read_mode', 'str', 'ULTRASPEC readout mode'),
+    ('win1', 'str', 'Format of window 1'),
+    ('win2', 'str', 'Format of window 2'),
+    ('win3', 'str', 'Format of window 3'),
+    ('win4', 'str', 'Format of window 4'),
+    ('binning', 'str', 'X by Y binning'),
+    ('clr', 'str', 'Clear enabled or not'),
+    ('read_speed', 'str', 'Readout speed'),
+    ('fpslide', 'float32', 'Focal plane slide'),
+    ('observers', 'str', 'Observers'),
+    ('pi', 'str', 'PI of data'),
+    ('pid', 'str', 'Proposal ID'),
+    ('tel', 'str', 'Telescope'),
+    ('size', 'float32', 'Data file size, MB'),
+    ('nlink', 'str', 'Link to html log of night containing run (spreadsheet only)'),
+    ('comment', 'str', 'Hand comments from night'),
+    ('alt_start', 'float32', 'Target altitude at start of run, degrees'),
+    ('alt_middle', 'float32', 'Target altitude in middle of run, degrees'),
+    ('alt_end', 'float32', 'Target altitude at end of run, degrees'),
+    ('az_start', 'float32', 'Target azimuth at start of run, degrees'),
+    ('az_middle', 'float32', 'Target azimuth in middle of run, degrees'),
+    ('az_end', 'float32', 'Target azimuth at end of run, degrees'),
+    ('sun_dist', 'float32', 'Distance from Sun, degrees, middle of run'),
+    ('moon_dist', 'float32', 'Distance from Moon, degrees, middle of run'),
+    ('sun_alt_start', 'float32', 'Altitude of Sun at start of run'),
+    ('sun_alt_end', 'float32', 'Altitude of Sun at end of run'),
+    ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
+    ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
+    ('moon_phase', 'float32', 'Lunar phase (fraction illuminated')
+)
 
-def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simbad.u-strasbg.fr'):
-    """
-    Tries to determine coordinates of a target in
-    one of three ways:
-
-      1) First it attempts to find coordinates in simbad by running
-         a query ID with target (unless target is None or ''). 
-
-      2) If (1) fails, try to find coordinates within the name in the
-         form JHHMMSS.S[+/-]DDMMSS [can be more precise, but not less]
-
-      3) If 1 and 2 fail or target == '' or None, then attempt a coordinate
-         search in simbad within a limit of dist arcmin (default equals half
-         diagonal of ULTRASPEC. It needs a unique match in this case. The
-         search position comes from ra_tel and dec_tel
-
-    If successful, it comes back with (name, ra, dec), the matched name and position.
-    ra, dec are in col-separated sexagesimal form. If it fails, it returns ('','','')
-    """
-
-    if url.endswith('/'):
-        url += 'simbad/sim-script'
-    else:
-        url += '/simbad/sim-script'
-    RESPC = re.compile('\s+')
-
-    if target is not None and target != '':
-        # simbad query script
-        query = f"""set limit 2
-format object form1 "Target: %IDLIST(1) | %COO(A D;ICRS)"
-query id {target}"""
-
-        payload = {'submit' : 'submit script', 'script' : query}
-        rep = requests.post(url, data=payload)
-
-        data = False
-        found = False
-        fail = False
-        nres = 0
-        for line in rep.text.split('\n'):
-            if line.startswith('::data::'):
-                data = True
-
-            if line.startswith('::error::'):
-                print(f'  Error occured querying simbad for {target}')
-                fail = True
-                break
-
-            if data:
-
-                if line.startswith('Target:'):
-                    nres += 1
-                    if nres > 1:
-                        print(f'  More than one target returned when querying simbad for {target}')
-                        fail = True
-                        break
-
-                    name, coords = line[7:].split(' | ')
-                    found = True
-                    print(name, coords)
-
-        if found and not fail:
-            # OK we have found one, but we are still not done --
-            # some SIMBAD lookups are no good
-            name = name.strip()
-            name = re.sub(RESPC, ' ', name)
-            try:
-                ra, dec, syst = str2radec(coords)
-                ra = dec2sexg(ra,False,2)
-                dec = dec2sexg(dec,True,1)
-                print(f'  Matched "{target}" with "{name}", position = {ra} {dec}')
-                return (name,ra,dec)
-            except:
-                print(f'  Matched "{target}" with "{name}", but failed to translate position = {coords}')
-
-        # simbad ID lookup failed, so now try to read position from
-        # coordinates
-        REPOS = re.compile(r'J(\d\d)(\d\d)(\d\d\.\d(?:\d*)?)([+-])(\d\d)(\d\d)(\d\d(?:\.\d*)?)$')
-
-        m = REPOS.search(target)
-        if m:
-            rah,ram,ras,decsgn,decd,decm,decs = m.group(1,2,3,4,5,6,7)
-            ra = f'{rah}:{ram}:{ras}'
-            dec = f'{decsgn}{decd}:{decm}:{decs}'
-            rah,ram,ras,decd,decm,decs = int(rah),int(ram),float(ras),int(decd),int(decm),float(decs)
-            if rah > 23 or ram > 59 or ras >= 60. or decd > 89 or decm > 59 or decs >= 60.:
-                print(
-                    f'  Warning: {target} matched the positional regular expression but the numbers were out of range',
-                    file=sys.stderr
-                )
-            else:
-                print(f'  Identified {target} as a positional name')
-                return (target,ra,dec)
-
-        print(f'  Could not extract position from {target}')
-
-    if ra_tel is not None and dec_tel is not None and dist is not None:
-        # Second
-        query = f"""set limit 2
-format object form1 "Target: %IDLIST(1) | %COO(A D;ICRS)"
-query coo {ra_tel} {dec_tel} radius={dist}m"""
-
-        payload = {'submit' : 'submit script', 'script' : query}
-        rep = requests.post(url, data=payload)
-
-        data = False
-        found = False
-        fail = False
-        nres = 0
-        for line in rep.text.split('\n'):
-            if line.startswith('::data::'):
-                data = True
-
-            if line.startswith('::error::'):
-                print(f'  Error occured querying simbad for {target}')
-                fail = True
-                break
-
-            if data:
-                if line.startswith('Target:'):
-                    nres += 1
-                    if nres > 1:
-                        print(f'  More than one target returned when querying simbad for telescope position = {ra_tel} {dec_tel} ({target})')
-                        fail = True
-                        break
-
-                    name, coords = line[7:].split(' | ')
-                    found = True
-
-        if found and not fail:
-            # OK we have found one, but we are still not done --
-            # some SIMBAD lookups are no good
-            name = name.strip()
-            name = re.sub(RESPC, ' ', name)
-            try:
-                ra, dec, syst = str2radec(coords)
-                ra = dec2sexg(ra,False,2)
-                dec = dec2sexg(dec,True,1)
-                print(f'  Matched telescope position = {ra} {dec} ({target}) with "{name}", position = {ra} {dec}')
-                return (name,ra,dec)
-            except:
-                print(f'  Matched telescope position = {ra} {dec} ({target}) with "{name}", but failed to translate position = {coords}')
-
-    return ('','','')
 
 def noval(value):
     return None if value == '' else value
@@ -1528,7 +1441,7 @@ TABLE_TOP = """<p>
 <table border=1 cellspacing="0" cellpadding="4" id="tbl">
 """
 
-TABLE_HEADER = """
+ULTRACAM_TABLE_HEADER = """
 <tr>
 <td><button id="hidden0" onclick="hide(0)"></button></td>
 <td><button id="hidden1" onclick="hide(1)"></button></td>
@@ -1598,18 +1511,95 @@ TABLE_HEADER = """
 </tr>
 """
 
+ULTRASPEC_TABLE_HEADER = """
+<tr>
+<td><button id="hidden0" onclick="hide(0)"></button></td>
+<td><button id="hidden1" onclick="hide(1)"></button></td>
+<td><button id="hidden2" onclick="hide(2)"></button></td>
+<td><button id="hidden3" onclick="hide(3)"></button></td>
+<td><button id="hidden4" onclick="hide(4)"></button></td>
+<td><button id="hidden5" onclick="hide(5)"></button></td>
+<td><button id="hidden6" onclick="hide(6)"></button></td>
+<td><button id="hidden7" onclick="hide(7)"></button></td>
+<td><button id="hidden8" onclick="hide(8)"></button></td>
+<td><button id="hidden9" onclick="hide(9)"></button></td>
+<td><button id="hidden10" onclick="hide(10)"></button></td>
+<td><button id="hidden11" onclick="hide(11)"></button></td>
+<td><button id="hidden12" onclick="hide(12)"></button></td>
+<td><button id="hidden13" onclick="hide(13)"></button></td>
+<td><button id="hidden14" onclick="hide(14)"></button></td>
+<td><button id="hidden15" onclick="hide(15)"></button></td>
+<td><button id="hidden16" onclick="hide(16)"></button></td>
+<td><button id="hidden17" onclick="hide(17)"></button></td>
+<td><button id="hidden18" onclick="hide(18)"></button></td>
+<td><button id="hidden19" onclick="hide(19)"></button></td>
+<td><button id="hidden20" onclick="hide(20)"></button></td>
+<td><button id="hidden21" onclick="hide(21)"></button></td>
+<td><button id="hidden22" onclick="hide(22)"></button></td>
+<td><button id="hidden23" onclick="hide(23)"></button></td>
+<td><button id="hidden24" onclick="hide(24)"></button></td>
+<td><button id="hidden25" onclick="hide(25)"></button></td>
+<td><button id="hidden26" onclick="hide(26)"></button></td>
+<td><button id="hidden27" onclick="hide(27)"></button></td>
+<td><button id="hidden28" onclick="hide(29)"></button></td>
+<td><button id="hidden29" onclick="hide(29)"></button></td>
+<td><button id="hidden30" onclick="hide(30)"></button></td>
+<td><button id="hidden31" onclick="hide(31)"></button></td>
+<td><button id="hidden32" onclick="hide(32)"></button></td>
+<td align="left"><button id="hidden33" onclick="hide(33)"></button></td>
+</tr>
+
+<tr>
+<th class="left">Run<br>no.</th>
+<th class="left">Target<br>name</th>
+<th class="left">Auto<br>ID</th>
+<th class="left">RA (J2000)</th>
+<th class="left">Dec&nbsp;(J2000)</th>
+<th class="left">Tel RA</th>
+<th class="left">Tel Dec</th>
+<th class="left">PA</th>
+<th class="cen">Date<br>(start)</th>
+<th class="cen">Start</th>
+<th class="cen">End</th>
+<th class="right">Total<br>(sec)</th>
+<th class="right">Cadence<br>(sec)</th>
+<th class="right">Exposure<br>(sec)</th>
+<th class="right">Nframe</th>
+<th class="right">Nok</th>
+<th class="cen">Filters</th>
+<th class="left">Type</th>
+<th class="cen">Read<br>mode</th>
+<th class="cen">xs,ys,nx,ny<br>(1)</th>
+<th class="cen">xs,ys,nx,ny<br>(2)</th>
+<th class="cen">xs,ys,nx,ny<br>(3)</th>
+<th class="cen">xs,ys,nx,ny<br>(4)</th>
+<th class="cen">XxY<br>bin</th>
+<th class="cen">Clr</th>
+<th class="cen">Read<br>speed</th>
+<th class="cen">FPslide</th>
+<th class="cen">Observers</th>
+<th class="left">PI</th>
+<th class="left">PID</th>
+<th class="left">Tel</th>
+<th class="cen">Size<br>(MB)</th>
+<th class="left">Run<br>no.</th>
+<th class="left">Comment</th>
+</tr>
+"""
+
 NIGHT_FOOTER = """
 
-<p> 'Instr. PA' is the instrumental PA. 'Clr' indicates whether clears were enabled;
-'Read mode' is the readout mode which can be one of several options:
-'FFCLR' for full frames with clear; 'FFNCLR' full frames with no clear;
-'1-PAIR', '2-PAIR', '3-PAIR', for standard windowed modes, etc. The 'xl1,xr1,..' column gives the 5
-parameters defining the window pair (ULTRACAM). In fullframe mode,
-these parameters do not need to be specified. The 'cadence' is the
-time between exposures, the 'exposure' the actual time spent integrating, although
-note that these numbers are not always entirely accurate. 'Nok' is the number of OK
-frames judged as having OK times. If it grossly disagrees with Nframe, there might be
-timing problems present, such as the GPS dropping out.
+<p> 'PA' is the PA on the sky (ULTRASPEC). 'Clr' indicates whether
+clears were enabled; 'Read mode' is the readout mode which can be one
+of several options: 'FFCLR' for full frames with clear; 'FFNCLR' full
+frames with no clear; '1-PAIR', '2-PAIR', '3-PAIR', for standard
+windowed modes, etc. The 'xl,xr,..' column gives the 5 parameters
+defining the window pair ULTRACAM, or 4 for ULTRASPEC. The 'cadence'
+is the time between exposures, the 'exposure' the actual time spent
+integrating, although note that these numbers are not always entirely
+accurate. 'Nok' is the number of OK frames judged as having OK
+times. If it grossly disagrees with Nframe, there might be timing
+problems present, such as the GPS dropping out.
 </p>
 
 <address>Tom Marsh, Warwick</address>
@@ -1617,210 +1607,5 @@ timing problems present, such as the GPS dropping out.
 </html>
 """
 
-MONTHS = {
-    "01": "January",
-    "02": "February",
-    "03": "March",
-    "04": "April",
-    "05": "May",
-    "06": "June",
-    "07": "July",
-    "08": "August",
-    "09": "September",
-    "10": "October",
-    "11": "November",
-    "12": "December",
-}
 
-# CSS to define the look of the log web pages
-# This is written to 'ultra.css' and referred to in the
-# html pages
-CSS = """
-
-body{
-    background-color: #000000;
-    font: 10pt sans-serif;
-    color: #FFFFFF;
-    margin: 10px;
-    border: 0px;
-    overflow: auto;
-    height: 100%;
-    max-height: 100%;
-}
-
-/* This for the left-hand side guide */
-
-#guidecontent{
-    position: absolute;
-    margin: 10px;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 200px;
-    height: 100%;
-    overflow: auto;
-}
-
-#titlecontent{
-    position: fixed;
-    margin: 10px;
-    top: 0;
-    left: 200px;
-    right: 0;
-    bottom: 220px;
-    overflow: auto;
-}
-
-#logcontent{
-    position: fixed;
-    margin: 10px;
-    top: 220px;
-    left: 200px;
-    right: 0;
-    bottom: 0;
-    overflow: auto;
-}
-
-button {font-family: Arial,Helvetica,sans-serif;font-size: 10px;width: 10px; height: 10px; border-radius: 0%;}
-
-p {color: #ffffe0}
-
-h1 {color: #ffffff}
-
-input.text {margin-right: 20px; margin-left: 10px}
-
-spa {margin-right: 20px; margin-left: 20px}
-
-table {
-    font: 10pt sans-serif;
-    padding: 1px;
-    border-top:1px solid #655500;
-    border-right:1px solid #655500;
-    border-bottom:2px solid #655500;
-    border-left:1px solid #655500;
-}
-
-td {
-    vertical-align: top;
-    text-align: center;
-    white-space: nowrap;
-    padding-right: 5px;
-}
-
-td.left {
-    vertical-align: top;
-    text-align: left;
-    white-space: nowrap;
-    padding-right: 5px;
-}
-
-td.lalert {
-    color: #FFAAAA;
-    vertical-align: top;
-    text-align: left;
-    white-space: nowrap;
-    padding-right: 5px;
-}
-
-td.right {
-    vertical-align: top;
-    text-align: right;
-    white-space: nowrap;
-    padding-right: 5px;
-}
-
-td.cen {
-    vertical-align: top;
-    text-align: center;
-    white-space: nowrap;
-}
-
-td.undef {
-    background-color: #100000;
-}
-
-td.format {
-    vertical-align: top;
-    text-align: center;
-    white-space: nowrap;
-}
-
-td.long {
-    vertical-align: top;
-    text-align: left;
-    padding-right: 5px;
-    font: 9pt sans-serif;
-    white-space: normal;
-}
-
-td.bleft {
-    color: #ffffa0;
-    vertical-align: top;
-    text-align: left;
-    white-space: nowrap;
-    padding-right: 5px;
-    font: 9pt sans-serif;
-    font-weight: bold;
-}
-
-th {
-    vertical-align:top;
-    text-align: center;
-}
-
-th.left {
-    vertical-align: top;
-    text-align: left;
-}
-
-th.cen {
-    vertical-align: top;
-    text-align: center;
-}
-
-/* links */
-
-a:link {
-    color: #7070ff;
-    text-decoration:underline;
-    font-size: 10pt;
-}
-
-a:visited {
-    color: #e0b0e0;
-    text-decoration:underline;
-    font-size: 10pt;
-}
-
-a:hover {
-    color: red;
-    text-decoration:underline;
-    font-size: 10pt;
-}
-"""
-
-# end of CSS
-
-def correct_ra_dec(ra, dec):
-    """Fixes up RAs and Decs"""
-    if ra == "UNDEF":
-        ra = ""
-    else:
-        rah, ram, ras = ra.split(":")
-        rah, ram, ras = int(rah), int(ram), float(ras)
-        ra = "{:02d}:{:02d}:{:05.2f}".format(rah, ram, ras)
-
-    if dec == "UNDEF":
-        dec = ""
-    else:
-        decd, decm, decs = dec.split(":")
-        if decd.find("-") > -1:
-            negative = True
-        else:
-            negative = False
-        decd, decm, decs = int(decd), int(decm), float(decs)
-        decd = -abs(decd) if negative else abs(decd)
-        dec = "{:+03d}:{:02d}:{:04.1f}".format(decd, decm, decs)
-
-    return (ra, dec)
 
