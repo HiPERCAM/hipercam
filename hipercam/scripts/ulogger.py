@@ -815,6 +815,7 @@ cnx.close()
             dtypes[cname] = dtype
         sqout.write("""</table>
 
+<hr>
 <address>Tom Marsh, Warwick</address>
 </body>
 </html>
@@ -1039,7 +1040,7 @@ on the IDs should take you to a list of runs. If it returns no runs, try reducin
 minimum run length.
 
 <p>
-<table>
+<table border=1 cellspacing="1" cellpadding="4">
 <tr><th class="left">ID</th><th>RA</th><th>Dec</th><th class="left">Matching strings</th></tr>
 """)
 
@@ -1430,7 +1431,7 @@ available as an <a href="sqldb.html">sqlite3 database</a> to
 allow SQL queries.
 
 <p>
-<table border=1 cellspacing="0" cellpadding="4">
+<table border=1 cellspacing="1" cellpadding="4">
 <tr><th>Run</th><th>Telescope</th><th>Dates at the start of the nights</th></tr>
 """
 
