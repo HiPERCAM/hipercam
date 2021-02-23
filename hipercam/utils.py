@@ -258,7 +258,7 @@ def format_hlogger_table(fname, table):
     lab_runno = chr(ord('A')+cnames.get_loc('Run no.'))
 
     def clen(mlen):
-        return min(150,int(math.ceil(0.88*max_len+1.5)))
+        return min(150,int(math.ceil(0.88*mlen+1.5)))
 
     for idx, col in enumerate(table):
         series = table[col]
@@ -330,7 +330,10 @@ def format_ulogger_table(fname, table, instrument):
     lab_runno = chr(ord('A')+cnames.get_loc('run_no'))
 
     def clen(mlen):
-        return min(150,int(math.ceil(0.88*max_len+1.5)))
+        if mlen is None or np.isnan(mlen):
+            return 5
+        else:
+            return min(150,int(math.ceil(0.88*mlen+1.5)))
 
     for idx, col in enumerate(table):
         series = table[col]
