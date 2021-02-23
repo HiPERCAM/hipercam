@@ -337,6 +337,7 @@ class Rhead:
             or app == "appl1_pon_cfg"
             or app == "appl2_pof_cfg"
             or app == "ccd201_pon_cfg"
+            or app == "ccd201_pof_cfg"
         ):
             mode = "PONOFF"
         else:
@@ -578,7 +579,7 @@ class Rhead:
         if self.headerwords == 16:
             VERSIONS = [100222, 111205, 120716, 120813, 130307, 130317, 130417, 140331]
             if version not in VERSIONS:
-                raise ValueError("could not recognise version = {:d}".format(version))
+                raise ValueError(f"could not recognise version = {version}")
 
         self.whichRun = ""
         if instrument == "ULTRACAM":
