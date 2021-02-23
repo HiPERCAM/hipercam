@@ -976,12 +976,8 @@ class Rdata(Rhead):
                 self.fp.seek(0)
                 self.nframe = 1
                 raise UltracamError(
-                    (
-                        "failed to read frame {:d}. Buffer length vs "
-                        "attempted = {:d} vs {:d}"
-                    ).format(
-                        self.nframe, len(buff), self.framesize / 2 - self.headerwords
-                    )
+                        f"failed to read frame {self.nframe}. Buffer length vs "
+                        f"attempted = {len(buff)} vs {self.framesize // 2 - self.headerwords}"
                 )
 
         # From this point, both server and local disk methods are the same
