@@ -617,7 +617,7 @@ def ulogger(args=None):
                             tel_dec = hd.get("Dec", "")
                             tel_pa = hd.get("PA", "")
                             nhtml.write(f'<td class="cen">{tel_ra}</td><td class="cen">{tel_dec}</td><td class="cen">{tel_pa}</td>')
-                            if tel_ra !- '' and tel_dec != '':
+                            if tel_ra != '' and tel_dec != '':
                                 tel_ra_deg, tel_dec_deg, syst = str2radec(tel_ra + ' ' + tel_dec)
                             else:
                                 tel_ra_deg, tel_dec_deg = None, None
