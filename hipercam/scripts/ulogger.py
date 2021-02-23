@@ -1,6 +1,7 @@
 import sys
 import traceback
 import os
+import shutil
 import time
 import glob
 import re
@@ -57,7 +58,6 @@ def ulogger(args=None):
     from astroplan import moon_phase_angle
     warnings.filterwarnings('ignore')
 
-    print(len(ULTRACAM_COLNAMES),len(ULTRASPEC_COLNAMES))
     barr = []
     cwd = os.getcwd()
     if os.path.basename(cwd) != "raw_data":
@@ -86,7 +86,7 @@ def ulogger(args=None):
 
     # next are regular expressions to match run directories, nights, and
     # run files
-    rre = re.compile("^\d\d\d\d-(\d\d|P\d\d\d)$")
+    rre = re.compile("^(Others|\d\d\d\d-(\d\d|P\d\d\d))$")
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
     fre = re.compile("^run\d\d\d\.xml$")
 
@@ -125,8 +125,9 @@ def ulogger(args=None):
     skip_targets, failed_targets = load_skip_fail()
 
     # Index file
+    index_tmp = os.path.join(root, 'index.html.tmp')
     index = os.path.join(root, 'index.html')
-    with open(index, "w") as ihtml:
+    with open(index_tmp, "w") as ihtml:
         # start the top level index html file
         ihtml.write(
             INDEX_HEADER.format(
@@ -138,14 +139,20 @@ def ulogger(args=None):
         for rname in rnames:
             print(f"\nProcessing run {rname}")
 
-            # write in run date, start table of nights
-            rn = os.path.basename(rname)
-            year, month = rn.split("-")
             with open(os.path.join(rname, "telescope")) as tel:
                 telescope = tel.read().strip()
-            ihtml.write(
-                f"<tr><td>{LOG_MONTHS.get(month,month)} {year}</td><td>{telescope}</td><td>"
-            )
+
+            # write in run date, start table of nights
+            rn = os.path.basename(rname)
+            try:
+                year, month = rn.split("-")
+                ihtml.write(
+                    f"<tr><td>{LOG_MONTHS.get(month,month)} {year}</td><td>{telescope}</td><td>"
+                )
+            except:
+                ihtml.write(
+                    f"<tr><td>{rn}</td><td>{telescope}</td><td>"
+                )
 
             # set site
             if telescope == 'WHT':
@@ -185,17 +192,16 @@ def ulogger(args=None):
                 # create directory for any meta info such as the times
                 meta = os.path.join(nname, 'meta')
                 os.makedirs(meta, exist_ok=True)
-
-                links = '\n<p><a href="index.html">Run index</a>'
+                links = '\n<p><a href="../index.html">Run index</a>'
                 if nn > 0:
                     bnight = os.path.basename(nnames[nn - 1])
-                    links += f', <a href="{bnight}.html">Previous night</a>'
+                    links += f', <a href="../{bnight}/">Previous night</a>'
                 else:
                     links += f', Previous night'
 
                 if nn < len(nnames) - 1:
                     anight = os.path.basename(nnames[nn + 1])
-                    links += f', <a href="{anight}.html">Next night</a>\n</p>\n'
+                    links += f', <a href="../{anight}/">Next night</a>\n</p>\n'
                 else:
                     links += f', Next night\n</p>\n'
 
@@ -206,11 +212,11 @@ def ulogger(args=None):
                 night = os.path.basename(nname)
                 if nn == 0:
                     ihtml.write(
-                        f'<a href="{night}.html">{night}</a>'
+                        f'<a href="{night}/">{night}</a>'
                     )
                 else:
                     ihtml.write(
-                        f', <a href="{night}.html">{night}</a>'
+                        f', <a href="{night}/">{night}</a>'
                     )
 
                 # use this to check times are vaguely right. time of runs
@@ -218,11 +224,16 @@ def ulogger(args=None):
                 # start of night date and 1.5 days later
                 mjd_ref = Time(night).mjd - observatory.lon.degree/360 + 0.25
 
-                # Create the html file for the night
+                # Create the directory for the night
                 date = f"{night}, {telescope}"
-                fname = os.path.join(root, f"{night}.html")
+                ndir = os.path.join(root, night)
+                os.makedirs(ndir, exist_ok=True)
 
-                with open(fname, "w") as nhtml:
+                # and now the index file
+                fname = os.path.join(ndir, 'index.html')
+                fname_tmp = os.path.join(ndir, 'index.html.tmp')
+
+                with open(fname_tmp, "w") as nhtml:
 
                     # write header of night file
                     nhtml.write(NIGHT_HEADER1)
@@ -443,6 +454,7 @@ def ulogger(args=None):
                                         except:
                                             print(f'  No position found for {runname}, target = "{target}"')
                                             failed_targets[target] = (rname,nname,run)
+                                            autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
 
                                 # start accumulating stuff to write out
                                 arr = [ra, dec, autoid]
@@ -763,10 +775,17 @@ def ulogger(args=None):
                     nhtml.write("</table>\n{:s}".format(links))
                     nhtml.write(NIGHT_FOOTER)
 
+            # rename night file
+            shutil.move(fname_tmp, fname)
+
             ihtml.write('</td></tr>\n')
 
         # finish the main index
         ihtml.write(INDEX_FOOTER)
+
+    # rename index file (means that any old index
+    # file still exists while new one is being written)
+    shutil.move(index_tmp, index)
 
     # write out the css file
     css = os.path.join(root, "ultra.css")
