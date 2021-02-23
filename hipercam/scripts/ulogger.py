@@ -619,6 +619,8 @@ def ulogger(args=None):
                             nhtml.write(f'<td class="cen">{tel_ra}</td><td class="cen">{tel_dec}</td><td class="cen">{tel_pa}</td>')
                             if tel_ra != '' and tel_dec != '':
                                 tel_ra_deg, tel_dec_deg, syst = str2radec(tel_ra + ' ' + tel_dec)
+                                tel_ra_deg = round(15*tel_ra_deg,5)
+                                tel_dec_deg = round(tel_dec_deg,4)
                             else:
                                 tel_ra_deg, tel_dec_deg = None, None
                             brow += [target, autoid, rastr, decstr, ra, dec, tel_ra, tel_dec, tel_ra_deg, tel_dec_deg, noval(tel_pa), rname]
