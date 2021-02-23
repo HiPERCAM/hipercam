@@ -1445,7 +1445,7 @@ function toggleAutoRefresh(cb) {
 window.onload=checkReloading;
 </script>
 
-<link rel="stylesheet" type="text/css" href="ultra.css" />
+<link rel="stylesheet" type="text/css" href="../ultra.css" />
 """
 
 NIGHT_HEADER2 = """<title>{instrument} log {date}</title>
