@@ -141,7 +141,7 @@ def hmeta(args=None):
                     nb = rdat.nblue
                     nbstep = max(1, ntotal // min(ntotal, 100*(nb+1)))
                     ncframes['3'] = list(range(nb,ntotal+1,nstep))
-                    nframes = sorted(set(ncframes['1']+ncframes['2']))
+                    nframes = sorted(set(ncframes['1']+ncframes['3']))
 
                 else:
                     raise NotImplementedError('HiPERCAM case not done yet')
@@ -149,9 +149,8 @@ def hmeta(args=None):
                 # define arrays for holding the stats
                 means = {}
                 for cnam, ncframe in ncframes.items():
-                    means[cnam] = np.empty_like(ncframe)
-                    print('>>',run,cnam,len(ncframe))
-                print(nframes)
+                    means[cnam] = np.empty_like(ncframe,dtype=np.float)
+
                 # now access the data and calculate the stats
                 for n, nf in enumerate(nframes):
                     mccd = rdat(nf)
@@ -160,10 +159,9 @@ def hmeta(args=None):
                         if nf in ncframe:
                             ccd = mccd[cnam]
                             means[cnam][n] = ccd.mean()
-
+                            
                 # All extracted from the run; take and store medians of
                 # the extracted stats
                 for cnam, mvals in means.items():
-                    print(mvals)
                     print(run, cnam, np.median(mvals))
         break
