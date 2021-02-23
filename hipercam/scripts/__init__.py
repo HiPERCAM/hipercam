@@ -22,6 +22,7 @@ from .hlogger import hlogger
 from .hlog2fits import hlog2fits
 from .hlog2col import hlog2col
 from .hls import hls
+from .hmeta import hmeta
 from .hplot import hplot
 from .ltimes import ltimes
 from .ltrans import ltrans
