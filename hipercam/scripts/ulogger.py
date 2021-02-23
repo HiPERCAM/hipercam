@@ -778,8 +778,8 @@ def ulogger(args=None):
                     nhtml.write("</table>\n{:s}".format(links))
                     nhtml.write(NIGHT_FOOTER)
 
-            # rename night file
-            shutil.move(fname_tmp, fname)
+                # rename night file
+                shutil.move(fname_tmp, fname)
 
             ihtml.write('</td></tr>\n')
 
