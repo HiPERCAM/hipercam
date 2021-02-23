@@ -573,7 +573,7 @@ def ulogger(args=None):
                             if instrument == 'ULTRACAM':
                                 brow = [night, run[3:]] + 49*[None]
                             else:
-                                brow = [night, run[3:]] + 51*[None]
+                                brow = [night, run[3:]] + 53*[None]
                             continue
 
                         hd = rhead.header
@@ -617,7 +617,11 @@ def ulogger(args=None):
                             tel_dec = hd.get("Dec", "")
                             tel_pa = hd.get("PA", "")
                             nhtml.write(f'<td class="cen">{tel_ra}</td><td class="cen">{tel_dec}</td><td class="cen">{tel_pa}</td>')
-                            brow += [target, autoid, rastr, decstr, ra, dec, tel_ra, tel_dec, noval(tel_pa), rname]
+                            if tel_ra !- '' and tel_dec != '':
+                                tel_ra_deg, tel_dec_deg, syst = str2radec(tel_ra + ' ' + tel_dec)
+                            else:
+                                tel_ra_deg, tel_dec_deg = None, None
+                            brow += [target, autoid, rastr, decstr, ra, dec, tel_ra, tel_dec, tel_ra_deg, tel_dec_deg, noval(tel_pa), rname]
                         else:
                             brow += [target, autoid, rastr, decstr, ra, dec, rname]
 
@@ -1295,6 +1299,8 @@ ULTRASPEC_COLNAMES = (
     ('dec_deg', 'float64', 'Target Dec (J2000), degrees'),
     ('ra_tel', 'str', 'Telescope pointing RA (J2000), HMS'),
     ('dec_tel', 'str', 'Telescope pointing Dec (J2000), DMS'),
+    ('ra_tel_deg', 'float64', 'Telescope pointing RA (J2000), degrees'),
+    ('dec_tel_deg', 'float64', 'Telescope pointing Dec (J2000), degrees'),
     ('pa', 'float32', 'PA on sky (degrees)'),
     ('obs_run', 'str', 'Run group title'),
     ('date_start', 'str', 'Date at the start of the run'),
