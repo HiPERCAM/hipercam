@@ -443,7 +443,8 @@ def ulogger(args=None):
                                         except:
                                             print(f'  No position found for {runname}, target = "{target}"')
                                             failed_targets[target] = (rname,nname,run)
-
+                                            autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
+                                            
                                 # start accumulating stuff to write out
                                 arr = [ra, dec, autoid]
 
