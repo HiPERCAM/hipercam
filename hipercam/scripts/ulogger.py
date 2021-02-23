@@ -182,15 +182,23 @@ def ulogger(args=None):
                     "found no night directories of the form YYYY-MM-DD"
                     f" in {rname}", file=sys.stderr,
                 )
-                print("ulogger aborted", file=sys.stderr)
-                return
+                continue
 
             for nn, nname in enumerate(nnames):
+
+                night = os.path.basename(nname)
+
+                # load all the run names
+                runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
+                runs.sort()
+                if len(runs) == 0:
+                    continue
 
                 print(f"  night {nname}")
 
                 # create directory for any meta info such as the times
                 meta = os.path.join(nname, 'meta')
+
                 os.makedirs(meta, exist_ok=True)
                 links = '\n<p><a href="../index.html">Run index</a>'
                 if nn > 0:
@@ -209,7 +217,6 @@ def ulogger(args=None):
 
                 # Write an entry for each night linking to the log for
                 # that night.
-                night = os.path.basename(nname)
                 if nn == 0:
                     ihtml.write(
                         f'<a href="{night}/">{night}</a>'
@@ -244,10 +251,6 @@ def ulogger(args=None):
                     # read and store the hand written log
                     handlog = os.path.join(night, f"{night}.dat")
                     hlog = Log(handlog)
-
-                    # load all the run names
-                    runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
-                    runs.sort()
 
                     ####################################
                     #
