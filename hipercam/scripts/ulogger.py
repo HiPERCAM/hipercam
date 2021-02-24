@@ -1093,11 +1093,11 @@ class Targets(dict):
 
             # add target to the list of names associated with ID
             self[uid]['names'].append(target)
-            
+
         else:
             # new entry
             self[uid] = {'ra' : ra, 'dec' : dec, 'names' : [target]}
-            
+
         # ensure target maps to the id
         self.lnames[target] = uid
 
