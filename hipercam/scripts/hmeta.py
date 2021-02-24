@@ -30,12 +30,14 @@ def hmeta(args=None):
     This command is to be run in the "raw_data" directory containing
     night-by-night directories of data for |hipercam|, ULTRACAM or
     ULTRASPEC. It attempts to generate meta data on any run data it
-    can find and write this to a file in a sub-directory called
-    meta. These data can be picked up by logging scripts. The sort of
-    data it produces are means, medians etc of the frames (or some of
-    the frames -- up to a maximum of 100) of each run. The program
-    only considers genuine frames, i.e. it copes with the nblue and nskip
-    options of ULTRACAM and |hipercam|.
+    can find and write this to a file 'statistics.csv' in a
+    sub-directory called meta. These data can be picked up by logging
+    scripts. The sort of data it produces are means, medians etc of
+    the frames (or some of the frames -- up to a maximum of 100-200)
+    of each run. The program only considers genuine frames, i.e. it
+    copes with the nblue and nskip options of ULTRACAM and |hipercam|.
+
+    hmeta takes a while to run so be nice when running it.
 
     """
 
