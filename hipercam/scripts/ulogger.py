@@ -56,7 +56,9 @@ def ulogger(args=None):
     |redplt| and |hmeta|. There is a circular relationship between these
     scripts. |redplt| can only be run once ulogger has created a timing file
     in meta; thus it will normally need a couple of runs before the full logs
-    with images are created,
+    with images are created, so a full sequence would be |ulogger|, followed
+    by |redplt| and |hmeta|, and only when these two have completed, then run
+    |ulogger| a second time.
 
     """
     from astroplan import moon_phase_angle
@@ -72,13 +74,13 @@ def ulogger(args=None):
     if cwd.find("ultracam") > -1:
         instrument = "ULTRACAM"
         from hipercam.scripts.hmeta import ULTRACAM_META_COLNAMES
-        COLNAMES = ULTRACAM_COLNAMES + ULTRACAM_META_COLNAMES
-        nextra = len(ULTRACAM_META_COLNAMES)
+        COLNAMES = ULTRACAM_COLNAMES + ULTRACAM_META_COLNAMES[1:]
+        nextra = len(ULTRACAM_META_COLNAMES)-1
     elif cwd.find("ultraspec") > -1:
         instrument = "ULTRASPEC"
         from hipercam.scripts.hmeta import ULTRASPEC_META_COLNAMES
-        COLNAMES = ULTRASPEC_COLNAMES + ULTRASPEC_META_COLNAMES
-        nextra = len(ULTRASPEC_META_COLNAMES)
+        COLNAMES = ULTRASPEC_COLNAMES + ULTRASPEC_META_COLNAMES[1:]
+        nextra = len(ULTRASPEC_META_COLNAMES)-1
     else:
         print("** ulogger: cannot find either ultracam or ultraspec in path")
         print("ulogger aborted", file=sys.stderr)
@@ -961,6 +963,8 @@ The database is called {linstrument}.db and contains a single table called '{lin
     # enforce data types
     ptable = ptable.astype(dtypes)
 
+    print(ptable)
+    
     spreadsheet = os.path.join(root, f"{linstrument}-log.xlsx")
     format_ulogger_table(spreadsheet, ptable, linstrument)
     print(f'Written spreadsheet to {linstrument}-log.xlsx')
