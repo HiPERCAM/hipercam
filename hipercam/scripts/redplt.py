@@ -141,7 +141,7 @@ def redplt(args=None):
 
             # OK attempt a plot
             try:
-                pname = os.path.join(mdir,run + '.svg')
+                pname = os.path.join(mdir,run + '.png')
 
                 # Two panels, target / comparison and comparison
                 fig,(ax1,ax2) = plt.subplots(2,1,sharex=True)
@@ -171,8 +171,8 @@ def redplt(args=None):
                                     targ.bin(binsize)
                                     comp.bin(binsize)
 
-                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([1,99])
-                                (_d,_d),(cylo,_d),(_d,cyhi) = comp.percentile([1,99])
+                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([1,99],  bitmask=hcam.BAD_TIME)
+                                (_d,_d),(cylo,_d),(_d,cyhi) = comp.percentile([1,99],  bitmask=hcam.BAD_TIME)
                                 if tymax is not None:
                                     off = tymax - tylo
                                     targ += off
@@ -186,8 +186,8 @@ def redplt(args=None):
                                 else:
                                     cymin, cymax = cylo, cyhi
 
-                                targ.mplot(ax1,utils.rgb(cols[cnam]),ecolor='0.5')
-                                comp.mplot(ax2,utils.rgb(cols[cnam]),ecolor='0.5')
+                                targ.mplot(ax1,utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
+                                comp.mplot(ax2,utils.rgb(cols[cnam]),ecolor='0.5',  bitmask=hcam.BAD_TIME)
 
                             else:
                                 ndat = len(targ)
@@ -197,14 +197,14 @@ def redplt(args=None):
                                     binsize = ndat // 1000
                                     targ.bin(binsize)
 
-                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([1,99])
+                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([1,99],  bitmask=hcam.BAD_TIME)
                                 if tymax is not None:
                                     off = tymax - tylo
                                     targ += off
                                     tymax += tyhi-tylo
                                 else:
                                     tymin, tymax = tylo, tyhi
-                                targ.mplot(ax1,utils.rgb(cols[cnam]),ecolor='0.5')
+                                targ.mplot(ax1,utils.rgb(cols[cnam]),ecolor='0.5',  bitmask=hcam.BAD_TIME)
 
                 yrange = tymax-tymin
                 ax1.set_ylim(tymin-yrange/10, tymax+yrange/10)
