@@ -758,6 +758,30 @@ class Tseries:
             good = ~self.get_mask(bitmask)
             return (self.t[good], self.te if self.te is None else self.te[good], self.y[good], self.ye[good])
 
+    def percentile(self, q, bitmask=None):
+        """Returns percentiles of the y-array and their -/+ 1 sigma to allow
+        for error bars.  q = a percentile or array of percentiles
+        (values from 0 to 100) The return value is a tuple of three
+        lists containing the percentiles for y, y-ye, y+ye.
+
+        Arguments::
+
+           q : float | array
+             Percentile or list of percentiles to calculate, in range 0-100.
+
+           bitmask : None | int
+             see get_mask for meaning. Bad data are always ignored.
+
+        Returns::
+
+           Three lists containing percentiles for y, y-ye and y+ye
+        """
+        good = ~self.get_mask(bitmask)
+        y = np.percentile(self.y[good],q)
+        ym = np.percentile(self.y[good]-self.ye[good],q)
+        yp = np.percentile(self.y[good]+self.ye[good],q)
+        return (y,ym,yp)
+
     def mplot(
         self,
         axes,
