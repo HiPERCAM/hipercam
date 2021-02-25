@@ -1410,7 +1410,7 @@ class Rdata(Rhead):
 
                 elif self.output == "A":
                     # avalanche output, drift
-                    comb = np.reshape(buff[:npix], (wl.ny, wl.nx + wr.nx)[:, ::-1])
+                    comb = np.reshape(buff[:npix], (wl.ny, wl.nx + wr.nx))[:, ::-1]
                     outamp = "LR"
 
                 wmodl = Winhead(llxl, wl.lly, wl.nx - nchopl, wl.ny, xbin, ybin, outamp)
