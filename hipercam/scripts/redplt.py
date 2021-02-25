@@ -210,7 +210,7 @@ def redplt(args=None):
                 ax1.set_ylim(tymin-yrange/10, tymax+yrange/10)
                 if cymin is not None:
                     yrange = cymax-cymin
-                    ax1.set_ylim(cymin-yrange/10, cymax+yrange/10)
+                    ax2.set_ylim(cymin-yrange/10, cymax+yrange/10)
                 ax1.set_ylabel('Normalised target data')
                 ax2.set_ylabel('Normalised comparison data')
                 ax2.set_xlabel('Time [MJD]')
