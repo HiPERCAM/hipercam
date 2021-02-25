@@ -89,7 +89,7 @@ def ulogger(args=None):
 
     # location to write files
     if os.path.exists(f'/storage/astro2/www/phsaap/{linstrument}/logs'):
-        root = f'/storage/astro2/www/phsaap/{linstrument}/logs/logs'
+        root = f'/storage/astro2/www/phsaap/{linstrument}/logs'
     else:
         root = 'logs'
 
