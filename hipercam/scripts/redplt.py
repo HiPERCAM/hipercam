@@ -135,7 +135,7 @@ def redplt(args=None):
 
             ttotal = int(86400*(float(mjd_end)-float(mjd_start)))
             nok = int(nok)
-            if ttotal < 600 or nok < 20:
+            if ttotal < 300 or nok < 10:
                 print(f'  Run {run} lasts {ttotal} secs, and has {nok} frames; one or both is too small -- skipping')
                 continue
 
@@ -212,6 +212,7 @@ def redplt(args=None):
                     yrange = cymax-cymin
                     ax2.set_ylim(cymin-yrange/10, cymax+yrange/10)
                 ax1.set_ylabel('Normalised target data')
+                ax1.set_title('{night}, {run}')
                 ax2.set_ylabel('Normalised comparison data')
                 ax2.set_xlabel('Time [MJD]')
                 plt.savefig(pname)
