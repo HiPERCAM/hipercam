@@ -2,10 +2,7 @@ import sys
 import traceback
 import os
 import shutil
-import time
-import glob
 import re
-import math
 import warnings
 import sqlite3
 
@@ -54,6 +51,13 @@ def ulogger(args=None):
     pipeline and may not exist. The script will fail early on if it is
     not installed.
 
+    It also writes information to a sub-directory "meta" of each night
+    directory, and can pick up information stored there by related scripts
+    |redplt| and |hmeta|. There is a circular relationship between these
+    scripts. |redplt| can only be run once ulogger has created a timing file
+    in meta; thus it will normally need a couple of runs before the full logs
+    with images are created,
+
     """
     from astroplan import moon_phase_angle
     warnings.filterwarnings('ignore')
@@ -67,8 +71,14 @@ def ulogger(args=None):
 
     if cwd.find("ultracam") > -1:
         instrument = "ULTRACAM"
+        from hipercam.scripts.hmeta import ULTRACAM_META_COLNAMES
+        COLNAMES = ULTRACAM_COLNAMES + ULTRACAM_META_COLNAMES
+        nextra = len(ULTRACAM_META_COLNAMES)
     elif cwd.find("ultraspec") > -1:
         instrument = "ULTRASPEC"
+        from hipercam.scripts.hmeta import ULTRASPEC_META_COLNAMES
+        COLNAMES = ULTRASPEC_COLNAMES + ULTRASPEC_META_COLNAMES
+        nextra = len(ULTRASPEC_META_COLNAMES)
     else:
         print("** ulogger: cannot find either ultracam or ultraspec in path")
         print("ulogger aborted", file=sys.stderr)
@@ -239,6 +249,13 @@ def ulogger(args=None):
                 # and now the index file
                 fname = os.path.join(ndir, 'index.html')
                 fname_tmp = os.path.join(ndir, 'index.html.tmp')
+
+                # see if there is a file of stats from hmeta avaialable.
+                fstats = os.path.join(meta, 'statistics.csv')
+                if os.path.exists(fstats):
+                    stats = pd.read_csv(fstats,index_col='run_no')
+                else:
+                    stats = None
 
                 with open(fname_tmp, "w") as nhtml:
 
@@ -571,9 +588,9 @@ def ulogger(args=None):
                             nhtml.write(f'<td class="lalert">{run}</td>')
                             nhtml.write("</tr>\n")
                             if instrument == 'ULTRACAM':
-                                brow = [night, run[3:]] + 49*[None]
+                                brow = [night, run[3:]] + (49+nextra)*[None]
                             else:
-                                brow = [night, run[3:]] + 55*[None]
+                                brow = [night, run[3:]] + (55+nextra)*[None]
                             continue
 
                         hd = rhead.header
@@ -588,7 +605,7 @@ def ulogger(args=None):
                             nhtml.write(f'<td class="left"><a href="{run}.png">{run}</a></td>')
                             shutil.copyfile(png, npng)
                         else:
-                            nhtml.write(f'<td class="lalert">{run}</td>')
+                            nhtml.write(f'<td class="left">{run}</td>')
 
                         # start list to append to array for spreadsheet
                         brow = [night, run,]
@@ -801,6 +818,11 @@ def ulogger(args=None):
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
 
+                        try:
+                            brow += stats.loc[run].values.tolist()
+                        except:
+                            brow += nextra*[None]
+
                         barr.append(brow)
 
                     # finish off the night file
@@ -916,20 +938,12 @@ The database is called {linstrument}.db and contains a single table called '{lin
 
         dtypes = {}
         cnames = []
-        if instrument == 'ULTRACAM':
-            for cname, dtype, definition in ULTRACAM_COLNAMES:
-                sqout.write(
-                    f'<tr><td class="left">{cname}</td><td>{dtype}</td><td class="left">{definition}</td></tr>\n'
-                )
-                cnames.append(cname)
-                dtypes[cname] = dtype
-        else:
-            for cname, dtype, definition in ULTRASPEC_COLNAMES:
-                sqout.write(
-                    f'<tr><td class="left">{cname}</td><td>{dtype}</td><td class="left">{definition}</td></tr>\n'
-                )
-                cnames.append(cname)
-                dtypes[cname] = dtype
+        for cname, dtype, definition in COLNAMES:
+            sqout.write(
+                f'<tr><td class="left">{cname}</td><td>{dtype}</td><td class="left">{definition}</td></tr>\n'
+            )
+            cnames.append(cname)
+            dtypes[cname] = dtype
 
         sqout.write("""</table>
 
