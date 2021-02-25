@@ -158,9 +158,14 @@ def ulogger(args=None):
             rn = os.path.basename(rname)
             try:
                 year, month = rn.split("-")
-                ihtml.write(
-                    f"<tr><td>{LOG_MONTHS.get(month,month)} {year}</td><td>{telescope}</td><td>"
-                )
+                if month in LOG_MONTHS:
+                    ihtml.write(
+                        f"<tr><td>{LOG_MONTHS[month]} {year}</td><td>{telescope}</td><td>"
+                    )
+                else:
+                    ihtml.write(
+                        f"<tr><td>{rn}</td><td>{telescope}</td><td>"
+                    )
             except:
                 ihtml.write(
                     f"<tr><td>{rn}</td><td>{telescope}</td><td>"
