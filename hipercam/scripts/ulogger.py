@@ -568,12 +568,12 @@ def ulogger(args=None):
                             # dummy info line just to allow us to proceed
                             nhtml.write("<tr>\n")
                             # run number
-                            nhtml.write(f'<td class="lalert">{run[3:]}</td>')
+                            nhtml.write(f'<td class="lalert">{run}</td>')
                             nhtml.write("</tr>\n")
                             if instrument == 'ULTRACAM':
                                 brow = [night, run[3:]] + 49*[None]
                             else:
-                                brow = [night, run[3:]] + 53*[None]
+                                brow = [night, run[3:]] + 55*[None]
                             continue
 
                         hd = rhead.header
@@ -582,11 +582,16 @@ def ulogger(args=None):
                         nhtml.write("<tr>\n")
 
                         # run number
-                        runno = run[3:]
-                        nhtml.write('<td class="left">{:s}</td>'.format(runno))
+                        png = os.path.join(meta,f'{run}.png')
+                        if os.path.exists(png):
+                            npng = os.path.join(ndir, f'{run}.png')
+                            nhtml.write(f'<td class="left"><a href="{run}.png">{run}</a></td>')
+                            shutil.copyfile(png, npng)
+                        else:
+                            nhtml.write(f'<td class="lalert">{run}</td>')
 
                         # start list to append to array for spreadsheet
-                        brow = [night, runno,]
+                        brow = [night, run,]
 
                         # object name
                         if hlog.format == 1:
@@ -618,9 +623,18 @@ def ulogger(args=None):
                             tel_pa = hd.get("PA", "")
                             nhtml.write(f'<td class="cen">{tel_ra}</td><td class="cen">{tel_dec}</td><td class="cen">{tel_pa}</td>')
                             if tel_ra != '' and tel_dec != '':
-                                tel_ra_deg, tel_dec_deg, syst = str2radec(tel_ra + ' ' + tel_dec)
-                                tel_ra_deg = round(15*tel_ra_deg,5)
-                                tel_dec_deg = round(tel_dec_deg,4)
+                                try:
+                                    tel_ra_deg, tel_dec_deg, syst = str2radec(tel_ra + ' ' + tel_dec)
+                                    tel_ra_deg = round(15*tel_ra_deg,5)
+                                    tel_dec_deg = round(tel_dec_deg,4)
+                                except:
+                                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                                    traceback.print_tb(
+                                        exc_traceback, limit=1, file=sys.stderr
+                                    )
+                                    traceback.print_exc(file=sys.stderr)
+                                    tel_ra_deg, tel_dec_deg = None, None
+                                    print("Position problem on run = ", runname)
                             else:
                                 tel_ra_deg, tel_dec_deg = None, None
                             brow += [target, autoid, rastr, decstr, ra, dec, tel_ra, tel_dec, tel_ra_deg, tel_dec_deg, noval(tel_pa), rname]
@@ -714,6 +728,15 @@ def ulogger(args=None):
                         nhtml.write(f'<td class="cen">{speed}</td>')
                         brow.append(speed)
 
+                        if instrument == 'ULTRASPEC':
+                            output = hd.get('OUTPUT','')
+                            nhtml.write(f'<td class="cen">{output}</td>')
+                            brow.append(output)
+
+                            hv_gain = hd.get('HV_GAIN','')
+                            nhtml.write(f'<td class="cen">{hv_gain}</td>')
+                            brow.append(hv_gain)
+
                         # Focal plane slide
                         fpslide = hd.get('SLIDEPOS','UNKNOWN')
                         try:
@@ -754,7 +777,7 @@ def ulogger(args=None):
 
                         # run number again. Add null to the
                         # spreadsheet to allow a formula
-                        nhtml.write(f'<td class="left">{runno}</td>')
+                        nhtml.write(f'<td class="left">{run}</td>')
                         brow.append('NULL')
 
                         # comments
@@ -1325,6 +1348,8 @@ ULTRASPEC_COLNAMES = (
     ('binning', 'str', 'X by Y binning'),
     ('clr', 'str', 'Clear enabled or not'),
     ('read_speed', 'str', 'Readout speed'),
+    ('output', 'str', 'amplifier output in use (0 = normal, 1 = avalanche)'),
+    ('hv_gain', 'str', 'High voltage gain setting'),
     ('fpslide', 'float32', 'Focal plane slide'),
     ('observers', 'str', 'Observers'),
     ('pi', 'str', 'PI of data'),
@@ -1606,6 +1631,8 @@ ULTRASPEC_TABLE_HEADER = """
 <th class="cen">XxY<br>bin</th>
 <th class="cen">Clr</th>
 <th class="cen">Read<br>speed</th>
+<th class="cen">Output</th>
+<th class="cen">HV Gain</th>
 <th class="cen">FPslide</th>
 <th class="cen">Observers</th>
 <th class="left">PI</th>
