@@ -963,8 +963,6 @@ The database is called {linstrument}.db and contains a single table called '{lin
     # enforce data types
     ptable = ptable.astype(dtypes)
 
-    print(ptable)
-    
     spreadsheet = os.path.join(root, f"{linstrument}-log.xlsx")
     format_ulogger_table(spreadsheet, ptable, linstrument)
     print(f'Written spreadsheet to {linstrument}-log.xlsx')
