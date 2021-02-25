@@ -1619,7 +1619,9 @@ ULTRASPEC_TABLE_HEADER = """
 <td><button id="hidden30" onclick="hide(30)"></button></td>
 <td><button id="hidden31" onclick="hide(31)"></button></td>
 <td><button id="hidden32" onclick="hide(32)"></button></td>
-<td align="left"><button id="hidden33" onclick="hide(33)"></button></td>
+<td><button id="hidden33" onclick="hide(33)"></button></td>
+<td><button id="hidden34" onclick="hide(34)"></button></td>
+<td align="left"><button id="hidden35" onclick="hide(35)"></button></td>
 </tr>
 
 <tr>
