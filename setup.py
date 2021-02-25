@@ -164,6 +164,7 @@ setup(
             'plog=hipercam.scripts.plog:plog',
             'psf_reduce=hipercam.scripts.psf_reduce:psf_reduce',
             'redanal=hipercam.scripts.redanal:redanal',
+            'redplt=hipercam.scripts.redplt:redplt',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
             'rupdate=hipercam.scripts.rupdate:rupdate',

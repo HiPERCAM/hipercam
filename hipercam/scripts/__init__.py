@@ -33,6 +33,7 @@ from .makestuff import makemccd, makefield
 from .mstats import mstats
 from .pfolder import pfolder
 from .plog import plog
+from .redplt import redplt
 from .reduce import reduce
 from .rtplot import rtplot
 from .rupdate import rupdate
