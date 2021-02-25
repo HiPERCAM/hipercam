@@ -119,7 +119,7 @@ def rgb(cname):
     if cname not in CNAMS:
         raise ValueError("colour = {:s} not recognised".format(cname))
     else:
-        return CIS[CNAMS[cnam]]
+        return CIS[CNAMS[cname]]
 
 
 def script_args(args):
