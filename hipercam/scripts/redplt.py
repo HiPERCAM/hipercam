@@ -212,7 +212,7 @@ def redplt(args=None):
                     yrange = cymax-cymin
                     ax2.set_ylim(cymin-yrange/10, cymax+yrange/10)
                 ax1.set_ylabel('Normalised target data')
-                ax1.set_title('{night}, {run}')
+                ax1.set_title(f'{night}, {run}')
                 ax2.set_ylabel('Normalised comparison data')
                 ax2.set_xlabel('Time [MJD]')
                 plt.savefig(pname)
