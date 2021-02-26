@@ -140,6 +140,10 @@ def digest(args=None):
     for rdir in rdirs:
 
         print(f"Run directory = {rdir}")
+        telescope = os.path.join(rdir, 'telescope')
+        if not os.path.exists(telescope):
+            print(f'ERROR: file called "telescope" not found in run directory = {run}')
+            return
 
         # strict checking
         strict = rdir.find('Others') == -1
@@ -187,6 +191,12 @@ def digest(args=None):
                 if strict:
                     print("digest aborted", file=sys.stderr)
                     return
+
+
+            telescope = os.path.join(ndir, 'telescope')
+            if os.path.exists(telescope):
+                print(f'ERROR: file called "telescope" allready exists in {ndir}')
+                return
 
             # compile list of runs in the directory
             if itype == 'H':
@@ -299,19 +309,28 @@ def digest(args=None):
         for ndir in ndirs:
             night = os.path.basename(ndir)
             nnight = night.replace("_", "-")
+            rdir = os.path.dirname(ndir)
 
             if os.path.exists(nnight):
                 print(f'{nnight} already exists and will not be over-written')
                 continue
 
-            # move the data directory up a level _ to -
+            # move the night directory up a level _ to -
             os.rename(ndir, nnight)
             print(f"\nmv {ndir} {nnight}")
 
             # link back into the run directory
-            lndir = os.path.join(os.path.dirname(ndir), nnight)
-            os.symlink(os.path.join('..',nnight), lndir)
-            print(f"ln -s ../{nnight} {lndir}")
+            ltarget = os.path.join('..',nnight)
+            lname = os.path.join(rdir, nnight)
+            os.symlink(ltarget, lname)
+            print(f"ln -s {ltarget} {lname}")
+
+            # make a link in each night to the telescope
+            # file in the run directory
+            ltarget = os.path.join('..',rdir,'telescope')
+            lname = os.path.join(ndir, 'telescope')
+            os.symlink(ltarget, lname)
+            print(f"ln -s {ltarget} {lname}")
 
             # copy the hand-written log file to a new version without
             # underscores or 'log' in the name
