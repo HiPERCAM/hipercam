@@ -43,7 +43,9 @@ def ulogger(args=None):
     each night. Specifically, it should be run from the
     ultra(cam|spec)/raw_data directory.  It extracts information from
     each run file. It usually runs without any parameters, although
-    there are some optional unix-style command-line switches.
+    there are some optional unix-style command-line switches. It tries
+    to read target data from four files: TARGETS, AUTO_TARGETS,
+    FAILED_TARGETS and SKIP_TARGETS.
 
     If run at Warwick, it writes data to the web pages. Otherwise it
     writes them to a sub-directory of raw_data called "logs".  Bit of
@@ -65,7 +67,7 @@ def ulogger(args=None):
 
     """
     from astroplan import moon_phase_angle
-    warnings.filterwarnings('ignore')
+    warnings.filterwarnings("ignore")
 
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
@@ -83,7 +85,7 @@ def ulogger(args=None):
     parser.add_argument(
         "-n",
         dest="night", default=None,
-        help="use this with a YYYY-MM-DD date simply to update times and positions for a specific night (html will not be re-created)",
+        help="use this with a YYYY-MM-DD date to update times and positions for a specific night (lots of diagnostic ouput; no html created)",
     )
 
     # Get command line options
@@ -96,36 +98,73 @@ def ulogger(args=None):
         print('-n switch is not compatible with either -f or -p; please check help')
         return
 
+    # start with defining a few regular expressions to match run directories, nights,
+    # and run files
+    rre = re.compile("^(Others|\d\d\d\d-(\d\d|P\d\d\d))$")
+    nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
+    fre = re.compile("^run\d\d\d\.xml$")
+
+
     if do_night:
+
+        # identify observatory
+        with open(os.path.join(do_night, "telescope")) as tel:
+            telescope = tel.read().strip()
+        if telescope == 'WHT':
+            observatory = EarthLocation.of_site('Roque de los Muchachos')
+        elif telescope == 'VLT':
+            observatory = EarthLocation.of_site('Cerro Paranal')
+        elif telescope == 'NTT':
+            observatory = EarthLocation.of_site('La Silla Observatory')
+        elif telescope == 'TNT':
+            observatory = EarthLocation.from_geodetic(
+                '98 29 12','18 35 26',2457
+            )
+        else:
+            raise ValueError('did not recognise telescope =',telescope)
+
+        # read and store the hand written log
+        handlog = os.path.join(do_night, f"{do_night}.dat")
+        hlog = Log(handlog)
+
+        # read target info from standard locations
+        targets = Targets('TARGETS', 'AUTO_TARGETS')
+        skip_targets, failed_targets = load_skip_fail()
+
         # Just re-do timing and positions for a particular night.
         runs = [run[:-4] for run in os.listdir(do_night) if fre.match(run)]
         runs.sort()
         if len(runs) == 0:
             print(f'Found no runs in night = {do_night}')
             return
+        else:
+            print(f'Found {len(runs)} runs in night = {do_night}\n')
 
         # create directory for any meta info such as the times
-        meta = os.path.join(nname, 'meta')
+        meta = os.path.join(do_night, 'meta')
         os.makedirs(meta, exist_ok=True)
 
         # make the times
         times = os.path.join(meta, 'times')
-        tdata = make_times(night, runs, times, True)
-        print(f'Created & wrote timing data for {night} to {times}')
+        tdata = make_times(do_night, runs, observatory, times, True)
+        print(f'Created & wrote timing data for {do_night} to {times}\n')
 
         # make the positions
         posdata = os.path.join(meta, 'posdata')
-        make_positions(night, runs, tdata, posdata)
-        print(f'Created & wrote positional data for {night} to {posdata}')
+        make_positions(
+            do_night, runs, observatory, hlog, targets,
+            skip_targets, failed_targets, tdata, posdata, True
+        )
+        print(f'Created & wrote positional data for {do_night} to {posdata}')
 
-        print(f'Finished creating time & position data for {night}')
+        print(f'Finished creating time & position data for {do_night}')
         return
 
     barr = []
     cwd = os.getcwd()
     if os.path.basename(cwd) != "raw_data":
         print("** ulogger must be run in a directory called 'raw_data'")
-        print("ulogger aborted", file=sys.stderr)
+        print("ulogger aborted")
         return
 
     if cwd.find("ultracam") > -1:
@@ -140,7 +179,7 @@ def ulogger(args=None):
         nextra = len(ULTRASPEC_META_COLNAMES)-1
     else:
         print("** ulogger: cannot find either ultracam or ultraspec in path")
-        print("ulogger aborted", file=sys.stderr)
+        print("ulogger aborted")
         return
     linstrument = instrument.lower()
 
@@ -152,12 +191,6 @@ def ulogger(args=None):
 
     # Try an import now to get an early warning of problems
     import xlsxwriter
-
-    # next are regular expressions to match run directories, nights, and
-    # run files
-    rre = re.compile("^(Others|\d\d\d\d-(\d\d|P\d\d\d))$")
-    nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
-    fre = re.compile("^run\d\d\d\.xml$")
 
     # Get list of run directories
     rnames = [
@@ -172,10 +205,9 @@ def ulogger(args=None):
     if len(rnames) == 0:
         print(
             "there were no run directories of the form "
-            "YYYY-MM with a file called 'telescope' in them",
-            file=sys.stderr,
+            "YYYY-MM with a file called 'telescope' in them"
         )
-        print("ulogger aborted", file=sys.stderr)
+        print("ulogger aborted")
         return
 
     # Get started. First make sure all files are created with the
@@ -254,7 +286,7 @@ def ulogger(args=None):
             if len(nnames) == 0:
                 print(
                     "found no night directories of the form YYYY-MM-DD"
-                    f" in {rname}", file=sys.stderr,
+                    f" in {rname}"
                 )
                 continue
 
@@ -276,13 +308,13 @@ def ulogger(args=None):
                 os.makedirs(meta, exist_ok=True)
                 links = '\n<p><a href="../index.html">Run index</a>'
                 if nn > 0:
-                    bnight = os.path.basename(nnames[nn - 1])
+                    bnight = os.path.basename(nnames[nn-1])
                     links += f', <a href="../{bnight}/">Previous night</a>'
                 else:
                     links += f', Previous night'
 
                 if nn < len(nnames) - 1:
-                    anight = os.path.basename(nnames[nn + 1])
+                    anight = os.path.basename(nnames[nn+1])
                     links += f', <a href="../{anight}/">Next night</a>\n</p>\n'
                 else:
                     links += f', Next night\n</p>\n'
@@ -299,11 +331,6 @@ def ulogger(args=None):
                     ihtml.write(
                         f', <a href="{night}/">{night}</a>'
                     )
-
-                # use this to check times are vaguely right. time of runs
-                # must lie between 06.00 local time on date corresponding to
-                # start of night date and 1.5 days later
-                mjd_ref = Time(night).mjd - observatory.lon.degree/360 + 0.25
 
                 # Create the directory for the night
                 date = f"{night}, {telescope}"
@@ -352,7 +379,7 @@ def ulogger(args=None):
                     else:
                         # need to generate timing data, which can take a while so
                         # we store the results to a disk file for fast lookup later.
-                        tdata = make_times(night, runs, times, False)
+                        tdata = make_times(night, runs, observatory, times, False)
 
                     ##################################
                     # Get or create positional info
@@ -372,7 +399,10 @@ def ulogger(args=None):
 
                     else:
                         # create it
-                        pdata = make_positions(night, runs, posdata, False)
+                        pdata = make_positions(
+                            night, runs, observatory, hlog, targets,
+                            skip_targets, failed_targets, tdata, posdata, False
+                        )
 
                     # Right, finally!
                     #
@@ -403,9 +433,9 @@ def ulogger(args=None):
                         except:
                             exc_type, exc_value, exc_traceback = sys.exc_info()
                             traceback.print_tb(
-                                exc_traceback, limit=1, file=sys.stderr
+                                exc_traceback, limit=1, file=sys.stdout
                             )
-                            traceback.print_exc(file=sys.stderr)
+                            traceback.print_exc(file=sys.stdout)
                             print("Problem on run = ", runname)
 
                             # dummy info line just to allow us to proceed
@@ -473,9 +503,9 @@ def ulogger(args=None):
                                 except:
                                     exc_type, exc_value, exc_traceback = sys.exc_info()
                                     traceback.print_tb(
-                                        exc_traceback, limit=1, file=sys.stderr
+                                        exc_traceback, limit=1, file=sys.stdout
                                     )
-                                    traceback.print_exc(file=sys.stderr)
+                                    traceback.print_exc(file=sys.stdout)
                                     tel_ra_deg, tel_dec_deg = None, None
                                     print("Position problem on run = ", runname)
                             else:
@@ -851,9 +881,10 @@ class Log(object):
                                 m = oldii.search(line[6:])
                                 if m:
                                     self.target[run]  = m.group(1)
-
+        except FileNotFoundError:
+            sys.stdout.write(f'Night log = {fname} does not exist\n')
         except Exception as err:
-           sys.stderr.write('Night log problem:' + str(err) + '\n')
+           sys.stdout.write(f'Problem on night log = {fname}:' + str(err) + '\n')
 
 
 class Targets(dict):
@@ -1098,22 +1129,32 @@ class TimeHMSCustom(TimeISO):
     subfmts = (("date_hms", "%H%M%S", "{hour:02d}:{min:02d}:{sec:02d}"),)
 
 
-def make_times(night, runs, times, full):
+def make_times(night, runs, observatory, times, full):
     """
     Generates timing data for a set of runs from a particular night.
     Results are stored in a file called "times", and returned as
     dictionary keyed on run numbers.
     """
+
+    # use this to check times are vaguely right. time of runs
+    # must lie between 06.00 local time on date corresponding to
+    # start of night date and 1.5 days later
+    mjd_ref = Time(night).mjd - observatory.lon.degree/360 + 0.25
+
     tdata = {}
     with open(times,'w') as tout:
         for run in runs:
+            if full:
+                print(f'Analysing times for run {run}')
             dfile = os.path.join(night, run)
             try:
+                ntotal = 0
                 rtime = hcam.ucam.Rtime(dfile)
 
                 # Find first good time, has to roughly match the start
                 # date of the night because some times can just be
                 # junk
+                not_alerted = True
                 for n, tdat in enumerate(rtime):
                     time, tinfo = tdat[:2]
                     if time.good:
@@ -1126,8 +1167,13 @@ def make_times(night, runs, times, full):
                             n_start = n+1
                             if expose > 0 and expose < 500:
                                 break
+                        elif tdelta < 0 and not_alerted:
+                            # maximum one warning per run
+                            not_alerted = False
+                            print(f'  Bad time: tdelta = {tdelta} < 0 on time {n} of {dfile}')
                 else:
-                    raise hcam.HipercamError(f'No good time found in {dfile}')
+                    ntotal = 0
+                    raise hcam.HipercamError(f'No good times found in {dfile}')
 
                 # Find last good time. First we just go for times near the
                 # end of the run. Failing that, we try again from the start,
@@ -1210,7 +1256,7 @@ def make_times(night, runs, times, full):
                 # Power on/off
                 tdata[run] = ['power-on-off',]
                 tout.write(f'{run} power-on-off\n')
-                if full: print('f{run} was a power-on or -off')
+                if full: print(f'{run} was a power-on or -off')
 
             except hcam.HipercamError:
                 # No good times
@@ -1218,19 +1264,15 @@ def make_times(night, runs, times, full):
                 tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF UNDEF UNDEF 0 {ntotal}\n')
                 if full:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
-                    traceback.print_tb(
-                        exc_traceback, limit=1, file=sys.stderr
-                    )
-                    traceback.print_exc(file=sys.stderr)
-                    print(f'No good times found for {run}')
+                    traceback.print_tb(exc_traceback, limit=1)
+                    traceback.print_exc()
+                    print(f'No good times found for {run}; ntotal = {ntotal}')
 
             except:
                 # some other failure
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                traceback.print_tb(
-                    exc_traceback, limit=1, file=sys.stderr
-                )
-                traceback.print_exc(file=sys.stderr)
+                traceback.print_tb(exc_traceback, limit=1)
+                traceback.print_exc()
                 print("Problem on run = ", dfile)
 
                 # Load of undefined
@@ -1240,7 +1282,10 @@ def make_times(night, runs, times, full):
     print('Written timing data to',times)
     return tdata
 
-def make_positions(night, runs, tdata. posdata, full):
+def make_positions(
+        night, runs, observatory, hlog, targets,
+        skip_targets, failed_targets, tdata, posdata, full
+):
     """
     Determine positional info, write to podata,
     return as dictionary keyed on the runs. Uses pre-determined
@@ -1254,6 +1299,9 @@ def make_positions(night, runs, tdata. posdata, full):
                 # means its a power on/off
                 continue
 
+            if full:
+                print(f'Analysing positions for run {run}')
+
             # open the run file as an Rhead
             runname = os.path.join(night, run)
             try:
@@ -1261,10 +1309,8 @@ def make_positions(night, runs, tdata. posdata, full):
             except:
                 if full:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
-                    traceback.print_tb(
-                        exc_traceback, limit=1, file=sys.stderr
-                    )
-                    traceback.print_exc(file=sys.stderr)
+                    traceback.print_tb(exc_traceback, limit=1)
+                    traceback.print_exc()
                     print(f"Failed top open {runname} as an Rhead")
                 continue
 
