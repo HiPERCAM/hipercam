@@ -4,6 +4,7 @@ import os
 import shutil
 import re
 import warnings
+import argparse
 import sqlite3
 
 import numpy as np
@@ -31,38 +32,94 @@ __all__ = [
 #
 
 def ulogger(args=None):
+    description = \
     """``ulogger``
 
     Generates html logs for ULTRACAM and ULTRASPEC runs, a searchable
     spreadsheet and an sqlite3 database for programmatic SQL
     enquiries.
 
-    ulogger expects to work on directories containing the runs for
-    each night. It should be run from the ultra(cam|spec)/raw_data
-    directory.  It extracts information from each run file. It runs
-    without any parameters.
+    ulogger expects to work in a directory containing the runs for
+    each night. Specifically, it should be run from the
+    ultra(cam|spec)/raw_data directory.  It extracts information from
+    each run file. It usually runs without any parameters, although
+    there are some optional unix-style command-line switches.
 
     If run at Warwick, it writes data to the web pages. Otherwise it
-    writes them to a sub-directory of raw_data called "logs".
-    Bit of a specialist routine this one; if you have access to the
-    on-line logs at Warwick, it should be unnecessary. It requires the
+    writes them to a sub-directory of raw_data called "logs".  Bit of
+    a specialist routine this one; if you have access to the on-line
+    logs at Warwick, it should be unnecessary. It requires the
     installation of the python module xlsxwriter in order to write an
     excel spreadsheet; this is not a required module for the whole
     pipeline and may not exist. The script will fail early on if it is
     not installed.
 
     It also writes information to a sub-directory "meta" of each night
-    directory, and can pick up information stored there by related scripts
-    |redplt| and |hmeta|. There is a circular relationship between these
-    scripts. |redplt| can only be run once ulogger has created a timing file
-    in meta; thus it will normally need a couple of runs before the full logs
-    with images are created, so a full sequence would be |ulogger|, followed
-    by |redplt| and |hmeta|, and only when these two have completed, then run
-    |ulogger| a second time.
+    directory, and can pick up information stored there by related
+    scripts |redplt| and |hmeta|. There is a circular relationship
+    between these scripts. |redplt| can only be run once ulogger has
+    created a timing file in "meta"; thus it will need two runs of
+    |ulogger| to create complete logs with images. A full sequence
+    would be |ulogger|, followed by |redplt| and |hmeta|, and only
+    when these two have completed, then run |ulogger| a second time.
 
     """
     from astroplan import moon_phase_angle
     warnings.filterwarnings('ignore')
+
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        "-f",
+        dest="full",
+        action="store_true",
+        help="carry out full re-computation of times and positional data",
+    )
+    parser.add_argument(
+        "-p",
+        dest="positions",
+        action="store_true",
+        help="re-compute positional data but not times",
+    )
+    parser.add_argument(
+        "-n",
+        dest="night", default=None,
+        help="use this with a YYYY-MM-DD date simply to update times and positions for a specific night (html will not be re-created)",
+    )
+
+    # Get command line options
+    args = parser.parse_args()
+    do_full = args.full
+    do_positions = args.positions
+    do_night = args.night
+
+    if (do_full or do_positions) and do_night is not None:
+        print('-n switch is not compatible with either -f or -p; please check help')
+        return
+
+    if do_night:
+        # Just re-do timing and positions for a particular night.
+        runs = [run[:-4] for run in os.listdir(do_night) if fre.match(run)]
+        runs.sort()
+        if len(runs) == 0:
+            print(f'Found no runs in night = {do_night}')
+            return
+
+        # create directory for any meta info such as the times
+        meta = os.path.join(nname, 'meta')
+        os.makedirs(meta, exist_ok=True)
+
+        # make the times
+        times = os.path.join(meta, 'times')
+        tdata = make_times(night, runs, times, True)
+        print(f'Created & wrote timing data for {night} to {times}')
+
+        # make the positions
+        posdata = os.path.join(meta, 'posdata')
+        make_positions(night, runs, tdata, posdata)
+        print(f'Created & wrote positional data for {night} to {posdata}')
+
+        print(f'Finished creating time & position data for {night}')
+        return
 
     barr = []
     cwd = os.getcwd()
@@ -281,9 +338,9 @@ def ulogger(args=None):
                     # Get or create timing info
 
                     times = os.path.join(meta, 'times')
-                    tdata = {}
-                    if os.path.exists(times):
+                    if not do_full and os.path.exists(times):
                         # pre-existing file found
+                        tdata = {}
                         with open(times) as tin:
                             for line in tin:
                                 arr = line.split()
@@ -295,141 +352,14 @@ def ulogger(args=None):
                     else:
                         # need to generate timing data, which can take a while so
                         # we store the results to a disk file for fast lookup later.
-                        with open(times,'w') as tout:
-                            for run in runs:
-                                dfile = os.path.join(night, run)
-                                try:
-                                    rtime = hcam.ucam.Rtime(dfile)
-
-                                    # Find first good time, has to roughly match
-                                    # the start date of the night because some times
-                                    # can just be junk
-                                    for n, tdat in enumerate(rtime):
-                                        time, tinfo = tdat[:2]
-                                        if time.good:
-                                            mjd_start = time.mjd
-                                            tdelta = mjd_start-mjd_ref
-                                            if tdelta > 0 and tdelta < 1.5:
-                                                ts = Time(mjd_start, format="mjd", precision=2)
-                                                ut_start = ts.hms_custom
-                                                expose = round(time.expose,3)
-                                                n_start = n+1
-                                                if expose > 0 and expose < 500:
-                                                    break
-                                    else:
-                                        raise hcam.HipercamError(f'No good time found in {dfile}')
-
-                                    # Find last good time. First we just go for times near the
-                                    # end of the run. Failing that, we try again from the start,
-                                    # to account for runs with time stamp issues.
-                                    if rtime.header['MODE'] == 'DRIFT':
-                                        # ultracam
-                                        win = rtime.win[0]
-                                        nyu = win.ny*rhead.ybin
-                                        nback = int((1033/nyu + 1) / 2) + 3
-                                    elif rtime.header['MODE'] == 'UDRIFT':
-                                        # ultraspec
-                                        win = rtime.win[0]
-                                        nyu = win.ny*rtime.ybin
-                                        nback = int((1037/nyu + 1) / 2) + 3
-                                    else:
-                                        # non drift mode
-                                        nback = 4
-
-                                    nbytes = os.stat(dfile + '.dat').st_size
-                                    ntotal = nbytes // rtime.framesize
-
-                                    if ntotal > 20000:
-                                        # this is a risk-reducing
-                                        # strategy in case the end of
-                                        # a long run is
-                                        # corrupt. Better to look at
-                                        # more than the necessary
-                                        # number of frames if it
-                                        # prevents us from having to
-                                        # wind through the whole lot.
-                                        nback = max(nback, 500)
-
-                                    nreset = max(1, ntotal - nback)
-                                    rtime.set(nreset)
-
-                                    flast = False
-                                    for n, tdat in enumerate(rtime):
-                                        time, tinfo = tdat[:2]
-                                        if time.good:
-                                            mjd = time.mjd
-                                            if mjd >= mjd_start and mjd < mjd_start + 0.4:
-                                                mjd_end = mjd
-                                                ts = Time(mjd_end, format="mjd", precision=2)
-                                                ut_end = ts.hms_custom
-                                                n_end = nreset + n
-                                                nexpose = round(time.expose,3)
-                                                if nexpose < 500:
-                                                    expose = max(expose, nexpose)
-                                                    flast = True
-
-                                    if not flast:
-                                        # no good time found near
-                                        # end. There must be one or we
-                                        # wouldn't get to this point,
-                                        # so grind it out the hard way
-                                        # by going through the whole
-                                        # run, which can be slow.
-                                        rtime.set()
-                                        for n, tdat in enumerate(rtime):
-                                            time, tinfo = tdat[:2]
-                                            if time.good:
-                                                mjd = time.mjd
-                                                if mjd >= mjd_start and mjd < mjd_start + 0.4:
-                                                    mjd_end = mjd
-                                                    ts = Time(mjd_end, format="mjd", precision=2)
-                                                    ut_end = ts.hms_custom
-                                                    n_end = n + 1
-                                                    nexpose = round(time.expose,3)
-                                                    if nexpose < 500:
-                                                        expose = max(expose, nexpose)
-
-                                    nok = n_end-n_start+1
-                                    if n_end > n_start:
-                                        cadence = round(86400*(mjd_end-mjd_start)/(n_end-n_start),3)
-                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,cadence,expose,nok,ntotal]
-                                    else:
-                                        cadence = 'UNDEF'
-                                        tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,'',expose,nok,ntotal]
-                                    tout.write(f'{run} {ut_start} {mjd_start} {ut_end} {mjd_end} {cadence} {expose} {nok} {ntotal}\n')
-
-                                except hcam.ucam.PowerOnOffError:
-                                    # Power on/off
-                                    tdata[run] = ['power-on-off',]
-                                    tout.write(f'{run} power-on-off\n')
-
-                                except hcam.HipercamError:
-                                    # No good times
-                                    tdata[run] = ['','','','','','',0,ntotal]
-                                    tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF UNDEF UNDEF 0 {ntotal}\n')
-
-                                except:
-                                    # some other failure
-                                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                                    traceback.print_tb(
-                                        exc_traceback, limit=1, file=sys.stderr
-                                    )
-                                    traceback.print_exc(file=sys.stderr)
-                                    print("Problem on run = ", dfile)
-
-                                    # Load of undefined
-                                    tdata[run] = 8*['']
-                                    tout.write(f'{run} {" ".join(8*["UNDEF"])}\n')
-
-                        print('Written timing data to',times)
-
+                        tdata = make_times(night, runs, times, False)
 
                     ##################################
                     # Get or create positional info
 
                     posdata = os.path.join(meta, 'posdata')
                     pdata = {}
-                    if os.path.exists(posdata):
+                    if not do_full and not do_positions and os.path.exists(posdata):
                         # pre-existing file found
                         with open(posdata) as pin:
                             for line in pin:
@@ -441,119 +371,8 @@ def ulogger(args=None):
                         print('Read position data from',posdata)
 
                     else:
-                        # need to generate sun / moon / airmass data
-                        # which takes a while so store the results
-                        # to a disk file for fast lookup in the future. Only
-                        # bother with runs for which we can find a position
-                        with open(posdata,'w') as pout:
-                            for run in runs:
-
-                                if len(tdata[run]) == 1:
-                                    # means its a power on/off
-                                    continue
-
-                                # open the run file as an R
-                                runname = os.path.join(night, run)
-                                try:
-                                    rhead = hcam.ucam.Rhead(runname)
-                                except:
-                                    continue
-
-                                # object name
-                                if hlog.format == 1:
-                                    target = hlog.target[run]
-                                else:
-                                    target = rhead.header.get("TARGET",'')
-                                target = target.strip()
-
-                                # RA, Dec lookup
-                                if target == '' or target in skip_targets or target in failed_targets:
-                                    autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
-                                else:
-                                    try:
-                                        autoid, ra, dec = targets(target)
-                                    except:
-                                        try:
-                                            # attempt simbad lookup here
-                                            autoid, ra, dec = target_lookup(target)
-                                            targets.add_target(target, ra, dec, autoid)
-                                            print(f'  Added {target} to targets')
-                                        except:
-                                            print(f'  No position found for {runname}, target = "{target}"')
-                                            failed_targets[target] = (rname,nname,run)
-                                            autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
-
-                                # start accumulating stuff to write out
-                                arr = [ra, dec, autoid]
-
-                                # time-dependent info
-                                ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
-                                try:
-
-                                    mjd_start = float(mjd_start)
-                                    mjd_end = float(mjd_end)
-                                    tstart = Time(mjd_start, format='mjd')
-                                    tmid = Time((mjd_start+mjd_end)/2, format='mjd')
-                                    tend = Time(mjd_end, format='mjd')
-
-                                    if ra != 'UNDEF' and dec != 'UNDEF':
-                                        # Calculate the Alt, Az at
-                                        # start, middle, end
-                                        frames = AltAz(obstime=[tstart,tmid,tend], location=observatory)
-                                        points = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg)).transform_to(frames)
-                                        alts = [round(alt,1) for alt in points.alt.degree]
-                                        azs = [round(az,1) for az in points.az.degree]
-                                        arr += alts + azs
-
-                                        # Now calculate the angular
-                                        # distance from the Sun and
-                                        # Moon at the mid-time
-                                        sun_mid = get_sun(tmid).transform_to(frames[1])
-                                        moon_mid = get_moon(tmid).transform_to(frames[1])
-                                        point_mid = points[1]
-                                        sun_dist = point_mid.separation(sun_mid).degree
-                                        moon_dist = point_mid.separation(moon_mid).degree
-                                        arr += [round(sun_dist,1),round(moon_dist,1)]
-
-                                    else:
-                                        arr += 8*['UNDEF']
-
-                                    # Now some data on the altitude of the Sun & Moon
-                                    frame = AltAz(obstime=tstart, location=observatory)
-                                    sun_start = get_sun(tstart).transform_to(frame)
-                                    moon_start = get_moon(tstart).transform_to(frame)
-
-                                    # end
-                                    frame = AltAz(obstime=tend, location=observatory)
-                                    sun_end = get_sun(tend).transform_to(frame)
-                                    moon_end = get_moon(tend).transform_to(frame)
-
-                                    # Lunar phase at the mid-point only.
-                                    moon_phase = moon_phase_angle(tmid).value / np.pi
-
-                                    arr += [
-                                        round(sun_start.alt.degree,1), round(sun_end.alt.degree,1),
-                                        round(moon_start.alt.degree,1), round(moon_end.alt.degree,1),
-                                        round(moon_phase,2),
-                                    ]
-
-                                except:
-                                    # write out info
-                                    arr += 13*['UNDEF']
-
-                                autoid_nospace = arr[2].replace(' ','~')
-                                pout.write(
-                                    f'{run} {arr[0]} {arr[1]} {autoid_nospace} {arr[3]} ' +
-                                    f'{arr[4]} {arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} ' +
-                                    f'{arr[10]} {arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n'
-                                )
-
-                                arr[2] = arr[2].replace('~',' ')
-                                pdata[run] = [
-                                    '' if val == 'UNDEF' else val for val in arr
-                                ]
-
-                        print('Written positional data to',posdata)
+                        # create it
+                        pdata = make_positions(night, runs, posdata, False)
 
                     # Right, finally!
                     #
@@ -979,7 +798,7 @@ The database is called {linstrument}.db and contains a single table called '{lin
     cnx.commit()
     cnx.close()
     print(f'Written sqlite database to {linstrument}.db')
-
+    print(f'Table dimensions (rows,columns) = {ptable.shape}')
     print(f'\nAll done. Look in {root} for the outputs.')
 
 # End of main section
@@ -1278,6 +1097,273 @@ class TimeHMSCustom(TimeISO):
     name = "hms_custom"  # Unique format name
     subfmts = (("date_hms", "%H%M%S", "{hour:02d}:{min:02d}:{sec:02d}"),)
 
+
+def make_times(night, runs, times, full):
+    """
+    Generates timing data for a set of runs from a particular night.
+    Results are stored in a file called "times", and returned as
+    dictionary keyed on run numbers.
+    """
+    tdata = {}
+    with open(times,'w') as tout:
+        for run in runs:
+            dfile = os.path.join(night, run)
+            try:
+                rtime = hcam.ucam.Rtime(dfile)
+
+                # Find first good time, has to roughly match the start
+                # date of the night because some times can just be
+                # junk
+                for n, tdat in enumerate(rtime):
+                    time, tinfo = tdat[:2]
+                    if time.good:
+                        mjd_start = time.mjd
+                        tdelta = mjd_start-mjd_ref
+                        if tdelta > 0 and tdelta < 1.5:
+                            ts = Time(mjd_start, format="mjd", precision=2)
+                            ut_start = ts.hms_custom
+                            expose = round(time.expose,3)
+                            n_start = n+1
+                            if expose > 0 and expose < 500:
+                                break
+                else:
+                    raise hcam.HipercamError(f'No good time found in {dfile}')
+
+                # Find last good time. First we just go for times near the
+                # end of the run. Failing that, we try again from the start,
+                # to account for runs with time stamp issues.
+                if rtime.header['MODE'] == 'DRIFT':
+                    # ultracam
+                    win = rtime.win[0]
+                    nyu = win.ny*rhead.ybin
+                    nback = int((1033/nyu + 1) / 2) + 3
+                elif rtime.header['MODE'] == 'UDRIFT':
+                    # ultraspec
+                    win = rtime.win[0]
+                    nyu = win.ny*rtime.ybin
+                    nback = int((1037/nyu + 1) / 2) + 3
+                else:
+                    # non drift mode
+                    nback = 4
+
+                nbytes = os.stat(dfile + '.dat').st_size
+                ntotal = nbytes // rtime.framesize
+
+                if ntotal > 20000:
+                    # this is a risk-reducing
+                    # strategy in case the end of
+                    # a long run is
+                    # corrupt. Better to look at
+                    # more than the necessary
+                    # number of frames if it
+                    # prevents us from having to
+                    # wind through the whole lot.
+                    nback = max(nback, 500)
+
+                nreset = max(1, ntotal - nback)
+                rtime.set(nreset)
+
+                flast = False
+                for n, tdat in enumerate(rtime):
+                    time, tinfo = tdat[:2]
+                    if time.good:
+                        mjd = time.mjd
+                        if mjd >= mjd_start and mjd < mjd_start + 0.4:
+                            mjd_end = mjd
+                            ts = Time(mjd_end, format="mjd", precision=2)
+                            ut_end = ts.hms_custom
+                            n_end = nreset + n
+                            nexpose = round(time.expose,3)
+                            if nexpose < 500:
+                                expose = max(expose, nexpose)
+                                flast = True
+
+                if not flast:
+                    # no good time found near end. There must be
+                    # one or we wouldn't get to this point, so
+                    # grind it out the hard way by going through
+                    # the whole run, which can be slow.
+                    rtime.set()
+                    for n, tdat in enumerate(rtime):
+                        time, tinfo = tdat[:2]
+                        if time.good:
+                            mjd = time.mjd
+                            if mjd >= mjd_start and mjd < mjd_start + 0.4:
+                                mjd_end = mjd
+                                ts = Time(mjd_end, format="mjd", precision=2)
+                                ut_end = ts.hms_custom
+                                n_end = n + 1
+                                nexpose = round(time.expose,3)
+                                if nexpose < 500:
+                                    expose = max(expose, nexpose)
+
+                nok = n_end-n_start+1
+                if n_end > n_start:
+                    cadence = round(86400*(mjd_end-mjd_start)/(n_end-n_start),3)
+                    tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,cadence,expose,nok,ntotal]
+                else:
+                    cadence = 'UNDEF'
+                    tdata[run] = [ut_start,mjd_start,ut_end,mjd_end,'',expose,nok,ntotal]
+                tout.write(f'{run} {ut_start} {mjd_start} {ut_end} {mjd_end} {cadence} {expose} {nok} {ntotal}\n')
+
+            except hcam.ucam.PowerOnOffError:
+                # Power on/off
+                tdata[run] = ['power-on-off',]
+                tout.write(f'{run} power-on-off\n')
+                if full: print('f{run} was a power-on or -off')
+
+            except hcam.HipercamError:
+                # No good times
+                tdata[run] = ['','','','','','',0,ntotal]
+                tout.write(f'{run} UNDEF UNDEF UNDEF UNDEF UNDEF UNDEF 0 {ntotal}\n')
+                if full:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    traceback.print_tb(
+                        exc_traceback, limit=1, file=sys.stderr
+                    )
+                    traceback.print_exc(file=sys.stderr)
+                    print(f'No good times found for {run}')
+
+            except:
+                # some other failure
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_tb(
+                    exc_traceback, limit=1, file=sys.stderr
+                )
+                traceback.print_exc(file=sys.stderr)
+                print("Problem on run = ", dfile)
+
+                # Load of undefined
+                tdata[run] = 8*['']
+                tout.write(f'{run} {" ".join(8*["UNDEF"])}\n')
+
+    print('Written timing data to',times)
+    return tdata
+
+def make_positions(night, runs, tdata. posdata, full):
+    """
+    Determine positional info, write to podata,
+    return as dictionary keyed on the runs. Uses pre-determined
+    timing data from make_times
+    """
+
+    pdata = {}
+    with open(posdata,'w') as pout:
+        for run in runs:
+            if len(tdata[run]) == 1:
+                # means its a power on/off
+                continue
+
+            # open the run file as an Rhead
+            runname = os.path.join(night, run)
+            try:
+                rhead = hcam.ucam.Rhead(runname)
+            except:
+                if full:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    traceback.print_tb(
+                        exc_traceback, limit=1, file=sys.stderr
+                    )
+                    traceback.print_exc(file=sys.stderr)
+                    print(f"Failed top open {runname} as an Rhead")
+                continue
+
+            # object name
+            if hlog.format == 1:
+                target = hlog.target[run]
+            else:
+                target = rhead.header.get("TARGET",'')
+            target = target.strip()
+
+            # RA, Dec lookup
+            if target == '' or target in skip_targets or target in failed_targets:
+                autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
+            else:
+                try:
+                    autoid, ra, dec = targets(target)
+                except:
+                    try:
+                        # attempt simbad lookup here
+                        autoid, ra, dec = target_lookup(target)
+                        targets.add_target(target, ra, dec, autoid)
+                        print(f'  Added {target} to targets')
+                    except:
+                        print(f'  No position found for {runname}, target = "{target}"')
+                        failed_targets[target] = (rname,nname,run)
+                        autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
+
+            # start accumulating stuff to write out
+            arr = [ra, dec, autoid]
+
+            # time-dependent info
+            ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
+            try:
+
+                mjd_start = float(mjd_start)
+                mjd_end = float(mjd_end)
+                tstart = Time(mjd_start, format='mjd')
+                tmid = Time((mjd_start+mjd_end)/2, format='mjd')
+                tend = Time(mjd_end, format='mjd')
+
+                if ra != 'UNDEF' and dec != 'UNDEF':
+                    # Calculate the Alt, Az at
+                    # start, middle, end
+                    frames = AltAz(obstime=[tstart,tmid,tend], location=observatory)
+                    points = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg)).transform_to(frames)
+                    alts = [round(alt,1) for alt in points.alt.degree]
+                    azs = [round(az,1) for az in points.az.degree]
+                    arr += alts + azs
+
+                    # Now calculate the angular
+                    # distance from the Sun and
+                    # Moon at the mid-time
+                    sun_mid = get_sun(tmid).transform_to(frames[1])
+                    moon_mid = get_moon(tmid).transform_to(frames[1])
+                    point_mid = points[1]
+                    sun_dist = point_mid.separation(sun_mid).degree
+                    moon_dist = point_mid.separation(moon_mid).degree
+                    arr += [round(sun_dist,1),round(moon_dist,1)]
+
+                else:
+                    arr += 8*['UNDEF']
+
+                # Now some data on the altitude of the Sun & Moon
+                frame = AltAz(obstime=tstart, location=observatory)
+                sun_start = get_sun(tstart).transform_to(frame)
+                moon_start = get_moon(tstart).transform_to(frame)
+
+                # end
+                frame = AltAz(obstime=tend, location=observatory)
+                sun_end = get_sun(tend).transform_to(frame)
+                moon_end = get_moon(tend).transform_to(frame)
+
+                # Lunar phase at the mid-point only.
+                moon_phase = moon_phase_angle(tmid).value / np.pi
+
+                arr += [
+                    round(sun_start.alt.degree,1), round(sun_end.alt.degree,1),
+                    round(moon_start.alt.degree,1), round(moon_end.alt.degree,1),
+                    round(moon_phase,2),
+                ]
+
+            except:
+                # write out info
+                arr += 13*['UNDEF']
+
+            autoid_nospace = arr[2].replace(' ','~')
+            pout.write(
+                f'{run} {arr[0]} {arr[1]} {autoid_nospace} {arr[3]} ' +
+                f'{arr[4]} {arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} ' +
+                f'{arr[10]} {arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n'
+            )
+
+            arr[2] = arr[2].replace('~',' ')
+            pdata[run] = [
+                '' if val == 'UNDEF' else val for val in arr
+            ]
+
+    print('Written positional data to',posdata)
+    return pdata
 
 # Create and write out spreadsheet
 ULTRACAM_COLNAMES = (
