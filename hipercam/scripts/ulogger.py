@@ -400,8 +400,8 @@ def ulogger(args=None):
                     else:
                         # create it
                         pdata = make_positions(
-                            night, runs, observatory, hlog, targets,
-                            skip_targets, failed_targets, tdata, posdata, False
+                            night, runs, observatory, hlog, targets, skip_targets,
+                            failed_targets, tdata, posdata, False, rname
                         )
 
                     # Right, finally!
@@ -1284,7 +1284,7 @@ def make_times(night, runs, observatory, times, full):
 
 def make_positions(
         night, runs, observatory, hlog, targets,
-        skip_targets, failed_targets, tdata, posdata, full
+        skip_targets, failed_targets, tdata, posdata, full, rname=None
 ):
     """
     Determine positional info, write to podata,
@@ -1335,7 +1335,8 @@ def make_positions(
                         print(f'  Added {target} to targets')
                     except:
                         print(f'  No position found for {runname}, target = "{target}"')
-                        failed_targets[target] = (rname,nname,run)
+                        if rname is not None:
+                            failed_targets[target] = (rname,nname,run)
                         autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
 
             # start accumulating stuff to write out
