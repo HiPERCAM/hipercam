@@ -401,7 +401,7 @@ def ulogger(args=None):
                         # create it
                         pdata = make_positions(
                             night, runs, observatory, hlog, targets, skip_targets,
-                            failed_targets, tdata, posdata, False, rname
+                            failed_targets, tdata, posdata, False, rname, nname
                         )
 
                     # Right, finally!
@@ -678,6 +678,9 @@ def ulogger(args=None):
                             brow += stats.loc[run].values.tolist()
                         except:
                             brow += nextra*[None]
+
+                        if len(brow) != len(COLNAMES):
+                            print(f'{runname}: data items vs colnames = {len(brow)} vs {len(COLNAMES)}')
 
                         barr.append(brow)
 
@@ -1284,7 +1287,8 @@ def make_times(night, runs, observatory, times, full):
 
 def make_positions(
         night, runs, observatory, hlog, targets,
-        skip_targets, failed_targets, tdata, posdata, full, rname=None
+        skip_targets, failed_targets, tdata, posdata, full,
+        rname=None, nname=None
 ):
     """
     Determine positional info, write to podata,
