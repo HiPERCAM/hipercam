@@ -171,6 +171,12 @@ def digest(args=None):
             # run elementary checks that are fast
             night = os.path.basename(ndir)
 
+            nnew = os.path.basename(ndir).replace('_','-')
+            if os.path.exists(nnew):
+                print(d'A directory called {nnew} already exists clashing with {ndir}')
+                print('digest aborted',file=sys.stderr)
+                return
+
             log = os.path.join(ndir, f"{night}_log.dat")
             if os.path.isfile(log):
                 print(f"... found the log file = {log}")
