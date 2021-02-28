@@ -66,7 +66,6 @@ def ulogger(args=None):
     when these two have completed, then run |ulogger| a second time.
 
     """
-    from astroplan import moon_phase_angle
     warnings.filterwarnings("ignore")
 
     parser = argparse.ArgumentParser(description=description)
@@ -675,6 +674,7 @@ def ulogger(args=None):
                         nhtml.write("\n</tr>\n")
 
                         try:
+                            # add in statistics
                             brow += stats.loc[run].values.tolist()
                         except:
                             brow += nextra*[None]
@@ -1294,6 +1294,7 @@ def make_positions(
     return as dictionary keyed on the runs. Uses pre-determined
     timing data from make_times
     """
+    from astroplan import moon_phase_angle
 
     pdata = {}
     with open(posdata,'w') as pout:
@@ -1354,7 +1355,6 @@ def make_positions(
                 tstart = Time(mjd_start, format='mjd')
                 tmid = Time((mjd_start+mjd_end)/2, format='mjd')
                 tend = Time(mjd_end, format='mjd')
-
                 if ra != 'UNDEF' and dec != 'UNDEF':
                     # Calculate the Alt, Az at
                     # start, middle, end
@@ -1375,7 +1375,7 @@ def make_positions(
                     arr += [round(sun_dist,1),round(moon_dist,1)]
 
                 else:
-                    arr += 8*['UNDEF']
+                    arr = arr[:3] + 8*['UNDEF']
 
                 # Now some data on the altitude of the Sun & Moon
                 frame = AltAz(obstime=tstart, location=observatory)
@@ -1398,7 +1398,7 @@ def make_positions(
 
             except:
                 # write out info
-                arr += 13*['UNDEF']
+                arr = arr[:3] + 13*['UNDEF']
 
             autoid_nospace = arr[2].replace(' ','~')
             pout.write(
