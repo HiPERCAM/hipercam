@@ -966,11 +966,11 @@ class Targets(dict):
                 print('No targets loaded from',fname,'as it does not exist.')
 
     def add_target(self, target, ra, dec, uid, dmax=10):
-        """
-        Add a target at position ra, dec. dmax is maximum
-        separation in arcsec from previous entry with
-        matching lookup name. 'target' is a name that
-        will be matched to a unique identifier uid 
+        """Add a target at position ra, dec decimal hours and degrees. dmax
+        is maximum separation in arcsec from previous entry with
+        matching lookup name. 'target' is a name that will be matched
+        to a unique identifier uid
+
         """
 
         if target in self.lnames:
@@ -978,7 +978,6 @@ class Targets(dict):
                 'Target = {target} name = {name} already has an entry'
             )
 
-        ra,dec,system = str2radec(ra + ' ' + dec)
         if uid in self:
             entry = self[uid]
             ora, odec = entry['ra'], entry['dec']
@@ -1170,10 +1169,10 @@ def make_times(night, runs, observatory, times, full):
                             n_start = n+1
                             if expose > 0 and expose < 500:
                                 break
-                        elif tdelta < 0 and not_alerted:
+                        elif not_alerted and (tdelta < 0 or tdelta > 1.5):
                             # maximum one warning per run
                             not_alerted = False
-                            print(f'  Bad time: tdelta = {tdelta} < 0 on time {n} of {dfile}')
+                            print(f'  Bad time: tdelta = {tdelta} < 0 or > 1.5 on time {n} of {dfile}')
                 else:
                     ntotal = 0
                     raise hcam.HipercamError(f'No good times found in {dfile}')
