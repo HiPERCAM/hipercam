@@ -457,8 +457,6 @@ query id {target}"""
             name = re.sub(RESPC, ' ', name)
             try:
                 ra, dec, syst = str2radec(coords)
-                ra = dec2sexg(ra,False,2)
-                dec = dec2sexg(dec,True,1)
                 return (name,ra,dec)
             except:
                 err_msgs.append(
@@ -472,8 +470,6 @@ query id {target}"""
         m = REPOS.search(target)
         if m:
             rah,ram,ras,decsgn,decd,decm,decs = m.group(1,2,3,4,5,6,7)
-            ra = f'{rah}:{ram}:{ras}'
-            dec = f'{decsgn}{decd}:{decm}:{decs}'
             rah,ram,ras,decd,decm,decs = int(rah),int(ram),float(ras),int(decd),int(decm),float(decs)
             if rah > 23 or ram > 59 or ras >= 60. or decd > 89 or decm > 59 or decs >= 60.:
                 err_msgs.append(
@@ -481,6 +477,9 @@ query id {target}"""
                 )
             else:
                 name = re.sub(RESPC, ' ', target)
+                ra = rah+ram/60+ras/3600
+                dec = decd+decm/60+decs/3600
+                dec = dec if decsgn == '+' else -dec
                 return (name,ra,dec)
 
         err_msgs.append(
@@ -531,9 +530,9 @@ query coo {ra_tel} {dec_tel} radius={dist}m"""
             name = re.sub(RESPC, ' ', name)
             try:
                 ra, dec, syst = str2radec(coords)
-                ra = dec2sexg(ra,False,2)
-                dec = dec2sexg(dec,True,1)
-                print(f'  Matched telescope position = {ra} {dec} ({target}) with "{name}", position = {ra} {dec}')
+                ra_str= dec2sexg(ra,False,2)
+                dec_str = dec2sexg(dec,True,1)
+                print(f'  Matched telescope position = {coords} {dec} with "{name}", position = {ra_str} {dec_str}')
                 return (name,ra,dec)
             except:
                 err_msgs.append(
