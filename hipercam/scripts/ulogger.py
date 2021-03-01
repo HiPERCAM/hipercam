@@ -57,13 +57,16 @@ def ulogger(args=None):
     not installed.
 
     It also writes information to a sub-directory "meta" of each night
-    directory, and can pick up information stored there by related
-    scripts |redplt| and |hmeta|. There is a circular relationship
-    between these scripts. |redplt| can only be run once ulogger has
-    created a timing file in "meta"; thus it will need two runs of
-    |ulogger| to create complete logs with images. A full sequence
-    would be |ulogger|, followed by |redplt| and |hmeta|, and only
-    when these two have completed, then run |ulogger| a second time.
+    directory, and can pick up information stored there by the related
+    scripts |redplt| and |hmeta|. There is a slightly circular
+    relationship between these scripts since |redplt| can only be run
+    once ulogger has created a timing file in "meta". Thus two runs of
+    |ulogger| are needed to create complete logs with images. A full
+    sequence would be |ulogger|, followed by |redplt| and |hmeta|, and
+    only when these two have completed, then run |ulogger| a second
+    time. |hmeta| can be run idependently however, but must be run
+    before the final |ulogger| run for a complete spreadsheet and SQL
+    database to be created.
 
     """
     warnings.filterwarnings("ignore")
@@ -209,6 +212,11 @@ def ulogger(args=None):
         print("ulogger aborted")
         return
 
+    # If 'Others' exists, ensure it comes last.
+    if 'Others' in rnames:
+        rnames.remove('Others')
+        rnames += ['Others']
+
     # Get started. First make sure all files are created with the
     # right permissions
     os.umask(0o022)
@@ -244,20 +252,32 @@ def ulogger(args=None):
 
             # write in run date, start table of nights
             rn = os.path.basename(rname)
-            try:
-                year, month = rn.split("-")
-                if month in LOG_MONTHS:
-                    ihtml.write(
-                        f"<tr><td>{LOG_MONTHS[month]} {year}</td><td>{telescope}</td><td>"
-                    )
-                else:
+            if rn == 'Others':
+                # Write "Others" to separate section at the bottom to avoid overwhelming the table
+                ihtml.write(
+                    f"""
+</table>
+
+<hr>
+<h2>{rn}, {telescope}</h2>
+
+<p>
+""")
+            else:
+                try:
+                    year, month = rn.split("-")
+                    if month in LOG_MONTHS:
+                        ihtml.write(
+                            f"<tr><td>{LOG_MONTHS[month]} {year}</td><td>{telescope}</td><td>"
+                        )
+                    else:
+                        ihtml.write(
+                            f"<tr><td>{rn}</td><td>{telescope}</td><td>"
+                        )
+                except:
                     ihtml.write(
                         f"<tr><td>{rn}</td><td>{telescope}</td><td>"
                     )
-            except:
-                ihtml.write(
-                    f"<tr><td>{rn}</td><td>{telescope}</td><td>"
-                )
 
             # set site
             if telescope == 'WHT':
@@ -692,6 +712,9 @@ def ulogger(args=None):
                 shutil.move(fname_tmp, fname)
 
             ihtml.write('</td></tr>\n')
+
+        if 'Others' not in rnames:
+            ihtml.write('</table>\n')
 
         # finish the main index
         ihtml.write(INDEX_FOOTER)
@@ -1563,7 +1586,6 @@ allow SQL queries.
 # Footer of the main file
 
 INDEX_FOOTER = """
-</table>
 
 <address>Tom Marsh, Warwick</address>
 </body>
