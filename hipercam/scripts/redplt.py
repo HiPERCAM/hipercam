@@ -5,6 +5,7 @@ import os
 import time
 import re
 import traceback
+import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,6 +26,7 @@ __all__ = [
 
 
 def redplt(args=None):
+    description = \
     """redplt
 
     This command is to be run in the "raw_data" directory containing
@@ -41,6 +43,14 @@ def redplt(args=None):
     has the best comparison.
 
     """
+
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        "-f",
+        dest="full",
+        action="store_true",
+        help="carry out full re-computation of plots",
+    )
 
     cwd = os.getcwd()
     if os.path.basename(cwd) != "raw_data":
@@ -139,9 +149,13 @@ def redplt(args=None):
                 print(f'  Run {run} lasts {ttotal} secs, and has {nok} frames; one or both is too small -- skipping')
                 continue
 
+            pname = os.path.join(mdir,run + '.png')
+            if not args.full and os.path.exists(pname):
+                print(f'  Plot {pname} exists and will not be re-computed')
+                continue
+
             # OK attempt a plot
             try:
-                pname = os.path.join(mdir,run + '.png')
 
                 # Two panels, target / comparison and comparison
                 fig,(ax1,ax2) = plt.subplots(2,1,sharex=True)
