@@ -39,8 +39,11 @@ def redplt(args=None):
     purpose of these plots is so that they can be attached to the runs
     logs as a quick look on past runs.
 
-    The code assumes that aperture 1 contains the target while aperture 2
-    has the best comparison.
+    The code assumes that aperture 1 contains the target while
+    aperture 2 has the best comparison. It produces plots in which the
+    top panel shows the target divided by the comparison, and the
+    bottom panel shows the comparison alone to give some sense of
+    clouds.
 
     """
 
