@@ -334,7 +334,7 @@ def digest(args=None):
             # make a link in each night to the telescope
             # file in the run directory
             ltarget = os.path.join('..',rdir,'telescope')
-            lname = os.path.join(ndir, 'telescope')
+            lname = os.path.join(nnight, 'telescope')
             os.symlink(ltarget, lname)
             print(f"ln -s {ltarget} {lname}")
 
