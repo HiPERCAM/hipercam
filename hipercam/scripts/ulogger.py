@@ -349,7 +349,7 @@ def ulogger(args=None):
                 else:
                     if night[:4] != old_year:
                         ihtml.write(
-                            f'<br>\n<a href="{night}/">{night}</a>'
+                            f'<br><br>\n<a href="{night}/">{night}</a>'
                         )
                         old_year = night[:4]
                     else:
