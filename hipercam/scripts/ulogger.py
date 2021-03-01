@@ -293,25 +293,27 @@ def ulogger(args=None):
             else:
                 raise ValueError('did not recognise telescope =',telescope)
 
-            # get night directories
-            nnames = [
-                os.path.join(rname, ndir)
-                for ndir in os.listdir(rname)
-                if nre.match(ndir)
-                and os.path.isdir(os.path.join(rname, ndir))
+            # get night directories which must have at least one run to be included
+            nnames = []
+            for ndir in os.listdir(rname):
+                if nre.match(ndir):
+                    if os.path.isdir(ndir):
+                        nrun = len([run in os.listdir(ndir) if fre.match(run)])
+                        if nrun == 0:
+                            print(f'{night} contains no runs and will be ignored')
+                        else:
+                            nnames.append(ndir)
             ]
             nnames.sort()
 
             if len(nnames) == 0:
                 print(
                     "found no night directories of the form YYYY-MM-DD"
-                    f" in {rname}"
+                    f" in run = {rname}"
                 )
                 continue
 
-            for nn, nname in enumerate(nnames):
-
-                night = os.path.basename(nname)
+            for nn, night in enumerate(nnames):
 
                 # load all the run names
                 runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
@@ -319,22 +321,20 @@ def ulogger(args=None):
                 if len(runs) == 0:
                     continue
 
-                print(f"  night {nname}")
+                print(f"  night {night}")
 
                 # create directory for any meta info such as the times
-                meta = os.path.join(nname, 'meta')
+                meta = os.path.join(night, 'meta')
 
                 os.makedirs(meta, exist_ok=True)
                 links = '\n<p><a href="../index.html">Run index</a>'
                 if nn > 0:
-                    bnight = os.path.basename(nnames[nn-1])
-                    links += f', <a href="../{bnight}/">Previous night</a>'
+                    links += f', <a href="../{nnames[nn-1]}/">Previous night</a>'
                 else:
                     links += f', Previous night'
 
                 if nn < len(nnames) - 1:
-                    anight = os.path.basename(nnames[nn+1])
-                    links += f', <a href="../{anight}/">Next night</a>\n</p>\n'
+                    links += f', <a href="../{nnames[nn+1]}/">Next night</a>\n</p>\n'
                 else:
                     links += f', Next night\n</p>\n'
 
@@ -346,10 +346,17 @@ def ulogger(args=None):
                     ihtml.write(
                         f'<a href="{night}/">{night}</a>'
                     )
+                    old_year = night[:4]
                 else:
-                    ihtml.write(
-                        f', <a href="{night}/">{night}</a>'
-                    )
+                    if night[:4] != old_year:
+                        ihtml.write(
+                            f'<br>\n<a href="{night}/">{night}</a>'
+                        )
+                        old_year = night[:4]
+                    else:
+                        ihtml.write(
+                            f', <a href="{night}/">{night}</a>'
+                        )
 
                 # Create the directory for the night
                 date = f"{night}, {telescope}"
@@ -420,7 +427,7 @@ def ulogger(args=None):
                         # create it
                         pdata = make_positions(
                             night, runs, observatory, hlog, targets, skip_targets,
-                            failed_targets, tdata, posdata, False, rname, nname
+                            failed_targets, tdata, posdata, False, rname
                         )
 
                     # Right, finally!
@@ -1310,7 +1317,7 @@ def make_times(night, runs, observatory, times, full):
 def make_positions(
         night, runs, observatory, hlog, targets,
         skip_targets, failed_targets, tdata, posdata, full,
-        rname=None, nname=None
+        rname=None
 ):
     """
     Determine positional info, write to podata,
@@ -1363,7 +1370,7 @@ def make_positions(
                     except:
                         print(f'  No position found for {runname}, target = "{target}"')
                         if rname is not None:
-                            failed_targets[target] = (rname,nname,run)
+                            failed_targets[target] = (rname,night,run)
                         autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
 
             # start accumulating stuff to write out
