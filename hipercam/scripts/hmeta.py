@@ -55,6 +55,7 @@ def hmeta(args=None):
         action="store_true",
         help="carry out full re-computation of stats for all valid nights",
     )
+    args = parser.parse_args()
 
     cwd = os.getcwd()
     if os.path.basename(cwd) != "raw_data":

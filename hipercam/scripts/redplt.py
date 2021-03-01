@@ -51,6 +51,7 @@ def redplt(args=None):
         action="store_true",
         help="carry out full re-computation of plots",
     )
+    args = parser.parse_args()
 
     cwd = os.getcwd()
     if os.path.basename(cwd) != "raw_data":
