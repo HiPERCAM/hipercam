@@ -298,12 +298,11 @@ def ulogger(args=None):
             for ndir in os.listdir(rname):
                 if nre.match(ndir):
                     if os.path.isdir(ndir):
-                        nrun = len([run in os.listdir(ndir) if fre.match(run)])
+                        nrun = len([run for run in os.listdir(ndir) if fre.match(run)])
                         if nrun == 0:
-                            print(f'{night} contains no runs and will be ignored')
+                            print(f'{ndir} contains no runs and will be ignored')
                         else:
                             nnames.append(ndir)
-            ]
             nnames.sort()
 
             if len(nnames) == 0:
