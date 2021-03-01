@@ -175,19 +175,17 @@ def redplt(args=None):
                             if '2' in apnams:
                                 comp = hlog.tseries(cnam,'2')
                                 targ /= comp
-                                targ.normalise()
-                                comp.normalise()
 
                                 ndat = len(targ)
-                                if ndat > 1000:
+                                if ndat > 3000:
                                     # stop plotting too many points to keep
                                     # size down
-                                    binsize = ndat // 1000
+                                    binsize = ndat // 1500
                                     targ.bin(binsize)
                                     comp.bin(binsize)
 
-                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([1,99],  bitmask=hcam.BAD_TIME)
-                                (_d,_d),(cylo,_d),(_d,cyhi) = comp.percentile([1,99],  bitmask=hcam.BAD_TIME)
+                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([5,95],  bitmask=hcam.BAD_TIME)
+                                (_d,_d),(cylo,_d),(_d,cyhi) = comp.percentile([5,95],  bitmask=hcam.BAD_TIME)
                                 if tymax is not None:
                                     off = tymax - tylo
                                     targ += off
@@ -206,13 +204,13 @@ def redplt(args=None):
 
                             else:
                                 ndat = len(targ)
-                                if ndat > 1000:
+                                if ndat > 3000:
                                     # stop plotting too many points to keep
                                     # size down
-                                    binsize = ndat // 1000
+                                    binsize = ndat // 1500
                                     targ.bin(binsize)
 
-                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([1,99],  bitmask=hcam.BAD_TIME)
+                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([5,95],  bitmask=hcam.BAD_TIME)
                                 if tymax is not None:
                                     off = tymax - tylo
                                     targ += off
@@ -222,13 +220,13 @@ def redplt(args=None):
                                 targ.mplot(ax1,utils.rgb(cols[cnam]),ecolor='0.5',  bitmask=hcam.BAD_TIME)
 
                 yrange = tymax-tymin
-                ax1.set_ylim(tymin-yrange/10, tymax+yrange/10)
+                ax1.set_ylim(tymin-yrange/5, tymax+yrange/5)
                 if cymin is not None:
                     yrange = cymax-cymin
-                    ax2.set_ylim(cymin-yrange/10, cymax+yrange/10)
-                ax1.set_ylabel('Normalised target data')
+                    ax2.set_ylim(cymin-yrange/5, cymax+yrange/5)
+                ax1.set_ylabel('Target / Comparison')
                 ax1.set_title(f'{nname}, {run}')
-                ax2.set_ylabel('Normalised comparison data')
+                ax2.set_ylabel('Comparison')
                 ax2.set_xlabel('Time [MJD]')
                 plt.savefig(pname)
                 plt.close()
