@@ -347,7 +347,7 @@ def ulogger(args=None):
                     )
                     old_year = night[:4]
                 else:
-                    if night[:4] != old_year:
+                    if rname == 'Others' and night[:4] != old_year:
                         ihtml.write(
                             f'<br><br>\n<a href="{night}/">{night}</a>'
                         )
