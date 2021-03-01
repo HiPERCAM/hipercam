@@ -173,7 +173,7 @@ def digest(args=None):
 
             nnew = os.path.basename(ndir).replace('_','-')
             if os.path.exists(nnew):
-                print(d'A directory called {nnew} already exists clashing with {ndir}')
+                print(f'A directory called {nnew} already exists clashing with {ndir}')
                 print('digest aborted',file=sys.stderr)
                 return
 
