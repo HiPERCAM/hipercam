@@ -1212,7 +1212,7 @@ def make_times(night, runs, observatory, times, full):
                 if rtime.header['MODE'] == 'DRIFT':
                     # ultracam
                     win = rtime.win[0]
-                    nyu = win.ny*rhead.ybin
+                    nyu = win.ny*rtime.ybin
                     nback = int((1033/nyu + 1) / 2) + 3
                 elif rtime.header['MODE'] == 'UDRIFT':
                     # ultraspec
