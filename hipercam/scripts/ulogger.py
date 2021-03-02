@@ -1323,7 +1323,6 @@ def make_positions(
     return as dictionary keyed on the runs. Uses pre-determined
     timing data from make_times
     """
-    from astroplan import moon_phase_angle
 
     pdata = {}
     with open(posdata,'w') as pout:
@@ -1384,6 +1383,12 @@ def make_positions(
                 tstart = Time(mjd_start, format='mjd')
                 tmid = Time((mjd_start+mjd_end)/2, format='mjd')
                 tend = Time(mjd_end, format='mjd')
+
+                # Scale Sun-Moon angle at mid time (0 = New Moon, 1 = Full)
+                sun_mid = get_sun(tmid)
+                moon_mid = get_moon(tmid)
+                sun_moon = sun_mid.separation(moon_mid).degree / 180
+
                 if ra != 'UNDEF' and dec != 'UNDEF':
                     # Calculate the Alt, Az at
                     # start, middle, end
@@ -1396,11 +1401,11 @@ def make_positions(
                     # Now calculate the angular
                     # distance from the Sun and
                     # Moon at the mid-time
-                    sun_mid = get_sun(tmid).transform_to(frames[1])
-                    moon_mid = get_moon(tmid).transform_to(frames[1])
+                    sun_mid_trans = sun_mid.transform_to(frames[1])
+                    moon_mid_trans = moon_mid.transform_to(frames[1])
                     point_mid = points[1]
-                    sun_dist = point_mid.separation(sun_mid).degree
-                    moon_dist = point_mid.separation(moon_mid).degree
+                    sun_dist = point_mid.separation(sun_mid_trans).degree
+                    moon_dist = point_mid.separation(moon_mid_trans).degree
                     arr += [round(sun_dist,1),round(moon_dist,1)]
 
                 else:
@@ -1416,13 +1421,10 @@ def make_positions(
                 sun_end = get_sun(tend).transform_to(frame)
                 moon_end = get_moon(tend).transform_to(frame)
 
-                # Lunar phase at the mid-point only.
-                moon_phase = moon_phase_angle(tmid).value / np.pi
-
                 arr += [
                     round(sun_start.alt.degree,1), round(sun_end.alt.degree,1),
                     round(moon_start.alt.degree,1), round(moon_end.alt.degree,1),
-                    round(moon_phase,2),
+                    round(sun_moon,3),
                 ]
 
             except:
@@ -1556,7 +1558,7 @@ ULTRASPEC_COLNAMES = (
     ('sun_alt_end', 'float32', 'Altitude of Sun at end of run'),
     ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
     ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
-    ('moon_phase', 'float32', 'Lunar phase (fraction illuminated')
+    ('moon_phase', 'float32', 'Lunar phase (0 to 1, New-->Full)')
 )
 
 
