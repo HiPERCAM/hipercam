@@ -147,7 +147,7 @@ def hmeta(args=None):
                     rdat = hcam.hcam.Rdata(dfile, 1, False, False)
                 print(f"  {dfile}")
             except hcam.ucam.PowerOnOffError:
-                print(f'  {dfile} -- power on/off; will skip')
+                print(f'  {dfile} -- power on/off; skipping')
                 continue
             except:
                 # some other failure
@@ -156,13 +156,16 @@ def hmeta(args=None):
                     exc_traceback, limit=1, file=sys.stderr
                 )
                 traceback.print_exc(file=sys.stderr)
-                print(f'  {dfile} -- problem occurred; will skip')
+                print(f'  {dfile} -- problem occurred; skipping')
                 continue
 
             # For speed, analyse a maximum of 100-200
             # images of each CCD from any given run. Have to take
             # into account the skips / nblue parameters.
             ntotal = rdat.ntotal()
+            if ntotal == 0:
+                print(f'  {dfile} -- zero frames; skipping')
+                continue
 
             ncframes = {}
             if instrument == 'ULTRASPEC':
@@ -259,9 +262,9 @@ def hmeta(args=None):
             for cnam in cnams:
                 if len(means[cnam]) == 0:
                     if instrument == 'ULTRASPEC':
-                        brow += [0] + 18*[None]
-                    elif instrument == 'ULTRACAM':
                         brow += [0] + 21*[None]
+                    elif instrument == 'ULTRACAM':
+                        brow += [0] + 24*[None]
                     else:
                         raise NotImplementedError('HiPERCAM case not done yet')
                 else:
@@ -348,6 +351,7 @@ ULTRASPEC_META_COLNAMES = (
 
 ULTRACAM_META_COLNAMES = (
     ('run_no', 'str', 'Run number'),
+
     ('nf_used_1', 'float32', 'number of frames used for stats, CCD 1. First of many stats computed by "hmeta"'),
     ('med_min_L1', 'float32', 'minimum median left, CCD 1'),
     ('med_med_L1', 'float32', 'median median left CCD 1'),
