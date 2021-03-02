@@ -211,50 +211,58 @@ def hmeta(args=None):
                 rmsps[cnam] = np.empty_like(ncframe,dtype=np.float)
                 p99s[cnam] = np.empty_like(ncframe,dtype=np.float)
 
-            # now access the data and calculate stats. we have to remember that
-            # ultracam and hipercam have different readout amps so we subtract
-            # median values calculated for each amp separately, which is a little
-            # painful.
+            # now access the data and calculate stats. we have to
+            # remember that ultracam and hipercam have different
+            # readout amps so we subtract median values calculated for
+            # each amp separately, which is a little painful.
             for n, nf in enumerate(nframes):
-                mccd = rdat(nf)
-                for cnam, ncframe in ncframes.items():
-                    if nf in ncframe:
-                        ccd = mccd[cnam]
-                        nc = ns[cnam]
-                        if instrument == 'ULTRASPEC':
-                            medval = ccd.median()
-                            ccd -= medval
-                            medians[cnam][nc] = medval
-                        elif instrument == 'ULTRACAM':
-                            wl = hcam.Group(hcam.Window)
-                            wr = hcam.Group(hcam.Window)
-                            for nw, wnam in enumerate(ccd):
-                                if nw % 2 == 0:
-                                    wl[wnam] = ccd[wnam]
-                                else:
-                                    wr[wnam] = ccd[wnam]
-                            ccdl = hcam.CCD(wl,ccd.nxtot,ccd.nytot)
-                            medl = ccdl.median()
-                            ccdl -= medl
-                            ccdr = hcam.CCD(wr,ccd.nxtot,ccd.nytot)
-                            medr = ccdr.median()
-                            ccdr -= medr
-                            medians[cnam]['L'][nc] = medl
-                            medians[cnam]['R'][nc] = medr
-                        else:
-                            raise NotImplementedError('HiPERCAM case not done yet')
+                try:
+                    mccd = rdat(nf)
+                    for cnam, ncframe in ncframes.items():
+                        if nf in ncframe:
+                            ccd = mccd[cnam]
+                            nc = ns[cnam]
+                            if instrument == 'ULTRASPEC':
+                                medval = ccd.median()
+                                ccd -= medval
+                                medians[cnam][nc] = medval
+                            elif instrument == 'ULTRACAM':
+                                wl = hcam.Group(hcam.Window)
+                                wr = hcam.Group(hcam.Window)
+                                for nw, wnam in enumerate(ccd):
+                                    if nw % 2 == 0:
+                                        wl[wnam] = ccd[wnam]
+                                    else:
+                                        wr[wnam] = ccd[wnam]
+                                ccdl = hcam.CCD(wl,ccd.nxtot,ccd.nytot)
+                                medl = ccdl.median()
+                                ccdl -= medl
+                                ccdr = hcam.CCD(wr,ccd.nxtot,ccd.nytot)
+                                medr = ccdr.median()
+                                ccdr -= medr
+                                medians[cnam]['L'][nc] = medl
+                                medians[cnam]['R'][nc] = medr
+                            else:
+                                raise NotImplementedError('HiPERCAM case not done yet')
 
-                        # At this stage the median value should have been subtracted
-                        # from the CCD on a per output basis. Remaining stats calculated
-                        # from these median subtracted images.
-                        means[cnam][nc] = ccd.mean()
-                        p1,p16,p84,p99 = ccd.percentile([1.0,15.865,84.135,99.0])
-                        p1s[cnam][nc] = p1
-                        p16s[cnam][nc] = p16
-                        rmsps[cnam][nc] = (p84-p16)/2
-                        p84s[cnam][nc] = p84
-                        p99s[cnam][nc] = p99
-                        ns[cnam] += 1
+                            # At this stage the median value should have been subtracted
+                            # from the CCD on a per output basis. Remaining stats calculated
+                            # from these median subtracted images.
+                            means[cnam][nc] = ccd.mean()
+                            p1,p16,p84,p99 = ccd.percentile([1.0,15.865,84.135,99.0])
+                            p1s[cnam][nc] = p1
+                            p16s[cnam][nc] = p16
+                            rmsps[cnam][nc] = (p84-p16)/2
+                            p84s[cnam][nc] = p84
+                            p99s[cnam][nc] = p99
+                            ns[cnam] += 1
+                except:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    traceback.print_tb(
+                        exc_traceback, limit=1, file=sys.stderr
+                    )
+                    traceback.print_exc(file=sys.stderr)
+                    continue
 
             # All extracted from the run; take and store medians
             # of the extracted stats
