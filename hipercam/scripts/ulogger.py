@@ -1585,6 +1585,9 @@ available as an <a href="sqldb.html">sqlite3 database</a> to
 allow SQL queries.
 
 <p>
+<h2>Vikcam team observing nights</h2>
+
+<p>
 <table border=1 cellspacing="1" cellpadding="4">
 <tr><th>Run</th><th>Telescope</th><th>Dates at the start of the nights</th></tr>
 """
