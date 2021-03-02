@@ -90,7 +90,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         'sep','numpy','astropy','matplotlib','requests',
-        'numba','websocket-client', 'fitsio', 'astroplan'
+        'numba','websocket-client', 'fitsio'
     ],
 
     # Makes significant use of f-strings which came in in 3.6

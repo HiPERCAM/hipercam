@@ -500,7 +500,6 @@ def hlogger(args=None):
     not installed.
 
     """
-    from astroplan import moon_phase_angle
 
     barr = []
 
@@ -939,9 +938,10 @@ def hlogger(args=None):
                             sun_end = get_sun(tstamp_end).transform_to(frame)
                             moon_end = get_moon(tstamp_end).transform_to(frame)
 
-                            # Lunar phase at the mid-point only.
-                            moon_phase = moon_phase_angle(tstamp_mid).value / np.pi
-
+                            # Lunar phase at the mid-point only. Need re-doing.
+                            #moon_phase = moon_phase_angle(tstamp_mid).value / np.pi
+                            moon_phase = 0
+                            
                             # write out info
                             brow += [
                                 round(sun_start.alt.degree,1), round(sun_end.alt.degree,1),
