@@ -160,7 +160,7 @@ def redplt(args=None):
                                 # run some checks
                                 ts = targ.t[~targ.get_mask(hcam.BAD_TIME) & ~comp.get_mask(hcam.BAD_TIME)]
                                 if len(ts) < NMIN:
-                                    print(f'{run}, CCD={cnam} has too few points ({nvalid} < {NMIN})')
+                                    print(f'{run}, CCD={cnam} has too few points ({len(ts)} < {NMIN})')
                                     continue
                                 tmins = 1440*(ts.max()-ts.min())
                                 if tmins < TMIN:
@@ -199,7 +199,7 @@ def redplt(args=None):
                                 # run some checks
                                 ts = targ.t[~targ.get_mask(hcam.BAD_TIME)]
                                 if len(ts) < NMIN:
-                                    print(f'{run}, CCD={cnam} has too few points ({nvalid} < {NMIN})')
+                                    print(f'{run}, CCD={cnam} has too few points ({len(ts)} < {NMIN})')
                                     continue
                                 tmins = 1440*(ts.max()-ts.min())
                                 if tmins < TMIN:
@@ -224,10 +224,10 @@ def redplt(args=None):
 
                 if tymin is not None:
                     yrange = tymax-tymin
-                    ax1.set_ylim(tymin-yrange/5, tymax+yrange/5)
+                    ax1.set_ylim(tymin-yrange/4, tymax+yrange/4)
                     if cymin is not None:
                         yrange = cymax-cymin
-                        ax2.set_ylim(cymin-yrange/5, cymax+yrange/5)
+                        ax2.set_ylim(cymin-yrange/4, cymax+yrange/4)
                     ax1.set_ylabel('Target / Comparison')
                     ax1.set_title(f'{nname}, {run}')
                     ax2.set_ylabel('Comparison')
