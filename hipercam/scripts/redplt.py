@@ -43,6 +43,9 @@ def redplt(args=None):
     bottom panel shows the comparison alone to give some sense of
     clouds.
 
+    Runs with fewer than 20 points or lasting less than 10 minutes will
+    not be plotted.
+
     """
 
     parser = argparse.ArgumentParser(description=description)
