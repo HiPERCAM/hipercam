@@ -33,11 +33,9 @@ def redplt(args=None):
     night-by-night directories of data for |hipercam|, ULTRACAM or
     ULTRASPEC. It attempts to generate plots of any runs it finds with
     corresponding reduce logs files inside a sub-directory reduce and
-    then stores these inside a sub-directory "meta". It only does this
-    for runs which appear in a file called meta/times because only runs
-    with >= 20 frames and lasting >= 600 seconds will be plotted. The
-    purpose of these plots is so that they can be attached to the runs
-    logs as a quick look on past runs.
+    then stores these inside a sub-directory "meta". The purpose of
+    these plots is so that they can be attached to the runs logs as a
+    quick look on past runs.
 
     The code assumes that aperture 1 contains the target while
     aperture 2 has the best comparison. It produces plots in which the
@@ -98,7 +96,6 @@ def redplt(args=None):
         for nname in os.listdir(".")
         if nre.match(nname)
         and os.path.isdir(nname)
-        and os.path.exists(os.path.join(nname,'meta','times'))
         and os.path.exists(os.path.join(nname,'reduce'))
     ]
     nnames.sort()
@@ -124,34 +121,12 @@ def redplt(args=None):
             print(f' No run logs found in {rdir}; skipping')
             continue
 
-        # Read the times
-        times = os.path.join(mdir, 'times')
-        tdata = {}
-        with open(times) as tin:
-            for line in tin:
-                arr = line.split()
-                tdata[arr[0]] = arr[1:]
-        print('  Read timing data from',times)
+        # Minimum number of points / minutes to bother with
+        NMIN, TMIN = 20, 10
 
         # Create plots, where possible.
         for run in runs:
             rlog = os.path.join(rdir, run + '.log')
-
-            # runs a few checks
-            if run not in tdata:
-                print(f'  Run {run} has a log but no entry in meta/times; skipping')
-                continue
-
-            ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
-            if mjd_end == 'UNDEF':
-                print(f'  Run {run} has a log but undefined times in meta/times; skipping')
-                continue
-
-            ttotal = int(86400*(float(mjd_end)-float(mjd_start)))
-            nok = int(nok)
-            if ttotal < 300 or nok < 10:
-                print(f'  Run {run} lasts {ttotal} secs, and has {nok} frames; one or both is too small -- skipping')
-                continue
 
             pname = os.path.join(mdir,run + '.png')
             if not args.full and os.path.exists(pname):
@@ -161,10 +136,11 @@ def redplt(args=None):
             # OK attempt a plot
             try:
 
+                hlog = hcam.hlog.Hlog.read(rlog)
+
                 # Two panels, target / comparison and comparison
                 fig,(ax1,ax2) = plt.subplots(2,1,sharex=True)
 
-                hlog = hcam.hlog.Hlog.read(rlog)
                 cnams = sorted(list(hlog.keys()))
                 apnames = hlog.apnames
 
@@ -177,6 +153,17 @@ def redplt(args=None):
                             targ = hlog.tseries(cnam,'1')
                             if '2' in apnams:
                                 comp = hlog.tseries(cnam,'2')
+
+                                # run some checks
+                                ts = targ.t[~targ.get_mask(hcam.BAD_TIME) & ~comp.get_mask(hcam.BAD_TIME)]
+                                if len(ts) < NMIN:
+                                    print(f'{run}, CCD={cnam} has too few points ({nvalid} < {NMIN})')
+                                    continue
+                                tmins = 1440*(ts.max()-ts.min())
+                                if tmins < TMIN:
+                                    print(f'{run}, CCD={cnam} is too short ({tmins} < {TMIN} mins)')
+                                    continue
+
                                 targ /= comp
 
                                 ndat = len(targ)
@@ -206,6 +193,16 @@ def redplt(args=None):
                                 comp.mplot(ax2,utils.rgb(cols[cnam]),ecolor='0.5',  bitmask=hcam.BAD_TIME)
 
                             else:
+                                # run some checks
+                                ts = targ.t[~targ.get_mask(hcam.BAD_TIME)]
+                                if len(ts) < NMIN:
+                                    print(f'{run}, CCD={cnam} has too few points ({nvalid} < {NMIN})')
+                                    continue
+                                tmins = 1440*(ts.max()-ts.min())
+                                if tmins < TMIN:
+                                    print(f'{run}, CCD={cnam} is too short ({tmins} < {TMIN} mins)')
+                                    continue
+
                                 ndat = len(targ)
                                 if ndat > 3000:
                                     # stop plotting too many points to keep
@@ -222,18 +219,19 @@ def redplt(args=None):
                                     tymin, tymax = tylo, tyhi
                                 targ.mplot(ax1,utils.rgb(cols[cnam]),ecolor='0.5',  bitmask=hcam.BAD_TIME)
 
-                yrange = tymax-tymin
-                ax1.set_ylim(tymin-yrange/5, tymax+yrange/5)
-                if cymin is not None:
-                    yrange = cymax-cymin
-                    ax2.set_ylim(cymin-yrange/5, cymax+yrange/5)
-                ax1.set_ylabel('Target / Comparison')
-                ax1.set_title(f'{nname}, {run}')
-                ax2.set_ylabel('Comparison')
-                ax2.set_xlabel('Time [MJD]')
-                plt.savefig(pname)
+                if tymin is not None:
+                    yrange = tymax-tymin
+                    ax1.set_ylim(tymin-yrange/5, tymax+yrange/5)
+                    if cymin is not None:
+                        yrange = cymax-cymin
+                        ax2.set_ylim(cymin-yrange/5, cymax+yrange/5)
+                    ax1.set_ylabel('Target / Comparison')
+                    ax1.set_title(f'{nname}, {run}')
+                    ax2.set_ylabel('Comparison')
+                    ax2.set_xlabel('Time [MJD]')
+                    plt.savefig(pname)
+                    print(f'Written {pname}')
                 plt.close()
-                print(f'Written {pname}')
 
             except:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
