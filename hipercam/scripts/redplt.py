@@ -124,6 +124,9 @@ def redplt(args=None):
             print(f' No run logs found in {rdir}; skipping')
             continue
 
+        # ensure meta directory exists
+        os.makedirs(mdir, exist_ok=True)
+
         # Minimum number of points / minutes to bother with
         NMIN, TMIN = 20, 10
 
