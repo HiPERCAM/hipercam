@@ -68,6 +68,11 @@ def ulogger(args=None):
     before the final |ulogger| run for a complete spreadsheet and SQL
     database to be created.
 
+    To save time, ulogger does not by default re-do things. So it will
+    not re-create the logs of nights, of the timing and position data files
+    if they already exist. Use the various switches to control this. The index
+    file is always updated.
+
     """
     warnings.filterwarnings("ignore")
 
@@ -76,27 +81,30 @@ def ulogger(args=None):
         "-f",
         dest="full",
         action="store_true",
-        help="carry out full re-computation of times and positional data",
+        help="carry out full re-computation of times, positional data and logs",
     )
     parser.add_argument(
-        "-p",
-        dest="positions",
+        "-l",
+        dest="logs",
         action="store_true",
-        help="re-compute positional data but not times",
+        help="light touch update all logs, but not times or positions (useful if you have updated the reduce plots)",
     )
     parser.add_argument(
         "-n",
         dest="night", default=None,
         help="use this with a YYYY-MM-DD date to update times and positions for a specific night (lots of diagnostic ouput; no html created)",
     )
+    parser.add_argument(
+        "-p",
+        dest="positions",
+        action="store_true",
+        help="re-compute positional data and logs but not the times",
+    )
 
     # Get command line options
     args = parser.parse_args()
-    do_full = args.full
-    do_positions = args.positions
-    do_night = args.night
 
-    if (do_full or do_positions) and do_night is not None:
+    if (args.full or args.positions) and args.night is not None:
         print('-n switch is not compatible with either -f or -p; please check help')
         return
 
@@ -106,63 +114,6 @@ def ulogger(args=None):
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
     fre = re.compile("^run\d\d\d\.xml$")
 
-
-    if do_night:
-
-        # identify observatory
-        with open(os.path.join(do_night, "telescope")) as tel:
-            telescope = tel.read().strip()
-        if telescope == 'WHT':
-            observatory = EarthLocation.of_site('Roque de los Muchachos')
-        elif telescope == 'VLT':
-            observatory = EarthLocation.of_site('Cerro Paranal')
-        elif telescope == 'NTT':
-            observatory = EarthLocation.of_site('La Silla Observatory')
-        elif telescope == 'TNT':
-            observatory = EarthLocation.from_geodetic(
-                '98 29 12','18 35 26',2457
-            )
-        else:
-            raise ValueError('did not recognise telescope =',telescope)
-
-        # read and store the hand written log
-        handlog = os.path.join(do_night, f"{do_night}.dat")
-        hlog = Log(handlog)
-
-        # read target info from standard locations
-        targets = Targets('TARGETS', 'AUTO_TARGETS')
-        skip_targets, failed_targets = load_skip_fail()
-
-        # Just re-do timing and positions for a particular night.
-        runs = [run[:-4] for run in os.listdir(do_night) if fre.match(run)]
-        runs.sort()
-        if len(runs) == 0:
-            print(f'Found no runs in night = {do_night}')
-            return
-        else:
-            print(f'Found {len(runs)} runs in night = {do_night}\n')
-
-        # create directory for any meta info such as the times
-        meta = os.path.join(do_night, 'meta')
-        os.makedirs(meta, exist_ok=True)
-
-        # make the times
-        times = os.path.join(meta, 'times')
-        tdata = make_times(do_night, runs, observatory, times, True)
-        print(f'Created & wrote timing data for {do_night} to {times}\n')
-
-        # make the positions
-        posdata = os.path.join(meta, 'posdata')
-        make_positions(
-            do_night, runs, observatory, hlog, targets,
-            skip_targets, failed_targets, tdata, posdata, True
-        )
-        print(f'Created & wrote positional data for {do_night} to {posdata}')
-
-        print(f'Finished creating time & position data for {do_night}')
-        return
-
-    barr = []
     cwd = os.getcwd()
     if os.path.basename(cwd) != "raw_data":
         print("** ulogger must be run in a directory called 'raw_data'")
@@ -184,6 +135,63 @@ def ulogger(args=None):
         print("ulogger aborted")
         return
     linstrument = instrument.lower()
+
+    if args.night:
+
+        # identify observatory
+        with open(os.path.join(args.night, "telescope")) as tel:
+            telescope = tel.read().strip()
+        if telescope == 'WHT':
+            observatory = EarthLocation.of_site('Roque de los Muchachos')
+        elif telescope == 'VLT':
+            observatory = EarthLocation.of_site('Cerro Paranal')
+        elif telescope == 'NTT':
+            observatory = EarthLocation.of_site('La Silla Observatory')
+        elif telescope == 'TNT':
+            observatory = EarthLocation.from_geodetic(
+                '98 29 12','18 35 26',2457
+            )
+        else:
+            raise ValueError('did not recognise telescope =',telescope)
+
+        # read and store the hand written log
+        handlog = os.path.join(args.night, f"{args.night}.dat")
+        hlog = Log(handlog)
+
+        # read target info from standard locations
+        targets = Targets('TARGETS', 'AUTO_TARGETS')
+        skip_targets, failed_targets = load_skip_fail()
+
+        # Just re-do timing and positions for a particular night.
+        runs = [run[:-4] for run in os.listdir(args.night) if fre.match(run)]
+        runs.sort()
+        if len(runs) == 0:
+            print(f'Found no runs in night = {args.night}')
+            return
+        else:
+            print(f'Found {len(runs)} runs in night = {args.night}\n')
+
+        # create directory for any meta info such as the times
+        meta = os.path.join(args.night, 'meta')
+        os.makedirs(meta, exist_ok=True)
+
+        # make the times
+        times = os.path.join(meta, 'times')
+        tdata = make_times(args.night, runs, observatory, times, True)
+        print(f'Created & wrote timing data for {args.night} to {times}\n')
+
+        # make the positions
+        posdata = os.path.join(meta, 'posdata')
+        make_positions(
+            args.night, runs, observatory, instrument, hlog, targets,
+            skip_targets, failed_targets, tdata, posdata, True
+        )
+        print(f'Created & wrote positional data for {args.night} to {posdata}')
+        print(f'Finished creating time & position data for {args.night}')
+        print('Note that the html log for this night has not been created or updated')
+
+        # finish specific night at this point
+        return
 
     # location to write files
     if os.path.exists(f'/storage/astro2/www/phsaap/{linstrument}/logs'):
@@ -225,6 +233,9 @@ def ulogger(args=None):
     os.makedirs(root, exist_ok=True)
 
     print(f'Will write to directory = "{root}".')
+
+    # initialise storage list
+    barr = []
 
     # Load target positional information. Hand written, automatically
     # looked up, target names to skip and failed ones potentially
@@ -312,12 +323,30 @@ def ulogger(args=None):
                 )
                 continue
 
+            # scan through the nights to work out which to re-do (time saving)
+            redo = {}
+            one_before_is_new = False
+            for n, night in enumerate(nnames):
+                if args.full or args.positions or args.logs:
+                    redo[night] = True
+                else:
+                    already_there = os.path.exists(os.path.join(root, night, 'index.html'))
+                    if one_before_is_new:
+                        # Has to be re-done under any circumstances because of the previous/next links
+                        redo[night] = True
+                        one_before_is_new = not already_there
+                    else:
+                        redo[night] = one_before_is_new = not already_there
+                        if one_before_is_new and nn > 0:
+                            # Need to re-do one before because of previous/next links
+                            redo[nnames[nn-1]] = True
+
             for nn, night in enumerate(nnames):
 
                 # load all the run names
                 runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
                 runs.sort()
-                if len(runs) == 0:
+                if len(runs) == 0 or not redo[night]:
                     continue
 
                 print(f"  night {night}")
@@ -390,7 +419,7 @@ def ulogger(args=None):
                     # Get or create timing info
 
                     times = os.path.join(meta, 'times')
-                    if not do_full and os.path.exists(times):
+                    if not args.full and os.path.exists(times):
                         # pre-existing file found
                         tdata = {}
                         with open(times) as tin:
@@ -411,7 +440,7 @@ def ulogger(args=None):
 
                     posdata = os.path.join(meta, 'posdata')
                     pdata = {}
-                    if not do_full and not do_positions and os.path.exists(posdata):
+                    if not args.full and not args.positions and os.path.exists(posdata):
                         # pre-existing file found
                         with open(posdata) as pin:
                             for line in pin:
@@ -425,7 +454,7 @@ def ulogger(args=None):
                     else:
                         # create it
                         pdata = make_positions(
-                            night, runs, observatory, hlog, targets, skip_targets,
+                            night, runs, observatory, instrument, hlog, targets, skip_targets,
                             failed_targets, tdata, posdata, False, rname
                         )
 
@@ -1314,7 +1343,7 @@ def make_times(night, runs, observatory, times, full):
     return tdata
 
 def make_positions(
-        night, runs, observatory, hlog, targets,
+        night, runs, observatory, instrument, hlog, targets,
         skip_targets, failed_targets, tdata, posdata, full,
         rname=None
 ):
@@ -1373,6 +1402,19 @@ def make_positions(
 
             # start accumulating stuff to write out
             arr = [ra, dec, autoid]
+
+            if ra == 'UNDEF' and dec == 'UNDEF' and instrument == 'ULTRASPEC':
+                # for altitude / Sun / Moon stuff, telescope position is good enough, so this
+                # is one final go at getting a usable position.
+                hd = rhead.header
+
+                ra = hd.get("RA", "UNDEF")
+                dec = hd.get("Dec", "UNDEF")
+                if ra != 'UNDEF' and dec != 'UNDEF':
+                    try:
+                        ra, dec, syst = str2radec(ra + ' ' + dec)
+                    except:
+                        pass
 
             # time-dependent info
             ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
