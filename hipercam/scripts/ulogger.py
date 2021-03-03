@@ -69,9 +69,12 @@ def ulogger(args=None):
     database to be created.
 
     To save time, ulogger does not by default re-do things. So it will
-    not re-create the logs of nights, of the timing and position data files
-    if they already exist. Use the various switches to control this. The index
-    file is always updated.
+    not re-create the logs of nights, or the timing and position data files
+    if they already exist. In the absolute default mode, the giant spreadsheet
+    and database of all runs won't be built either, so normally after a quick
+    update of the html logs, a run with the "-l" switch is probably advisable.
+    Use the various switches to control this. The mail index file is always
+    updated.
 
     """
     warnings.filterwarnings("ignore")
@@ -81,13 +84,13 @@ def ulogger(args=None):
         "-f",
         dest="full",
         action="store_true",
-        help="carry out full re-computation of times, positional data and logs",
+        help="carry out full re-computation of times, positional data, html logs, spreadsheet and SQL database",
     )
     parser.add_argument(
         "-l",
         dest="logs",
         action="store_true",
-        help="light touch update all logs, but not times or positions (useful if you have updated the reduce plots)",
+        help="update html logs, spreadsheet and SQL database, but not the times or position files (useful if you have updated the reduce plots)",
     )
     parser.add_argument(
         "-n",
@@ -98,7 +101,7 @@ def ulogger(args=None):
         "-p",
         dest="positions",
         action="store_true",
-        help="re-compute positional data and logs but not the times",
+        help="re-compute positional data, html logs, spreadsheet and SQL database, but not the times",
     )
 
     # Get command line options
@@ -326,7 +329,7 @@ def ulogger(args=None):
             # scan through the nights to work out which to re-do (time saving)
             redo = {}
             one_before_is_new = False
-            for n, night in enumerate(nnames):
+            for nn, night in enumerate(nnames):
                 if args.full or args.positions or args.logs:
                     redo[night] = True
                 else:
@@ -346,10 +349,29 @@ def ulogger(args=None):
                 # load all the run names
                 runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
                 runs.sort()
-                if len(runs) == 0: or not redo[night]:
+                if len(runs) == 0:
                     continue
 
+                # Write an entry in the main index for each night
+                if nn == 0:
+                    ihtml.write(
+                        f'<a href="{night}/">{night}</a>'
+                    )
+                    old_year = night[:4]
+                else:
+                    if rname == 'Others' and night[:4] != old_year:
+                        ihtml.write(
+                            f'<br><br>\n<a href="{night}/">{night}</a>'
+                        )
+                        old_year = night[:4]
+                    else:
+                        ihtml.write(
+                            f', <a href="{night}/">{night}</a>'
+                        )
+
                 if not redo[night]:
+                    # can save a lot time by not re-making the log
+                    # file more often than not
                     print(f"  night {night} log already exists and will not be re-created")
                     continue
 
@@ -371,24 +393,6 @@ def ulogger(args=None):
                     links += f', Next night\n</p>\n'
 
                 links += "\n</p>\n"
-
-                # Write an entry for each night linking to the log for
-                # that night.
-                if nn == 0:
-                    ihtml.write(
-                        f'<a href="{night}/">{night}</a>'
-                    )
-                    old_year = night[:4]
-                else:
-                    if rname == 'Others' and night[:4] != old_year:
-                        ihtml.write(
-                            f'<br><br>\n<a href="{night}/">{night}</a>'
-                        )
-                        old_year = night[:4]
-                    else:
-                        ihtml.write(
-                            f', <a href="{night}/">{night}</a>'
-                        )
 
                 # Create the directory for the night
                 date = f"{night}, {telescope}"
@@ -874,26 +878,36 @@ The database is called {linstrument}.db and contains a single table called '{lin
 </html>
 """)
 
-    print('\nFinished generation of web pages; now generating a spreadsheet and an SQL database')
+    print('\nFinished generation of the web pages.')
 
-    # create pd.DataFrame containing all info
-    ptable = pd.DataFrame(data=barr,columns=cnames)
+    if args.full or args.positions or args.logs:
+        print('Now generating a spreadsheet and an SQL database')
 
-    # enforce data types
-    ptable = ptable.astype(dtypes)
+        # create pd.DataFrame containing all info
+        ptable = pd.DataFrame(data=barr,columns=cnames)
 
-    spreadsheet = os.path.join(root, f"{linstrument}-log.xlsx")
-    format_ulogger_table(spreadsheet, ptable, linstrument)
-    print(f'Written spreadsheet to {linstrument}-log.xlsx')
+        # enforce data types
+        ptable = ptable.astype(dtypes)
 
-    # write out sqlite database
-    sqldb = os.path.join(root, f'{linstrument}.db')
-    cnx = sqlite3.connect(sqldb)
-    ptable.to_sql(name=f'{linstrument}', con=cnx, if_exists='replace')
-    cnx.commit()
-    cnx.close()
-    print(f'Written sqlite database to {linstrument}.db')
-    print(f'Table dimensions (rows,columns) = {ptable.shape}')
+        spreadsheet = os.path.join(root, f"{linstrument}-log.xlsx")
+        format_ulogger_table(spreadsheet, ptable, linstrument)
+        print(f'Written spreadsheet to {linstrument}-log.xlsx')
+
+        # write out sqlite database
+        sqldb = os.path.join(root, f'{linstrument}.db')
+        cnx = sqlite3.connect(sqldb)
+        ptable.to_sql(name=f'{linstrument}', con=cnx, if_exists='replace')
+        cnx.commit()
+        cnx.close()
+        print(f'Written sqlite database to {linstrument}.db')
+        print(f'Table dimensions (rows,columns) = {ptable.shape}')
+    else:
+        print("""
+Skipping generation of the spreadsheet and SQL database as not
+all nights have been processed. Use the "-l" switch to get a
+slower update that includes the spreadsheet and database, and
+see other switches for even slower and more in-depth options.""")
+
     print(f'\nAll done. Look in {root} for the outputs.')
 
 # End of main section
