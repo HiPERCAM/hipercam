@@ -346,7 +346,11 @@ def ulogger(args=None):
                 # load all the run names
                 runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
                 runs.sort()
-                if len(runs) == 0 or not redo[night]:
+                if len(runs) == 0: or not redo[night]:
+                    continue
+
+                if not redo[night]:
+                    print(f"  night {night} log already exists and will not be re-created")
                     continue
 
                 print(f"  night {night}")
