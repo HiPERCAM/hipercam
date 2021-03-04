@@ -71,6 +71,7 @@ CNAME_TO_FMT = {
     "skye": "{:.2f}",
     "nsky": "{:d}",
     "nrej": "{:d}",
+    "cmax": "{:d}",
     "flag": "{:d}",
 }
 
@@ -552,12 +553,13 @@ class Hlog(dict):
         return Tseries(times, data, errors, bmask, texps)
 
     def write(self, fname):
-        """
-        Writes out the Hlog to an ASCII file. This is to allow one to read in
-        a log file, modify it and then write it out, useful for example to flag
-        cloudy data. At the moment, it will only work for an Hlog read from a
-        |hipercam| ASCII log file. NB It won't exactly replicate the log file
-        input since it writes out in CCD order.
+        """Writes out the Hlog to an ASCII file. This is to allow one to read
+        in a log file, modify it and then write it out, useful for
+        example to flag cloudy data. At the moment, it will only work
+        for an Hlog read from a |hipercam| ASCII log file. NB It won't
+        exactly replicate the log file input since it writes out in
+        CCD order.
+
         """
         if self.writable:
             with open(fname, "w") as fout:
@@ -783,17 +785,18 @@ class Tseries:
         return (y,ym,yp)
 
     def mplot(
-        self,
-        axes,
-        color="b",
-        fmt=".",
-        bitmask=None,
-        flagged=False,
-        capsize=0,
-        errx=False,
-        erry=True,
-        trange=None,
-        **kwargs
+            self,
+            axes,
+            color="b",
+            fmt=".",
+            bitmask=None,
+            flagged=False,
+            capsize=0,
+            errx=False,
+            erry=True,
+            trange=None,
+            mask=None,
+            **kwargs
     ):
         """Plots a Tseries to a matplotlib Axes instance, only plotting points
         that match the bitmask `mask` and have positive errors.
@@ -803,10 +806,10 @@ class Tseries:
            axes : Axes
               the axis instance to plot to. Can just be matplotlib.pyplot
 
-           color : valid matplotlib colour
+           color : matplotlib colour
               the colour to use (fed into kwargs to establish a fixed default)
 
-           fmt : string
+           fmt : str
               marker to use for points or style for line plots, e.g. ',',
               '.', 'o' give different points while '-' and '--' give
               different lines. (fed into kwargs)
@@ -822,15 +825,18 @@ class Tseries:
               if error bars are plotted with points, this sets
               the length of terminals (fed into kwargs)
 
-           errx : boolean
+           errx : bool
               True / False for bars indicating exposure length (i.e. +/- 1/2
               whatever is in the te array)
 
-           erry : boolean
+           erry : bool
               True / False for vertical error bars or not
 
            trange : None | (t1,t2)
               Two element tuple to limit the time range
+
+           mask : None | logical array
+              True for point to be plotted
 
            kwargs : keyword arguments
               These will be fed to the plot routine which is either
@@ -843,6 +849,9 @@ class Tseries:
             plot = self.get_mask(bitmask)
         else:
             plot = ~self.get_mask(bitmask)
+            
+        if mask is not None:
+            plot &= mask
 
         if trange is not None:
             # add in time range limits
@@ -891,11 +900,12 @@ class Tseries:
         the bit masks are bitwise_or-ed together.
         """
         if isinstance(other, Tseries):
-
-            y = self.y / other.y
-            ye = np.sqrt(
-                self.ye**2 + (self.y*other.ye/other.y)**2
-            ) / np.abs(other.y)
+            
+            with np.errstate(divide='ignore', invalid='ignore'):
+                y = self.y / other.y
+                ye = np.sqrt(
+                    self.ye**2 + (self.y*other.ye/other.y)**2
+                ) / np.abs(other.y)
 
             bmask = self.bmask | other.bmask
             te = self.te.copy() if self.te is not None else \
@@ -916,12 +926,14 @@ class Tseries:
         Divides the Tseries by 'other' in place. See __truediv__ for more details.
         """
         if isinstance(other, Tseries):
+            
+            with np.errstate(divide='ignore', invalid='ignore'):
+                self.ye = np.sqrt(
+                    self.ye**2 + (self.y*other.ye/other.y)**2
+                ) / np.abs(other.y)
 
-            self.ye = np.sqrt(
-                self.ye**2 + (self.y*other.ye/other.y)**2
-            ) / np.abs(other.y)
-
-            self.y /= other.y
+                self.y /= other.y
+                
             self.bmask |= other.bmask
             if self.te is None and other.te is not None:
                 self.te = other.te.copy()
