@@ -38,39 +38,59 @@ __all__ = [
     "flagcloud",
 ]
 
-#############################################
+COL_AP1 = 'g'
+COL_AP2 = 'b'
+COL_CLOUD = 'darkorange'
+COL_JUNK = 'r'
+COL_RAT = 'k'
+
+########################################################################
 #
-# setaper -- defines apertures given an image
+# flagcloud -- to flag cloud-affected/ bad data in a hipercam reduce log
 #
-#############################################
+########################################################################
 
 
 def flagcloud(args=None):
-    """``flagcloud hlog aper1 aper2 ccd output``
+    """``flagcloud hlog aper1 aper2 ccd delta output``
 
-    Interactive flagging of cloud-affected or bad points in a |hipercam| log file.
+    Interactive flagging of cloud-affected or otherwise bad points in a
+    |hipercam| log file. You either mark a range of times as cloudy,
+    or individual points as junk. If you mark a time range, then all
+    apertures of all CCDs will be flagged with the bitmask value
+    CLOUDS. Individual points will be flagged as JUNK. Note that nothing
+    is done to the data apart from changing the bitmask flags, so it is
+    then up to you to test for these later on.
+
+    Junk points are marked red, cloudy points orange. OK aperture 1 points
+    are plotted green, aperture 2 blue, their ratio black.
 
     Parameters:
 
-      hlog : string
-         ASCII log file.
+      hlog : str
+         ASCII log file, as produced by |reduce|.
 
-      aper1 : string
+      aper1 : str
          the name of first aperture to look at
 
-      aper2 : string
+      aper2 : str
          the name of second aperture to look at. The ratio aper1 / aper2
          will be plotted along with the two separately, scaled by their
          maximum, all in the same panel.
 
-      ccd : string
+      ccd : str
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
          are possible inputs (without the quotes). '3 4' will plot CCD '3' and
-         CCD '4'. If you want to plot more than one CCD, then you will be
-         prompted for the number of panels in the X direction.
+         CCD '4'. If you want to plot more than one CCD, then you will get multiple
+         panels in the Y direction.
 
-      output : string
-         name of modified version of the Hlog for output.
+      delta : float
+         separation to use to space the plots in a given panel, each of which is normalised
+         to 1.
+
+      output : str
+         name of modified version of the Hlog for output. Can overwrite the original if you dare.
+
     """
 
     command, args = utils.script_args(args)
@@ -83,6 +103,7 @@ def flagcloud(args=None):
         cl.register("aper1", Cline.LOCAL, Cline.PROMPT)
         cl.register("aper2", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("delta", Cline.LOCAL, Cline.PROMPT)
         cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
@@ -90,19 +111,36 @@ def flagcloud(args=None):
             "hlog", "hipercam ASCII log file", cline.Fname("hcam", hcam.LOG)
         )
         hlog = hcam.hlog.Hlog.read(hlog)
+        cnams = sorted(hlog.keys())
+        if len(cnams) > 1:
+            print(f'CCD names = {cnams}')
+        apnames = set()
+        for cnam in cnams:
+            apnames |= set(hlog.apnames[cnam])
+        apnames = sorted(apnames)
 
-        aper1 = cl.get_value("aper1", "first aperture", "2")
-        aper2 = cl.get_value("aper2", "second aperture", "3")
+        aper1 = cl.get_value("aper1", "first aperture", apnames[0], lvals=apnames)
+        if len(apnames) > 1:
+            aper2 = cl.get_value("aper2", "second aperture", apnames[-1], lvals=apnames)
+        else:
+            aper2 = None
 
         max_ccd = len(hlog)
         if max_ccd > 1:
             ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
             if ccd == "0":
-                ccds = list(hlog.keys())
+                ccds = cnams
             else:
                 ccds = ccd.split()
+                if set(ccds) <= set(cnams):
+                    print(f'   selected CCDs ({ccds}) not amongst those in the reduce log ({cnams})')
+                    return
         else:
-            ccds = list(hlog.keys())
+            ccds = cnams
+
+        delta = cl.get_value(
+            "delta", "vertical separation between plots", 1, 0.
+        )
 
         output = cl.get_value(
             "output",
@@ -135,48 +173,67 @@ def flagcloud(args=None):
     plots = {}
     ax = None
 
-    fig = plt.figure()
+    fig,axs = plt.subplots(len(ccds),1,sharex=True)
+    if len(ccds) == 1:
+        axs = [axs]
+
+    # get the navigation toolbar. Go straight into pan mode where we
+    # want to stay.
+    toolbar = fig.canvas.manager.toolbar
+    if backend != "TkAgg":
+        toolbar.pan()
 
     ny = len(ccds)
     T0 = None
-    for n, cnam in enumerate(ccds):
-
-        if ax is None:
-            axes = ax = fig.add_subplot(ny, 1, n + 1)
-        else:
-            axes = fig.add_subplot(ny, 1, n + 1, sharex=ax)
+    for cnam, ax in zip(ccds,axs):
 
         # prep data
         a1 = hlog.tseries(cnam, aper1)
-        a2 = hlog.tseries(cnam, aper1)
-        rat = (a1 / a2).normalise()
-        a1 /= np.percentile(a1.y, 99)
-        a2 /= np.percentile(a2.y, 99)
-
+        a1.normalise()
         if T0 is None:
             T0 = a1.t[0]
 
-        a1.t -= T0
-        a2.t -= T0
-        rat.t -= T0
+        if aper2:
+            a2 = hlog.tseries(cnam, aper2)
+            a2.normalise()
+            rat = a1 / a2
+            a2.t -= T0
+            rat.t -= T0
+            rat += delta
+            a2 -= delta
 
-        # three vector plots
-        (rat + 0.1).mplot(plt, "k")
-        a1.mplot(plt, "g")
-        (a2 - 0.1).mplot(plt, "b")
+            rat.mplot(plt, COL_RAT, bitmask=hcam.JUNK | hcam.CLOUDS)
+            rat.mplot(plt, COL_JUNK, bitmask=hcam.JUNK, flagged=True)
+            rat.mplot(plt, COL_CLOUD, bitmask=hcam.CLOUDS, flagged=True)
+
+            a2.mplot(plt, COL_AP2, bitmask=hcam.JUNK | hcam.CLOUDS)
+            a2.mplot(plt, COL_JUNK, bitmask=hcam.JUNK, flagged=True)
+            a2.mplot(plt, COL_CLOUD, bitmask=hcam.CLOUDS, flagged=True)
+
+        a1.t -= T0
+        a1.mplot(plt, COL_AP1, bitmask=hcam.JUNK | hcam.CLOUDS)
+        a1.mplot(plt, COL_JUNK, bitmask=hcam.JUNK, flagged=True)
+        a1.mplot(plt, COL_CLOUD, bitmask=hcam.CLOUDS, flagged=True)
 
         # store the plots needed to identify which point has been selected
-        plots[cnam] = {"a1": a1, "a2": a2 - 0.1, "rat": rat + 0.1}
+        # along with names of apertures needed to flag points
+        plots[cnam] = {
+            "aper1" : aper1,
+            "a1": a1,
+            "aper2" : aper2,
+            "a2": a2 if aper2 is not None else None,
+            "rat": rat if aper2 is not None else None
+        }
 
         # keep track of the CCD associated with each axes
-        cnams[axes] = cnam
+        cnams[ax] = cnam
 
         # and the axes associated with each CCD
-        anams[cnam] = axes
+        anams[cnam] = ax
         plt.ylabel("CCD {:s}".format(cnam))
 
     # create the picker
-    picker = PickPoints(fig, hlog, cnams, anams, plots, output)
+    picker = PickPoints(fig, hlog, cnams, anams, plots, T0, output)
 
     try:
         plt.tight_layout()
@@ -198,7 +255,9 @@ def nearest(x, y, lc, ax, fig, dmax=0.02, rmin=1.5):
     comes back with the index of the nearest point in the light curve,
     and the distance from it as a fraction of xwidth of the plot as a
     two-element tuple. It returns (None,None) if no point is found
-    less than a fraction dlim of the x width from x,y. 
+    less than a fraction dmax of the x width from x,y. The nearest
+    point must also be clearly the nearest point such that it is at
+    least rmin times closer than the next nearest.
 
     Arguments::
 
@@ -223,7 +282,7 @@ def nearest(x, y, lc, ax, fig, dmax=0.02, rmin=1.5):
 
       rmin : float
         minimum ratio between second closest and closest distances. The best point
-        must be clearly better
+        must be clearly better.
 
     """
 
@@ -245,13 +304,13 @@ def nearest(x, y, lc, ax, fig, dmax=0.02, rmin=1.5):
         imin = dsq.argmin()
         dmin = np.sqrt(dsq[imin])
         if len(dsq) > 1:
+            # check that second nearest point is distinctly further away
             rest = np.mgrid[0 : len(dsq)] != imin
             dnext = np.sqrt(dsq[rest].min())
             if dnext < rmin * dmin:
                 return (None, None)
 
         if dmin < width * dmax:
-            print(indices.shape, ok.shape, imin, dmin)
             return (indices[ok][imin], dmin)
         else:
             return (None, None)
@@ -265,12 +324,11 @@ class PickPoints:
     becomes impossible, explaining some of the weirdness. Effectively
     the class is used here to define a scope for variables that would
     otherwise be treated as globals
-
     """
 
     ADD_PROMPT = "enter a label for the aperture, '!' to abort: "
 
-    def __init__(self, fig, hlog, cnams, anams, plots, oname):
+    def __init__(self, fig, hlog, cnams, anams, plots, T0, oname):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
@@ -279,12 +337,13 @@ class PickPoints:
         self.cnams = cnams
         self.anams = anams
         self.plots = plots
+        self.T0 = T0
         self.oname = oname
 
         # then mutually exclusive flags to indicate the action we are in
         # for actions that require extra input. We are not in these at the
         # start so we set them False
-        self._range_mode = False
+        self._cloud_mode = False
 
     @staticmethod
     def action_prompt(cr):
@@ -297,7 +356,7 @@ class PickPoints:
             print()
 
         print(
-            "c(loud), j(unk), J(unk range), h(elp), r(estore), q(uit): ",
+            "c(loud), C(loud range), j(unk), h(elp), r(estore), q(uit): ",
             end="",
             flush=True,
         )
@@ -312,22 +371,21 @@ class PickPoints:
 
         """
 
-        if self._range_mode:
+        if self._cloud_mode:
 
             if event.key == "q":
                 # trap 'q' for quit
-                self._link_mode = False
-                print("no extra aperture added")
+                self._cloud_mode = False
+                print("no cloudy range defined")
                 PickPoints.action_prompt(True)
 
-            elif event.key == "s":
-
+            elif event.key == "t":
                 # range mode.
                 self._cnam = self.cnams[event.inaxes]
                 self._axes = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
-                self._range()
+                self._cloud()
 
         else:
 
@@ -355,91 +413,87 @@ class PickPoints:
             if key == "h":
                 # help text
                 print(key)
-                print(
-                    """
+                print("""
 
 Help on the actions available in 'flagcloud':
 
-  c(loud)    : mark time range on all CCDs as cloud
+  c(loud)    : mark a point of one aperture of one CCD as cloudy
+  j(unk)     : mark a point of one aperture of a CCD as junk
   h(elp)     : print this help text
-  j(unk)     : mark a point on one aperture of CCD as junk
-  J(unk)     : mark a range on one CCD as junk
-  r(estore)  : restore a point
+  r(estore)  : restore a point (remove cloud and junk flag)
+  t(ime)     : mark a time range over which all apertures of all CCDs are flagged cloudy
   q(uit)     : quit 'flagcloud' and save the Hlog to disk
 """
-                )
+                      )
 
-            elif key == "j":
+            elif key == "c" or key == "j" or key == "r":
 
-                # need to select a point that we define as junk
+                # selects a single point to flag or unflag as junk / cloud
                 print(key)
 
+                # short-hand
                 cnam = self.cnams[axes]
                 plot = self.plots[cnam]
-                i1, d1 = nearest(x, y, plot["a1"], axes, self.fig)
-                i2, d2 = nearest(x, y, plot["a2"], axes, self.fig)
-                print(i1, d1, i2, d2)
+                p1, p2, rat = plot['a1'], plot['a2'], plot['rat']
+
+                i1, d1 = nearest(x, y, p1, axes, self.fig)
+                if p2 is not None:
+                    i2, d2 = nearest(x, y, p2, axes, self.fig)
+                else:
+                    i2 = None
+
+                ap = None
                 if i1 is not None and i2 is not None:
-                    if d1 < d2:
-                        print("i1 =", i1, plot["a2"].t[i1], plot["a2"].y[i1])
-                        plot["a1"].mask[i1] |= hcam.JUNK
-                        axes.plot(plot["a1"].t[i1], plot["a1"].y[i1], ".r", ms=20)
-                        axes.errorbar(
-                            plot["a1"].t[i1],
-                            plot["a1"].y[i1],
-                            plot["a1"].ye[i1],
-                            fmt=".r",
-                            zorder=100,
-                        )
-                    else:
-                        print("i2 =", i2, plot["a2"].t[i2], plot["a2"].y[i2])
-                        plot["a2"].mask[i2] |= hcam.JUNK
-                        axes.plot(plot["a2"].t[i2], plot["a2"].y[i2], ".r", ms=20)
-                        axes.errorbar(
-                            plot["a2"].t[i2],
-                            plot["a2"].y[i2],
-                            plot["a2"].ye[i2],
-                            fmt=".r",
-                            zorder=100,
-                        )
+                    if 1.5*min(d1,d2) > max(d1,d2):
+                        print('ambiguous choice; must be >1.5x closer to the junk point of one apertur than to any other')
+
+                    elif d1 < d2:
+                        ap, ind = plot['aper1'], i1
+                        col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'c' else COL_AP1
+                        axes.errorbar(p1.t[i1],p1.y[i1],p1.ye[i1],fmt='.',color=col,zorder=100)
+                        col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'c' else COL_RAT
+                        axes.errorbar(rat.t[i1],rat.y[i1],rat.ye[i1],fmt='.',color=col,zorder=100)
+
+                    elif d2 < d1:
+                        ap, ind = plot['aper2'], i2
+                        col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'c' else COL_AP2
+                        axes.errorbar(p2.t[i2],p2.y[i2],p2.ye[i2],fmt='.',color=col,zorder=100)
+                        col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'c' else COL_RAT
+                        axes.errorbar(rat.t[i2],rat.y[i2],rat.ye[i2],fmt='.',color=col,zorder=100)
 
                 elif i1 is not None:
-                    print("i1 =", i1, plot["a2"].t[i1], plot["a2"].y[i1])
-                    plot["a1"].mask[i1] |= hcam.JUNK
-                    axes.plot(plot["a1"].t[i1], plot["a1"].y[i1], ".r", ms=20)
-                    axes.errorbar(
-                        plot["a2"].t[i2],
-                        plot["a2"].y[i2],
-                        plot["a2"].ye[i2],
-                        fmt=".r",
-                        zorder=100,
-                    )
-
+                    ap, ind = plot['aper1'], i1
+                    col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'c' else COL_AP1
+                    axes.errorbar(p1.t[i1],p1.y[i1],p1.ye[i1],fmt='.',color=col,zorder=100)
+                    if rat is not None:
+                        col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'c' else COL_RAT
+                        axes.errorbar(rat.t[i1],rat.y[i1],rat.ye[i1],fmt='.',color=col,zorder=100)
+                        
                 elif i2 is not None:
-                    print("i2 =", i2, plot["a2"].t[i2], plot["a2"].y[i2])
-                    plot["a2"].mask[i2] |= hcam.JUNK
-                    axes.errorbar(
-                        plot["a2"].t[i2],
-                        plot["a2"].y[i2],
-                        plot["a2"].ye[i2],
-                        fmt=".r",
-                        zorder=100,
-                    )
+                    ap, ind = plot['aper2'], i2
+                    col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'c' else COL_AP2
+                    axes.errorbar(p2.t[i2],p2.y[i2],p2.ye[i2],fmt='.',color=col,zorder=100)
+                    col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'c' else COL_RAT
+                    axes.errorbar(rat.t[i2],rat.y[i2],rat.ye[i2],fmt='.',color=col,zorder=100)
 
-            elif key == "c":
+                if ap is not None:
+                    # propagate change into the hlog
+                    flag = self.hlog[cnam][f'flag_{ap}'][ind]
+                    self.hlog[cnam][f'flag_{ap}'][ind] = \
+                        (flag | hcam.JUNK) if key == 'j' else \
+                        (flag | hcam.CLOUDS) if key == 'c' else \
+                        (flag & ~hcam.JUNK & ~hcam.CLOUDS)
+
+                plt.draw()
+                PickPoints.action_prompt(False)
+
+            elif key == "t":
                 # define range of cloudy data
                 print(key)
-                print("not implemented")
 
-            elif key == "e":
-                # add extra target pixels to an aperture
-                print(key)
-                print("not implemented")
-
-                # switch to extra mode
-            #                self._extra_mode = True
-            #                self._extra_stage = 0
-            #                self._extra()
+                self._cloud_stage = 0
+                self._cloud_mode = True
+                self._cloud()
 
             elif key == "q":
                 print(key)
@@ -449,15 +503,7 @@ Help on the actions available in 'flagcloud':
 
                 # old files are over-written at this point
                 self.hlog.write(self.oname)
-                print("\nHlog saved to {:s}.\nBye".format(self.oname))
-
-            elif key == "r":
-                print(key)
-                print("not implemented")
-
-            elif key == "C":
-                print(key)
-                print("not implemented")
+                print(f"\nHlog saved to {self.oname}.\nBye")
 
             elif (
                 key == "shift"
@@ -470,45 +516,56 @@ Help on the actions available in 'flagcloud':
                 pass
 
             else:
-                print('\nNo action is defined for key = "{:s}"'.format(key))
+                print(f'\nNo action is defined for key = "{key}"')
                 PickPoints.action_prompt(False)
 
-    def _select(self):
-        """Selects a range
+    def _cloud(self):
+        """Defines range of times counted as cloudy.
+
         """
 
-        self._select_stage += 1
+        self._cloud_stage += 1
 
-        if self._select_stage == 1:
-
-            # first end of range
-            self._select_cnam = self._cnam
-            print(" 's' to select other end of range ['q' to quit]")
-
+        if self._cloud_stage == 1:
+            # first time through, store the CCD of the first point selected
+            # (insist that this matches the second point later)
+            self._cloud_cnam = self._cnam
+            print(" 't' to select the other end of the cloudy interval, ['q' to quit]")
+            self._t1 = self._x 
         else:
+
             # second time through. Check we are in the same CCD
-            # but on a different aperture first change the link status
-            self._select_mode = False
+            self._cloud_mode = False
 
-            # then see if we can make a valid link.
-            if self._cnam != self._select_cnam:
-                print("  *** cannot select across CCDs; no range set")
-
+            if self._cnam != self._cloud_cnam:
+                print("  *** must define cloud ranges on the same CCD / plot axis; nothing done")
             else:
-                # add link to the first aperture
-                self._link_aper.set_link(apnam)
 
-                # re-plot new version, over-writing plot objects
-                self.pobjs[self._cnam][self._link_apnam] = hcam.mpl.pAper(
-                    self._axes,
-                    self._link_aper,
-                    self._link_apnam,
-                    self.mccdaper[self._link_cnam],
-                )
+                plot = self.plots[self._cnam]
+                p1, p2, rat = plot['a1'], plot['a2'], plot['rat']
+                
+                t1 = self._t1
+                t2 = self._x
+                t1, t2 = (t1, t2) if t1 < t2 else (t2, t1)
+                axes = self._axes
+                
+                mask = (p1.t > t1) & (p1.t < t2)
+                p1.mplot(axes,COL_CLOUD,zorder=100,mask=mask)
+                if p2 is not None:
+                    p2.mplot(axes,COL_CLOUD,zorder=100,mask=mask)
+                    rat.mplot(axes,COL_CLOUD,zorder=100,mask=mask)
+
+                # propagate changes into the hlog
+                t1 += self.T0
+                t2 += self.T0
+                for cnam in self.hlog:
+                    data = self.hlog[cnam]
+                    apnames = self.hlog.apnames[cnam]
+                    ts = self.hlog[cnam]['MJD']
+                    mask = (ts > t1) & (ts < t2)
+                    for ap in apnames:
+                        data[f'flag_{ap}'][mask] |= hcam.CLOUDS 
+
                 plt.draw()
-
-                print(
-                    "  linked aperture {:s} to aperture {:s}"
-                    " in CCD {:s}".format(self._link_apnam, apnam, self._link_cnam)
-                )
                 PickPoints.action_prompt(True)
+
