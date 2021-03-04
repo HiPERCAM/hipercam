@@ -496,8 +496,8 @@ def setaper(args=None):
     else:
         fig = plt.figure()
 
-    # get the navigation toolbar. Go straight into pan mode where we want to
-    # stay.
+    # get the navigation toolbar. Go straight into pan mode where we
+    # want to stay.
     toolbar = fig.canvas.manager.toolbar
     if backend != "TkAgg":
         toolbar.pan()
@@ -1558,6 +1558,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 # re-plot new version, over-writing plot objects
                 self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
 
+        plt.draw()
         PickStar.action_prompt(True)
 
     def _find_aper(self):
