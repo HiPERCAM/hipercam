@@ -784,14 +784,16 @@ def ulogger(args=None):
 <h1>{instrument} sqlite3 database</h1>
 
 <p>
-The sqlite3 database file <a href="{linstrument}.db">{linstrument}.db</a> is designed to allow SQL queries
-to be applied using Python's sqlite3 module. This has a single table called "{linstrument}". The columns of
-the database are defined below. Note although some are naturally integers, they are converted to floats to
-allow null values due to details of pandas.
+The sqlite3 database file <a href="{linstrument}.db">{linstrument}.db</a> is
+designed to allow SQL queries to be applied using Python's sqlite3 module.
+The database contains a single table called "{linstrument}". The columns of
+the database are defined below. Note although some are naturally integers,
+they are converted to floats to allow null values due to details of pandas.
 
 <p>
-Here is a simple example of carrying out a search for ULTRACAM. The position selected matches AR Sco and in this case
-only runs longer than 200 seconds are returned (37 runs in the ULTRACAM database as of Feb 2021).
+Here is a simple example of carrying out a search for ULTRACAM. The position
+selected matches AR Sco and in this case only runs longer than 200 seconds are
+returned (37 runs in the ULTRACAM database as of Feb 2021).
 <pre>
 import sqlite3
 import pandas as pd
@@ -800,7 +802,10 @@ import pandas as pd
 cnx = sqlite3.connect('{linstrument}.db')
 
 # Query string
-query = 'select * from ultracam WHERE ra_deg > 245 and ra_deg < 246 and dec_deg > -23 and dec_deg < -22 and total > 200'
+query = """
+SELECT * FROM ultracam
+WHERE ra_deg > 245 AND ra_deg < 246
+AND dec_deg > -23 AND dec_deg < -22 and total > 200"""
 
 # return the result as a pandas DataFrame
 res = pd.read_sql_query(query, cnx)
@@ -809,11 +814,12 @@ cnx.close()
 </pre>
 
 <p>
-Here is a more complex example in which we carry out the same simple search as before
-to derive a sub-table labelled t2, but then search through the original table (t1) for
-all runs taken within 2 days of the t2 ones which match them in terms of format. This returns
-matching calibration frames, checks that the filters are right for flats and the red speed
-is OK for biases. It also writes the results to disk.
+Here is a more complex example in which we carry out the same simple
+search as before to derive a sub-table labelled t2, but then search
+through the original table (t1) for all runs taken within 2 days of
+the t2 ones which match them in terms of format. This returns matching
+calibration frames, checks that the filters are right for flats and
+the red speed is OK for biases. It also writes the results to disk.
 
 <pre>
 import sqlite3
@@ -828,15 +834,17 @@ SELECT t1.*
 FROM ultracam AS t1, (
    SELECT *
    FROM ultracam
-   WHERE ra_deg > 245 AND ra_deg < 246 AND dec_deg > -23 AND dec_deg < -22 AND total > 200
+   WHERE ra_deg > 245 AND ra_deg < 246 AND dec_deg > -23 AND dec_deg < -22
+   AND total > 200
 ) as t2
 WHERE ABS(t1.mjd_start-t2.mjd_start) < 2
 AND (t1.run_type != 'flat' OR t1.filters == t2.filters)
 AND (t1.run_type != 'bias' OR t1.read_speed == t2.read_speed)
 AND (
-     (t1.win1 == t2.win1 AND t1.binning == t2.binning AND ((t1.ra_hms == t2.ra_hms) OR t1.ra_deg is NULL))
-     OR
-     (t1.win1 == '1,513,1,512,1024' AND t1.binning == '1x1') AND ((t1.ra_hms == t2.ra_hms) OR t1.ra_deg is NULL)
+     (t1.win1 == t2.win1 AND t1.binning == t2.binning
+     AND ((t1.ra_hms == t2.ra_hms) OR t1.ra_deg is NULL))
+     OR (t1.win1 == '1,513,1,512,1024' AND t1.binning == '1x1')
+         AND ((t1.ra_hms == t2.ra_hms) OR t1.ra_deg is NULL)
     )
 GROUP BY t1.night, t1.run_no
 """
@@ -848,13 +856,15 @@ format_ulogger_table('results.xlsx', res, 'ultracam')
 </pre>
 
 <p>
-This search comes up with 283 runs as of 22 Feb; there tend to be a fair few matching calibrations for
-each bit of real data, but this does cut down significantly on what to look through.
+This search comes up with 283 runs as of 22 Feb; there tend to be a fair
+few matching calibrations for each bit of real data, but this does cut
+down significantly on what to look through.
 
 <h2>Column names, definitions and data types</h2>
 
 <p>
-The database is called {linstrument}.db and contains a single table called '{linstrument}' with the following columns:
+The database is called {linstrument}.db and contains a single table called
+'{linstrument}' with the following columns:
 
 <p>
 <table>
@@ -1128,20 +1138,20 @@ class Targets(dict):
 <body>
 <h1>RA-ordered list of ULTRACAM targets</h1>
 
-<p> 
+<p>
 This table shows the identifier name, position and matching strings used
 to attach coordinates to objects in the ULTRACAM database. Since ULTRACAM does
 not talk to telescopes, this is pretty much all we have to go on. If you spot
 problems please let me (trm) know about them. Matching is exact and case-sensitive.
-The positions are ICRS. Where you see "~" in the matching strings, they actually 
-count as blanks. If you are searching for a name to use for a previously observed
-object while observing which will be recognised (good for you), use one of the 
-match strings rather than the ID string.
+The positions are ICRS. Where you see "~" in the matching strings, they
+actually count as blanks. If you are searching for a name to use for a
+previously observed object while observing which will be recognised (good
+for you), use one of the match strings rather than the ID string.
 
 <p>
-You can search for runs on particular positions <a href="ulogs.php">here</a>. Clicking
-on the IDs should take you to a list of runs. If it returns no runs, try reducing the
-minimum run length.
+You can search for runs on particular positions <a href="ulogs.php">here</a>.
+Clicking on the IDs should take you to a list of runs. If it returns no runs,
+try reducing the minimum run length.
 
 <p>
 <table border=1 cellspacing="1" cellpadding="4">
@@ -1641,7 +1651,8 @@ INDEX_HEADER = """<html>
 automatically generated from the data files and hand-written logs.
 
 <p>For a searchable file summarising the same information, plus
-calculated data on the Sun and Moon for each run, see this <a
+calculated data on the Sun and Moon along with a few summary statistics
+generated by "hmeta" for each run, see this <a
 href="{linstrument}-log.xlsx">spreadsheet</a>. This is also
 available as an <a href="sqldb.html">sqlite3 database</a> to
 allow SQL queries.
