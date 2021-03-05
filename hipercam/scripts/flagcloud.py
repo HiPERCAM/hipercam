@@ -55,7 +55,7 @@ def flagcloud(args=None):
     """``flagcloud hlog aper1 aper2 ccd delta output``
 
     Interactive flagging of cloud-affected or otherwise bad points in a
-    |hipercam| log file. You either mark a range of times as cloudy,
+    |hiper| log file. You either mark a range of times as cloudy,
     or individual points as junk. If you mark a time range, then all
     apertures of all CCDs will be flagged with the bitmask value
     CLOUDS. Individual points will be flagged as JUNK. Note that nothing
