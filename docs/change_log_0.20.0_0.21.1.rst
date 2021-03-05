@@ -1,8 +1,8 @@
-.. changelog created on Fri  5 Mar 00:01:47 GMT 2021
+.. changelog created on Fri  5 Mar 11:08:37 GMT 2021
 
 .. include:: globals.rst
 
-|hiper| pipeline change log from 0.20.0 to 0.21.0
+|hiper| pipeline change log from 0.20.0 to 0.21.1
 ***************************************************
 
 List of changes from git, oldest first, with the commit keys linked to github:
@@ -217,3 +217,7 @@ List of changes from git, oldest first, with the commit keys linked to github:
   * `665588fa823000ae74b63a393056b3073fb19443 <https://github.com/HiPERCAM/hipercam/commit/665588fa823000ae74b63a393056b3073fb19443>`_ setaper.py -- added plot update to reference setting
   * `ec869bea28f0b1f90dd56c0625438d5a9794c15d <https://github.com/HiPERCAM/hipercam/commit/ec869bea28f0b1f90dd56c0625438d5a9794c15d>`_ ulogger.py -- some string re-formatting
   * `b1a0d9efc1798182ae084c16c62d7aeaa8ac8d99 <https://github.com/HiPERCAM/hipercam/commit/b1a0d9efc1798182ae084c16c62d7aeaa8ac8d99>`_ flagcloud.py -- first working version of this routine
+  * `13e24ce7c786f6060dc4bf0802e45cf2e6273c2e <https://github.com/HiPERCAM/hipercam/commit/13e24ce7c786f6060dc4bf0802e45cf2e6273c2e>`_ multiple documentation updates following recent version release
+  * `4f557bbb6c627b867a7c5d2429ed5930de64137a <https://github.com/HiPERCAM/hipercam/commit/4f557bbb6c627b867a7c5d2429ed5930de64137a>`_ setup.py -- re-ordered alphabetically
+  * `eb240d20d9c84aa3c28d2cfc7c927897e8ffcd26 <https://github.com/HiPERCAM/hipercam/commit/eb240d20d9c84aa3c28d2cfc7c927897e8ffcd26>`_ flagcloud.py -- invalid documentation reference
+  * `9ff11bd2f0f9e2c7c9919ac518d6582127135928 <https://github.com/HiPERCAM/hipercam/commit/9ff11bd2f0f9e2c7c9919ac518d6582127135928>`_ flagcloud.py -- debugged the cloud flagger for > 1 CCD
