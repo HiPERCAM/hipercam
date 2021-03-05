@@ -54,27 +54,33 @@ COL_RAT = 'k'
 def flagcloud(args=None):
     """``flagcloud hlog aper1 aper2 ccd delta output``
 
-    Interactive flagging of cloud-affected or otherwise bad points in a
-    |hiper| log file. You either mark a range of times as cloudy,
-    or individual points as junk. If you mark a time range, then *all*
+    Interactive flagging of cloud-affected or otherwise bad points in
+    a |hiper| log file. You either mark a range of times as cloudy, or
+    individual points as junk. If you mark a range, then *all*
     apertures of *all* CCDs will be flagged with the bitmask value
-    CLOUDS. Individual points will be flagged as JUNK. Note that nothing
-    is done to the data apart from changing the bitmask flags, so it is
-    then up to you to test for these later on. It is also possible to
-    flag individual points as CLOUDS but these will not propagate across
-    CCDs so it is probably not advisable to do this.
+    CLOUDS. Individual points will be flagged as JUNK. Note that
+    nothing is done to the data apart from changing the bitmask flags,
+    so it is then up to you to test for these later on. This also
+    means the flagging operation is easily reversible by clearing the
+    CLOUD and JUNK flags, e.g. by AND-ing the flags with ~JUNK and
+    ~CLOUDS. It is also possible to flag individual points as CLOUDS
+    but these will not propagate across CCDs so it is probably not
+    advisable to do this. Similarly range can be flagged as JUNK
+    although it is unusual for all apertures of all CCDs to be junk,
+    although bad seeing / awful cloud can cause this.
 
     Junk points are marked red, cloudy points orange. OK aperture 1
-    points are plotted green, aperture 2 blue, their ratio black. What
-    is meant by 'junk' as opposed to 'cloud' is really down to the
-    user. I tend to reserve junk for one-off points affected by bad
-    cosmic rays and satellites, but in general it is probably sensible
-    to think of junk as points you never want to see again versus
-    clouds meaning data that you might want to mask or use down the
-    line or perhaps just grey out in plots. Some genuine "cloudy" data
-    will be so bad that it will be better flagged as junk however. You can
-    flag the same point as both "cloud" and "junk", but "junk" is the
-    stronger condition.
+    points are plotted green, aperture 2 blue, and their ratio
+    black. What is meant by 'junk' as opposed to 'cloud' is really
+    down to the user. I tend to reserve junk for one-off points
+    affected by bad cosmic rays and satellites, but in general it is
+    probably sensible to think of "junk" as points you never want to
+    see again versus "clouds" meaning data that you might want either
+    to mask or use down the line, but would would like some way to
+    know that it was affected by clouds. Some genuine "cloudy" data
+    will be so bad that it will be better flagged as junk however. You
+    can flag the same point as both "cloud" and "junk", but "junk" is
+    the stronger condition.
 
     Bitmasks propagate when data are combined so a point flagged junk in
     aperture 2 but not aperture 1 will be flagged junk in the ratio of 1
@@ -82,10 +88,10 @@ def flagcloud(args=None):
     clear both their junk and/or cloud status. At the moment this is only
     possible on a point-by-point basis.
 
-    Interaction is via the cursor and hitting specific keys. Common options are
-    lower case; less common ones upper case. Hitting the X on the plot will abort
-    without saving the results. 'q' to quite saves the results. 'h' will give some
-    help on the options.
+    Interaction is via the cursor and hitting specific keys. Common
+    options are lower case; less common ones upper case. Hitting the X
+    on the plot will abort without saving the results. 'q' to quit
+    saves the results. 'h' gives further help on the options.
 
     Parameters:
 
