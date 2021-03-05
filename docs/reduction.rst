@@ -323,7 +323,11 @@ plotting these files, and module :mod:`hipercam.hlog` should allow you
 to develop scripts to access the data and to make your own
 plots. |hlog2fits| can convert the ASCII logs into rather more
 comprehensible FITS versions, with one HDU per CCD. These can be
-easily explored with standard FITS utilities like ``fv``.
+easily explored with standard FITS utilities like ``fv``. Note however
+that the ASCII logs comes with a lot of header lines that FITS is singularly
+bad for, so the ASCII logs are to be preferred in the main. They are also
+the ones expected for the |flagcloud| script which allows you to interactively
+define cloudy and junk data.
 
 |ultra| vs |hiper|
 ==========================
@@ -388,11 +392,11 @@ shift is then used to refine the start position for the remaining
 reference stars.  Therefore you should try to choose the most robust
 star (bright, well isolated) as your first reference star.
 
-Cloudy conditions can be hard to cope with: clouds may come completely
+Cloudy conditions can be hard to cope with: clouds may completely
 wipe out your targets, only for them to re-appear after a few seconds
 or perhaps a few minutes. In this case, careful use of the
-`fit_height_min_ref` and `fit_height_min_nrf` parameters in the reduce
-file might get you through.  The idea is that if the target gets too
+``fit_height_min_ref`` and ``fit_height_min_nrf`` parameters in the reduce
+file might see you through.  The idea is that if the target gets too
 faint, you don't want to trust any position from it, so that no
 attempt is made to update the position (relative to the reference star
 if appropriate). Provided the telescope is not moving too much, you
@@ -406,7 +410,7 @@ reduction had run successfully for more than 10,000 frames. Very
 annoying. It was easily fixed by shifting the reference to another
 aperture, but it does highlight the importance of choosing a good
 reference star if at all possible. Choosing multiple reference stars
-can help. In this case, a new parameter, `fit_diff`, comes into
+can help. In this case, a new parameter, ``fit_diff``, comes into
 play. In this case, if the positions of the reference targets from one
 frame to the next shift differentially by more than this number, all
 apertures are flagged as unreliable and no shift or extraction is
@@ -414,13 +418,14 @@ attempted. This is effective as a back-stop for a cosmic ray affecting
 the position of one of the reference apertures. However, it has the
 downside of requiring all reference stars to be successfully
 re-located, which could introduce a higher drop-out rate from double
-jeapardy. Careful selection of reference stars is important.
+jeapardy. Careful selection of reference stars is important!
 
 In bad cases, nothing you try will work. Then the final fallback is to reduce
-the run in chunks using the `first` parameter (prompted in |reduce|) to skip
+the run in chunks using the ``first`` parameter (prompted in |reduce|) to skip
 past the part causing problems. This is a little annoying for later analysis,
 but there will always be some cases which cannot be easily traversed in any
 other way.
+
 
 Defocussed images
 -----------------
@@ -443,21 +448,22 @@ doughnut-like profile.
 Linked apertures
 ----------------
 
-Linked apertures can be very useful if your target is simply too faint or near
-others to track well. However, they should only be used as a last resort,
-especially for long runs, because of differential image motion due to
-atmospheric refraction which can lead to loss of flux. This is particularly
-the case in the u-band. If you have to link an aperture, try to do so with a
-nearby object to minimise such drift. It does not need to be super-bright
-(although preferably it should be brighter than your target), or your main
-comparison; the key point should be that its position can be securely tracked.
-If your target is trackable at all, then the `fit_alpha` parameter is a better
-alternative. It allows for variable offsets from the
-reference targets by but average over the previous
-1/`fit_alpha` frames. This allows you to ride over frames that are too
-faint. This can be an effective way to cope with deep eclipses or clouds whilst
-allowing for differential image motion in a way that linked apertures cannot
-manage.
+Linked apertures can be very useful if your target is simply too faint
+or too near to other objects to track well. However, they should only
+be used as a last resort, especially for long runs, because of
+differential image motion due to atmospheric refraction which can lead
+to loss of flux. This is particularly the case in the u-band. If you
+have to link an aperture, try to do so with a nearby object to
+minimise such drift. It does not need to be super-bright (although
+preferably it should be brighter than your target), or your main
+comparison; the key point should be that its position can be securely
+tracked.  If your target is trackable at all, then the ``fit_alpha``
+parameter may be a better alternative. It allows for variable offsets from
+the reference targets by but average over the previous 1/`fit_alpha`
+frames. This allows you to ride over frames that are too faint. This
+can be an effective way to cope with deep eclipses or clouds whilst
+allowing for differential image motion in a way that linked apertures
+cannot manage.
 
 If you do have to use linked apertures, then set them from an average image
 extracted from the middle of the run. This will reduce the problems caused by
