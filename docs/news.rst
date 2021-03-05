@@ -18,6 +18,7 @@ you should update.
 
      * makedark bug fixed (was not subtracting bias)
      * new routine 'flagcloud' added to flag reduce logs interactively
+     * reduce argument order and handling improved
      * a couple of new formats added to fits2hcm
      * Tseries: much better handling of bad and flagged data
      * Tseries bin option debugged
