@@ -1567,7 +1567,7 @@ ULTRACAM_COLNAMES = (
     ('sun_alt_end', 'float32', 'Altitude of Sun at end of run'),
     ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
     ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
-    ('moon_phase', 'float32', 'Lunar phase (fraction illuminated')
+    ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
 )
 
 # Create and write out spreadsheet
@@ -1628,7 +1628,7 @@ ULTRASPEC_COLNAMES = (
     ('sun_alt_end', 'float32', 'Altitude of Sun at end of run'),
     ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
     ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
-    ('moon_phase', 'float32', 'Lunar phase (0 to 1, New-->Full)')
+    ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
 )
 
 
