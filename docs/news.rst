@@ -20,7 +20,12 @@ you should update.
      * new routine 'flagcloud' added to flag reduce logs interactively
      * a couple of new formats added to fits2hcm
      * Tseries: much better handling of bad and flagged data
-
+     * Tseries bin option debugged
+     * plog now has an option of specifying a plot title
+     * should now be possible to display images with inverted axes
+     * fixed bug preventing 'splice' from working
+     * fixed bug for handling ULTRASPEC drift mode
+ 
    A complete list of changes can be seen here:
    :doc:`full list of changes, 0.20.0 to 0.21.1 <change_log_0.20.0_0.21.1>`.
 
