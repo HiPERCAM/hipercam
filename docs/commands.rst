@@ -69,7 +69,7 @@ list. The table also indicates contexts in which each command is particularly
 useful.
 
 .. table::
-   :widths: 10 25 10 10 10 10 10
+   :widths: 10 30 8 8 8 8 8
 
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | Command      |Purpose         |Observing |Reduction |Plots &  |Arithematic|Information |
@@ -94,7 +94,7 @@ useful.
    | |fits2hcm|   | |ol-fits2hcm|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |flagcloud|  | |ol-flagcloud| |          | Yes      | Yes     |           |            |
-   +--------------+----------------+----------+----------+---------+-----------+------------+   
+   +--------------+----------------+----------+----------+---------+-----------+------------+
    | |ftargets|   | |ol-ftargets|  | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |genred|     | |ol-genred|    | Yes      | Yes      |         |           |            |
@@ -457,9 +457,9 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.uls
 
 .. [#f1] Several other commands (``aligntool``, ``atanalysis``, ``atbytes``,
-         ``digest``, ``hlogger``, ``makefield``, ``makedata``, ``pfolder``,
-         ``tanalysis`` and ``tbytes``) are not documented here as they are
-         of specialist usage.  Information on these is however available via
+         ``digest``, ``hlogger``, ``hmeta``, ``makefield``, ``makedata``, ``pfolder``,
+         ``redplt``, ``tanalysis``, ``tbytes``, ``ulogger``) are not documented here
+         as they are of specialist usage.  Information on these is however available via
          ``pydoc``.
 
 
