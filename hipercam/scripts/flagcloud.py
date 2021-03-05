@@ -376,7 +376,7 @@ class PickPoints:
             print()
 
         print(
-            "c(point), C(range), j(point), J(range), r(point), R(range), h(elp), q(uit): ",
+            "c(range), C(point), j(point), J(range), r(point), R(range), h(elp), q(uit): ",
             end="",
             flush=True,
         )
