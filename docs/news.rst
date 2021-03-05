@@ -8,6 +8,13 @@
 This page documents important changes in the pipeline, as a help to whether
 you should update.
 
+#. **04 March 2021, Version 0.21.0**: again a large number of updates and
+   fixes in this version. Most are small, but the cumulative effect is
+   significant and some bugs have been fixed. Tseries has undergone a
+   bit of an overhaul and has expanded functionality with an improved
+   handling of bitmasks. A complete list of changes can be seen at
+   :doc:`full list of changes, 0.20.0 to 0.21.0 <change_log_0.20.0_0.21.0>`.
+   
 #. **10 July 2020, Version 0.20.0**: a large number of updates and
    fixes in this version. Apart from fixes to problems that would have
    been obvious as they were show-stoppers, the main changes are:
