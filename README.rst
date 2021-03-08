@@ -97,6 +97,11 @@ your O/S package manager. e.g. under fedora, Cython appears as python3-Cython.
   websocket-client :
          for talking to the hipercam server.
 
+  xlsxwriter :
+         if you want to use the logging scripts hlogger, ulogger,
+	 the object search script logsearch or build log database
+	 tools that output xlsx files. Since these are unusual
+	 
 Further Information
 ===================
 
