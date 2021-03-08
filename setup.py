@@ -151,6 +151,7 @@ setup(
             'hls=hipercam.scripts.hls:hls',
             'hmeta=hipercam.scripts.hmeta:hmeta',
             'hplot=hipercam.scripts.hplot:hplot',
+            'logsearch=hipercam.scripts.logsearch:logsearch',
             'ltimes=hipercam.scripts.ltimes:ltimes',
             'ltrans=hipercam.scripts.ltrans:ltrans',
             'makebias=hipercam.scripts.makebias:makebias',

@@ -25,6 +25,7 @@ from .hls import hls
 from .hmeta import hmeta
 from .hplot import hplot
 from .ltimes import ltimes
+from .logsearch import logsearch
 from .ltrans import ltrans
 from .makebias import makebias
 from .makedark import makedark
