@@ -96,7 +96,7 @@ def logsearch(args=None):
         )
 
         tmin = cl.get_value(
-            "tmin", "minimum exposure duration for a run to be included [seconds, < 0 for no check at all]", -1
+            "tmin", "minimum exposure duration for a run to be included [seconds, < 0 for no check at all]", -1.
         )
 
         dmax = cl.get_value(
@@ -195,6 +195,12 @@ def logsearch(args=None):
                     if nocase else \
                        rec.match(targ)
                 if m: ok[n] = True
+
+    if tmin >= 0:
+        # apply minimum exposure condition
+        totals = tab['total']
+        for n, total in enumerate(totals):
+            ok[n] &= ~np.isnan(total) and total >= tmin
 
     tab = tab[ok]
 
