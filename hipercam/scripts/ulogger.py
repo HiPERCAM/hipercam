@@ -68,13 +68,11 @@ def ulogger(args=None):
     before the final |ulogger| run for a complete spreadsheet and SQL
     database to be created.
 
-    To save time, ulogger does not by default re-do things. So it will
-    not re-create the logs of nights, or the timing and position data files
-    if they already exist. In the absolute default mode, the giant spreadsheet
-    and database of all runs won't be built either, so normally after a quick
-    update of the html logs, a run with the "-l" switch is probably advisable.
-    Use the various switches to control this. The mail index file is always
-    updated.
+    To save time, ulogger does not by default re-do everything, so it 
+    does not by default recreate the timing and position data files
+    if they already exist. Even so, a default run takes a while and if you
+    just want to see the logs for a new night, the -q option could help as
+    that skips re-creating already existing logs and the spreadsheet and database.
 
     """
     warnings.filterwarnings("ignore")
@@ -87,12 +85,6 @@ def ulogger(args=None):
         help="carry out full re-computation of times, positional data, html logs, spreadsheet and SQL database",
     )
     parser.add_argument(
-        "-l",
-        dest="logs",
-        action="store_true",
-        help="update html logs, spreadsheet and SQL database, but not the times or position files (useful if you have updated the reduce plots)",
-    )
-    parser.add_argument(
         "-n",
         dest="night", default=None,
         help="use this with a YYYY-MM-DD date to update times and positions for a specific night (lots of diagnostic ouput; no html created)",
@@ -102,6 +94,12 @@ def ulogger(args=None):
         dest="positions",
         action="store_true",
         help="re-compute positional data, html logs, spreadsheet and SQL database, but not the times",
+    )
+    parser.add_argument(
+        "-q",
+        dest="quick",
+        action="store_true",
+        help="quick update, useful for seeing the log of a new night. Skips olds logs or creation of the spreadsheet and SQL database",
     )
 
     # Get command line options
@@ -330,7 +328,7 @@ def ulogger(args=None):
             redo = {}
             one_before_is_new = False
             for nn, night in enumerate(nnames):
-                if args.full or args.positions or args.logs:
+                if args.full or args.positions or not args.quick:
                     redo[night] = True
                 else:
                     already_there = os.path.exists(os.path.join(root, night, 'index.html'))
@@ -890,7 +888,7 @@ The database is called {linstrument}.db and contains a single table called
 
     print('\nFinished generation of the web pages.')
 
-    if args.full or args.positions or args.logs:
+    if args.full or args.positions or not args.quick:
         print('Now generating a spreadsheet and an SQL database')
 
         # create pd.DataFrame containing all info
