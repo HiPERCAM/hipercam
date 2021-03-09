@@ -140,6 +140,7 @@ def ulogger(args=None):
     if args.night:
 
         # identify observatory
+        tlink = os.path.join(args.night, "telescope")
         with open(os.path.join(args.night, "telescope")) as tel:
             telescope = tel.read().strip()
         if telescope == 'WHT':
@@ -155,6 +156,8 @@ def ulogger(args=None):
         else:
             raise ValueError('did not recognise telescope =',telescope)
 
+        tpath = os.readlink(tlink)
+        rname = os.path.basename(os.path.dirname(tlink))
         # read and store the hand written log
         handlog = os.path.join(args.night, f"{args.night}.dat")
         hlog = Log(handlog)
@@ -185,7 +188,7 @@ def ulogger(args=None):
         posdata = os.path.join(meta, 'posdata')
         make_positions(
             args.night, runs, observatory, instrument, hlog, targets,
-            skip_targets, failed_targets, tdata, posdata, True
+            skip_targets, failed_targets, tdata, posdata, True, rname
         )
         print(f'Created & wrote positional data for {args.night} to {posdata}')
         print(f'Finished creating time & position data for {args.night}')
@@ -1371,7 +1374,7 @@ def make_times(night, runs, observatory, times, full):
 def make_positions(
         night, runs, observatory, instrument, hlog, targets,
         skip_targets, failed_targets, tdata, posdata, full,
-        rname=None
+        rname
 ):
     """
     Determine positional info, write to podata,
@@ -1422,8 +1425,7 @@ def make_positions(
                         print(f'  Added {target} to targets')
                     except:
                         print(f'  No position found for {runname}, target = "{target}"')
-                        if rname is not None:
-                            failed_targets[target] = (rname,night,run)
+                        failed_targets[target] = (rname,night,run)
                         autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
 
             # start accumulating stuff to write out
