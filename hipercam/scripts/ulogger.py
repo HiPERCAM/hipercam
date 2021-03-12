@@ -44,8 +44,10 @@ def ulogger(args=None):
     ultra(cam|spec)/raw_data directory.  It extracts information from
     each run file. It usually runs without any parameters, although
     there are some optional unix-style command-line switches. It tries
-    to read target data from four files: TARGETS, AUTO_TARGETS,
-    FAILED_TARGETS and SKIP_TARGETS.
+    to read target data from three files: TARGETS, FAILED_TARGETS and 
+    SKIP_TARGETS. TARGETS contains details of targets particularly
+    if not available on simbad; FAILED_TARGETS are those of interest
+    for tracking down; SKIP_TARGETS are ones of no interest.
 
     If run at Warwick, it writes data to the web pages. Otherwise it
     writes them to a sub-directory of raw_data called "logs".  Bit of
@@ -163,7 +165,7 @@ def ulogger(args=None):
         hlog = Log(handlog)
 
         # read target info from standard locations
-        targets = Targets('TARGETS', 'AUTO_TARGETS')
+        targets = Targets('TARGETS')
         skip_targets, failed_targets = load_skip_fail()
 
         # Just re-do timing and positions for a particular night.
