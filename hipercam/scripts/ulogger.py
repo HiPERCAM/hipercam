@@ -246,7 +246,7 @@ def ulogger(args=None):
     # Load target positional information. Hand written, automatically
     # looked up, target names to skip and failed ones potentially
     # recoverable with some work
-    targets = Targets('TARGETS', 'AUTO_TARGETS')
+    targets = Targets('TARGETS')
     skip_targets, failed_targets = load_skip_fail()
 
     # Index file
