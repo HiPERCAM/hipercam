@@ -338,7 +338,8 @@ def ulogger(args=None):
                 else:
                     already_there = os.path.exists(os.path.join(root, night, 'index.html'))
                     if one_before_is_new:
-                        # Has to be re-done under any circumstances because of the previous/next links
+                        # Has to be re-done under any circumstances
+                        # because of the previous/next links
                         redo[night] = True
                         one_before_is_new = not already_there
                     else:
@@ -384,18 +385,16 @@ def ulogger(args=None):
                 meta = os.path.join(night, 'meta')
 
                 os.makedirs(meta, exist_ok=True)
-                links = '\n<p><a href="../index.html">Run index</a>'
+                links = '<p><a href="../index.html">Run index</a>'
                 if nn > 0:
                     links += f', <a href="../{nnames[nn-1]}/">Previous night</a>'
                 else:
                     links += f', Previous night'
 
                 if nn < len(nnames) - 1:
-                    links += f', <a href="../{nnames[nn+1]}/">Next night</a>\n</p>\n'
+                    links += f', <a href="../{nnames[nn+1]}/">Next night</a></p>\n'
                 else:
-                    links += f', Next night\n</p>\n'
-
-                links += "\n</p>\n"
+                    links += f', Next night</p>\n'
 
                 # Create the directory for the night
                 date = f"{night}, {telescope}"
@@ -416,11 +415,19 @@ def ulogger(args=None):
                 with open(fname_tmp, "w") as nhtml:
 
                     # write header of night file
-                    nhtml.write(NIGHT_HEADER1)
-                    nhtml.write(NIGHT_HEADER2.format(date=date,instrument=instrument))
-                    nhtml.write(links)
-                    nhtml.write(TABLE_TOP)
+                    nhtml.write(
+                        NIGHT_HEADER.format(
+                            date=date,
+                            instrument=instrument,
+                            links=links
+                        )
+                    )
 
+                    nhtml.write(
+                        ULTRACAM_TABLE_HEADER if linstrument == 'ultracam' \
+                        else ULTRASPEC_TABLE_HEADER
+                    )
+                    
                     # read and store the hand written log
                     handlog = os.path.join(night, f"{night}.dat")
                     hlog = Log(handlog)
@@ -479,13 +486,6 @@ def ulogger(args=None):
                     # data for the spreadsheet
 
                     for nrun, run in enumerate(runs):
-
-                        if nrun % 20 == 0:
-                            # write table header
-                            nhtml.write(
-                                ULTRACAM_TABLE_HEADER if instrument == 'ULTRACAM' else
-                                ULTRASPEC_TABLE_HEADER
-                            )
 
                         if len(tdata[run]) == 1:
                             # means its a power on/off
@@ -751,8 +751,7 @@ def ulogger(args=None):
                         barr.append(brow)
 
                     # finish off the night file
-                    nhtml.write("</table>\n{:s}".format(links))
-                    nhtml.write(NIGHT_FOOTER)
+                    nhtml.write(NIGHT_FOOTER.format(links=links))
 
                 # rename night file
                 shutil.move(fname_tmp, fname)
@@ -779,7 +778,6 @@ def ulogger(args=None):
     with open(sqdb, "w") as sqout:
         sqout.write(f'''<html>
 <head>
-
 <title>{instrument} sqlite3 database</title>
 </head>
 
@@ -1640,9 +1638,9 @@ def noval(value):
 
 # Header of the main file
 
-INDEX_HEADER = """<html>
+INDEX_HEADER = """<!DOCTYPE html>
+<html>
 <head>
-
 <title>{instrument} data logs</title>
 </head>
 
@@ -1676,137 +1674,42 @@ INDEX_FOOTER = """
 </html>
 """
 
-NIGHT_HEADER1 = """<html>
+NIGHT_HEADER = """<!DOCTYPE html>
+<html>
 <head>
-
-<!-- script to hide/reveal selected columns -->
-<script type="text/javascript">
-
-function hide ( column ) {
-var tbl = document.getElementById( "tbl" );
-var i;
-for ( i = 0; i < tbl.rows.length; i++ )
-        tbl.rows[ i ].cells[ column ].style.display = "none";
-}
-
-function restore () {
-var tbl = document.getElementById( "tbl" );
-var i;
-var j;
-for ( i = 0; i < tbl.rows.length; i++ )
-        for ( j = 0; j < tbl.rows[ i ].cells.length; j++ )
-                tbl.rows[ i ].cells[ j ].style.display = "table-cell";
-}
-
-function shrink () {
-var hcols = [4, 9];
-
-var tbl = document.getElementById( "tbl" );
-var i;
-var j;
-for ( i = 0; i < tbl.rows.length; i++ )
-        for ( j = 0; j < hcols.length; j++ )
-                tbl.rows[ i ].cells[ hcols[j] ].style.display = "none";
-}
-
-</script>
-
-<!-- script to toggle auto refresh -->
-
-<script>
-var reloading;
-function checkReloading() {
-    if (window.location.hash=="#autoreload") {
-        reloading=setTimeout("window.location.reload();",10000);
-        document.getElementById("reloadCB").checked=true;
-    }
-}
-function toggleAutoRefresh(cb) {
-    if (cb.checked) {
-        window.location.replace("#autoreload");
-        reloading=setTimeout("window.location.reload();",10000);
-    } else {
-        window.location.replace("#");
-        clearTimeout(reloading);
-    }
-}
-window.onload=checkReloading;
-</script>
-
 <link rel="stylesheet" type="text/css" href="../ultra.css" />
-"""
-
-NIGHT_HEADER2 = """<title>{instrument} log {date}</title>
+<title>{instrument} log {date}</title>
 </head>
 
 <body>
 
 <h1>{instrument} log {date}</h1>
 
-<p>
-The table below lists information on runs from the night starting on {date}.
-See the end of the table for some more details on the meanings of the various columns.
-You can hide any column using the buttons in the top line and "shrink" will reduce clutter
-to focus on those of most interest.
-"""
+<p> The table below lists information on runs from the night starting
+on {date}.  See the end of the table details on the
+meanings of the various columns. 
 
-TABLE_TOP = """<p>
-<button style="width: 120px; height: 30px;" onclick="shrink();">Shrink table</button>
-<button style="width: 140px; height: 30px;" onclick="restore();">Restore columns</button>
-
+{links}
 
 <p>
-<table border=1 cellspacing="0" cellpadding="4" id="tbl">
+<div class="tableFixHead">
+<table>
+<thead>
 """
 
-ULTRACAM_TABLE_HEADER = """
-<tr>
-<td><button id="hidden0" onclick="hide(0)"></button></td>
-<td><button id="hidden1" onclick="hide(1)"></button></td>
-<td><button id="hidden2" onclick="hide(2)"></button></td>
-<td><button id="hidden3" onclick="hide(3)"></button></td>
-<td><button id="hidden4" onclick="hide(4)"></button></td>
-<td><button id="hidden5" onclick="hide(5)"></button></td>
-<td><button id="hidden6" onclick="hide(6)"></button></td>
-<td><button id="hidden7" onclick="hide(7)"></button></td>
-<td><button id="hidden8" onclick="hide(8)"></button></td>
-<td><button id="hidden9" onclick="hide(9)"></button></td>
-<td><button id="hidden10" onclick="hide(10)"></button></td>
-<td><button id="hidden11" onclick="hide(11)"></button></td>
-<td><button id="hidden12" onclick="hide(12)"></button></td>
-<td><button id="hidden13" onclick="hide(13)"></button></td>
-<td><button id="hidden14" onclick="hide(14)"></button></td>
-<td><button id="hidden15" onclick="hide(15)"></button></td>
-<td><button id="hidden16" onclick="hide(16)"></button></td>
-<td><button id="hidden17" onclick="hide(17)"></button></td>
-<td><button id="hidden18" onclick="hide(18)"></button></td>
-<td><button id="hidden19" onclick="hide(19)"></button></td>
-<td><button id="hidden20" onclick="hide(20)"></button></td>
-<td><button id="hidden21" onclick="hide(21)"></button></td>
-<td><button id="hidden22" onclick="hide(22)"></button></td>
-<td><button id="hidden23" onclick="hide(23)"></button></td>
-<td><button id="hidden24" onclick="hide(24)"></button></td>
-<td><button id="hidden25" onclick="hide(25)"></button></td>
-<td><button id="hidden26" onclick="hide(26)"></button></td>
-<td><button id="hidden27" onclick="hide(27)"></button></td>
-<td><button id="hidden28" onclick="hide(29)"></button></td>
-<td><button id="hidden29" onclick="hide(29)"></button></td>
-<td align="left"><button id="hidden30" onclick="hide(30)"></button></td>
-</tr>
-
-<tr>
+ULTRACAM_TABLE_HEADER = """<tr>
 <th class="left">Run<br>no.</th>
-<th class="left">Target<br>name</th>
-<th class="left">Auto<br>ID</th>
+<th class="left">Target name</th>
+<th class="left">Auto ID</th>
 <th class="left">RA (J2000)</th>
 <th class="left">Dec&nbsp;(J2000)</th>
 <th class="cen">Date<br>(start)</th>
 <th class="cen">Start</th>
 <th class="cen">End</th>
 <th class="right">Total<br>(sec)</th>
-<th class="right">Cadence<br>(sec)</th>
-<th class="right">Exposure<br>(sec)</th>
-<th class="right">Nframe</th>
+<th class="right">Cad.<br>(sec)</th>
+<th class="right">Exp.<br>(sec)</th>
+<th class="right">Nfrm</th>
 <th class="right">Nok</th>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
@@ -1827,52 +1730,15 @@ ULTRACAM_TABLE_HEADER = """
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
 </tr>
+</thead>
+
+<tbody>
 """
 
-ULTRASPEC_TABLE_HEADER = """
-<tr>
-<td><button id="hidden0" onclick="hide(0)"></button></td>
-<td><button id="hidden1" onclick="hide(1)"></button></td>
-<td><button id="hidden2" onclick="hide(2)"></button></td>
-<td><button id="hidden3" onclick="hide(3)"></button></td>
-<td><button id="hidden4" onclick="hide(4)"></button></td>
-<td><button id="hidden5" onclick="hide(5)"></button></td>
-<td><button id="hidden6" onclick="hide(6)"></button></td>
-<td><button id="hidden7" onclick="hide(7)"></button></td>
-<td><button id="hidden8" onclick="hide(8)"></button></td>
-<td><button id="hidden9" onclick="hide(9)"></button></td>
-<td><button id="hidden10" onclick="hide(10)"></button></td>
-<td><button id="hidden11" onclick="hide(11)"></button></td>
-<td><button id="hidden12" onclick="hide(12)"></button></td>
-<td><button id="hidden13" onclick="hide(13)"></button></td>
-<td><button id="hidden14" onclick="hide(14)"></button></td>
-<td><button id="hidden15" onclick="hide(15)"></button></td>
-<td><button id="hidden16" onclick="hide(16)"></button></td>
-<td><button id="hidden17" onclick="hide(17)"></button></td>
-<td><button id="hidden18" onclick="hide(18)"></button></td>
-<td><button id="hidden19" onclick="hide(19)"></button></td>
-<td><button id="hidden20" onclick="hide(20)"></button></td>
-<td><button id="hidden21" onclick="hide(21)"></button></td>
-<td><button id="hidden22" onclick="hide(22)"></button></td>
-<td><button id="hidden23" onclick="hide(23)"></button></td>
-<td><button id="hidden24" onclick="hide(24)"></button></td>
-<td><button id="hidden25" onclick="hide(25)"></button></td>
-<td><button id="hidden26" onclick="hide(26)"></button></td>
-<td><button id="hidden27" onclick="hide(27)"></button></td>
-<td><button id="hidden28" onclick="hide(29)"></button></td>
-<td><button id="hidden29" onclick="hide(29)"></button></td>
-<td><button id="hidden30" onclick="hide(30)"></button></td>
-<td><button id="hidden31" onclick="hide(31)"></button></td>
-<td><button id="hidden32" onclick="hide(32)"></button></td>
-<td><button id="hidden33" onclick="hide(33)"></button></td>
-<td><button id="hidden34" onclick="hide(34)"></button></td>
-<td align="left"><button id="hidden35" onclick="hide(35)"></button></td>
-</tr>
-
-<tr>
+ULTRASPEC_TABLE_HEADER = """<tr>
 <th class="left">Run<br>no.</th>
-<th class="left">Target<br>name</th>
-<th class="left">Auto<br>ID</th>
+<th class="left">Target name</th>
+<th class="left">Auto ID</th>
 <th class="left">RA (J2000)</th>
 <th class="left">Dec&nbsp;(J2000)</th>
 <th class="left">Tel RA</th>
@@ -1882,9 +1748,9 @@ ULTRASPEC_TABLE_HEADER = """
 <th class="cen">Start</th>
 <th class="cen">End</th>
 <th class="right">Total<br>(sec)</th>
-<th class="right">Cadence<br>(sec)</th>
-<th class="right">Exposure<br>(sec)</th>
-<th class="right">Nframe</th>
+<th class="right">Cad.<br>(sec)</th>
+<th class="right">Exp.<br>(sec)</th>
+<th class="right">Nfrm</th>
 <th class="right">Nok</th>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
@@ -1907,22 +1773,30 @@ ULTRASPEC_TABLE_HEADER = """
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
 </tr>
+</thead>
+
+<tbody>
 """
 
 NIGHT_FOOTER = """
+</tbody>
+</table>
+</div>
 
-<p> 'PA' is the PA on the sky (ULTRASPEC). 'Clr' indicates whether
-clears were enabled; 'Read mode' is the readout mode which can be one
-of several options: 'FFCLR' for full frames with clear; 'FFNCLR' full
-frames with no clear; '1-PAIR', '2-PAIR', '3-PAIR', for standard
-windowed modes, etc. The 'xl,xr,..' column gives the 5 parameters
-defining the window pair ULTRACAM, or 4 for ULTRASPEC. The 'cadence'
-is the time between exposures, the 'exposure' the actual time spent
-integrating, although note that these numbers are not always entirely
-accurate. 'Nok' is the number of OK frames judged as having OK
-times. If it grossly disagrees with Nframe, there might be timing
-problems present, such as the GPS dropping out.
-</p>
+{links}
+
+<p> 'Date' is the UTC date at the start of the exposure; 'Total' is
+the run length; 'Cad.' is the cadence or sampling time; 'Exp.'  is the
+exposure time per point; 'PA' is the PA on the sky (ULTRASPEC); 'Clr'
+indicates whether clears were enabled; 'Read mode' is the readout mode
+which can be one of several options: 'FFCLR' for full frames with
+clear; 'FFNCLR' full frames with no clear; '1-PAIR', '2-PAIR',
+'3-PAIR', for standard windowed modes, etc. The 'xl,xr,..' columns
+gives the parameters defining the windows (5-per-pair for ULTRACAM;
+4-per-window for ULTRASPEC); 'Nfrm' is the number of frame; 'Nok' is
+the number of OK frames judged as having OK times. If it grossly
+disagrees with 'Nframe', there might be timing problems present, such
+as the GPS dropping out; 'Nb' is the nblue paramter of ULTRACAM.  </p>
 
 <address>Tom Marsh, Warwick</address>
 </body>

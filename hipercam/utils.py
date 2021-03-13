@@ -668,102 +668,100 @@ LOG_MONTHS = {
 # CSS to define the look of the log web pages
 LOG_CSS = """
 
-body{
-    background-color: #000000;
+body {
+    background-color: black;
     font: 10pt sans-serif;
     color: #FFFFFF;
     margin: 10px;
-    border: 0px;
+    border: 1px;
     overflow: auto;
     height: 100%;
     max-height: 100%;
 }
 
-/* This for the left-hand side guide */
+button {
+   font-family: Arial,Helvetica,sans-serif;
+   font-size: 10px;
+   width: 10px;
+   height: 10px;
+   border-radius: 0%;
+}
 
-#guidecontent{
-    position: absolute;
-    margin: 10px;
+p {
+   color: #ffffe0
+}
+
+h1 {
+   color: white
+}
+
+input.text {
+   margin-right: 20px;
+   margin-left: 10px
+}
+
+span {
+   margin-right: 20px;
+   margin-left: 20px
+}
+
+.tableFixHead {
+    overflow-y: auto;
+    height: 500px;
+}
+
+.tableFixHead thead th {
+    position: sticky;
     top: 0;
-    bottom: 0;
-    left: 0;
-    width: 200px;
-    height: 100%;
-    overflow: auto;
+    background: black;
+    color: #
 }
 
-#titlecontent{
-    position: fixed;
-    margin: 10px;
-    top: 0;
-    left: 200px;
-    right: 0;
-    bottom: 220px;
-    overflow: auto;
+.tableFixHead,
+.tableFixHead td {
+    box-shadow: inset 2px -2px #555;
 }
 
-#logcontent{
-    position: fixed;
-    margin: 10px;
-    top: 220px;
-    left: 200px;
-    right: 0;
-    bottom: 0;
-    overflow: auto;
+.tableFixHead th {
+    box-shadow: inset 2px -2px #555;
 }
-
-button {font-family: Arial,Helvetica,sans-serif;font-size: 10px;width: 10px; height: 10px; border-radius: 0%;}
-
-p {color: #ffffe0}
-
-h1 {color: #ffffff}
-
-input.text {margin-right: 20px; margin-left: 10px}
-
-spa {margin-right: 20px; margin-left: 20px}
 
 table {
+    border-collapse: collapse;
     font: 10pt sans-serif;
-    padding: 1px;
-    border-top:1px solid #655500;
-    border-right:1px solid #655500;
-    border-bottom:2px solid #655500;
-    border-left:1px solid #655500;
+    padding: 4px;
+    border: 2px;
+}
+
+tr:hover {
+    background-color: #303030;
 }
 
 td {
     vertical-align: top;
     text-align: center;
     white-space: nowrap;
+    padding-left: 2px;
     padding-right: 5px;
+    padding-top: 2px;
+    padding-bottom: 2px;
 }
 
 td.left {
-    vertical-align: top;
     text-align: left;
-    white-space: nowrap;
-    padding-right: 5px;
 }
 
 td.lalert {
     color: #FFAAAA;
-    vertical-align: top;
     text-align: left;
-    white-space: nowrap;
-    padding-right: 5px;
 }
 
 td.right {
-    vertical-align: top;
     text-align: right;
-    white-space: nowrap;
-    padding-right: 5px;
 }
 
 td.cen {
-    vertical-align: top;
     text-align: center;
-    white-space: nowrap;
 }
 
 td.undef {
@@ -771,25 +769,18 @@ td.undef {
 }
 
 td.format {
-    vertical-align: top;
     text-align: center;
-    white-space: nowrap;
 }
 
 td.long {
-    vertical-align: top;
     text-align: left;
-    padding-right: 5px;
     font: 9pt sans-serif;
     white-space: normal;
 }
 
 td.bleft {
     color: #ffffa0;
-    vertical-align: top;
     text-align: left;
-    white-space: nowrap;
-    padding-right: 5px;
     font: 9pt sans-serif;
     font-weight: bold;
 }
@@ -797,6 +788,7 @@ td.bleft {
 th {
     vertical-align:top;
     text-align: center;
+    padding: 2px;
 }
 
 th.left {
