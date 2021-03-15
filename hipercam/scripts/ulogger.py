@@ -1742,9 +1742,9 @@ ULTRACAM_TABLE_HEADER = """
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
 <th class="left">Nb</th>
-<th class="cen">xl,xr,ys,nx,ny<br>(1)</th>
-<th class="cen">xl,xr,ys,nx,ny<br>(2)</th>
-<th class="cen">xl,xr,ys,nx,ny<br>(3)</th>
+<th class="cen">xl,xr,ys,nx,ny<br>window pair 1</th>
+<th class="cen">xl,xr,ys,nx,ny<br>window pair 2</th>
+<th class="cen">xl,xr,ys,nx,ny<br>window pair 3</th>
 <th class="cen">XxY<br>bin</th>
 <th class="cen">Clr</th>
 <th class="cen">Read<br>speed</th>
@@ -1761,7 +1761,18 @@ ULTRACAM_TABLE_HEADER = """
 <tbody>
 """
 
-ULTRASPEC_TABLE_HEADER = """<tr>
+ULTRASPEC_TABLE_HEADER = """
+<col span="2">
+<col span="6" class="hide">
+<col>
+<col class="hide">
+<col span="4">
+<col class="hide">
+<col span="10">
+<col span="8" class="hide">
+<col>
+
+<tr>
 <th class="left">Run<br>no.</th>
 <th class="left">Target name</th>
 <th class="left">Auto ID</th>
@@ -1780,10 +1791,10 @@ ULTRASPEC_TABLE_HEADER = """<tr>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
-<th class="cen">xs,ys,nx,ny<br>(1)</th>
-<th class="cen">xs,ys,nx,ny<br>(2)</th>
-<th class="cen">xs,ys,nx,ny<br>(3)</th>
-<th class="cen">xs,ys,nx,ny<br>(4)</th>
+<th class="cen">xs,ys,nx,ny<br>window 1</th>
+<th class="cen">xs,ys,nx,ny<br>window 2</th>
+<th class="cen">xs,ys,nx,ny<br>window 3</th>
+<th class="cen">xs,ys,nx,ny<br>window 4</th>
 <th class="cen">XxY<br>bin</th>
 <th class="cen">Clr</th>
 <th class="cen">Read<br>speed</th>
