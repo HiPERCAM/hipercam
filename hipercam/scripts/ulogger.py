@@ -629,6 +629,8 @@ def ulogger(args=None):
 
                         # run type
                         itype = hd.get("DTYPE", '')
+                        if itype == 'data caution':
+                            itype = 'acquire'
                         nhtml.write(f'<td class="left">{itype}</td>')
                         brow.append(itype)
 

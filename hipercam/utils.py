@@ -681,11 +681,11 @@ body {
 
 button {
    font-family: Arial, Helvetica, sans-serif;
-   font-size: 12px;
-   padding: 15px 32px;
+   font-size: 11pt;
+   padding: 8px 16px;
    text-align: center;
    display: inline-block;
-   border-radius: 4px;
+   border-radius: 6px;
    border: 2px solid darkred;
 }
 
