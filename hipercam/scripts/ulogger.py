@@ -588,11 +588,11 @@ def ulogger(args=None):
                             tstart = Time(mjd_start, format='mjd').isot
                             date_start = tstart[:tstart.find("T")]
                             nhtml.write(
-                                f'<td class="cen">{date_start}</td> <td class="cen">{ut_start}</td>'
+                                f'<td class="cen">{ut_start}</td>'
                             )
                             brow += [date_start, ut_start]
                         except:
-                            nhtml.write(2*'<td></td>')
+                            nhtml.write('<td></td>')
                             brow += ['','']
                             mjd_start = None
 
@@ -621,6 +621,9 @@ def ulogger(args=None):
                             filters = hlog.filters.get(run, '')
                         else:
                             filters = hd.get("filters", '')
+
+                        # shrink the "Super" names
+                        filters = re.sub("Super ([ugriz])'", r"\1s'", filters)
                         nhtml.write(f'<td class="cen">{filters}</td>')
                         brow.append(filters)
 
@@ -701,7 +704,6 @@ def ulogger(args=None):
                         brow.append(pid)
 
                         # Telescope name
-                        nhtml.write(f'<td class="left">{telescope}</td>')
                         brow.append(telescope)
 
                         try:
@@ -772,6 +774,11 @@ def ulogger(args=None):
     css = os.path.join(root, "ultra.css")
     with open(css, "w") as fout:
         fout.write(LOG_CSS)
+
+    # write out the js file
+    css = os.path.join(root, "ultra.js")
+    with open(css, "w") as fout:
+        fout.write(LOGS_JS)
 
     # write out page of info about sql database
     sqdb = os.path.join(root, 'sqldb.html')
@@ -1676,36 +1683,54 @@ INDEX_FOOTER = """
 
 NIGHT_HEADER = """<!DOCTYPE html>
 <html>
-<head>
-<link rel="stylesheet" type="text/css" href="../ultra.css" />
-<title>{instrument} log {date}</title>
-</head>
+    <head>
+       <link rel="stylesheet" type="text/css" href="../ultra.css" />
+       <title>{instrument} log {date}</title>
+       <script src="../ultra.js"></script>
+    </head>
 
-<body>
+  <body>
 
-<h1>{instrument} log {date}</h1>
+    <h1>{instrument} log {date}</h1>
 
-<p> The table below lists information on runs from the night starting
-on {date}.  See the end of the table details on the
-meanings of the various columns. 
+    <p>
+      The table below lists information on runs from the night starting
+      on {date}.  See the end of the table details on the meanings of the
+      various columns. 
+    </p>
 
 {links}
 
 <p>
+<button id="More" onClick="showDetails(true)">More detail</button>
+<button id="Less" onClick="showDetails(false)">Less detail</button>
+</p>
+
+<p>
 <div class="tableFixHead">
 <table>
-<thead>
 """
 
-ULTRACAM_TABLE_HEADER = """<tr>
+ULTRACAM_TABLE_HEADER = """
+<col span="2">
+<col span="3" class="hide">
+<col>
+<col class="hide">
+<col span="4">
+<col class="hide">
+<col span="10">
+<col span="6" class="hide">
+<col>
+
+<thead>
+<tr>
 <th class="left">Run<br>no.</th>
 <th class="left">Target name</th>
 <th class="left">Auto ID</th>
 <th class="left">RA (J2000)</th>
 <th class="left">Dec&nbsp;(J2000)</th>
-<th class="cen">Date<br>(start)</th>
-<th class="cen">Start</th>
-<th class="cen">End</th>
+<th class="cen">Start<br>UTC</th>
+<th class="cen">End<br>UTC</th>
 <th class="right">Total<br>(sec)</th>
 <th class="right">Cad.<br>(sec)</th>
 <th class="right">Exp.<br>(sec)</th>
@@ -1725,7 +1750,6 @@ ULTRACAM_TABLE_HEADER = """<tr>
 <th class="cen">Observers</th>
 <th class="left">PI</th>
 <th class="left">PID</th>
-<th class="left">Tel</th>
 <th class="cen">Size<br>(MB)</th>
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
@@ -1744,9 +1768,8 @@ ULTRASPEC_TABLE_HEADER = """<tr>
 <th class="left">Tel RA</th>
 <th class="left">Tel Dec</th>
 <th class="left">PA</th>
-<th class="cen">Date<br>(start)</th>
-<th class="cen">Start</th>
-<th class="cen">End</th>
+<th class="cen">Start<br>UTC</th>
+<th class="cen">End<br>UTC</th>
 <th class="right">Total<br>(sec)</th>
 <th class="right">Cad.<br>(sec)</th>
 <th class="right">Exp.<br>(sec)</th>
@@ -1768,7 +1791,6 @@ ULTRASPEC_TABLE_HEADER = """<tr>
 <th class="cen">Observers</th>
 <th class="left">PI</th>
 <th class="left">PID</th>
-<th class="left">Tel</th>
 <th class="cen">Size<br>(MB)</th>
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
@@ -1785,7 +1807,7 @@ NIGHT_FOOTER = """
 
 {links}
 
-<p> 'Date' is the UTC date at the start of the exposure; 'Total' is
+<p> The night date is the date at the start of the night; 'Total' is
 the run length; 'Cad.' is the cadence or sampling time; 'Exp.'  is the
 exposure time per point; 'PA' is the PA on the sky (ULTRASPEC); 'Clr'
 indicates whether clears were enabled; 'Read mode' is the readout mode
@@ -1803,5 +1825,33 @@ as the GPS dropping out; 'Nb' is the nblue paramter of ULTRACAM.  </p>
 </html>
 """
 
+# Javascript controlling hiding / uncovering of parts of the night logs
+# for clarity / detail. Various elements have ids which are picked out by
+# this little script. The brief form is selected by default at the start
+LOGS_JS = """
 
+function showDetails(showDetail) {
 
+  // shows more or less detail according to the value of "showDetail"
+  let els = document.getElementsByClassName("hide");
+  for(let i = 0; i < els.length; i++) {
+     els[i].style.visibility = showDetail ? "visible" : "collapse";
+  }
+
+  // options to hide / restore stuff
+  let x = document.getElementById("More");
+  x.style.display = showDetail ? "none" : "inline";
+
+  x = document.getElementById("Less");
+  x.style.display = showDetail ? "inline" : "none";
+
+};
+
+function initialise() {
+  // turn off stuff at start
+  showDetails(false);
+};
+
+document.addEventListener('DOMContentLoaded', initialise);
+
+"""

@@ -670,7 +670,7 @@ LOG_CSS = """
 
 body {
     background-color: black;
-    font: 10pt sans-serif;
+    font: 11pt sans-serif;
     color: #FFFFFF;
     margin: 10px;
     border: 1px;
@@ -680,11 +680,17 @@ body {
 }
 
 button {
-   font-family: Arial,Helvetica,sans-serif;
-   font-size: 10px;
-   width: 10px;
-   height: 10px;
-   border-radius: 0%;
+   font-family: Arial, Helvetica, sans-serif;
+   font-size: 12px;
+   padding: 15px 32px;
+   text-align: center;
+   display: inline-block;
+   border-radius: 4px;
+   border: 2px solid darkred;
+}
+
+button:hover {
+   background-color: #ddd;
 }
 
 p {
@@ -714,23 +720,23 @@ span {
     position: sticky;
     top: 0;
     background: black;
-    color: #
 }
 
-.tableFixHead,
 .tableFixHead td {
-    box-shadow: inset 2px -2px #555;
+    box-shadow: inset 2px 2px #888, 2px 2px #888;
 }
 
 .tableFixHead th {
-    box-shadow: inset 2px -2px #555;
+    box-shadow: inset 2px 2px #888, 2px 2px #888;
 }
 
 table {
     border-collapse: collapse;
-    font: 10pt sans-serif;
+    font: 11pt sans-serif;
     padding: 4px;
+    margin: 10px;
     border: 2px;
+    border-color: white;
 }
 
 tr:hover {
@@ -741,10 +747,7 @@ td {
     vertical-align: top;
     text-align: center;
     white-space: nowrap;
-    padding-left: 2px;
-    padding-right: 5px;
-    padding-top: 2px;
-    padding-bottom: 2px;
+    padding: 4px;
 }
 
 td.left {
@@ -788,7 +791,8 @@ td.bleft {
 th {
     vertical-align:top;
     text-align: center;
-    padding: 2px;
+    padding: 4px;
+    color: #ffffaa;
 }
 
 th.left {
@@ -806,20 +810,21 @@ th.cen {
 a:link {
     color: #7070ff;
     text-decoration:underline;
-    font-size: 10pt;
+    font-size: 11pt;
 }
 
 a:visited {
     color: #e0b0e0;
     text-decoration:underline;
-    font-size: 10pt;
+    font-size: 11pt;
 }
 
 a:hover {
     color: red;
     text-decoration:underline;
-    font-size: 10pt;
+    font-size: 11pt;
 }
+
 """
 
 # end of CSS
