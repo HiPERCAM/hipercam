@@ -682,11 +682,11 @@ body {
 button {
    font-family: Arial, Helvetica, sans-serif;
    font-size: 11pt;
-   padding: 8px 16px;
+   padding: 6px 12px;
    text-align: center;
    display: inline-block;
    border-radius: 6px;
-   border: 2px solid darkred;
+   border: 3px solid darkred;
 }
 
 button:hover {
