@@ -103,6 +103,12 @@ def ulogger(args=None):
         action="store_true",
         help="quick update, useful for seeing the log of a new night. Skips olds logs or creation of the spreadsheet and SQL database",
     )
+    parser.add_argument(
+        "-r",
+        dest="retry",
+        action="store_true",
+        help="re-try any missing positions loaded from a file as UNDEF",
+    )
 
     # Get command line options
     args = parser.parse_args()
@@ -139,6 +145,9 @@ def ulogger(args=None):
         return
     linstrument = instrument.lower()
 
+    # buffers of messages on target lookups to print at the end
+    smessages, fmessages = [], []
+
     if args.night:
 
         # identify observatory
@@ -166,7 +175,7 @@ def ulogger(args=None):
 
         # read target info from standard locations
         targets = Targets('TARGETS')
-        skip_targets, failed_targets = load_skip_fail()
+        skip_targets = load_skip_fail()
 
         # Just re-do timing and positions for a particular night.
         runs = [run[:-4] for run in os.listdir(args.night) if fre.match(run)]
@@ -190,11 +199,20 @@ def ulogger(args=None):
         posdata = os.path.join(meta, 'posdata')
         make_positions(
             args.night, runs, observatory, instrument, hlog, targets,
-            skip_targets, failed_targets, tdata, posdata, True, rname
+            skip_targets, tdata, posdata, False, None, True, rname,
+            smesssages, fmesssages
         )
         print(f'Created & wrote positional data for {args.night} to {posdata}')
         print(f'Finished creating time & position data for {args.night}')
         print('Note that the html log for this night has not been created or updated')
+
+        if len(smessages):
+            print('\nYou may want to add the following to TARGETS to short-circuit SIMBAD lookups:\n')
+            print('\n'.join(smessages))
+
+        if len(fmessages):
+            print('\nYou may want to check these or add them to either SKIP_TARGETS or FAILED_TARGETS to short-circuit SIMBAD lookups:\n')
+            print('\n'.join(fmessages))
 
         # finish specific night at this point
         return
@@ -247,7 +265,7 @@ def ulogger(args=None):
     # looked up, target names to skip and failed ones potentially
     # recoverable with some work
     targets = Targets('TARGETS')
-    skip_targets, failed_targets = load_skip_fail()
+    skip_targets = load_skip_fail()
 
     # Index file
     index_tmp = os.path.join(root, 'index.html.tmp')
@@ -427,7 +445,7 @@ def ulogger(args=None):
                         ULTRACAM_TABLE_HEADER if linstrument == 'ultracam' \
                         else ULTRASPEC_TABLE_HEADER
                     )
-                    
+
                     # read and store the hand written log
                     handlog = os.path.join(night, f"{night}.dat")
                     hlog = Log(handlog)
@@ -457,24 +475,12 @@ def ulogger(args=None):
                     # Get or create positional info
 
                     posdata = os.path.join(meta, 'posdata')
-                    pdata = {}
-                    if not args.full and not args.positions and os.path.exists(posdata):
-                        # pre-existing file found
-                        with open(posdata) as pin:
-                            for line in pin:
-                                arr = line.split()
-                                arr[3] = arr[3].replace('~',' ')
-                                pdata[arr[0]] = [
-                                    '' if val == 'UNDEF' else val for val in arr[1:]
-                                ]
-                        print('Read position data from',posdata)
+                    load_old = not args.full and not args.positions
 
-                    else:
-                        # create it
-                        pdata = make_positions(
-                            night, runs, observatory, instrument, hlog, targets, skip_targets,
-                            failed_targets, tdata, posdata, False, rname
-                        )
+                    pdata = make_positions(
+                        night, runs, observatory, instrument, hlog, targets, skip_targets,
+                        tdata, posdata, load_old, args.retry, False, rname, smessages, fmessages
+                    )
 
                     # Right, finally!
                     #
@@ -930,7 +936,15 @@ see other switches for even slower and more in-depth options.""")
 
     print(f'\nAll done. Look in {root} for the outputs.')
 
-# End of main section
+    if len(smessages):
+        print('\nYou may want to add the following to TARGETS to short-circuit SIMBAD lookups:\n')
+        print('\n'.join(smessages))
+
+    if len(fmessages):
+        print('\nYou may want to check these or add them to either SKIP_TARGETS or FAILED_TARGETS to short-circuit SIMBAD lookups:\n')
+        print('\n'.join(fmessages))
+
+    # End of main section
 
 class Log(object):
     """
@@ -1186,13 +1200,19 @@ try reducing the minimum run length.
                 f.write('</table>\n</body>\n</html>\n')
 
 def load_skip_fail():
-    """Looks for a file called SKIP_TARGETS containing a list of target
-    names to skip as far as target position lookup, and another called
-    FAILED_TARGETS of targets that have failed target lokup. Returns
-    a list of names to skip and a dictionary keyed by target name that
-    returns a tuple containing run name, date and run number of the failed
-    name.
+    """Looks for a file called SKIP_TARGETS which simply contains a column
+    of target names to skip (e.g. "Tungsten flat"), and another called
+    FAILED_TARGETS which contains a list of targets that have failed
+    target lookup, which will also be skipped for now.  FAILED_TARGETS
+    contains other information following the target name, hence any
+    spaces in the target name are replaced by '~' so that it can be
+    clearly identified.
+
+    Simply returns with a list of target names that will be skipped
+    for speed. Returns with an empty list if neither file is found.
+
     """
+
     if os.path.exists('SKIP_TARGETS'):
         with open('SKIP_TARGETS') as fp:
             skip_targets = fp.readlines()
@@ -1202,20 +1222,21 @@ def load_skip_fail():
         print('No file called SKIP_TARGETS')
         skip_targets = []
 
-    failed_targets = {}
     if os.path.exists('FAILED_TARGETS'):
+        nfail = 0
         with open('FAILED_TARGETS') as fp:
             for line in fp:
                 if not line.startswith('#'):
-                    target,rdir,ndir,run = line.split()
-                    failed_targets[target] = (rdir,ndir,run)
+                    arr = line.split()
+                    target = arr[0].replace('~',' ')
                     skip_targets.append(target.replace('~',' '))
+                    nfail += 1
 
-        print(f'Loaded {len(failed_targets)} target names from FAILED_TARGETS')
+        print(f'Loaded {nfail} target names from FAILED_TARGETS')
     else:
         print('No file called FAILED_TARGETS')
 
-    return (skip_targets, failed_targets)
+    return skip_targets
 
 
 class TimeHMSCustom(TimeISO):
@@ -1382,21 +1403,72 @@ def make_times(night, runs, observatory, times, full):
 
 def make_positions(
         night, runs, observatory, instrument, hlog, targets,
-        skip_targets, failed_targets, tdata, posdata, full,
-        rname
+        skip_targets, tdata, posdata, load_old, retry,
+        full, rname, smessages, fmessages
 ):
     """
     Determine positional info, write to podata,
     return as dictionary keyed on the runs. Uses pre-determined
-    timing data from make_times
+    timing data from make_times.
+
+    smessages and fmessages are lists that should be initialised to [] that
+    are used to accumulates successfule and failed target lookup messages.
+
+      night : night name
+      runs : the runs to process
+      observatory : telescope
+      instrument : instrument name
+      hlog : hand-written log
+      targets : targets with pre-existing position data to avoid SIMBAD
+      skip_targets : list of target names not to bother with
+      tdata : timing data
+      posdata : name of file containing positional data
+      load_old : whether to start by trying to read pre-stored data
+      retry : whether to attempt to re-do any targets with undefined positions.
+              irrelevant if load_old == False
+      full : lots of info printed
+      rname : run name
+      smessages : buffer of successful target lookup messages
+      fmessages : buffer of failed target lookup messages
+
+    Returns with dictionary of positional data.
     """
 
     pdata = {}
+
+    if load_old and os.path.exists(posdata):
+        # pre-existing file found
+        with open(posdata) as pin:
+            for line in pin:
+                arr = line.split()
+                arr[3] = arr[3].replace('~',' ')
+                pdata[arr[0]] = [
+                    '' if val == 'UNDEF' else val for val in arr[1:]
+                ]
+        print('Read position data from',posdata)
+
+        if not retry:
+            return pdata
+
     with open(posdata,'w') as pout:
         for run in runs:
             if len(tdata[run]) == 1:
                 # means its a power on/off
                 continue
+
+            if run in pdata and pdata[run][2] != '':
+                # Already have positional data which we will
+                # not re-do, so just write to disk
+                arr = pdata[run].copy()
+                autoid_nospace = arr[2].replace(' ','~')
+                pout.write(
+                    f'{run} {arr[0]} {arr[1]} {autoid_nospace} {arr[3]} ' +
+                    f'{arr[4]} {arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} ' +
+                    f'{arr[10]} {arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n'
+                )
+                continue
+
+            # Now going to try to work stuff out
 
             if full:
                 print(f'Analysing positions for run {run}')
@@ -1421,10 +1493,12 @@ def make_positions(
             target = target.strip()
 
             # RA, Dec lookup
-            if target == '' or target in skip_targets or target in failed_targets:
+            if target == '' or target in skip_targets:
+                # don't even try
                 autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
             else:
                 try:
+                    # See if we already have the info stored
                     autoid, ra, dec = targets(target)
                 except:
                     try:
@@ -1432,10 +1506,22 @@ def make_positions(
                         autoid, ra, dec = target_lookup(target)
                         targets.add_target(target, ra, dec, autoid)
                         print(f'  Added {target} to targets')
+                        pos = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg))
+
+                        # save successful SIMBAD-based lookup
+                        smessages.append(
+                            f'{autoid.replace(' ','~'):32} {pos.to_string('hmsdms',sep=':',precision=2)} {target.replace(' ','~')}'
+                        )
                     except:
+                        # nothing worked
                         print(f'  No position found for {runname}, target = "{target}"')
-                        failed_targets[target] = (rname,night,run)
                         autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
+                        skipped_targets.append(target)
+
+                        # save in suitable format for adding to FAILED_TARGETS if wanted.
+                        fmessages.append(
+                            f'{target.replace(' ','~'):32} {rname} {night} {run}'
+                        )
 
             # start accumulating stuff to write out
             arr = [ra, dec, autoid]
