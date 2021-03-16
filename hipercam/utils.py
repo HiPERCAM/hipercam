@@ -400,12 +400,12 @@ def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simba
          search position comes from ra_tel and dec_tel
 
     If successful, it comes back with (name, ra, dec), the matched name and position.
-    ra, dec are in col-separated sexagesimal form. If it fails, it returns ('UNDEF','UNDEF','UNDEF').
+    ra, dec are in decimal form (hours, degrees). If it fails, it returns ('UNDEF','UNDEF','UNDEF').
     This is for use by the logging scripts.
     """
 
     err_msgs = []
-    
+
     if url.endswith('/'):
         url += 'simbad/sim-script'
     else:
