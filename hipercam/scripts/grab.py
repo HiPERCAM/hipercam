@@ -40,6 +40,13 @@ def grab(args=None):
               | 'us' : ULTRACAM server
               | 'ul' : local ULTRACAM .xml/.dat files
 
+           The standard start-off default for ``source'' can be set
+           using the environment variable
+           HIPERCAM_DEFAULT_SOURCE. e.g. in bash :code:`export
+           HIPERCAM_DEFAULT_SOURCE="us"` would ensure it always
+           started with the ULTRACAM server by default. If
+           unspecified, it defaults to 'hl'.
+
        run : string
            run name to access
 
@@ -101,6 +108,7 @@ def grab(args=None):
 
        |grab| is used by several other scripts such as |averun| so take great
        care when changing anything to do with its input parameters.
+
     """
 
     command, args = utils.script_args(args)
@@ -124,10 +132,11 @@ def grab(args=None):
         cl.register("dtype", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
+        default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
         source = cl.get_value(
             "source",
             "data source [hs, hl, us, ul]",
-            "hl",
+            default_source,
             lvals=("hs", "hl", "us", "ul"),
         )
 

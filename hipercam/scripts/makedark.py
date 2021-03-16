@@ -42,6 +42,13 @@ def makedark(args=None):
              |   'us' : ULTRACAM server
              |   'ul' : local ULTRACAM .xml/.dat files
 
+           The standard start-off default for ``source'' can be set
+           using the environment variable
+           HIPERCAM_DEFAULT_SOURCE. e.g. in bash :code:`export
+           HIPERCAM_DEFAULT_SOURCE="us"` would ensure it always
+           started with the ULTRACAM server by default. If
+           unspecified, it defaults to 'hl'.
+
        run : string
            run name to access
 
@@ -98,10 +105,11 @@ def makedark(args=None):
         cl.register("output", Cline.GLOBAL, Cline.PROMPT)
 
         # get inputs
+        default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
         source = cl.get_value(
             "source",
             "data source [hs, hl, us, ul]",
-            "hl",
+            default_source,
             lvals=("hs", "hl", "us", "ul"),
         )
 
