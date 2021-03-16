@@ -73,6 +73,7 @@ import re
 import sys
 import pickle
 import warnings
+import signal
 from collections import OrderedDict
 
 # next two lines allow tab completion of file names
@@ -245,9 +246,11 @@ class Cline:
                 self._lpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    "failed to read local defaults file "
-                    + self._lname
-                    + "; possible corrupted file.\n",
+                    f"failed to read local defaults file {self._lname}; " +
+                    "possible corrupted file. Defaults local to this " +
+                    "command will be reset.\n" +
+                    "Re-run it with 'prompt' in case hidden " +
+                    "parameters have changed values.",
                     ClineWarning,
                 )
                 self._lpars = {}
@@ -260,9 +263,11 @@ class Cline:
                 self._gpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    "failed to read global defaults file "
-                    + self._gname
-                    + "; possible corrupted file.\n",
+                    f"failed to read global defaults file {self._gname}; " +
+                    "possible corrupted file. Global defaults will be reset.\n" +
+                    "This comand and others may have with altered " +
+                    "'hidden' parameter values. Use 'prompt' on the " +
+                    "command line if you encounter odd behaviour or problems",
                     ClineWarning,
                 )
                 self._gpars = {}
@@ -345,6 +350,10 @@ class Cline:
                     ClineWarning,
                 )
 
+            # ignore ctrl-C during writing of default files to reduce
+            # chance of corruption
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+
             # save local defaults
             try:
                 with open(self._lname, "wb") as flocal:
@@ -380,6 +389,9 @@ class Cline:
                     " possible programming error\n",
                     ClineWarning,
                 )
+
+            # return to default behaviour
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     def prompt_state(self):
         """Says whether prompting is being forced or not. Note the propting state does
