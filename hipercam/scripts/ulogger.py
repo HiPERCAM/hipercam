@@ -44,10 +44,10 @@ def ulogger(args=None):
     ultra(cam|spec)/raw_data directory.  It extracts information from
     each run file. It usually runs without any parameters, although
     there are some optional unix-style command-line switches. It tries
-    to read target data from three files: TARGETS, FAILED_TARGETS and 
-    SKIP_TARGETS. TARGETS contains details of targets particularly
-    if not available on simbad; FAILED_TARGETS are those of interest
-    for tracking down; SKIP_TARGETS are ones of no interest.
+    to read target data from three files: TARGETS, FAILED_TARGETS and
+    SKIP_TARGETS. TARGETS contains details of targets particularly if
+    not available on simbad; FAILED_TARGETS are those of interest for
+    tracking down; SKIP_TARGETS are ones of no interest.
 
     If run at Warwick, it writes data to the web pages. Otherwise it
     writes them to a sub-directory of raw_data called "logs".  Bit of
@@ -70,11 +70,14 @@ def ulogger(args=None):
     before the final |ulogger| run for a complete spreadsheet and SQL
     database to be created.
 
-    To save time, ulogger does not by default re-do everything, so it 
-    does not by default recreate the timing and position data files
-    if they already exist. Even so, a default run takes a while and if you
-    just want to see the logs for a new night, the -q option could help as
-    that skips re-creating already existing logs and the spreadsheet and database.
+    To save time, ulogger does not by default re-do everything, so it
+    does not by default recreate the timing and position data files if
+    they already exist. Even so, a default run takes a while and if
+    you just want to see the logs for a few new nights, the '-q'
+    option could help as that skips re-creating already existing logs
+    and the spreadsheet and database. Similarly the '-n' option is
+    useful to simply focus of the timing and positional data of a
+    single night.
 
     """
     warnings.filterwarnings("ignore")
@@ -200,7 +203,7 @@ def ulogger(args=None):
         make_positions(
             args.night, runs, observatory, instrument, hlog, targets,
             skip_targets, tdata, posdata, False, None, True, rname,
-            smesssages, fmesssages
+            smessages, fmessages
         )
         print(f'Created & wrote positional data for {args.night} to {posdata}')
         print(f'Finished creating time & position data for {args.night}')
@@ -1406,13 +1409,15 @@ def make_positions(
         skip_targets, tdata, posdata, load_old, retry,
         full, rname, smessages, fmessages
 ):
-    """
-    Determine positional info, write to podata,
-    return as dictionary keyed on the runs. Uses pre-determined
-    timing data from make_times.
+    """Determine positional info, write to podata, return as dictionary
+    keyed on the runs. Uses pre-determined timing data from
+    make_times.
 
-    smessages and fmessages are lists that should be initialised to [] that
-    are used to accumulates successfule and failed target lookup messages.
+    smessages and fmessages are lists that should be initialised to []
+    that are used to accumulates successfule and failed target lookup
+    messages.
+
+    Arguments::
 
       night : night name
       runs : the runs to process
@@ -1425,13 +1430,16 @@ def make_positions(
       posdata : name of file containing positional data
       load_old : whether to start by trying to read pre-stored data
       retry : whether to attempt to re-do any targets with undefined positions.
-              irrelevant if load_old == False
+              irrelevant if load_old == False. If not, and retry = False, then
+              having loaded data, the function returns immediately, else it goes
+              through the targets retrying any that have no positional data.
       full : lots of info printed
       rname : run name
       smessages : buffer of successful target lookup messages
       fmessages : buffer of failed target lookup messages
 
     Returns with dictionary of positional data.
+
     """
 
     pdata = {}
@@ -1441,6 +1449,8 @@ def make_positions(
         with open(posdata) as pin:
             for line in pin:
                 arr = line.split()
+                if len(arr) != 17:
+                    raise ValueError(f'Line = "{line.strip()}" from {posdata} had {len(arr)}!=17 items')
                 arr[3] = arr[3].replace('~',' ')
                 pdata[arr[0]] = [
                     '' if val == 'UNDEF' else val for val in arr[1:]
@@ -1452,21 +1462,26 @@ def make_positions(
 
     with open(posdata,'w') as pout:
         for run in runs:
+
             if len(tdata[run]) == 1:
                 # means its a power on/off
                 continue
 
-            if run in pdata and pdata[run][2] != '':
-                # Already have positional data which we will
-                # not re-do, so just write to disk
-                arr = pdata[run].copy()
-                autoid_nospace = arr[2].replace(' ','~')
-                pout.write(
-                    f'{run} {arr[0]} {arr[1]} {autoid_nospace} {arr[3]} ' +
-                    f'{arr[4]} {arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} ' +
-                    f'{arr[10]} {arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n'
-                )
-                continue
+            if run in pdata:
+                if pdata[run][0] != '':
+                    # Already have positional data which we will
+                    # not re-do, so just write out to disk
+                    arr = ['UNDEF' if val == '' else val for val in pdata[run]]
+                    arr[2] = arr[2].replace(' ','~')
+                    pout.write(
+                        f"{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} {arr[4]} " +
+                        f"{arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} {arr[10]} " +
+                        f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n"
+                    )
+                    continue
+                recomp = False
+            else:
+                recomp = True
 
             # Now going to try to work stuff out
 
@@ -1490,7 +1505,7 @@ def make_positions(
                 target = hlog.target[run]
             else:
                 target = rhead.header.get("TARGET",'')
-            target = target.strip()
+            target = target.strip().replace('~',' ')
 
             # RA, Dec lookup
             if target == '' or target in skip_targets:
@@ -1500,6 +1515,7 @@ def make_positions(
                 try:
                     # See if we already have the info stored
                     autoid, ra, dec = targets(target)
+                    recomp = True
                 except:
                     try:
                         # attempt simbad lookup here
@@ -1510,18 +1526,31 @@ def make_positions(
 
                         # save successful SIMBAD-based lookup
                         smessages.append(
-                            f'{autoid.replace(' ','~'):32} {pos.to_string('hmsdms',sep=':',precision=2)} {target.replace(' ','~')}'
+                            f"{autoid.replace(' ','~'):32s} {pos.to_string('hmsdms',sep=':',precision=2)} {target.replace(' ','~')}"
                         )
+                        recomp = True
+
                     except:
                         # nothing worked
                         print(f'  No position found for {runname}, target = "{target}"')
                         autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
-                        skipped_targets.append(target)
+                        skip_targets.append(target)
 
                         # save in suitable format for adding to FAILED_TARGETS if wanted.
                         fmessages.append(
-                            f'{target.replace(' ','~'):32} {rname} {night} {run}'
+                            f"{target.replace(' ','~'):32s} {rname} {night} {run}"
                         )
+
+            if not recomp:
+                # can save a stack of time by not recomputing any Sun / Moon stuff
+                arr = ['UNDEF' if val == '' else val for val in pdata[run]]
+                arr[2] = arr[2].replace(' ','~')
+                pout.write(
+                    f"{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} {arr[4]} " +
+                    f"{arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} {arr[10]} " +
+                    f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n"
+                )
+                continue
 
             # start accumulating stuff to write out
             arr = [ra, dec, autoid]
@@ -1596,11 +1625,11 @@ def make_positions(
                 # write out info
                 arr = arr[:3] + 13*['UNDEF']
 
-            autoid_nospace = arr[2].replace(' ','~')
+            arr[2] = arr[2].replace(' ','~')
             pout.write(
-                f'{run} {arr[0]} {arr[1]} {autoid_nospace} {arr[3]} ' +
-                f'{arr[4]} {arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} ' +
-                f'{arr[10]} {arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n'
+                f"{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} {arr[4]} " +
+                f"{arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} {arr[10]} " +
+                f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n"
             )
 
             arr[2] = arr[2].replace('~',' ')
