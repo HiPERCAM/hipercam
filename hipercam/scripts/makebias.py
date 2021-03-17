@@ -113,6 +113,8 @@ def makebias(args=None):
         )
 
         run = cl.get_value("run", "run name", "run005")
+        root = os.path.basename(run)
+        cl.set_default('output', cline.Fname(root, hcam.HCAM))
 
         first = cl.get_value("first", "first frame to grab", 1, 0)
         last = cl.get_value("last", "last frame to grab", 0)
