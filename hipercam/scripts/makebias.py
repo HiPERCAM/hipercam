@@ -33,7 +33,7 @@ def makebias(args=None):
 
     Parameters:
 
-       source  : string [hidden]
+       source : str [hidden]
            Data source, four options:
 
              |   'hs' : HiPERCAM server
@@ -48,34 +48,36 @@ def makebias(args=None):
            started with the ULTRACAM server by default. If
            unspecified, it defaults to 'hl'.
 
-       run     : string
+       run : str
            run name to access
 
-       first   : int
+       first : int
            First frame to access
 
-       last    : int
+       last : int
            Last frame to access, 0 for the lot
 
-       sigma   : float
+       sigma : float
            The value of 'sigma' to pass to the clipped mean combination in
            'combine'
 
-       plot    : bool
+       plot : bool
            make a plot of the mean level versus frame number for each
            CCD. This can provide a quick check that the frames are not too
            different. You will need explicitly to close the plot generated at
            the end of the script
 
-       twait   : float [hidden]
+       twait : float [hidden]
            time to wait between attempts to find a new exposure, seconds.
 
-       tmax    : float [hidden]
+       tmax : float [hidden]
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
-       output  : string
-           name of final combined file
+       output : str
+           name of final combined file. Set by default to match the
+           last part of "run" (but it will have a different extension
+           so they won't clash)
 
       .. Note:: 
 
