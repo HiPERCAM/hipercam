@@ -8,6 +8,17 @@
 This page documents important changes in the pipeline, as a help to whether
 you should update.
 
+#. **17 March 2021, Version 0.21.2**: bug fix for a problem with saving
+   parameter default files.
+
+     * new environment variable HIPERCAM_DEFAULT_SOURCE introduced
+     * maebias output name synchronised with input
+     * lots of minor improvments to logging scripts
+     * filtid, new command, aimed at potential filter ID from sky flats
+
+   Here is the
+   :doc:`full list of changes, 0.21.1 to 0.21.2 <change_log_0.21.1_0.21.2>`.
+
 #. **05 March 2021, Version 0.21.1**: again a large number of updates and
    fixes in this version. Most are small or to do with data logging, but
    the cumulative effect is significant and some bugs have been fixed.
@@ -26,8 +37,8 @@ you should update.
      * should now be possible to display images with inverted axes
      * fixed bug preventing 'splice' from working
      * fixed bug for handling ULTRASPEC drift mode
- 
-   A complete list of changes can be seen here:
+
+   Here is the
    :doc:`full list of changes, 0.20.0 to 0.21.1 <change_log_0.20.0_0.21.1>`.
 
 #. **10 July 2020, Version 0.20.0**: a large number of updates and
