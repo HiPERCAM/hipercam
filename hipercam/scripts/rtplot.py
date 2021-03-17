@@ -125,7 +125,7 @@ def rtplot(args=None):
            when nskips are enabled (defaults to False). The profile fitting
            will still be disabled for bad frames.
 
-        bias : string
+        bias : str
            Name of bias frame to subtract, 'none' to ignore.
 
         lowlevel : float [hidden]
