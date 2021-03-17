@@ -246,12 +246,11 @@ class Cline:
                 self._lpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    f"failed to read local defaults file {self._lname}; " +
-                    "possible corrupted file. Defaults local to this " +
-                    "command will be reset.\n" +
-                    "Re-run it with 'prompt' in case hidden " +
-                    "parameters have changed values.",
-                    ClineWarning,
+                    f"""
+Failed to read local defaults file {self._lname}; possible corrupted
+file. Defaults local to this command will be reset. Re-run it with
+'prompt' on the commandline in case hidden parameters have changed
+their values.""", ClineWarning,
                 )
                 self._lpars = {}
 
@@ -263,12 +262,11 @@ class Cline:
                 self._gpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    f"failed to read global defaults file {self._gname}; " +
-                    "possible corrupted file. Global defaults will be reset.\n" +
-                    "This comand and others may have with altered " +
-                    "'hidden' parameter values. Use 'prompt' on the " +
-                    "command line if you encounter odd behaviour or problems",
-                    ClineWarning,
+                    f"""
+failed to read global defaults file {self._gname}; possible corrupted
+file. The global defaults will be reset. This comand and others may
+have altered 'hidden' parameter values. Re-run with 'prompt' on the
+command line to check.""", ClineWarning,
                 )
                 self._gpars = {}
         else:
@@ -807,10 +805,10 @@ class Cline:
 
 
 class Fname(str):
-    """Defines a callable parameter type for the :class:`Cline` to allow for some
-    early checks on file names. This is mainly to prevent a whole series of
-    parameters being input, only to find that the file name input in the first
-    one is incorrect.
+    """Defines a callable parameter type for the :class:`Cline` to allow
+    for some early checks on file names. This is mainly to prevent a
+    whole series of parameters being input, only to find that the file
+    name input in the first one is incorrect.
 
     """
 
@@ -926,8 +924,7 @@ class Fname(str):
         arguments that are passed off to __new__
 
         """
-        print("inside getnewargs", self)
-        return (self, self.ext, self.ftype, self.exist)
+        return (str(self), self.ext, self.ftype, self.exist)
 
 
 class ClineError(HipercamError):
