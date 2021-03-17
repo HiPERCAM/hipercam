@@ -3,7 +3,6 @@ import os
 import time
 
 import numpy as np
-from numpy.polynomial import Polynomial
 import matplotlib.pyplot as plt
 from astropy.time import Time
 import hipercam as hcam
@@ -25,13 +24,10 @@ def filtid(args=None):
     """``filtid [source] (run first last [twait tmax] |
     flist) trim ([ncol nrow]) ccdref maxlev plot``
 
-    Plots the mean values in each CCD versus those from a reference
-    CCD and fits ``y = m*x+c'', printing out the values of c then
-    m. The hope is that the ``m'' and ``c'' values are characteristic
-    of the filters in place, albeit with significant variations due to
-    sky colour.  There have to be at least two valid exposures, and
-    there must be at least two different CCDs, i.e. ULTRACAM and
-    |hiper|, but not ULTRASPEC.
+    Computes the ratio of the mean values in each CCD versus those of a reference CCD.
+    This is supposed to be applied to flat fields. The hope is that this might be
+    characteristic of the filter combination. Obviously requires > 1 CCD, i.e. not
+    ULTRASPEC.
 
     Parameters:
 
@@ -90,12 +86,32 @@ def filtid(args=None):
         ccdref : str
            The reference CCD (usually choose the g-band one)
 
-        maxlev : float
-           maximum exposure level to consider, in counts. Allows one to exclude saturated
-           data.
+        bias : str
+           bias frame to subtract (required)
+
+        lower : list of floats
+           Lower limits to the mean count level for a flat to be
+           included (after bias subtraction).  Should be the same
+           number as the number of CCDs, and will be assumed to be in
+           the same order. Separate with spaces. Prevents low exposure
+           data from being included.
+
+        upper : list of floats
+           Upper limits to the mean count level for a flat to be
+           included.  Should be the same number as the selected CCDs,
+           and will be assumed to be in the same order. Use to
+           eliminate saturated, peppered or non-linear
+           frames. Suggested hipercam values: 58000, 58000, 58000,
+           40000 and 40000 for CCDs 1, 2, 3, 4 and 5. Enter values
+           separated by spaces.  ULTRACAM values 49000, 29000, 27000
+           for CCDs 1, 2 and 3.
 
         plot: bool
            Plot the fit or not.
+
+    .. Note::
+
+       This is currently adapted specifically for ULTRACAM data
 
     """
 
@@ -116,7 +132,9 @@ def filtid(args=None):
         cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccdref", Cline.LOCAL, Cline.PROMPT)
-        cl.register("maxlev", Cline.LOCAL, Cline.PROMPT)
+        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
+        cl.register("lower", Cline.LOCAL, Cline.PROMPT)
+        cl.register("upper", Cline.LOCAL, Cline.PROMPT)
         cl.register("plot", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
@@ -163,9 +181,39 @@ def filtid(args=None):
             raise hcam.HipercamError("Only one CCD; this routine only works for > 1 CCD")
 
         ccds = list(ccdinf.keys())
-        ccdref = cl.get_value("ccdref", "the reference CCD to use for the X-values", ccds[1], lvals=ccds)
-        maxlev = cl.get_value("maxlev", "maximum count level to consider", 40000.)
-        plot = cl.get_value("plot", "plot the fit(s)?", True)
+        ccdref = cl.get_value("ccdref", "the reference CCD for the ratios", ccds[1], lvals=ccds)
+
+        bias = cl.get_value("bias", "bias frame", cline.Fname("bias", hcam.HCAM))
+
+        # read the bias frame
+        bias = hcam.MCCD.read(bias)
+        if len(bias) != len(ccds):
+            raise ValueError('bias has an incompatible number of CCDs')
+
+        # need to check that the default has the right number of items, if not,
+        # over-ride it
+        lowers = cl.get_default("lower")
+        if lowers is not None and len(lowers) != len(ccds):
+            cl.set_default("lower", len(ccds) * (5000,))
+
+        lowers = cl.get_value(
+            "lower",
+            "lower limits on mean count level for included flats, 1 per CCD",
+            len(ccds) * (5000,),
+        )
+        lowers = {k:v for k,v in zip(ccds,lowers)}
+
+        uppers = cl.get_default("upper")
+        if uppers is not None and len(uppers) != len(ccds):
+            cl.set_default("upper", len(ccds) * (50000,))
+        uppers = cl.get_value(
+            "upper",
+            "lower limits on mean count level for included flats, 1 per CCD",
+            len(ccds) * (50000,),
+        )
+        uppers = {k:v for k,v in zip(ccds,uppers)}
+
+        plot = cl.get_value("plot", "plot the results?", True)
 
     ################################################################
     #
@@ -174,14 +222,14 @@ def filtid(args=None):
     total_time = 0.
     xdata, ydata = {}, {}
 
-    # only want to look at other CCDs
+    # only want to look at CCDs other than ccdref
     ccds.remove(ccdref)
 
     # access images
     with spooler.data_source(source, resource, first, full=False) as spool:
 
         # 'spool' is an iterable source of MCCDs
-        nframe = first
+        nframe = 0
         for mccd in spool:
 
             if server_or_local:
@@ -203,23 +251,32 @@ def filtid(args=None):
             if trim:
                 hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
+            if nframe == 0:
+                # crop the bias on the first frame only
+                bias = bias.crop(mccd)
+
+            # bias subtraction
+            mccd -= bias
+
             # indicate progress
             tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
             print(
-                f"{mccd.head.get('NFRAME',nframe)}, utc= {tstamp.iso} " +
+                f"{mccd.head.get('NFRAME',nframe+1)}, utc= {tstamp.iso} " +
                 f"({'ok' if mccd.head.get('GOODTIME', True) else 'nok'})"
             )
 
-            xd = mccd[ccdref].mean()
-            if xd < maxlev:
+            # add in data if it is in range
+            xd  = mccd[ccdref].mean()
+            if xd > lowers[ccdref] and xd < uppers[ccdref]:
                 for cnam in ccds:
                     yd = mccd[cnam].mean()
-                    if cnam in xdata:
-                        xdata[cnam].append(xd)
-                        ydata[cnam].append(yd)
-                    else:
-                        xdata[cnam] = [xd]
-                        ydata[cnam] = [yd]
+                    if yd > lowers[cnam] and yd < uppers[cnam]:
+                        if cnam in xdata:
+                            xdata[cnam].append(xd)
+                            ydata[cnam].append(yd)
+                        else:
+                            xdata[cnam] = [xd]
+                            ydata[cnam] = [yd]
 
             if last and nframe == last:
                 break
@@ -230,37 +287,40 @@ def filtid(args=None):
     print()
     invalid = True
     for cnam in ccds:
-        xdata[cnam] = np.array(xdata[cnam])
-        ydata[cnam] = np.array(ydata[cnam])
-        print(
-            f'{cnam}-vs-{ccdref}: found {len(xdata[cnam])} valid points ranging from' +
-            f' {xdata[cnam].min():.1f} to {xdata[cnam].max():.1f} (CCD {ccdref}), ' +
-            f' {ydata[cnam].min():.1f} to {ydata[cnam].max():.1f} (CCD {cnam})'
-        )
-        if len(xdata[cnam]) >= 2:
+        if cnam in xdata:
+            xdata[cnam] = np.array(xdata[cnam])
+            ydata[cnam] = np.array(ydata[cnam])
+            print(
+                f'{cnam}-vs-{ccdref}: found {len(xdata[cnam])} valid points ranging from' +
+                f' {xdata[cnam].min():.1f} to {xdata[cnam].max():.1f} (CCD {ccdref}), ' +
+                f' {ydata[cnam].min():.1f} to {ydata[cnam].max():.1f} (CCD {cnam})'
+            )
             invalid = False
 
     if invalid:
-        raise hcam.HipercamError(f"Too few valid points found")
+        raise hcam.HipercamError(f"No valid points found at all")
 
     print()
     if plot:
         fig,axes = plt.subplots(len(ccds),1,sharex=True)
 
         for cnam, ax in zip(ccds, axes):
-            poly = Polynomial.fit(xdata[cnam], ydata[cnam], 1)
-            xfit,yfit = poly.linspace()
-            ax.plot(xdata[cnam],ydata[cnam],'.g')
-            ax.plot(xfit,yfit,'r--')
-            ax.set_ylabel(f'CCD = {cnam}')
-            if cnam == ccds[-1]:
-                ax.set_xlabel(f'CCD = {ccdref}')
-            print(f'{cnam}-vs-{ccdref} : {poly(0):.1f} {(poly(1000)-poly(0))/1000:.4f}')
+            if cnam in xdata:
+                xds = xdata[cnam]
+                ratios = ydata[cnam] / xds
+                mratio = ratios.mean()
+                ax.plot(xds,ratios,'.g')
+                ax.plot([xds.min(),xds.max()],[mratio,mratio],'r--')
+                ax.set_ylabel(f'Ratio CCD {cnam} / CCD {ccdref}')
+                if cnam == ccds[-1]:
+                    ax.set_xlabel(f'CCD = {ccdref} counts/pixel')
+                print(f'{cnam}-vs-{ccdref} = {mratio:.4f}')
         plt.show()
 
     else:
         for cnam in ccds:
-            poly = Polynomial.fit(xdata[cnam], ydata[cnam], 1)
-            print(f'{cnam}-vs-{ccdref} : {poly(0):.1f} {(poly(1000)-poly(0))/1000:.4f}')
-
+            if cnam in xdata:
+                ratios = ydata[cnam] / xdata[cnam]
+                mratio = ratios.mean()
+                print(f'{cnam}-vs-{ccdref} = {mratio:.4f}')
 
