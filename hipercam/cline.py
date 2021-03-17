@@ -469,7 +469,8 @@ class Cline:
 
     def get_default(self, param):
         """
-        Gets the current default value of a parameter called 'param'
+        Gets the current default value of a parameter called 'param'. Can come back None
+        if there is no value set.
         """
         if param not in self._rpars:
             raise ClineError(
@@ -477,9 +478,9 @@ class Cline:
             )
 
         if self._rpars[param]["g_or_l"] == Cline.GLOBAL:
-            defval = self._gpars[param]
+            defval = self._gpars.get(param,None)
         else:
-            defval = self._lpars[param]
+            defval = self._lpars.get(param,None)
         return defval
 
     def get_value(
