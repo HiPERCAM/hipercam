@@ -22,7 +22,7 @@ __all__ = [
 
 def makeflat(args=None):
     """``makeflat [source] (run first last [twait tmax] | flist) ngroup bias
-    dark ccd [clobber] output``
+    dark ccd lower upper [clobber] output``
 
     Averages a set of images to make a flat field.
 
@@ -237,7 +237,7 @@ def makeflat(args=None):
         # need to check that the default has the right number of items, if not
         # overr-ride it
         lowers = cl.get_default("lower")
-        if len(lowers) != len(ccds):
+        if lowers is not None and len(lowers) != len(ccds):
             cl.set_default("lower", len(ccds) * (5000,))
 
         lowers = cl.get_value(
@@ -247,7 +247,7 @@ def makeflat(args=None):
         )
 
         uppers = cl.get_default("upper")
-        if len(uppers) != len(ccds):
+        if uppers is not None and len(uppers) != len(ccds):
             cl.set_default("upper", len(ccds) * (50000,))
 
         uppers = cl.get_value(
