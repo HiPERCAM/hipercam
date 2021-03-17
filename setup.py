@@ -137,6 +137,7 @@ setup(
             'csub=hipercam.scripts.carith:csub',
             'digest=hipercam.scripts.digest:digest',
             'div=hipercam.scripts.arith:div',
+            'filtid=hipercam.scripts.filtid:filtid',
             'fits2hcm=hipercam.scripts.fits2hcm:fits2hcm',
             'flagcloud=hipercam.scripts.flagcloud:flagcloud',
             'ftargets=hipercam.scripts.ftargets:ftargets',

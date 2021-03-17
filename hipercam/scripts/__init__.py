@@ -10,6 +10,7 @@ from .atanalysis import atanalysis
 from .averun import averun
 from .carith import cadd, cdiv, cmul, csub
 from .combine import combine
+from .filtid import filtid
 from .fits2hcm import fits2hcm
 from .flagcloud import flagcloud
 from .ftargets import ftargets
