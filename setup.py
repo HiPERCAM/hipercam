@@ -159,6 +159,7 @@ setup(
             'makedark=hipercam.scripts.makedark:makedark',
             'makefield=hipercam.scripts.makestuff:makefield',
             'makeflat=hipercam.scripts.makeflat:makeflat',
+            'makefringe=hipercam.scripts.makefringe:makefringe',
             'makemccd=hipercam.scripts.makestuff:makemccd',
             'mstats=hipercam.scripts.mstats:mstats',
             'mul=hipercam.scripts.arith:mul',
