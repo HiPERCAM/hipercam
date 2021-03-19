@@ -3,17 +3,19 @@ hipercam
 
 hipercam is the reduction package for the multi-CCD camera HiPERCAM
 built through an ERC Advanced Grant awarded to Vik Dhillon. HiPERCAM
-is a multi-CCD high-speed camera for astrophysical research. The hipercam
-pipeline can also be used to reduce data from the ULTRACAM and ULTRASPEC
-high-speed cameras.
+is a multi-CCD high-speed camera for astrophysical research. The
+hipercam pipeline can also be used to reduce data from the ULTRACAM
+and ULTRASPEC high-speed cameras, and usually other instruments too
+after a little data format wrangling.
 
 Installation
 ============
 
 hipercam is written in Python3; it does not support Python2.x It
-relies on multiple third-party packages, as described in the next section.
-At minimum, you should ensure that Cython and trm.pgplot are installed.
-Once you have, get the hipercam pipeline software itself using::
+relies on multiple third-party packages, as described in the next
+section.  At minimum, you should ensure that Cython and trm.pgplot are
+installed.  Once you have, get the hipercam pipeline software itself
+using::
 
   git clone https://github.com/HiPERCAM/hipercam.git
 
@@ -23,9 +25,9 @@ directory and install with::
 
   pip install . --user
 
-If you have multiple versions of python, then you might need to specify
-pip3. If you want a self-contained install, I suggest looking into using
-"pipenv".
+If you have multiple versions of python, then you might need to
+specify pip3. If you want a self-contained install, I suggest looking
+into using "pipenv".
 
 To get the important command |setaper| working, make sure to use the
 Qt5Agg matplotlib backend. I have this set as the default in my
@@ -34,17 +36,25 @@ Qt5Agg matplotlib backend. I have this set as the default in my
 Third-Party Modules
 ===================
 
-Apart from Cython and trm.pgplot, I hope that most of the extras will get
-automatically installed if necessary by pip. If not, here are details, and
-you can probably either install via pip or by looking for the packages in
-your O/S package manager. e.g. under fedora, Cython appears as python3-Cython.
+One of the great strengths of Python is its many modules allowing
+effective code re-use rather than re-invention of the wheel.  Apart
+from Cython and trm.pgplot, I hope that most of the extras will get
+automatically installed if necessary by pip. So, you might as well
+try ``pip install . --user'' here and now.
+
+If something seems amiss, here are details of the third-party packages
+which you can either install via pip or by looking for the packages in
+your O/S package manager. e.g. under fedora, Cython appears as
+python3-Cython.
 
   astropy :
          astronomical Python package with lots of useful stuff.
 
   Cython :
          C-extensions for Python. Widely used package used to interface
-         to C-libraries and to enable faster code when critical.
+         to C-libraries and to enable faster code when critical. It is
+         needed at the setup stage so it might have to be installed first
+         rather than relying on pip finding it, although I could be wrong.
 
   fitsio :
          Provides fairly direct access to FITS through the cfitsio library.
@@ -54,7 +64,7 @@ your O/S package manager. e.g. under fedora, Cython appears as python3-Cython.
   matplotlib :
          standard plotting package for Python. You will also need
          a Qt backend. In opensuse for instance the package
-         python3-matplotib-qt5 enables the Qt5Agg backend
+         python3-matplotib-qt5 enables the Qt5Agg backend.
 
   numba :
         Another package along with Cython to support faster numerics. Uses
@@ -62,8 +72,13 @@ your O/S package manager. e.g. under fedora, Cython appears as python3-Cython.
 
   numpy :
          Python's numerical data package. Highly likely you will have
-         it, but note that you need at least version 1.12 to provide
-         `numpy.flip`.
+         it.
+
+  pandas :
+         Widely used table-handling module, based on numpy, and again
+         quite likely installed already. It is used for some routines
+         to do with generation of spreadsheets and logs in the
+         pipeline (see also xlsxwriter below).
 
   requests :
          http request module. It may well be installed already.
@@ -96,6 +111,11 @@ your O/S package manager. e.g. under fedora, Cython appears as python3-Cython.
 
   websocket-client :
          for talking to the hipercam server.
+
+  xlsxwriter :
+         if you want to use the logging scripts hlogger, ulogger,
+         the object search script logsearch or build log database
+         tools that output xlsx files. Since these are unusual
 
 Further Information
 ===================

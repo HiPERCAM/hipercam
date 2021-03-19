@@ -13,12 +13,14 @@
 .. |ol-csub|     replace:: subtract a constant from a frame
 .. |ol-div|      replace:: divide one frame by another
 .. |ol-fits2hcm| replace:: convert foreign FITs files to hcm format
+.. |ol-flagcloud| replace:: flag cloudy and junk data in a reduce log
 .. |ol-ftargets| replace:: automatically find targets using "sep"
 .. |ol-genred|   replace:: create a reduce file
 .. |ol-grab|     replace:: split frames out of a run
 .. |ol-hfilter|  replace:: filter a HiPERCAM image
 .. |ol-hinfo|    replace:: lists information on a HiPERCAM image
 .. |ol-hist|     replace:: plot a histogram of a frame
+.. |ol-hlog2col| replace:: produce ASCII column data from a reduce log
 .. |ol-hlog2fits| replace:: convert a reduction log file to FITS
 .. |ol-hls|      replace:: list the runs on the |hiper| server
 .. |ol-hplot|    replace:: plot a frame
@@ -57,17 +59,17 @@ specify parameters.
 .. contents:: Contents
    :local:
 
-Available commands
-==================
+Main commands
+=============
 
-This section contains the list of all |hiper| commands [#f1]_ ; see also the bottom of the page
+This section lists the main |hiper| commands [#f1]_ ; see also the bottom of the page
 for all the documentation on the commands in one long list. Clicking on a
 command name in the table below will take you to the relevant section of this long
 list. The table also indicates contexts in which each command is particularly
 useful.
 
 .. table::
-   :widths: 10 25 10 10 10 10 10
+   :widths: 10 30 8 8 8 8 8
 
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | Command      |Purpose         |Observing |Reduction |Plots &  |Arithematic|Information |
@@ -91,6 +93,8 @@ useful.
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |fits2hcm|   | |ol-fits2hcm|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |flagcloud|  | |ol-flagcloud| |          | Yes      | Yes     |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
    | |ftargets|   | |ol-ftargets|  | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |genred|     | |ol-genred|    | Yes      | Yes      |         |           |            |
@@ -102,6 +106,8 @@ useful.
    | |hinfo|      | |ol-hinfo|     |          |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hist|       | |ol-hist|      |          |          |  Yes    |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |hlog2col|   | |ol-hlog2col|  |          | Yes      | Yes     |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hlog2fits|  | |ol-hlog2fits| |          | Yes      |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -420,12 +426,14 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.csub
 .. autofunction:: hipercam.scripts.div
 .. autofunction:: hipercam.scripts.fits2hcm
+.. autofunction:: hipercam.scripts.flagcloud
 .. autofunction:: hipercam.scripts.ftargets
 .. autofunction:: hipercam.scripts.genred
 .. autofunction:: hipercam.scripts.grab
 .. autofunction:: hipercam.scripts.hfilter
 .. autofunction:: hipercam.scripts.hinfo
 .. autofunction:: hipercam.scripts.hist
+.. autofunction:: hipercam.scripts.hlog2col
 .. autofunction:: hipercam.scripts.hlog2fits
 .. autofunction:: hipercam.scripts.hls
 .. autofunction:: hipercam.scripts.hplot
@@ -449,9 +457,9 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.uls
 
 .. [#f1] Several other commands (``aligntool``, ``atanalysis``, ``atbytes``,
-         ``digest``, ``hlogger``, ``makefield``, ``makedata``, ``pfolder``,
-         ``tanalysis`` and ``tbytes``) are not documented here as they are
-         of specialist usage.  Information on these is however available via
+         ``digest``, ``hlogger``, ``hmeta``, ``makefield``, ``makedata``, ``pfolder``,
+         ``redplt``, ``tanalysis``, ``tbytes``, ``ulogger``) are not documented here
+         as they are of specialist usage.  Information on these is however available via
          ``pydoc``.
 
 

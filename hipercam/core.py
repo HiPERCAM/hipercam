@@ -3,6 +3,7 @@
 Core data, functions and classes for the hipercam package
 """
 
+from collections import OrderedDict as Odict
 from astropy.utils.exceptions import AstropyUserWarning
 import numpy as np
 
@@ -38,11 +39,13 @@ __all__ = (
     "NO_DATA",
     "CLOUDS",
     "JUNK",
-    "ANY_BAD",
+    "ANY_FLAG",
     "BAD_FLAT",
     "BAD_COLUMN",
     "BAD_TIME",
     "FLAGS",
+    "OUTLIER",
+    "FLAG_MESSAGES",
 )
 
 # Constants for general use
@@ -111,6 +114,9 @@ CNAMS = {
 # Bit masks (used in reduce.py and hlog.py)
 bmask = np.uint32
 ALL_OK = bmask(0)  # No problems detected (no bits set)
+ANY_FLAG = ~ALL_OK  # Matches any point flagged in some way
+
+# Now the flags; maximum number possible = 32
 NO_FWHM = bmask(1 << 0)  # No FWHM, even though variable apertures are being used
 NO_SKY = bmask(1 << 1)  # No sky pixels at all
 SKY_AT_EDGE = bmask(1 << 2)  # Sky aperture edge of window
@@ -124,27 +130,12 @@ JUNK = bmask(1 << 9)  # Unspecified junk data (e.g. cosmic ray hit)
 BAD_FLAT = bmask(1 << 10)  # Bad flat field pixel (e.g. deep dust speck)
 BAD_COLUMN = bmask(1 << 11)  # Bad column (e.g. target aperture includes such data)
 BAD_TIME = bmask(1 << 12)  # Bad time
-
-# Matches any bad point
-ANY_BAD = (
-    NO_FWHM
-    | NO_SKY
-    | SKY_AT_EDGE
-    | TARGET_AT_EDGE
-    | TARGET_SATURATED
-    | TARGET_NONLINEAR
-    | NO_EXTRACTION
-    | NO_DATA
-    | CLOUDS
-    | JUNK
-    | BAD_FLAT
-    | BAD_COLUMN
-    | BAD_TIME
-)
+OUTLIER = bmask(1 << 13)  # Point far from local trend (for Tseries)
 
 # all flags for useful reference in other places
 FLAGS = (
     ("ALL_OK", ALL_OK),
+    ("ANY_FLAG", ANY_FLAG),
     ("NO_FWHM", NO_FWHM),
     ("NO_SKY", NO_SKY),
     ("SKY_AT_EDGE", SKY_AT_EDGE),
@@ -158,9 +149,26 @@ FLAGS = (
     ("BAD_FLAT", BAD_FLAT),
     ("BAD_COLUMN", BAD_COLUMN),
     ("BAD_TIME", BAD_TIME),
-    ("ANY_BAD", ANY_BAD),
+    ("OUTLIER", OUTLIER),
 )
 
+# messages if various bitflags are set
+FLAG_MESSAGES = Odict((
+    (NO_FWHM, "no FWHM could be measured"),
+    (NO_SKY, "zero sky pixels"),
+    (SKY_AT_EDGE, "sky aperture overlapped the edge of the data window"),
+    (TARGET_AT_EDGE, "target aperture overlapped the edge of the data window"),
+    (TARGET_SATURATED, "target aperture had saturated pixels"),
+    (TARGET_NONLINEAR, "target aperture had non-linear pixels"),
+    (NO_EXTRACTION, "no extraction was possible"),
+    (NO_DATA, "there were no valid pixels in the target aperture"),
+    (CLOUDS, "marked as affected by clouds"),
+    (JUNK, "junk data of unspecified nature"),
+    (BAD_FLAT, "bad flat field feature in target aperture"),
+    (BAD_COLUMN, "bad column in in target aperture"),
+    (BAD_TIME, "the time was flagged as bad"),
+    (OUTLIER, "identified as an outlier")
+))
 
 def version():
     """Returns version number of installed HiPERCAM pipeline"""

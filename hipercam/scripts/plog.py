@@ -18,7 +18,7 @@ from hipercam.cline import Cline
 
 def plog(args=None):
     """``plog log [device width height] ccd1 aper1 param1 ccd2 (aper2 param2
-    scheme)``
+    scheme) [title]``
 
     Provides quick-look plots of HiPERCAM |reduce| logs.
 
@@ -38,27 +38,27 @@ def plog(args=None):
          plot height (inches). Set = 0 to let the program choose. BOTH
          width AND height must be non-zero to have any effect
 
-      ccd1 : string
+      ccd1 : str
          first CCD to consider, e.g. '1'
 
-      aper1 : string
+      aper1 : str
          first aperture to consider
 
-      param1 : string
+      param1 : str
          first parameter to consider. Choices are 'x' = X position,
          'y' = Y position, 'f' = FWHM, 'b' = Moffat beta, 's' = sky.
 
-      ccd2 : string
+      ccd2 : str
          second CCD to consider; '!' to ignore. Can be (and typically
          would be) the same as ccd1.
 
-      aper2 : string [if ccd2 != '!']
+      aper2 : str [if ccd2 != '!']
          second aperture to consider
 
-      param2 : string [if ccd2 != '!']
+      param2 : str [if ccd2 != '!']
          second parameter. See param1 for choices
 
-      scheme : string [if ccd2 != '!']
+      scheme : str [if ccd2 != '!']
          how to plot if both apertures are chosen. Choices:
 
             | 'd' = difference, i.e. plot 1-2
@@ -66,11 +66,17 @@ def plog(args=None):
             | 'r' = ratio, i.e. 1 / 2, good for relative photom
             | 's' = scatter plot, 2 vs 1.
 
+      title : str [hidden]
+         plot title. Defaults to the run number if not specified
+
     .. Note::
 
-       Points with negative errors are ignored. Be careful with linked
-       apertures where all x, y, FWHM, beta automatically have negative errors
-       since they are not fitted.
+       Points marked bad, or flagged as having bad times or junk are
+       ignored. i.e.  bitmask = BAD_TIME | JUNK is passed to every
+       invocation of Tseries.mplot.  Be careful with linked apertures
+       where all x, y, FWHM, beta automatically have negative errors
+       since they are not fitted. See |flagcloud| for how to flag up
+       junk data.
 
     """
 
@@ -91,6 +97,7 @@ def plog(args=None):
         cl.register("aper2", Cline.LOCAL, Cline.PROMPT)
         cl.register("param2", Cline.LOCAL, Cline.PROMPT)
         cl.register("scheme", Cline.LOCAL, Cline.PROMPT)
+        cl.register("title", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         log = cl.get_value(
@@ -134,6 +141,9 @@ def plog(args=None):
                 lvals=("b", "d", "r", "s"),
             )
 
+        cl.set_default("title", log)
+        title = cl.get_value("title", "plot title", "Plot Title")
+
     # load the reduce log
     hlog = hcam.hlog.Hlog.read(log)
 
@@ -148,29 +158,29 @@ def plog(args=None):
         dat2 = hlog.tseries(ccd2, aper2, pname2)
         if scheme == "b":
             # plots both together
-            dat1.mplot(plt, "b", mvalue=hcam.BAD_TIME, invert=True)
-            dat2.mplot(plt, "r", mvalue=hcam.BAD_TIME, invert=True)
+            dat1.mplot(plt, "b", bitmask=hcam.BAD_TIME|hcam.JUNK)
+            dat2.mplot(plt, "r", bitmask=hcam.BAD_TIME|hcam.JUNK)
             xlabel = "Time [MJD]"
             ylabel = "{:s} & {:s}".format(lab1, lab2)
 
         elif scheme == "r":
             # ratio
             ratio = dat1 / dat2
-            ratio.mplot(plt, "b", mvalue=hcam.BAD_TIME, invert=True)
+            ratio.mplot(plt, "b", bitmask=hcam.BAD_TIME|hcam.JUNK)
             xlabel = "Time [MJD]"
             ylabel = "{:s} / {:s}".format(lab1, lab2)
 
         elif scheme == "d":
             # difference
             diff = dat1 - dat2
-            diff.mplot(plt, "b", mvalue=hcam.BAD_TIME, invert=True)
+            diff.mplot(plt, "b", bitmask=hcam.BAD_TIME|hcam.JUNK)
             xlabel = "Time [MJD]"
             ylabel = "{:s} - {:s}".format(lab1, lab2)
 
         elif scheme == "s":
-            mask1 = dat1.get_mask(mvalue=hcam.BAD_TIME, invert=True)
-            mask2 = dat1.get_mask(mvalue=hcam.BAD_TIME, invert=True)
-            ok = mask1 & mask2
+            mask1 = dat1.get_mask(bitmask=hcam.BAD_TIME|hcam.JUNK, invert=True)
+            mask2 = dat1.get_mask(bitmask=hcam.BAD_TIME|hcam.JUNK, invert=True)
+            ok = ~mask1 & ~mask2
             plt.errorbar(
                 dat1.y[ok], dat2.y[ok], dat2.ye[ok], dat1.ye[ok], ".", capsize=0
             )
@@ -179,13 +189,13 @@ def plog(args=None):
 
     else:
         # just one
-        dat1.mplot(plt, mvalue=hcam.BAD_TIME, invert=True)
+        dat1.mplot(plt, bitmask=hcam.BAD_TIME|hcam.JUNK)
         xlabel = "Time [MJD]"
         ylabel = lab1
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title(log)
+    plt.title(title)
 
     if device == "term":
         plt.show()

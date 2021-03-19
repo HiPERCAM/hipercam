@@ -8,6 +8,28 @@
 This page documents important changes in the pipeline, as a help to whether
 you should update.
 
+#. **05 March 2021, Version 0.21.1**: again a large number of updates and
+   fixes in this version. Most are small or to do with data logging, but
+   the cumulative effect is significant and some bugs have been fixed.
+   Tseries in particular has undergone a bit of an overhaul and has
+   expanded functionality with an improved handling of bitmasks. Some
+   of these may break existing code based upon Tseries; apologies. Main
+   changes:
+
+     * makedark bug fixed (was not subtracting bias)
+     * new routine 'flagcloud' added to flag reduce logs interactively
+     * reduce argument order and handling improved
+     * a couple of new formats added to fits2hcm
+     * Tseries: much better handling of bad and flagged data
+     * Tseries bin option debugged
+     * plog now has an option of specifying a plot title
+     * should now be possible to display images with inverted axes
+     * fixed bug preventing 'splice' from working
+     * fixed bug for handling ULTRASPEC drift mode
+ 
+   A complete list of changes can be seen here:
+   :doc:`full list of changes, 0.20.0 to 0.21.1 <change_log_0.20.0_0.21.1>`.
+
 #. **10 July 2020, Version 0.20.0**: a large number of updates and
    fixes in this version. Apart from fixes to problems that would have
    been obvious as they were show-stoppers, the main changes are:
@@ -21,8 +43,7 @@ you should update.
    There are many changes here, and I expect there to be bugs as a result,
    but some of the changes are significant enough that it is better to
    release now rather than wait longer. See also the
-   :doc:`full list of changes, 0.19.8 to 0.20.0 <change_log_0.19.8_0.20.0>`,
-   and the :doc:`additional changes since 0.20.0 <change_log_0.20.0_to_now>`,
+   :doc:`full list of changes, 0.19.8 to 0.20.0 <change_log_0.19.8_0.20.0>`
 
 #. **26 February 2020, Version 0.19.8**: there have been many changes since
    the 0.16 versions. Apart from many bugfixes, the main ones are:

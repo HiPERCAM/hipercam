@@ -36,19 +36,19 @@ Params = {
     # window box colour index
     "win.box.ci": 7,
     # aperture target colour
-    "aper.target.ci": 15,
+    "aper.target.ci": 1,
     # aperture reference target colour
     "aper.reference.ci": 3,
     # aperture sky colour
     "aper.sky.ci": 2,
     # aperture label colour
-    "aper.label.ci": 6,
+    "aper.label.ci": 4,
     # aperture link colour
     "aper.link.ci": 5,
     # aperture mask colour
     "aper.mask.ci": 5,
     # aperture extra colour
-    "aper.extra.ci": 14,
+    "aper.extra.ci": 1,
     # moderate defect colour
     "defect.moderate.ci": 15,
     # severe defect colour
@@ -187,10 +187,14 @@ def pCcd(
     """
     if iset == "p":
         # Set intensities from percentiles
+        if xlo is not None and xhi is not None:
+            xlo = min(xlo, xhi)
+            xhi = max(xlo, xhi)
+        if ylo is not None and yhi is not None:
+            xlo = min(ylo, yhi)
+            xhi = max(ylo, yhi)
         vmin, vmax = ccd.percentile(
-            (plo, phi),
-            min(xlo,xhi), max(xlo,xhi),
-            min(ylo,yhi), max(ylo,yhi)
+            (plo, phi), xlo, xhi, ylo, yhi
         )
         if vmin is None:
             # no intensity limits calculated
@@ -241,7 +245,7 @@ def pAper(aper, label="", ccdAper=None):
     # draw circles to represent the aperture. 'objs' is a list of the
     # objects that we keep to return for possible later deletion.
     pgsfs(2)
-    pgsls(2)
+    pgslw(5)
     pgsls(1)
     if aper.ref:
         pgsci(Params["aper.reference.ci"])
@@ -249,7 +253,8 @@ def pAper(aper, label="", ccdAper=None):
         pgsci(Params["aper.target.ci"])
     pgcirc(aper.x, aper.y, aper.rtarg)
 
-    pgsci(Params["aper.sky.ci"])
+    if not aper.ref:
+        pgsci(Params["aper.sky.ci"])
     pgcirc(aper.x, aper.y, aper.rsky1)
     pgcirc(aper.x, aper.y, aper.rsky2)
 
@@ -275,26 +280,22 @@ def pAper(aper, label="", ccdAper=None):
             pgsci(Params["aper.link.ci"])
             pgarro(p1.x, p1.y, p1.x + v.x, p1.y + v.y)
 
-    # draw dashed lines connecting the aperture to the centres of mask
+    # draw dashed lines connecting the aperture to the centres of masks
     # indicated with circles.
     for xoff, yoff, r in aper.mask:
         # draw the line
         pgsci(Params["aper.mask.ci"])
         pgsls(2)
         pgline([aper.x, aper.x + xoff], [aper.y, aper.y + yoff])
-
-        # and now the circle
         pgcirc(aper.x + xoff, aper.y + yoff, r)
 
     # draw dashed lines connecting the aperture to the centres of extra
-    # indicated with circles.
+    # apertures indicated with dashed circles.
     for xoff, yoff in aper.extra:
         # draw the line
         pgsci(Params["aper.extra.ci"])
         pgsls(2)
         pgline([aper.x, aper.x + xoff], [aper.y, aper.y + yoff])
-
-        # and now the circle
         pgcirc(aper.x + xoff, aper.y + yoff, aper.rtarg)
 
     if label != "":

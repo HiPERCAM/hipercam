@@ -15,11 +15,7 @@ from . import defect
 
 
 # Font scale factor
-SCALE_FACTOR = (
-    float(os.environ["HIPERCAM_MPL_FSCALE"])
-    if "HIPERCAM_MPL_FSCALE" in os.environ
-    else 1.0
-)
+SCALE_FACTOR = float(os.environ.get("HIPERCAM_MPL_FSCALE",1.))
 
 # some look-and-feel globals.
 Params = {
@@ -52,7 +48,7 @@ Params = {
     # aperture mask colour
     "aper.mask.col": CIS[5],
     # aperture extra colour
-    "aper.extra.col": CIS[14],
+    "aper.extra.col": CIS[1],
     # moderate defect colour
     "defect.moderate.col": CIS[15],
     # severe defect colour
@@ -198,12 +194,14 @@ def pCcd(
     """
     if iset == "p":
         # Set intensities from percentiles
+        if xlo is not None and xhi is not None:
+            xlo = min(xlo, xhi)
+            xhi = max(xlo, xhi)
+        if ylo is not None and yhi is not None:
+            xlo = min(ylo, yhi)
+            xhi = max(ylo, yhi)
         vmin, vmax = ccd.percentile(
-            (plo, phi),
-            min(xlo,xhi),
-            max(xlo,xhi),
-            min(ylo,yhi),
-            max(ylo,yhi)
+            (plo, phi), xlo, xhi, ylo, yhi
         )
 
     elif iset == "a":

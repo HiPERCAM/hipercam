@@ -8,6 +8,7 @@ from astropy.time import Time
 import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
+from hipercam.core import *
 
 ############################################
 #
@@ -25,13 +26,13 @@ def fits2hcm(args=None):
 
     Parameters:
 
-      flist : string
-         name of list of input FITS-format files.
-         'flist' should end '.lis'. The output file names will
-         have the same rootname (without any leading directories)
-         but ends '.hcm' 
+      flist : str
+         name of list of input FITS-format files.  'flist' should end
+         '.lis'. The output file names will have the same rootname as
+         the input files (but without any leading directories) but end
+         in '.hcm'
 
-      origin : string
+      origin : str
          origin of the data. Currently recognised:
 
            HICKS :
@@ -42,14 +43,15 @@ def fits2hcm(args=None):
              Wide field Camera on the INT. Just operates on a single CCD's-worth
              of data.
 
+           LCOGT :
+             Las Cumbres Observatory, based on some FTN data taken in 2019.
+
            LTIO :
              Liverpool Telescope IO camera.
-             not work, let me know.
 
            LTRISE :
              Liverpool Telescope RISE camera. I don't know how general my
-             code is in this case. I assume XBIN=YBIN=2. If you find it does
-             not work, let me know.
+             code is in this case. I assume XBIN=YBIN=2.
 
            PT5M :
              University of Sheffield/Durham pt5m telescope on La Palma
@@ -59,14 +61,17 @@ def fits2hcm(args=None):
              University of Sheffield 10" Hicks Telescope
              ATIK ONE 6.0 CCD
 
+           WHTCAM :
+             Camera used by Richard Ashley in Feb 2021.
 
       overwrite : bool
          overwrite files on output
+
     """
 
     command, args = utils.script_args(args)
 
-    FORMATS = ["HICKS", "INTWFC", "LTRISE", "LTIO", "PT5M", "ROSA"]
+    FORMATS = ["HICKS", "INTWFC", "LTRISE", "LTIO", "PT5M", "ROSA", "LCOGT", "WHTCAM"]
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -160,7 +165,35 @@ def fits2hcm(args=None):
                     ophdu.header["TIMSTAMP"] = (time.isot, "Time stamp; fits2hcm")
 
                     # Copy data into first HDU
-                    ofhdu = fits.ImageHDU(hdul[0].data)
+                    if hdul[0].data is not None:
+                        ofhdu = fits.ImageHDU(hdul[0].data)
+                    elif hdul[1].data is not None:
+                        ofhdu = fits.ImageHDU(hdul[1].data)
+                    else:
+                        raise HipercamError(
+                            'Failed to find any data in first two HDUs'
+                        )
+
+                    try:
+                        wsec1 = ihead['WINSEC1']
+                        wsec2 = ihead['WINSEC2']
+                        wsec3 = ihead['WINSEC3']
+                        wsec4 = ihead['WINSEC4']
+                        nenabled = 0
+                        for wsec in (wsec1,wsec2,wsec3,wsec4):
+                            if wsec.find('enabled') > -1:
+                                nenabled += 1
+                                win = wsec
+
+                        if nenabled != 1:
+                            raise HipercamError(
+                                f'File = {fname}: incorrect number window segments enabled ({nenabled})'
+                            )
+                        xrng,yrng,rest = wsec.split(',')
+                        xl,xr = xrng[1:].split(':')
+                        yb,yt = yrng.split(':')
+                    except:
+                        xl,yb = 1,1
 
                     # Get header into right format
                     ofhdu.header["CCD"] = ("1", "CCD label")
@@ -168,8 +201,8 @@ def fits2hcm(args=None):
                     ofhdu.header["NYTOT"] = (4200, "Total unbinned X dimension")
                     ofhdu.header["NUMWIN"] = (1, "Total number of windows")
                     ofhdu.header["WINDOW"] = ("1", "Window label")
-                    ofhdu.header["LLX"] = (1, "X-ordinate of lower-left pixel")
-                    ofhdu.header["LLY"] = (1, "Y-ordinate of lower-left pixel")
+                    ofhdu.header["LLX"] = (int(xl), "X-ordinate of lower-left pixel")
+                    ofhdu.header["LLY"] = (int(yb), "Y-ordinate of lower-left pixel")
                     ofhdu.header["XBIN"] = (ihead["CCDXBIN"], "X-binning factor")
                     ofhdu.header["YBIN"] = (ihead["CCDYBIN"], "Y-binning factor")
                     ofhdu.header["MJDUTC"] = (mjd, "MJD at centre of exposure")
@@ -342,7 +375,7 @@ def fits2hcm(args=None):
                     nytot = ybin * ihead["CCDYIMSI"]
 
                     ofhdu.header["NXTOT"] = (nxtot, "Total unbinned X dimension")
-                    ofhdu.header["NYTOT"] = (nytot, "Total unbinned X dimension")
+                    ofhdu.header["NYTOT"] = (nytot, "Total unbinned Y dimension")
                     ofhdu.header["NUMWIN"] = (1, "Total number of windows")
                     ofhdu.header["WINDOW"] = ("1", "Window label")
                     ofhdu.header["LLX"] = (
@@ -359,6 +392,100 @@ def fits2hcm(args=None):
                     mjd = ihead["MJD"] + exptime / 2 / 86400
                     ofhdu.header["MJDUTC"] = (mjd, "MJD at centre of exposure")
                     ophdu.header["MJDUTC"] = (mjd, "MJD at centre of exposure")
+                    ofhdu.header["MJDINT"] = (
+                        int(mjd),
+                        "Integer part of MJD at centre of exposure",
+                    )
+                    ofhdu.header["MJDFRAC"] = (
+                        mjd - int(mjd),
+                        "Fractional part of MJD at centre of exposure",
+                    )
+                    ofhdu.header["EXPTIME"] = (exptime, "Exposure time, seconds")
+                    ohdul = fits.HDUList([ophdu, ofhdu])
+                    ohdul.writeto(oname, overwrite=overwrite)
+
+                elif origin == "LCOGT":
+
+                    # Copy main header into primary data-less HDU
+                    ihead = hdul[1].header
+                    ophdu = fits.PrimaryHDU(header=ihead)
+                    ophdu.header["NUMCCD"] = (1, "CCD number; fits2hcm")
+                    exptime = ihead["EXPTIME"]
+                    mjd = ihead["MJD-OBS"] + exptime / 2 / 86400
+                    time = Time(mjd + exptime / 2 / 86400, format="mjd")
+                    ophdu.header["TIMSTAMP"] = (time.isot, "Time stamp; fits2hcm")
+
+                    # Copy data into first HDU
+                    ofhdu = fits.ImageHDU(hdul[1].data)
+
+                    NXTOT = ihead['NAXIS1']
+                    NYTOT = ihead['NAXIS2']
+
+                    # Get header into right format
+                    ofhdu.header["CCD"] = ("1", "CCD label")
+                    ofhdu.header["NXTOT"] = (NXTOT, "Total unbinned X dimension")
+                    ofhdu.header["NYTOT"] = (NYTOT, "Total unbinned Y dimension")
+                    ofhdu.header["NUMWIN"] = (1, "Total number of windows")
+                    ofhdu.header["WINDOW"] = ("1", "Window label")
+                    ofhdu.header["LLX"] = (1, "X-ordinate of lower-left pixel")
+                    ofhdu.header["LLY"] = (1, "Y-ordinate of lower-left pixel")
+                    ofhdu.header["XBIN"] = (1, "X-binning factor")
+                    ofhdu.header["YBIN"] = (1, "Y-binning factor")
+                    ofhdu.header["MJDUTC"] = (mjd, "MJD at centre of exposure")
+                    ophdu.header["MJDUTC"] = (
+                        mjd,
+                        "MJD at centre of exposure; fits2hcm",
+                    )
+                    ofhdu.header["MJDINT"] = (
+                        int(mjd),
+                        "Integer part of MJD at centre of exposure",
+                    )
+                    ofhdu.header["MJDFRAC"] = (
+                        mjd - int(mjd),
+                        "Fractional part of MJD at centre of exposure",
+                    )
+                    ofhdu.header["EXPTIME"] = (exptime, "Exposure time, seconds")
+                    ohdul = fits.HDUList([ophdu, ofhdu])
+                    ohdul.writeto(oname, overwrite=overwrite)
+
+                elif origin == "WHTCAM":
+
+                    # Copy main header into primary data-less HDU
+                    ihead = hdul[0].header
+                    ophdu = fits.PrimaryHDU(header=ihead)
+                    ophdu.header["NUMCCD"] = (1, "CCD number; fits2hcm")
+                    exptime = ihead["EXPTIME"]
+                    mjd = ihead["MJD-OBS"] + exptime / 2 / 86400
+                    time = Time(mjd + exptime / 2 / 86400, format="mjd")
+                    ophdu.header["TIMSTAMP"] = (time.isot, "Time stamp; fits2hcm")
+
+                    # Copy data into first HDU
+                    if hdul[0].data is not None:
+                        ofhdu = fits.ImageHDU(hdul[0].data)
+                    elif hdul[1].data is not None:
+                        ofhdu = fits.ImageHDU(hdul[1].data)
+                    else:
+                        raise HipercamError(
+                            'Failed to find any data in first two HDUs'
+                        )
+
+                    # no window info
+
+                    # Get header into right format
+                    ofhdu.header["CCD"] = ("1", "CCD label")
+                    ofhdu.header["NXTOT"] = (3200, "Total unbinned X dimension")
+                    ofhdu.header["NYTOT"] = (3200, "Total unbinned Y dimension")
+                    ofhdu.header["NUMWIN"] = (1, "Total number of windows")
+                    ofhdu.header["WINDOW"] = ("1", "Window label")
+                    ofhdu.header["LLX"] = (1, "X-ordinate of lower-left pixel")
+                    ofhdu.header["LLY"] = (1, "Y-ordinate of lower-left pixel")
+                    ofhdu.header["XBIN"] = (ihead["XBINNING"], "X-binning factor")
+                    ofhdu.header["YBIN"] = (ihead["YBINNING"], "Y-binning factor")
+                    ofhdu.header["MJDUTC"] = (mjd, "MJD at centre of exposure")
+                    ophdu.header["MJDUTC"] = (
+                        mjd,
+                        "MJD at centre of exposure; fits2hcm",
+                    )
                     ofhdu.header["MJDINT"] = (
                         int(mjd),
                         "Integer part of MJD at centre of exposure",

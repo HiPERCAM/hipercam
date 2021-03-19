@@ -35,6 +35,7 @@ from trm.pgplot import (
 import matplotlib.pyplot as plt
 from hipercam import mpl
 
+NaN = float('NaN')
 
 class Rfile(OrderedDict):
     """Class to read and interpret reduce setup files. Similar to
@@ -1381,7 +1382,7 @@ class ProcessCCDs:
 
             if cnam not in self.store:
                 # initialisation
-                self.store[cnam] = {"mfwhm": -1.0, "mbeta": -1.0}
+                self.store[cnam] = {"mfwhm": -1., "mbeta": -1.}
 
             if self.pool is None:
                 # carry out processing serially, store results
@@ -1484,14 +1485,14 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     if apsec["location"] == "fixed":
         for apnam in ccdaper:
             store[apnam] = {
-                "xe": -1.0,
-                "ye": -1.0,
-                "fwhm": 0.0,
-                "fwhme": -1.0,
-                "beta": 0.0,
-                "betae": -1.0,
-                "dx": 0.0,
-                "dy": 0.0,
+                "xe": NaN,
+                "ye": NaN,
+                "fwhm": NaN,
+                "fwhme": NaN,
+                "beta": NaN,
+                "betae": NaN,
+                "dx": 0.,
+                "dy": 0.,
             }
         return True
 
@@ -1510,6 +1511,10 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     # next to store shifts
     shifts = []
 
+    # next is a shift that will be updated after the first fit. This allows
+    # the later reference stars to be not so good as the first. 
+    xshift, yshift = 0., 0.
+
     try:
         for apnam, aper in ccdaper.items():
             if aper.ref:
@@ -1526,14 +1531,15 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 
                 # get sub-window around start position
                 swdata = wdata.window(
-                    aper.x - shbox, aper.x + shbox, aper.y - shbox, aper.y + shbox
+                    aper.x + xshift - shbox, aper.x + xshift + shbox,
+                    aper.y + yshift - shbox, aper.y + yshift + shbox
                 )
 
                 # carry out initial search
                 x, y, peak = swdata.search(
                     apsec["search_smooth_fwhm"],
-                    aper.x,
-                    aper.y,
+                    aper.x + xshift,
+                    aper.y + yshift,
                     apsec["fit_height_min_ref"],
                     apsec["search_smooth_fft"],
                 )
@@ -1614,7 +1620,12 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     wysum += wy
                     ysum += wy * dy
 
-                    shifts.append((dx, dy))
+                    if len(shifts) == 0:
+                        # store the first to help any subsequent ones
+                        xshift, yshift = dx, dy
+
+                    shifts.append((apnam, dx, dy))
+
 
                     # store stuff
                     store[apnam] = {
@@ -1658,18 +1669,18 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
 
         for apnam, aper in ccdaper.items():
             store[apnam] = {
-                "xe": -1.0,
-                "ye": -1.0,
-                "fwhm": 0.0,
-                "fwhme": -1.0,
-                "beta": 0.0,
-                "betae": -1.0,
-                "dx": 0.0,
-                "dy": 0.0,
+                "xe": NaN,
+                "ye": NaN,
+                "fwhm": NaN,
+                "fwhme": NaN,
+                "beta": NaN,
+                "betae": NaN,
+                "dx": 0.,
+                "dy": 0.,
             }
 
-        store["mfwhm"] = -1.0
-        store["mbeta"] = -1.0
+        store["mfwhm"] = NaN
+        store["mbeta"] = NaN
         return False
 
     # at this point we are done with measuring the positions of the reference
@@ -1683,27 +1694,28 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
         # shifts for consistency as a guard against cosmic rays and other
         # offsets
         if len(shifts) > 1:
-            for n, (x1, y1) in enumerate(shifts[:-1]):
-                for (x2, y2) in shifts[n + 1 :]:
+            for n, (apn1, x1, y1) in enumerate(shifts[:-1]):
+                for (apn2, x2, y2) in shifts[n + 1 :]:
                     diff = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
                     if np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) > apsec["fit_diff"]:
                         # have exceeded threshold differential shift
                         for apnam, aper in ccdaper.items():
                             store[apnam] = {
-                                "xe": -1.0,
-                                "ye": -1.0,
-                                "fwhm": 0.0,
-                                "fwhme": -1.0,
-                                "beta": 0.0,
-                                "betae": -1.0,
-                                "dx": 0.0,
-                                "dy": 0.0,
+                                "xe": NaN,
+                                "ye": NaN,
+                                "fwhm": NaN,
+                                "fwhme": NaN,
+                                "beta": NaN,
+                                "betae": NaN,
+                                "dx": 0.,
+                                "dy": 0.,
                             }
 
-                        store["mfwhm"] = -1.0
-                        store["mbeta"] = -1.0
+                        store["mfwhm"] = NaN
+                        store["mbeta"] = NaN
 
+                        # give some info on the problem
                         print(
                             (
                                 "CCD {:s}: reference aperture differential "
@@ -1711,6 +1723,13 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                             ).format(cnam, diff, apsec["fit_diff"]),
                             file=sys.stderr,
                         )
+                        for apn, xs, ys in shifts:
+                            print(
+                                (
+                                    "  Aperture {:s}: xshift, yshift = {:.2f}, {:.2f}"
+                                ).format(apn, xs, ys),
+                                file=sys.stderr,
+                            )
                         return False
 
         if wxsum > 0.0 and wysum > 0.0:
@@ -1733,17 +1752,17 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
             for apnam, aper in ccdaper.items():
                 if not aper.ref:
                     store[apnam] = {
-                        "xe": -1.0,
-                        "ye": -1.0,
-                        "fwhm": 0.0,
-                        "fwhme": -1.0,
-                        "beta": 0.0,
-                        "betae": -1.0,
-                        "dx": 0.0,
-                        "dy": 0.0,
+                        "xe": NaN,
+                        "ye": NaN,
+                        "fwhm": NaN,
+                        "fwhme": NaN,
+                        "beta": NaN,
+                        "betae": NaN,
+                        "dx": 0.,
+                        "dy": 0.,
                     }
-            store["mfwhm"] = -1.0
-            store["mbeta"] = -1.0
+            store["mfwhm"] = NaN
+            store["mbeta"] = NaN
 
             print(
                 (
@@ -1945,12 +1964,12 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 aper.y += yshift
 
                 store[apnam] = {
-                    "xe": -1.0,
-                    "ye": -1.0,
-                    "fwhm": 0.0,
-                    "fwhme": -1.0,
-                    "beta": 0.0,
-                    "betae": -1.0,
+                    "xe": NaN,
+                    "ye": NaN,
+                    "fwhm": NaN,
+                    "fwhme": NaN,
+                    "beta": NaN,
+                    "betae": NaN,
                     "dx": xshift,
                     "dy": yshift,
                 }
@@ -1963,12 +1982,12 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
             aper.y += store[aper.link]["dy"]
 
             store[apnam] = {
-                "xe": -1.0,
-                "ye": -1.0,
-                "fwhm": 0.0,
-                "fwhme": -1.0,
-                "beta": 0.0,
-                "betae": -1.0,
+                "xe": NaN,
+                "ye": NaN,
+                "fwhm": NaN,
+                "fwhme": NaN,
+                "beta": NaN,
+                "betae": NaN,
                 "dx": store[aper.link]["dx"],
                 "dy": store[aper.link]["dy"],
             }
@@ -2410,7 +2429,7 @@ class LightCurve(BaseBuffer):
                 fte = targ["countse"]
                 saturated = targ["flag"] & hcam.TARGET_SATURATED
 
-                if fte > 0:
+                if fte == fte:
 
                     if self.comp != "!":
                         comp = reses[self.comp]
@@ -2418,14 +2437,11 @@ class LightCurve(BaseBuffer):
                         fce = comp["countse"]
                         saturated |= comp["flag"] & hcam.TARGET_SATURATED
 
-                        if fc > 0:
-                            if fce > 0.0:
-                                f = ft / fc
-                                fe = np.sqrt(
-                                    (fte / fc) ** 2 + (ft * fce / fc ** 2) ** 2
-                                )
-                            else:
-                                continue
+                        if fc == fc and fce == fce:
+                            f = ft / fc
+                            fe = np.sqrt(
+                                (fte / fc) ** 2 + (ft * fce / fc ** 2) ** 2
+                            )
                         else:
                             continue
                     else:
@@ -2531,7 +2547,7 @@ class Xposition(BaseBuffer):
                 x = targ["x"]
                 xe = targ["xe"]
 
-                if xe <= 0:
+                if xe != xe:
                     # skip junk
                     continue
 
@@ -2625,7 +2641,7 @@ class Yposition(BaseBuffer):
                 y = targ["y"]
                 ye = targ["ye"]
 
-                if ye <= 0:
+                if ye != ye:
                     # skip junk
                     continue
 
@@ -2703,7 +2719,7 @@ class Transmission(BaseBuffer):
                 f = targ["counts"]
                 fe = targ["countse"]
 
-                if f <= 0 or fe <= 0:
+                if f <= 0 or fe != fe:
                     # skip junk
                     continue
 
@@ -2780,7 +2796,7 @@ class Seeing(BaseBuffer):
                 f = targ["fwhm"]
                 fe = targ["fwhme"]
 
-                if f <= 0 or fe <= 0:
+                if f <= 0 or fe != fe:
                     # skip junk
                     continue
 
@@ -2873,19 +2889,6 @@ def toBool(rfile, section, param):
         )
 
 
-# messages if various bitflags are set
-FLAG_MESSAGES = {
-    hcam.NO_FWHM: "no FWHM could be measured",
-    hcam.NO_SKY: "zero sky pixels",
-    hcam.SKY_AT_EDGE: "sky aperture overlaps edge of window",
-    hcam.TARGET_AT_EDGE: "target aperture overlaps edge of window",
-    hcam.TARGET_SATURATED: "target aperture has saturated pixels",
-    hcam.TARGET_NONLINEAR: "target aperture has nonlinear pixels",
-    hcam.NO_EXTRACTION: "no extraction possible",
-    hcam.NO_DATA: "no valid pixels in target aperture",
-}
-
-
 class LogWriter:
     """Context manager to handle opening logfiles, writing headers to logfiles
     and safe exit.
@@ -2922,6 +2925,16 @@ class LogWriter:
         """
         monitor = self.rfile["monitor"]
 
+        def float2str(value, form, sval=None):
+            """Formats a float as a string accounting for NaNs. value is the value,
+            form is the format to be used for the string, e.g. '.2f'. If value matches
+            the special value sval then also convert to NaN.
+            """
+            if value == sval or np.isnan(value):
+                return 'nan'
+            else:
+                return f'{value:{form}}'
+
         alerts = []
         for cnam, res in results:
             # Loop over all CCDs
@@ -2940,10 +2953,12 @@ class LogWriter:
                 mfwhm = store["mfwhm"]
                 mbeta = store["mbeta"]
 
-                # write generic data
+                # write generic data. have to take a little care because of NaN values
                 self.log.write(
-                    "{:s} {:d} {:.14f} {:b} {:.8g} {:.2f} {:.2f} ".format(
-                        cnam, nframe, mjd, mjdok, expose, mfwhm, mbeta
+                    "{:s} {:d} {:.14f} {:b} {:.8g} {} {} ".format(
+                        cnam, nframe, mjd, mjdok, expose,
+                        float2str(mfwhm,'.2f',-1.),
+                        float2str(mbeta,'.2f',-1.),
                     )
                 )
 
@@ -2951,22 +2966,20 @@ class LogWriter:
                 for apnam in ccdaper:
                     r = reses[apnam]
                     self.log.write(
-                        "{:.4f} {:.4f} {:.4f} {:.4f} "
-                        "{:.3f} {:.3f} {:.3f} {:.3f} "
-                        "{:.1f} {:.1f} {:.2f} {:.2f} "
+                        "{} {} {} {} {} {} {} {} {} {} {} {} "
                         "{:d} {:d} {:d} {:d} ".format(
-                            r["x"],
-                            r["xe"],
-                            r["y"],
-                            r["ye"],
-                            r["fwhm"],
-                            r["fwhme"],
-                            r["beta"],
-                            r["betae"],
-                            r["counts"],
-                            r["countse"],
-                            r["sky"],
-                            r["skye"],
+                            float2str(r["x"],'.4f'),
+                            float2str(r["xe"],'.4f'),
+                            float2str(r["y"],'.4f'),
+                            float2str(r["ye"],'.4f'),
+                            float2str(r["fwhm"],'.3f'),
+                            float2str(r["fwhme"],'.3f',-1.),
+                            float2str(r["beta"],'.3f'),
+                            float2str(r["betae"],'.3f'),
+                            float2str(r["counts"],'.1f'),
+                            float2str(r["countse"],'.1f'),
+                            float2str(r["sky"],'.2f'),
+                            float2str(r["skye"],'.2f'),
                             r["nsky"],
                             r["nrej"],
                             r["cmax"],
@@ -2980,8 +2993,8 @@ class LogWriter:
                         flag = r["flag"]
                         messes = []
                         for bitmask in bitmasks:
-                            if (flag & bitmask) and bitmask in FLAG_MESSAGES:
-                                messes.append(FLAG_MESSAGES[bitmask])
+                            if (flag & bitmask) and bitmask in hcam.FLAG_MESSAGES:
+                                messes.append(hcam.FLAG_MESSAGES[bitmask])
 
                         if len(messes):
                             alerts.append(

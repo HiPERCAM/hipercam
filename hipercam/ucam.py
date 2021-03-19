@@ -101,7 +101,7 @@ class Rhead:
        headerwords : int
           number of words (2-bytes/word) in timing info at start of a frame.
 
-       instrument : string
+       instrument : str
           'ULTRACAM' or 'ULTRASPEC'
 
        nccd : int
@@ -125,7 +125,7 @@ class Rhead:
        version : int
           version number
 
-       whichRun : string [ULTRACAM]
+       whichRun : str [ULTRACAM]
           to do with timing.
 
        win : list
@@ -133,6 +133,9 @@ class Rhead:
           but the windows of each CCD are identical so the information is only
           stored once for all CCDs.
 
+       wforms : tuple of str
+          formats of each set of windows as strings on integers separted by commas
+          designed to match the input expected for udriver/usdriver, for logging purposes.
     """
 
     def __init__(self, run, server=False):
@@ -334,6 +337,7 @@ class Rhead:
             or app == "appl1_pon_cfg"
             or app == "appl2_pof_cfg"
             or app == "ccd201_pon_cfg"
+            or app == "ccd201_pof_cfg"
         ):
             mode = "PONOFF"
         else:
@@ -575,7 +579,7 @@ class Rhead:
         if self.headerwords == 16:
             VERSIONS = [100222, 111205, 120716, 120813, 130307, 130317, 130417, 140331]
             if version not in VERSIONS:
-                raise ValueError("could not recognise version = {:d}".format(version))
+                raise ValueError(f"could not recognise version = {version}")
 
         self.whichRun = ""
         if instrument == "ULTRACAM":
@@ -599,6 +603,29 @@ class Rhead:
         exposeTime *= self.timeUnits
         head["EXPDELAY"] = (exposeTime, "Exposure delay (seconds)")
         self.exposeTime = exposeTime
+
+
+        # set strings for logging purposes giving the window formats used in udriver / usdriver
+        self.wforms = []
+
+        if instrument == "ULTRACAM":
+
+            for wl, wr in zip(self.win[::2],self.win[1::2]):
+                xsl = wl.llx
+                xsr = wr.llx
+                ys = wl.lly
+                nx = wl.nx
+                ny = wl.ny
+                self.wforms.append(f"{xsl},{xsr},{ys},{nx},{ny}")
+
+        elif instrument == "ULTRASPEC":
+
+            for w in self.win:
+                xs = w.llx
+                ys = w.lly
+                nx = w.nx
+                ny = w.ny
+                self.wforms.append(f"{xs},{ys},{nx},{ny}")
 
         # Finally have reached end of constructor / initialiser
 
@@ -630,16 +657,16 @@ class Utime:
     """
     Represents a time for a CCD. Four attributes::
 
-       mjd : (float)
+       mjd : float
           modified Julian day number
 
-       expose : (float)
+       expose : float
           exposure time, seconds.
 
-       good : (bool)
+       good : bool
           is the time thought to be reliable?
 
-       reason : (string)
+       reason : str
           if good == False, this is the reason.
     """
 
@@ -949,12 +976,8 @@ class Rdata(Rhead):
                 self.fp.seek(0)
                 self.nframe = 1
                 raise UltracamError(
-                    (
-                        "failed to read frame {:d}. Buffer length vs "
-                        "attempted = {:d} vs {:d}"
-                    ).format(
-                        self.nframe, len(buff), self.framesize / 2 - self.headerwords
-                    )
+                        f"failed to read frame {self.nframe}. Buffer length vs "
+                        f"attempted = {len(buff)} vs {self.framesize // 2 - self.headerwords}"
                 )
 
         # From this point, both server and local disk methods are the same
@@ -1387,7 +1410,7 @@ class Rdata(Rhead):
 
                 elif self.output == "A":
                     # avalanche output, drift
-                    comb = np.reshape(buff[:npix], (wl.ny, wl.nx + wr.nx)[:, ::-1])
+                    comb = np.reshape(buff[:npix], (wl.ny, wl.nx + wr.nx))[:, ::-1]
                     outamp = "LR"
 
                 wmodl = Winhead(llxl, wl.lly, wl.nx - nchopl, wl.ny, xbin, ybin, outamp)
@@ -1675,6 +1698,9 @@ def utimer(tbytes, rhead, fnum):
 
          midnightCorr : bool
              was the midnight bug correction applied
+
+         fnum : int
+             the frame number used for the call to utimer
 
      ULTRACAM only:
 
@@ -2483,6 +2509,7 @@ def utimer(tbytes, rhead, fnum):
         "frameError": frameError,
         "midnightCorr": midnightCorr,
         "ntmin": ntmin,
+        "fnum": fnum
     }
 
     if rhead.instrument == "ULTRACAM":

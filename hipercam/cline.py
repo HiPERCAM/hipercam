@@ -73,6 +73,7 @@ import re
 import sys
 import pickle
 import warnings
+import signal
 from collections import OrderedDict
 
 # next two lines allow tab completion of file names
@@ -245,10 +246,11 @@ class Cline:
                 self._lpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    "failed to read local defaults file "
-                    + self._lname
-                    + "; possible corrupted file.\n",
-                    ClineWarning,
+                    f"""
+Failed to read local defaults file {self._lname}; possible corrupted
+file. Defaults local to this command will be reset. Re-run it with
+'prompt' on the commandline in case hidden parameters have changed
+their values.""", ClineWarning,
                 )
                 self._lpars = {}
 
@@ -260,10 +262,11 @@ class Cline:
                 self._gpars = {}
             except (EOFError, pickle.UnpicklingError):
                 warnings.warn(
-                    "failed to read global defaults file "
-                    + self._gname
-                    + "; possible corrupted file.\n",
-                    ClineWarning,
+                    f"""
+failed to read global defaults file {self._gname}; possible corrupted
+file. The global defaults will be reset. This comand and others may
+have altered 'hidden' parameter values. Re-run with 'prompt' on the
+command line to check.""", ClineWarning,
                 )
                 self._gpars = {}
         else:
@@ -345,6 +348,10 @@ class Cline:
                     ClineWarning,
                 )
 
+            # ignore ctrl-C during writing of default files to reduce
+            # chance of corruption
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+
             # save local defaults
             try:
                 with open(self._lname, "wb") as flocal:
@@ -380,6 +387,9 @@ class Cline:
                     " possible programming error\n",
                     ClineWarning,
                 )
+
+            # return to default behaviour
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     def prompt_state(self):
         """Says whether prompting is being forced or not. Note the propting state does
@@ -457,7 +467,8 @@ class Cline:
 
     def get_default(self, param):
         """
-        Gets the current default value of a parameter called 'param'
+        Gets the current default value of a parameter called 'param'. Can come back None
+        if there is no value set.
         """
         if param not in self._rpars:
             raise ClineError(
@@ -465,9 +476,9 @@ class Cline:
             )
 
         if self._rpars[param]["g_or_l"] == Cline.GLOBAL:
-            defval = self._gpars[param]
+            defval = self._gpars.get(param,None)
         else:
-            defval = self._lpars[param]
+            defval = self._lpars.get(param,None)
         return defval
 
     def get_value(
@@ -794,10 +805,10 @@ class Cline:
 
 
 class Fname(str):
-    """Defines a callable parameter type for the :class:`Cline` to allow for some
-    early checks on file names. This is mainly to prevent a whole series of
-    parameters being input, only to find that the file name input in the first
-    one is incorrect.
+    """Defines a callable parameter type for the :class:`Cline` to allow
+    for some early checks on file names. This is mainly to prevent a
+    whole series of parameters being input, only to find that the file
+    name input in the first one is incorrect.
 
     """
 
@@ -913,8 +924,7 @@ class Fname(str):
         arguments that are passed off to __new__
 
         """
-        print("inside getnewargs", self)
-        return (self, self.ext, self.ftype, self.exist)
+        return (str(self), self.ext, self.ftype, self.exist)
 
 
 class ClineError(HipercamError):

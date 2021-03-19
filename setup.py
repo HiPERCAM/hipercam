@@ -67,7 +67,7 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.6',
     ],
 
     # What does your project relate to?
@@ -89,9 +89,12 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'sep','numpy','astropy','matplotlib','requests',
-        'numba','websocket-client', 'fitsio'
+        'sep', 'numpy', 'astropy', 'matplotlib', 'requests',
+        'numba', 'websocket-client', 'fitsio', 'pandas', 'Cython'
     ],
+
+    # Makes significant use of f-strings which came in in 3.6
+    python_requires='>=3.6',
 
     # need numpy version 1.12
 
@@ -134,6 +137,7 @@ setup(
             'csub=hipercam.scripts.carith:csub',
             'digest=hipercam.scripts.digest:digest',
             'div=hipercam.scripts.arith:div',
+            'filtid=hipercam.scripts.filtid:filtid',
             'fits2hcm=hipercam.scripts.fits2hcm:fits2hcm',
             'flagcloud=hipercam.scripts.flagcloud:flagcloud',
             'ftargets=hipercam.scripts.ftargets:ftargets',
@@ -143,9 +147,12 @@ setup(
             'hinfo=hipercam.scripts.hinfo:hinfo',
             'hist=hipercam.scripts.hist:hist',
             'hlogger=hipercam.scripts.hlogger:hlogger',
+            'hlog2col=hipercam.scripts.hlog2col:hlog2col',
             'hlog2fits=hipercam.scripts.hlog2fits:hlog2fits',
             'hls=hipercam.scripts.hls:hls',
+            'hmeta=hipercam.scripts.hmeta:hmeta',
             'hplot=hipercam.scripts.hplot:hplot',
+            'logsearch=hipercam.scripts.logsearch:logsearch',
             'ltimes=hipercam.scripts.ltimes:ltimes',
             'ltrans=hipercam.scripts.ltrans:ltrans',
             'makebias=hipercam.scripts.makebias:makebias',
@@ -159,6 +166,7 @@ setup(
             'plog=hipercam.scripts.plog:plog',
             'psf_reduce=hipercam.scripts.psf_reduce:psf_reduce',
             'redanal=hipercam.scripts.redanal:redanal',
+            'redplt=hipercam.scripts.redplt:redplt',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
             'rupdate=hipercam.scripts.rupdate:rupdate',
@@ -169,8 +177,10 @@ setup(
             'sub=hipercam.scripts.arith:sub',
             'tanalysis=hipercam.scripts.tanalysis:tanalysis',
             'tbytes=hipercam.scripts.tbytes:tbytes',
+            'ulogger=hipercam.scripts.ulogger:ulogger',
             'uls=hipercam.scripts.uls:uls',
         ],
+
     },
 
     # tests
