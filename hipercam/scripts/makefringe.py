@@ -41,11 +41,11 @@ def makefringe(args=None):
     frame. It works as follows: given an input list of files (or
     optionally a single run), it reads them all in, debiases,
     dark-subtracts and flat-fields them, calculates a median count
-    level of each one which is subtracted from and divided into each
-    frame indivually. The pixel-by-pixel median of all frames is then
-    calculated. Finally an optional amount of smoothing can be applied
-    on the basis that it should have a smaller scale than any of the
-    fringing.
+    level of each one which is subtracted from and (optionally)
+    divided into each frame indivually. The pixel-by-pixel median of
+    all frames is then calculated. Finally an optional amount of
+    smoothing can be applied on the basis that it should have a
+    smaller scale than any of the fringing.
 
 
     Parameters:
@@ -89,6 +89,9 @@ def makefringe(args=None):
         bias : str
            Name of bias frame to subtract, 'none' to ignore.
 
+        flat : str
+           Name of flat field
+
         dark : str
            Name of dark frame to subtract, 'none' to ignore. Note that
            it is assumed all CCDs have the same exposure time when making
@@ -97,23 +100,8 @@ def makefringe(args=None):
         ccd : str
            CCD(s) to process, '0' for all, '1 3' for '1' and '3' only, etc.
 
-        lower : list of floats
-           Lower limits to the mean count level for a flat to be included. The
-           count level is determined after bias subtraction.  Should be the
-           same number as the selected CCDs, and will be assumed to be in the
-           same order. Use this to elminate frames that are of so low a level
-           that the accuracy of the bias subtraction could be a worry.
-           Suggested hipercam values: 3000 for each CCD. Enter values with
-           spaces.
-
-        upper : list of floats
-           Upper limits to the mean count level for a flat to be included. The
-           count level is determined after bias subtraction.  Should be the
-           same number as the selected CCDs, and will be assumed to be in the
-           same order. Use this to eliminate saturated, peppered or non-linear
-           frames. Suggested hipercam values: 58000, 58000, 58000, 40000 and
-           40000 for CCDs 1, 2, 3, 4 and 5. Enter values with spaces. ULTRACAM
-           values 49000, 29000, 27000 for CCDs 1, 2 and 3.
+        normalise : bool
+           normalise by as well as subtract the median
 
         clobber : bool [hidden]
            clobber any pre-existing output files
@@ -138,8 +126,10 @@ def makefringe(args=None):
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
         cl.register("ngroup", Cline.LOCAL, Cline.PROMPT)
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
+        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("normalise", Cline.LOCAL, Cline.PROMPT)
         cl.register("clobber", Cline.LOCAL, Cline.HIDE)
         cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
@@ -183,6 +173,14 @@ def makefringe(args=None):
             ignore="none",
         )
 
+        # flat field (if any)
+        flat = cl.get_value(
+            "flat",
+            "flat field frame ['none' to ignore]",
+            cline.Fname("flat", hcam.HCAM),
+            ignore="none",
+        )
+
         # dark frame (if any)
         dark = cl.get_value(
             "dark",
@@ -202,6 +200,9 @@ def makefringe(args=None):
         else:
             ccds = list(ccdinf.keys())
 
+        normalise = cl.get_value(
+            "normalise", "normalise by the medians as well as subtract them", False
+        )
         clobber = cl.get_value(
             "clobber", "clobber any pre-existing files on output", False
         )
@@ -217,6 +218,7 @@ def makefringe(args=None):
     # inputs done with.
 
     try:
+
         # big try / except section here to trap ctrl-C to allow the temporary
         # files to be deleted. First make a directory for the temporary files
 
@@ -242,14 +244,15 @@ def makefringe(args=None):
         # at this point 'resource' is a list of files, no matter the input
         # method.
 
-        # Read all the files to determine mean levels (after bias subtraction)
-        # save the bias-subtracted, mean-level normalised results to temporary
+        # Read all the files to determine mean levels (after bias
+        # subtraction) save the bias-subtracted, flat-fielded,
+        # mean-level subtracted and normalised results to temporary
         # files
         print("Reading all files in to determine their mean levels")
-        bframe, dframe = None, None
-        means = {}
+        bframe, fframe, dframe = None, None, None
+        medians = {}
         for cnam in ccds:
-            means[cnam] = {}
+            medians[cnam] = {}
 
         # We might have a load of temporaries from grab, but we are about to
         # make some more to save the bias-subtracted normalised versions.
@@ -258,6 +261,9 @@ def makefringe(args=None):
         )
         os.makedirs(tdir, exist_ok=True)
         fnames = []
+
+        mtype = []
+
         with spooler.HcamListSpool(resource) as spool:
 
             for mccd in spool:
@@ -266,6 +272,7 @@ def makefringe(args=None):
 
                     # bias subtraction
                     if bframe is None:
+                        mtype.append('debiassed')
                         bframe = hcam.MCCD.read(bias)
                         bframe = bframe.crop(mccd)
 
@@ -279,6 +286,7 @@ def makefringe(args=None):
 
                     # dark subtraction
                     if dframe is None:
+                        mtype.append('dark subtracted')
                         dframe = hcam.MCCD.read(dark)
                         dframe = dframe.crop(mccd)
 
@@ -290,143 +298,100 @@ def makefringe(args=None):
                     # make dark correction
                     mccd -= scale * dframe
 
-                # here we determine the mean levels, store them
-                # then normalise the CCDs by them and save the files
-                # to disk
+                if flat is not None:
+
+                    # flat fielding
+                    if fframe is None:
+                        mtype.append('flat fielded')
+                        fframe = hcam.MCCD.read(flat)
+                        fframe = fframe.crop(mccd)
+
+                    mccd /= fframe
+
+                # here we determine the median levels, store them then
+                # normalise the CCDs by them and save the files to
+                # disk
 
                 # generate the name to save to automatically
                 fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
 
                 for cnam in ccds:
-                    # its unlikely that flats would be taken with skips, but
+                    # its unlikely that fringe frames would be taken with skips, but
                     # you never know. Eliminate them from consideration now.
                     ccd = mccd[cnam]
                     if ccd.is_data():
-                        cmean = mccd[cnam].mean()
-                        means[cnam][fname] = cmean
-                        mccd[cnam] /= cmean
+                        cmedian = mccd[cnam].median()
+                        medians[cnam][fname] = cmedian
+                        mccd[cnam] -= cmedian
+                        if normalise:
+                            mccd[cnam] /= cmedian
 
-                # write the disk, save the name, close the filehandle
+                # write to disk, save the name, close the filehandle
                 mccd.write(fname)
                 fnames.append(fname)
                 os.close(fd)
 
                 # a bit of progress info
-                if bias is not None:
-                    print("Saved debiassed, normalised" " flat to {:s}".format(fname))
-                else:
-                    print("Saved normalised flat to {:s}".format(fname))
+                print(f"Saved {', '.join(mtype)} frame to {fname}")
 
         # now we go through CCD by CCD, using the first as a template
         # for the window names in which we will also store the results.
         template = hcam.MCCD.read(fnames[0])
 
-        for cnam, lower, upper in zip(ccds, lowers, uppers):
-            tccd = template[cnam]
+        # Now process each file CCD by CCD to reduce the memory
+        # footprint
+        for cnam in ccds:
 
-            # get the keys (filenames) and corresponding mean values
-            mkeys = np.array(list(means[cnam].keys()))
-            mvals = np.array(list(means[cnam].values()))
+            # Read files into memory, insisting that they
+            # all have the same set of CCDs
+            print(f"\nLoading all CCDs labelled '{cnam}'")
 
-            # chop down to acceptable ones
-            ok = (mvals > lower) & (mvals < upper)
+            accds, means = [], []
+            nrej, ntot = 0, 0
+            with spooler.HcamListSpool(fnames, cnam) as spool:
 
-            mkeys = mkeys[ok]
-            mvals = mvals[ok]
+                mean = None
+                for ccd in spool:
 
-            # some more progress info
-            print("Found {:d} frames for CCD {:s}".format(len(mkeys), cnam))
-            if len(mkeys) == 0:
-                print(
-                    (".. cannot average 0 frames;" " will skip CCD {:s}").format(cnam)
-                )
-                continue
+                    if ccd.is_data():
 
-            elif len(mkeys) < ngroup:
-                print(
-                    (
-                        "WARNING: fewer than ngroup = {:d} frames"
-                        " found. Output for CCD {:s} could be poor"
-                    ).format(ngroup, cnam)
-                )
+                        # keep the result
+                        accds.append(ccd)
 
-            nchunk = len(mkeys) // ngroup
-            if nchunk == 0:
-                nchunk = 1
+                if len(ccds) == 0:
+                    raise hcam.HipercamError(
+                        "Found no valid examples of CCD {:s}"
+                        " in list = {:s}".format(cnam, flist)
+                    )
+                else:
+                    print("Loaded {:d} CCDs".format(len(ccds)))
 
-            # sort by mean value
-            isort = mvals.argsort()
-            mvals = mvals[isort]
-            mkeys = mkeys[isort]
+                # Median combine
+                for wnam, wind in template[cnam].items():
 
-            # wsum used to sum all the eight factors to allow overall
-            # normalisation at the end of the loop
-            wsum = 0.0
+                    # build list of all data arrays
+                    arrs = [ccd[wnam].data for ccd in ccds]
 
-            for n in range(nchunk):
-                # loop through in chunks of ngroup at a time with a
-                # potentially larger group to sweep up the end ones.
-                n1 = ngroup * n
-                n2 = n1 + ngroup
-                if n == nchunk:
-                    n2 = len(mkeys)
-
-                # load the CCDs of this group
-                ccdgroup = []
-                with spooler.HcamListSpool(list(mkeys[n1:n2]), cnam) as spool:
-                    for ccd in spool:
-                        ccdgroup.append(ccd)
-
-                # take median of the group to get rid of jumping
-                # stars. 'weight' used to weight the results when summing the
-                # results together. this stage is like the 'n' option of
-                # 'combine' except we have already cut out any junk frames and
-                # we have normalised the remainder
-                weight = mvals[n1:n2].sum()
-                wsum += weight
-
-                for wnam, wind in tccd.items():
-                    # go through each window, building a list of all data
-                    # arrays
-                    arrs = [ccd[wnam].data for ccd in ccdgroup]
+                    # convert to 3D numpy array
                     arr3d = np.stack(arrs)
 
-                    # at this point, arr3d is a 3D array, with the first
-                    # dimension (axis=0) running over the images. We take the
-                    # median over this axis. The first time through we put
-                    # this straight into the output Window.  afterwards we add
-                    # it in (with the appropriate weight)
-                    if n == 0:
-                        wind.data = weight * np.median(arr3d, axis=0)
-                    else:
-                        wind.data += weight * np.median(arr3d, axis=0)
+                    wind.data = np.median(arr3d, axis=0)
 
-            # Normalise the final result to a mean = 1.
-            tccd /= wsum
-
-            # Add some history
-            tccd.head.add_history(
-                ("result of makefringe on {:d}" " frames, ngroup = {:d}").format(
-                    len(mkeys), ngroup
-                )
+            # Add history
+            template[cnam].head.add_history(
+                d"Median combine of {len(accds)} images"
             )
 
-        # Remove any CCDs not included to avoid impression of having done
-        # something to them
-        for cnam in template:
-            if cnam not in ccds:
-                del template[cnam]
-
         # write out
-        template.write(output, clobber)
-        print("\nFinal result written to {:s}".format(output))
+        template.write(outfile, clobber)
+        print("\nFinal result written to {:s}".format(outfile))
 
     except KeyboardInterrupt:
         print("\nmakefringe aborted")
 
     if server_or_local:
-        # grab has created a load of temporaries, including the file list
-        # 'resource'
+        # grab has created a load of temporaries, including the file
+        # list 'resource'
         with open(resource) as fin:
             for fname in fin:
                 os.remove(fname.strip())
