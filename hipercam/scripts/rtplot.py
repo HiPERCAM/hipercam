@@ -51,7 +51,7 @@ def rtplot(args=None):
 
     Parameters:
 
-        source : string [hidden]
+        source : str [hidden]
            Data source, five options:
 
              |  'hs' : HiPERCAM server
@@ -67,7 +67,7 @@ def rtplot(args=None):
            would ensure it always started with the ULTRACAM server by default. If
            unspecified, it defaults to 'hl'.
 
-        device : string [hidden]
+        device : str [hidden]
           Plot device. PGPLOT is used so this should be a PGPLOT-style name,
           e.g. '/xs', '1/xs' etc. At the moment only ones ending /xs are
           supported.
@@ -79,10 +79,10 @@ def rtplot(args=None):
            plot height (inches). Set = 0 to let the program choose. BOTH width
            AND height must be non-zero to have any effect
 
-        run : string [if source ends 's' or 'l']
+        run : str [if source ends 's' or 'l']
            run number to access, e.g. 'run034'
 
-        flist : string [if source ends 'f']
+        flist : str [if source ends 'f']
            name of file list
 
         first : int [if source ends 's' or 'l']
@@ -111,7 +111,7 @@ def rtplot(args=None):
         nrow : int [if trim, hidden]
            Number of rows to remove (bottom of windows)
 
-        ccd : string
+        ccd : str
            CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
 
         nx : int [if more than 1 CCD]
@@ -138,12 +138,12 @@ def rtplot(args=None):
            to ignore. Applied to first window of first CCD. 3500 about
            right for ULTRACAM.
 
-        flat : string
+        flat : str
            Name of flat field to divide by, 'none' to ignore. Should normally
            only be used in conjunction with a bias, although it does allow you
            to specify a flat even if you haven't specified a bias.
 
-        defect : string
+        defect : str
            Name of defect file, 'none' to ignore.
 
         setup : bool
@@ -154,7 +154,7 @@ def rtplot(args=None):
            avoid overloading hdriver, especially if in drift mode as
            it makes a request for the windows for every frame.
 
-        drurl : string [if setup; hidden]
+        drurl : str [if setup; hidden]
            URL needed to access window setting from the camera
            driver (ultracam, ultraspec, hipercam). The internal server 
            in the camera driver must be switched on which can be done
@@ -164,7 +164,7 @@ def rtplot(args=None):
            subtract the median from each window before scaling for the
            image display or not. This happens after any bias subtraction.
 
-        iset : string [single character]
+        iset : str [single character]
            determines how the intensities are determined. There are three
            options: 'a' for automatic simply scales from the minimum to the
            maximum value found on a per CCD basis. 'd' for direct just takes
@@ -205,7 +205,7 @@ def rtplot(args=None):
            invoke the command with 'prompt' the first time you try profile
            fitting.
 
-        fdevice : string [if profit; hidden]
+        fdevice : str [if profit; hidden]
            plot device for profile fits, PGPLOT-style name.
            e.g. '/xs', '2/xs' etc.
 
@@ -216,7 +216,7 @@ def rtplot(args=None):
            fit plot height (inches). Set = 0 to let the program choose.
            BOTH fwidth AND fheight must be non-zero to have any effect
 
-        method : string [if profit; hidden]
+        method : str [if profit; hidden]
            this defines the profile fitting method, either a gaussian or a
            moffat profile. The latter is usually best.
 
