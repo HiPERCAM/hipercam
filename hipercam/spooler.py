@@ -246,12 +246,12 @@ class HcamListSpool(SpoolerBase):
 
         Arguments::
 
-           lname : string or list
+           lname : str | list
               Name of a file list of HiPERCAM files, or a Python list of file
               names (more generally any iterable array of names). Blank
               entries or any starting with '#' are ignored.
 
-           cnam  : string or None
+           cnam  : str | None
               CCD label if you want to return individual CCDs rather than
               MCCDs. This is used in 'combine' to save memory.
         """
