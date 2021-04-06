@@ -247,7 +247,7 @@ def digest(args=None):
                     with open(md5) as fin:
                         for line in fin:
                             hash, name = line.split()
-                            if not name.endswith(".old"):
+                            if name.endswith(".xml") or name.endswith(".dat"):
                                 mruns.append(name[: name.rfind(".")])
 
                 else:
