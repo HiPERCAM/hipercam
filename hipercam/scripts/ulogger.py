@@ -1887,6 +1887,7 @@ ULTRASPEC_TABLE_HEADER = """
 <col span="8" class="hide">
 <col>
 
+<thead>
 <tr>
 <th class="left">Run<br>no.</th>
 <th class="left">Target name</th>

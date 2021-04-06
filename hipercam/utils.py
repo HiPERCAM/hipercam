@@ -713,7 +713,7 @@ span {
 
 .tableFixHead {
     overflow-y: auto;
-    height: 500px;
+    height: 700px;
 }
 
 .tableFixHead thead th {
