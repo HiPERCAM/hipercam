@@ -169,6 +169,7 @@ setup(
             'redplt=hipercam.scripts.redplt:redplt',
             'reduce=hipercam.scripts.reduce:reduce',
             'rtplot=hipercam.scripts.rtplot:rtplot',
+            'nrtplot=hipercam.scripts.nrtplot:nrtplot',
             'rupdate=hipercam.scripts.rupdate:rupdate',
             'setaper=hipercam.scripts.setaper:setaper',
             'setdefect=hipercam.scripts.setdefect:setdefect',

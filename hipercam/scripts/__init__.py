@@ -38,6 +38,7 @@ from .plog import plog
 from .redplt import redplt
 from .reduce import reduce
 from .rtplot import rtplot
+from .nrtplot import nrtplot
 from .rupdate import rupdate
 from .setaper import setaper
 from .setdefect import setdefect
@@ -82,6 +83,7 @@ __all__ = [
     "reduce",
     "register",
     "rtplot",
+    "nrtplot",
     "rupdate",
     "setaper",
     "setdefect",
