@@ -198,8 +198,8 @@ def pCcd(
             xlo = min(xlo, xhi)
             xhi = max(xlo, xhi)
         if ylo is not None and yhi is not None:
-            xlo = min(ylo, yhi)
-            xhi = max(ylo, yhi)
+            ylo = min(ylo, yhi)
+            yhi = max(ylo, yhi)
         vmin, vmax = ccd.percentile(
             (plo, phi), xlo, xhi, ylo, yhi
         )
