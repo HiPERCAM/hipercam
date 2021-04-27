@@ -684,6 +684,7 @@ def rtplot(args=None):
 
                     else:
                         # OK, got something
+                        got_windows = True
                         lines = r.text.split("\r\n")
                         xbinh, ybinh, nwinh = lines[0].split()
                         xbinh, ybinh, nwinh = int(xbinh), int(ybinh), int(nwinh)
@@ -700,8 +701,6 @@ def rtplot(args=None):
                                 ).format(nwinh, len(hwindows))
                             )
                             got_windows = False
-
-                        got_windows = True
 
                 except (
                     requests.exceptions.ConnectionError,
