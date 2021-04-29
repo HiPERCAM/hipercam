@@ -5,7 +5,6 @@ import time
 import numpy as np
 
 import matplotlib.pylab as plt
-from matplotlib.animation import FuncAnimation
 
 from astropy.time import Time
 
@@ -145,7 +144,7 @@ def nrtplot(args=None):
 
         setup : bool
            True/yes to access the current windows from hdriver. Useful
-           during observing when seeting up windows, but not normally
+           during observing when setting up windows, but not normally
            otherwise. Next argument (hidden) is the URL to get to
            hdriver. Once setup, you should probably turn this off to
            avoid overloading hdriver, especially if in drift mode as
@@ -362,10 +361,7 @@ def nrtplot(args=None):
         # define the panel grid. first get the labels and maximum dimensions
         ccdinf = spooler.get_ccd_pars(source, resource)
 
-        try:
-            nxdef = cl.get_default("nx")
-        except:
-            nxdef = 3
+        nxdef = cl.get_default("nx", 3)
 
         if len(ccdinf) > 1:
             ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
@@ -445,6 +441,8 @@ def nrtplot(args=None):
             drurl = cl.get_value(
                 "drurl", "URL for driver windows", "http://192.168.1.2:5100"
             )
+        else:
+            drurl = None
 
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)
@@ -550,69 +548,287 @@ def nrtplot(args=None):
     # Phew. We finally have all the inputs and now can now display stuff. Most of the
     # hard work is devolved to the Animator class below.
 
-
-    # Define config
+    # Define config of images
     nccd = len(ccds)
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
-    fig, axs = plt.subplots(ny,nx)
-
-    # define the source of images (spool)
+    # Define the iterable source of the images (spool)
     with spooler.data_source(source, resource, first, full=False) as spool:
 
-        # Create the animator
-        animator = Animator(
-            axs, spool, server_or_local, ccds, xlo, xhi, ylo, yhi,
-            time, ncol, nrow, lowlevel, highlevel, setup, drurl,
-            plotall, msub, iset, ilo, ihi, plo phi
-        )
+        # Create the figure and axes needed for the images. The axes
+        # are better as a 1D array
+        img_fig, img_axs = plt.subplots(ny,nx,squeeze=False,sharex=True,sharey=True)
+        img_axs = img_axs.flatten()
 
-        # Animate
-        anim = FuncAnimation(fig, animator, interval=1000*pause, blit=True)
+        # Place-holder for fit plot
+        fit_fig, fit_axs = None, None
 
-        plt.show()
+        nframe, total_time = 0, 0.
+        for mccd in spool:
 
+            if server_or_local:
+                # Handle the waiting game ...
+                give_up, try_again, total_time = spooler.hang_about(
+                    mccd, twait, tmax, total_time
+                )
+
+                if give_up:
+                    print("rtplot stopped")
+                    break
+                elif try_again:
+                    continue
+
+            # Trim the frames: ULTRACAM windowed data has bad columns
+            # and rows on the sides of windows closest to the readout
+            # which can badly affect reduction. This option strips
+            # them.
+            if trim:
+                hcam.ccd.trim_ultracam(mccd, ncol, nrow)
+
+            # indicate progress
+            #            try:
+            tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
+            print(
+                "{:d}, utc= {:s} ({:s}), ".format(
+                    mccd.head.get("NFRAME",nframe+1),
+                    tstamp.iso,
+                    "ok" if mccd.head.get("GOODTIME", True) else "nok",
+                ),
+                end="",
+            )
+            #            except:
+            #   # sometimes times are junk.
+            #   print(
+            #      '{:d}, utc = {:s}, '.format(
+            #           mccd.head['NFRAME'], '2000-01-01 00:00:00.000'), end=''
+            #   )
+
+            # accumulate errors
+            emessages = []
+
+            # bias level checks
+            if lowlevel != 0.0:
+                median = mccd.get_num(0).get_num(0).median()
+                if median < lowlevel:
+                    emessages.append(
+                        "** low bias level, median vs limit: {:.1f} vs {:.1f}".format(
+                            median, lowlevel
+                        )
+                    )
+
+            if highlevel != 0.0:
+                try:
+                    median = mccd.get_num(0).get_num(1).median()
+                except:
+                    median = mccd.get_num(0).get_num(0).median()
+
+                if median > highlevel:
+                    emessages.append(
+                        "** high bias level, median vs limit: {:.1f} vs {:.1f}".format(
+                            median, lowlevel
+                        )
+                    )
+
+            if nframe == 0:
+                if bias is not None:
+                    # crop the bias on the first frame only
+                    bias = bias.crop(mccd)
+
+                if flat is not None:
+                    # crop the flat on the first frame only
+                    flat = flat.crop(mccd)
+
+            if setup:
+                # Get windows from udriver. Fair bit of error checking
+                # needed. 'got_windows' indicates if anything useful
+                # found, 'hwindows' is a list of (llx,lly,nx,ny) tuples
+                # if somthing is found.
+                try:
+                    r = requests.get(drurl, timeout=0.2)
+
+                    if r.text.strip() == "No valid data available":
+                        emessages.append(
+                            "** bad return from hdriver = {:s}".format(r.text.strip())
+                        )
+                        got_windows = False
+
+                    elif r.text.strip() == "fullframe":
+                        # to help Stu out a bit, effectively just
+                        # ignore this one
+                        got_windows = False
+
+                    else:
+                        # OK, got something
+                        got_windows = True
+                        lines = r.text.split("\r\n")
+                        xbinh, ybinh, nwinh = lines[0].split()
+                        xbinh, ybinh, nwinh = int(xbinh), int(ybinh), int(nwinh)
+                        hwindows = []
+                        for line in lines[1 : nwinh + 1]:
+                            llxh, llyh, nxh, nyh = line.split()
+                            hwindows.append((int(llxh), int(llyh), int(nxh), int(nyh)))
+
+                        if nwinh != len(hwindows):
+                            emessages.append(
+                                (
+                                    "** expected {:d} windows from"
+                                    " hdriver but got {:d}"
+                                ).format(nwinh, len(hwindows))
+                            )
+                            got_windows = False
+
+                except (
+                    requests.exceptions.ConnectionError,
+                    socket.timeout,
+                    requests.exceptions.Timeout,
+                ) as err:
+                    emessages.append(" ** hdriver error: {!r}".format(err))
+                    got_windows = False
+
+            else:
+                got_windows = False
+
+            # wind through the CCDs to display, accumulating stuff
+            # to send to the plot manager
+            message = ""
+
+            img_accum = []
+            for nc, cnam in enumerate(ccds):
+                ccd = mccd[cnam]
+
+                if plotall or ccd.is_data():
+                    # this should be data as opposed to a blank frame
+                    # between data frames that occur with nskip > 0
+
+                    # subtract the bias
+                    if bias is not None:
+                        ccd -= bias[cnam]
+
+                    # divide out the flat
+                    if flat is not None:
+                        ccd /= flat[cnam]
+
+                    if msub:
+                        # subtract median from each window
+                        for wind in ccd.values():
+                            wind -= wind.median()
+
+                    # set intensity limits
+                    if iset == "p":
+                        # Set intensities from percentiles
+                        if xlo is not None and xhi is not None:
+                            xlo = min(xlo, xhi)
+                            xhi = max(xlo, xhi)
+                        if ylo is not None and yhi is not None:
+                            xlo = min(ylo, yhi)
+                            xhi = max(ylo, yhi)
+                        vmin, vmax = ccd.percentile(
+                            (plo, phi), xlo, xhi, ylo, yhi
+                        )
+
+                    elif iset == "a":
+                        # Set intensities from min/max range
+                        vmin, vmax = ccd.min(), ccd.max()
+
+                    elif iset == "d":
+                        vmin, vmax = dlo, dhi
+
+                    stuff = [ccd, vmin, vmax]
+
+                    if got_windows:
+                        stuff.append(hwindows)
+                    else:
+                        stuff.append(None)
+
+                    if dfct is not None and cnam in dfct:
+                        stuff.append(dfct[cnam])
+                    else:
+                        stuff.append(None)
+
+                    # Save all the stuff to send to the plot updater
+                    img_accum.append(stuff)
+
+                    # accumulate string of image scalings
+                    if nc:
+                        message += ", ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
+                            cnam, vmin, vmax, mccd.head["EXPTIME"]
+                        )
+                    else:
+                        message += "ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
+                            cnam, vmin, vmax, mccd.head["EXPTIME"]
+                        )
+                else:
+                    img_accum.append(None)
+
+            # Print messages
+            print(message)
+            for emessage in emessages:
+                print(emessage)
+
+            # fitting stuff here?
+
+            # at this point "img_accum" contains a list of lists, each of
+            # which consists of:
+            #
+            # [ccd, vmin, vmax, hwindows, dfct]
+            #
+            # i.e. the CCD, intensity range, setup windows and defects, or
+            # None if the CCD was skipped.
+
+            if nframe == 0:
+                # Create the plot manager
+                pmanager = PlotManager(
+                    img_fig, img_axs, fit_fig, fit_axs,
+                    ccds, xlo, xhi, ylo, yhi, img_accum
+                )
+                plt.show(block=False)
+                plt.pause(0.1)
+
+            else:
+                # send updates to plot manager
+                pmanager.update(img_accum)
+
+            if pause > 0.0:
+                # pause between frames
+                time.sleep(pause)
+
+            # update the frame number
+            nframe += 1
 
 # From here is support code not visible outside
 
-class Animator:
-    """
-    Function object class to enable use of matplotlib.animation.FuncAnimation.
-    Basic idea is that initialising it stores all the very many inputs as
-    attributes and creates the plot, then the __call__ method allows it to be
-    used as a function, and so passed as the `func` argument of
-    maplotlib.animation.FuncAnimation. The purpose of the call method is to update
-    the plot and return a list of updated elements.
+class PlotManager:
+    """Class to control the animated elements of the plot.
+
+    Basic idea is that initialising it stores all the very many inputs
+    as attributes and creates the plot, then the update method
+    is used to plot successive frames.
     """
 
     def __init__(
-            self, axs, spool, server_or_local, twait, tmax, ccds,
-            xlo, xhi, ylo, yhi, trim, ncol, nrow, lowlevel, highlevel,
-            setup, drurl, plotall, msub, iset, ilo, ihi, plo, phi):
+            self, img_fig, img_axs, fit_fig, fit_axs,
+            ccds, xlo, xhi, ylo, yhi, img_accum
+    ):
         """
         Initialises the plot. Arguments:
 
-          axs : list of Axes
-             all the axes of the plot.
+          img_fig : Figure
+             the figure containing the images
 
-          spool : SpoolerBase
-             source of images to display
+          img_axs : iterable(Axes)
+             the associated Axes, one per CCD being displayed
 
-          server_or_local : bool
-             True if accessing the data through a server where data
-             is assumed to accumulate to we wait
+          fit_fig : Figure | None
+             the figure containing the profile fits (None if there isn't one)
 
-          twait : float
-             How long to wait between attempts to get the next frame (seconds)
-
-          tmax : float
-             Maximum time to wait between attempts to get the next frame (seconds)
+          fit_axs : iterable(Axes) | None
+             the associated Axes, one per profile being fitted.
 
           ccds : list of strings
              CCD names to plot
 
           xlo : float
-             left-hand limit of region to display
+             left-hand limit of region to determine percentiles and for display
 
           xhi : float
              right-hand limit of region to display
@@ -622,373 +838,133 @@ class Animator:
 
           yhi : float
              upper limit of region to display
-
-          trim : bool
-             whether to trim the frames
-
-          ncol : int
-             number of columns, if trim
-
-          nrow : int
-             number of rows, if trim
-
-          lowlevel : float
-             level to warn of a low bias level
-
-          highlevel : float
-             level to warn of a high bias level
-
-          setup : bool
-             whether to try to get setup windows from the camera driver
-
-          drurl : str
-             the URL to use to get the setup windows
-
-          plotall : bool
-             whether to plot every image whether bad or not
-
-          msub : bool
-             subtract median or not
-
-          iset : str
-             method of intensity computation
-
-          ilo : float
-             low level of direct intensity display (if iset='d')
-
-          ihi : float
-             high level of direct intensity display (if iset='d')
-
-          plo : float
-             low percentile (if iset='p')
-
-          phi : float
-             high percentile (if iset='p')
-
         """
 
         # Save the inputs
-        self.axs = axs
-        self.spool = spool
-        self.server_or_local = server_or_local
-        self.bias = bias
-        self.flat = flat
-        self.twait = twait
-        self.tmax = tmax
+
+        # first stuff to do with the mpl figures
+        self.img_fig = img_fig
+        self.img_axs = img_axs
+        self.img_cnv = img_fig.canvas
+        self._img_bg = None
+
+        self.fit_fig = fit_fig
+        self.fit_axs = fit_axs
+        self.fit_cnv = fit_fig.canvas if fit_fig is not None else None
+        self._fit_bg = None
+
+        # rtplot inputs
         self.ccds = ccds
-        self.extent = extent
         self.xlo = xlo
-        self.xlo = xhi
-        self.xlo = ylo
+        self.xhi = xhi
+        self.ylo = ylo
         self.yhi = yhi
-        self.trim = trim
-        self.ncol = ncol
-        self.nrow = nrow
-        self.lowlevel = lowlevel
-        self.highlevel = highlevel
-        self.setup = setup
-        self.drurl = drurl
-        self.plotall = plotall
-        self.msub = msub
-        self.iset = iset
-        self.ilo = ilo
-        self.ihi = ihi
-        self.plo = plo
-        self.phi = phi
 
-        # set frame counter
-        self.nframe = 0
+        # Initialise the plot (axes not animated)
+        for ax in self.img_axs:
+            ax.set_xlim(self.xlo,self.xhi)
+            ax.set_ylim(self.ylo,self.yhi)
 
-        # initialise dictionary where changing image references are stored
-        # this will be keyed by CCD name
-        self.wimages = {}
+        # list of lists of artists for each image plot
+        self.img_artists = []
 
-        # Initialise the plot
-
-        # First sync the axes
-        ax0 = self.axs.flat[0]
-        for ax in self.axs.flat[1:len(self.ccds)]:
-            ax.sharex(ax0)
-            ax.sharey(ax0)
-        ax0.set_xlim(xlo,xhi)
-        ax0.set_ylim(ylo,yhi)
-
-        # Display first frame
-        self.__call__(0)
-
-    def __call__(self, n):
-
-        fpos = []  # list of target positions to fit
-        fframe = True  # waiting for first valid frame with profit
-
-        mccd, emessages = self.get_next_frame()
-
-        if self.setup:
-            # Get windows from driver. Fair bit of error checking
-            # needed. 'got_windows' indicates if anything useful
-            # found, 'hwindows' is a list of (llx,lly,nx,ny) tuples
-            # if somthing is found.
-            try:
-                r = requests.get(self.drurl, timeout=0.2)
-
-                if r.text.strip() == "No valid data available":
-                    emessages.append(
-                        f"** bad return from hdriver = {r.text.strip()}"
-                    )
-                    got_windows = False
-
-                elif r.text.strip() == "fullframe":
-                    # to help Stu out a bit, effectively just
-                    # ignore this one
-                    got_windows = False
-
-                else:
-                    # OK, got something
-                    got_windows = True
-                    lines = r.text.split("\r\n")
-                    xbinh, ybinh, nwinh = lines[0].split()
-                    xbinh, ybinh, nwinh = int(xbinh), int(ybinh), int(nwinh)
-                    hwindows = []
-                    for line in lines[1 : nwinh + 1]:
-                        llxh, llyh, nxh, nyh = line.split()
-                        hwindows.append((int(llxh), int(llyh), int(nxh), int(nyh)))
-
-                    if nwinh != len(hwindows):
-                        emessages.append(
-                            f"** expected {nwinh} windows from hdriver but got {len(windows)}"
-                        )
-                        got_windows = False
-
-            except (
-                    requests.exceptions.ConnectionError,
-                    socket.timeout,
-                    requests.exceptions.Timeout,
-            ) as err:
-                emessages.append(f" ** hdriver error: {err}")
-                got_windows = False
-
-        else:
-            got_windows = False
-
-        # display the CCDs
-        message = ""
-
-        artists = []
-        for nc, (cnam, axes) in enumerate(ccds, self.axs.flat):
-            ccd = mccd[cnam]
-
-            if self.plotall or ccd.is_data():
-                # this should be data as opposed to a blank frame
-                # between data frames that occur with nskip > 0
-
-                # subtract the bias
-                if self.bias is not None:
-                    ccd -= self.bias[cnam]
-
-                # divide out the flat
-                if self.flat is not None:
-                    ccd /= self.flat[cnam]
-
-                if self.msub:
-                    # subtract median from each window
-                    for wind in ccd.values():
-                        wind -= wind.median()
-
-                if cnam in self.wimages:
-                    # updating images
-                    wimages = self.disp_ccd(axes, ccd[cnam], cnam, self.wimages[cnam])
-                else:
-                    # creating images
-                    wimages = self.disp_ccd(axes, ccd, cnam)
-                    self.wimages[cnam] = wimages
-
-                # maintain an overall list of artists that have changed
-                artists += wimages
-
-
-                #                if got_windows:
-                #                    # plot the current hdriver windows
-                #                    pgsci(hcam.CNAMS["green"])
-                #                    pgsls(2)
-                #                    for llxh, llyh, nxh, nyh in hwindows:
-                #                        pgrect(
-                #                            llxh - 0.5,
-                #                            llxh + nxh - 0.5,
-                #                            llyh - 0.5,
-                #                            llyh + nyh - 0.5,
-                #                        )
-
-                #                    if dfct is not None and cnam in dfct:
-                #                        # plot defects
-                #                        hcam.pgp.pCcdDefect(dfct[cnam])
-
-                #                    # accumulate string of image scalings
-                #                    if nc:
-                #                        message += ", ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
-                #                            cnam, vmin, vmax, mccd.head["EXPTIME"]
-                #                        )
-                #                    else:
-                #                        message += "ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
-                #                            cnam, vmin, vmax, mccd.head["EXPTIME"]
-                #                        )
-
-        # end of CCD display loop
-        print(message)
-        for emessage in emessages:
-            print(emessage)
-
-        # this is where cursor selection of targets to aperture fit
-        # might need to be
-
-        # return the list of modified artists, which lies at the heart
-        # of the animation.
-        return artists
-
-    def get_next_frame(self):
-        """
-        Gets the next data frame.
-
-        Returns (mccd, emessages)
-
-        emessages is a list of any warning messages.
-
-        Raises a StopIteration when it hits the buffers.
-        """
-
-        total_time = 0
-        while 1:
-            # try to get frame
-            mccd = next(self.spool)
-
-            if self.server_or_local:
-                # Handle the waiting game ...
-                give_up, try_again, total_time = spooler.hang_about(
-                    mccd, self.twait, self.tmax, total_time
+        # now we actually create the artists
+        for ax, cnam, stuff in zip(self.img_axs, self.ccds, img_accum):
+            if stuff is None:
+                # do nothing much
+                self.img_artists.append(None)
+            else:
+                # plot the CCD, return with the animated artists
+                ccd, vmin, vmax, hwindows, dfct = stuff
+                self.img_artists.append(
+                    self._disp_ccd(ax, cnam, ccd, vmin, vmax)
                 )
 
-                if give_up:
-                    raise StopIteration
-                elif try_again:
-                    continue
-                else:
-                    break
+        # grab the background on every draw
+        self.img_cid = self.img_cnv.mpl_connect("draw_event", self.img_on_draw)
 
-        # Trim the frames: ULTRACAM windowed data has bad columns
-        # and rows on the sides of windows closest to the readout
-        # which can badly affect reduction. This option strips
-        # them.
-        if self.trim:
-            hcam.ccd.trim_ultracam(mccd, self.ncol, self.nrow)
+    def img_on_draw(self, event):
+        """Callback to register with 'draw_event'."""
+        cv = self.img_cnv
+        if event is not None:
+            if event.canvas != cv:
+                raise RuntimeError
+        self._img_bg = cv.copy_from_bbox(cv.figure.bbox)
+        self._img_draw_animated()
 
-        # indicate progress
-        tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
-        print(
-            "{:d}, utc= {:s} ({:s}), ".format(
-                mccd.head.get("NFRAME",self.nframe+1),
-                tstamp.iso,
-                "ok" if mccd.head.get("GOODTIME", True) else "nok",
-            ),
-            end="",
-        )
+    def _img_draw_animated(self):
+        # draw the animated artists for the image plot
+        for al in self.img_artists:
+            if al is not None:
+                for a in al:
+                    self.img_fig.draw_artist(a)
 
-        # accumulate errors
-        emessages = []
-
-        # bias level checks
-        if self.lowlevel != 0.0:
-            median = mccd.get_num(0).get_num(0).median()
-            if median < self.lowlevel:
-                emessages.append(
-                    "** low bias level, median vs limit: {:.1f} vs {:.1f}".format(
-                        median, self.lowlevel
-                    )
-                )
-
-        if self.highlevel != 0.0:
-            try:
-                median = mccd.get_num(0).get_num(1).median()
-            except:
-                median = mccd.get_num(0).get_num(0).median()
-
-            if median > self.highlevel:
-                emessages.append(
-                    "** high bias level, median vs limit: {:.1f} vs {:.1f}".format(
-                            median, lowlevel
-                        )
-                    )
-
-        if self.nframe == 0:
-            # crop bias and flat on the first frame
-
-            if self.bias is not None:
-                self.bias = self.bias.crop(mccd)
-
-            if self.flat is not None:
-                self.flat = self.flat.crop(mccd)
-
-        return (mccd,emessages)
-
-    def disp_ccd(self, axes, ccd, cnam, wimages=None):
-        """Displays a CCD ccd, name cnam, in Axes axes.
-
-        If "wimages" is None, a list of images for each window
-        (result of calling imshow) will be created and returned.
-        Otherwise wimages is assumed to be such a list and they
-        will be updated.
+    def update(self, img_accum):
+        """
+        updating routine
         """
 
-        # compute display levels
-        if self.iset == "p":
-            # Set intensities from percentiles
-            if self.xlo is not None and self.xhi is not None:
-                xlo = min(self.xlo, self.xhi)
-                xhi = max(self.xlo, self.xhi)
-            if ylo is not None and yhi is not None:
-                ylo = min(ylo, yhi)
-                yhi = max(ylo, yhi)
-            vmin, vmax = ccd.percentile(
-                (self.plo, self.phi), xlo, xhi, ylo, yhi
-            )
-        elif iset == "a":
-            # Set intensities from min/max range
-            vmin, vmax = ccd.min(), ccd.max()
-        elif iset == "d":
-            vmin, vmax = self.ilo, self.ihi
-        else:
-            raise ValueError(f'did not recognise iset = "{self.iset}"')
+        # now update / cfreate the artists
+        img_artists = []
+        for ax, cnam, stuff, artists in zip(self.img_axs, self.ccds, img_accum, self.img_artists):
+            if stuff is not None:
+                # plot the CCD, return with the animated artists
+                ccd, vmin, vmax, hwindows, dfct = stuff
+                img_artists.append(
+                    self._disp_ccd(ax, cnam, ccd, vmin, vmax, artists)
+                )
 
-        if wimages is None:
+        cv = self.img_cnv
+        fig = self.img_fig
+        if self._img_bg is None:
+            self.img_on_draw(None)
+        else:
+            # restore the background
+            cv.restore_region(self._img_bg)
+            self._img_draw_animated()
+            cv.blit(fig.bbox)
+        cv.flush_events()
+
+    def _disp_ccd(self, ax, cnam, ccd, vmin, vmax, artists=None):
+        """Displays a CCD ccd, name cnam, in Axes ax.
+
+        If "artists" is None, a list of animated artists will be
+        will be created and returned. Otherwise it is assumed
+        to be such a list and they will be updated.
+        """
+
+        if artists is None:
             # in this case we are setting up for the first time
-            wimages = []
+            artists = []
             for wnam, wind in ccd.items():
                 left, right, bottom, top = wind.extent()
 
                 # Display the images of each window (variable)
-                wimages.append(
-                    axes.imshow(
+                artists.append(
+                    ax.imshow(
                         wind.data,
                         extent=(left, right, bottom, top),
                         aspect="equal",
                         origin="lower",
-                        cmap="Greys",
                         interpolation="nearest",
                         vmin=vmin,
                         vmax=vmax,
+                        animated=True
                     )
                 )
 
                 # Plot boundary on window (fixed)
-                axes.plot(
+                ax.plot(
                     [left, right, right, left, left],
                     [bottom, bottom, top, top, bottom],
                     color=Params["win.box.col"],
                 )
 
                 # Label them (fixed)
-                axes.text(
+                ax.text(
                     left - 3,
                     bottom - 3,
-                    wban,
+                    wnam,
                     fontsize=Params["win.label.fs"],
                     color=Params["win.label.col"],
                     ha="right",
@@ -997,31 +973,34 @@ class Animator:
                 )
 
             # Plot outermost border of CCD (fixed)
-            axes.plot(
+            ax.plot(
                 [0.5, ccd.nxtot + 0.5, ccd.nxtot + 0.5, 0.5, 0.5],
                 [0.5, 0.5, ccd.nytot + 0.5, ccd.nytot + 0.5, 0.5],
                 color=Params["ccd.box.col"],
             )
 
             # Set title and axis labels (fixed)
-            axes.set_title(
+            ax.set_title(
                 f'CCD {cnam}',
                 color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
             )
-            axes.set_xlabel(
+            ax.set_xlabel(
                 "X", color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
             )
-            axes.set_ylabel(
+            ax.set_ylabel(
                 "Y", color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
             )
 
 
         else:
-            # this is the "usual" post-setup case where we just
-            # update the data of the images for each window
-            for wind, wimg in zip(ccd.values(), wimages):
-                wimg.set_data(wind.data)
 
-    return wimages
+            # this is the "usual" post-setup case where we just
+            # update the data and intensity scaling of the images
+            # for each window
+            for wind, img in zip(ccd.values(), artists):
+                img.set_data(wind.data)
+                img.set_clim(vmin, vmax)
+
+        return artists
 
 
