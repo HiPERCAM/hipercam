@@ -465,10 +465,10 @@ command line to check.""", ClineWarning,
         else:
             self._lpars[param] = defval
 
-    def get_default(self, param):
+    def get_default(self, param, noval=None):
         """
-        Gets the current default value of a parameter called 'param'. Can come back None
-        if there is no value set.
+        Gets the current default value of a parameter called 'param'. Comes back
+        with 'noval' if there is no value set.
         """
         if param not in self._rpars:
             raise ClineError(
@@ -476,9 +476,9 @@ command line to check.""", ClineWarning,
             )
 
         if self._rpars[param]["g_or_l"] == Cline.GLOBAL:
-            defval = self._gpars.get(param,None)
+            defval = self._gpars.get(param, noval)
         else:
-            defval = self._lpars.get(param,None)
+            defval = self._lpars.get(param, noval)
         return defval
 
     def get_value(
