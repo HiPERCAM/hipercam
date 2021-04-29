@@ -548,18 +548,24 @@ def nrtplot(args=None):
     # Phew. We finally have all the inputs and now can now display stuff. Most of the
     # hard work is devolved to the Animator class below.
 
-    # Define config of images
-    nccd = len(ccds)
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
     # Define the iterable source of the images (spool)
     with spooler.data_source(source, resource, first, full=False) as spool:
 
         # Create the figure and axes needed for the images. The axes
         # are better as a 1D array
-        img_fig, img_axs = plt.subplots(ny,nx,squeeze=False,sharex=True,sharey=True)
-        img_axs = img_axs.flatten()
+        img_fig = plt.figure()
 
+        # Define config of images
+        nccd = len(ccds)
+        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+
+        for ind in range(len(ccds)):
+            if ind == 0:
+                ax0 = img_fig.add_subplot(ny,nx,ind+1)
+                img_axs = [ax0]
+            else:
+                img_axs.append(img_fig.add_subplot(ny,nx,ind+1,sharex=ax0,sharey=ax0))
+                
         # Place-holder for fit plot
         fit_fig, fit_axs = None, None
 
@@ -630,6 +636,8 @@ def nrtplot(args=None):
                     )
 
             if nframe == 0:
+                # get the bias and flat into shape first time through
+
                 if bias is not None:
                     # crop the bias on the first frame only
                     bias = bias.crop(mccd)
@@ -639,10 +647,10 @@ def nrtplot(args=None):
                     flat = flat.crop(mccd)
 
             if setup:
-                # Get windows from udriver. Fair bit of error checking
-                # needed. 'got_windows' indicates if anything useful
-                # found, 'hwindows' is a list of (llx,lly,nx,ny) tuples
-                # if somthing is found.
+                # Get windows from hdriver / udriver. Fair bit of
+                # error checking needed. 'got_windows' indicates if
+                # anything useful found, 'hwindows' is a list of
+                # (llx,lly,nx,ny) tuples if somthing is found.
                 try:
                     r = requests.get(drurl, timeout=0.2)
 
@@ -670,10 +678,8 @@ def nrtplot(args=None):
 
                         if nwinh != len(hwindows):
                             emessages.append(
-                                (
-                                    "** expected {:d} windows from"
-                                    " hdriver but got {:d}"
-                                ).format(nwinh, len(hwindows))
+                                f"** expected {nwinh} windows from"
+                                " (u/h)driver but got {len(hwindows)}"
                             )
                             got_windows = False
 
@@ -697,8 +703,8 @@ def nrtplot(args=None):
                 ccd = mccd[cnam]
 
                 if plotall or ccd.is_data():
-                    # this should be data as opposed to a blank frame
-                    # between data frames that occur with nskip > 0
+                    # "is_data" indicates genuine data as opposed to junk
+                    # that results from nskip > 0
 
                     # subtract the bias
                     if bias is not None:
@@ -773,7 +779,7 @@ def nrtplot(args=None):
             # [ccd, vmin, vmax, hwindows, dfct]
             #
             # i.e. the CCD, intensity range, setup windows and defects, or
-            # None if the CCD was skipped.
+            # "None" if the CCD was skipped due to nskip
 
             if nframe == 0:
                 # Create the plot manager
@@ -860,18 +866,13 @@ class PlotManager:
         self.ylo = ylo
         self.yhi = yhi
 
-        # Initialise the plot (axes not animated)
-        for ax in self.img_axs:
-            ax.set_xlim(self.xlo,self.xhi)
-            ax.set_ylim(self.ylo,self.yhi)
-
         # list of lists of artists for each image plot
         self.img_artists = []
 
         # now we actually create the artists
         for ax, cnam, stuff in zip(self.img_axs, self.ccds, img_accum):
             if stuff is None:
-                # do nothing much
+                # do nothing much other than add a placeholder
                 self.img_artists.append(None)
             else:
                 # plot the CCD, return with the animated artists
@@ -886,9 +887,8 @@ class PlotManager:
     def img_on_draw(self, event):
         """Callback to register with 'draw_event'."""
         cv = self.img_cnv
-        if event is not None:
-            if event.canvas != cv:
-                raise RuntimeError
+        if event is not None and event.canvas != cv:
+            raise RuntimeError
         self._img_bg = cv.copy_from_bbox(cv.figure.bbox)
         self._img_draw_animated()
 
@@ -900,30 +900,36 @@ class PlotManager:
                     self.img_fig.draw_artist(a)
 
     def update(self, img_accum):
-        """
-        updating routine
+        """updating routine, Pass it img_accum which contains a list of lists
+        for each image plot sub-panel with enough information to update them.
+
         """
 
         # now update / cfreate the artists
         img_artists = []
         for ax, cnam, stuff, artists in zip(self.img_axs, self.ccds, img_accum, self.img_artists):
-            if stuff is not None:
+            if stuff is None:
+                # just pass old artists through
+                img_artists.append(artists)
+            else:
                 # plot the CCD, return with the animated artists
                 ccd, vmin, vmax, hwindows, dfct = stuff
                 img_artists.append(
                     self._disp_ccd(ax, cnam, ccd, vmin, vmax, artists)
                 )
+        self.img_artists = img_artists
 
-        cv = self.img_cnv
+        cnv = self.img_cnv
         fig = self.img_fig
         if self._img_bg is None:
             self.img_on_draw(None)
         else:
             # restore the background
-            cv.restore_region(self._img_bg)
+            cnv.restore_region(self._img_bg)
             self._img_draw_animated()
-            cv.blit(fig.bbox)
-        cv.flush_events()
+            cnv.blit(fig.bbox)
+        cnv.flush_events()
+
 
     def _disp_ccd(self, ax, cnam, ccd, vmin, vmax, artists=None):
         """Displays a CCD ccd, name cnam, in Axes ax.
@@ -934,12 +940,14 @@ class PlotManager:
         """
 
         if artists is None:
+
             # in this case we are setting up for the first time
             artists = []
             for wnam, wind in ccd.items():
                 left, right, bottom, top = wind.extent()
 
-                # Display the images of each window (variable)
+                # Display the images of each window. save them
+                # since it is animated
                 artists.append(
                     ax.imshow(
                         wind.data,
@@ -984,19 +992,24 @@ class PlotManager:
                 f'CCD {cnam}',
                 color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
             )
-            ax.set_xlabel(
-                "X", color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
-            )
-            ax.set_ylabel(
-                "Y", color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
-            )
 
+            # set axis limits
+            ax.set_xlim(self.xlo, self.xhi)
 
+            ax.set_ylim(self.ylo, self.yhi)
+            ax.set_aspect('equal')
+            for tick in ax.get_yticklabels():
+                tick.set_rotation(90)
+
+            # need to re-draw to avoid irritating distorted image in
+            cnv = self.img_cnv
+            cnv.draw()
+            
         else:
 
-            # this is the "usual" post-setup case where we just
-            # update the data and intensity scaling of the images
-            # for each window
+            # this is the "usual" post-setup case where we just update
+            # the data and intensity scaling of the images for each
+            # window
             for wind, img in zip(ccd.values(), artists):
                 img.set_data(wind.data)
                 img.set_clim(vmin, vmax)
