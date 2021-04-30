@@ -435,84 +435,118 @@ def pCcdAper(axes, ccdAper):
     return g
 
 
-def pDefect(axes, dfct):
-    """Plots a :class:`Defect` object, returning references to the
-    plot objects.
+def pDefect(axes, dfct, animated=False, artist=None):
+    """Plots a :class:`Defect` object, returning the artist
+    created.
 
     Arguments::
 
-      axes    : :class:`matplotlib.axes.Axes`
+       axes : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
-      dfct    : Defect
+       dfct : Defect
            the :class:`Defect` to plot
 
-    Returns a reference to the plotting object created in case when plotting
-    the Defect in case of a later need to delete it. For forwards
-    compatibility, this is returned in a tuple
+       animated : bool
+           whether to mark the plot objects as "animated" or not.
+
+       artist : None | artist
+           If not None, this should be the artists returned from a
+           previous call to this routine with animated=True
+
+    Returns a reference to the artist created (Line"D object) in case of
+    later need to delete them.
 
     """
 
-    if isinstance(dfct, defect.Point):
-        if dfct.severity == defect.Severity.MODERATE:
-            obj = axes.plot(
-                dfct.x, dfct.y, "o", color=Params["defect.moderate.col"], ms=2.5
-            )
-        elif dfct.severity == defect.Severity.SEVERE:
-            obj = axes.plot(
-                dfct.x, dfct.y, "o", color=Params["defect.severe.col"], ms=2.5
-            )
+    if artist is None:
+        # create plot object
 
-    elif isinstance(dfct, defect.Line):
-        if dfct.severity == defect.Severity.MODERATE:
-            obj = axes.plot(
-                [dfct.x1, dfct.x2],
-                [dfct.y1, dfct.y2],
-                "--",
-                color=Params["defect.moderate.col"],
-            )
-        elif dfct.severity == defect.Severity.SEVERE:
-            obj = axes.plot(
-                [dfct.x1, dfct.x2],
-                [dfct.y1, dfct.y2],
-                color=Params["defect.severe.col"],
-            )
+        if isinstance(dfct, defect.Point):
+            if dfct.severity == defect.Severity.MODERATE:
+                artist, = axes.plot(
+                    dfct.x, dfct.y, "o", color=Params["defect.moderate.col"], ms=2.5,
+                    animated=animated
+                )
+            elif dfct.severity == defect.Severity.SEVERE:
+                artist, = axes.plot(
+                    dfct.x, dfct.y, "o", color=Params["defect.severe.col"], ms=2.5,
+                    animated=animated
+                )
 
-    elif isinstance(dfct, defect.Hot):
-        if dfct.severity == defect.Severity.MODERATE:
-            obj = axes.plot(
-                dfct.x, dfct.y, "*", color=Params["defect.moderate.col"], ms=2.5
-            )
-        elif dfct.severity == defect.Severity.SEVERE:
-            obj = axes.plot(
-                dfct.x, dfct.y, "*", color=Params["defect.severe.col"], ms=2.5
-            )
+        elif isinstance(dfct, defect.Line):
+            if dfct.severity == defect.Severity.MODERATE:
+                artist, = axes.plot(
+                    [dfct.x1, dfct.x2],
+                    [dfct.y1, dfct.y2],
+                    "--",
+                    color=Params["defect.moderate.col"],
+                    animated=animated
+                )
+            elif dfct.severity == defect.Severity.SEVERE:
+                artist, = axes.plot(
+                    [dfct.x1, dfct.x2],
+                    [dfct.y1, dfct.y2],
+                    color=Params["defect.severe.col"],
+                    animated=animated
+                )
+
+        elif isinstance(dfct, defect.Hot):
+            if dfct.severity == defect.Severity.MODERATE:
+                artist, = axes.plot(
+                    dfct.x, dfct.y, "*", color=Params["defect.moderate.col"], ms=2.5,
+                    animated=animated
+                )
+            elif dfct.severity == defect.Severity.SEVERE:
+                artist, = axes.plot(
+                    dfct.x, dfct.y, "*", color=Params["defect.severe.col"], ms=2.5,
+                    animated=animated
+                )
+
+        else:
+            raise HipercamError("Did not recognise Defect")
 
     else:
-        raise HipercamError("Did not recognise Defect")
+        # update previously created artist
+        if isinstance(dfct, defect.Point) or isinstance(dfct, defect.Hot):
+            artist.set_data(dfct.x, dfct.y)
 
-    return tuple(obj)
+        elif isinstance(dfct, defect.Line):
+            artist.set_data([dfct.x1, dfct.x2], [dfct.y1, dfct.y2])
+
+        else:
+            raise HipercamError("Did not recognise Defect")
+
+    return artist
 
 
-def pCcdDefect(axes, ccdDefect):
+def pCcdDefect(axes, ccdDefect, animated=False, previous=None):
     """Plots a :class:`CcdDefect` object, returning references to the plot
     objects.
 
     Arguments::
 
-      axes      : :class:`matplotlib.axes.Axes`
+       axes      : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
-      ccdDefect : CcdDefect
+       ccdDefect : CcdDefect
            the :class:`CcdDefect` to plot
+
+       animated : bool
+           whether to mark the plot objects as "animated" or not.
+
+       previous : None | Group
+           If not None, should be a saved version of the Group of
+           tuples returned from a previous call to this routine with
+           animated=True
 
     Returns a Group keyed on the same keys as ccdDefect but containing tuples
     of the plot objects used to plot each Defect. This can be used to
     delete them if need be.
 
     """
-    g = Group(tuple)
+    pobjs = {}
     for key, dfct in ccdDefect.items():
-        g[key] = pDefect(axes, dfct)
+        pobjs[key] = pDefect(axes, dfct)
 
-    return g
+    return pobjs
