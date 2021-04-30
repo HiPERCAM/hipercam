@@ -96,8 +96,7 @@ def pWind(axes, wind, vmin, vmax, label=""):
     """Plots :class:`Window` as an image with a line border. (matplotlib).
     Note that the keyword arguments are only passed to :func:`imshow` and
     you should plot the border separately if you want anything out of the
-    ordinary. If no colour map ('cmap') is specified, it will be set to
-    'Greys'
+    ordinary.
 
     Arguments::
 
