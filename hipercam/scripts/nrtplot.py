@@ -565,7 +565,7 @@ def nrtplot(args=None):
                 img_axs = [ax0]
             else:
                 img_axs.append(img_fig.add_subplot(ny,nx,ind+1,sharex=ax0,sharey=ax0))
-                
+
         # Place-holder for fit plot
         fit_fig, fit_axs = None, None
 
@@ -647,9 +647,9 @@ def nrtplot(args=None):
                     flat = flat.crop(mccd)
 
             if setup:
-                # Get windows from hdriver / udriver. Fair bit of
+                # Get setup windows from hdriver / udriver. Fair bit of
                 # error checking needed. 'got_windows' indicates if
-                # anything useful found, 'hwindows' is a list of
+                # anything useful found, 'swindows' is a list of
                 # (llx,lly,nx,ny) tuples if somthing is found.
                 try:
                     r = requests.get(drurl, timeout=0.2)
@@ -671,15 +671,15 @@ def nrtplot(args=None):
                         lines = r.text.split("\r\n")
                         xbinh, ybinh, nwinh = lines[0].split()
                         xbinh, ybinh, nwinh = int(xbinh), int(ybinh), int(nwinh)
-                        hwindows = []
+                        swindows = []
                         for line in lines[1 : nwinh + 1]:
                             llxh, llyh, nxh, nyh = line.split()
-                            hwindows.append((int(llxh), int(llyh), int(nxh), int(nyh)))
+                            swindows.append((int(llxh), int(llyh), int(nxh), int(nyh)))
 
-                        if nwinh != len(hwindows):
+                        if nwinh != len(swindows):
                             emessages.append(
                                 f"** expected {nwinh} windows from"
-                                " (u/h)driver but got {len(hwindows)}"
+                                " (u/h)driver but got {len(swindows)}"
                             )
                             got_windows = False
 
@@ -739,20 +739,20 @@ def nrtplot(args=None):
                     elif iset == "d":
                         vmin, vmax = dlo, dhi
 
-                    stuff = [ccd, vmin, vmax]
+                    content = [ccd, vmin, vmax]
 
                     if got_windows:
-                        stuff.append(hwindows)
+                        content.append(swindows)
                     else:
-                        stuff.append(None)
+                        content.append(None)
 
                     if dfct is not None and cnam in dfct:
-                        stuff.append(dfct[cnam])
+                        content.append(dfct[cnam])
                     else:
-                        stuff.append(None)
+                        content.append(None)
 
-                    # Save all the stuff to send to the plot updater
-                    img_accum.append(stuff)
+                    # Save all the content to send to the plot updater
+                    img_accum.append(content)
 
                     # accumulate string of image scalings
                     if nc:
@@ -776,7 +776,7 @@ def nrtplot(args=None):
             # at this point "img_accum" contains a list of lists, each of
             # which consists of:
             #
-            # [ccd, vmin, vmax, hwindows, dfct]
+            # [ccd, vmin, vmax, swindows, dfct]
             #
             # i.e. the CCD, intensity range, setup windows and defects, or
             # "None" if the CCD was skipped due to nskip
@@ -844,7 +844,17 @@ class PlotManager:
 
           yhi : float
              upper limit of region to display
+
+          img_accum : list of lists
+             one list per CCD being displayed. Contains the information
+             required for the first plot. Per CCD the list should be:
+             [ccd, vmin, vmax, swindows, dfcts] or None if the CCD is
+             being skipped. swindows -- setup windows -- can be None.
+             dfcts -- defects -- can also be None.
         """
+
+        assert(len(img_axs) == len(ccds))
+        assert(len(img_accum) == len(ccds))
 
         # Save the inputs
 
@@ -866,19 +876,18 @@ class PlotManager:
         self.ylo = ylo
         self.yhi = yhi
 
-        # list of lists of artists for each image plot
+        # list of dictionaries of artists for each image panel
         self.img_artists = []
 
         # now we actually create the artists
-        for ax, cnam, stuff in zip(self.img_axs, self.ccds, img_accum):
-            if stuff is None:
+        for ax, cnam, content in zip(self.img_axs, self.ccds, img_accum):
+            if content is None:
                 # do nothing much other than add a placeholder
                 self.img_artists.append(None)
             else:
                 # plot the CCD, return with the animated artists
-                ccd, vmin, vmax, hwindows, dfct = stuff
                 self.img_artists.append(
-                    self._disp_ccd(ax, cnam, ccd, vmin, vmax)
+                    self._disp_ccd(ax, cnam, content)
                 )
 
         # grab the background on every draw
@@ -893,11 +902,12 @@ class PlotManager:
         self._img_draw_animated()
 
     def _img_draw_animated(self):
-        # draw the animated artists for the image plot
-        for al in self.img_artists:
-            if al is not None:
-                for a in al:
-                    self.img_fig.draw_artist(a)
+        # draw all of the animated artists for the image plot
+        for artists in self.img_artists:
+            if artists is not None:
+                for alist in artists.values():
+                    for artist in alist:
+                        self.img_fig.draw_artist(artist)
 
     def update(self, img_accum):
         """updating routine, Pass it img_accum which contains a list of lists
@@ -907,15 +917,14 @@ class PlotManager:
 
         # now update / cfreate the artists
         img_artists = []
-        for ax, cnam, stuff, artists in zip(self.img_axs, self.ccds, img_accum, self.img_artists):
-            if stuff is None:
+        for ax, cnam, content, artists in zip(self.img_axs, self.ccds, img_accum, self.img_artists):
+            if content is None:
                 # just pass old artists through
                 img_artists.append(artists)
             else:
                 # plot the CCD, return with the animated artists
-                ccd, vmin, vmax, hwindows, dfct = stuff
                 img_artists.append(
-                    self._disp_ccd(ax, cnam, ccd, vmin, vmax, artists)
+                    self._disp_ccd(ax, cnam, content, artists)
                 )
         self.img_artists = img_artists
 
@@ -931,24 +940,30 @@ class PlotManager:
         cnv.flush_events()
 
 
-    def _disp_ccd(self, ax, cnam, ccd, vmin, vmax, artists=None):
+    def _disp_ccd(self, ax, cnam, content, artists=None):
         """Displays a CCD ccd, name cnam, in Axes ax.
 
-        If "artists" is None, a list of animated artists will be
-        will be created and returned. Otherwise it is assumed
-        to be such a list and they will be updated.
+        If "artists" is None, a dictionary will be created and
+        returned containing various lists of animated artists.
+        Otherwise it is assumed to be such a list resulting from an
+        earlier run and will be updated.
+
         """
+
+        # unpack the new content
+        ccd, vmin, vmax, swindows, dfct = content
 
         if artists is None:
 
             # in this case we are setting up for the first time
-            artists = []
+            artists = {}
+            wins = artists['windows'] = []
             for wnam, wind in ccd.items():
                 left, right, bottom, top = wind.extent()
 
                 # Display the images of each window. save them
                 # since it is animated
-                artists.append(
+                wins.append(
                     ax.imshow(
                         wind.data,
                         extent=(left, right, bottom, top),
@@ -980,6 +995,10 @@ class PlotManager:
                     clip_on=True,
                 )
 
+            # plot defects
+            if dfct is not None:
+                artists['defects'] = hcam.mpl.pCcdDefect(ax, dfct, True).values()
+
             # Plot outermost border of CCD (fixed)
             ax.plot(
                 [0.5, ccd.nxtot + 0.5, ccd.nxtot + 0.5, 0.5, 0.5],
@@ -1004,15 +1023,20 @@ class PlotManager:
             # need to re-draw to avoid irritating distorted image in
             cnv = self.img_cnv
             cnv.draw()
-            
+
         else:
 
             # this is the "usual" post-setup case where we just update
-            # the data and intensity scaling of the images for each
-            # window
-            for wind, img in zip(ccd.values(), artists):
+            # the artists
+
+            # the CCD window data
+            for wind, img in zip(ccd.values(), artists['windows']):
                 img.set_data(wind.data)
                 img.set_clim(vmin, vmax)
+
+            # defects don't change so nothing done to them. just need
+            # them to be "animated" so they don't get obscured by the
+            # window data.
 
         return artists
 
