@@ -299,10 +299,8 @@ def setdefect(args=None):
     anams = {}
 
     # this is a container for all the objects used to plot Defects to allow
-    # deletion. This is Group of Group objects supporting tuple storage. The
-    # idea is that pobjs[cnam][anam] returns the objects used to plot Defect
-    # anam of CCD cnam. It is initially empty,
-    pobjs = hcam.Group(hcam.Group)
+    # deletion. 
+    pobjs = {}
 
     for n, cnam in enumerate(ccds):
         if ax is None:
@@ -341,7 +339,7 @@ def setdefect(args=None):
             mccd_dfct[cnam] = defect.CcdDefect()
 
             # and an empty container for any new plot objects
-            pobjs[cnam] = hcam.Group(tuple)
+            pobjs[cnam] = {}
 
     # create the Defect picker (see below for class def)
     picker = PickDefect(
