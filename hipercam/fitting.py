@@ -152,52 +152,24 @@ def combFit(
 
     if method == "g":
         message = (
-            "x, y = {:.1f}({:.1f}), {:.1f}({:.1f}),"
-            " FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),"
-            " sky = {:.1f}({:.1f}), counts = {:.0f}, chi**2 = {:.1f},"
-            " nok = {:d}, nrej = {:d}, nfev = {:d}"
-        ).format(
-            x,
-            ex,
-            y,
-            ey,
-            fwhm,
-            efwhm,
-            height,
-            eheight,
-            sky,
-            esky,
-            fit.sum(),
-            chisq,
-            nok,
-            nrej,
-            nfev,
+            f"x,y= {x:.2f}({ex:.2f}), {y:.2f}({ey:.2f}),"
+            f" FWHM= {fwhm:.2f}({efwhm:.2f}),"
+            f" peak= {height:.1f}({eheight:.1f}),"
+            f" sky= {sky:.1f}({esky:.1f}),"
+            f" counts= {fit.sum():.0f}, chi**2= {chisq:.1f},"
+            f" nok= {nok}, nrej= {nrej}, nfev= {nfev}"
         )
         beta, ebeta = 0.0, -1.0
     elif method == "m":
         message = (
-            "x,y = {:.1f}({:.1f}),{:.1f}({:.1f}),"
-            " FWHM = {:.2f}({:.2f}), peak = {:.1f}({:.1f}),"
-            " sky = {:.1f}({:.1f}), counts = {:.0f}, beta = {:.2f}({:.2f}), chi**2 = {:.1f},"
-            " nok = {:d}, nrej = {:d}, nfev = {:d}"
-        ).format(
-            x,
-            ex,
-            y,
-            ey,
-            fwhm,
-            efwhm,
-            height,
-            eheight,
-            sky,
-            esky,
-            fit.sum(),
-            beta,
-            ebeta,
-            chisq,
-            nok,
-            nrej,
-            nfev,
+            f"x,y= {x:.2f}({ex:.2f}), {y:.2f}({ey:.2f}),"
+            f" FWHM= {fwhm:.2f}({efwhm:.2f}),"
+            f" peak= {height:.1f}({eheight:.1f}),"
+            f" sky= {sky:.1f}({esky:.1f}),"
+            f" counts= {fit.sum():.0f}, "
+            f" beta= {beta:.2f}({ebeta:.2f}),"
+            f" chi**2= {chisq:.1f},"
+            f" nok= {nok}, nrej= {nrej}, nfev= {nfev}"
         )
 
     return (
