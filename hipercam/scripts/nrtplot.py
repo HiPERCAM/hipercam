@@ -5,6 +5,7 @@ import time
 import numpy as np
 
 import matplotlib.pylab as plt
+from matplotlib.patches import Circle
 
 from astropy.time import Time
 
@@ -33,10 +34,10 @@ __all__ = [
 
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
-    nrow]) (ccd (nx)) [pause plotall] bias [lowlevel highlevel] flat
-    defect setup [drurl] [colour] msub iset (ilo ihi | plo phi) xlo
-    xhi ylo yhi profit [method beta fwhm fwhm_min shbox smooth splot
-    fhbox hmin read gain thresh]``
+    nrow]) (ccd (nx)) [imwidth pause plotall] bias [lowlevel
+    highlevel] flat defect setup [drurl] [colour] msub iset (ilo ihi |
+    plo phi) xlo xhi ylo yhi profit [method beta fwhm fwhm_min shbox
+    smooth fhbox hmin read gain thresh]``
 
     This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
     the current PGPLOT one. Under development.
@@ -114,6 +115,12 @@ def nrtplot(args=None):
 
         nx : int [if more than 1 CCD]
            number of panels across to display.
+
+        imwidth : float [hidden]
+           image display plot width in inches (0 for default)
+
+        imheight : float [hidden]
+           image display plot height in inches (0 for default)
 
         pause : float [hidden]
            seconds to pause between frames (defaults to 0). This is in addition
@@ -249,10 +256,6 @@ def nrtplot(args=None):
            main purpose is to combat cosmi rays which tend only to occupy a
            single pixel.
 
-        splot : bool [if profit; hidden]
-           Controls whether an outline of the search box and a target number
-           is plotted (in red) or not.
-
         fhbox : float [if profit; hidden]
            half width of box for profile fit, unbinned pixels. The fit box is
            centred on the position located by the initial search. It should
@@ -291,6 +294,8 @@ def nrtplot(args=None):
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
         cl.register("pause", Cline.LOCAL, Cline.HIDE)
         cl.register("plotall", Cline.LOCAL, Cline.HIDE)
         cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
@@ -319,7 +324,6 @@ def nrtplot(args=None):
         cl.register("fwhm_min", Cline.LOCAL, Cline.HIDE)
         cl.register("shbox", Cline.LOCAL, Cline.HIDE)
         cl.register("smooth", Cline.LOCAL, Cline.HIDE)
-        cl.register("splot", Cline.LOCAL, Cline.HIDE)
         cl.register("fhbox", Cline.LOCAL, Cline.HIDE)
         cl.register("hmin", Cline.LOCAL, Cline.HIDE)
         cl.register("read", Cline.LOCAL, Cline.HIDE)
@@ -389,6 +393,14 @@ def nrtplot(args=None):
         else:
             nx = 1
             ccds = list(ccdinf.keys())
+
+        imwidth = cl.get_value(
+            "imwidth", "image plot width inches [0 for default]", 0., 0.
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height inches [0 for default]", 0., 0.
+        )
 
         cl.set_default("pause", 0.0)
         pause = cl.get_value(
@@ -532,7 +544,6 @@ def nrtplot(args=None):
                 " detection [binned pixels]",
                 6.0,
             )
-            splot = cl.get_value("splot", "plot outline of search box?", True)
             fhbox = cl.get_value(
                 "fhbox",
                 "half width of box for profile fit" " [unbinned pixels]",
@@ -688,6 +699,7 @@ def nrtplot(args=None):
             # to send to the plot manager
             message = ""
 
+            skipped = True
             for nc, cnam in enumerate(ccds):
                 ccd = mccd[cnam]
 
@@ -757,16 +769,20 @@ def nrtplot(args=None):
                         message += "ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
                             cnam, vmin, vmax, mccd.head["EXPTIME"]
                         )
+                    skipped = False
 
                 elif not (profit and not_selected):
                     # If we are in a state of accumulating for profile fit
                     # selection we want each CCD to have something, so
                     # we don't overwrite with None on skipped images
                     # as we normally do
-                    img_accum.append(None)
+                    img_accum[nc] = None
 
             # Print messages
-            print(message)
+            if skipped:
+                print(f'{message}skipped')
+            else:
+                print(f'{message}')
             for emessage in emessages:
                 print(emessage)
 
@@ -784,37 +800,64 @@ def nrtplot(args=None):
                 not_selected = False
 
                 # Ready to make first plot of all CCDs
-                img_fig, img_axs = setup_images(len(ccds), nx, "Profile fit selection")
+                img_fig, img_axs = setup_images(len(ccds), nx, "Profile fit selection", imwidth, imheight)
                 for ax, cnam, content in zip(img_axs, ccds, img_accum):
                     disp_ccd(
-                        ax, cnam, xlo, xhi, ylo, yhi, cmap, content, True
+                        ax, cnam, xlo, xhi, ylo, yhi, cmap, content, False
                     )
+
                 # Cursor selection routine
-                cselect = CursorSelect(img_fig, img_axs, ccds)
+                cselect = CursorSelect(
+                    img_fig, img_axs, ccds, img_accum, shbox, fwhm, beta,
+                    method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
+                )
+
                 plt.show()
 
+            if profit and not not_selected:
+                # if profile fitting is being carried out, then this
+                # section is implemented for each new image
+
+                targets = cselect.targets
+
+                # first update search box positions. In normal operation
+                # this moves the boxes to match the target positions previously
+                # fitted.
+                for targ in targets:
+                    targ.update_sbox()
+
+                # now attempt fits
+                fit_accum = prof_fit(
+                    ccds, targets, img_accum,
+                    method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
+                )
+
+            else:
+                fit_accum = []
+
             if not profit or not not_selected:
-                # Now carry out the animation
+
+                # The image animation
                 if first_plot:
                     # one-off setup
                     first_plot = False
                     # create figure and axes
-                    img_fig, img_axs = setup_images(len(ccds), nx, "CCD image display")
+                    img_fig, img_axs = setup_images(len(ccds), nx, "CCD image display", imwidth, imheight)
 
                     # Create the image plot manager
-                    print(len(ccds), len(img_accum))
                     imanager = ImageManager(
                         img_fig, img_axs, ccds, xlo, xhi, ylo, yhi,
-                        cmap, img_accum
+                        cmap, img_accum, fit_accum
                     )
+
                     plt.show(block=False)
                     plt.pause(0.1)
 
                 else:
                     # send updates to image plot manager
-                    imanager.update(img_accum)
+                    imanager.update(img_accum, fit_accum)
 
-            if pause > 0.0:
+            if not (profit and not_selected) and pause > 0.0:
                 # pause between frames
                 time.sleep(pause)
 
@@ -823,7 +866,7 @@ def nrtplot(args=None):
 
 # From here is support code not visible outside
 
-def setup_images(nccd, nx, title):
+def setup_images(nccd, nx, title, width, height):
     """
     Sets up the figure and axes for the images display.
 
@@ -835,13 +878,22 @@ def setup_images(nccd, nx, title):
        nx : int
           number of panels in the X direction.
 
+       title : str
+          title of figure
+
+       width : float
+          width, inches
+
+       height : float
+          height, inches
+
     Returns (fig, axs)
 
     The Figure and Axes, one per CCD
     """
 
     # Create the figure for the image plot
-    fig = plt.figure(title)
+    fig = plt.figure(title, figsize=(width,height))
 
     # Define config of images
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
@@ -865,7 +917,7 @@ class ImageManager:
     """
 
     def __init__(
-            self, fig, axs, ccds, xlo, xhi, ylo, yhi, cmap, accum
+            self, fig, axs, ccds, xlo, xhi, ylo, yhi, cmap, img_accum, fit_accum
     ):
         """
         Initialises the plot. Arguments:
@@ -895,16 +947,21 @@ class ImageManager:
              Matplotlib colour map. None gives default
 
 
-          accum : list of lists
+          img_accum : list of lists
              one list per CCD being displayed. Contains the information
-             required for the first plot. Per CCD the list should be:
+             required for the image plot. Per CCD the list should be:
              [ccd, vmin, vmax, swindows, dfcts] or None if the CCD is
              being skipped. swindows -- setup windows -- can be None.
              dfcts -- defects -- can also be None.
+
+          fit_accum : list of lists
+             one list per target being profile fitted (None if none are).
+             Contains the information required to indicate the original
+             search box and the fitted location and fwhm of each target.
         """
 
         assert(len(axs) == len(ccds))
-        assert(len(accum) == len(ccds))
+        assert(len(img_accum) == len(ccds))
 
         # Save the inputs
 
@@ -923,18 +980,21 @@ class ImageManager:
         self.cmap = cmap
 
         # list of dictionaries of artists for each image panel
-        self.artists = []
+        self.img_artists = []
 
         # now we actually create the artists
-        for ax, cnam, content in zip(self.axs, self.ccds, accum):
+        for ax, cnam, content in zip(self.axs, self.ccds, img_accum):
             if content is None:
                 # do nothing much other than add a placeholder
-                self.artists.append(None)
+                self.img_artists.append(None)
             else:
                 # plot the CCD, return with the animated artists
-                self.artists.append(
+                self.img_artists.append(
                     self._disp_ccd(ax, cnam, content)
                 )
+
+        # now for the fit targets
+        self.targ_artists = self._disp_targs(fit_accum)
 
         # grab the background on every draw
         self.cid = self.cnv.mpl_connect("draw_event", self.on_draw)
@@ -949,29 +1009,39 @@ class ImageManager:
 
     def _draw_animated(self):
         # draw all of the animated artists for the image plot
-        for artists in self.artists:
-            if artists is not None:
-                for alist in artists.values():
-                    for artist in alist:
-                        self.fig.draw_artist(artist)
+        # self.artists is a list of dictionaries of lists ...
+        for dartist in self.img_artists:
+            if dartist is not None:
+                for lartist in dartist.values():
+                    for artist in lartist:
+                        if artist is not None:
+                            self.fig.draw_artist(artist)
 
-    def update(self, accum):
-        """updating routine, Pass it accum which contains a list of lists
+        for artist in self.targ_artists:
+            if artist is not None:
+                
+                self.fig.draw_artist(artist)
+
+    def update(self, img_accum, fit_accum):
+        """updating routine, Pass it img_accum which contains a list of lists
         for each image plot sub-panel with enough information to update them.
 
         """
-
         # now update / create the artists
+
+        # first the images
         lartists = []
-        for ax, cnam, content, artists in zip(self.axs, self.ccds, accum, self.artists):
+        for ax, cnam, content, artists in zip(self.axs, self.ccds, img_accum, self.img_artists):
             if content is None:
                 # just pass old artists through
                 lartists.append(artists)
             else:
-                # plot the CCD, return with the animated artists
+                # plot the CCD, return with the updated animated artists
                 lartists.append(self._disp_ccd(ax, cnam, content, artists))
+        self.img_artists = lartists
 
-        self.artists = lartists
+        # then the targets
+        self.targ_artists = self._disp_targs(fit_accum, self.targ_artists)
 
         cnv = self.cnv
         fig = self.fig
@@ -994,8 +1064,8 @@ class ImageManager:
 
         """
 
-
         if artists is None:
+            print('artists = None, cnam =',cnam)
 
             # in this case we are setting up for the first time
             artists = disp_ccd(
@@ -1003,6 +1073,7 @@ class ImageManager:
                 self.xlo, self.xhi, self.ylo, self.yhi, self.cmap,
                 content, True
             )
+            print(artists)
 
             # need to re-draw to avoid irritating distorted image
             self.cnv.draw()
@@ -1043,6 +1114,59 @@ class ImageManager:
                     swins.append(box)
                 artists['swindows'] = swins
 
+        return artists
+
+    def _disp_targs(self, fit_accum, artists=None):
+        """Displays target as (a) a search box and (b) a circle of radius
+        equal to the FWHM and a dot for the target.
+
+        If "artists" is None, a list will be created and
+        returned containing the animated artists.
+        Otherwise it is assumed to be such a list resulting from an
+        earlier run and will be updated.
+
+        """
+
+        if fit_accum is None:
+            return None
+
+        if artists is None:
+
+            # mapping from CCD name to axes
+            ccd2axes = dict(zip(self.ccds,self.axs))
+
+            artists = []
+            for ntarg, content in enumerate(fit_accum):
+                if content is not None:
+                    fpar = content[0]
+                    ax = ccd2axes[fpar.cnam]
+                    artists += fpar.plot(ax, True)
+                else:
+                    artists += [None,None,None]
+
+            # re-draw
+            self.cnv.draw()
+
+        else:
+
+            for ntarg, content in enumerate(fit_accum):
+                if content is not None:
+                    fpar = content[0]
+                    if artists[3*ntarg] is None:
+                        # The artists have yet to be made
+                        ax = ccd2axes[fpar.cnam]
+                        artists[3*ntarg:3*ntarg+3] = fpar.plot(ax, True)
+                    else:
+                        # they exist already and need updating
+                        dot,circ,sbox = artists[3*ntarg:3*ntarg+3]
+                        dot.set_data(fpar.x,fpar.y)
+                        circ.set_center((fpar.x,fpar.y))
+                        circ.set_center((fpar.x,fpar.y))
+                        xlo, xhi, ylo, yhi = fpar.region()
+                        sbox.set_data(
+                            [xlo,xhi,xhi,xlo,xlo],[ylo,ylo,yhi,yhi,ylo]
+                        )
+                        
         return artists
 
 
@@ -1140,6 +1264,9 @@ def disp_ccd(ax, cnam, xlo, xhi, ylo, yhi, cmap, content, animated):
         ax.set_aspect('equal')
         for tick in ax.get_yticklabels():
             tick.set_rotation(90)
+
+    if animated:
+        return artists
 
 class FitManager:
     """Class to control the profile fit animation
@@ -1392,10 +1519,32 @@ class CursorSelect():
     Avoids spurious panning clicks from being registered
     """
 
-    def __init__(self, fig, axs, ccds):
+    def __init__(self,
+                 fig, axs, ccds, img_accum, shbox, fwhm, beta, method,
+                 smooth, fhbox, hmin, fwhm_min, read, gain, thresh
+                 ):
+        """
+        fig : the Figure
+        axs : the Axes, one per CCD
+        img_accum : image content data
+        shbox : falf width search box
+        """
+
         self.cnv = fig.canvas
         self.axs = axs
         self.ccds = ccds
+        self.img_accum = img_accum
+        self.shbox = shbox
+        self.fwhm = fwhm
+        self.beta = beta
+        self.method = method
+        self.smooth = smooth
+        self.fhbox = fhbox
+        self.hmin = hmin
+        self.fwhm_min = fwhm_min
+        self.read = read
+        self.gain = gain
+        self.thresh = thresh
 
         self.press = False
         self.move = False
@@ -1403,7 +1552,9 @@ class CursorSelect():
         self.c2=self.cnv.mpl_connect('button_release_event', self._onrelease)
         self.c3=self.cnv.mpl_connect('motion_notify_event', self._onmove)
 
-        print('\nclick to select stars, q to exit and start animation')
+        print('\nClick to select stars; q to exit and start animation')
+        self.targets = []
+        self.ntarg = 0
 
     def _onclick(self, event):
         """
@@ -1411,9 +1562,41 @@ class CursorSelect():
         """
 
         if event.inaxes is not None:
-            for ax, cnam in zip(self.axs,self.ccds):
+            for ax, cnam, content in zip(self.axs,self.ccds,self.img_accum):
+
                 if event.inaxes == ax:
-                    print(f'Clicked inside CCD {cnam} at x,y = {event.xdata}, {event.ydata}')
+
+                    # clicked inside an Axes
+                    x, y = event.xdata, event.ydata
+
+                    # extract the CCD
+                    ccd = content[0]
+
+                    # check that the position is inside a window
+                    wnam = ccd.inside(x, y, 2)
+
+                    if wnam is not None:
+                        # store the position, Window label, target number,
+                        # box size fwhm, beta
+                        fpar = Fpar(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
+                        results, message = fpar.fit(
+                            ccd, self.method, self.smooth, self.fhbox,
+                            self.hmin, self.fwhm_min, self.read, self.gain, self.thresh
+                        )
+                        if results is not None:
+                            # fitted OK
+                            self.ntarg += 1
+                            self.targets.append(fpar)
+                            print(
+                                f'\n   target {self.ntarg} added at initial x,y = '
+                                f'{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}, refined by fit with results:'
+                            )
+                            print(f'   {message}')
+                            fpar.plot(ax)
+                            self.cnv.draw()
+                        else:
+                            print(f'\n   ** fit failed for position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}; no new target added')
+                            print(f'   ** fit message = {message}')
 
     def _onpress(self,event):
         self.press = True
@@ -1428,3 +1611,170 @@ class CursorSelect():
             self._onclick(event)
         self.press = False
         self.move = False
+
+class Fpar:
+
+    """Class for representing a target for profile fits. Stores
+    the CCD name and window name where it is located."""
+
+    def __init__(self, cnam, wnam, x, y, shbox, fwhm, beta):
+        """
+        x,y used as initial target position and initial centre of search box
+        """
+        self.cnam = cnam
+        self.wnam = wnam
+        self.shbox = shbox
+        self.x_cbox = self.x = x
+        self.y_cbox = self.y = y
+        self.fwhm = fwhm
+        self.beta = beta
+
+    def region(self):
+        """
+        Returns current search region
+        """
+        return (
+            self.x_cbox - self.shbox,
+            self.x_cbox + self.shbox,
+            self.y_cbox - self.shbox,
+            self.y_cbox + self.shbox,
+        )
+
+    def plot(self, ax, animated=False):
+        """Plots the Fpar as a search box plus and a circle of radius FWHM and
+        a dot for target. Returns with a list of three artists. The
+        artists can be animated if they are be updated.
+        """
+
+        xlo, xhi, ylo, yhi = self.region()
+
+        sbox, = ax.plot(
+            [xlo,xhi,xhi,xlo,xlo],[ylo,ylo,yhi,yhi,ylo],
+            color='b',animated=animated
+        )
+        circ = Circle(
+            (self.x, self.y), self.fwhm, fill=False,
+            color='g', animated=animated
+        )
+        ax.add_patch(circ)
+        dot, = ax.plot(
+            self.x, self.y, '.g', animated=animated
+        )
+        return (dot,circ,sbox)
+
+    def fit(self, ccd, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh):
+        """Carries out a fit when passed a CCD. If successful,
+        x, y, fwhm and beta will be altered but the centre
+        of the search region will be unchanged.
+
+        Returns (results, message) where results = (self, fradii, fdata, fok, vmin, vmax, r, f)
+        if successful, None if not. "message" is a string summarising the result.
+
+        """
+
+        try:
+            # extract search box data from the CCD.
+            xlo, xhi, ylo, yhi = self.region()
+            swind = ccd[self.wnam].window(xlo, xhi, ylo, yhi)
+
+            # carry out initial search
+            x, y, peak = swind.search(smooth, self.x, self.y, hmin, False)
+
+            # now for a more refined fit. First extract region centred
+            # on new position
+            fwind = ccd[self.wnam].window(
+                x - fhbox, x + fhbox, y - fhbox, y + fhbox
+            )
+
+            # crude estimate of sky background
+            sky = np.percentile(fwind.data, 50)
+
+            # refine the Aperture position by fitting the profile
+            (
+                (sky, height, x, y, fwhm, beta),
+                epars,
+                (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
+            ) = hcam.fitting.combFit(
+                fwind,
+                method,
+                sky,
+                peak - sky,
+                x,
+                y,
+                self.fwhm,
+                fwhm_min,
+                False,
+                self.beta,
+                20.,
+                False,
+                read,
+                gain,
+                thresh,
+            )
+
+            if peak > hmin and ccd[self.wnam].distance(x, y) > 1:
+                # update some initial parameters for next time
+                if method == "g":
+                    self.x, self.y, self.fwhm = x, y, fwhm
+                elif method == "m":
+                    self.x, self.y, self.fwhm, self.beta = x, y, fwhm, beta
+
+                # values vs radial distance, plot range
+                ok = sigma > 0
+                R = np.sqrt((X - x) ** 2 + (Y - y) ** 2)
+                vmin = min(sky, sky + height, fwind.min())
+                vmax = max(sky, sky + height, fwind.max())
+                extent = vmax - vmin
+                vmin -= 0.05*extent
+                vmax += 0.05*extent
+
+                # line fit
+                r = np.linspace(0, R.max(), 400)
+                if method == "g":
+                    alpha = 4 * np.log(2.0) / fwhm ** 2
+                    f = sky + height * np.exp(-alpha * r ** 2)
+                elif method == "m":
+                    alpha = 4 * (2 ** (1 / beta) - 1) / fwhm ** 2
+                    f = sky + height / (1 + alpha * r ** 2) ** beta
+
+                # save the Fpar, radii, data, flags, plot range, fit x & y
+                results = (self, R.flat, fwind.data.flat, ok.flat, vmin, vmax, r, f)
+
+            else:
+                results = None
+                message += "\n*** below detection threshold. Parameters unchanged."
+
+        except hcam.HipercamError as err:
+            results = None
+            message = f"fit failed: {err}"
+
+        return (results, message)
+
+    def update_sbox(self):
+        """Moves centre of box to match target position"""
+        self.x_cbox = self.x
+        self.y_cbox = self.y
+
+def prof_fit(ccds, targets, img_accum, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh):
+    """
+    Carries out profile fitting over all targets. Returns container of results
+    suitable for potential plotting.
+    """
+
+    # first a mapping from CCD name to the image content
+    img_map = dict(zip(ccds, img_accum))
+
+    # container for results
+    fit_accum = len(targets)*[None]
+
+    for ntarg, fpar in enumerate(targets):
+        # carry out fits. Nothing happens if the CCD has not been
+        # updated [content = None]
+        content = img_map[fpar.cnam]
+        if content is not None:
+            ccd = content[0]
+            results, message = fpar.fit(ccd, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh)
+            print(f' target {ntarg+1}, {message}')
+            fit_accum[ntarg] = results
+
+    return fit_accum
