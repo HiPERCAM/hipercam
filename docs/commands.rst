@@ -31,11 +31,12 @@
 .. |ol-makeflat| replace:: combine a list of frames into a flat
 .. |ol-mstats|   replace:: list stats of multiple frames from a run
 .. |ol-mul|      replace:: multiply two frames
+.. |ol-nrtplot|  replace:: plot frames as they come in [matplotlib]
 .. |ol-plog|     replace:: plot output log from |reduce|
 .. |ol-redanal|  replace:: analyse a reduction log file
 .. |ol-reduce|   replace:: carry out photometric reduction
 .. |ol-rupdate|  replace:: updates old reduce files
-.. |ol-rtplot|   replace:: plot frames as they come in
+.. |ol-rtplot|   replace:: plot frames as they come in [pgplot]
 .. |ol-setaper|  replace:: define the photometric apertures
 .. |ol-setdefect| replace:: define a file of CCD defects
 .. |ol-splice|   replace:: splice two frames together
@@ -126,6 +127,8 @@ useful.
    | |mstats|     | |ol-mstats|    |          |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |mul|        | |ol-mul|       |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |nrtplot|    | |ol-nrtplot|   | Yes      | Yes      |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |plog|       | |ol-plog|      | Yes      |          |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -444,6 +447,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.makeflat
 .. autofunction:: hipercam.scripts.mstats
 .. autofunction:: hipercam.scripts.mul
+.. autofunction:: hipercam.scripts.nrtplot
 .. autofunction:: hipercam.scripts.plog
 .. autofunction:: hipercam.scripts.redanal
 .. autofunction:: hipercam.scripts.reduce

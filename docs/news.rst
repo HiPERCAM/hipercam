@@ -8,11 +8,23 @@
 This page documents important changes in the pipeline, as a help to whether
 you should update.
 
+#. **05 May 2021, Version 0.22.0**: matplotlib-based real time image plotter
+   introduced
+
+     * |nrtplot|, matplotlib-based version of rtplot. Allows panning
+       and zooming during the plots, choice of colour map, and
+       profile fits from multiple CCDs.
+     * setaper, hplot, setdefect also now support colour maps
+     * averun output name now synchronised with input
+
+   Here is the
+   :doc:`full list of changes, 0.21.2 to 0.22.0 <change_log_0.21.2_0.22.0>`.
+
 #. **17 March 2021, Version 0.21.2**: bug fix for a problem with saving
    parameter default files.
 
      * new environment variable HIPERCAM_DEFAULT_SOURCE introduced
-     * maebias output name synchronised with input
+     * makebias output name synchronised with input
      * lots of minor improvments to logging scripts
      * filtid, new command, aimed at potential filter ID from sky flats
 
