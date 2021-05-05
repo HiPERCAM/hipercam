@@ -475,7 +475,8 @@ def nrtplot(args=None):
             drurl = None
 
         # colour map to use
-        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys", ignore="none")
+        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+        cmap = None if cmap == "none" else cmap
 
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)

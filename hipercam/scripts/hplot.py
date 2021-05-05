@@ -19,8 +19,8 @@ from hipercam.cline import Cline
 
 
 def hplot(args=None):
-    """``hplot input [device] ccd nx msub hsbox iset (ilo ihi | plo phi)
-    xlo xhi ylo yhi [width height]``
+    """``hplot input [device] ccd nx msub [cmap] hsbox iset (ilo ihi | plo
+    phi) xlo xhi ylo yhi [width height]``
 
     Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
     version is slightly clunky in its choice of the viewing area but has some
@@ -57,6 +57,11 @@ def hplot(args=None):
 
       msub : bool
          True/False to subtract median from each window before scaling
+
+      cmap : str [if matplotlib]
+         The colour map to use. "Greys" is the usual, but there are
+         many others. Typing an incorrect one will give a list. "none"
+         for matplotlib default.
 
       hsbox : int [if device = '/mpl'; hidden]
          half-width in binned pixels of stats box as offset from central pixel
@@ -118,6 +123,7 @@ def hplot(args=None):
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("cmap", Cline.GLOBAL, Cline.PROMPT)
         cl.register("hsbox", Cline.GLOBAL, Cline.HIDE)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
@@ -177,6 +183,10 @@ def hplot(args=None):
 
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)
+
+        if ptype == "MPL":
+            cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+            cmap = None if cmap == "none" else cmap
 
         if ptype == "MPL" and hard == "":
             hsbox = cl.get_value(
@@ -270,7 +280,7 @@ def hplot(args=None):
                 xlo,
                 xhi,
                 ylo,
-                yhi,
+                yhi, cmap=cmap
             )
             print("CCD =", cnam, "plot range =", vmin, "to", vmax)
 

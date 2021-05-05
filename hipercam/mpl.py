@@ -92,7 +92,7 @@ def pWin(axes, win, label=""):
         )
 
 
-def pWind(axes, wind, vmin, vmax, label=""):
+def pWind(axes, wind, vmin, vmax, label="", cmap="Greys"):
     """Plots :class:`Window` as an image with a line border. (matplotlib).
     Note that the keyword arguments are only passed to :func:`imshow` and
     you should plot the border separately if you want anything out of the
@@ -120,7 +120,7 @@ def pWind(axes, wind, vmin, vmax, label=""):
         extent=(left, right, bottom, top),
         aspect="equal",
         origin="lower",
-        cmap="Greys",
+        cmap=cmap,
         interpolation="nearest",
         vmin=vmin,
         vmax=vmax,
@@ -143,6 +143,7 @@ def pCcd(
     xhi=None,
     ylo=None,
     yhi=None,
+    cmap="Greys"
 ):
     """Plots :class:`CCD` as a set of :class:`Window` objects correctly
     positioned with respect to each other.
@@ -214,7 +215,7 @@ def pCcd(
         raise ValueError('did not recognise iset = "' + iset + '"')
 
     for key, wind in ccd.items():
-        pWind(axes, wind, vmin, vmax, key)
+        pWind(axes, wind, vmin, vmax, key, cmap=cmap)
 
     # plot outermost border of CCD
     axes.plot(

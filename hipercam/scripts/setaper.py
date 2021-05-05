@@ -47,7 +47,7 @@ __all__ = [
 
 def setaper(args=None):
     """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 xlo
-    xhi ylo yhi nx msub iset (ilo ihi | plo phi) [profit method (beta
+    xhi ylo yhi nx msub cmap iset (ilo ihi | plo phi) [profit method (beta
     betafix betamax) fwhm fwfix (fwmin) shbox smooth splot fhbox read
     gain thresh]``
 
@@ -119,8 +119,12 @@ def setaper(args=None):
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
 
-      msub   : bool
+      msub : bool
          True/False to subtract median from each window before scaling
+
+      cmap : str
+         Colour map to use. "Greys" is usual greyscale. "none" to get matplotlib
+         default.
 
       iset   : string [single character]
          determines how the intensities are determined. There are three
@@ -286,6 +290,7 @@ def setaper(args=None):
         cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("cmap", Cline.GLOBAL, Cline.PROMPT)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
@@ -391,6 +396,8 @@ def setaper(args=None):
 
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)
+        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+        cmap = None if cmap == "none" else cmap
 
         iset = cl.get_value(
             "iset",
@@ -544,6 +551,7 @@ def setaper(args=None):
             xhi,
             ylo,
             yhi,
+            cmap=cmap
         )
 
         # keep track of the CCDs associated with each axes
