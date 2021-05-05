@@ -116,12 +116,6 @@ def nrtplot(args=None):
         nx : int [if more than 1 CCD]
            number of panels across to display.
 
-        imwidth : float [hidden]
-           image display plot width in inches (0 for default)
-
-        imheight : float [hidden]
-           image display plot height in inches (0 for default)
-
         pause : float [hidden]
            seconds to pause between frames (defaults to 0). This is in addition
            to any time taken per frame to read and display it, so is just to slow
@@ -275,6 +269,27 @@ def nrtplot(args=None):
         thresh : float [if profit; hidden]
            sigma rejection threshold for fits
 
+        imwidth : float [hidden]
+           image display plot width in inches (0 for default)
+
+        imheight : float [hidden]
+           image display plot height in inches (0 for default)
+
+        fwnmax : int [hidden]
+           maximum number of frames to buffer the FWHM plot (< 2 ==> no plot). This
+           option will only be used if profile fitting is used. It allows the FWHMs
+           of multiple stars to be tracked which might be useful for focussing. The
+           plot starts to "slide" once the buffers are filled.
+
+        fwymax : float
+           maximum FWHM to plot on Y-axis [unbinned pixels]
+
+        fwwidth : float [hidden]
+           FWHM display plot width in inches (0 for default)
+
+        fwheight : float [hidden]
+           FWHM display plot height in inches (0 for default)
+
     """
 
     command, args = utils.script_args(args)
@@ -294,8 +309,6 @@ def nrtplot(args=None):
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
-        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
-        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
         cl.register("pause", Cline.LOCAL, Cline.HIDE)
         cl.register("plotall", Cline.LOCAL, Cline.HIDE)
         cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
@@ -329,6 +342,12 @@ def nrtplot(args=None):
         cl.register("read", Cline.LOCAL, Cline.HIDE)
         cl.register("gain", Cline.LOCAL, Cline.HIDE)
         cl.register("thresh", Cline.LOCAL, Cline.HIDE)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwnmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwymax", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwheight", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
@@ -393,14 +412,6 @@ def nrtplot(args=None):
         else:
             nx = 1
             ccds = list(ccdinf.keys())
-
-        imwidth = cl.get_value(
-            "imwidth", "image plot width inches [0 for default]", 0., 0.
-        )
-
-        imheight = cl.get_value(
-            "imheight", "image plot height inches [0 for default]", 0., 0.
-        )
 
         cl.set_default("pause", 0.0)
         pause = cl.get_value(
@@ -557,6 +568,31 @@ def nrtplot(args=None):
             gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
             thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
 
+        imwidth = cl.get_value(
+            "imwidth", "image plot width [inches, 0 for default]", 0., 0.
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height [inches, 0 for default]", 0., 0.
+        )
+
+        fwnmax = cl.get_value(
+            "fwnmax", "maximum number of frame to buffer FWHM [0 to ignore]", 100, 0
+        )
+
+        fwymax = cl.get_value(
+            "fwymax", "maximum FWHM value to plot on Y-axis [unbinned pixels]", 10., 2.
+        )
+
+        fwwidth = cl.get_value(
+            "fwwidth", "FWHM plot width [inches, 0 for default]", 0., 0.
+        )
+
+        fwheight = cl.get_value(
+            "fwheight", "FWHM plot height [inches, 0 for default]", 0., 0.
+        )
+
+
     ###############################################################################
 
     # Phew. We finally have all the inputs and now can now display stuff.
@@ -565,7 +601,8 @@ def nrtplot(args=None):
     plotted = np.array(len(ccds)*[False])
     not_selected = True
     img_accum = len(ccds)*[None]
-    first_plot = True
+    first_image = True
+    first_fwhm = True
 
     # Now onto the animated plots.
     with spooler.data_source(source, resource, first, full=False) as spool:
@@ -838,15 +875,13 @@ def nrtplot(args=None):
             if not profit or not not_selected:
 
                 # The image animation
-                if first_plot:
+                if first_image:
                     # one-off setup
-                    first_plot = False
-                    # create figure and axes
-                    img_fig, img_axs = setup_images(len(ccds), nx, "CCD image display", imwidth, imheight)
+                    first_image = False
 
                     # Create the image plot manager
                     imanager = ImageManager(
-                        img_fig, img_axs, ccds, xlo, xhi, ylo, yhi,
+                        ccds, nx, imwidth, imheight, xlo, xhi, ylo, yhi,
                         cmap, img_accum, fit_accum
                     )
 
@@ -856,6 +891,25 @@ def nrtplot(args=None):
                 else:
                     # send updates to image plot manager
                     imanager.update(img_accum, fit_accum)
+
+                if profit and fwnmax > 1:
+                    # The fwhm animation
+                    if first_fwhm:
+                        # one-off setup
+                        first_fwhm = False
+
+                        # Create the FWHM plot manager
+                        nfrm = mccd.head.get("NFRAME",nframe+1)
+                        fwhmmanager = FwhmManager(
+                             fit_accum, nfrm, fwnmax, fwymax, fwwidth, fwheight
+                        )
+
+                        plt.show(block=False)
+                        plt.pause(0.1)
+
+                    else:
+                        # send updates to fwhm plot manager
+                        fwhmmanager.update(fit_accum)
 
             if not (profit and not_selected) and pause > 0.0:
                 # pause between frames
@@ -893,7 +947,10 @@ def setup_images(nccd, nx, title, width, height):
     """
 
     # Create the figure for the image plot
-    fig = plt.figure(title, figsize=(width,height))
+    if width > 0 and height > 0:
+        fig = plt.figure(title, figsize=(width,height))
+    else:
+        fig = plt.figure(title)
 
     # Define config of images
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
@@ -912,24 +969,31 @@ class ImageManager:
     """Class to control the image animation
 
     Basic idea is that initialising it stores all the very many inputs
-    as attributes and creates the plot, then the update method
-    is used to plot successive frames.
+    as attributes and creates the plot returning structures containing
+    animated artists which get updated per frame. Allows re-scaling of
+    intensity levels of the images, plotting of defects and setup
+    windows and also the search box and fitted positions of any
+    profile fit targets.
+
     """
 
     def __init__(
-            self, fig, axs, ccds, xlo, xhi, ylo, yhi, cmap, img_accum, fit_accum
+            self, cnams, nx, width, height, xlo, xhi, ylo, yhi, cmap, img_accum, fit_accum
     ):
         """
         Initialises the plot. Arguments:
 
-          fig : Figure
-             the figure containing the images
-
-          axs : iterable(Axes)
-             the associated Axes, one per CCD being displayed
-
-          ccds : list of strings
+          cnams : list of strings
              CCD names to plot
+
+          nx : int
+             max number of panels in X
+
+          width : float
+             plot width [inches]
+
+          height : float
+             plot height [inches]
 
           xlo : float
              left-hand limit of region to determine percentiles and for display
@@ -954,25 +1018,22 @@ class ImageManager:
              being skipped. swindows -- setup windows -- can be None.
              dfcts -- defects -- can also be None.
 
-          fit_accum : list of lists
-             one list per target being profile fitted (None if none are).
-             Contains the information required to indicate the original
-             search box and the fitted location and fwhm of each target.
+          fit_accum : list of tuples
+             one tuple per target being profile fitted, containg all
+             info needed to make plots of the fit etc. This can be None
+             if no fit was made. See Fpar.fit for what the tuples contain.
         """
 
-        assert(len(axs) == len(ccds))
-        assert(len(img_accum) == len(ccds))
+        # basic check
+        assert(len(img_accum) == len(cnams))
 
-        # Save the inputs
-
-        # first stuff to do with the mpl figures
-        self.fig = fig
-        self.axs = axs
-        self.cnv = fig.canvas
+        # create figure and axes
+        self.fig, self.axs = setup_images(len(cnams), nx, "CCD display", width, height)
+        self.cnv = self.fig.canvas
         self._bg = None
 
         # rtplot inputs
-        self.ccds = ccds
+        self.cnams = cnams
         self.xlo = xlo
         self.xhi = xhi
         self.ylo = ylo
@@ -983,7 +1044,7 @@ class ImageManager:
         self.img_artists = []
 
         # now we actually create the artists
-        for ax, cnam, content in zip(self.axs, self.ccds, img_accum):
+        for ax, cnam, content in zip(self.axs, self.cnams, img_accum):
             if content is None:
                 # do nothing much other than add a placeholder
                 self.img_artists.append(None)
@@ -1008,8 +1069,11 @@ class ImageManager:
         self._draw_animated()
 
     def _draw_animated(self):
-        # draw all of the animated artists for the image plot
-        # self.artists is a list of dictionaries of lists ...
+        """Draws all of the animated artists for the image plot self.artists
+        is a list of dictionaries of lists ...
+
+        """
+
         for dartist in self.img_artists:
             if dartist is not None:
                 for lartist in dartist.values():
@@ -1019,19 +1083,19 @@ class ImageManager:
 
         for artist in self.targ_artists:
             if artist is not None:
-                
                 self.fig.draw_artist(artist)
 
     def update(self, img_accum, fit_accum):
-        """updating routine, Pass it img_accum which contains a list of lists
-        for each image plot sub-panel with enough information to update them.
+        """Updating routine, Passed arguments containg enough information
+        to update the image plots and also any fitted stars. The real
+        work is passed down to _disp_ccd and _disp_targs
 
         """
         # now update / create the artists
 
         # first the images
         lartists = []
-        for ax, cnam, content, artists in zip(self.axs, self.ccds, img_accum, self.img_artists):
+        for ax, cnam, content, artists in zip(self.axs, self.cnams, img_accum, self.img_artists):
             if content is None:
                 # just pass old artists through
                 lartists.append(artists)
@@ -1040,7 +1104,7 @@ class ImageManager:
                 lartists.append(self._disp_ccd(ax, cnam, content, artists))
         self.img_artists = lartists
 
-        # then the targets
+        # then the profile fit targets
         self.targ_artists = self._disp_targs(fit_accum, self.targ_artists)
 
         cnv = self.cnv
@@ -1065,7 +1129,6 @@ class ImageManager:
         """
 
         if artists is None:
-            print('artists = None, cnam =',cnam)
 
             # in this case we are setting up for the first time
             artists = disp_ccd(
@@ -1073,7 +1136,6 @@ class ImageManager:
                 self.xlo, self.xhi, self.ylo, self.yhi, self.cmap,
                 content, True
             )
-            print(artists)
 
             # need to re-draw to avoid irritating distorted image
             self.cnv.draw()
@@ -1133,7 +1195,7 @@ class ImageManager:
         if artists is None:
 
             # mapping from CCD name to axes
-            ccd2axes = dict(zip(self.ccds,self.axs))
+            ccd2axes = dict(zip(self.cnams,self.axs))
 
             artists = []
             for ntarg, content in enumerate(fit_accum):
@@ -1166,7 +1228,7 @@ class ImageManager:
                         sbox.set_data(
                             [xlo,xhi,xhi,xlo,xlo],[ylo,ylo,yhi,yhi,ylo]
                         )
-                        
+
         return artists
 
 
@@ -1268,65 +1330,88 @@ def disp_ccd(ax, cnam, xlo, xhi, ylo, yhi, cmap, content, animated):
     if animated:
         return artists
 
-class FitManager:
-    """Class to control the profile fit animation
+class FwhmManager:
+    """Class to start and control the FWHM history animation
     """
 
     def __init__(
-            self, fig, axs, stars, accum
+            self, accum, nframe, mxframes, fwmax, width, height
     ):
         """
-        Initialises the plot. Arguments:
+        Initialises the FWHM history plot. Arguments:
 
-          fig : Figure
-             the figure containing the fits
+          accum : list of tuples
+             one tuple per target being profile fitted, containing all
+             info needed to make plots of the fit etc. This can be None
+             if no fit was made. See Fpar.fit for what the tuples contain.
 
-          axs : iterable(Axes)
-             the associated Axes, one per profile fit
+          nframe : int
+             initial frame number
 
-          stars : list of strings
-             CCD names to plot
+          mxframes : int
+             maximum number of frame results to retain in buffers
 
-          accum : list of lists
-             one list per CCD being displayed. Contains the information
-             required for the first plot. Per CCD the list should be:
-             [ccd, vmin, vmax, swindows, dfcts] or None if the CCD is
-             being skipped. swindows -- setup windows -- can be None.
-             dfcts -- defects -- can also be None.
+          fwmax : float
+             maximum height for FWHM plot in pixels
+
+          width : float
+             plot width [inches]
+
+          height : float
+             plot height [inches]
+
         """
 
-        assert(len(axs) == len(ccds))
-        assert(len(accum) == len(ccds))
+        # Create the figure
+        if width > 0 and height > 0:
+            self.fig = plt.figure("FWHM vs frame number", figsize=(width,height))
+        else:
+            self.fig = plt.figure("FWHM vs frame number")
 
-        # Save the inputs
-
-        # first stuff to do with the mpl figures
-        self.fig = ig
-        self.axs = axs
-        self.cnv = fig.canvas
+        self.cnv = self.fig.canvas
+        self.ax = self.fig.add_subplot(animated=True)
         self._bg = None
 
         # rtplot inputs
-        self.ccds = ccds
-        self.xlo = xlo
-        self.xhi = xhi
-        self.ylo = ylo
-        self.yhi = yhi
-        self.cmap = cmap
+        self.nframe = nframe
+        self.mxframes = mxframes
+        self.fwmax = fwmax
 
-        # list of dictionaries of artists for each image panel
-        self.artists = []
+        # derived
+        self.xlo = nframe - 1
+        self.xhi = nframe + mxframes
+        self.ylo = 0
+        self.yhi = fwmax
 
-        # now we actually create the artists
-        for ax, cnam, content in zip(self.axs, self.ccds, accum):
+        self.ax.set_xlim(self.xlo,self.xhi)
+        self.ax.set_ylim(self.ylo,self.yhi)
+        self.ax.set_xlabel('Frame number')
+        self.ax.set_ylabel('FWHM [unbinned pixels]')
+
+        # buffers for the FWHM vs nframe data and a list of artists
+        # for each FWHM plot
+        self.fwhm_buffers = []
+        self.fwhm_artists = []
+
+        # now we actually create / plot the artists
+        for ntarg, content in enumerate(accum):
             if content is None:
-                # do nothing much other than add a placeholder
-                self.artists.append(None)
+                # placeholders
+                self.fwhm_buffers.append(None)
+                self.fwhm_artists.append(None)
             else:
-                # plot the CCD, return with the animated artists
-                self.artists.append(
-                    self._disp_ccd(ax, cnam, content)
-                )
+                fpar = content[0]
+                xs = [nframe]
+                ys = [fpar.fwhm]
+
+                # store first point
+                self.fwhm_buffers.append((xs,ys))
+
+                # plot the FWHM vs frame number
+                fwhm, = self.ax.plot(xs,ys,animated=True,label=f'{ntarg+1}')
+                self.fwhm_artists.append(fwhm)
+        self.ax.legend()
+#        self.cnv.draw()
 
         # grab the background on every draw
         self.cid = self.cnv.mpl_connect("draw_event", self.on_draw)
@@ -1340,31 +1425,61 @@ class FitManager:
         self._draw_animated()
 
     def _draw_animated(self):
-        # draw all of the animated artists for the image plot
-        for artists in self.artists:
-            if artists is not None:
-                for alist in artists.values():
-                    for artist in alist:
-                        self.fig.draw_artist(artist)
+        # draw all of the animated artists. NB draw
+        # Axes before the lines if you want to see anything!
+        self.fig.draw_artist(self.ax)
+
+        for artist in self.fwhm_artists:
+            if artist is not None:
+                self.fig.draw_artist(artist)
+
+
 
     def update(self, accum):
-        """updating routine, Pass it accum which contains a list of lists
-        for each image plot sub-panel with enough information to update them.
+        """updating routine, Pass it accum which contains a list of outputs
+        from Fpar.fit run on each target.
 
         """
 
-        # now update / cfreate the artists
-        artists = []
-        for ax, cnam, content, artists in zip(self.axs, self.ccds, accum, self.artists):
-            if content is None:
-                # just pass old artists through
-                artists.append(artists)
-            else:
-                # plot the CCD, return with the animated artists
-                artists.append(
-                    self._disp_ccd(ax, cnam, content, artists)
-                )
-        self.artists = artists
+        # track the frame number
+        self.nframe += 1
+
+        # now we actually create / update the artists
+        for ntarg in range(len(accum)):
+            if accum[ntarg] is not None:
+                fpar = accum[ntarg][0]
+                if self.fwhm_artists[ntarg] is None:
+                    xs = [nframe,]
+                    ys = [fpar.fwhm,]
+                    fwhm, = self.ax.plot(xs,ys,animated=True)
+                    self.fwhm_artists[ntarg] = fwhm
+                else:
+                    # get data
+                    xs,ys = self.fwhm_buffers[ntarg]
+
+                    # strip out stuff at the start (should just be one frame,
+                    # but better be safe than sorry)
+                    for n, x in enumerate(xs):
+                        if x > self.nframe - self.mxframes:
+                            xs, ys = xs[n:], ys[n:]
+                            break
+                    else:
+                        xs, ys = [], []
+
+                    # tack on new value, update artist
+                    xs.append(self.nframe)
+                    ys.append(fpar.fwhm)
+                    self.fwhm_artists[ntarg].set_data(xs,ys)
+
+                # save current data to buffers
+                self.fwhm_buffers[ntarg] = (xs,ys)
+
+        if self.nframe > self.xhi - 1:
+            # update axes limits
+            xadd = self.nframe - self.xhi + 1
+            self.xlo += xadd
+            self.xhi += xadd
+            self.ax.set_xlim(self.xlo,self.xhi)
 
         cnv = self.cnv
         fig = self.fig
@@ -1376,143 +1491,6 @@ class FitManager:
             self._draw_animated()
             cnv.blit(fig.bbox)
         cnv.flush_events()
-
-
-    def _disp_ccd(self, ax, cnam, content, artists=None):
-        """Displays a CCD ccd, name cnam, in Axes ax.
-
-        If "artists" is None, a dictionary will be created and
-        returned containing various lists of animated artists.
-        Otherwise it is assumed to be such a list resulting from an
-        earlier run and will be updated.
-
-        """
-
-        # unpack the new content
-        ccd, vmin, vmax, swindows, dfct = content
-
-        if artists is None:
-
-            # in this case we are setting up for the first time
-            artists = {}
-            wins = artists['windows'] = []
-            for wnam, wind in ccd.items():
-                left, right, bottom, top = wind.extent()
-
-                # Display the images of each window. save them
-                # since it is animated
-                wins.append(
-                    ax.imshow(
-                        wind.data,
-                        extent=(left, right, bottom, top),
-                        aspect="equal",
-                        origin="lower",
-                        cmap=self.cmap,
-                        interpolation="nearest",
-                        vmin=vmin,
-                        vmax=vmax,
-                        animated=True
-                    )
-                )
-
-                # Plot boundary on window (fixed)
-                ax.plot(
-                    [left, right, right, left, left],
-                    [bottom, bottom, top, top, bottom],
-                    color=Params["win.box.col"],
-                )
-
-                # Label them (fixed)
-                ax.text(
-                    left - 3,
-                    bottom - 3,
-                    wnam,
-                    fontsize=Params["win.label.fs"],
-                    color=Params["win.label.col"],
-                    ha="right",
-                    va="top",
-                    clip_on=True,
-                )
-
-            # plot defects
-            if dfct is None:
-                artists['defects'] = []
-            else:
-                artists['defects'] = hcam.mpl.pCcdDefect(ax, dfct, True).values()
-
-            # plot setup windows
-            if swindows is None:
-                artists['swindows'] = []
-            else:
-                swins = []
-                for llxh, llyh, nxh, nyh in swindows:
-                    box, = ax.plot(
-                        [llxh-0.5, llxh+nxh-0.5, llxh+nxh-0.5, llxh-0.5, llxh-0.5],
-                        [llyh-0.5, llyh-0.5, llyh+nyh-0.5, llyh+nxh-0.5, llyh-0.5],
-                        '--', color=COL_SETUP, animated=True
-                    )
-                    swins.append(box)
-                artists['swindows'] = swins
-
-            # Plot outermost border of CCD (fixed)
-            ax.plot(
-                [0.5, ccd.nxtot + 0.5, ccd.nxtot + 0.5, 0.5, 0.5],
-                [0.5, 0.5, ccd.nytot + 0.5, ccd.nytot + 0.5, 0.5],
-                color=Params["ccd.box.col"],
-            )
-
-            # Set title and axis labels (fixed)
-            ax.set_title(
-                f'CCD {cnam}',
-                color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
-            )
-
-            # set axis limits
-            ax.set_xlim(self.xlo, self.xhi)
-
-            ax.set_ylim(self.ylo, self.yhi)
-            ax.set_aspect('equal')
-            for tick in ax.get_yticklabels():
-                tick.set_rotation(90)
-
-            # need to re-draw to avoid irritating distorted image in
-            cnv = self.cnv
-            cnv.draw()
-
-        else:
-
-            # this is the "usual" post-setup case where we just update
-            # the artists
-
-            # the CCD window data
-            for wind, img in zip(ccd.values(), artists['windows']):
-                img.set_data(wind.data)
-                img.set_clim(vmin, vmax)
-
-            # defects don't change so nothing done to them.
-
-            # the setup windows. Can change in number as well as size
-            # so delete old ones (if there are any) and re-create each
-            # time remove old setup windows
-            swins = artists['swindows']
-            for artist in swins:
-                artist.remove()
-            artists['swindows'] = []
-
-            if swindows is not None:
-
-                # draw new ones, keeping refs to objects for next time
-                swins = []
-                for llxh, llyh, nxh, nyh in swindows:
-                    box, = ax.plot(
-                        [llxh-0.5, llxh+nxh-0.5, llxh+nxh-0.5, llxh-0.5, llxh-0.5],
-                        [llyh-0.5, llyh-0.5, llyh+nyh-0.5, llyh+nxh-0.5, llyh-0.5],
-                        '--', color=COL_SETUP, animated=True
-                    )
-                    swins.append(box)
-                artists['swindows'] = swins
-
-        return artists
 
 class CursorSelect():
     """
@@ -1756,9 +1734,9 @@ class Fpar:
         self.y_cbox = self.y
 
 def prof_fit(ccds, targets, img_accum, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh):
-    """
-    Carries out profile fitting over all targets. Returns container of results
-    suitable for potential plotting.
+    """Carries out profile fitting over all targets. Returns container of
+    results suitable for potential plotting.
+
     """
 
     # first a mapping from CCD name to the image content
