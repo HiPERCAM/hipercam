@@ -919,6 +919,10 @@ def nrtplot(args=None):
             # update the frame number
             nframe += 1
 
+    # At then end the plots will close automatically,
+    # so block this by asking the user to confirm
+    reply = input('\nHit carriage return to close the plot(s): ')
+
 # From here is support code not visible outside
 
 def setup_images(nccd, nx, title, width, height):
