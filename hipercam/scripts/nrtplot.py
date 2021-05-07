@@ -35,9 +35,10 @@ __all__ = [
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd (nx)) [imwidth pause plotall] bias [lowlevel
-    highlevel] flat defect setup [drurl] [colour] msub iset (ilo ihi |
-    plo phi) xlo xhi ylo yhi profit [method beta fwhm fwhm_min shbox
-    smooth fhbox hmin read gain thresh]``
+    highlevel] flat defect setup [drurl cmap imwidth imheight] msub
+    iset (ilo ihi | plo phi) xlo xhi ylo yhi profit ([method beta fwhm
+    fwhm_min shbox smooth fhbox hmin read gain thresh fwnmax fwymax
+    fwwidth fwheight]) ``
 
     This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
     the current PGPLOT one. Under development.
@@ -48,7 +49,7 @@ def nrtplot(args=None):
     which are hidden by default, and many of which are only prompted
     if other arguments are set correctly. If you want to see them all,
     invoke as 'rtplot prompt'.  This is worth doing once to know
-    rtplot's capabilities.
+    rtplot's capabilities. 
 
     rtplot can source data from both the ULTRACAM and HiPERCAM
     servers, from local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml +
@@ -58,11 +59,12 @@ def nrtplot(args=None):
     rtplot optionally allows the selection of targets to be fitted
     with gaussian or moffat profiles, and, if successful, will plot
     circles of 2x the measured FWHM in green over the selected
-    targets. This option only works if a single CCD is being plotted.
+    targets. In this case it can also plot the history of the FWHMs as
+    an aid to focussing.
 
     Parameters:
 
-        source : string [hidden]
+        source : str [hidden]
            Data source, five options:
 
              |  'hs' : HiPERCAM server
@@ -78,10 +80,26 @@ def nrtplot(args=None):
            would ensure it always started with the ULTRACAM server by default. If
            unspecified, it defaults to 'hl'.
 
-        run : string [if source ends 's' or 'l']
+        cmap : str [hidden]
+           The matplotlib colour map to use. "Greys" gives the usual greyscale.
+           "none" will give whatever the current default is. Many other choices:
+           "viridis", "jet", "hot", "Oranges", etc. Enter an invalid one and
+           the program will fail but return a huge list of possibles in the
+           process. Note that some will not work well with the colours used
+           to plot annotations.
+
+        imwidth : float [hidden]
+           image display plot width in inches (0 for default, and note
+           that this will also make the height go to its default)
+
+        imheight : float [hidden]
+           image display plot height in inches (0 for default, and note
+           that this will also make the width go to its default)
+
+        run : str [if source ends 's' or 'l']
            run number to access, e.g. 'run034'
 
-        flist : string [if source ends 'f']
+        flist : str [if source ends 'f']
            name of file list
 
         first : int [if source ends 's' or 'l']
@@ -114,7 +132,7 @@ def nrtplot(args=None):
            CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
 
         nx : int [if more than 1 CCD]
-           number of panels across to display.
+           number of panels across to display for the image display.
 
         pause : float [hidden]
            seconds to pause between frames (defaults to 0). This is in addition
@@ -160,12 +178,6 @@ def nrtplot(args=None):
            driver (ultracam, ultraspec, hipercam). The internal server
            in the camera driver must be switched on which can be done
            from the GUI.
-
-        cmap : str [hidden]
-           The matplotlib colour map to use. "Greys" gives the usual greyscale.
-           "none" will give whatever the current default is. Many other choices:
-           "viridis", "jet", "hot", "Oranges" ... Enter and invalid one and
-           the program will fail returning a huge list of possibles.
 
         msub : bool
            subtract the median from each window before scaling for the
@@ -216,11 +228,6 @@ def nrtplot(args=None):
            fits are hidden and you may want to invoke the command with
            'prompt' the first time you try profile fitting.
 
-        nxf : int
-           each fit will be displayed in its own panel in a separate
-           window from the images. This is the maximum number of such panels
-           to use in the X-direction.
-
         method : str [if profit; hidden]
            this defines the profile fitting method, either a gaussian or a
            moffat profile. The latter is usually best.
@@ -238,27 +245,28 @@ def nrtplot(args=None):
            half width of box for searching for a star, unbinned pixels. The
            brightest target in a region +/- shbox around an intial position
            will be found. 'shbox' should be large enough to allow for likely
-           changes in position from frame to frame, but try to keep it as
-           small as you can to avoid jumping to different targets and to
-           reduce the chances of interference by cosmic rays.
+           changes in position from frame to frame, but not too large to avoid
+           jumping to brighter targets or possiblt cosmic rays.
 
         smooth : float [if profit; hidden]
            FWHM for gaussian smoothing, binned pixels. The initial position
            for fitting is determined by finding the maximum flux in a smoothed
            version of the image in a box of width +/- shbox around the starter
            position. Typically should be comparable to the stellar width. Its
-           main purpose is to combat cosmi rays which tend only to occupy a
+           main purpose is to combat cosmic rays which tend only to occupy a
            single pixel.
 
         fhbox : float [if profit; hidden]
            half width of box for profile fit, unbinned pixels. The fit box is
            centred on the position located by the initial search. It should
-           normally be > ~2x the expected FWHM.
+           normally be > ~2x the expected FWHM, and usually smaller than shbox
 
         hmin : float [if profit; hidden]
            height threshold to accept a fit. If the height is below this
            value, the position will not be updated. This is to help in cloudy
-           conditions.
+           conditions. The limit is applied to the image after it has been
+           smoothed to make less vulnerable to seeing fluctuations. This
+           can mean it can be quite small.
 
         read : float [if profit; hidden]
            readout noise, RMS ADU, for assigning uncertainties
@@ -269,26 +277,24 @@ def nrtplot(args=None):
         thresh : float [if profit; hidden]
            sigma rejection threshold for fits
 
-        imwidth : float [hidden]
-           image display plot width in inches (0 for default)
+        fwnmax : int [if profit; hidden]
+           maximum number of frames to buffer the FWHM plot (< 2 ==>
+           no plot). It allows the FWHMs of multiple stars to be
+           tracked which might be useful for focussing. The plot
+           starts to "slide" once the buffers are filled.
 
-        imheight : float [hidden]
-           image display plot height in inches (0 for default)
+        fwymax : float [if profit; hidden]
+           maximum FWHM to plot on Y-axis [unbinned pixels]. It is
+           possible to alter the value of the fly by zooming and panning
+           the plot.
 
-        fwnmax : int [hidden]
-           maximum number of frames to buffer the FWHM plot (< 2 ==> no plot). This
-           option will only be used if profile fitting is used. It allows the FWHMs
-           of multiple stars to be tracked which might be useful for focussing. The
-           plot starts to "slide" once the buffers are filled.
+        fwwidth : float [if profit; hidden]
+           FWHM display plot width in inches (0 for default, which will
+           also cause the height to go to its default value)
 
-        fwymax : float
-           maximum FWHM to plot on Y-axis [unbinned pixels]
-
-        fwwidth : float [hidden]
-           FWHM display plot width in inches (0 for default)
-
-        fwheight : float [hidden]
-           FWHM display plot height in inches (0 for default)
+        fwheight : float [if profit; hidden]
+           FWHM display plot height in inches (0 for default, which will
+           also cause the width to go to its default value)
 
     """
 
@@ -299,6 +305,9 @@ def nrtplot(args=None):
 
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
+        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
         cl.register("first", Cline.LOCAL, Cline.PROMPT)
         cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
@@ -318,7 +327,6 @@ def nrtplot(args=None):
         cl.register("defect", Cline.GLOBAL, Cline.PROMPT)
         cl.register("setup", Cline.GLOBAL, Cline.PROMPT)
         cl.register("drurl", Cline.GLOBAL, Cline.HIDE)
-        cl.register("cmap", Cline.GLOBAL, Cline.HIDE)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
@@ -342,8 +350,6 @@ def nrtplot(args=None):
         cl.register("read", Cline.LOCAL, Cline.HIDE)
         cl.register("gain", Cline.LOCAL, Cline.HIDE)
         cl.register("thresh", Cline.LOCAL, Cline.HIDE)
-        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
-        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
         cl.register("fwnmax", Cline.LOCAL, Cline.HIDE)
         cl.register("fwymax", Cline.LOCAL, Cline.HIDE)
         cl.register("fwwidth", Cline.LOCAL, Cline.HIDE)
@@ -356,6 +362,18 @@ def nrtplot(args=None):
             "data source [hs, hl, us, ul, hf]",
             default_source,
             lvals=("hs", "hl", "us", "ul", "hf"),
+        )
+
+        # Some settings for the imaghe plots
+        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+        cmap = None if cmap == "none" else cmap
+
+        imwidth = cl.get_value(
+            "imwidth", "image plot width [inches, 0 for default]", 0., 0.
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height [inches, 0 for default]", 0., 0.
         )
 
         # set some flags
@@ -474,9 +492,6 @@ def nrtplot(args=None):
         else:
             drurl = None
 
-        # colour map to use
-        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
-        cmap = None if cmap == "none" else cmap
 
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)
@@ -568,14 +583,6 @@ def nrtplot(args=None):
             read = cl.get_value("read", "readout noise, RMS ADU", 3.0)
             gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
             thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
-
-        imwidth = cl.get_value(
-            "imwidth", "image plot width [inches, 0 for default]", 0., 0.
-        )
-
-        imheight = cl.get_value(
-            "imheight", "image plot height [inches, 0 for default]", 0., 0.
-        )
 
         fwnmax = cl.get_value(
             "fwnmax", "maximum number of frame to buffer FWHM [0 to ignore]", 100, 0

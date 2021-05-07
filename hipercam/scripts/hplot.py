@@ -19,7 +19,7 @@ from hipercam.cline import Cline
 
 
 def hplot(args=None):
-    """``hplot input [device] ccd nx msub [cmap] hsbox iset (ilo ihi | plo
+    """``hplot input [device] ccd nx msub ([cmap]) hsbox iset (ilo ihi | plo
     phi) xlo xhi ylo yhi [width height]``
 
     Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
@@ -58,7 +58,7 @@ def hplot(args=None):
       msub : bool
          True/False to subtract median from each window before scaling
 
-      cmap : str [if matplotlib]
+      cmap : str [if matplotlib; hidden]
          The colour map to use. "Greys" is the usual, but there are
          many others. Typing an incorrect one will give a list. "none"
          for matplotlib default.
@@ -123,7 +123,7 @@ def hplot(args=None):
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("cmap", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("hsbox", Cline.GLOBAL, Cline.HIDE)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)

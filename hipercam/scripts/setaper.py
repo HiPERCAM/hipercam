@@ -47,7 +47,7 @@ __all__ = [
 
 def setaper(args=None):
     """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 xlo
-    xhi ylo yhi nx msub cmap iset (ilo ihi | plo phi) [profit method (beta
+    xhi ylo yhi nx msub [cmap] iset (ilo ihi | plo phi) [profit method (beta
     betafix betamax) fwhm fwfix (fwmin) shbox smooth splot fhbox read
     gain thresh]``
 
@@ -122,7 +122,7 @@ def setaper(args=None):
       msub : bool
          True/False to subtract median from each window before scaling
 
-      cmap : str
+      cmap : str [hidden]
          Colour map to use. "Greys" is usual greyscale. "none" to get matplotlib
          default.
 
@@ -290,7 +290,7 @@ def setaper(args=None):
         cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("cmap", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)

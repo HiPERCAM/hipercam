@@ -47,7 +47,7 @@ __all__ = [
 
 def setdefect(args=None):
     """``setdefect mccd defect ccd [linput width height] rtarg rsky1 rsky2 nx
-    msub cmap iset (ilo ihi | plo phi) [profit method beta fwmin fwhm fwfix
+    msub [cmap] iset (ilo ihi | plo phi) [profit method beta fwmin fwhm fwfix
     shbox smooth splot fhbox read gain thresh]``
 
     Interactive definition of CCD defects. This is a matplotlib-based routine
@@ -85,7 +85,7 @@ def setdefect(args=None):
       msub   : bool
          True/False to subtract median from each window before scaling
 
-      cmap : str
+      cmap : str [hidden]
          The colour map to use. "Greys" is the usual; "Greys_r" reverses it.
          There are many others; typing an incorrect one will give a list. "none"
          for matplotlib default.
@@ -164,7 +164,7 @@ def setdefect(args=None):
         cl.register("height", Cline.LOCAL, Cline.HIDE)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("cmap", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("ffield", Cline.GLOBAL, Cline.PROMPT)
         cl.register("hsbox", Cline.GLOBAL, Cline.HIDE)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
