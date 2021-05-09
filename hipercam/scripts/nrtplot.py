@@ -1235,7 +1235,7 @@ class ImageManager:
                         dot,circ,sbox = artists[3*ntarg:3*ntarg+3]
                         dot.set_data(fpar.x,fpar.y)
                         circ.set_center((fpar.x,fpar.y))
-                        circ.set_center((fpar.x,fpar.y))
+                        circ.set_radius(fpar.fwhm)
                         xlo, xhi, ylo, yhi = fpar.region()
                         sbox.set_data(
                             [xlo,xhi,xhi,xlo,xlo],[ylo,ylo,yhi,yhi,ylo]
