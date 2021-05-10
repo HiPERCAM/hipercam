@@ -41,7 +41,7 @@ def makebias(args=None):
              |   'us' : ULTRACAM server
              |   'ul' : local ULTRACAM .xml/.dat files
 
-           The standard start-off default for ``source'' can be set
+           The standard start-off default for ``source`` can be set
            using the environment variable
            HIPERCAM_DEFAULT_SOURCE. e.g. in bash :code:`export
            HIPERCAM_DEFAULT_SOURCE="us"` would ensure it always

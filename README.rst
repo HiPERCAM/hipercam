@@ -39,8 +39,8 @@ Third-Party Modules
 One of the great strengths of Python is its many modules allowing
 effective code re-use rather than re-invention of the wheel.  Apart
 from Cython and trm.pgplot, I hope that most of the extras will get
-automatically installed if necessary by pip. So, you might as well
-try ``pip install . --user'' here and now.
+automatically installed if necessary by pip. So, if you have Cython and
+PGPLOT ready, you might as well try ``pip install . --user`` here and now.
 
 If something seems amiss, here are details of the third-party packages
 which you can either install via pip or by looking for the packages in
