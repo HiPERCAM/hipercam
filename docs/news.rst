@@ -5,11 +5,13 @@
 |hiper| pipeline news
 *********************
 
-This page documents important changes in the pipeline, as a help to whether
-you should update. I am revised how I am going to handle updates here and
-intend just to add new items when the first or second number in the version
-changes, hencde I have scrubbed old items (full lists of past changes can be
-seen on github in any cas).
+This page documents important changes in the pipeline, as a help to
+whether you should update. I have revised how I list updates here and
+from now on intend just to add new items when the first or second
+number in the version changes, hence I have scrubbed old items (full
+lists of past changes can be seen on github in any case). NB the
+version of these docs may reflect a development version subsequent to
+the most recent release and hence will appear to be one click on.
 
 #  :doc:`Updates since 0.22.0 <change_log_0.22.0_to_now>`. Most recent release: 0.22.2
 
