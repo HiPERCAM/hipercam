@@ -1182,7 +1182,7 @@ class ImageManager:
                 for llxh, llyh, nxh, nyh in swindows:
                     box, = ax.plot(
                         [llxh-0.5, llxh+nxh-0.5, llxh+nxh-0.5, llxh-0.5, llxh-0.5],
-                        [llyh-0.5, llyh-0.5, llyh+nyh-0.5, llyh+nxh-0.5, llyh-0.5],
+                        [llyh-0.5, llyh-0.5, llyh+nyh-0.5, llyh+nyh-0.5, llyh-0.5],
                         '--', color=COL_SETUP, animated=True
                     )
                     swins.append(box)
@@ -1311,7 +1311,7 @@ def disp_ccd(ax, cnam, xlo, xhi, ylo, yhi, cmap, content, animated):
             for llxh, llyh, nxh, nyh in swindows:
                 box, = ax.plot(
                     [llxh-0.5, llxh+nxh-0.5, llxh+nxh-0.5, llxh-0.5, llxh-0.5],
-                    [llyh-0.5, llyh-0.5, llyh+nyh-0.5, llyh+nxh-0.5, llyh-0.5],
+                    [llyh-0.5, llyh-0.5, llyh+nyh-0.5, llyh+nyh-0.5, llyh-0.5],
                     '--', color=COL_SETUP, animated=True
                 )
                 swins.append(box)
