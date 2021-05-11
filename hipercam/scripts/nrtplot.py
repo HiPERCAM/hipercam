@@ -81,22 +81,6 @@ def nrtplot(args=None):
            always started with the ULTRACAM server by default. If
            unspecified, it defaults to 'hl'.
 
-        cmap : str [hidden]
-           The matplotlib colour map to use. "Greys" gives the usual greyscale.
-           "none" will give whatever the current default is. Many other choices:
-           "viridis", "jet", "hot", "Oranges", etc. Enter an invalid one and
-           the program will fail but return a huge list of possibles in the
-           process. Note that some will not work well with the colours used
-           to plot annotations.
-
-        imwidth : float [hidden]
-           image display plot width in inches (0 for default, and note
-           that this will also make the height go to its default)
-
-        imheight : float [hidden]
-           image display plot height in inches (0 for default, and note
-           that this will also make the width go to its default)
-
         run : str [if source ends 's' or 'l']
            run number to access, e.g. 'run034'
 
@@ -179,6 +163,22 @@ def nrtplot(args=None):
            driver (ultracam, ultraspec, hipercam). The internal server
            in the camera driver must be switched on which can be done
            from the GUI.
+
+        cmap : str [hidden]
+           The matplotlib colour map to use. "Greys" gives the usual greyscale.
+           "none" will give whatever the current default is. Many other choices:
+           "viridis", "jet", "hot", "Oranges", etc. Enter an invalid one and
+           the program will fail but return a huge list of possibles in the
+           process. Note that some will not work well with the colours used
+           to plot annotations.
+
+        imwidth : float [hidden]
+           image display plot width in inches (0 for default, and note
+           that this will also make the height go to its default)
+
+        imheight : float [hidden]
+           image display plot height in inches (0 for default, and note
+           that this will also make the width go to its default)
 
         msub : bool
            subtract the median from each window before scaling for the
@@ -306,9 +306,6 @@ def nrtplot(args=None):
 
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
-        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
-        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
-        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
         cl.register("first", Cline.LOCAL, Cline.PROMPT)
         cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
@@ -328,6 +325,9 @@ def nrtplot(args=None):
         cl.register("defect", Cline.GLOBAL, Cline.PROMPT)
         cl.register("setup", Cline.GLOBAL, Cline.PROMPT)
         cl.register("drurl", Cline.GLOBAL, Cline.HIDE)
+        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
@@ -363,18 +363,6 @@ def nrtplot(args=None):
             "data source [hs, hl, us, ul, hf]",
             default_source,
             lvals=("hs", "hl", "us", "ul", "hf"),
-        )
-
-        # Some settings for the imaghe plots
-        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
-        cmap = None if cmap == "none" else cmap
-
-        imwidth = cl.get_value(
-            "imwidth", "image plot width [inches, 0 for default]", 0., 0.
-        )
-
-        imheight = cl.get_value(
-            "imheight", "image plot height [inches, 0 for default]", 0., 0.
         )
 
         # set some flags
@@ -493,6 +481,17 @@ def nrtplot(args=None):
         else:
             drurl = None
 
+        # Some settings for the imaghe plots
+        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+        cmap = None if cmap == "none" else cmap
+
+        imwidth = cl.get_value(
+            "imwidth", "image plot width [inches, 0 for default]", 0., 0.
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height [inches, 0 for default]", 0., 0.
+        )
 
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)
