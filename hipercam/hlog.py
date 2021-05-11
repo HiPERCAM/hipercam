@@ -403,7 +403,7 @@ class Hlog(dict):
                                 float(eym) if float(eym) > 0 else NaN,
                                 float(counts) if float(sigma) > 0 else NaN,
                                 float(sigma) if float(sigma) > 0 else NaN,
-                                float(sky) if int(ssky) > 0 else NaN,
+                                float(sky) if int(nsky) > 0 else NaN,
                                 int(nsky),
                                 int(nrej),
                                 int(worst),
@@ -413,7 +413,7 @@ class Hlog(dict):
                     else:
                         # first time for this CCD
                         hlog[cnam] = bytearray()
-                        names = ["MJD", "MJDok", "Expose", "FWHM", "beta"]
+                        names = ["MJD", "MJDok", "Exptim", "FWHM", "beta"]
                         dts = ["f8", "?", "f4", "f4", "f4"]
                         naps[cnam] = len(arr[7:]) // 14
                         hlog.apnames[cnam] = [str(i) for i in range(1, naps[cnam] + 1)]
@@ -462,7 +462,7 @@ class Hlog(dict):
                                 "i4",
                                 "i4",
                                 "i4",
-                                "i4",
+                                "u4",
                             ]
 
                             values += [
@@ -474,7 +474,7 @@ class Hlog(dict):
                                 float(eym) if float(eym) > 0 else NaN,
                                 float(counts) if float(sigma) > 0 else NaN,
                                 float(sigma) if float(sigma) > 0 else NaN,
-                                float(sky) if int(ssky) > 0 else NaN,
+                                float(sky) if int(nsky) > 0 else NaN,
                                 int(nsky),
                                 int(nrej),
                                 int(worst),
