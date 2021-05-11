@@ -332,10 +332,7 @@ def setaper(args=None):
             )
 
         # define the panel grid
-        try:
-            nxdef = cl.get_default("nx")
-        except:
-            nxdef = 3
+        nxdef = cl.get_default("nx", 3)
 
         max_ccd = len(mccd)
         if max_ccd > 1:

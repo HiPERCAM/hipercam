@@ -42,7 +42,7 @@
 .. |makeflat| replace:: :func:`makeflat <hipercam.scripts.makeflat>`
 .. |mstats| replace:: :func:`mstats <hipercam.scripts.mstats>`
 .. |mul| replace:: :func:`mul <hipercam.scripts.mul>`
-.. |nrtplot| replace:: :func:`rtplot <hipercam.scripts.nrtplot>`
+.. |nrtplot| replace:: :func:`nrtplot <hipercam.scripts.nrtplot>`
 .. |plog| replace:: :func:`plog <hipercam.scripts.plog>`
 .. |psf_reduce| replace:: :func:`psf_reduce <hipercam.scripts.psf_reduce>`
 .. |redanal| replace:: :func:`redanal <hipercam.scripts.redanal>`

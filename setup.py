@@ -160,6 +160,7 @@ setup(
             'makefield=hipercam.scripts.makestuff:makefield',
             'makeflat=hipercam.scripts.makeflat:makeflat',
             'makemccd=hipercam.scripts.makestuff:makemccd',
+            'makemovie=hipercam.scripts.makemovie:makemovie',
             'mstats=hipercam.scripts.mstats:mstats',
             'mul=hipercam.scripts.arith:mul',
             'pfolder=hipercam.scripts.pfolder:pfolder',

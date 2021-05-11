@@ -194,12 +194,6 @@ def setdefect(args=None):
                 "No file called {:s} exists; " "will create from scratch".format(dfct)
             )
 
-        # define the panel grid
-        try:
-            nxdef = cl.get_default("nx")
-        except:
-            nxdef = 3
-
         max_ccd = len(mccd)
         if max_ccd > 1:
             ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")

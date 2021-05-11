@@ -31,6 +31,7 @@ from .ltrans import ltrans
 from .makebias import makebias
 from .makedark import makedark
 from .makeflat import makeflat
+from .makemovie import makemovie
 from .makestuff import makemccd, makefield
 from .mstats import mstats
 from .pfolder import pfolder
