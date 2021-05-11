@@ -277,10 +277,7 @@ def psf_reduce(args=None):
             # dimensions
             ccdinf = spooler.get_ccd_pars(source, resource)
 
-            try:
-                nxdef = cl.get_default("nx")
-            except KeyError:
-                nxdef = 3
+            nxdef = cl.get_default("nx", 3)
 
             if len(ccdinf) > 1:
                 ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
