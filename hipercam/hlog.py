@@ -849,7 +849,7 @@ class Tseries:
             plot = self.get_mask(bitmask)
         else:
             plot = ~self.get_mask(bitmask)
-            
+
         if mask is not None:
             plot &= mask
 

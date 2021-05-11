@@ -12,7 +12,7 @@ from astropy.time import Time
 import hipercam as hcam
 from hipercam import cline, utils, spooler, defect
 from hipercam.cline import Cline
-from hipercam import mpl
+from hipercam import mpl, hlog
 
 import requests
 import socket
@@ -34,7 +34,7 @@ __all__ = [
 
 def makemovie(args=None):
     """``makemovie [source] (run first last | flist) trim
-    ([ncol nrow]) (ccd (nx)) bias flat defect log (targ comp) cmap
+    ([ncol nrow]) (ccd (nx)) bias flat defect log (targ comp ymin ymax yscales yoffset) cmap
     width height dstore ndigit fext msub iset (ilo ihi | plo phi) xlo
     xhi ylo yhi``
 
@@ -108,7 +108,19 @@ def makemovie(args=None):
            Target aperture
 
         comp : str [if log defined]
-           Coparison aperture
+           Comparison aperture
+
+        ymin : float [if log defined]
+           Minimum Y value for light curve plot
+
+        ymax : float [if log defined]
+           Maximum Y value for light curve plot
+
+        ynorm : list(float) [if log defined]
+           Normalisation factors, one per CCD for light curve plot
+
+        yoffset : list(float) [if log defined]
+           Offsets, one per CCD for light curve plot
 
         cmap : str
            The matplotlib colour map to use. "Greys" gives the usual greyscale.
@@ -196,6 +208,10 @@ def makemovie(args=None):
         cl.register("log", Cline.LOCAL, Cline.PROMPT)
         cl.register("targ", Cline.LOCAL, Cline.PROMPT)
         cl.register("comp", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ymin", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ymax", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ynorm", Cline.LOCAL, Cline.PROMPT)
+        cl.register("yoffset", Cline.LOCAL, Cline.PROMPT)
         cl.register("cmap", Cline.LOCAL, Cline.PROMPT)
         cl.register("width", Cline.LOCAL, Cline.PROMPT)
         cl.register("height", Cline.LOCAL, Cline.PROMPT)
@@ -204,8 +220,8 @@ def makemovie(args=None):
         cl.register("fext", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ilo", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ihi", Cline.LOCAL, Cline.PROMPT)
         cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("phi", Cline.LOCAL, Cline.PROMPT)
         cl.register("xlo", Cline.GLOBAL, Cline.PROMPT)
@@ -307,9 +323,61 @@ def makemovie(args=None):
             cline.Fname("reduce", hcam.LOG),
             ignore="none",
         )
+
         if rlog is not None:
+            # Read reduce file
+            hlg = hlog.Hlog.rascii(rlog)
             targ = cl.get_value("targ", "target aperture", "1")
             comp = cl.get_value("comp", "comparison aperture", "2")
+            fmin = cl.get_value("ymin", "minimum Y value for light curve plot", 0.)
+            fmax = cl.get_value("ymax", "maxmum Y value for light curve plot", 1.)
+
+            # need to check that the default has the right number of
+            # items, if not overr-ride it
+            ynorm = cl.get_default("ynorm")
+            if ynorm is not None:
+                if len(ynorm) > len(ccds):
+                    cl.set_default("ynorm", ynorm[:len(ccds)])
+                elif len(ynorm) < len(ccds):
+                    cl.set_default("ynorm", ynorm + (len(ccds)-len(ynorm))*[1.])
+
+            ynorm = cl.get_value(
+                "ynorm",
+                "normalisation factors for light curves (one per CCD)",
+                len(ccds)*[1.]
+            )
+
+            yoffset = cl.get_default("yoffset")
+            if yoffset is not None:
+                if len(yoffset) > len(ccds):
+                    cl.set_default("yoffset", yoffset[:len(ccds)])
+                elif len(yoffset) < len(ccds):
+                    cl.set_default("yoffset", yoffset + (len(ccds)-len(yoffset))*[0.])
+
+            yoffset = cl.get_value(
+                "yoffset",
+                "vertical offsets for light curves (one per CCD)",
+                len(ccds)*[0.]
+            )
+
+            # trim down to the specified frames
+            lcs = []
+            T0, tmax = None, None
+            for cnam, yn, yo in zip(ccds, ynorm, yoffset):
+                nframes = hlg[cnam]['nframe']
+                keep = (nframes >= first) & (nframes <= last)
+                hlg[cnam] = hlg[cnam][keep]
+                lc = (hlg.tseries(cnam,targ) / hlg.tseries(cnam,comp)) / yn + yo
+                if T0 is None:
+                    T0 = lc.t.min()
+                lc.ttrans(lambda t : 1440*(t-T0))
+                if tmax is None:
+                    tmax = lc.t.max()
+                else:
+                    tmax = max(tmax, lc.t.max())
+                lcs.append(
+                    (nframes[keep], lc)
+                )
 
         # Some settings for the image plots
         cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
@@ -345,10 +413,27 @@ def makemovie(args=None):
         iset = iset.lower()
 
         plo, phi = 5, 95
-        ilo, ihi = 0, 1000
+        ilos, ihis = len(ccds)*[0], len(ccds)*[1000]
         if iset == "d":
-            ilo = cl.get_value("ilo", "lower intensity limit", 0.0)
-            ihi = cl.get_value("ihi", "upper intensity limit", 1000.0)
+            # fiddle with the defaults
+            ilo = cl.get_default("ilo")
+            if ilo is not None:
+                if len(ilo) > len(ccds):
+                    cl.set_default("ilo", ilo[:len(ccds)])
+                elif len(ilo) < len(ccds):
+                    cl.set_default("ilo", ilo + (len(ccds)-len(ilo))*[0.])
+
+            ihi = cl.get_default("ihi")
+            if ihi is not None:
+                if len(ihi) > len(ccds):
+                    cl.set_default("ihi", ihi[:len(ccds)])
+                elif len(ihi) < len(ccds):
+                    cl.set_default("ihi", ihi + (len(ccds)-len(ihi))[1000.])
+
+            ilos = cl.get_value("ilo", "lower intensity limit", len(ccds)*[0.])
+            ihis = cl.get_value("ihi", "upper intensity limit", len(ccds)*[1000.])
+            print(ilos, ihis)
+
         elif iset == "p":
             plo = cl.get_value(
                 "plo", "lower intensity limit percentile", 5.0, 0.0, 100.0
@@ -447,7 +532,7 @@ def makemovie(args=None):
             if plotted.all():
 
                 # Finally have at least one proper exposure of all CCDs
-                # and can start plotting
+                # and can make plots
                 # Set up the plot. ny rows of images + 1 for optional light curve
 
                 fig = plt.figure(constrained_layout=True)
@@ -455,19 +540,27 @@ def makemovie(args=None):
                 if rlog is not None:
                     # plot light curve as extra row on bottom
                     gs = GridSpec(ny+1, nx, figure=fig)
-                    lc_ax = fig.add_subplot(gs[ny, :])
+                    ax = fig.add_subplot(gs[ny, :])
+                    ax.set_xlim(0,tmax)
+                    ax.set_ylim(fmin,fmax)
+                    ax.set_xlabel(f'Time [mins, since MJD = {T0}]')
+                    ax.set_ylabel(f'Target / Comparison')
+                    for cnam, (nframes, lc) in zip(ccds, lcs):
+                        plot = (nframes >= first) & (nframes <= first+nframe)
+                        lct = lc[plot]
+                        lct.mplot(ax, color=None, label=f'CCD {cnam}')
+                    ax.legend(loc='upper right')
                 else:
-                    # just images
+                    # images only
                     gs = GridSpec(ny, nx, figure=fig)
 
-                # define and save image panels
-                for n, (cnam, ccd)  in enumerate(zip(ccds, current_ccds)):
+                # plot images
+                for n, (cnam, ccd, ilo, ihi)  in enumerate(zip(ccds, current_ccds, ilos, ihis)):
                     ax = fig.add_subplot(gs[n // nx, n % nx])
                     mpl.pCcd(ax, ccd, iset, plo, phi, ilo, ihi, f'CCD {cnam}', xlo, xhi, ylo, yhi, cmap)
                     ax.set_xlim(xlo,xhi)
                     ax.set_ylim(ylo,yhi)
-                print(resource)
-                print(os.path.basename(resource))
+
                 oname = os.path.join(dstore, f'{os.path.basename(resource)}_{first+nframe:0{ndigit}d}.{fext}')
                 plt.savefig(oname)
                 plt.close()
