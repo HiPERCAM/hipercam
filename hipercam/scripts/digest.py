@@ -110,8 +110,9 @@ def digest(args=None):
         return
 
     # regular expression to match run directory, e.g. 2018-10 [2018, October],
-    # 2020-21 [season 2020 to 2021], 2021-P106 [ESO period 106]
-    rdre = re.compile("^(Others|\d\d\d\d-(\d\d|P\d\d\d))$")
+    # 2020-21 [season 2020 to 2021], 2021-P106 [ESO period 106], 2021A [GTC semester],
+    # 'Others' [TNT other people]
+    rdre = re.compile("^(Others|\d\d\d\d-(\d\d|P\d\d\d)|\d\d\d\d[AB])$")
 
     # regular expression to match input night directory, e.g. 2018_10_30
     ndre = re.compile("^\d\d\d\d_\d\d_\d\d$")
