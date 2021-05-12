@@ -202,7 +202,7 @@ def digest(args=None):
 
             telescope = os.path.join(ndir, 'telescope')
             if os.path.exists(telescope):
-                print(f'ERROR: file called "telescope" allready exists in {ndir}')
+                print(f'ERROR: file called "telescope" already exists in {ndir}')
                 return
 
             # compile list of runs in the directory
@@ -248,7 +248,7 @@ def digest(args=None):
                     with open(md5) as fin:
                         for line in fin:
                             hash, name = line.split()
-                            if name.endswith(".xml") or name.endswith(".dat"):
+                            if name.endswith(".xml") or name.endswith(".dat") or name.endswith(".fits"):
                                 mruns.append(name[: name.rfind(".")])
 
                 else:
