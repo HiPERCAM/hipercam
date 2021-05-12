@@ -33,14 +33,16 @@ __all__ = [
 
 
 def makemovie(args=None):
-    """``makemovie [source] (run first last | flist) trim
-    ([ncol nrow]) (ccd (nx)) bias flat defect log (targ comp ymin ymax yscales yoffset) cmap
-    width height dstore ndigit fext msub iset (ilo ihi | plo phi) xlo
-    xhi ylo yhi``
+    """``makemovie [source] (run first last | flist) trim ([ncol nrow])
+    (ccd (nx)) bias flat defect log (targ comp ymin ymax yscales
+    yoffset location fraction lpad) cmap width height dstore ndigit fext msub iset
+    (ilo ihi | plo phi) xlo xhi ylo yhi [dpi]``
 
     ``makemovie`` is for generating stills to combine into a movie for
-    presentations. It can optionally also read a log file from the run to
-    display an evolving light curve.
+    presentations. It can optionally also read a log file from the run
+    to display an evolving light curve. There are lots of fiddly
+    parameters mostly to do with the plot positioning, so try it out
+    on a small number of frames first before going mad.
 
     Parameters:
 
@@ -102,7 +104,7 @@ def makemovie(args=None):
            Name of defect file, 'none' to ignore.
 
         log : str
-           Name of reduce log file for light curve plot
+           Name of reduce log file for light curve plot, 'none' to ignore
 
         targ : str [if log defined]
            Target aperture
@@ -121,6 +123,17 @@ def makemovie(args=None):
 
         yoffset : list(float) [if log defined]
            Offsets, one per CCD for light curve plot
+
+        location : str [if log defined]
+           Offsets, one per CCD for light curve plot
+
+        fraction : float [if log defined]
+           Fraction of figure to occupy, by height if location is South,
+           by width if it is East
+
+        lpad : tuple(float) [if log defined]
+           padding on left, bottom, right and top of light curve plot as fraction
+           of allocated width and height
 
         cmap : str
            The matplotlib colour map to use. "Greys" gives the usual greyscale.
@@ -156,11 +169,11 @@ def makemovie(args=None):
            based upon percentiles determined from the entire CCD on a per CCD
            basis.
 
-        ilo : float [if iset='d']
-           lower intensity level
+        ilo : list(float) [if iset='d']
+           lower intensity level, one per image
 
-        ihi : float [if iset='d']
-           upper intensity level
+        ihi : list(float) [if iset='d']
+           upper intensity level, one per image
 
         plo : float [if iset='p']
            lower percentile level
@@ -184,6 +197,9 @@ def makemovie(args=None):
         yhi : float
            upper Y-limit for plot (can be < ylo)
 
+        dpi : int [hidden]
+           dots per inch of output. Default 72. Allows control over font size versus image size,
+           in combination with width and height.
     """
 
     command, args = utils.script_args(args)
@@ -212,6 +228,9 @@ def makemovie(args=None):
         cl.register("ymax", Cline.LOCAL, Cline.PROMPT)
         cl.register("ynorm", Cline.LOCAL, Cline.PROMPT)
         cl.register("yoffset", Cline.LOCAL, Cline.PROMPT)
+        cl.register("location", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fraction", Cline.LOCAL, Cline.PROMPT)
+        cl.register("lpad", Cline.LOCAL, Cline.PROMPT)
         cl.register("cmap", Cline.LOCAL, Cline.PROMPT)
         cl.register("width", Cline.LOCAL, Cline.PROMPT)
         cl.register("height", Cline.LOCAL, Cline.PROMPT)
@@ -228,6 +247,7 @@ def makemovie(args=None):
         cl.register("xhi", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ylo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("dpi", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
@@ -360,6 +380,29 @@ def makemovie(args=None):
                 len(ccds)*[0.]
             )
 
+            location =  cl.get_value(
+                "location",
+                "position of light curve plot relative to images", "s",
+                lvals=['s','e','S','E']
+            )
+            if location.lower() == 's':
+                fraction =  cl.get_value(
+                    "fraction",
+                    "fraction of figure in terms of height occupied by light curve",
+                    0.5
+                )
+            elif location.lower() == 'e':
+                fraction = cl.get_value(
+                    "fraction",
+                    "fraction of figure in terms of width occupied by light curve",
+                    0.67
+                )
+            lpad = cl.get_value(
+                "lpad",
+                "padding (left,bottom,right,top) around light curve plot",
+                (0.05,0.05,0.02,0.02)
+            )
+
             # trim down to the specified frames
             lcs = []
             T0, tmax = None, None
@@ -432,7 +475,6 @@ def makemovie(args=None):
 
             ilos = cl.get_value("ilo", "lower intensity limit", len(ccds)*[0.])
             ihis = cl.get_value("ihi", "upper intensity limit", len(ccds)*[1000.])
-            print(ilos, ihis)
 
         elif iset == "p":
             plo = cl.get_value(
@@ -458,6 +500,7 @@ def makemovie(args=None):
         xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax)
         ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax)
         yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax)
+        dpi = cl.get_value("dpi", "dots per inch", 72)
 
     ###############################################################################
 
@@ -531,20 +574,36 @@ def makemovie(args=None):
 
             if plotted.all():
 
-                # Finally have at least one proper exposure of all CCDs
-                # and can make plots
-                # Set up the plot. ny rows of images + 1 for optional light curve
+                # Finally have at least one proper exposure of all
+                # CCDs and can make plots every time with skipped
+                # frames staying unchanged Set up the plot. ny by nx
+                # rows x columns of images + 1 for optional light
+                # curve which is either South or East of images
 
-                fig = plt.figure(constrained_layout=True)
+                fig = plt.figure(figsize=(width,height))
 
                 if rlog is not None:
-                    # plot light curve as extra row on bottom
-                    gs = GridSpec(ny+1, nx, figure=fig)
-                    ax = fig.add_subplot(gs[ny, :])
+                    # plot light curve
+
+                    # first the location
+                    if location.lower() == 's':
+                        # light curve "South" of the images
+                        rect = [lpad[0],fraction*lpad[1],1-lpad[0]-lpad[2],fraction*(1-lpad[1]-lpad[3])]
+                        gs = GridSpec(ny, nx, figure=fig, bottom=fraction)
+                    elif location.lower() == 'e':
+                        # light curve "East" of the images
+                        rect = [1-fraction+fraction*lpad[0],lpad[1],fraction*(1-lpad[0]-lpad[2]),1-lpad[1]-lpad[3]]
+                        gs = GridSpec(ny, nx, right=1-fraction)
+
+                    # light curve axes
+                    ax = fig.add_axes(rect)
                     ax.set_xlim(0,tmax)
                     ax.set_ylim(fmin,fmax)
                     ax.set_xlabel(f'Time [mins, since MJD = {T0}]')
                     ax.set_ylabel(f'Target / Comparison')
+                    ax.tick_params(axis="x", direction="in")
+                    ax.tick_params(axis="y", direction="in", rotation=90)
+                    ax.tick_params(bottom=True, top=True, left=True, right=True)
                     for cnam, (nframes, lc) in zip(ccds, lcs):
                         plot = (nframes >= first) & (nframes <= first+nframe)
                         lct = lc[plot]
@@ -560,9 +619,12 @@ def makemovie(args=None):
                     mpl.pCcd(ax, ccd, iset, plo, phi, ilo, ihi, f'CCD {cnam}', xlo, xhi, ylo, yhi, cmap)
                     ax.set_xlim(xlo,xhi)
                     ax.set_ylim(ylo,yhi)
+                    ax.tick_params(axis="x", direction="in")
+                    ax.tick_params(axis="y", direction="in", rotation=90)
+                    ax.tick_params(bottom=True, top=True, left=True, right=True)
 
                 oname = os.path.join(dstore, f'{os.path.basename(resource)}_{first+nframe:0{ndigit}d}.{fext}')
-                plt.savefig(oname)
+                plt.savefig(oname,dpi=dpi)
                 plt.close()
                 print(f'   written figure to {oname}')
 
