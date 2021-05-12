@@ -87,7 +87,9 @@ def makemovie(args=None):
            Number of rows to remove (bottom of windows)
 
         ccd : str
-           CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
+           CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc. If
+           you plot more than one, then a legend is added to any light curve panel
+           to distinguish the light curves.
 
         nx : int [if more than 1 CCD]
            number of panels across to display for the image display.
@@ -535,7 +537,7 @@ def makemovie(args=None):
     current_ccds = nccd*[None]
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
-    first_image = True
+    first_fig = True
 
     # Now go through data
     with spooler.data_source(source, resource, first, full=False) as spool:
@@ -606,7 +608,14 @@ def makemovie(args=None):
                 prop_cycle = plt.rcParams['axes.prop_cycle']
                 colors = prop_cycle.by_key()['color'][:len(ccds)]
 
-                fig = plt.figure(figsize=(width,height))
+                # create the figure just once to avoid memory
+                # problems, i.e. we re-use the same figure for every
+                # plot. plt.close() which I thought work instead
+                # didn't and the programme went a bit bonkers at the
+                # end releasing resources. Putting '0' didn't work either.
+                if first_fig:
+                    fig = plt.figure(figsize=(width,height))
+                    first_fig = False
 
                 if rlog is not None:
                     # plot light curve
@@ -652,7 +661,8 @@ def makemovie(args=None):
                             label=f'CCD {cnam}'
                         )
 
-                    ax.legend(loc='upper right')
+                    if len(ccds) > 1:
+                        ax.legend(loc='upper right')
                 else:
                     # images only
                     gs = GridSpec(ny, nx, figure=fig)
@@ -667,9 +677,10 @@ def makemovie(args=None):
                     ax.tick_params(axis="y", direction="in", rotation=90)
                     ax.tick_params(bottom=True, top=True, left=True, right=True)
 
+                # save to disk, clear figure
                 oname = os.path.join(dstore, f'{os.path.basename(resource)}_{first+nframe:0{ndigit}d}.{fext}')
                 plt.savefig(oname,dpi=dpi)
-                plt.close()
+                plt.clf()
                 print(f'   written figure to {oname}')
 
             if nframe + first == last:
