@@ -36,7 +36,7 @@ def makemovie(args=None):
     """``makemovie [source] (run first last | flist) trim ([ncol nrow])
     (ccd (nx)) bias flat defect log (targ comp ymin ymax yscales
     yoffset location fraction lpad) cmap width height dstore ndigit fext msub iset
-    (ilo ihi | plo phi) xlo xhi ylo yhi [dpi]``
+    (ilo ihi | plo phi) xlo xhi ylo yhi [dpi (style (ms lw))]``
 
     ``makemovie`` is for generating stills to combine into a movie for
     presentations. It can optionally also read a log file from the run
@@ -200,6 +200,15 @@ def makemovie(args=None):
         dpi : int [hidden]
            dots per inch of output. Default 72. Allows control over font size versus image size,
            in combination with width and height.
+
+        style : str [hidden, if log defined]
+           style for light curves 'dots', 'line', 'both'. The line will be grey for the 'both' option.
+
+        ms : float [hidden, if log defined and style==dots or both]
+           markersize. Controls dot size which is useful when fiddling with dpi
+
+        lw : float [hidden, if log defined and style==line or both]
+           line width
     """
 
     command, args = utils.script_args(args)
@@ -248,6 +257,9 @@ def makemovie(args=None):
         cl.register("ylo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
         cl.register("dpi", Cline.LOCAL, Cline.HIDE)
+        cl.register("style", Cline.LOCAL, Cline.HIDE)
+        cl.register("ms", Cline.LOCAL, Cline.HIDE)
+        cl.register("lw", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
@@ -500,7 +512,18 @@ def makemovie(args=None):
         xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax)
         ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax)
         yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax)
-        dpi = cl.get_value("dpi", "dots per inch", 72)
+        dpi = cl.get_value("dpi", "dots per inch", 200)
+        if rlog is not None:
+            style = cl.get_value(
+                "style",
+                "light curve plot style",
+                "dots", lvals=('dots', 'line', 'both')
+            )
+            ms, lw = 0, 0
+            if style == 'dots' or style == 'both':
+                ms = cl.get_value("ms", "markersize", 2.)
+            if style == 'line' or style == 'both':
+                lw = cl.get_value("lw", "line width", 2.)
 
     ###############################################################################
 
@@ -580,6 +603,9 @@ def makemovie(args=None):
                 # rows x columns of images + 1 for optional light
                 # curve which is either South or East of images
 
+                prop_cycle = plt.rcParams['axes.prop_cycle']
+                colors = prop_cycle.by_key()['color'][:len(ccds)]
+
                 fig = plt.figure(figsize=(width,height))
 
                 if rlog is not None:
@@ -599,15 +625,33 @@ def makemovie(args=None):
                     ax = fig.add_axes(rect)
                     ax.set_xlim(0,tmax)
                     ax.set_ylim(fmin,fmax)
-                    ax.set_xlabel(f'Time [mins, since MJD = {T0}]')
+                    ax.set_xlabel(f'Time [mins, since MJD = {T0:.4f}]')
                     ax.set_ylabel(f'Target / Comparison')
                     ax.tick_params(axis="x", direction="in")
                     ax.tick_params(axis="y", direction="in", rotation=90)
                     ax.tick_params(bottom=True, top=True, left=True, right=True)
-                    for cnam, (nframes, lc) in zip(ccds, lcs):
+                    for cnam, (nframes, lc), col in zip(ccds, lcs, colors):
                         plot = (nframes >= first) & (nframes <= first+nframe)
                         lct = lc[plot]
-                        lct.mplot(ax, color=None, label=f'CCD {cnam}')
+                        if style == 'dots':
+                            fmt = '.'
+                            color = None
+                        elif style == 'line':
+                            fmt = '-'
+                            color = None
+                            col = None
+                        elif style == 'both':
+                            fmt = '.-'
+                            color = '0.7'
+
+                        lct.mplot(
+                            ax, fmt=fmt,
+                            color=color,
+                            mfc=col, mec=col,
+                            ms=ms, lw=lw,
+                            label=f'CCD {cnam}'
+                        )
+
                     ax.legend(loc='upper right')
                 else:
                     # images only
