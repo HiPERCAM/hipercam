@@ -36,9 +36,9 @@ def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd (nx)) [imwidth pause plotall] bias [lowlevel
     highlevel] flat defect setup [drurl cmap imwidth imheight] msub
-    iset (ilo ihi | plo phi) xlo xhi ylo yhi profit ([method beta fwhm
-    fwhm_min shbox smooth fhbox hmin read gain thresh fwnmax fwymax
-    fwwidth fwheight])``
+    iset (ilo ihi | plo phi) xlo xhi ylo yhi profit [method beta fwhm
+    fwhm_min shbox smooth fhbox hmin read gain thresh (fwnmax fwymax
+    fwwidth fwheight)]``
 
     This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
     the current PGPLOT one. Under development.
@@ -49,7 +49,7 @@ def nrtplot(args=None):
     which are hidden by default, and many of which are only prompted
     if other arguments are set correctly. If you want to see them all,
     invoke as 'rtplot prompt'.  This is worth doing once to know
-    rtplot's capabilities. 
+    rtplot's capabilities.
 
     rtplot can source data from both the ULTRACAM and HiPERCAM
     servers, from local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml +
@@ -221,35 +221,43 @@ def nrtplot(args=None):
            upper Y-limit for plot (can be < ylo)
 
         profit : bool
-           carry out profile fits or not. If you say yes, then you
-           will get the option of selecting objects with a cursor. The
+           If profit=True, you say yes, then you will get the option
+           of selecting a fixed set of objects with a cursor, and the
            program will then attempt to track these from frame to
            frame, and fit their profile. You may need to adjust
-           'first' to see anything.  The parameters used for profile
-           fits are hidden and you may want to invoke the command with
-           'prompt' the first time you try profile fitting.
+           'first' to see anything. Depending on 'fnmax', it will also
+           then plot a history of the FWHM measurements, which is
+           useful for focussing. The parameters used for profile fits
+           are hidden and you may want to invoke the command with
+           'prompt' the first time you try profile fitting. NB There
+           is also an option for "on-the-fly" fits of any target: see
+           the note below.
 
-        method : str [if profit; hidden]
+        method : str [hidden]
            this defines the profile fitting method, either a gaussian or a
            moffat profile. The latter is usually best.
 
-        beta : float [if profit and method == 'm'; hidden]
+        beta : float [method == 'm'; hidden]
            default Moffat exponent
 
-        fwhm : float [if profit; hidden]
+        fwhm : float [hidden]
            default FWHM, unbinned pixels.
 
-        fwhm_min : float [if profit; hidden]
+        fwhm_min : float [hidden]
            minimum FWHM to allow, unbinned pixels.
 
-        shbox : float [if profit; hidden]
-           half width of box for searching for a star, unbinned pixels. The
-           brightest target in a region +/- shbox around an intial position
-           will be found. 'shbox' should be large enough to allow for likely
-           changes in position from frame to frame, but not too large to avoid
-           jumping to brighter targets or possiblt cosmic rays.
+        shbox : float [hidden]
+           half width of box for searching for a star, unbinned
+           pixels. The above-threshold target closest to the centre of
+           the box in a region +/- shbox around an intial position
+           will be selected. It may not be the brightest, depending
+           upon your threshold settings, so use those to filter faint
+           objects. If profit=True, 'shbox' should be large enough to
+           allow for likely changes in position from frame to frame,
+           but not too large to avoid jumping to brighter targets or
+           possibly cosmic rays.
 
-        smooth : float [if profit; hidden]
+        smooth : float [hidden]
            FWHM for gaussian smoothing, binned pixels. The initial position
            for fitting is determined by finding the maximum flux in a smoothed
            version of the image in a box of width +/- shbox around the starter
@@ -257,25 +265,25 @@ def nrtplot(args=None):
            main purpose is to combat cosmic rays which tend only to occupy a
            single pixel.
 
-        fhbox : float [if profit; hidden]
+        fhbox : float [hidden]
            half width of box for profile fit, unbinned pixels. The fit box is
            centred on the position located by the initial search. It should
            normally be > ~2x the expected FWHM, and usually smaller than shbox
 
-        hmin : float [if profit; hidden]
+        hmin : float [hidden]
            height threshold to accept a fit. If the height is below this
            value, the position will not be updated. This is to help in cloudy
            conditions. The limit is applied to the image after it has been
            smoothed to make less vulnerable to seeing fluctuations. This
            can mean it can be quite small.
 
-        read : float [if profit; hidden]
+        read : float [hidden]
            readout noise, RMS ADU, for assigning uncertainties
 
-        gain : float [if profit; hidden]
+        gain : float [hidden]
            gain, ADU/count, for assigning uncertainties
 
-        thresh : float [if profit; hidden]
+        thresh : float [hidden]
            sigma rejection threshold for fits
 
         fwnmax : int [if profit; hidden]
@@ -296,6 +304,15 @@ def nrtplot(args=None):
         fwheight : float [if profit; hidden]
            FWHM display plot height in inches (0 for default, which will
            also cause the width to go to its default value)
+
+    Note::
+
+        To help with dithered long exposures especially, for which
+        'profit' performs poorly, clicking on any object will attempt
+        a one-off profile fit, with results that are reported to the
+        terminal. It's a little cludgy in that the profile fits are only
+        carried out and reported *after* the next frame has been plotted,
+        but it's better than nothing.
 
     """
 
@@ -339,7 +356,7 @@ def nrtplot(args=None):
         cl.register("ylo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
         cl.register("profit", Cline.LOCAL, Cline.PROMPT)
-        cl.register("nxf", Cline.LOCAL, Cline.HIDE)
+#        cl.register("nxf", Cline.LOCAL, Cline.HIDE)
         cl.register("method", Cline.LOCAL, Cline.HIDE)
         cl.register("beta", Cline.LOCAL, Cline.HIDE)
         cl.register("fwhm", Cline.LOCAL, Cline.HIDE)
@@ -536,53 +553,52 @@ def nrtplot(args=None):
 
         # many parameters for profile fits, although most are not
         # plotted by default
-        profit = cl.get_value("profit", "do you want profile fits?", False)
+        profit = cl.get_value("profit", "do you want accumulating profile fits?", False)
 
-        if profit:
-            nxf = cl.get_value("nxf", "maximum number of fit panels in X", 3)
-            method = cl.get_value(
-                "method", "fit method g(aussian) or m(offat)", "m", lvals=["g", "m"]
+        #            nxf = cl.get_value("nxf", "maximum number of fit panels in X", 3)
+        method = cl.get_value(
+            "method", "fit method g(aussian) or m(offat)", "m", lvals=["g", "m"]
+        )
+        if method == "m":
+            beta = cl.get_value(
+                "beta", "initial exponent for Moffat fits", 5.0, 0.5, 20.
             )
-            if method == "m":
-                beta = cl.get_value(
-                    "beta", "initial exponent for Moffat fits", 5.0, 0.5, 20.
-                )
-            else:
-                beta = 0.0
-            fwhm_min = cl.get_value(
-                "fwhm_min", "minimum FWHM to allow [unbinned pixels]", 1.5, 0.01
-            )
-            fwhm = cl.get_value(
-                "fwhm",
-                "initial FWHM [unbinned pixels] for profile fits",
-                6.0,
-                fwhm_min,
-            )
-            shbox = cl.get_value(
-                "shbox",
-                "half width of box for initial location"
-                " of target [unbinned pixels]",
-                11.0,
-                2.0,
-            )
-            smooth = cl.get_value(
-                "smooth",
-                "FWHM for smoothing for initial object"
-                " detection [binned pixels]",
-                6.0,
-            )
-            fhbox = cl.get_value(
-                "fhbox",
-                "half width of box for profile fit" " [unbinned pixels]",
-                21.0,
-                3.0,
-            )
-            hmin = cl.get_value(
-                "hmin", "minimum peak height to accept the fit", 50.0
-            )
-            read = cl.get_value("read", "readout noise, RMS ADU", 3.0)
-            gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
-            thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
+        else:
+            beta = 0.0
+        fwhm_min = cl.get_value(
+            "fwhm_min", "minimum FWHM to allow [unbinned pixels]", 1.5, 0.01
+        )
+        fwhm = cl.get_value(
+            "fwhm",
+            "initial FWHM [unbinned pixels] for profile fits",
+            6.0,
+            fwhm_min,
+        )
+        shbox = cl.get_value(
+            "shbox",
+            "half width of box for initial location"
+            " of target [unbinned pixels]",
+            11.0,
+            2.0,
+        )
+        smooth = cl.get_value(
+            "smooth",
+            "FWHM for smoothing for initial object"
+            " detection [binned pixels]",
+            6.0,
+        )
+        fhbox = cl.get_value(
+            "fhbox",
+            "half width of box for profile fit" " [unbinned pixels]",
+            21.0,
+            3.0,
+        )
+        hmin = cl.get_value(
+            "hmin", "minimum peak height to accept the fit", 50.0
+        )
+        read = cl.get_value("read", "readout noise, RMS ADU", 3.0)
+        gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
+        thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
 
         fwnmax = cl.get_value(
             "fwnmax", "maximum number of frame to buffer FWHM [0 to ignore]", 100, 0
@@ -852,7 +868,7 @@ def nrtplot(args=None):
                     )
 
                 # Cursor selection routine
-                cselect = CursorSelect(
+                cselect = ProfitCursorSelect(
                     img_fig, img_axs, ccds, img_accum, shbox, fwhm, beta,
                     method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
                 )
@@ -889,8 +905,10 @@ def nrtplot(args=None):
 
                     # Create the image plot manager
                     imanager = ImageManager(
-                        ccds, nx, imwidth, imheight, xlo, xhi, ylo, yhi,
-                        cmap, img_accum, fit_accum
+                        ccds, nx, imwidth,
+                        imheight, xlo, xhi, ylo, yhi, cmap, img_accum,
+                        fit_accum, shbox, fwhm, beta, method, smooth,
+                        fhbox, hmin, fwhm_min, read, gain, thresh
                     )
 
                     plt.show(block=False)
@@ -990,7 +1008,9 @@ class ImageManager:
     """
 
     def __init__(
-            self, cnams, nx, width, height, xlo, xhi, ylo, yhi, cmap, img_accum, fit_accum
+            self, cnams, nx, width, height, xlo, xhi, ylo, yhi, cmap,
+            img_accum, fit_accum, shbox, fwhm, beta, method, smooth,
+            fhbox, hmin, fwhm_min, read, gain, thresh
     ):
         """
         Initialises the plot. Arguments:
@@ -1034,6 +1054,10 @@ class ImageManager:
              one tuple per target being profile fitted, containg all
              info needed to make plots of the fit etc. This can be None
              if no fit was made. See Fpar.fit for what the tuples contain.
+
+        shbox, fwhm, beta, method, smooth, fhbox, hmin, fwhm_min, read,
+        gain, thresh are profile fitting parameters described elsewhere.
+        They are sent to a cursor selection routine.
         """
 
         # basic check
@@ -1072,6 +1096,12 @@ class ImageManager:
         # grab the background on every draw
         self.cid = self.cnv.mpl_connect("draw_event", self.on_draw)
 
+        # profile fitter
+        self.cselect = OntheflyCursorSelect(
+            self.fig, self.axs, self.cnams, img_accum, shbox, fwhm, beta,
+            method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
+        )
+
     def on_draw(self, event):
         """Callback to register with 'draw_event'."""
         cnv = self.cnv
@@ -1103,6 +1133,8 @@ class ImageManager:
         work is passed down to _disp_ccd and _disp_targs
 
         """
+        # update the frames used by the cursor picker
+        self.cselect.update(img_accum)
         # now update / create the artists
 
         # first the images
@@ -1504,9 +1536,9 @@ class FwhmManager:
             cnv.blit(fig.bbox)
         cnv.flush_events()
 
-class CursorSelect():
+class ProfitCursorSelect:
     """
-    Avoids spurious panning clicks from being registered
+    Avoids spurious panning clicks from being registered. This one stores up targets.
     """
 
     def __init__(self,
@@ -1601,6 +1633,105 @@ class CursorSelect():
             self._onclick(event)
         self.press = False
         self.move = False
+
+class OntheflyCursorSelect:
+    """
+    Avoids spurious panning clicks from being registered. This
+    one makes no attempt to store targets.
+    """
+
+    def __init__(self,
+                 fig, axs, ccds, img_accum, shbox, fwhm, beta, method,
+                 smooth, fhbox, hmin, fwhm_min, read, gain, thresh
+                 ):
+        """
+        fig : the Figure
+        axs : the Axes, one per CCD
+        img_accum : image content data
+        shbox : falf width search box
+        """
+
+        self.cnv = fig.canvas
+        self.axs = axs
+        self.ccds = ccds
+        self.img_accum_old = None
+        # have to copy here to avoid reference-passing auto-updating
+        # the images because we have to work one frame behind
+        self.img_accum = img_accum.copy()
+        self.shbox = shbox
+        self.fwhm = fwhm
+        self.beta = beta
+        self.method = method
+        self.smooth = smooth
+        self.fhbox = fhbox
+        self.hmin = hmin
+        self.fwhm_min = fwhm_min
+        self.read = read
+        self.gain = gain
+        self.thresh = thresh
+
+        self.press = False
+        self.move = False
+        self.c1=self.cnv.mpl_connect('button_press_event', self._onpress)
+        self.c2=self.cnv.mpl_connect('button_release_event', self._onrelease)
+        self.c3=self.cnv.mpl_connect('motion_notify_event', self._onmove)
+
+    def update(self, img_accum):
+        self.img_accum_old = self.img_accum
+        self.img_accum = img_accum.copy()
+
+    def _onclick(self, event):
+        """
+        Where stuff is done
+        """
+
+        if event.inaxes is not None and self.img_accum_old is not None:
+            for ax, cnam, content in zip(self.axs,self.ccds,self.img_accum_old):
+
+                if event.inaxes == ax:
+
+                    # clicked inside an Axes
+                    x, y = event.xdata, event.ydata
+
+                    # extract the CCD
+                    ccd = content[0]
+
+                    # check that the position is inside a window
+                    wnam = ccd.inside(x, y, 2)
+
+                    if wnam is not None:
+                        # store the position, Window label, target number,
+                        # box size fwhm, beta
+                        fpar = Fpar(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
+                        results, message = fpar.fit(
+                            ccd, self.method, self.smooth, self.fhbox,
+                            self.hmin, self.fwhm_min, self.read, self.gain, self.thresh
+                        )
+                        if results is not None:
+                            # fitted OK
+                            print(
+                                f'   profile fit with initial x,y = '
+                                f'{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}, [applies to previous frame]:'
+                            )
+                            print(f'   {message}\n')
+                        else:
+                            print(f'\n   ** fit failed at position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}')
+                            print(f'   ** fit message = {message}\n')
+
+    def _onpress(self,event):
+        self.press = True
+
+    def _onmove(self,event):
+        if self.press:
+            self.move = True
+
+    def _onrelease(self,event):
+        # only call onclick in special circumstances
+        if self.press and not self.move:
+            self._onclick(event)
+        self.press = False
+        self.move = False
+
 
 class Fpar:
 
