@@ -17,11 +17,11 @@ cat<<EOF > $clog
 |hiper| pipeline change log from ${tag1} to ${tag2}
 ***************************************************
 
-List of changes from git, oldest first, with the commit keys linked to github:
+List of changes from git, newest first, with the commit keys linked to github:
 
 EOF
 
-git log ${tag1}..${tag2} --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' --reverse >> $clog
+git log ${tag1}..${tag2} --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' >> $clog
 
 clog=docs/change_log_${tag2}_to_now.rst
 
@@ -33,9 +33,9 @@ cat<<EOF > $clog
 |hiper| pipeline change log from ${tag2}
 ****************************************
 
-List of changes from git, oldest first, with the commit keys linked to github:
+List of changes from git, newest first, with the commit keys linked to github:
 
 EOF
 
-git log ${tag2}..HEAD --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' --reverse >> $clog
+git log ${tag2}..HEAD --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' >> $clog
 
