@@ -1,6 +1,5 @@
 import sys
 import os
-import time
 
 import numpy as np
 from astropy.time import Time
@@ -23,7 +22,7 @@ __all__ = [
 
 def joinup(args=None):
     """``joinup [source] (run first [twait tmax] | flist) trim ([ncol
-    nrow]) (ccd) bias flat msub dtype [dmax overwrite]``
+    nrow]) (ccd) bias flat msub dtype [dmax overwrite compress]``
 
     Converts a run or a list of hcm images into as near as possible
     "standard" FITS files with one image in the primary HDU per file,
@@ -122,8 +121,8 @@ def joinup(args=None):
 
         compress : str [hidden]
            allows data to be compressed with FITS's internal
-           compression mechanisms (lossless only).  The file will
-           still end in ".fits" but has a different internal format.
+           compression mechanisms (lossless only). The file will
+           still end in ".fits" but has a different internal format;
            'ds9' copes seamlessly with all of them. The options are:
            'none', 'rice', 'gzip1', 'gzip2'. 'rice' gave about a
            factor of 2 compression in a short test I ran, and was as
@@ -150,6 +149,8 @@ def joinup(args=None):
         the data array. The bottom-left pixel of the CCD is considered
         to be (1,1), so full frame images have LLX=LLY=1.
 
+        A HipercamError will be raised if an attempt is made to write out
+        data outside the range 0 to 65535 in unit16 format.
     """
 
     command, args = utils.script_args(args)
@@ -373,9 +374,9 @@ def joinup(args=None):
                             urxmax = max(urxmax, wind.urx)
                             urymax = max(urymax, wind.ury)
                             if xbin != wind.xbin or ybin != wind.ybin:
-                                raise HipercamError('Found windows with clashing binning factors')
+                                raise hcam.HipercamError('Found windows with clashing binning factors')
                             if (wind.llx - llx) % xbin != 0 or (wind.lly - lly) % ybin != 0:
-                                raise HipercamError('Found windows which are out of sync with each other')
+                                raise hcam.HipercamError('Found windows which are out of sync with each other')
 
                     # create huge array of nothing
                     ny = (urymax-llymin+1) // ybin
@@ -387,6 +388,11 @@ def joinup(args=None):
                         xstart = (wind.llx - llxmin) // xbin
                         ystart = (wind.lly - llymin) // ybin
                         data[ystart:ystart+wind.ny,xstart:xstart+wind.nx] = wind.data
+
+                    if dtype == 'uint16' and data.min() < 0 or data.max() > 65535:
+                        raise hcam.HipercamError(
+                            f'CCD {cnam}, frame {nf}, data range {data.min()} to {data.max()}, is incompatible with uint16'
+                        )
 
                     # Header
                     phead = mccd.head.copy()
