@@ -24,6 +24,7 @@
 .. |ol-hlog2fits| replace:: convert a reduction log file to FITS
 .. |ol-hls|      replace:: list the runs on the |hiper| server
 .. |ol-hplot|    replace:: plot a frame
+.. |ol-joinup|   replace:: joins windows into single image
 .. |ol-ltimes|   replace:: list times of a run
 .. |ol-ltrans|   replace:: computes transforms to align frames
 .. |ol-makebias| replace:: combine a run to make a bias frame
@@ -115,6 +116,8 @@ useful.
    | |hls|        | |ol-hls|       | Yes      |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hplot|      | |ol-hplot|     | Yes      | Yes      |  Yes    |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |joinup|     | |ol-joinup|    | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |ltimes|     | |ol-ltimes|    |          |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+

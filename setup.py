@@ -152,6 +152,7 @@ setup(
             'hls=hipercam.scripts.hls:hls',
             'hmeta=hipercam.scripts.hmeta:hmeta',
             'hplot=hipercam.scripts.hplot:hplot',
+            'joinup=hipercam.scripts.joinup:joinup',
             'logsearch=hipercam.scripts.logsearch:logsearch',
             'ltimes=hipercam.scripts.ltimes:ltimes',
             'ltrans=hipercam.scripts.ltrans:ltrans',

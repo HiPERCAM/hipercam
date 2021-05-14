@@ -25,6 +25,7 @@ from .hlog2col import hlog2col
 from .hls import hls
 from .hmeta import hmeta
 from .hplot import hplot
+from .joinup import joinup
 from .ltimes import ltimes
 from .logsearch import logsearch
 from .ltrans import ltrans
@@ -70,6 +71,7 @@ __all__ = [
     "hlogger",
     "hls",
     "hplot",
+    "joinup",
     "ltimes",
     "ltrans",
     "makebias",
