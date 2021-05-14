@@ -114,7 +114,7 @@ def joinup(args=None):
            Maximum amount of data in GB to write out. Safety device
            for small windows; see note below. Will stop output if this
            is exceeded. Determined on data only. Must be explicitly set
-           to exceed this.
+           to exceed this. Defaults to 10GB otherwise.
 
         overwrite : bool [hidden]
            overwrite any pre-existing files. Will always default to False
@@ -135,7 +135,8 @@ def joinup(args=None):
 
         Be careful of running this on highly windowed data since it
         could end up expanding the total amount of "data" hugely.
-        It's really aimed at full frame runs above all.
+        It's really aimed at full frame runs above all. The "dmax"
+        parameter is aimed at heading off disaster in such cases.
 
         This routine can fail if windows have been binned but are out of
         step (not "in sync") with each other.
