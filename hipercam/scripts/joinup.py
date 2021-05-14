@@ -119,6 +119,17 @@ def joinup(args=None):
            overwrite any pre-existing files. Will always default to False
            if not explicitly set.
 
+        compress : str [hidden]
+           allows data to be compressed with FITS's internal
+           compression mechanisms (lossless only).  The file will
+           still end in ".fits" but has a different internal format.
+           'ds9' copes seamlessly with all of them. The options are:
+           'none', 'rice', 'gzip1', 'gzip2'. 'rice' gave about a
+           factor of 2 compression in a short test I ran, and was as
+           fast as gzip2, but it may depend upon the nature of the data.
+           'none' is fastest. See astropy.io.fits for further documentation.
+
+
     Note::
 
         Be careful of running this on highly windowed data since it will
@@ -153,6 +164,7 @@ def joinup(args=None):
         cl.register("dtype", Cline.LOCAL, Cline.PROMPT)
         cl.register("dmax", Cline.LOCAL, Cline.HIDE)
         cl.register("overwrite", Cline.LOCAL, Cline.HIDE)
+        cl.register("compress", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
@@ -250,10 +262,19 @@ def joinup(args=None):
             "overwrite pre-existing files on output?",
             False
         )
+        compress = cl.get_value(
+            "compress",
+            "internal HDU compression to apply", 'none',
+            lvals=[
+                'none', 'rice', 'gzip1', 'gzip2'
+            ]
+        )
 
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
+
+    ctrans = {'rice' : 'RICE_1', 'gzip1' : 'GZIP_1', 'gzip2' : 'GZIP_2'}
 
     total_time = 0  # time waiting for new frame
 
@@ -357,17 +378,16 @@ def joinup(args=None):
                         ystart = (wind.lly - llymin) // ybin
                         data[ystart:ystart+wind.ny,xstart:xstart+wind.nx] = wind.data
 
-                    # Generate the output file name
-                    oname = f'{os.path.basename(resource)}_ccd{cnam}_{nf:0{ndigit}d}.fits'
-
                     # Header
                     phead = mccd.head.copy()
 
                     # Add some extra stuff
-                    phead["NXTOT"] = (ccd.nxtot, "Total unbinned X dimension")
-                    phead["NYTOT"] = (ccd.nytot, "Total unbinned Y dimension")
                     phead["CCDLABEL"] = (cnam, "CCD label")
                     phead["NFRAME"] = (nf, "Frame number")
+                    phead["LLX"] = (llxmin, "X of lower-left unbinned pixel (starts at 1)")
+                    phead["LLY"] = (llymin, "Y of lower-left unbinned pixel (starts at 1)")
+                    phead["NXTOT"] = (ccd.nxtot, "Total unbinned X dimension")
+                    phead["NYTOT"] = (ccd.nytot, "Total unbinned Y dimension")
                     phead.add_comment('Written by HiPERCAM script "joinup"')
 
                     if dtype == 'uint16':
@@ -387,7 +407,16 @@ def joinup(args=None):
 
                     # make the first & only HDU
                     hdul = fits.HDUList()
-                    hdul.append(fits.PrimaryHDU(data, header=fits.Header(phead.cards)))
+                    if compress == 'none':
+                        hdul.append(fits.PrimaryHDU(data, header=fits.Header(phead.cards)))
+                    else:
+                        hdul.append(fits.PrimaryHDU(header=fits.Header(phead.cards)))
+                        compressed_hdu = fits.CompImageHDU(
+                            data=data, compression_type=ctrans[compress]
+                        )
+                        hdul.append(compressed_hdu)
+
+                    oname = f'{os.path.basename(resource)}_ccd{cnam}_{nf:0{ndigit}d}.fits'
                     hdul.writeto(oname, overwrite=overwrite)
                     print(f'   CCD {cnam} written to {oname}')
                     nfile += 1
