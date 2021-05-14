@@ -25,14 +25,15 @@ def joinup(args=None):
     """``joinup [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd) bias flat msub dtype [dmax overwrite]``
 
-    Converts a run or hcm images into as near as possible "standard"
-    FITS files with one image in the primary HDU per file,
-    representing a single CCD with all windows merged. A file such as
+    Converts a run or a list of hcm images into as near as possible
+    "standard" FITS files with one image in the primary HDU per file,
+    representing a single CCD with all windows merged. The aim above
+    all is to have a file that plays nicely with 'ds9'. A file such as
     'run0002.fits' (|hipercam|) will end up producing files with names
     like run0002_ccd1_0001.fits, run0002_ccd1_0002.fits, etc and the
     same for any of the other CCDs. They will be written to the
-    present working directory. If the windows have gaps, then a null
-    value will fill out the rest.
+    present working directory. If the windows have gaps, then they
+    will be filled with zeroes.
 
     Parameters:
 
@@ -132,12 +133,21 @@ def joinup(args=None):
 
     Note::
 
-        Be careful of running this on highly windowed data since it will
-        add a vast amount of junk data and could end up generating a vast
-        amount of rubbish. It's really aimed at full frame runs above all.
+        Be careful of running this on highly windowed data since it
+        could end up expanding the total amount of "data" hugely.
+        It's really aimed at full frame runs above all.
 
         This routine can fail if windows have been binned but are out of
         step (not "in sync") with each other.
+
+        The routine only creates a window big enough to contain all
+        the windows. Thus it might end up representing a sub-array of
+        the CCD as opposed to all of it. The location can be
+        determined from the 'LLX' and 'LLY' parameters that are
+        written to the header. These represent the location of the
+        lowest and leftmost unbinned pixel that is contained within
+        the data array. The bottom-left pixel of the CCD is considered
+        to be (1,1), so full frame images have LLX=LLY=1.
 
     """
 
@@ -369,8 +379,7 @@ def joinup(args=None):
                     # create huge array of nothing
                     ny = (urymax-llymin+1) // ybin
                     nx = (urxmax-llxmin+1) // xbin
-                    data = np.empty((ny,nx))
-                    data[:] = np.nan
+                    data = np.zeros((ny,nx))
 
                     # fill it with data
                     for n, wind in enumerate(ccd.values()):
