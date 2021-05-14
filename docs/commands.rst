@@ -443,6 +443,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.hlog2fits
 .. autofunction:: hipercam.scripts.hls
 .. autofunction:: hipercam.scripts.hplot
+.. autofunction:: hipercam.scripts.joinup
 .. autofunction:: hipercam.scripts.ltimes
 .. autofunction:: hipercam.scripts.ltrans
 .. autofunction:: hipercam.scripts.makebias
