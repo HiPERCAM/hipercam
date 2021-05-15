@@ -104,10 +104,12 @@ def joinup(args=None):
            output file names.
 
         dtype : str
-           output data type. 'unit16', 'float32', 'float64'. The first of
-           these is only probably a good idea if no bias, flat field or
-           median subtraction are applied. 32 bit floats should be OK for
-           most purposes.
+           output data type. 'unit16', 'float32', 'float64'. The first
+           of these (2-byte unsigned) is only probably a good idea if
+           no bias, flat field or median subtraction has been applied because
+           it involves rounding and it will fail if any data are out of the range
+           0 to 65535. 32-bit (4 byte) floats should be OK for most purposes,
+           but require twice the space of uint16.
 
         dmax : float
            Maximum amount of data in GB to write out. Just a safety device
@@ -269,11 +271,11 @@ def joinup(args=None):
         )
         dmax = cl.get_value(
             "dmax",
-            "maximum allowable amount of data to write out [GB]", 10., 1.
+            "maximum allowable amount of data to write out [GB]", 10., 0.
         )
         nmax = cl.get_value(
             "nmax",
-            "maximum allowable number of frames to write out", 10000, 1
+            "maximum allowable number of frames to write out", 10000, 0
         )
         overwrite = cl.get_value(
             "overwrite",
@@ -427,7 +429,7 @@ def joinup(args=None):
                         print(f'Written {nfile} FITS files to disk.')
                         return
 
-                    if nfile >= dmax:
+                    if nfile >= nmax:
                         print(f'Reached maximum allowable number of frames = {nmax}; stopping.')
                         print(f'Written {nfile} FITS files to disk.')
                         return
