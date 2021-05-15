@@ -1,6 +1,9 @@
 import sys
 import os
 import time
+from signal import signal, SIGINT
+import requests
+import socket
 
 import numpy as np
 
@@ -13,9 +16,6 @@ import hipercam as hcam
 from hipercam import cline, utils, spooler, defect
 from hipercam.cline import Cline
 from hipercam.mpl import Params
-
-import requests
-import socket
 
 # colour for setup windows. works for me at least
 # but may need input from Stu
@@ -35,32 +35,40 @@ __all__ = [
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd (nx)) [imwidth pause plotall] bias [lowlevel
-    highlevel] flat defect setup [drurl cmap imwidth imheight] msub
-    iset (ilo ihi | plo phi) xlo xhi ylo yhi profit [method beta fwhm
-    fwhm_min shbox smooth fhbox hmin read gain thresh (fwnmax fwymax
-    fwwidth fwheight)]``
+    highlevel] flat defect setup [drurl cmap imwidth imheight memory]
+    msub iset (ilo ihi | plo phi) xlo xhi ylo yhi profit [method beta
+    fwhm fwhm_min shbox smooth fhbox hmin read gain thresh (fwnmax
+    fwymax fwwidth fwheight)]``
 
     This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
     the current PGPLOT one. Under development.
 
     Plots a sequence of images as a movie in near 'real time', hence
     'rt'. Designed to be used to look at images coming in while at the
-    telescope, 'rtplot' comes with many options, a large number of
+    telescope, 'nrtplot' comes with many options, a large number of
     which are hidden by default, and many of which are only prompted
     if other arguments are set correctly. If you want to see them all,
-    invoke as 'rtplot prompt'.  This is worth doing once to know
-    rtplot's capabilities.
+    invoke as 'nrtplot prompt'.  This is worth doing once to know
+    nrtplot's capabilities.
 
-    rtplot can source data from both the ULTRACAM and HiPERCAM
+    nrtplot can source data from both the ULTRACAM and HiPERCAM
     servers, from local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml +
     .dat for ULTRACAM, 3D FITS files for HiPERCAM) and from lists of
     HiPERCAM '.hcm' files.
 
-    rtplot optionally allows the selection of targets to be fitted
+    nrtplot optionally allows the selection of targets to be fitted
     with gaussian or moffat profiles, and, if successful, will plot
     circles of 2x the measured FWHM in green over the selected
     targets. In this case it can also plot the history of the FWHMs as
-    an aid to focussing.
+    an aid to focussing. You can also click on targets on the fly to
+    get one-off measurement which are just printed to the screen. See
+    below for a note on this.
+
+    You can re-size and zoom & pan during plotting, although it takes
+    some getting used owing to the way the program blocks. For re-sizing,
+    you may need to keep the left-button of the mouse down for a while
+    for anything to happen. See the parameter 'memory' below which can
+    help.
 
     Parameters:
 
@@ -179,6 +187,11 @@ def nrtplot(args=None):
         imheight : float [hidden]
            image display plot height in inches (0 for default, and note
            that this will also make the width go to its default)
+
+        memory : bool [hidden]
+           stores the image display dimensions at the end as defaults for
+           imwidth and imheight next time (or not). This helps when you are
+           repeatedly re-starting nrtplot for the same sort of display.
 
         msub : bool
            subtract the median from each window before scaling for the
@@ -307,12 +320,12 @@ def nrtplot(args=None):
 
     Note::
 
-        To help with dithered long exposures especially, for which
-        'profit' performs poorly, clicking on any object will attempt
-        a one-off profile fit, with results that are reported to the
-        terminal. It's a little cludgy in that the profile fits are only
-        carried out and reported *after* the next frame has been plotted,
-        but it's better than nothing.
+        To help with *dithered* long exposures especially, for which
+        'profit' performs very poorly, clicking on any object will
+        attempt a one-off profile fit, with results that are reported
+        to the terminal. It's a little cludgy in that the profile fits
+        are only carried out and reported *after* the next frame has
+        been plotted, but it's better than nothing.
 
     """
 
@@ -345,6 +358,7 @@ def nrtplot(args=None):
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
         cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("memory", Cline.LOCAL, Cline.HIDE)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
@@ -510,6 +524,10 @@ def nrtplot(args=None):
             "imheight", "image plot height [inches, 0 for default]", 0., 0.
         )
 
+        memory = cl.get_value(
+            "memory", "remember finaly plot dimensions for next time?", True
+        )
+
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)
 
@@ -641,7 +659,7 @@ def nrtplot(args=None):
                 )
 
                 if give_up:
-                    print("rtplot stopped")
+                    print("nrtplot stopped")
                     break
                 elif try_again:
                     continue
@@ -911,6 +929,16 @@ def nrtplot(args=None):
                         fhbox, hmin, fwhm_min, read, gain, thresh
                     )
 
+                    if memory:
+                        # define object to handle adjusting the figure size
+                        cleanup = CleanUp(
+                            "HIPERCAM_ENV", ".hipercam", command, args,
+                            imanager.fig
+                        )
+
+                        # and register with signal
+                        signal(SIGINT, cleanup)
+
                     plt.show(block=False)
                     plt.pause(0.1)
 
@@ -948,7 +976,36 @@ def nrtplot(args=None):
     # so block this by asking the user to confirm
     reply = input('\nHit carriage return to close the plot(s): ')
 
+    if memory:
+        cleanup.finish()
+
 # From here is support code not visible outside
+
+class CleanUp:
+    """
+    Handle adjusting plot width defaults in a way that can be used
+    as a handler for signal
+    """
+    def __init__(self, hipenv, hipconf, command, args, fig):
+        self.hipenv = hipenv
+        self.hipconf = hipconf
+        self.command = command
+        self.args = args
+        self.fig = fig
+
+    def __call__(self, signal_recieved, frame):
+        self.finish()
+        sys.exit(1)
+
+    def finish(self):
+        with Cline(self.hipenv, self.hipconf, self.command, self.args) as cl:
+            width = self.fig.get_figwidth()
+            height = self.fig.get_figheight()
+            cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+            cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+            cl.set_default("imwidth",width)
+            cl.set_default("imheight",height)
+            print(f'\nImage display size updated to width, height = {width}, {height} [memory=True]')
 
 def setup_images(nccd, nx, title, width, height):
     """
@@ -1068,7 +1125,7 @@ class ImageManager:
         self.cnv = self.fig.canvas
         self._bg = None
 
-        # rtplot inputs
+        # nrtplot inputs
         self.cnams = cnams
         self.xlo = xlo
         self.xhi = xhi
@@ -1416,7 +1473,7 @@ class FwhmManager:
         self.ax = self.fig.add_subplot(animated=True)
         self._bg = None
 
-        # rtplot inputs
+        # nrtplot inputs
         self.nframe = nframe
         self.mxframes = mxframes
         self.fwmax = fwmax
