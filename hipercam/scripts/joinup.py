@@ -22,7 +22,7 @@ __all__ = [
 
 def joinup(args=None):
     """``joinup [source] (run first [twait tmax] | flist) trim ([ncol
-    nrow]) (ccd) bias flat msub dtype [dmax overwrite compress]``
+    nrow]) (ccd) bias flat msub dtype dmax nmax overwrite compress``
 
     Converts a run or a list of hcm images into as near as possible
     "standard" FITS files with one image in the primary HDU per file,
@@ -109,33 +109,35 @@ def joinup(args=None):
            median subtraction are applied. 32 bit floats should be OK for
            most purposes.
 
-        dmax : float [hidden]
-           Maximum amount of data in GB to write out. Safety device
-           for small windows; see note below. Will stop output if this
-           is exceeded. Determined on data only. Must be explicitly set
-           to exceed this. Defaults to 10GB otherwise.
+        dmax : float
+           Maximum amount of data in GB to write out. Just a safety device
+           to avoid disaster by applying this script to highly windowed data
+           where you can end up expanding the total amount of data by a large
+           factor.
 
-        overwrite : bool [hidden]
-           overwrite any pre-existing files. Will always default to False
-           if not explicitly set.
+        nmax : int
+           Maximum number of frames. A similar safety device to dmax to
+           avoid inadvertent application of this script to a million+ frame run.
 
-        compress : str [hidden]
-           allows data to be compressed with FITS's internal
-           compression mechanisms (lossless only). The file will
-           still end in ".fits" but has a different internal format;
-           'ds9' copes seamlessly with all of them. The options are:
-           'none', 'rice', 'gzip1', 'gzip2'. 'rice' gave about a
-           factor of 2 compression in a short test I ran, and was as
-           fast as gzip2, but it may depend upon the nature of the data.
-           'none' is fastest. See astropy.io.fits for further documentation.
+        overwrite : bool
+           overwrite any pre-existing files.
 
+        compress : str
+           allows data to be compressed with FITS's internal lossless
+           compression mechanisms. The file will still end in ".fits"
+           but has a different internal format; 'ds9' copes seamlessly
+           with all of them. The options are: 'none', 'rice', 'gzip1',
+           'gzip2'. 'rice' gave about a factor of 2 compression in a
+           short test I ran, and was as fast as gzip2, but it may
+           depend upon the nature of the data.  'none' is fastest. See
+           astropy.io.fits for further documentation.
 
     Note::
 
         Be careful of running this on highly windowed data since it
         could end up expanding the total amount of "data" hugely.
         It's really aimed at full frame runs above all. The "dmax"
-        parameter is aimed at heading off disaster in such cases.
+        and "nmax" parameters are aimed at heading off disaster.
 
         This routine can fail if windows have been binned but are out of
         step (not "in sync") with each other.
@@ -151,6 +153,7 @@ def joinup(args=None):
 
         A HipercamError will be raised if an attempt is made to write out
         data outside the range 0 to 65535 in unit16 format.
+
     """
 
     command, args = utils.script_args(args)
@@ -174,9 +177,10 @@ def joinup(args=None):
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ndigit", Cline.LOCAL, Cline.PROMPT)
         cl.register("dtype", Cline.LOCAL, Cline.PROMPT)
-        cl.register("dmax", Cline.LOCAL, Cline.HIDE)
-        cl.register("overwrite", Cline.LOCAL, Cline.HIDE)
-        cl.register("compress", Cline.LOCAL, Cline.HIDE)
+        cl.register("dmax", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nmax", Cline.LOCAL, Cline.PROMPT)
+        cl.register("overwrite", Cline.LOCAL, Cline.PROMPT)
+        cl.register("compress", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
@@ -263,12 +267,14 @@ def joinup(args=None):
             "output data type", 'float32',
             lvals=['uint16','float32','float64']
         )
-        cl.set_default('dmax',10.)
         dmax = cl.get_value(
             "dmax",
-            "maximum amount of data to write out [GB]", 10., 0.01
+            "maximum allowable amount of data to write out [GB]", 10., 1.
         )
-        cl.set_default('overwrite',False)
+        nmax = cl.get_value(
+            "nmax",
+            "maximum allowable number of frames to write out", 10000, 1
+        )
         overwrite = cl.get_value(
             "overwrite",
             "overwrite pre-existing files on output?",
@@ -416,8 +422,13 @@ def joinup(args=None):
                         data = data.astype(np.float64)
                         dtotal += 8*nx*ny/GB
 
-                    if dtotal > dmax:
-                        print(f'Reached threshold amount of data = {dmax} GB; stopping.')
+                    if dtotal >= dmax:
+                        print(f'Reached maximum allowable amount of data = {dmax} GB; stopping.')
+                        print(f'Written {nfile} FITS files to disk.')
+                        return
+
+                    if nfile >= dmax:
+                        print(f'Reached maximum allowable number of frames = {nmax}; stopping.')
                         print(f'Written {nfile} FITS files to disk.')
                         return
 
