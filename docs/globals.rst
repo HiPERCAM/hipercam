@@ -41,6 +41,7 @@
 .. |makebias| replace:: :func:`makebias <hipercam.scripts.makebias>`
 .. |makedark| replace:: :func:`makedark <hipercam.scripts.makedark>`
 .. |makeflat| replace:: :func:`makeflat <hipercam.scripts.makeflat>`
+.. |makemovie| replace:: :func:`makemovie <hipercam.scripts.makemovie>`
 .. |mstats| replace:: :func:`mstats <hipercam.scripts.mstats>`
 .. |mul| replace:: :func:`mul <hipercam.scripts.mul>`
 .. |nrtplot| replace:: :func:`nrtplot <hipercam.scripts.nrtplot>`

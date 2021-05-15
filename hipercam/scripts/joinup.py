@@ -28,7 +28,7 @@ def joinup(args=None):
     "standard" FITS files with one image in the primary HDU per file,
     representing a single CCD with all windows merged. The aim above
     all is to have a file that plays nicely with 'ds9'. A file such as
-    'run0002.fits' (|hipercam|) will end up producing files with names
+    'run0002.fits' (|hiper|) will end up producing files with names
     like run0002_ccd1_0001.fits, run0002_ccd1_0002.fits, etc and the
     same for any of the other CCDs. They will be written to the
     present working directory. If the windows have gaps, then they

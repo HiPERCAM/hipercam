@@ -30,6 +30,7 @@
 .. |ol-makebias| replace:: combine a run to make a bias frame
 .. |ol-makedark| replace:: combine a run to make a dark frame
 .. |ol-makeflat| replace:: combine a list of frames into a flat
+.. |ol-makemovie| replace:: makes stills for movies from a run
 .. |ol-mstats|   replace:: list stats of multiple frames from a run
 .. |ol-mul|      replace:: multiply two frames
 .. |ol-nrtplot|  replace:: plot frames as they come in [matplotlib]
@@ -126,6 +127,8 @@ useful.
    | |makedark|   | |ol-makedark|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |makeflat|   | |ol-makeflat|  |          | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |makemovie|  | |ol-makemovie| |          |          | Yes     |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |mstats|     | |ol-mstats|    |          |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -449,6 +452,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.makebias
 .. autofunction:: hipercam.scripts.makedark
 .. autofunction:: hipercam.scripts.makeflat
+.. autofunction:: hipercam.scripts.makemovie
 .. autofunction:: hipercam.scripts.mstats
 .. autofunction:: hipercam.scripts.mul
 .. autofunction:: hipercam.scripts.nrtplot

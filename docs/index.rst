@@ -35,6 +35,7 @@ more information on
    installation
    files
    api/bugs
+   makingmovies
 
 Indices and tables
 ==================
