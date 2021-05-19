@@ -141,8 +141,9 @@ def joinup(args=None):
         It's really aimed at full frame runs above all. The "dmax"
         and "nmax" parameters are aimed at heading off disaster.
 
-        This routine can fail if windows have been binned but are out of
-        step (not "in sync") with each other.
+        This routine will fail if windows have been binned but are out
+        of step (not "in sync") with each other because there is no
+        way to register  such data within a single image.
 
         The routine only creates a window big enough to contain all
         the windows. Thus it might end up representing a sub-array of
@@ -154,7 +155,8 @@ def joinup(args=None):
         to be (1,1), so full frame images have LLX=LLY=1.
 
         A HipercamError will be raised if an attempt is made to write out
-        data outside the range 0 to 65535 in unit16 format.
+        data outside the range 0 to 65535 into unit16 format and nothing
+        will be written
 
     """
 
