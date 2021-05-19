@@ -291,10 +291,19 @@ def nrtplot(args=None):
            can mean it can be quite small.
 
         read : float [hidden]
-           readout noise, RMS ADU, for assigning uncertainties
+           readout noise, RMS ADU, for assigning uncertainties. Set to a -ve
+           value to try to ascertain on the fly; this is advisable either if
+           you don't have a bias or you apply 'msub', and it will default to
+           this if not specified in this case. The value returned in this case
+           includes sky noise, i.e it should be roughly sqrt(R**2+S/G) where
+           R is the true read noise, S are the sky counts per pixel, and G the
+           gain. If read is set -ve, two fits are carried out per target. The
+           second of these should usually be pretty fast. The first is carried
+           out with an assumed large read noise of 20 in order to soften the
+           weights. The results reported apply to the second fit.
 
         gain : float [hidden]
-           gain, ADU/count, for assigning uncertainties
+           gain, ADU/count, for assigning uncertainties.
 
         thresh : float [hidden]
            sigma rejection threshold for fits
@@ -326,6 +335,13 @@ def nrtplot(args=None):
         to the terminal. It's a little cludgy in that the profile fits
         are only carried out and reported *after* the next frame has
         been plotted, but it's better than nothing.
+
+        If you don't apply bias subtraction and/or you do subtract the
+        median, then the usual method to estimate the read noise fails.
+        In that case, setting 'read' < 0 will force an attempt to measure
+        the read noise from fluctuations in the sky. You need to ensure
+        that fhbox is large enough to encompass sky regions well away from
+        the target in this case.
 
     """
 
@@ -614,7 +630,9 @@ def nrtplot(args=None):
         hmin = cl.get_value(
             "hmin", "minimum peak height to accept the fit", 50.0
         )
-        read = cl.get_value("read", "readout noise, RMS ADU", 3.0)
+        if bias is None or msub:
+            cl.set_default("read", -1.)
+        read = cl.get_value("read", "readout noise, RMS ADU", -1.0)
         gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
         thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
 
@@ -642,7 +660,11 @@ def nrtplot(args=None):
     # track which CCDs have been plotted at least once for the profile fits
     plotted = np.array(len(ccds)*[False])
     not_selected = True
+
+    # img_accum and (later) fit_accum and targ_accum are long-lived
+    # objects passed and stored by reference to plot updating classes
     img_accum = len(ccds)*[None]
+    targ_accum = None
     first_image = True
     first_fwhm = True
 
@@ -653,9 +675,18 @@ def nrtplot(args=None):
         for mccd in spool:
 
             if server_or_local:
-                # Handle the waiting game ...
+                # Handle the waiting game ... some awkward stuff
+                # involving updating on a cycle faster than twait to
+                # make the plots more responsive, if twait is long.
+                if first_image and first_fwhm:
+                    updaters = ()
+                elif first_fwhm:
+                    updaters = (imanager.update,)
+                else:
+                    updaters = (imanager.update, fwhmmanager.update)
+
                 give_up, try_again, total_time = spooler.hang_about(
-                    mccd, twait, tmax, total_time
+                    mccd, twait, tmax, total_time, updaters
                 )
 
                 if give_up:
@@ -674,12 +705,9 @@ def nrtplot(args=None):
             # indicate progress
             #            try:
             tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
+            nfrm = mccd.head.get("NFRAME",nframe+1)
             print(
-                "{:d}, utc= {:s} ({:s}), ".format(
-                    mccd.head.get("NFRAME",nframe+1),
-                    tstamp.iso,
-                    "ok" if mccd.head.get("GOODTIME", True) else "nok",
-                ),
+                f'{nfrm}, utc= {tstamp.iso} ({"ok" if mccd.head.get("GOODTIME", True) else "nok"}), ',
                 end="",
             )
             #            except:
@@ -885,34 +913,44 @@ def nrtplot(args=None):
                         ax, cnam, xlo, xhi, ylo, yhi, cmap, content, False
                     )
 
-                # Cursor selection routine
+                # Cursor selection routine. comes back with a set of targets
                 cselect = ProfitCursorSelect(
                     img_fig, img_axs, ccds, img_accum, shbox, fwhm, beta,
                     method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
                 )
-
                 plt.show()
-
-            if profit and not not_selected:
-                # if profile fitting is being carried out, then this
-                # section is implemented for each new image
 
                 targets = cselect.targets
 
-                # first update search box positions. In normal operation
-                # this moves the boxes to match the target positions previously
-                # fitted.
+            if profit and not not_selected:
+                # If profile fitting is being carried out, then this
+                # section is implemented for each new image.
+
+                # First update search box positions. In normal
+                # operation this moves the boxes to match the target
+                # positions previously fitted.
                 for targ in targets:
                     targ.update_sbox()
 
-                # now attempt fits
-                fit_accum = prof_fit(
+                # Carry out fits
+                pfits = prof_fit(
                     ccds, targets, img_accum,
                     method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
                 )
 
-            else:
-                fit_accum = []
+                if nframe == 0:
+                    # set up the accumulator object now because we didn't know
+                    # how many targets the user would choose at the start
+                    fit_accum = [([],[]) for n in range(len(pfits))]
+                    targ_accum = len(pfits)*[None]
+
+                # add in latest results
+                for n, pfit in enumerate(pfits):
+                    if pfit is not None:
+                        fwhm = pfit[0].fwhm
+                        fit_accum[n][0].append(nfrm)
+                        fit_accum[n][1].append(fwhm)
+                        targ_accum[n] = pfit[0]
 
             if not profit or not not_selected:
 
@@ -925,7 +963,7 @@ def nrtplot(args=None):
                     imanager = ImageManager(
                         ccds, nx, imwidth,
                         imheight, xlo, xhi, ylo, yhi, cmap, img_accum,
-                        fit_accum, shbox, fwhm, beta, method, smooth,
+                        targ_accum, shbox, fwhm, beta, method, smooth,
                         fhbox, hmin, fwhm_min, read, gain, thresh
                     )
 
@@ -943,8 +981,8 @@ def nrtplot(args=None):
                     plt.pause(0.1)
 
                 else:
-                    # send updates to image plot manager
-                    imanager.update(img_accum, fit_accum)
+                    # update plot
+                    imanager.update()
 
                 if profit and fwnmax > 1:
                     # The fwhm animation
@@ -953,21 +991,33 @@ def nrtplot(args=None):
                         first_fwhm = False
 
                         # Create the FWHM plot manager
-                        nfrm = mccd.head.get("NFRAME",nframe+1)
                         fwhmmanager = FwhmManager(
-                             fit_accum, nfrm, fwnmax, fwymax, fwwidth, fwheight
+                             fit_accum, nfrm-1, nfrm+fwnmax+1, fwymax, fwwidth, fwheight
                         )
 
                         plt.show(block=False)
                         plt.pause(0.1)
 
                     else:
-                        # send updates to fwhm plot manager
-                        fwhmmanager.update(fit_accum)
+                        # update the fwhm plot manager
+                        fwhmmanager.update()
 
             if not (profit and not_selected) and pause > 0.0:
                 # pause between frames
-                time.sleep(pause)
+                if pause > 0.4:
+                    # run the updaters every 0.2 seconds or so
+                    # if pause is a little long. Designed to
+                    # make the plot more responsive
+                    nupdate = int(pause/0.2)
+                    for n in range(nupdate):
+                        time.sleep(pause/nupdate)
+                        if not first_image:
+                            imanager.update()
+                        if not first_fwhm:
+                            fwhmmanager.update()
+                else:
+                    # just pause because the updates will come
+                    time.sleep(pause)
 
             # update the frame number
             nframe += 1
@@ -1066,11 +1116,10 @@ class ImageManager:
 
     def __init__(
             self, cnams, nx, width, height, xlo, xhi, ylo, yhi, cmap,
-            img_accum, fit_accum, shbox, fwhm, beta, method, smooth,
+            img_accum, targ_accum, shbox, fwhm, beta, method, smooth,
             fhbox, hmin, fwhm_min, read, gain, thresh
     ):
-        """
-        Initialises the plot. Arguments:
+        """Initialises the plot. Arguments:
 
           cnams : list of strings
              CCD names to plot
@@ -1105,16 +1154,23 @@ class ImageManager:
              required for the image plot. Per CCD the list should be:
              [ccd, vmin, vmax, swindows, dfcts] or None if the CCD is
              being skipped. swindows -- setup windows -- can be None.
-             dfcts -- defects -- can also be None.
+             dfcts -- defects -- can also be None. A reference to this
+             is stored internally so that changes to it outside the object
+             are reflected internally. This allows update to work without
+             arguments.
 
-          fit_accum : list of tuples
+          targ_accum : list of Fpars
              one tuple per target being profile fitted, containg all
-             info needed to make plots of the fit etc. This can be None
-             if no fit was made. See Fpar.fit for what the tuples contain.
+             info needed to make plots of the fit etc. This can be
+             None if no fit was made. See Fpar.fit for what the tuples
+             contain.  A reference to this is stored internally so
+             that changes to it outside the object are reflected
+             internally. This allows update to work without arguments.
 
         shbox, fwhm, beta, method, smooth, fhbox, hmin, fwhm_min, read,
         gain, thresh are profile fitting parameters described elsewhere.
         They are sent to a cursor selection routine.
+
         """
 
         # basic check
@@ -1124,6 +1180,8 @@ class ImageManager:
         self.fig, self.axs = setup_images(len(cnams), nx, "CCD display", width, height)
         self.cnv = self.fig.canvas
         self._bg = None
+        self.img_accum = img_accum
+        self.targ_accum = targ_accum
 
         # nrtplot inputs
         self.cnams = cnams
@@ -1137,7 +1195,7 @@ class ImageManager:
         self.img_artists = []
 
         # now we actually create the artists
-        for ax, cnam, content in zip(self.axs, self.cnams, img_accum):
+        for ax, cnam, content in zip(self.axs, self.cnams, self.img_accum):
             if content is None:
                 # do nothing much other than add a placeholder
                 self.img_artists.append(None)
@@ -1148,7 +1206,7 @@ class ImageManager:
                 )
 
         # now for the fit targets
-        self.targ_artists = self._disp_targs(fit_accum)
+        self.targ_artists = self._disp_targs()
 
         # grab the background on every draw
         self.cid = self.cnv.mpl_connect("draw_event", self.on_draw)
@@ -1184,19 +1242,19 @@ class ImageManager:
             if artist is not None:
                 self.fig.draw_artist(artist)
 
-    def update(self, img_accum, fit_accum):
+    def update(self):
         """Updating routine, Passed arguments containg enough information
         to update the image plots and also any fitted stars. The real
         work is passed down to _disp_ccd and _disp_targs
 
         """
         # update the frames used by the cursor picker
-        self.cselect.update(img_accum)
+        self.cselect.update(self.img_accum)
         # now update / create the artists
 
         # first the images
         lartists = []
-        for ax, cnam, content, artists in zip(self.axs, self.cnams, img_accum, self.img_artists):
+        for ax, cnam, content, artists in zip(self.axs, self.cnams, self.img_accum, self.img_artists):
             if content is None:
                 # just pass old artists through
                 lartists.append(artists)
@@ -1206,7 +1264,7 @@ class ImageManager:
         self.img_artists = lartists
 
         # then the profile fit targets
-        self.targ_artists = self._disp_targs(fit_accum, self.targ_artists)
+        self.targ_artists = self._disp_targs(self.targ_artists)
 
         cnv = self.cnv
         fig = self.fig
@@ -1279,7 +1337,7 @@ class ImageManager:
 
         return artists
 
-    def _disp_targs(self, fit_accum, artists=None):
+    def _disp_targs(self, artists=None):
         """Displays target as (a) a search box and (b) a circle of radius
         equal to the FWHM and a dot for the target.
 
@@ -1290,18 +1348,17 @@ class ImageManager:
 
         """
 
-        if fit_accum is None:
-            return None
+        if self.targ_accum is None:
+            return []
+
+        # mapping from CCD name to axes
+        ccd2axes = dict(zip(self.cnams,self.axs))
 
         if artists is None:
 
-            # mapping from CCD name to axes
-            ccd2axes = dict(zip(self.cnams,self.axs))
-
             artists = []
-            for ntarg, content in enumerate(fit_accum):
-                if content is not None:
-                    fpar = content[0]
+            for ntarg, fpar in enumerate(self.targ_accum):
+                if fpar is not None:
                     ax = ccd2axes[fpar.cnam]
                     artists += fpar.plot(ax, True)
                 else:
@@ -1312,9 +1369,8 @@ class ImageManager:
 
         else:
 
-            for ntarg, content in enumerate(fit_accum):
-                if content is not None:
-                    fpar = content[0]
+            for ntarg, fpar in enumerate(self.targ_accum):
+                if fpar is not None:
                     if artists[3*ntarg] is None:
                         # The artists have yet to be made
                         ax = ccd2axes[fpar.cnam]
@@ -1436,21 +1492,21 @@ class FwhmManager:
     """
 
     def __init__(
-            self, accum, nframe, mxframes, fwmax, width, height
+            self, accum, xlo, xhi, fwmax, width, height
     ):
         """
         Initialises the FWHM history plot. Arguments:
 
-          accum : list of tuples
-             one tuple per target being profile fitted, containing all
-             info needed to make plots of the fit etc. This can be None
-             if no fit was made. See Fpar.fit for what the tuples contain.
+          accum : list of of tuples
+             the lists consists of a sequence of tuples with the frame number
+             and results for all targets (nframe, pfits), with pfits a seies
+             of fpar objects (can be None if no fit made)
 
-          nframe : int
-             initial frame number
+          xlo : float
+             left-hand X -limit (inital) for plot
 
-          mxframes : int
-             maximum number of frame results to retain in buffers
+          xhi : float
+             right-hand X -limit (inital) for plot
 
           fwmax : float
              maximum height for FWHM plot in pixels
@@ -1463,6 +1519,8 @@ class FwhmManager:
 
         """
 
+        self.accum = accum
+
         # Create the figure
         if width > 0 and height > 0:
             self.fig = plt.figure("FWHM vs frame number", figsize=(width,height))
@@ -1474,13 +1532,11 @@ class FwhmManager:
         self._bg = None
 
         # nrtplot inputs
-        self.nframe = nframe
-        self.mxframes = mxframes
         self.fwmax = fwmax
 
         # derived
-        self.xlo = nframe - 1
-        self.xhi = nframe + mxframes
+        self.xlo = xlo
+        self.xhi = xhi
         self.ylo = 0
         self.yhi = fwmax
 
@@ -1489,28 +1545,11 @@ class FwhmManager:
         self.ax.set_xlabel('Frame number')
         self.ax.set_ylabel('FWHM [unbinned pixels]')
 
-        # buffers for the FWHM vs nframe data and a list of artists
-        # for each FWHM plot
-        self.fwhm_buffers = []
+        # Now plot and create artists for each FWHM plot
         self.fwhm_artists = []
-
-        # now we actually create / plot the artists
-        for ntarg, content in enumerate(accum):
-            if content is None:
-                # placeholders
-                self.fwhm_buffers.append(None)
-                self.fwhm_artists.append(None)
-            else:
-                fpar = content[0]
-                xs = [nframe]
-                ys = [fpar.fwhm]
-
-                # store first point
-                self.fwhm_buffers.append((xs,ys))
-
-                # plot the FWHM vs frame number
-                fwhm, = self.ax.plot(xs,ys,animated=True,label=f'{ntarg+1}')
-                self.fwhm_artists.append(fwhm)
+        for ntarg, (xs, ys) in enumerate(self.accum):
+            fwhm, = self.ax.plot( xs, ys, animated=True, label=f'{ntarg+1}')
+            self.fwhm_artists.append(fwhm)
         self.ax.legend()
 #        self.cnv.draw()
 
@@ -1534,50 +1573,21 @@ class FwhmManager:
             if artist is not None:
                 self.fig.draw_artist(artist)
 
-
-
-    def update(self, accum):
-        """updating routine, Pass it accum which contains a list of outputs
-        from Fpar.fit run on each target.
+    def update(self):
+        """updating routine. Uses current value of self.accum which
+        should be a list of Fpar objects for each target.
 
         """
 
-        # track the frame number
-        self.nframe += 1
+        xmax = None
+        for ntarg, (xs, ys) in enumerate(self.accum):
+            self.fwhm_artists[ntarg].set_data(xs,ys)
+            if len(xs):
+                xmax = max(xs) if xmax is None else max(xmax, max(xs))
 
-        # now we actually create / update the artists
-        for ntarg in range(len(accum)):
-            if accum[ntarg] is not None:
-                fpar = accum[ntarg][0]
-                if self.fwhm_artists[ntarg] is None:
-                    xs = [nframe,]
-                    ys = [fpar.fwhm,]
-                    fwhm, = self.ax.plot(xs,ys,animated=True)
-                    self.fwhm_artists[ntarg] = fwhm
-                else:
-                    # get data
-                    xs,ys = self.fwhm_buffers[ntarg]
-
-                    # strip out stuff at the start (should just be one frame,
-                    # but better be safe than sorry)
-                    for n, x in enumerate(xs):
-                        if x > self.nframe - self.mxframes:
-                            xs, ys = xs[n:], ys[n:]
-                            break
-                    else:
-                        xs, ys = [], []
-
-                    # tack on new value, update artist
-                    xs.append(self.nframe)
-                    ys.append(fpar.fwhm)
-                    self.fwhm_artists[ntarg].set_data(xs,ys)
-
-                # save current data to buffers
-                self.fwhm_buffers[ntarg] = (xs,ys)
-
-        if self.nframe > self.xhi - 1:
+        if xmax > self.xhi - 1:
             # update axes limits
-            xadd = self.nframe - self.xhi + 1
+            xadd = xmax - self.xhi + 1
             self.xlo += xadd
             self.xhi += xadd
             self.ax.set_xlim(self.xlo,self.xhi)
@@ -1850,6 +1860,14 @@ class Fpar:
 
         """
 
+        if read < 0:
+            # Set a fairly high readout noise to start with in this case
+            # to equalise weights a bit as we are going to cycle it with a
+            # second fit
+            read1= 20.
+        else:
+            read1 = read
+
         try:
             # extract search box data from the CCD.
             xlo, xhi, ylo, yhi = self.region()
@@ -1885,10 +1903,57 @@ class Fpar:
                 self.beta,
                 20.,
                 False,
-                read,
+                read1,
                 gain,
                 thresh,
             )
+
+            if read < 0:
+                # Estimate the read noise post fit and have another go ...
+                sfac = np.sqrt(chisq / nok)
+                resid = np.abs((fwind.data-wfit.data)/sigma)
+                ok = (sigma > 0) & (resid < 4*sfac)
+                read2 = np.std((fwind.data-wfit.data)[ok])
+                ok = (sigma > 0) & ((fwind.data - sky) < 4*read2) & (np.abs(wfit.data-sky) < read2)
+                if len(sigma[ok]) > 5:
+                    var = np.var(fwind.data[ok])
+                    if var < sky/gain:
+                        # variance less than expected
+                        corr = gain*(var-sky)
+                        fwind -= corr
+                        extra = f', set read = 0 and applied bias correction of {corr:.1f}.'
+                        sky -= corr
+                        read2 = 0
+                    else:
+                        # compute read noise to give correct variance in sky
+                        read2 = np.sqrt(var-sky/gain)
+                        extra = f', read = {read2:.2f}'
+
+                    # refine the Aperture position by fitting the profile
+                    (
+                        (sky, height, x, y, fwhm, beta),
+                        epars,
+                        (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
+                    ) = hcam.fitting.combFit(
+                        fwind,
+                        method,
+                        sky,
+                        (wfit.data-sky).max(),
+                        x,
+                        y,
+                        fwhm,
+                        fwhm_min,
+                        False,
+                        beta,
+                        20.,
+                        False,
+                        read2,
+                        gain,
+                        thresh,
+                    )
+                    message += extra
+                else:
+                    message += f', failed to measure "read"; used value = {read1}'
 
             if peak > hmin and ccd[self.wnam].distance(x, y) > 1:
                 # update some initial parameters for next time
@@ -1934,8 +1999,8 @@ class Fpar:
         self.y_cbox = self.y
 
 def prof_fit(ccds, targets, img_accum, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh):
-    """Carries out profile fitting over all targets. Returns container of
-    results suitable for potential plotting.
+    """Carries out profile fitting over all targets. Returns container accumulating x,y lists for plotting
+    the FWHM vs frame for each target.
 
     """
 
@@ -1943,7 +2008,7 @@ def prof_fit(ccds, targets, img_accum, method, smooth, fhbox, hmin, fwhm_min, re
     img_map = dict(zip(ccds, img_accum))
 
     # container for results
-    fit_accum = len(targets)*[None]
+    pfits = len(targets)*[None]
 
     for ntarg, fpar in enumerate(targets):
         # carry out fits. Nothing happens if the CCD has not been
@@ -1953,6 +2018,6 @@ def prof_fit(ccds, targets, img_accum, method, smooth, fhbox, hmin, fwhm_min, re
             ccd = content[0]
             results, message = fpar.fit(ccd, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh)
             print(f' target {ntarg+1}, {message}')
-            fit_accum[ntarg] = results
+            pfits[ntarg] = results
 
-    return fit_accum
+    return pfits
