@@ -156,7 +156,7 @@ def combFit(
             f" FWHM= {fwhm:.2f}({efwhm:.2f}),"
             f" peak= {height:.1f}({eheight:.1f}),"
             f" sky= {sky:.1f}({esky:.1f}),"
-            f" counts= {fit.sum():.0f}, chi**2= {chisq:.1f},"
+            f" counts= {(fit-sky).sum():.0f}, chi**2= {chisq:.1f},"
             f" nok= {nok}, nrej= {nrej}, nfev= {nfev}"
         )
         beta, ebeta = 0.0, -1.0
@@ -166,7 +166,7 @@ def combFit(
             f" FWHM= {fwhm:.2f}({efwhm:.2f}),"
             f" peak= {height:.1f}({eheight:.1f}),"
             f" sky= {sky:.1f}({esky:.1f}),"
-            f" counts= {fit.sum():.0f}, "
+            f" counts= {(fit-sky).sum():.0f}, "
             f" beta= {beta:.2f}({ebeta:.2f}),"
             f" chi**2= {chisq:.1f},"
             f" nok= {nok}, nrej= {nrej}, nfev= {nfev}"
@@ -413,6 +413,9 @@ def fitMoffat(
                 )
                 break
 
+    # Make sure all regions masked off have sigma < 0
+    mfit.sigma[~mfit.mask] = - np.abs(mfit.sigma[~mfit.mask])
+
     # OK we are done.
     extras = (
         fit,
@@ -425,6 +428,7 @@ def fitMoffat(
         len(param),
         res.nfev
     )
+
     if sky is None:
         return (
             (0., heightf, xf, yf, fwhmf, betaf),
@@ -1204,6 +1208,8 @@ def fitGaussian(
                     sfac * np.sqrt(covs)
                 )
                 break
+    # Make sure all regions masked off have sigma < 0
+    gfit.sigma[~gfit.mask] = - np.abs(gfit.sigma[~gfit.mask])
 
     # OK we are done.
     extras = (
