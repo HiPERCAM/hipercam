@@ -180,7 +180,6 @@ setup(
             'sub=hipercam.scripts.arith:sub',
             'tanalysis=hipercam.scripts.tanalysis:tanalysis',
             'tbytes=hipercam.scripts.tbytes:tbytes',
-            'ulogger=hipercam.scripts.ulogger:ulogger',
             'uls=hipercam.scripts.uls:uls',
         ],
 

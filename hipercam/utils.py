@@ -220,7 +220,7 @@ def print_stats(ccd, cnam, x, y, hsbox, warn=True):
     return (wnam, wind)
 
 
-def format_hlogger_table(fname, table):
+def old_format_hlogger_table(fname, table):
     """
 
     Formats the column widths etc of the excel file produced by
@@ -290,9 +290,9 @@ def format_hlogger_table(fname, table):
     worksheet.set_zoom(150)
     writer.save()
 
-def format_ulogger_table(fname, table, instrument):
-    """Formats the column widths etc of the excel file produced by
-    |ulogger| ('ultracam-log.xlsx' or 'ultraspec-log.xlsx') and writes
+def format_hlogger_table(fname, table, instrument):
+    """Formats the column widths etc of the excel files produced by
+    |hlogger| ('ultracam.xlsx', 'ultraspec.xlsx' or 'hipercam.xlsx') and writes
     it to disk. It is made available as a utility function to allow
     the same styling to be applied to derived versions of this file.
 

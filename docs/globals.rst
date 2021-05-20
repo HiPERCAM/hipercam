@@ -59,7 +59,6 @@
 .. |sub| replace:: :func:`sub <hipercam.scripts.sub>`
 .. |tanalysis| replace:: :func:`tanalysis <hipercam.scripts.tanalysis>`
 .. |tbytes| replace:: :func:`tanalysis <hipercam.scripts.tbytes>`
-.. |ulogger| replace:: :func:`ulogger <hipercam.scripts.ulogger>`
 .. |uls| replace:: :func:`uls <hipercam.scripts.uls>`
 
 .. |musec| replace:: :math:`\mu\text{s}`

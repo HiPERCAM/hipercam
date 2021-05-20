@@ -126,9 +126,6 @@ def ulogger(args=None):
     # Night must be of form 2021-05-12 [YYYY-MM-DD]
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
 
-    # temporary!!!
-    nre = re.compile("^2021-05-06$")
-
     # Files of form 'run123.xml' or 'run1234.fits'
     fre = re.compile("^(run\d\d\d\.xml|run\d\d\d\d\.fits)$")
 
@@ -140,10 +137,13 @@ def ulogger(args=None):
 
     if cwd.find("ultracam") > -1:
         instrument = "ULTRACAM"
+        COLNAMES = ULTRACAM_COLNAMES
     elif cwd.find("ultraspec") > -1:
         instrument = "ULTRASPEC"
+        COLNAMES = ULTRASPEC_COLNAMES
     elif cwd.find("hipercam") > -1:
-        instrument = "HIPERCAM"
+        instrument = "HiPERCAM"
+        COLNAMES = HIPERCAM_COLNAMES
     else:
         print("** ulogger: cannot find hipercam, ultracam or ultraspec in path")
         print("ulogger aborted")
@@ -229,9 +229,6 @@ def ulogger(args=None):
         root = f'/storage/astro2/www/phsaap/{linstrument}/logs'
     else:
         root = 'logs'
-
-    # temporary!!!
-    root = 'logs'
 
     # Try an import now to get an early warning of problems
     import xlsxwriter
@@ -507,10 +504,13 @@ def ulogger(args=None):
                             # means its a power on/off
                             continue
 
-                        # open the run file as an Rhead
+                        # open the run file as an Rhead or Rtime
                         runname = os.path.join(night, run)
                         try:
-                            rhead = hcam.ucam.Rhead(runname)
+                            if instrument == 'HiPERCAM':
+                                rthead = hcam.hcam.Rtime(runname)
+                            else:
+                                rthead = hcam.ucam.Rhead(runname)
                         except:
                             exc_type, exc_value, exc_traceback = sys.exc_info()
                             traceback.print_tb(
@@ -526,11 +526,13 @@ def ulogger(args=None):
                             nhtml.write("</tr>\n")
                             if instrument == 'ULTRACAM':
                                 brow = [rname, night, run[3:]] + 48*[None]
-                            else:
+                            elif instrument == 'ULTRASPEC':
                                 brow = [rname, night, run[3:]] + 54*[None]
+                            elif instrument == 'HiPERCAM':
+                                brow = [rname, night, run[3:]] + 58*[None]
                             continue
 
-                        hd = rhead.header
+                        hd = rthead.header
 
                         # start the row
                         nhtml.write("<tr>\n")
@@ -550,6 +552,8 @@ def ulogger(args=None):
                         # object name
                         if hlog.format == 1:
                             target = hlog.target[run]
+                        elif instrument == 'HiPERCAM':
+                            target = hd.get("OBJECT",'')
                         else:
                             target = hd.get("TARGET",'')
 
@@ -570,7 +574,30 @@ def ulogger(args=None):
                         nhtml.write(f'<td class="left">{target}</td><td class="left">{autoid}</td>')
                         nhtml.write(f'<td class="left">{rastr}</td><td class="left">{decstr}</td>')
 
-                        if instrument == 'ULTRASPEC':
+                        if instrument == 'HiPERCAM':
+                            # instr PA
+                            tel_ra = tradec(hd.get("RA", ""),False)
+                            tel_dec = tradec(hd.get("Dec", ""),True)
+                            tel_pa = hd.get("INSTRPA", "")
+                            nhtml.write(f'<td class="cen">{tel_ra}</td><td class="cen">{tel_dec}</td><td class="cen">{tel_pa}</td>')
+                            if tel_ra != '' and tel_dec != '':
+                                try:
+                                    tel_ra_deg, tel_dec_deg, syst = str2radec(tel_ra + ' ' + tel_dec)
+                                    tel_ra_deg = round(15*tel_ra_deg,5)
+                                    tel_dec_deg = round(tel_dec_deg,4)
+                                except:
+                                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                                    traceback.print_tb(
+                                        exc_traceback, limit=1, file=sys.stdout
+                                    )
+                                    traceback.print_exc(file=sys.stdout)
+                                    tel_ra_deg, tel_dec_deg = None, None
+                                    print("Position problem on run = ", runname)
+                            else:
+                                tel_ra_deg, tel_dec_deg = None, None
+                            brow += [target, autoid, rastr, decstr, ra, dec, tel_ra, tel_dec, tel_ra_deg, tel_dec_deg, noval(tel_pa)]
+
+                        elif instrument == 'ULTRASPEC':
                             # instr PA
                             tel_ra = hd.get("RA", "")
                             tel_dec = hd.get("Dec", "")
@@ -644,89 +671,208 @@ def ulogger(args=None):
                         brow.append(filters)
 
                         # run type
-                        itype = hd.get("DTYPE", '')
+                        if instrument == 'HiPERCAM':
+                            itype = hd.get("IMAGETYP", '')
+                        else:
+                            itype = hd.get("DTYPE", '')
                         if itype == 'data caution':
                             itype = 'acquire'
                         nhtml.write(f'<td class="left">{itype}</td>')
                         brow.append(itype)
 
                         # readout mode
-                        nhtml.write(f'<td class="cen">{rhead.mode}</td>')
-                        brow.append(rhead.mode)
+                        if instrument == 'HiPERCAM':
+                            mode = TRANSLATE_MODE[rthead.mode]
+                            nhtml.write(f'<td class="cen">{mode}</td>')
+                            brow.append(mode)
 
-                        # nblue
-                        if instrument == 'ULTRACAM':
-                            nblue = hd['NBLUE']
-                            nhtml.write(f'<td class="cen">{nblue}</td>')
-                            brow.append(nblue)
+                            texps, toffs, nskips, tdead = rthead.tinfo()
+                            skips = ",".join([str(nskip) for nskip in nskips])
+                            nhtml.write(f'<td class="cen">{skips}</td>')
+                            brow.append(skips)
 
-                        # window formats
-                        nwmax = 3 if instrument == 'ULTRACAM' else 4
-                        for n in range(nwmax):
-                            if n < len(rhead.wforms):
-                                win = rhead.wforms[n]
-                                nhtml.write(f'<td class="cen">{win}</td>')
-                                brow.append(win)
-                            else:
-                                nhtml.write(f'<td></td>')
-                                brow.append('')
+                            # window formats
+                            quad1 = rthead.wforms[0]
+                            nhtml.write(f'<td class="cen">{quad1}</td>')
+                            quad1 = quad1.replace('&nbsp;',' ')
+                            brow.append(quad1)
+
+                            quad2 = rthead.wforms[1] if len(rthead.wforms) > 1 else ""
+                            nhtml.write(f'<td class="cen">{quad2}</td>')
+                            quad2 = quad2.replace('&nbsp;',' ')
+                            brow.append(quad2)
+
+                        else:
+                            mode = rthead.mode
+                            nhtml.write(f'<td class="cen">{mode}</td>')
+                            brow.append(mode)
+
+                            # nblue
+                            if instrument == 'ULTRACAM':
+                                nblue = hd['NBLUE']
+                                nhtml.write(f'<td class="cen">{nblue}</td>')
+                                brow.append(nblue)
+
+                            # window formats
+                            nwmax = 3 if instrument == 'ULTRACAM' else 4
+                            for n in range(nwmax):
+                                if n < len(rthead.wforms):
+                                    win = rthead.wforms[n]
+                                    nhtml.write(f'<td class="cen">{win}</td>')
+                                    brow.append(win)
+                                else:
+                                    nhtml.write(f'<td></td>')
+                                    brow.append('')
 
                         # binning
-                        binning = f'{rhead.xbin}x{rhead.ybin}'
+                        binning = f'{rthead.xbin}x{rthead.ybin}'
                         nhtml.write(f'<td class="cen">{binning}</td>')
                         brow.append(binning)
 
-                        # clear
-                        clear = "Y" if hd['CLEAR'] else "N"
-                        nhtml.write(f'<td class="cen">{clear}</td>')
-                        brow.append(clear)
+                        if instrument == 'HiPERCAM':
+                            # clear
+                            clear = "Y" if rthead.clear else "N"
+                            nhtml.write(f'<td class="cen">{clear}</td>')
+                            brow.append(clear)
 
-                        # CCD speed
-                        speed = hd['GAINSPED'] if instrument == 'ULTRACAM' else \
-                            hd['SPEED']
-                        nhtml.write(f'<td class="cen">{speed}</td>')
-                        brow.append(speed)
+                            # dummy output in use
+                            dummy = "Y" if rthead.dummy else "N"
+                            nhtml.write(f'<td class="cen">{dummy}</td>')
+                            brow.append(dummy)
 
-                        if instrument == 'ULTRASPEC':
-                            output = hd.get('OUTPUT','')
-                            nhtml.write(f'<td class="cen">{output}</td>')
-                            brow.append(output)
+                            # LED on
+                            led = hd.get("ESO DET EXPLED", "----")
+                            led = "Y" if led == 1 else "N"
 
-                            hv_gain = hd.get('HV_GAIN','')
-                            nhtml.write(f'<td class="cen">{hv_gain}</td>')
-                            brow.append(hv_gain)
+                            nhtml.write(f'<td class="cen">{led}</td>')
+                            brow.append(led)
 
-                        # Focal plane slide
-                        fpslide = hd.get('SLIDEPOS','UNKNOWN')
-                        try:
-                            fpslide = float(fpslide)
-                            fpslide = round(fpslide,1)
-                        except:
-                            fpslide = ''
-                        nhtml.write(f'<td class="cen">{fpslide}</td>')
-                        brow.append(noval(fpslide))
+                            # over-scan
+                            oscan = "Y" if rthead.oscan else "N"
+                            nhtml.write(f'<td class="cen">{oscan}</td>')
+                            brow.append(oscan)
 
-                        # Observers
-                        observers = hd.get("OBSERVRS", '')
-                        nhtml.write(f'<td class="cen">{observers}</td>')
-                        brow.append(observers)
+                            # pre-scan
+                            pscan = "Y" if rthead.pscan else "N"
+                            nhtml.write(f'<td class="cen">{pscan}</td>')
+                            brow.append(pscan)
 
-                        # PI
-                        pi = hd.get("PI", '')
-                        nhtml.write(f'<td class="left">{pi}</td>')
-                        brow.append(pi)
+                            # Nodding
+                            nod = hd.get("ESO DET SEQ1 TRIGGER", 0)
+                            nod = "Y" if nod == 1 else "N"
+                            nhtml.write(f'<td class="cen">{nod}</td>')
+                            brow.append(nod)
 
-                        # Program ID
-                        pid = hd.get("ID", "")
-                        nhtml.write(f'<td class="left">{pid}</td>')
-                        brow.append(pid)
+                            # CCD speed
+                            speed = hd.get("ESO DET SPEED", "----")
+                            if speed == 0:
+                                speed = "Slow"
+                            elif speed == 1:
+                                speed = "Fast"
+                            nhtml.write(f'<td class="cen">{speed}</td>')
+                            brow.append(speed)
+
+                            # Fast clocks
+                            fclock = hd.get("ESO DET FASTCLK", "----")
+                            if fclock == 0:
+                                fclock = "N"
+                            elif fclock == 1:
+                                fclock = "Y"
+                            nhtml.write(f'<td class="cen">{fclock}</td>')
+                            brow.append(fclock)
+
+                            # Tbytes problem
+                            tbytes = "OK" if rthead.ntbytes == 36 else "NOK"
+                            nhtml.write(f'<td class="cen">{tbytes}</td>')
+                            brow.append(tbytes)
+
+                            # Focal plane slide
+                            fpslide = hd.get("FPslide", "----")
+                            nhtml.write(f'<td class="cen">{fpslide}</td>')
+                            brow.append(fpslide)
+
+                            # CCD temps
+                            t1,t2,t3,t4,t5 = hd.get("CCD1TEMP", 0.0), hd.get("CCD2TEMP", 0.0), \
+                                hd.get("CCD3TEMP", 0.0), hd.get("CCD4TEMP", 0.0), hd.get("CCD5TEMP", 0.0),
+
+                            ccdtemps = f'{t1:.1f},{t2:.1f},{t3:.1f},{t4:.1f},{t5:.1f}'
+                            nhtml.write(f'<td class="cen">{ccdtemps}</td>')
+                            brow.append(ccdtemps)
+
+                            # Observers
+                            observers = hd.get("OBSERVER", "----")
+                            nhtml.write(f'<td class="cen">{observers}</td>')
+                            brow.append(observers)
+
+                            # PI
+                            pi = hd.get("PI", "----")
+                            nhtml.write(f'<td class="left">{pi}</td>')
+                            brow.append(pi)
+
+                            # Program ID
+                            pid = hd.get("PROGRM", "----")
+                            nhtml.write(f'<td class="left">{pid}</td>')
+                            brow.append(pid)
+
+                        else:
+                            # ultracam / ultraspec
+
+                            # clear
+                            clear = "Y" if hd['CLEAR'] else "N"
+                            nhtml.write(f'<td class="cen">{clear}</td>')
+                            brow.append(clear)
+
+                            # CCD speed
+                            speed = hd['GAINSPED'] if instrument == 'ULTRACAM' else \
+                                hd['SPEED']
+                            nhtml.write(f'<td class="cen">{speed}</td>')
+                            brow.append(speed)
+
+                            if instrument == 'ULTRASPEC':
+                                output = hd.get('OUTPUT','')
+                                nhtml.write(f'<td class="cen">{output}</td>')
+                                brow.append(output)
+
+                                hv_gain = hd.get('HV_GAIN','')
+                                nhtml.write(f'<td class="cen">{hv_gain}</td>')
+                                brow.append(hv_gain)
+
+                                # Focal plane slide
+                                fpslide = hd.get('SLIDEPOS','UNKNOWN')
+                                try:
+                                    fpslide = float(fpslide)
+                                    fpslide = round(fpslide,1)
+                                except:
+                                    fpslide = ''
+                                    nhtml.write(f'<td class="cen">{fpslide}</td>')
+                                    brow.append(noval(fpslide))
+
+                            # Observers
+                            observers = hd.get("OBSERVRS", '')
+                            nhtml.write(f'<td class="cen">{observers}</td>')
+                            brow.append(observers)
+
+                            # PI
+                            pi = hd.get("PI", '')
+                            nhtml.write(f'<td class="left">{pi}</td>')
+                            brow.append(pi)
+
+                            # Program ID
+                            pid = hd.get("ID", "")
+                            nhtml.write(f'<td class="left">{pid}</td>')
+                            brow.append(pid)
+
+                        # Some stuff common to all
 
                         # Telescope name
                         brow.append(telescope)
 
                         try:
                             # file size
-                            mbytes = round(os.stat(runname + '.dat').st_size / (1024*1024),1)
+                            if instrument == 'HiPERCAM':
+                                mbytes = round(os.stat(runname + '.fits').st_size / (1024*1024),1)
+                            else:
+                                mbytes = round(os.stat(runname + '.dat').st_size / (1024*1024),1)
                             nhtml.write(f'<td class="cen">{mbytes}</td>')
                             brow.append(mbytes)
                         except:
@@ -783,12 +929,12 @@ def ulogger(args=None):
     shutil.move(index_tmp, index)
 
     # write out the css file
-    css = os.path.join(root, "ultra.css")
+    css = os.path.join(root, f"hiper.css")
     with open(css, "w") as fout:
         fout.write(LOG_CSS)
 
     # write out the js file
-    css = os.path.join(root, "ultra.js")
+    css = os.path.join(root, f"hiper.js")
     with open(css, "w") as fout:
         fout.write(LOGS_JS)
 
@@ -819,7 +965,7 @@ import sqlite3
 import pandas as pd
 
 # Connect to the database
-cnx = sqlite3.connect('{linstrument}.db')
+cnx = sqlite3.connect('ultracam.db')
 
 # Query string
 query = """
@@ -973,9 +1119,10 @@ class Log(object):
         self.comment = {}
 
         try:
-            rec    = re.compile('file\s+object\s+filter', re.I)
-            old    = re.compile('\s*(\S+)\s+(\S+)\s+(.*)$')
-            oldii  = re.compile('\s*(\S+)\s*$')
+            rec = re.compile('file\s+object\s+filter', re.I)
+            rre = re.compile('(run\d\d\d\d?)(.*)')
+            old = re.compile('\s*(\S+)\s+(\S+)\s+(.*)$')
+            oldii = re.compile('\s*(\S+)\s*$')
             with open(fname) as f:
                 for line in f:
                     m = rec.search(line)
@@ -984,18 +1131,19 @@ class Log(object):
                         if len(self.comment):
                             raise Exception('Error in night log = ' + fname + ', line = ' + line)
 
-                    if line.startswith('run'):
-                        run = line[:6]
+                    mr = rre.match(line)
+                    if mr:
+                        run = mr.group(1)
                         if self.format == 2:
-                            self.comment[run] = line[6:].strip()
+                            self.comment[run] = mr.group(2).strip()
                         else:
-                            m = old.search(line[6:])
+                            m = old.search(mr.group(2))
                             if m:
                                 self.target[run]  = m.group(1)
                                 self.filters[run] = m.group(2)
                                 self.comment[run] = m.group(3)
                             else:
-                                m = oldii.search(line[6:])
+                                m = oldii.search(mr.group(2))
                                 if m:
                                     self.target[run]  = m.group(1)
         except FileNotFoundError:
@@ -1273,7 +1421,7 @@ def make_times(night, runs, observatory, times, full, instrument):
             dfile = os.path.join(night, run)
             try:
                 ntotal = 0
-                if instrument == 'HIPERCAM':
+                if instrument == 'HiPERCAM':
                     rtime = hcam.hcam.Rtime(dfile)
                 else:
                     rtime = hcam.ucam.Rtime(dfile)
@@ -1283,7 +1431,7 @@ def make_times(night, runs, observatory, times, full, instrument):
                 # junk
                 not_alerted = True
                 for n, tdat in enumerate(rtime):
-                    if instrument == 'HIPERCAM':
+                    if instrument == 'HiPERCAM':
                         time, tinfo, tflag = tdat
                         expose = 1000000
                         for tmid,texp,tiflag in tinfo:
@@ -1313,7 +1461,7 @@ def make_times(night, runs, observatory, times, full, instrument):
                 # Find last good time. First we just go for times near the
                 # end of the run. Failing that, we try again from the start,
                 # to account for runs with time stamp issues.
-                if instrument == 'HIPERCAM':
+                if instrument == 'HiPERCAM':
                     nback = 4
                 elif rtime.header['MODE'] == 'DRIFT':
                     # ultracam or hipercam
@@ -1329,13 +1477,13 @@ def make_times(night, runs, observatory, times, full, instrument):
                     # non drift mode
                     nback = 4
 
-                if instrument == 'HIPERCAM':
+                if instrument == 'HiPERCAM':
                     ntotal = rtime.ntotal()
                 else:
                     nbytes = os.stat(dfile + '.dat').st_size
                     ntotal = nbytes // rtime.framesize
 
-                if instrument != 'HIPERCAM' and ntotal > 20000:
+                if instrument != 'HiPERCAM' and ntotal > 20000:
                     # this is a risk-reducing strategy in case the end
                     # of a long ultracam or ultraspec run is
                     # corrupt. Better to look at more than the
@@ -1350,7 +1498,7 @@ def make_times(night, runs, observatory, times, full, instrument):
 
                 flast = False
                 for n, tdat in enumerate(rtime):
-                    if instrument == 'HIPERCAM':
+                    if instrument == 'HiPERCAM':
                         time, tinfo, tflag = tdat
                         nexpose = 1000000
                         for tmid,texp,tiflag in tinfo:
@@ -1378,7 +1526,7 @@ def make_times(night, runs, observatory, times, full, instrument):
                     # the whole run, which can be slow.
                     rtime.set()
                     for n, tdat in enumerate(rtime):
-                        if instrument == 'HIPERCAM':
+                        if instrument == 'HiPERCAM':
                             time, tinfo, tflag = tdat
                             nexpose = 1000000
                             for tmid,texp,tiflag in tinfo:
@@ -1524,7 +1672,7 @@ def make_positions(
             # open the run file as an Rhead
             runname = os.path.join(night, run)
             try:
-                if instrument == 'HIPERCAM':
+                if instrument == 'HiPERCAM':
                     rhead = hcam.hcam.Rhead(runname)
                 else:
                     rhead = hcam.ucam.Rhead(runname)
@@ -1539,7 +1687,7 @@ def make_positions(
             # object name
             if hlog.format == 1:
                 target = hlog.target[run]
-            elif instrument == 'HIPERCAM':
+            elif instrument == 'HiPERCAM':
                 target = rhead.header.get("OBJECT",'')
             else:
                 target = rhead.header.get("TARGET",'')
@@ -1688,6 +1836,11 @@ HIPERCAM_COLNAMES = (
     ('dec_dms', 'str', 'Target Dec (J2000), DMS'),
     ('ra_deg', 'float64', 'Target RA (J2000), degrees'),
     ('dec_deg', 'float64', 'Target Dec (J2000), degrees'),
+    ('ra_tel', 'str', 'Telescope pointing RA (J2000), HMS'),
+    ('dec_tel', 'str', 'Telescope pointing Dec (J2000), DMS'),
+    ('ra_tel_deg', 'float64', 'Telescope pointing RA (J2000), degrees'),
+    ('dec_tel_deg', 'float64', 'Telescope pointing Dec (J2000), degrees'),
+    ('pa', 'float32', 'PA on sky (degrees)'),
     ('date_start', 'str', 'Date at the start of the run'),
     ('utc_start', 'str', 'UTC at the start of the run'),
     ('utc_end', 'str', 'UTC at the end of the run'),
@@ -1697,18 +1850,24 @@ HIPERCAM_COLNAMES = (
     ('cadence', 'float32', 'Sampling time between exposures (seconds)'),
     ('exposure', 'float32', 'Actual exposure time (seconds)'),
     ('nframe', 'float32', 'Total number of frames in file'),
-    ('nok', 'float32', 'Number of frames from first to last with OK times'),
     ('filters', 'str', 'Colour filters used'),
     ('run_type', 'str', 'Provisional type of the run, indicative only'),
     ('read_mode', 'str', 'ULTRACAM readout mode'),
-    ('nb', 'int', 'Nblue, CCD 1 readout skip'),
-    ('win1', 'str', 'Format of window pair 1'),
-    ('win2', 'str', 'Format of window pair 2'),
-    ('win3', 'str', 'Format of window pair 3'),
+    ('nskips', 'str', 'nskips for each CCD'),
+    ('quad1', 'str', 'Format of quad 1'),
+    ('quad2', 'str', 'Format of quad 2'),
     ('binning', 'str', 'X by Y binning'),
     ('clr', 'str', 'Clear enabled or not'),
+    ('dummy', 'str', 'Dummy output being used or not'),
+    ('led', 'str', 'LED on or not'),
+    ('oscan', 'str', 'Over-scan on or not'),
+    ('pscan', 'str', 'Pre-scan on or not'),
+    ('nodding', 'str', 'Telescope nodding or not'),
     ('read_speed', 'str', 'Readout speed'),
+    ('fclocks', 'str', 'Fast clocks or not'),
+    ('tbytes', 'str', 'Timing bytes problem or not'),
     ('fpslide', 'float32', 'Focal plane slide'),
+    ('ccdtemps', 'str', 'CCD temps'),
     ('observers', 'str', 'Observers'),
     ('pi', 'str', 'PI of data'),
     ('pid', 'str', 'Proposal ID'),
@@ -1739,6 +1898,8 @@ ULTRACAM_COLNAMES = (
     ('auto_id', 'str', 'Lookup name, from disk files or SIMBAD'),
     ('ra_hms', 'str', 'Target RA (J2000), HMS'),
     ('dec_dms', 'str', 'Target Dec (J2000), DMS'),
+    ('ra_deg', 'float64', 'Target RA (J2000), degrees'),
+    ('dec_deg', 'float64', 'Target Dec (J2000), degrees'),
     ('ra_deg', 'float64', 'Target RA (J2000), degrees'),
     ('dec_deg', 'float64', 'Target Dec (J2000), degrees'),
     ('date_start', 'str', 'Date at the start of the run'),
@@ -1890,9 +2051,9 @@ INDEX_FOOTER = """
 NIGHT_HEADER = """<!DOCTYPE html>
 <html>
     <head>
-       <link rel="stylesheet" type="text/css" href="../ultra.css" />
+       <link rel="stylesheet" type="text/css" href="../hiper.css" />
        <title>{instrument} log {date}</title>
-       <script src="../ultra.js"></script>
+       <script src="../hiper.js"></script>
     </head>
 
   <body>
@@ -1940,11 +2101,11 @@ HIPERCAM_TABLE_HEADER = """
 <th class="left">PA</th>
 <th class="cen">Start<br>UTC</th>
 <th class="cen">End<br>UTC</th>
-<th class="cen">Time<br>flag</th>
-<th class="right">Cadence<br>(sec)</th>
-<th class="right">Duty<br>cycle, %</th>
-<th class="right">Nframe</th>
-<th class="right">Dwell<br>(sec)</th>
+<th class="cen">Total<br>(sec)</th>
+<th class="right">Cad.<br>(sec)</th>
+<th class="right">Exp.<br>(sec)</th>
+<th class="right">Nfrm</th>
+<th class="right">Nok</th>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
@@ -1964,15 +2125,15 @@ Quad2</th>
 <th class="cen">Over-<br>scan</th>
 <th class="cen">Pre-<br>scan</th>
 <th class="cen">Nod</th>
-<th class="cen">Readout<br>speed</th>
-<th class="cen">Fast<br>clocks</th>
+<th class="cen">Read<br>speed</th>
+<th class="cen">Fast<br>clcks</th>
 <th class="cen">Tbytes</th>
 <th class="cen">FPslide</th>
-<th class="cen">Instr.<br>PA</th>
-<th class="cen">CCD<br>temps</th>
+<th class="cen">CCD temps</th>
 <th class="cen">Observers</th>
 <th class="left">PI</th>
 <th class="left">PID</th>
+<th class="cen">Size<br>(MB)</th>
 <th class="left">Run<br>no.</th>
 <th class="left">Comment</th>
 </tr>
@@ -2137,3 +2298,31 @@ function initialise() {
 document.addEventListener('DOMContentLoaded', initialise);
 
 """
+
+def tradec(radec, isdec):
+    """
+    Correct for improper formatted RA, Dec
+    """
+
+    try:
+        v1,v2,v3 = radec.split(':')
+        if v1.strip().startswith('-'):
+            # careful because of '-00' possibility
+            v1 = -abs(int(v1))
+        else:
+            v1 = int(v1)
+        v2,v3 = int(v2),float(v3)
+        if isdec:
+            return f'{v1:+03d}:{v2:02d}:{v3:04.1f}'
+        else:
+            return f'{v1:02d}:{v2:02d}:{v3:05.2f}'
+    except:
+        return ''
+
+# For hipercam
+TRANSLATE_MODE = {
+    "FullFrame": "FULL",
+    "OneWindow": "1-QUAD",
+    "TwoWindows": "2-QUAD",
+    "DriftWindow": "DRIFT",
+}
