@@ -15,7 +15,7 @@ from .core import *
 
 __all__ = (
     "Vec2D", "add_extension", "sub_extension", "script_args", "rgb",
-    "format_hlogger_table", "format_ulogger_table", "what_flags",
+    "format_hlogger_table", "what_flags",
 )
 
 

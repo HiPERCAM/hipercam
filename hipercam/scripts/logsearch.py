@@ -14,7 +14,7 @@ import astropy.units as u
 import hipercam as hcam
 from hipercam import cline, utils
 from hipercam.cline import Cline
-from hipercam.utils import format_ulogger_table, target_lookup
+from hipercam.utils import format_hlogger_table, target_lookup
 
 __all__ = [
     "logsearch",
@@ -205,5 +205,5 @@ def logsearch(args=None):
     tab = tab[ok]
 
     output = f"{target.replace(' ','_')}.xlsx"
-    format_ulogger_table(output, tab, instrument)
+    format_hlogger_table(output, tab, instrument)
     print(f'Wrote {len(tab)} runs to {output}')
