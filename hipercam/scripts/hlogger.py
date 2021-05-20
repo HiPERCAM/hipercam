@@ -529,7 +529,7 @@ def hlogger(args=None):
                             elif instrument == 'ULTRASPEC':
                                 brow = [rname, night, run[3:]] + 54*[None]
                             elif instrument == 'HiPERCAM':
-                                brow = [rname, night, run[3:]] + 58*[None]
+                                brow = [rname, night, run[3:]] + 59*[None]
                             continue
 
                         hd = rthead.header
@@ -1771,6 +1771,7 @@ HIPERCAM_COLNAMES = (
     ('cadence', 'float32', 'Sampling time between exposures (seconds)'),
     ('exposure', 'float32', 'Actual exposure time (seconds)'),
     ('nframe', 'float32', 'Total number of frames in file'),
+    ('nok', 'float32', 'Total number of frames in file'),
     ('filters', 'str', 'Colour filters used'),
     ('run_type', 'str', 'Provisional type of the run, indicative only'),
     ('read_mode', 'str', 'ULTRACAM readout mode'),
