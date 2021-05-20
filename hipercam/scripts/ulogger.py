@@ -35,40 +35,35 @@ def ulogger(args=None):
     description = \
     """``ulogger``
 
-    Generates html logs for ULTRACAM and ULTRASPEC runs, a searchable
-    spreadsheet and an sqlite3 database for programmatic SQL
-    enquiries.
+    Generates html logs for |hiper|, ULTRACAM and ULTRASPEC runs, a
+    searchable spreadsheet and an sqlite3 database for programmatic
+    SQL enquiries.
 
     ulogger expects to work in a directory containing the runs for
-    each night. Specifically, it should be run from the
-    ultra(cam|spec)/raw_data directory.  It extracts information from
-    each run file. It usually runs without any parameters, although
-    there are some optional unix-style command-line switches. It tries
-    to read target data from three files: TARGETS, FAILED_TARGETS and
-    SKIP_TARGETS. TARGETS contains details of targets particularly if
-    not available on simbad; FAILED_TARGETS are those of interest for
-    tracking down; SKIP_TARGETS are ones of no interest.
+    each night. I call this 'raw_data' for each camera and this will
+    be checked a a guard against problems. It extracts information
+    from each run file. It usually runs without any parameters,
+    although there are some optional unix-style command-line
+    switches.
+
+    ulogger tries to read target data from three files: TARGETS,
+    FAILED_TARGETS and SKIP_TARGETS. TARGETS contains details of
+    targets, particularly if not available on simbad; FAILED_TARGETS
+    are those of interest for tracking down; SKIP_TARGETS are ones of
+    no interest.
 
     If run at Warwick, it writes data to the web pages. Otherwise it
-    writes them to a sub-directory of raw_data called "logs".  Bit of
-    a specialist routine this one; if you have access to the on-line
-    logs at Warwick, it should be unnecessary. It requires the
-    installation of the python module xlsxwriter in order to write an
-    excel spreadsheet; this is not a required module for the whole
-    pipeline and may not exist. The script will fail early on if it is
-    not installed.
+    writes them to a sub-directory of raw_data called "logs". ulogger
+    is a specialist routine this one; if you have access to the
+    on-line logs at Warwick, it should be unnecessary for you to run
+    it. It requires the installation of the python module xlsxwriter
+    in order to write an excel spreadsheet; this is not a required
+    module for the whole pipeline and may not exist. The script will
+    fail early on if it is not installed.
 
     It also writes information to a sub-directory "meta" of each night
     directory, and can pick up information stored there by the related
-    scripts |redplt| and |hmeta|. There is a slightly circular
-    relationship between these scripts since |redplt| can only be run
-    once ulogger has created a timing file in "meta". Thus two runs of
-    |ulogger| are needed to create complete logs with images. A full
-    sequence would be |ulogger|, followed by |redplt| and |hmeta|, and
-    only when these two have completed, then run |ulogger| a second
-    time. |hmeta| can be run idependently however, but must be run
-    before the final |ulogger| run for a complete spreadsheet and SQL
-    database to be created.
+    script |redplt| which should be run first.
 
     To save time, ulogger does not by default re-do everything, so it
     does not by default recreate the timing and position data files if
@@ -80,8 +75,10 @@ def ulogger(args=None):
     single night.
 
     """
+
     warnings.filterwarnings("ignore")
 
+    # Options
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
         "-f",
@@ -122,9 +119,18 @@ def ulogger(args=None):
 
     # start with defining a few regular expressions to match run directories, nights,
     # and run files
-    rre = re.compile("^(Others|\d\d\d\d-(\d\d|P\d\d\d))$")
+
+    # runs of the form  '2021A', '2022B', '2020-21', '2021-P106', 'Others' supported
+    rre = re.compile("^(Others|\d\d\d\d-\d\d|\d\d\d\d-P\d\d\d|\d\d\d\d[AB])$")
+
+    # Night must be of form 2021-05-12 [YYYY-MM-DD]
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
-    fre = re.compile("^run\d\d\d\.xml$")
+
+    # temporary!!!
+    nre = re.compile("^2021-05-06$")
+
+    # Files of form 'run123.xml' or 'run1234.fits'
+    fre = re.compile("^(run\d\d\d\.xml|run\d\d\d\d\.fits)$")
 
     cwd = os.getcwd()
     if os.path.basename(cwd) != "raw_data":
@@ -134,19 +140,16 @@ def ulogger(args=None):
 
     if cwd.find("ultracam") > -1:
         instrument = "ULTRACAM"
-        from hipercam.scripts.hmeta import ULTRACAM_META_COLNAMES
-        COLNAMES = ULTRACAM_COLNAMES + ULTRACAM_META_COLNAMES[1:]
-        nextra = len(ULTRACAM_META_COLNAMES)-1
     elif cwd.find("ultraspec") > -1:
         instrument = "ULTRASPEC"
-        from hipercam.scripts.hmeta import ULTRASPEC_META_COLNAMES
-        COLNAMES = ULTRASPEC_COLNAMES + ULTRASPEC_META_COLNAMES[1:]
-        nextra = len(ULTRASPEC_META_COLNAMES)-1
+    elif cwd.find("hipercam") > -1:
+        instrument = "HIPERCAM"
     else:
-        print("** ulogger: cannot find either ultracam or ultraspec in path")
+        print("** ulogger: cannot find hipercam, ultracam or ultraspec in path")
         print("ulogger aborted")
         return
     linstrument = instrument.lower()
+    print(f'Identified instrument as "{instrument}"')
 
     # buffers of messages on target lookups to print at the end
     smessages, fmessages = [], []
@@ -157,7 +160,8 @@ def ulogger(args=None):
         tlink = os.path.join(args.night, "telescope")
         with open(os.path.join(args.night, "telescope")) as tel:
             telescope = tel.read().strip()
-        if telescope == 'WHT':
+
+        if telescope == 'WHT' or telescope == 'GTC':
             observatory = EarthLocation.of_site('Roque de los Muchachos')
         elif telescope == 'VLT':
             observatory = EarthLocation.of_site('Cerro Paranal')
@@ -181,7 +185,7 @@ def ulogger(args=None):
         skip_targets = load_skip_fail()
 
         # Just re-do timing and positions for a particular night.
-        runs = [run[:-4] for run in os.listdir(args.night) if fre.match(run)]
+        runs = [os.path.splitext(run)[0] for run in os.listdir(args.night) if fre.match(run)]
         runs.sort()
         if len(runs) == 0:
             print(f'Found no runs in night = {args.night}')
@@ -195,7 +199,7 @@ def ulogger(args=None):
 
         # make the times
         times = os.path.join(meta, 'times')
-        tdata = make_times(args.night, runs, observatory, times, True)
+        tdata = make_times(args.night, runs, observatory, times, True, instrument)
         print(f'Created & wrote timing data for {args.night} to {times}\n')
 
         # make the positions
@@ -226,6 +230,9 @@ def ulogger(args=None):
     else:
         root = 'logs'
 
+    # temporary!!!
+    root = 'logs'
+
     # Try an import now to get an early warning of problems
     import xlsxwriter
 
@@ -241,8 +248,9 @@ def ulogger(args=None):
 
     if len(rnames) == 0:
         print(
-            "there were no run directories of the form "
-            "YYYY-MM with a file called 'telescope' in them"
+            "there were no run directories of the forms "
+            "'YYYY-MM', 'YYYY[A|B]', 'YYYY-PNNN' or 'Others'"
+            " with a file called 'telescope' in them"
         )
         print("ulogger aborted")
         return
@@ -270,7 +278,8 @@ def ulogger(args=None):
     targets = Targets('TARGETS')
     skip_targets = load_skip_fail()
 
-    # Index file
+    # Index file. To avoid too much down time, write to a
+    # a temporary that will be switched in at the end,
     index_tmp = os.path.join(root, 'index.html.tmp')
     index = os.path.join(root, 'index.html')
     with open(index_tmp, "w") as ihtml:
@@ -283,6 +292,7 @@ def ulogger(args=None):
         )
 
         for rname in rnames:
+            # loop through the runs
             print(f"\nProcessing run {rname}")
 
             with open(os.path.join(rname, "telescope")) as tel:
@@ -318,7 +328,7 @@ def ulogger(args=None):
                     )
 
             # set site
-            if telescope == 'WHT':
+            if telescope == 'WHT' or telescope == 'GTC':
                 observatory = EarthLocation.of_site('Roque de los Muchachos')
             elif telescope == 'VLT':
                 observatory = EarthLocation.of_site('Cerro Paranal')
@@ -371,8 +381,8 @@ def ulogger(args=None):
 
             for nn, night in enumerate(nnames):
 
-                # load all the run names
-                runs = [run[:-4] for run in os.listdir(night) if fre.match(run)]
+                # load all the run names without extensions
+                runs = [os.path.splitext(run)[0] for run in os.listdir(night) if fre.match(run)]
                 runs.sort()
                 if len(runs) == 0:
                     continue
@@ -404,8 +414,9 @@ def ulogger(args=None):
 
                 # create directory for any meta info such as the times
                 meta = os.path.join(night, 'meta')
-
                 os.makedirs(meta, exist_ok=True)
+
+                # Add links to previous and next night of the run
                 links = '<p><a href="../index.html">Run index</a>'
                 if nn > 0:
                     links += f', <a href="../{nnames[nn-1]}/">Previous night</a>'
@@ -426,13 +437,6 @@ def ulogger(args=None):
                 fname = os.path.join(ndir, 'index.html')
                 fname_tmp = os.path.join(ndir, 'index.html.tmp')
 
-                # see if there is a file of stats from hmeta avaialable.
-                fstats = os.path.join(meta, 'statistics.csv')
-                if os.path.exists(fstats):
-                    stats = pd.read_csv(fstats,index_col='run_no')
-                else:
-                    stats = None
-
                 with open(fname_tmp, "w") as nhtml:
 
                     # write header of night file
@@ -444,10 +448,13 @@ def ulogger(args=None):
                         )
                     )
 
-                    nhtml.write(
-                        ULTRACAM_TABLE_HEADER if linstrument == 'ultracam' \
-                        else ULTRASPEC_TABLE_HEADER
-                    )
+                    # Instrument specific table header
+                    if linstrument == 'hipercam':
+                        nhtml.write(HIPERCAM_TABLE_HEADER)
+                    elif linstrument == 'ultracam':
+                        nhtml.write(ULTRACAM_TABLE_HEADER)
+                    elif linstrument == 'ultraspec':
+                        nhtml.write(ULTRASPEC_TABLE_HEADER)
 
                     # read and store the hand written log
                     handlog = os.path.join(night, f"{night}.dat")
@@ -472,7 +479,7 @@ def ulogger(args=None):
                     else:
                         # need to generate timing data, which can take a while so
                         # we store the results to a disk file for fast lookup later.
-                        tdata = make_times(night, runs, observatory, times, False)
+                        tdata = make_times(night, runs, observatory, times, False, instrument)
 
                     ##################################
                     # Get or create positional info
@@ -518,9 +525,9 @@ def ulogger(args=None):
                             nhtml.write(f'<td class="lalert">{run}</td>')
                             nhtml.write("</tr>\n")
                             if instrument == 'ULTRACAM':
-                                brow = [rname, night, run[3:]] + (48+nextra)*[None]
+                                brow = [rname, night, run[3:]] + 48*[None]
                             else:
-                                brow = [rname, night, run[3:]] + (54+nextra)*[None]
+                                brow = [rname, night, run[3:]] + 54*[None]
                             continue
 
                         hd = rhead.header
@@ -751,12 +758,6 @@ def ulogger(args=None):
 
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
-
-                        try:
-                            # add in statistics
-                            brow += stats.loc[run].values.tolist()
-                        except:
-                            brow += nextra*[None]
 
                         if len(brow) != len(COLNAMES):
                             print(f'{runname}: data items vs colnames = {len(brow)} vs {len(COLNAMES)}')
@@ -1251,16 +1252,17 @@ class TimeHMSCustom(TimeISO):
     subfmts = (("date_hms", "%H%M%S", "{hour:02d}:{min:02d}:{sec:02d}"),)
 
 
-def make_times(night, runs, observatory, times, full):
-    """
-    Generates timing data for a set of runs from a particular night.
+def make_times(night, runs, observatory, times, full, instrument):
+    """Generates timing data for a set of runs from a particular night.
     Results are stored in a file called "times", and returned as
     dictionary keyed on run numbers.
+
     """
 
     # use this to check times are vaguely right. time of runs
     # must lie between 06.00 local time on date corresponding to
-    # start of night date and 1.5 days later
+    # start of night date and 1.5 days later. Has picked up a
+    # few erroneously dated nights on the TNT.
     mjd_ref = Time(night).mjd - observatory.lon.degree/360 + 0.25
 
     tdata = {}
@@ -1271,23 +1273,34 @@ def make_times(night, runs, observatory, times, full):
             dfile = os.path.join(night, run)
             try:
                 ntotal = 0
-                rtime = hcam.ucam.Rtime(dfile)
+                if instrument == 'HIPERCAM':
+                    rtime = hcam.hcam.Rtime(dfile)
+                else:
+                    rtime = hcam.ucam.Rtime(dfile)
 
                 # Find first good time, has to roughly match the start
                 # date of the night because some times can just be
                 # junk
                 not_alerted = True
                 for n, tdat in enumerate(rtime):
-                    time, tinfo = tdat[:2]
-                    if time.good:
+                    if instrument == 'HIPERCAM':
+                        time, tinfo, tflag = tdat
+                        expose = 1000000
+                        for tmid,texp,tiflag in tinfo:
+                            expose = min(round(texp,3),expose)
+                    else:
+                        time, tinfo = tdat[:2]
+                        tflag = time.good
+                        expose = round(time.expose,3)
+
+                    if tflag:
                         mjd_start = time.mjd
                         tdelta = mjd_start-mjd_ref
                         if tdelta > 0 and tdelta < 1.5:
                             ts = Time(mjd_start, format="mjd", precision=2)
                             ut_start = ts.hms_custom
-                            expose = round(time.expose,3)
                             n_start = n+1
-                            if expose > 0 and expose < 500:
+                            if expose >= 0 and expose < 2000:
                                 break
                         elif not_alerted and (tdelta < 0 or tdelta > 1.5):
                             # maximum one warning per run
@@ -1300,8 +1313,10 @@ def make_times(night, runs, observatory, times, full):
                 # Find last good time. First we just go for times near the
                 # end of the run. Failing that, we try again from the start,
                 # to account for runs with time stamp issues.
-                if rtime.header['MODE'] == 'DRIFT':
-                    # ultracam
+                if instrument == 'HIPERCAM':
+                    nback = 4
+                elif rtime.header['MODE'] == 'DRIFT':
+                    # ultracam or hipercam
                     win = rtime.win[0]
                     nyu = win.ny*rtime.ybin
                     nback = int((1033/nyu + 1) / 2) + 3
@@ -1314,35 +1329,45 @@ def make_times(night, runs, observatory, times, full):
                     # non drift mode
                     nback = 4
 
-                nbytes = os.stat(dfile + '.dat').st_size
-                ntotal = nbytes // rtime.framesize
+                if instrument == 'HIPERCAM':
+                    ntotal = rtime.ntotal()
+                else:
+                    nbytes = os.stat(dfile + '.dat').st_size
+                    ntotal = nbytes // rtime.framesize
 
-                if ntotal > 20000:
-                    # this is a risk-reducing
-                    # strategy in case the end of
-                    # a long run is
-                    # corrupt. Better to look at
-                    # more than the necessary
-                    # number of frames if it
-                    # prevents us from having to
-                    # wind through the whole lot.
+                if instrument != 'HIPERCAM' and ntotal > 20000:
+                    # this is a risk-reducing strategy in case the end
+                    # of a long ultracam or ultraspec run is
+                    # corrupt. Better to look at more than the
+                    # necessary number of frames if it prevents us
+                    # from having to wind through the whole lot.
                     nback = max(nback, 500)
 
+                # next statement basically resets the frame
+                # we are on
                 nreset = max(1, ntotal - nback)
                 rtime.set(nreset)
 
                 flast = False
                 for n, tdat in enumerate(rtime):
-                    time, tinfo = tdat[:2]
-                    if time.good:
+                    if instrument == 'HIPERCAM':
+                        time, tinfo, tflag = tdat
+                        nexpose = 1000000
+                        for tmid,texp,tiflag in tinfo:
+                            nexpose = min(round(texp,3),expose)
+                    else:
+                        time, tinfo = tdat[:2]
+                        tflag = time.good
+                        nexpose = round(time.expose,3)
+
+                    if tflag:
                         mjd = time.mjd
                         if mjd >= mjd_start and mjd < mjd_start + 0.4:
                             mjd_end = mjd
                             ts = Time(mjd_end, format="mjd", precision=2)
                             ut_end = ts.hms_custom
                             n_end = nreset + n
-                            nexpose = round(time.expose,3)
-                            if nexpose < 500:
+                            if nexpose < 2000:
                                 expose = max(expose, nexpose)
                                 flast = True
 
@@ -1353,16 +1378,24 @@ def make_times(night, runs, observatory, times, full):
                     # the whole run, which can be slow.
                     rtime.set()
                     for n, tdat in enumerate(rtime):
-                        time, tinfo = tdat[:2]
-                        if time.good:
+                        if instrument == 'HIPERCAM':
+                            time, tinfo, tflag = tdat
+                            nexpose = 1000000
+                            for tmid,texp,tiflag in tinfo:
+                                nexpose = min(round(texp,3),expose)
+                        else:
+                            time, tinfo = tdat[:2]
+                            tflag = time.good
+                            nexpose = round(time.expose,3)
+
+                        if tflag:
                             mjd = time.mjd
                             if mjd >= mjd_start and mjd < mjd_start + 0.4:
                                 mjd_end = mjd
                                 ts = Time(mjd_end, format="mjd", precision=2)
                                 ut_end = ts.hms_custom
                                 n_end = n + 1
-                                nexpose = round(time.expose,3)
-                                if nexpose < 500:
+                                if nexpose < 2000:
                                     expose = max(expose, nexpose)
 
                 nok = n_end-n_start+1
@@ -1491,18 +1524,23 @@ def make_positions(
             # open the run file as an Rhead
             runname = os.path.join(night, run)
             try:
-                rhead = hcam.ucam.Rhead(runname)
+                if instrument == 'HIPERCAM':
+                    rhead = hcam.hcam.Rhead(runname)
+                else:
+                    rhead = hcam.ucam.Rhead(runname)
             except:
                 if full:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     traceback.print_tb(exc_traceback, limit=1)
                     traceback.print_exc()
-                    print(f"Failed top open {runname} as an Rhead")
+                    print(f"Failed to open {runname} as an Rhead")
                 continue
 
             # object name
             if hlog.format == 1:
                 target = hlog.target[run]
+            elif instrument == 'HIPERCAM':
+                target = rhead.header.get("OBJECT",'')
             else:
                 target = rhead.header.get("TARGET",'')
             target = target.strip().replace('~',' ')
@@ -1640,7 +1678,59 @@ def make_positions(
     print('Written positional data to',posdata)
     return pdata
 
-# Create and write out spreadsheet
+HIPERCAM_COLNAMES = (
+    ('obs_run', 'str', 'Run group title'),
+    ('night' , 'str', 'Date at the start of the night'),
+    ('run_no', 'str', 'Run number'),
+    ('target', 'str', 'Target name'),
+    ('auto_id', 'str', 'Lookup name, from disk files or SIMBAD'),
+    ('ra_hms', 'str', 'Target RA (J2000), HMS'),
+    ('dec_dms', 'str', 'Target Dec (J2000), DMS'),
+    ('ra_deg', 'float64', 'Target RA (J2000), degrees'),
+    ('dec_deg', 'float64', 'Target Dec (J2000), degrees'),
+    ('date_start', 'str', 'Date at the start of the run'),
+    ('utc_start', 'str', 'UTC at the start of the run'),
+    ('utc_end', 'str', 'UTC at the end of the run'),
+    ('mjd_start', 'float64', 'MJD (UTC) at the start of the run'),
+    ('mjd_end', 'float64', 'MJD (UTC) at the end of the run'),
+    ('total', 'float32', 'Total exposure time (seconds)'),
+    ('cadence', 'float32', 'Sampling time between exposures (seconds)'),
+    ('exposure', 'float32', 'Actual exposure time (seconds)'),
+    ('nframe', 'float32', 'Total number of frames in file'),
+    ('nok', 'float32', 'Number of frames from first to last with OK times'),
+    ('filters', 'str', 'Colour filters used'),
+    ('run_type', 'str', 'Provisional type of the run, indicative only'),
+    ('read_mode', 'str', 'ULTRACAM readout mode'),
+    ('nb', 'int', 'Nblue, CCD 1 readout skip'),
+    ('win1', 'str', 'Format of window pair 1'),
+    ('win2', 'str', 'Format of window pair 2'),
+    ('win3', 'str', 'Format of window pair 3'),
+    ('binning', 'str', 'X by Y binning'),
+    ('clr', 'str', 'Clear enabled or not'),
+    ('read_speed', 'str', 'Readout speed'),
+    ('fpslide', 'float32', 'Focal plane slide'),
+    ('observers', 'str', 'Observers'),
+    ('pi', 'str', 'PI of data'),
+    ('pid', 'str', 'Proposal ID'),
+    ('tel', 'str', 'Telescope'),
+    ('size', 'float32', 'Data file size, MB'),
+    ('nlink', 'str', 'Link to html log of night containing run (spreadsheet only)'),
+    ('comment', 'str', 'Hand comments from night'),
+    ('alt_start', 'float32', 'Target altitude at start of run, degrees'),
+    ('alt_middle', 'float32', 'Target altitude in middle of run, degrees'),
+    ('alt_end', 'float32', 'Target altitude at end of run, degrees'),
+    ('az_start', 'float32', 'Target azimuth at start of run, degrees'),
+    ('az_middle', 'float32', 'Target azimuth in middle of run, degrees'),
+    ('az_end', 'float32', 'Target azimuth at end of run, degrees'),
+    ('sun_dist', 'float32', 'Distance from Sun, degrees, middle of run'),
+    ('moon_dist', 'float32', 'Distance from Moon, degrees, middle of run'),
+    ('sun_alt_start', 'float32', 'Altitude of Sun at start of run'),
+    ('sun_alt_end', 'float32', 'Altitude of Sun at end of run'),
+    ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
+    ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
+    ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
+)
+
 ULTRACAM_COLNAMES = (
     ('obs_run', 'str', 'Run group title'),
     ('night' , 'str', 'Date at the start of the night'),
@@ -1694,7 +1784,6 @@ ULTRACAM_COLNAMES = (
     ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
 )
 
-# Create and write out spreadsheet
 ULTRASPEC_COLNAMES = (
     ('obs_run', 'str', 'Run group title'),
     ('night' , 'str', 'Date at the start of the night'),
@@ -1826,6 +1915,70 @@ NIGHT_HEADER = """<!DOCTYPE html>
 <p>
 <div class="tableFixHead">
 <table>
+"""
+
+HIPERCAM_TABLE_HEADER = """
+<col span="2">
+<col span="3" class="hide">
+<col>
+<col class="hide">
+<col span="4">
+<col class="hide">
+<col span="10">
+<col span="6" class="hide">
+<col>
+
+<thead>
+<tr>
+<th class="left">Run<br>no.</th>
+<th class="left">Target name</th>
+<th class="left">Auto ID</th>
+<th class="left">RA (J2000)</th>
+<th class="left">Dec&nbsp;(J2000)</th>
+<th class="left">Tel RA</th>
+<th class="left">Tel Dec</th>
+<th class="left">PA</th>
+<th class="cen">Start<br>UTC</th>
+<th class="cen">End<br>UTC</th>
+<th class="cen">Time<br>flag</th>
+<th class="right">Cadence<br>(sec)</th>
+<th class="right">Duty<br>cycle, %</th>
+<th class="right">Nframe</th>
+<th class="right">Dwell<br>(sec)</th>
+<th class="cen">Filters</th>
+<th class="left">Type</th>
+<th class="cen">Read<br>mode</th>
+<th class="cen">Nskips</th>
+<th class="cen">
+xll,xlr,xul,xur,ys,nx,ny<br>
+xsl,xsr,ys,nx,ny&nbsp;[DRIFT]<br>
+Quad1</th>
+<th class="cen">
+xll,xlr,xul,xur,ys,nx,ny<br>
+xsl,xsr,ys,nx,ny&nbsp;[DRIFT]<br>
+Quad2</th>
+<th class="cen">XxY<br>bin</th>
+<th class="cen">Clr</th>
+<th class="cen">Dum</th>
+<th class="cen">LED</th>
+<th class="cen">Over-<br>scan</th>
+<th class="cen">Pre-<br>scan</th>
+<th class="cen">Nod</th>
+<th class="cen">Readout<br>speed</th>
+<th class="cen">Fast<br>clocks</th>
+<th class="cen">Tbytes</th>
+<th class="cen">FPslide</th>
+<th class="cen">Instr.<br>PA</th>
+<th class="cen">CCD<br>temps</th>
+<th class="cen">Observers</th>
+<th class="left">PI</th>
+<th class="left">PID</th>
+<th class="left">Run<br>no.</th>
+<th class="left">Comment</th>
+</tr>
+</thead>
+
+<tbody>
 """
 
 ULTRACAM_TABLE_HEADER = """
