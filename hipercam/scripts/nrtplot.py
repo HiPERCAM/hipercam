@@ -938,7 +938,7 @@ def nrtplot(args=None):
                     method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
                 )
 
-                if nframe == 0:
+                if first_fwhm:
                     # set up the accumulator object now because we didn't know
                     # how many targets the user would choose at the start
                     fit_accum = [([],[]) for n in range(len(pfits))]
