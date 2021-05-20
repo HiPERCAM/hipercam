@@ -519,7 +519,7 @@ def hlogger(args=None):
 
     # next are regular expressions to match run directories, nights, and
     # run files
-    rre = re.compile("^\d\d\d\d-\d\d$")
+    rre = re.compile("^\d\d\d\d(-\d\d|[AB])$")
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
     fre = re.compile("^run\d\d\d\d\.fits$")
 
