@@ -1488,14 +1488,15 @@ class Rtime(Rtbytes):
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted.
 
-        Returns:: (tstamp, tinfo) or None if you try to read a non-existent
+        Returns:: (tstamp, tinfo, tflag) or None if you try to read a non-existent
         frame (useful if you are waiting from frames to be added). Here
         'tstamp' is an astropy.time.Time equivalent to the GPS timestamp
         associated with the frame, with no correction, while 'tinfo' is a
         5-elements tuple, one for each CCD listing for each one the MJD at
         mid-exposure, an exposure time in seconds and a flag to indicate
         whether the time is thought reliable, which is only the case if
-        real data comes with the frame.
+        real data comes with the frame. The final tflag reflects whether
+        there were any satellites and the GPS had been synced
         """
 
         tbytes = super().__call__(nframe)
@@ -1532,8 +1533,8 @@ class Rtime(Rtbytes):
 
         tinfo = []
         for nccd in range(5):
-            tmid, texp, tflag = self.timing(self.nframe - 1, nccd)
-            tinfo.append((tstamp.mjd + tmid, texp, tflag))
+            tmid, texp, tiflag = self.timing(self.nframe - 1, nccd)
+            tinfo.append((tstamp.mjd + tmid, texp, tiflag))
 
         # Return timing data
         return (tstamp, tuple(tinfo), tflag)
