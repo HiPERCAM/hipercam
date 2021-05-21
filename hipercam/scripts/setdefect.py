@@ -46,9 +46,8 @@ __all__ = [
 
 
 def setdefect(args=None):
-    """``setdefect mccd defect ccd [linput width height] rtarg rsky1 rsky2 nx
-    msub [cmap] iset (ilo ihi | plo phi) [profit method beta fwmin fwhm fwfix
-    shbox smooth splot fhbox read gain thresh]``
+    """``setdefect mccd defect ccd [width height] nx msub [cmap] ffield
+    hsbox iset (ilo ihi | plo phi)``
 
     Interactive definition of CCD defects. This is a matplotlib-based routine
     allowing you to define defects using the cursor.
@@ -64,21 +63,21 @@ def setdefect(args=None):
          created on exiting the routine. The defect files are in a fairly
          readable / editiable text format
 
-      ccd    : string
+      ccd : string
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
          are possible inputs (without the quotes). '3 4' will plot CCD '3' and
          CCD '4'. If you want to plot more than one CCD, then you will be
          prompted for the number of panels in the X direction. This parameter
          will not be prompted if there is only one CCD in the file.
 
-      width  : float [hidden]
+      width : float [hidden]
          plot width (inches). Set = 0 to let the program choose.
 
       height : float [hidden]
          plot height (inches). Set = 0 to let the program choose. BOTH width
          AND height must be non-zero to have any effect
 
-      nx     : int
+      nx : int
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
 
@@ -100,7 +99,7 @@ def setdefect(args=None):
          defects, stars for hot pixels). If you say no to add hot pixels,
          the line defect option is not available.
 
-      hsbox  : int
+      hsbox : int
          half-width in binned pixels of stats box as offset from central pixel
          hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
          the "show" option when setting defects.
