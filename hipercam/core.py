@@ -46,6 +46,7 @@ __all__ = (
     "FLAGS",
     "OUTLIER",
     "FLAG_MESSAGES",
+    "FRNG",
 )
 
 # Constants for general use
@@ -66,6 +67,7 @@ LOG = ".log"
 DFCT = ".dft"
 SEP = ".sep"
 TBTS = ".tbts"
+FRNG = ".frng"
 
 # number of minutes in a day
 DMINS = 1440.0

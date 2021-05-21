@@ -46,6 +46,7 @@ from .nrtplot import nrtplot
 from .rupdate import rupdate
 from .setaper import setaper
 from .setdefect import setdefect
+from .setfringe import setfringe
 from .stats import stats
 from .redanal import redanal
 from .splice import splice
@@ -79,6 +80,8 @@ __all__ = [
     "makedata",
     "makefield",
     "makeflat",
+    "makefringe",
+    "makemovie",
     "mstats",
     "mul",
     "pfolder",
@@ -91,12 +94,12 @@ __all__ = [
     "rupdate",
     "setaper",
     "setdefect",
+    "setfringe",
     "splice",
     "stats",
     "sub",
     "tanalysis",
     "tbytes",
-    "ulogger",
     "uls",
 ]
 

@@ -177,6 +177,7 @@ setup(
             'rupdate=hipercam.scripts.rupdate:rupdate',
             'setaper=hipercam.scripts.setaper:setaper',
             'setdefect=hipercam.scripts.setdefect:setdefect',
+            'setfringe=hipercam.scripts.setfringe:setfringe',
             'splice=hipercam.scripts.splice:splice',
             'stats=hipercam.scripts.stats:stats',
             'sub=hipercam.scripts.arith:sub',

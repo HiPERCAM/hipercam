@@ -42,11 +42,8 @@ def makefringe(args=None):
     optionally a single run), it reads them all in, debiases,
     dark-subtracts and flat-fields them, calculates a median count
     level of each one which is subtracted from and (optionally)
-    divided into each frame indivually. The pixel-by-pixel median of
-    all frames is then calculated. Finally an optional amount of
-    smoothing can be applied on the basis that it should have a
-    smaller scale than any of the fringing.
-
+    divided into each frame individually. The pixel-by-pixel median of
+    all frames is then calculated.
 
     Parameters:
 
@@ -82,10 +79,6 @@ def makefringe(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
-        ngroup : int
-           the number of frames. Probably should be at least 5, preferably
-           more. Experiment to see its effect.
-
         bias : str
            Name of bias frame to subtract, 'none' to ignore.
 
@@ -106,8 +99,10 @@ def makefringe(args=None):
         clobber : bool [hidden]
            clobber any pre-existing output files
 
-        output  : string
-           output file
+        output  : str
+           output file. Set by default to match the last part of "run"
+           (but it will have a different extension so they won't
+           clash)
 
     """
 
@@ -124,7 +119,6 @@ def makefringe(args=None):
         cl.register("twait", Cline.LOCAL, Cline.HIDE)
         cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
-        cl.register("ngroup", Cline.LOCAL, Cline.PROMPT)
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
         cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
@@ -146,6 +140,8 @@ def makefringe(args=None):
 
         if server_or_local:
             resource = cl.get_value("run", "run name", "run005")
+            root = os.path.basename(resource)
+            cl.set_default('output', cline.Fname(root, hcam.HCAM))
             first = cl.get_value("first", "first frame to average", 1, 1)
             last = cl.get_value("last", "last frame to average (0 for all)", first, 0)
             twait = cl.get_value(
@@ -160,10 +156,6 @@ def makefringe(args=None):
                 "flist", "file list", cline.Fname("files.lis", hcam.LIST)
             )
             first = 1
-
-        ngroup = cl.get_value(
-            "ngroup", "number of frames per median average group", 3, 1
-        )
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -209,7 +201,7 @@ def makefringe(args=None):
 
         output = cl.get_value(
             "output",
-            "output average",
+            "median output frringe frame",
             cline.Fname(
                 "hcam", hcam.HCAM, cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
             ),
@@ -308,9 +300,9 @@ def makefringe(args=None):
 
                     mccd /= fframe
 
-                # here we determine the median levels, store them then
-                # normalise the CCDs by them and save the files to
-                # disk
+                # here we determine the median levels, subtract and
+                # (optionally) normalise by them, then save the files
+                # to disk
 
                 # generate the name to save to automatically
                 fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
@@ -346,45 +338,51 @@ def makefringe(args=None):
             # all have the same set of CCDs
             print(f"\nLoading all CCDs labelled '{cnam}'")
 
-            accds, means = [], []
-            nrej, ntot = 0, 0
+            accds = []
             with spooler.HcamListSpool(fnames, cnam) as spool:
 
                 mean = None
                 for ccd in spool:
-
                     if ccd.is_data():
-
-                        # keep the result
                         accds.append(ccd)
 
-                if len(ccds) == 0:
-                    raise hcam.HipercamError(
-                        "Found no valid examples of CCD {:s}"
-                        " in list = {:s}".format(cnam, flist)
-                    )
-                else:
-                    print("Loaded {:d} CCDs".format(len(ccds)))
+            if len(accds) == 0:
+                raise hcam.HipercamError(
+                    f"Found no valid examples of CCD {cnam}"
+                    f" in {fnames}"
+                )
+            else:
+                print(f"Loaded {len(accds)} CCDs")
 
-                # Median combine
-                for wnam, wind in template[cnam].items():
+            # Median combine
+            for wnam, wind in template[cnam].items():
 
-                    # build list of all data arrays
-                    arrs = [ccd[wnam].data for ccd in ccds]
+                # build list of all data arrays
+                arrs = [ccd[wnam].data for ccd in accds]
 
-                    # convert to 3D numpy array
-                    arr3d = np.stack(arrs)
+                # convert to 3D numpy array
+                arr3d = np.stack(arrs)
 
-                    wind.data = np.median(arr3d, axis=0)
+                wind.data = np.median(arr3d, axis=0)
 
             # Add history
             template[cnam].head.add_history(
-                d"Median combine of {len(accds)} images"
+                f"Median combine of {len(accds)} images"
             )
+            print("Computed and stored their pixel-by-pixel median")
+
+        # Remove any CCDs not included to avoid impression of having done
+        # something to them
+        dcnams = []
+        for cnam in template.keys():
+            if cnam not in ccds:
+                dcnams.append(cnam)
+        for cnam in dcnams:
+            del template[cnam]
 
         # write out
-        template.write(outfile, clobber)
-        print("\nFinal result written to {:s}".format(outfile))
+        template.write(output, clobber)
+        print(f"\nFinal result written to {output}")
 
     except KeyboardInterrupt:
         print("\nmakefringe aborted")
