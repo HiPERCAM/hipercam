@@ -31,7 +31,7 @@ if curs is not None:
 import matplotlib.pyplot as plt
 
 import hipercam as hcam
-from hipercam import cline, utils, defect
+from hipercam import cline, utils, fringe
 from hipercam.cline import Cline
 
 __all__ = [
@@ -95,7 +95,7 @@ def setfringe(args=None):
       hsbox  : int
          half-width in binned pixels of stats box as offset from central pixel
          hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
-         the "show" option when setting defects.
+         the "show" option when setting FringePair
 
       iset : str [single character]
          determines how the intensities are determined. There are three
@@ -150,11 +150,11 @@ def setfringe(args=None):
 
         if os.path.exists(fpair):
             # read in old fringe pairs
-            mccd_fpair = defect.MccdFringePair.read(fpair)
+            mccd_fpair = fringe.MccdFringePair.read(fpair)
             print(f"Loaded existing file = {fpair}")
         else:
             # create empty container
-            mccd_fpair = defect.MccdFringePair()
+            mccd_fpair = fringe.MccdFringePair()
             print(
                 "No file called {:s} exists; " "will create from scratch".format(fpair)
             )
@@ -286,14 +286,14 @@ def setfringe(args=None):
 
         else:
             # add in an empty CcdFringePair for any CCD not already present
-            mccd_fpair[cnam] = defect.CcdFringePair()
+            mccd_fpair[cnam] = fringe.CcdFringePair()
 
             # and an empty container for any new plot objects
             pobjs[cnam] = {}
 
     # create the FringePair picker (see below for class def)
     picker = PickFringePair(
-        mccd, cnams, anams, toolbar, fig, mccd_fpair, fringe, hsbox, pobjs
+        mccd, cnams, anams, toolbar, fig, mccd_fpair, fpair, hsbox, pobjs
     )
 
     picker.action_prompt(False)
@@ -312,7 +312,7 @@ def setfringe(args=None):
 
 
 class PickFringePair:
-    """Class to pick defects
+    """Class to pick fringe pairs
     """
 
     def __init__(
@@ -352,11 +352,11 @@ class PickFringePair:
         )
 
     def _keyPressEvent(self, event):
-        """
-        This is where we do the hard work. Every key press event is diverted
-        to this method. It either takes an action based on the input, such as
-        removing a defect, or sometimes it causes a state change to get other
-        input.
+        """This is where we do the hard work. Every key press event is
+        diverted to this method. It either takes an action based on
+        the input, such as removing a fringe pair, or sometimes it
+        causes a state change to get other input.
+
         """
 
         if self._mid_pair:
@@ -424,9 +424,9 @@ as it is close enough (< 10 pixels)
                 # Try to calculate the largest number, label the new
                 # FringePair with one more
                 high = 0
-                for fringe in self.mccd_fpair[self._cnam]:
+                for frng in self.mccd_fpair[self._cnam]:
                     try:
-                        high = max(high, int(fringe))
+                        high = max(high, int(frng))
                     except ValueError:
                         pass
 
@@ -436,7 +436,7 @@ as it is close enough (< 10 pixels)
                 self._pair()
 
             elif key == "d":
-                # delete an defect
+                # delete an fringe pair
                 print(key)
                 self._delete()
 
@@ -495,7 +495,7 @@ as it is close enough (< 10 pixels)
                 self._pair_y1 = self._y
 
                 # prompt stage 2
-                print(" second point: s(elect) or q(uit)")
+                print(" second point: a(dd) or q(uit)")
 
         elif self._pair_stage == 2:
 
@@ -508,7 +508,7 @@ as it is close enough (< 10 pixels)
             else:
 
                 # now the second x,y position
-                if self._cnam != self._line_cnam:
+                if self._cnam != self._pair_cnam:
                     print("  cannot set pairs across different CCDs")
                     self.action_prompt(True)
 
@@ -516,16 +516,17 @@ as it is close enough (< 10 pixels)
                 self._pair_y2 = self._y
                 self._mid_pair = False
 
-            fringe = fringe.FringePair(
+            frng = fringe.FringePair(
                 self._pair_x1,
                 self._pair_y1,
                 self._pair_x2,
                 self._pair_y2
             )
-            self.mccd_fpair[self._cnam][self._buffer] = fringe
+            self.mccd_fpair[self._cnam][self._buffer] = frng
 
-            # add defect to the plot, store plot objects
-            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pFringePair(self._axes, fringe)
+            # add fringe pair to the plot, store plot objects
+            self.pobjs[self._cnam][self._buffer] = \
+                hcam.mpl.pFringePair(self._axes, frng)
 
             # make sure it appears
             plt.draw()
@@ -561,20 +562,21 @@ as it is close enough (< 10 pixels)
         """
 
         # first see if there is a FringePair near enough the selected position
-        fringe, dfnam, dmin = self._find_fringe()
+        frng, frngnam, dmin = self._find_fringe()
 
         if dmin is not None and dmin < 10:
 
-            # near enough for deletion
-            self.pobjs[self._cnam][dfnam].remove()
+            # delete plot objects
+            for pobj in self.pobjs[self._cnam][frngnam]:
+                pobj.remove()
 
-            # delete FringePair from containers
-            del self.pobjs[self._cnam][dfnam]
-            del self.mccd_fpair[self._cnam][dfnam]
+            # and containers
+            del self.pobjs[self._cnam][frngnam]
+            del self.mccd_fpair[self._cnam][frngnam]
 
             # update plot
             plt.draw()
-            print(f'  deleted fringe pair "{dfnam}"')
+            print(f'  deleted fringe pair "{frngnam}"')
 
         else:
             print("  no fringe pair near enough the cursor position for deletion")
@@ -594,11 +596,11 @@ as it is close enough (< 10 pixels)
         dmin = None
         fringemin = None
         dnmin = None
-        for fringenam, fringe in self.mccd_fpair[self._cnam].items():
-            dist = fringe.dist(self._x, self._y)
+        for fringenam, frng in self.mccd_fpair[self._cnam].items():
+            dist = frng.dist(self._x, self._y)
             if dmin is None or dist < dmin:
                 dmin = dist
-                fringemin = fringe
+                fringemin = frng
                 dnmin = fringenam
 
         return (fringemin, dnmin, dmin)

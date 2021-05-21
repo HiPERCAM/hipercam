@@ -550,3 +550,57 @@ def pCcdDefect(axes, ccdDefect, animated=False, previous=None):
         pobjs[key] = pDefect(axes, dfct)
 
     return pobjs
+
+def pFringePair(axes, fpair):
+    """Plots a :class:`FringePair` object, returning
+    a list of artists created.
+
+    Arguments::
+
+       axes : :class:`matplotlib.axes.Axes`
+           the Axes to plot to.
+
+       fpair : FringePair
+           the :class:`FringePair` to plot
+
+    """
+
+    a1, = axes.plot(
+        [fpair.x1,fpair.x2], [fpair.y1,fpair.y2], 'g'
+    )
+    a2, = axes.plot(fpair.x1, fpair.y1, '.r')
+    a3, = axes.plot(fpair.x2, fpair.y2, '.b')
+
+    return [a1,a2,a3]
+
+
+def pCcdFringePair(axes, ccdFringePair, animated=False, previous=None):
+    """Plots a :class:`CcdFringePair` object, returning references to the plot
+    objects.
+
+    Arguments::
+
+       axes : :class:`matplotlib.axes.Axes`
+           the Axes to plot to.
+
+       ccdFringePair : CcdFringePair
+           the :class:`CcdFringePair` to plot
+
+       animated : bool
+           whether to mark the plot objects as "animated" or not.
+
+       previous : None | Group
+           If not None, should be a saved version of the Group of
+           tuples returned from a previous call to this routine with
+           animated=True
+
+    Returns a Group keyed on the same keys as ccdFringePair but
+    containing tuples of the plot objects used to plot each
+    Defect. This can be used to delete them if need be.
+
+    """
+    pobjs = {}
+    for key, fpair in ccdFringePair.items():
+        pobjs[key] = pFringePair(axes, fpair)
+
+    return pobjs

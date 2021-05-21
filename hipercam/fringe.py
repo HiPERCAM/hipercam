@@ -62,7 +62,7 @@ class FringePair:
     def __repr__(self):
         return \
             f"FringePair(x1={self.x1:.2f}, y1={self.y1:.2f}," \
-            f" x2={self.x2:.2f}, y2={self.y2:.2f)"
+            f" x2={self.x2:.2f}, y2={self.y2:.2f})"
 
 class CcdFringePair(Group):
     """Class representing all the :class:`FringePair`s for a single CCD.
@@ -80,7 +80,7 @@ class CcdFringePair(Group):
           fpairs : Group
               Group of :class:`FringePair` objects
         """
-        super().__init__(FringePair, defs)
+        super().__init__(FringePair, fpairs)
 
     def __repr__(self):
         return "{:s}(fpairs={:s})".format(self.__class__.__name__, super().__repr__())
