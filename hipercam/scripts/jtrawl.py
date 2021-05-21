@@ -99,6 +99,8 @@ def jtrawl(args=None):
         MEDNAMS = ('median_E','median_F','median_G','median_H')
         JUNKLIMS = (65000,65000,65000,65000,65000)
 
+    MINSPREAD = 10
+
     for nname in nnames:
 
         print(f"Night {nname}")
@@ -142,7 +144,10 @@ def jtrawl(args=None):
 
                 for mnam in MEDNAMS:
                     med = table[mnam]
-                    if len(med) < 5 or len(med[med < jlim]) > 2:
+                    if len(med) < 5:
+                        break
+                    spread = table['p95'] - table['p5']
+                    if len(med[med < jlim]) > 2 and len(spread[spread > MINSPREAD]) > 2:
                         break
                 else:
                     print(f'{dfile} is probably JUNK')
