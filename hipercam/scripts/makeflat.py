@@ -468,9 +468,12 @@ def makeflat(args=None):
 
         # Remove any CCDs not included to avoid impression of having done
         # something to them
-        for cnam in template:
+        dcnams = []
+        for cnam in template.keys():
             if cnam not in ccds:
-                del template[cnam]
+                dcnams.append(cnam)
+        for cnam in dcnams:
+            del template[cnam]
 
         # write out
         template.write(output, clobber)
