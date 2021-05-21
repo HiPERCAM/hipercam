@@ -26,6 +26,7 @@ from .hls import hls
 from .hmeta import hmeta
 from .hplot import hplot
 from .joinup import joinup
+from .jtrawl import jtrawl
 from .ltimes import ltimes
 from .logsearch import logsearch
 from .ltrans import ltrans
