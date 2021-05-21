@@ -260,6 +260,7 @@ class HcamListSpool(SpoolerBase):
             self._file = True
         else:
             self._iter = lname
+            self._index = 0
             self._file = False
 
         self.cnam = cnam
@@ -281,7 +282,8 @@ class HcamListSpool(SpoolerBase):
 
         else:
             try:
-                fname = self._iter.pop(0)
+                fname = self._iter[self._index]
+                self._index += 1
             except IndexError:
                 raise StopIteration
 
