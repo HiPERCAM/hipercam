@@ -1530,7 +1530,7 @@ class Rtbytes(Rhead):
              file will work, but will cause an exception to be raised on the
              next attempted read.
 
-        It returns
+        It returns the value of self.nframe on entry
         """
 
         old_frame = self.nframe

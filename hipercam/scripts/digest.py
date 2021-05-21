@@ -110,8 +110,9 @@ def digest(args=None):
         return
 
     # regular expression to match run directory, e.g. 2018-10 [2018, October],
-    # 2020-21 [season 2020 to 2021], 2021-P106 [ESO period 106]
-    rdre = re.compile("^(Others|\d\d\d\d-(\d\d|P\d\d\d))$")
+    # 2020-21 [season 2020 to 2021], 2021-P106 [ESO period 106], 2021A [GTC semester],
+    # 'Others' [TNT other people]
+    rdre = re.compile("^(Others|\d\d\d\d-(\d\d|P\d\d\d)|\d\d\d\d[AB])$")
 
     # regular expression to match input night directory, e.g. 2018_10_30
     ndre = re.compile("^\d\d\d\d_\d\d_\d\d$")
@@ -201,7 +202,7 @@ def digest(args=None):
 
             telescope = os.path.join(ndir, 'telescope')
             if os.path.exists(telescope):
-                print(f'ERROR: file called "telescope" allready exists in {ndir}')
+                print(f'ERROR: file called "telescope" already exists in {ndir}')
                 return
 
             # compile list of runs in the directory
@@ -247,7 +248,7 @@ def digest(args=None):
                     with open(md5) as fin:
                         for line in fin:
                             hash, name = line.split()
-                            if not name.endswith(".old"):
+                            if name.endswith(".xml") or name.endswith(".dat") or name.endswith(".fits"):
                                 mruns.append(name[: name.rfind(".")])
 
                 else:

@@ -47,7 +47,7 @@ __all__ = [
 
 def setdefect(args=None):
     """``setdefect mccd defect ccd [linput width height] rtarg rsky1 rsky2 nx
-    msub iset (ilo ihi | plo phi) [profit method beta fwmin fwhm fwfix
+    msub [cmap] iset (ilo ihi | plo phi) [profit method beta fwmin fwhm fwfix
     shbox smooth splot fhbox read gain thresh]``
 
     Interactive definition of CCD defects. This is a matplotlib-based routine
@@ -85,9 +85,10 @@ def setdefect(args=None):
       msub   : bool
          True/False to subtract median from each window before scaling
 
-      invert : bool [if msub]
-         If msub is True, then you can invert the image values (-ve to +ve)
-         with this parameter. Can make it easier to spot bad values.
+      cmap : str [hidden]
+         The colour map to use. "Greys" is the usual; "Greys_r" reverses it.
+         There are many others; typing an incorrect one will give a list. "none"
+         for matplotlib default.
 
       ffield : bool
          If True, all defects will be assumed to be flat-field or poor
@@ -163,7 +164,7 @@ def setdefect(args=None):
         cl.register("height", Cline.LOCAL, Cline.HIDE)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("invert", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("ffield", Cline.GLOBAL, Cline.PROMPT)
         cl.register("hsbox", Cline.GLOBAL, Cline.HIDE)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
@@ -193,12 +194,6 @@ def setdefect(args=None):
                 "No file called {:s} exists; " "will create from scratch".format(dfct)
             )
 
-        # define the panel grid
-        try:
-            nxdef = cl.get_default("nx")
-        except:
-            nxdef = 3
-
         max_ccd = len(mccd)
         if max_ccd > 1:
             ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
@@ -212,6 +207,8 @@ def setdefect(args=None):
         width = cl.get_value("width", "plot width (inches)", 0.0)
         height = cl.get_value("height", "plot height (inches)", 0.0)
 
+        nxdef = cl.get_default("nx", 3)
+
         # number of panels in X
         if len(ccds) > 1:
             nxdef = min(len(ccds), nxdef)
@@ -223,8 +220,8 @@ def setdefect(args=None):
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)
 
-        if msub:
-            invert = cl.get_value("invert", "invert image intensities?", True)
+        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+        cmap = None if cmap == "none" else cmap
 
         ffield = cl.get_value("ffield", "flat field defects? [else hot pixels]", True)
 
@@ -299,10 +296,8 @@ def setdefect(args=None):
     anams = {}
 
     # this is a container for all the objects used to plot Defects to allow
-    # deletion. This is Group of Group objects supporting tuple storage. The
-    # idea is that pobjs[cnam][anam] returns the objects used to plot Defect
-    # anam of CCD cnam. It is initially empty,
-    pobjs = hcam.Group(hcam.Group)
+    # deletion. 
+    pobjs = {}
 
     for n, cnam in enumerate(ccds):
         if ax is None:
@@ -312,17 +307,16 @@ def setdefect(args=None):
             axes.set_ylim(ylo, yhi)
         else:
             axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
-            axes.set_aspect("equal", adjustable="datalim")
+#            axes.set_aspect("equal", adjustable="datalim")
+            axes.set_aspect("equal", adjustable="box")
 
         if msub:
             # subtract median from each window
             for wind in mccd[cnam].values():
                 wind -= wind.median()
-            if invert:
-                mccd *= -1
 
         hcam.mpl.pCcd(
-            axes, mccd[cnam], iset, plo, phi, ilo, ihi, "CCD {:s}".format(cnam)
+            axes, mccd[cnam], iset, plo, phi, ilo, ihi, f"CCD {cnam}", cmap=cmap
         )
 
         # keep track of the CCDs associated with each axes
@@ -341,14 +335,13 @@ def setdefect(args=None):
             mccd_dfct[cnam] = defect.CcdDefect()
 
             # and an empty container for any new plot objects
-            pobjs[cnam] = hcam.Group(tuple)
+            pobjs[cnam] = {}
 
     # create the Defect picker (see below for class def)
     picker = PickDefect(
         mccd, cnams, anams, toolbar, fig, mccd_dfct, dfct, ffield, hsbox, pobjs
     )
 
-    plt.tight_layout()
     picker.action_prompt(False)
 
     # squeeze space a bit
@@ -746,8 +739,7 @@ close enough (< 10 pixels)
         if dmin is not None and dmin < 10:
 
             # near enough for deletion
-            for obj in self.pobjs[self._cnam][dfnam]:
-                obj.remove()
+            self.pobjs[self._cnam][dfnam].remove()
 
             # delete Defect from containers
             del self.pobjs[self._cnam][dfnam]

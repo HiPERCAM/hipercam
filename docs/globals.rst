@@ -35,13 +35,16 @@
 .. |hls| replace:: :func:`hls <hipercam.scripts.hls>`
 .. |hmeta| replace:: :func:`hmeta <hipercam.scripts.hmeta>`
 .. |hplot| replace:: :func:`hplot <hipercam.scripts.hplot>`
+.. |joinup| replace:: :func:`joinup <hipercam.scripts.joinup>`
 .. |ltimes| replace:: :func:`ltimes <hipercam.scripts.ltimes>`
 .. |ltrans| replace:: :func:`ltrans <hipercam.scripts.ltrans>`
 .. |makebias| replace:: :func:`makebias <hipercam.scripts.makebias>`
 .. |makedark| replace:: :func:`makedark <hipercam.scripts.makedark>`
 .. |makeflat| replace:: :func:`makeflat <hipercam.scripts.makeflat>`
+.. |makemovie| replace:: :func:`makemovie <hipercam.scripts.makemovie>`
 .. |mstats| replace:: :func:`mstats <hipercam.scripts.mstats>`
 .. |mul| replace:: :func:`mul <hipercam.scripts.mul>`
+.. |nrtplot| replace:: :func:`nrtplot <hipercam.scripts.nrtplot>`
 .. |plog| replace:: :func:`plog <hipercam.scripts.plog>`
 .. |psf_reduce| replace:: :func:`psf_reduce <hipercam.scripts.psf_reduce>`
 .. |redanal| replace:: :func:`redanal <hipercam.scripts.redanal>`
@@ -56,7 +59,6 @@
 .. |sub| replace:: :func:`sub <hipercam.scripts.sub>`
 .. |tanalysis| replace:: :func:`tanalysis <hipercam.scripts.tanalysis>`
 .. |tbytes| replace:: :func:`tanalysis <hipercam.scripts.tbytes>`
-.. |ulogger| replace:: :func:`ulogger <hipercam.scripts.ulogger>`
 .. |uls| replace:: :func:`uls <hipercam.scripts.uls>`
 
 .. |musec| replace:: :math:`\mu\text{s}`

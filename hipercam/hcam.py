@@ -304,6 +304,7 @@ class Rhead:
             self.toff1 = self.toff2 = 1.0e-3 * E / 2.0
             self.toff3 = self.toff4 = 1.0e-3 * E
             self.tdead = 1.0e-3 * (FR + W)
+
         elif self.drift:
             # Drift mode
             LD = hd["ESO DET DRIFT TLINEDUMP"]
@@ -1380,6 +1381,12 @@ class Rtbytes(Rhead):
 
         # move to the start of the timing bytes
         self.nframe = nframe
+
+        # This sets whether on the next call we should regard the file
+        # position as requiring a reset. Used by 'set' to flag up different
+        # actions in __call__
+        self.reset = False
+
         if not server:
             self._ffile.seek(
                 self._hbytes + self._framesize * self.nframe - self.ntbytes
@@ -1410,23 +1417,11 @@ class Rtbytes(Rhead):
         Returns:: the timing bytes of the frame
         """
 
-        # set the frame to be read and whether the file pointer needs to be
-        # reset
-        if nframe is None:
-            # just read whatever frame we are on
-            reset = False
-        else:
-            if nframe == 0:
-                # go for the last one
-                nframe = self.ntotal()
-
-            # update frame counter
-            reset = self.nframe != nframe
-            self.nframe = nframe
+        self.set(nframe)
 
         if self.server:
             # define command to send to server
-            if reset:
+            if self.reset:
                 # requires a seek as well as a read
                 data = json.dumps(dict(action="get_frame", frame_number=self.nframe))
             else:
@@ -1452,7 +1447,7 @@ class Rtbytes(Rhead):
 
         else:
             # find the start of the timing data if necessary
-            if reset:
+            if self.reset:
                 self._ffile.seek(
                     self._hbytes + self._framesize * self.nframe - self.ntbytes
                 )
@@ -1465,9 +1460,40 @@ class Rtbytes(Rhead):
 
         # update the internal frame counter
         self.nframe += 1
+        self.reset = False
 
         return tbytes
 
+    def set(self, nframe=1):
+        """Resets the position so that we are just about to read
+        the timing data of nframe, but does not read them unlike
+        __call__
+
+        Arguments::
+
+           nframe : int | none
+              frame number to get, starting at 1. 0 for the last (complete)
+              frame. 'None' indicates that the next frame is wanted.
+
+        Returns:: the timing bytes of the frame
+        """
+
+        old_frame = self.nframe
+
+        if nframe is None:
+            # just read whatever frame we are now on
+            self.reset = False
+        else:
+            if nframe == 0:
+                # go for the last one
+                nframe = self.ntotal()
+
+            # record whether we need to be in reset mode
+            # update frame counter
+            self.reset = self.nframe != nframe
+            self.nframe = nframe
+
+        return old_frame
 
 class Rtime(Rtbytes):
     """Callable, iterable object to generate timing data only from HiPERCAM raw data files.
@@ -1488,14 +1514,15 @@ class Rtime(Rtbytes):
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted.
 
-        Returns:: (tstamp, tinfo) or None if you try to read a non-existent
+        Returns:: (tstamp, tinfo, tflag) or None if you try to read a non-existent
         frame (useful if you are waiting from frames to be added). Here
         'tstamp' is an astropy.time.Time equivalent to the GPS timestamp
         associated with the frame, with no correction, while 'tinfo' is a
         5-elements tuple, one for each CCD listing for each one the MJD at
         mid-exposure, an exposure time in seconds and a flag to indicate
         whether the time is thought reliable, which is only the case if
-        real data comes with the frame.
+        real data comes with the frame. The final tflag reflects whether
+        there were any satellites and the GPS had been synced
         """
 
         tbytes = super().__call__(nframe)
@@ -1532,8 +1559,8 @@ class Rtime(Rtbytes):
 
         tinfo = []
         for nccd in range(5):
-            tmid, texp, tflag = self.timing(self.nframe - 1, nccd)
-            tinfo.append((tstamp.mjd + tmid, texp, tflag))
+            tmid, texp, tiflag = self.timing(self.nframe - 1, nccd)
+            tinfo.append((tstamp.mjd + tmid, texp, tiflag))
 
         # Return timing data
         return (tstamp, tuple(tinfo), tflag)

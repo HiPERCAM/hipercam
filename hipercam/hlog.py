@@ -403,7 +403,7 @@ class Hlog(dict):
                                 float(eym) if float(eym) > 0 else NaN,
                                 float(counts) if float(sigma) > 0 else NaN,
                                 float(sigma) if float(sigma) > 0 else NaN,
-                                float(sky) if int(ssky) > 0 else NaN,
+                                float(sky) if int(nsky) > 0 else NaN,
                                 int(nsky),
                                 int(nrej),
                                 int(worst),
@@ -413,7 +413,7 @@ class Hlog(dict):
                     else:
                         # first time for this CCD
                         hlog[cnam] = bytearray()
-                        names = ["MJD", "MJDok", "Expose", "FWHM", "beta"]
+                        names = ["MJD", "MJDok", "Exptim", "FWHM", "beta"]
                         dts = ["f8", "?", "f4", "f4", "f4"]
                         naps[cnam] = len(arr[7:]) // 14
                         hlog.apnames[cnam] = [str(i) for i in range(1, naps[cnam] + 1)]
@@ -462,7 +462,7 @@ class Hlog(dict):
                                 "i4",
                                 "i4",
                                 "i4",
-                                "i4",
+                                "u4",
                             ]
 
                             values += [
@@ -474,7 +474,7 @@ class Hlog(dict):
                                 float(eym) if float(eym) > 0 else NaN,
                                 float(counts) if float(sigma) > 0 else NaN,
                                 float(sigma) if float(sigma) > 0 else NaN,
-                                float(sky) if int(ssky) > 0 else NaN,
+                                float(sky) if int(nsky) > 0 else NaN,
                                 int(nsky),
                                 int(nrej),
                                 int(worst),
@@ -849,7 +849,7 @@ class Tseries:
             plot = self.get_mask(bitmask)
         else:
             plot = ~self.get_mask(bitmask)
-            
+
         if mask is not None:
             plot &= mask
 
@@ -1333,18 +1333,35 @@ class Tseries:
             (if inplace=False)
         """
         phase = (self.t - t0) / period
+        pexpose = self.te/np.abs(period) if self.te is not None else None
+
         if fold:
             phase = np.mod(phase, 1)
             phase[phase > 0.5] -= 1
-        pexpose = self.te/np.abs(period) if self.te is not None else None
+            isort = np.argsort(phase)
 
-        if inplace:
-            self.t = phase
-            self.te = pexpose
+            if inplace:
+                self.t = phase[isort]
+                self.te = pexpose[isort] if pexpose is not None else None
+                self.y = self.y[isort]
+                self.ye = self.ye[isort]
+                self.bmask = self.bmask[isort]
+            else:
+                return Tseries(
+                    phase[isort],
+                    self.y[isort], self.ye[isort], self.bmask[isort],
+                    pexpose[isort] if pexpose is not None else None,
+                    True
+                )
+
         else:
-            return Tseries(
-                phase, self.y, self.ye, self.bmask, pexpose, True
-            )
+            if inplace:
+                self.t = phase
+                self.te = pexpose
+            else:
+                return Tseries(
+                    phase, self.y, self.ye, self.bmask, pexpose, True
+                )
 
     def normalise(self, bitmask=None, method='median', weighted=False, inplace=True):
         """Returns a normalized version of the time series.

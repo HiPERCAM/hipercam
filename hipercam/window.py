@@ -1447,7 +1447,7 @@ class Window(Winhead):
 
         # carry out addition to a float type
         data = self.data - num
-        return Window(super.copy(), data)
+        return Window(super().copy(), data)
 
     def __rsub__(self, other):
         """Subtracts a :class:`Window` from `other` as `other - wind`.  Here `other`

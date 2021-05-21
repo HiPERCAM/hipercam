@@ -519,7 +519,7 @@ def get_ccd_pars(source, resource):
             )
 
 
-def hang_about(obj, twait, tmax, total_time):
+def hang_about(obj, twait, tmax, total_time, updaters=None):
     """Carries out some standard actions when we loop through frames which are
     common to rtplot, reduce and grab. This is a case of seeing whether we
     want to try again for a frame or a time that may have arrived while we
@@ -540,6 +540,10 @@ def hang_about(obj, twait, tmax, total_time):
 
          total_time : (float)
             total time waited. Should be initialised to zero
+
+         updaters : None or tuple of functions
+            update functions that will be run every 0.2 seconds if twait
+            is > 0.4 second. Designed for use by nrtplot.
 
     Returns: (give_up, try_again, total_time)
 
@@ -572,8 +576,18 @@ def hang_about(obj, twait, tmax, total_time):
                 " twait = {:.1f} sec.".format(total_time, tmax, twait)
             )
 
-            # pause
-            time.sleep(twait)
+            if updaters is not None and len(updaters) and twait > 0.4:
+                # run the updaters every 0.2 seconds or so if twait is
+                # a little long. Designed for nrplot to make the plot
+                # more responsive
+                nupdate = int(twait/0.2)
+                for n in range(nupdate):
+                    time.sleep(twait/nupdate)
+                    for updater in updaters:
+                        updater()
+            else:
+                # pause
+                time.sleep(twait)
 
             # increment the waiting time
             total_time += twait

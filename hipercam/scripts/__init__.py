@@ -25,6 +25,8 @@ from .hlog2col import hlog2col
 from .hls import hls
 from .hmeta import hmeta
 from .hplot import hplot
+from .joinup import joinup
+from .jtrawl import jtrawl
 from .ltimes import ltimes
 from .logsearch import logsearch
 from .ltrans import ltrans
@@ -32,6 +34,7 @@ from .makebias import makebias
 from .makedark import makedark
 from .makeflat import makeflat
 from .makefringe import makefringe
+from .makemovie import makemovie
 from .makestuff import makemccd, makefield
 from .mstats import mstats
 from .pfolder import pfolder
@@ -39,6 +42,7 @@ from .plog import plog
 from .redplt import redplt
 from .reduce import reduce
 from .rtplot import rtplot
+from .nrtplot import nrtplot
 from .rupdate import rupdate
 from .setaper import setaper
 from .setdefect import setdefect
@@ -47,7 +51,6 @@ from .redanal import redanal
 from .splice import splice
 from .tbytes import tbytes
 from .tanalysis import tanalysis
-from .ulogger import ulogger
 from .uls import uls
 
 __all__ = [
@@ -69,6 +72,7 @@ __all__ = [
     "hlogger",
     "hls",
     "hplot",
+    "joinup",
     "ltimes",
     "ltrans",
     "makebias",
@@ -83,6 +87,7 @@ __all__ = [
     "reduce",
     "register",
     "rtplot",
+    "nrtplot",
     "rupdate",
     "setaper",
     "setdefect",
