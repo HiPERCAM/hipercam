@@ -79,8 +79,7 @@ def jtrawl(args=None):
         nname
         for nname in os.listdir(".")
         if nre.match(nname)
-        and os.path.isdir(nname) and
-        (args.night is None or nname == args.night)
+        and os.path.isdir(nname)
     ]
     nnames.sort()
 
