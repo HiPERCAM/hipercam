@@ -32,29 +32,39 @@ def hmeta(args=None):
 
     This command is to be run in the "raw_data" directory containing
     night-by-night directories of data for |hipercam|, ULTRACAM or
-    ULTRASPEC. It attempts to generate meta data on any run data it
-    can find. It writes a file runXXX.csv for each run containing data,
-    and summary statistics to a file 'statistics.csv'. These files are
-    written to a sub-directory called meta. These data can be picked up by logging
-    scripts. The sort of data it produces are means, medians, etc of
-    the frames (or some of the frames -- up to a maximum of 100-200)
-    of each run. The program only considers genuine frames, i.e. it
-    copes with the nblue and nskip options of ULTRACAM and |hipercam|.
-    It also know about the different amplifier outputs of the
-    instruments and starts by subtracting the medians of each
-    amplifier output to avoid being disturbed by variable mean bias
-    offsets.
+    ULTRASPEC. It computes data on every runs it can find listing the
+    mininum, maximum, mean and median and the following percentiles:
+    1.0,5.0,15.865,84.135,95.0,99.0. It does this for all frames in a
+    run up to a maximum of 100-200 frames. The data are listed along
+    with the frame number separately for each CCD since this only looks
+    at valid data, i.e. it takes into account nblue for ULTRACAM and nskips
+    for |hiper|. This means there may be different numbers of frames listed
+    for each CCD. It writes a file runXXX[X].csv for each run containing data
+    to a sub-directory called meta.
+
+    The program only considers genuine frames, i.e. it copes with the
+    nblue and nskip options of ULTRACAM and |hipercam|. It also knows
+    about the different amplifier outputs of the instruments and
+    starts by subtracting the medians of each amplifier output to
+    avoid being disturbed by variable mean bias offsets. These offsets
+    are recorded as well.
 
     hmeta takes a good while to run, so be nice when running it.
 
     """
 
     parser = argparse.ArgumentParser(description=description)
+
     parser.add_argument(
         "-f",
         dest="full",
         action="store_true",
         help="carry out full re-computation of stats for all valid nights",
+    )
+    parser.add_argument(
+        "-n",
+        dest="night",
+        help="name of specific night [for testing purposes]",
     )
     args = parser.parse_args()
 
@@ -99,7 +109,8 @@ def hmeta(args=None):
         nname
         for nname in os.listdir(".")
         if nre.match(nname)
-        and os.path.isdir(nname)
+        and os.path.isdir(nname) and
+        (args.night is None or nname == args.night)
     ]
     nnames.sort()
 
@@ -108,6 +119,9 @@ def hmeta(args=None):
         print("hmeta aborted", file=sys.stderr)
         return
 
+    # This defines approx how many we will analyse; could be up to
+    # double this in practice
+    NLIM = 100
 
     for nname in nnames:
 
@@ -129,24 +143,25 @@ def hmeta(args=None):
         meta = os.path.join(nname, 'meta')
         os.makedirs(meta, exist_ok=True)
 
-        # name of stats file
-        stats = os.path.join(meta, 'statistics.csv')
-        if not args.full and os.path.exists(stats):
-            # if file already present and we are re-doing things
-            # in full, don't attempt to re-compute
-            continue
-
         # Accumulate results in an array
-        barr = []
         for run in runs:
             dfile = os.path.join(nname, run)
+
+            if not args.full:
+                # check for existence of data files
+                for cnam in cnams:
+                    oname = os.path.join(meta, f'{run}_{cnam}.csv')
+                    if not os.path.exists(oname):
+                        break
+                else:
+                    print(f'  {dfile}, stats file(s) already exist')
+                    continue
 
             try:
                 if itype == 'U':
                     rdat = hcam.ucam.Rdata(dfile)
                 else:
                     rdat = hcam.hcam.Rdata(dfile, 1, False, False)
-                print(f"  {dfile}")
             except hcam.ucam.PowerOnOffError:
                 print(f'  {dfile} -- power on/off; skipping')
                 continue
@@ -160,7 +175,7 @@ def hmeta(args=None):
                 print(f'  {dfile} -- problem occurred; skipping')
                 continue
 
-            # For speed, analyse a maximum of 100-200
+            # For speed, analyse a maximum of NLIM to 2*NLIM-1
             # images of each CCD from any given run. Have to take
             # into account the skips / nblue parameters.
             ntotal = rdat.ntotal()
@@ -170,30 +185,44 @@ def hmeta(args=None):
 
             ncframes = {}
             if instrument == 'ULTRASPEC':
-                # just the one CCD here
-                nstep = ntotal // min(ntotal, 100)
+                # just the one CCD here. nstep defines how often we sample.
+                # note that ntotal has to be 2*NLIM before nstep > 1.
+                nstep = ntotal // min(ntotal, NLIM)
                 ncframes['1'] = list(range(1,ntotal+1,nstep))
                 nframes = ncframes['1']
-                ns = {'1' : 0}
 
             elif instrument == 'ULTRACAM':
                 # CCD 1, 2 read out each time, but 3 can be skipped
-                nstep = ntotal // min(ntotal, 100)
+                nstep = ntotal // min(ntotal, NLIM)
                 ncframes['1'] = list(range(1,ntotal+1,nstep))
                 ncframes['2'] = ncframes['1']
 
                 nb = rdat.nblue
-                nbstep = nb*max(1, ntotal // min(ntotal, 100*nb))
+                nbstep = nb*max(1, ntotal // min(ntotal, NLIM*nb))
                 ncframes['3'] = list(range(nb,ntotal+1,nbstep))
                 nframes = sorted(set(ncframes['1']+ncframes['3']))
 
-                ns = {'1' : 0, '2' : 0, '3' : 0}
-
             else:
-                raise NotImplementedError('HiPERCAM case not done yet')
+                # All CCDs potentially skippable
+                nskips = rdat.skips
+                nsteps = []
+                for cnam,nskip in zip( cnams, nskips):
+                    nstep = nskip*max(1, ntotal // min(ntotal, NLIM*nskip))
+                    ncframes[cnam] = list(range(nskip,ntotal+1,nstep))
+
+                # sorted list of frames to access
+                nframes = sorted(
+                    set(
+                        ncframes['1']+ncframes['2']+ncframes['3']+ncframes['4']+ncframes['5']
+                    )
+                )
+
+            # index counters
+            ns = dict(zip(cnams,len(cnams)*[0]))
 
             # define arrays for holding the stats
-            medians, means, p1s, p16s, rmsps, p84s, p99s = {}, {}, {}, {}, {}, {}, {}
+            medians, means, mins, p1s, p5s, p16s, p84s, p95s, p99s, maxs = \
+                {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
             for cnam, ncframe in ncframes.items():
                 if instrument == 'ULTRASPEC':
                     medians[cnam] = np.empty_like(ncframe,dtype=np.float)
@@ -202,15 +231,23 @@ def hmeta(args=None):
                         'L' : np.empty_like(ncframe,dtype=np.float),
                         'R' : np.empty_like(ncframe,dtype=np.float)
                     }
-                else:
-                    raise NotImplementedError('HiPERCAM case not done yet')
+                elif  instrument == 'HIPERCAM':
+                    medians[cnam] = {
+                        'E' : np.empty_like(ncframe,dtype=np.float),
+                        'F' : np.empty_like(ncframe,dtype=np.float),
+                        'G' : np.empty_like(ncframe,dtype=np.float),
+                        'H' : np.empty_like(ncframe,dtype=np.float)
+                    }
 
                 means[cnam] = np.empty_like(ncframe,dtype=np.float)
+                mins[cnam] = np.empty_like(ncframe,dtype=np.float)
                 p1s[cnam] = np.empty_like(ncframe,dtype=np.float)
+                p5s[cnam] = np.empty_like(ncframe,dtype=np.float)
                 p16s[cnam] = np.empty_like(ncframe,dtype=np.float)
                 p84s[cnam] = np.empty_like(ncframe,dtype=np.float)
-                rmsps[cnam] = np.empty_like(ncframe,dtype=np.float)
+                p95s[cnam] = np.empty_like(ncframe,dtype=np.float)
                 p99s[cnam] = np.empty_like(ncframe,dtype=np.float)
+                maxs[cnam] = np.empty_like(ncframe,dtype=np.float)
 
             # now access the data and calculate stats. we have to
             # remember that ultracam and hipercam have different
@@ -227,6 +264,7 @@ def hmeta(args=None):
                                 medval = ccd.median()
                                 ccd -= medval
                                 medians[cnam][nc] = medval
+
                             elif instrument == 'ULTRACAM':
                                 wl = hcam.Group(hcam.Window)
                                 wr = hcam.Group(hcam.Window)
@@ -243,19 +281,59 @@ def hmeta(args=None):
                                 ccdr -= medr
                                 medians[cnam]['L'][nc] = medl
                                 medians[cnam]['R'][nc] = medr
-                            else:
-                                raise NotImplementedError('HiPERCAM case not done yet')
 
-                            # At this stage the median value should have been subtracted
-                            # from the CCD on a per output basis. Remaining stats calculated
-                            # from these median subtracted images.
+                            elif instrument == 'HIPERCAM':
+                                we = hcam.Group(hcam.Window)
+                                wf = hcam.Group(hcam.Window)
+                                wg = hcam.Group(hcam.Window)
+                                wh = hcam.Group(hcam.Window)
+                                for nw, wnam in enumerate(ccd):
+                                    if wnam.startswith('E'):
+                                        we[wnam] = ccd[wnam]
+                                    elif wnam.startswith('F'):
+                                        wf[wnam] = ccd[wnam]
+                                    elif wnam.startswith('G'):
+                                        wg[wnam] = ccd[wnam]
+                                    elif wnam.startswith('H'):
+                                        wh[wnam] = ccd[wnam]
+
+                                ccde = hcam.CCD(we,ccd.nxtot,ccd.nytot)
+                                mede = ccde.median()
+                                ccde -= mede
+
+                                ccdf = hcam.CCD(wf,ccd.nxtot,ccd.nytot)
+                                medf = ccdf.median()
+                                ccdf -= medf
+
+                                ccdg = hcam.CCD(wg,ccd.nxtot,ccd.nytot)
+                                medg = ccdg.median()
+                                ccdg -= medg
+
+                                ccdh = hcam.CCD(wh,ccd.nxtot,ccd.nytot)
+                                medh = ccdh.median()
+                                ccdh -= medh
+
+                                medians[cnam]['E'][nc] = mede
+                                medians[cnam]['F'][nc] = medf
+                                medians[cnam]['G'][nc] = medg
+                                medians[cnam]['H'][nc] = medh
+
+                            # At this stage the median value should
+                            # have been subtracted from the CCD on a
+                            # per output basis. Remaining stats
+                            # calculated from these median subtracted
+                            # images.
                             means[cnam][nc] = ccd.mean()
-                            p1,p16,p84,p99 = ccd.percentile([1.0,15.865,84.135,99.0])
+                            mins[cnam][nc] = ccd.min()
+                            p1,p5,p16,p84,p95,p99 = ccd.percentile([1.0,5.0,15.865,84.135,95.0,99.0])
                             p1s[cnam][nc] = p1
+                            p5s[cnam][nc] = p5
                             p16s[cnam][nc] = p16
-                            rmsps[cnam][nc] = (p84-p16)/2
                             p84s[cnam][nc] = p84
+                            p95s[cnam][nc] = p95
                             p99s[cnam][nc] = p99
+                            maxs[cnam][nc] = ccd.max()
+
                             ns[cnam] += 1
                 except:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -265,177 +343,95 @@ def hmeta(args=None):
                     traceback.print_exc(file=sys.stderr)
                     continue
 
-            # All extracted from the run; take and store medians
-            # of the extracted stats
-            brow = [run,]
+            # All numbers extracted from the run. Now want to create pandas dataframe
+            # for easy output
+
+            # Create pandas dataframe for easy output. First names and datatypes
+            cnames, dtypes = get_cnames_dtypes(instrument)
+
             for cnam in cnams:
-                if len(means[cnam]) == 0:
-                    if instrument == 'ULTRASPEC':
-                        brow += [0] + 21*[None]
-                    elif instrument == 'ULTRACAM':
-                        brow += [0] + 24*[None]
-                    else:
-                        raise NotImplementedError('HiPERCAM case not done yet')
-                else:
-                    if instrument == 'ULTRASPEC':
-                        min_med = np.min(medians[cnam])
-                        med_med = np.median(medians[cnam])
-                        max_med = np.max(medians[cnam])
-                        brow += [len(means[cnam]),min_med,med_med,max_med]
-                    elif instrument == 'ULTRACAM':
-                        min_medl = np.min(medians[cnam]['L'])
-                        med_medl = np.median(medians[cnam]['L'])
-                        max_medl = np.max(medians[cnam]['L'])
-                        min_medr = np.min(medians[cnam]['R'])
-                        med_medr = np.median(medians[cnam]['R'])
-                        max_medr = np.max(medians[cnam]['R'])
-                        brow += [len(means[cnam]),min_medl,med_medl,max_medl,min_medr,med_medr,max_medr]
-                    else:
-                        raise NotImplementedError('HiPERCAM case not done yet')
+                # one file per CCD because of potentially different column lengths
+                oname = os.path.join(meta, f'{run}_{cnam}.csv')
 
-                    brow += [
-                        np.min(means[cnam]),np.median(means[cnam]),np.max(means[cnam])
-                    ]
-                    brow += [
-                        np.min(p1s[cnam]),np.median(p1s[cnam]),np.max(p1s[cnam])
-                    ]
-                    brow += [
-                        np.min(p16s[cnam]),np.median(p16s[cnam]),np.max(p16s[cnam])
-                    ]
-                    brow += [
-                        np.min(rmsps[cnam]),np.median(rmsps[cnam]),np.max(rmsps[cnam])
-                    ]
-                    brow += [
-                        np.min(p84s[cnam]),np.median(p84s[cnam]),np.max(p84s[cnam])
-                    ]
-                    brow += [
-                        np.min(p99s[cnam]),np.median(p99s[cnam]),np.max(p99s[cnam])
-                    ]
+                # Form output array
+                barr = [ncframes[cnam],]
+                if instrument == 'ULTRASPEC':
+                    barr.append(medians[cnam])
+                elif instrument == 'ULTRACAM':
+                    barr += [medians[cnam]['L'],medians[cnam]['R']]
+                elif instrument == 'HIPERCAM':
+                    barr += [medians[cnam]['E'],medians[cnam]['F'],medians[cnam]['G'],medians[cnam]['H']]
 
-            barr.append(brow)
+                barr += [
+                    means[cnam], mins[cnam],
+                    p1s[cnam], p5s[cnam], p16s[cnam],
+                    p84s[cnam], p95s[cnam], p99s[cnam],
+                    maxs[cnam]
+                ]
 
-        # Create pandas dataframe for easy output
-        if instrument == 'ULTRASPEC':
-            colnames = ULTRASPEC_META_COLNAMES
-        elif instrument == 'ULTRACAM':
-            colnames = ULTRACAM_META_COLNAMES
-        else:
-            raise NotImplementedError('HiPERCAM case not done yet')
+                # Make pandas dataframe
+                table = pd.DataFrame(data=np.column_stack(barr),columns=cnames)
+                table = table.astype(dtypes)
+                table.to_csv(oname,index=False)
+                print(f'  {dfile}, written stats to {oname}')
 
-        cnames, dtypes = [], {}
-        for cname, dtype, defn in colnames:
-            cnames.append(cname)
-            dtypes[cname] = dtype
-        table = pd.DataFrame(data=barr,columns=cnames)
-        table = table.astype(dtypes)
-        table.to_csv(stats,index=False)
-        print(f'Written statistics to {stats}\n')
+def get_cnames_dtypes(instrument):
+    if instrument == 'ULTRASPEC':
+        coldefs = ULTRASPEC_COLNAMES
+    elif instrument == 'ULTRACAM':
+        coldefs = ULTRACAM_COLNAMES
+    elif instrument == 'HIPERCAM':
+        coldefs = HIPERCAM_COLNAMES
 
-# Create and write out spreadsheet
-ULTRASPEC_META_COLNAMES = (
-    ('run_no', 'str', 'Run number'),
-    ('nf_used', 'float32', 'number of frames used for stats. First of many stats computed by "hmeta"'),
-    ('med_min', 'float32', 'minimum median'),
-    ('med_med', 'float32', 'median median'),
-    ('med_max', 'float32', 'maximum median'),
-    ('mean_min', 'float32', 'minimum mean'),
-    ('mean_med', 'float32', 'median mean'),
-    ('mean_max', 'float32', 'maximum mean'),
-    ('p1_min', 'float32', 'minimum 1%-ile'),
-    ('p1_med', 'float32', 'median 1%-ile'),
-    ('p1_max', 'float32', 'maximum 1%-ile'),
-    ('p16_min', 'float32', 'minimum 15.865%-ile'),
-    ('p16_med', 'float32', 'median 15.865%-ile'),
-    ('p16_max', 'float32', 'maximum 15.865%-ile'),
-    ('rmsp_min', 'float32', 'minimum RMS estimated from (84-16%-ile)/2'),
-    ('rmsp_med', 'float32', 'median  RMS estimated from (84-16%-ile)/2'),
-    ('rmsp_max', 'float32', 'maximum  RMS estimated from (84-16%-ile)/2'),
-    ('p84_min', 'float32', 'minimum 84.135%-ile'),
-    ('p84_med', 'float32', 'median 84.135%-ile'),
-    ('p84_max', 'float32', 'maximum 84.135%-ile'),
-    ('p99_min', 'float32', 'minimum 99%-ile'),
-    ('p99_med', 'float32', 'median 99%-ile'),
-    ('p99_max', 'float32', 'maximum 99%-ile'),
+    cnames, dtypes = [], {}
+    for cname, dtype, defn in coldefs:
+        cnames.append(cname)
+        dtypes[cname] = dtype
+
+    return (cnames, dtypes)
+
+ULTRASPEC_COLNAMES = (
+    ('frame_no', 'float32', 'Frame number'),
+    ('median', 'float32', 'median offset'),
+    ('mean', 'float32', 'mean'),
+    ('min', 'float32', 'minimum'),
+    ('p1', 'float32', '1%-ile'),
+    ('p5', 'float32', '5%-ile'),
+    ('p16', 'float32', '15.865%-ile'),
+    ('p84', 'float32', '84.135%-ile'),
+    ('p95', 'float32', '95%-ile'),
+    ('p99', 'float32', '99%-ile'),
+    ('max', 'float32', 'maximum')
 )
 
-ULTRACAM_META_COLNAMES = (
-    ('run_no', 'str', 'Run number'),
+ULTRACAM_COLNAMES = (
+    ('frame_no', 'float32', 'Frame number'),
+    ('median_L', 'float32', 'left window median offset'),
+    ('median_R', 'float32', 'right window median offset'),
+    ('mean', 'float32', 'mean'),
+    ('min', 'float32', 'minimum'),
+    ('p1', 'float32', '1%-ile'),
+    ('p5', 'float32', '5%-ile'),
+    ('p16', 'float32', '15.865%-ile'),
+    ('p84', 'float32', '84.135%-ile'),
+    ('p95', 'float32', '95%-ile'),
+    ('p99', 'float32', '99%-ile'),
+    ('max', 'float32', 'maximum')
+)
 
-    ('nf_used_1', 'float32', 'number of frames used for stats, CCD 1. First of many stats computed by "hmeta"'),
-    ('med_min_L1', 'float32', 'minimum median left, CCD 1'),
-    ('med_med_L1', 'float32', 'median median left CCD 1'),
-    ('med_max_L1', 'float32', 'maximum median left CCD 1'),
-    ('med_min_R1', 'float32', 'minimum median right, CCD 1'),
-    ('med_med_R1', 'float32', 'median median right CCD 1'),
-    ('med_max_R1', 'float32', 'maximum median right CCD 1'),
-    ('mean_min_1', 'float32', 'minimum mean CCD 1'),
-    ('mean_med_1', 'float32', 'median mean CCD 1'),
-    ('mean_max_1', 'float32', 'maximum mean CCD 1'),
-    ('p1_min_1', 'float32', 'minimum 1%-ile CCD 1'),
-    ('p1_med_1', 'float32', 'median 1%-ile CCD 1'),
-    ('p1_max_1', 'float32', 'maximum 1%-ile CCD 1'),
-    ('p16_min_1', 'float32', 'minimum 15.865%-ile CCD 1'),
-    ('p16_med_1', 'float32', 'median 15.865%-ile CCD 1'),
-    ('p16_max_1', 'float32', 'maximum 15.865%-ile CCD 1'),
-    ('rmsp_min_1', 'float32', 'minimum RMS estimated from (84-16%-ile)/2 CCD 1'),
-    ('rmsp_med_1', 'float32', 'median  RMS estimated from (84-16%-ile)/2 CCD 1'),
-    ('rmsp_max_1', 'float32', 'maximum  RMS estimated from (84-16%-ile)/2 CCD 1'),
-    ('p84_min_1', 'float32', 'minimum 84.135%-ile CCD 1'),
-    ('p84_med_1', 'float32', 'median 84.135%-ile CCD 1'),
-    ('p84_max_1', 'float32', 'maximum 84.135%-ile CCD 1'),
-    ('p99_min_1', 'float32', 'minimum 99%-ile CCD 1'),
-    ('p99_med_1', 'float32', 'median 99%-ile CCD 1'),
-    ('p99_max_1', 'float32', 'maximum 99%-ile CCD 1'),
-
-    ('nf_used_2', 'float32', 'number of frames used for stats, CCD 2'),
-    ('med_min_L2', 'float32', 'minimum median left, CCD 2'),
-    ('med_med_L2', 'float32', 'median median left CCD 2'),
-    ('med_max_L2', 'float32', 'maximum median left CCD 2'),
-    ('med_min_R2', 'float32', 'minimum median right, CCD 2'),
-    ('med_med_R2', 'float32', 'median median right CCD 2'),
-    ('med_max_R2', 'float32', 'maximum median right CCD 2'),
-    ('mean_min_2', 'float32', 'minimum mean CCD 2'),
-    ('mean_med_2', 'float32', 'median mean CCD 2'),
-    ('mean_max_2', 'float32', 'maximum mean CCD 2'),
-    ('p1_min_2', 'float32', 'minimum 1%-ile CCD 2'),
-    ('p1_med_2', 'float32', 'median 1%-ile CCD 2'),
-    ('p1_max_2', 'float32', 'maximum 1%-ile CCD 2'),
-    ('p16_min_2', 'float32', 'minimum 15.865%-ile CCD 2'),
-    ('p16_med_2', 'float32', 'median 15.865%-ile CCD 2'),
-    ('p16_max_2', 'float32', 'maximum 15.865%-ile CCD 2'),
-    ('rmsp_min_2', 'float32', 'minimum RMS estimated from (84-16%-ile)/2 CCD 2'),
-    ('rmsp_med_2', 'float32', 'median  RMS estimated from (84-16%-ile)/2 CCD 2'),
-    ('rmsp_max_2', 'float32', 'maximum  RMS estimated from (84-16%-ile)/2 CCD 2'),
-    ('p84_min_2', 'float32', 'minimum 84.135%-ile CCD 2'),
-    ('p84_med_2', 'float32', 'median 84.135%-ile CCD 2'),
-    ('p84_max_2', 'float32', 'maximum 84.135%-ile CCD 2'),
-    ('p99_min_2', 'float32', 'minimum 99%-ile CCD 2'),
-    ('p99_med_2', 'float32', 'median 99%-ile CCD 2'),
-    ('p99_max_2', 'float32', 'maximum 99%-ile CCD 2'),
-
-    ('nf_used_3', 'float32', 'number of frames used for stats, CCD 3'),
-    ('med_min_L3', 'float32', 'minimum median left, CCD 3'),
-    ('med_med_L3', 'float32', 'median median left CCD 3'),
-    ('med_max_L3', 'float32', 'maximum median left CCD 3'),
-    ('med_min_R3', 'float32', 'minimum median right, CCD 3'),
-    ('med_med_R3', 'float32', 'median median right CCD 3'),
-    ('med_max_R3', 'float32', 'maximum median right CCD 3'),
-    ('mean_min_3', 'float32', 'minimum mean CCD 3'),
-    ('mean_med_3', 'float32', 'median mean CCD 3'),
-    ('mean_max_3', 'float32', 'maximum mean CCD 3'),
-    ('p1_min_3', 'float32', 'minimum 1%-ile CCD 3'),
-    ('p1_med_3', 'float32', 'median 1%-ile CCD 3'),
-    ('p1_max_3', 'float32', 'maximum 1%-ile CCD 3'),
-    ('p16_min_3', 'float32', 'minimum 15.865%-ile CCD 3'),
-    ('p16_med_3', 'float32', 'median 15.865%-ile CCD 3'),
-    ('p16_max_3', 'float32', 'maximum 15.865%-ile CCD 3'),
-    ('rmsp_min_3', 'float32', 'minimum RMS estimated from (84-16%-ile)/2 CCD 3'),
-    ('rmsp_med_3', 'float32', 'median  RMS estimated from (84-16%-ile)/2 CCD 3'),
-    ('rmsp_max_3', 'float32', 'maximum  RMS estimated from (84-16%-ile)/2 CCD 3'),
-    ('p84_min_3', 'float32', 'minimum 84.135%-ile CCD 3'),
-    ('p84_med_3', 'float32', 'median 84.135%-ile CCD 3'),
-    ('p84_max_3', 'float32', 'maximum 84.135%-ile CCD 3'),
-    ('p99_min_3', 'float32', 'minimum 99%-ile CCD 3'),
-    ('p99_med_3', 'float32', 'median 99%-ile CCD 3'),
-    ('p99_max_3', 'float32', 'maximum 99%-ile CCD 3'),
+HIPERCAM_COLNAMES = (
+    ('frame_no', 'float32', 'Frame number'),
+    ('median_E', 'float32', 'E-quadrant median offset'),
+    ('median_F', 'float32', 'F-quadrant median offset'),
+    ('median_G', 'float32', 'G-quadrant median offset'),
+    ('median_H', 'float32', 'H-quadrant median offset'),
+    ('mean', 'float32', 'mean'),
+    ('min', 'float32', 'minimum'),
+    ('p1', 'float32', '1%-ile'),
+    ('p5', 'float32', '5%-ile'),
+    ('p16', 'float32', '15.865%-ile'),
+    ('p84', 'float32', '84.135%-ile'),
+    ('p95', 'float32', '95%-ile'),
+    ('p99', 'float32', '99%-ile'),
+    ('max', 'float32', 'maximum')
 )
