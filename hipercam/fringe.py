@@ -74,6 +74,18 @@ class FringePair:
             self.wnam = None
         return self.wnam
 
+    def diff(self, ccd):
+        """Returns difference in intensity. Only run after having run
+        "inside" because it assumes the window name has been set
+
+        """
+        wind = ccd[self.wnam]
+        xp1 = int(round(wind.x_pixel(self.x1)))
+        yp1 = int(round(wind.y_pixel(self.y1)))
+        xp2 = int(round(wind.x_pixel(self.x2)))
+        yp2 = int(round(wind.y_pixel(self.y2)))
+        return wind.data[yp2,xp2]-wind.data[yp1,xp1]-win
+
     def __repr__(self):
         return \
             f"FringePair(x1={self.x1:.2f}, y1={self.y1:.2f}," \
@@ -126,9 +138,17 @@ class CcdFringePair(Group):
         for fpnam in rejects:
             del self[fpnam]
 
+    def diff(self, ccd):
+        """Returns list of differences for all FringePairs in the ccd "crop"
+        should have been run using ccd before running this.
+
+        """
+        diffs = [fpair.diff(ccd) for fpair in self.values()]
+        return diffs
 
 class MccdFringePair(Group):
-    """Class representing all the :class:FringePairs for multiple CCDs.
+
+        """Class representing all the :class:FringePairs for multiple CCDs.
     Normal usage is to create an empty one and then add apertures via
     the usual mechanism for updating dictionaries, e.g.
 
