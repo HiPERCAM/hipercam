@@ -624,8 +624,8 @@ close enough (< 10 pixels)
         self.action_prompt(True)
 
     def _line(self):
-        """Once all set to add a Line defect, this routine actually carries out the
-        necessary operations
+        """Once all set to add a Line defect, this routine actually carries
+        out the necessary operations
 
         """
 
@@ -685,14 +685,16 @@ close enough (< 10 pixels)
             self.mccd_dfct[self._cnam][self._buffer] = dfct
 
             # add defect to the plot, store plot objects
-            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(self._axes, dfct)
+            self.pobjs[self._cnam][self._buffer] = \
+                hcam.mpl.pDefect(self._axes, dfct)
 
             # make sure it appears
             plt.draw()
 
             # let user know what has happened
             level = (
-                "moderate" if self._severity == defect.Severity.MODERATE else "severe"
+                "moderate" if \
+                self._severity == defect.Severity.MODERATE else "severe"
             )
 
             print(
