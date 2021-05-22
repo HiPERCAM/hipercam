@@ -748,10 +748,13 @@ class Window(Winhead):
     ----------
     win : :class:`Winhead`
         the :class:`Winhead` defining the position and, optionally, headers
+
     data : 2D numpy.ndarray
         the data (2D). The dimensions must match those in win unless
         data is None in which case a zero array of the correct size will
-        be created. A ValueError will be raised if not.
+        be created. A ValueError will be raised if not. Standard C-type
+        ordering, y-then-x assumed.
+
     copy : bool
         flag sent to :class:`Winhead` controlling whether the header is
         copied by value or reference. 'False' is lightweight and faster
