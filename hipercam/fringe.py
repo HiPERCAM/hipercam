@@ -31,6 +31,9 @@ class FringePair:
         self.y1 = y1
         self.x2 = x2
         self.y2 = y2
+        # record which window encloses this
+        # for speed in operations
+        self.wnam = None
 
     def copy(self, memo=None):
         """Returns with a copy of the Aperture"""
@@ -42,22 +45,34 @@ class FringePair:
         )
 
     def dist(self, x, y):
+        """
+        Defines a distance of the FringePair from a point
+        """
         ex = self.x2-self.x1
         ey = self.y2-self.y1
         ax = x-self.x1
         ay = y-self.y1
-        if ex == 0. or ey == 0.:
+        if ex == 0. and ey == 0.:
             d = np.sqrt(ax**2+ay**2)
         else:
             ell = np.sqrt(ex**2+ey**2)
             ex /= ell
             ey /= ell
-            mu = ex*ax+ey*ay
-            mu = max(0,min(mu,1))
-            xm = self.x1+mu*ex
-            ym = self.y1+mu*ey
+            lam = ex*ax+ey*ay
+            lam = max(0,min(lam,ell))
+            xm = self.x1 + lam*ex
+            ym = self.y1 + lam*ey
             d = np.sqrt((x-xm)**2+(y-ym)**2)
         return d
+
+    def inside(self, ccd):
+        wnam1 = ccd.inside(self.x1, self.y1, 0)
+        wnam2 = ccd.inside(self.x2, self.y2, 0)
+        if wnam1 is not None and wnam2 is not None and wnam1 == wnam2:
+            self.wnam = wnam1
+        else:
+            self.wnam = None
+        return self.wnam
 
     def __repr__(self):
         return \
@@ -97,6 +112,20 @@ class CcdFringePair(Group):
     def copy(self, memo=None):
         return CcdDefect(super().copy(memo))
 
+    def crop(self, ccd):
+        """
+        Clips out FringePairs not enclosed by single
+        windows in ccd. Used to speed calculations.
+        Also stores the window name in the FringePairs
+        that come through
+        """
+        rejects = [
+            fpnam for (fpnam,fpair) in self.items()
+            if fpair.inside(ccd) is None
+        ]
+        for fpnam in rejects:
+            del self[fpnam]
+
 
 class MccdFringePair(Group):
     """Class representing all the :class:FringePairs for multiple CCDs.
@@ -121,6 +150,18 @@ class MccdFringePair(Group):
         """
         super().__init__(CcdFringePair, fpairs)
 
+    def crop(self, mccd):
+        # first remove CCDs that are not even in mccd
+        rejects = [
+            cnam for cnam in self if cnam not in mccd
+        ]
+        for cnam in rejects:
+            del self[cnam]
+
+        # then apply 
+        for cnam in mccd:
+            self[cnam].crop(mccd[cnam])
+
     def __repr__(self):
         return "{:s}(defs={:s})".format(self.__class__.__name__, super().__repr__())
 
@@ -129,7 +170,7 @@ class MccdFringePair(Group):
 
         # dumps as list to retain order through default iterator encoding
         # that buggers things otherwise
-        listify = ["hipercam.MccdFringePair"] + \
+        listify = ["hipercam.fringe.MccdFringePair"] + \
             [
                 (key, ["hipercam.fringe.CcdFringePair"] + list(val.items()))
                 for key, val in self.items()
