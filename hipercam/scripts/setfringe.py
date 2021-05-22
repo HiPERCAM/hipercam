@@ -381,16 +381,18 @@ class PickFringePair:
             self._standard(event.key, event.xdata, event.ydata, event.inaxes)
 
     def _standard(self, key, x, y, axes):
-        """Carries out the work needed when we are in the standard mode. Just pass
-        through the value of the key pressed, the associated x, y position and
-        the axes instance (all from the event) and this will handle the rest.
+        """Carries out the work needed when we are in the standard mode. Just
+        pass through the value of the key pressed, the associated x, y
+        position and the axes instance (all from the event) and this
+        will handle the rest.
 
         """
 
         if axes is not None:
 
-            # store information in attributes accessible to all methods, for
-            # later access: name, the key hit, the axes instance, x, y
+            # store information in attributes accessible to all
+            # methods, for later access: name, the key hit, the axes
+            # instance, x, y
             self._cnam = self.cnams[axes]
             self._key = key
             self._axes = axes
@@ -452,7 +454,7 @@ as it is close enough (< 10 pixels)
 
                 # old files are over-written at this point
                 self.mccd_fpair.write(self.fringenam)
-                print("\nFringePairs saved to {:s}.\nBye".format(self.fringenam))
+                print(f"\nFringePairs saved to {self.fringenam}.\nBye")
 
             elif key == "enter":
                 self.action_prompt(True)
@@ -489,10 +491,11 @@ as it is close enough (< 10 pixels)
 
             else:
 
-                # store the CCD, and the first x,y position
-                self._pair_cnam = self._cnam
-                self._pair_x1 = self._x
-                self._pair_y1 = self._y
+                # store the CCD, window, and the first x,y position
+                self._first_cnam = self._cnam
+                self._first_wnam = wnam
+                self._first_x = self._x
+                self._first_y = self._y
 
                 # prompt stage 2
                 print(" second point: a(dd) or q(uit)")
@@ -500,46 +503,45 @@ as it is close enough (< 10 pixels)
         elif self._pair_stage == 2:
 
             wnam = self.mccd[self._cnam].inside(self._x, self._y, 0)
+            self._mid_pair = False
             if wnam is None:
-                self._mid_pair = False
                 print("  cannot set pairs outside windows")
                 self.action_prompt(True)
 
+            elif wnam != self._first_wnam:
+                print("  cannot set pairs across different windows")
+                self.action_prompt(True)
+
+            elif self._cnam != self._first_cnam:
+                print("  cannot set pairs across different CCDs")
+                self.action_prompt(True)
+
             else:
-
-                # now the second x,y position
-                if self._cnam != self._pair_cnam:
-                    print("  cannot set pairs across different CCDs")
-                    self.action_prompt(True)
-
-                self._pair_x2 = self._x
-                self._pair_y2 = self._y
-                self._mid_pair = False
-
-            frng = fringe.FringePair(
-                self._pair_x1,
-                self._pair_y1,
-                self._pair_x2,
-                self._pair_y2
-            )
-            self.mccd_fpair[self._cnam][self._buffer] = frng
-
-            # add fringe pair to the plot, store plot objects
-            self.pobjs[self._cnam][self._buffer] = \
-                hcam.mpl.pFringePair(self._axes, frng)
-
-            # make sure it appears
-            plt.draw()
-
-            # let user know what has happened
-            print(
-                (
-                    f"added fringe pair to CCD {self._cnam} "
-                    f"from x1,y1 = {self._pair_x1:.2f},{self._pair_y1:.2f} "
-                    f"to x2,y2 = {self._pair_x2:.2f},{self._pair_y2:.2f}"
+                # add new pair
+                frng = fringe.FringePair(
+                    self._first_x,
+                    self._first_y,
+                    self._x,
+                    self._y
                 )
-            )
-            self.action_prompt(True)
+                self.mccd_fpair[self._cnam][self._buffer] = frng
+
+                # add fringe pair to the plot, store plot objects
+                self.pobjs[self._cnam][self._buffer] = \
+                    hcam.mpl.pFringePair(self._axes, frng)
+
+                # make sure it appears
+                plt.draw()
+
+                # let user know what has happened
+                print(
+                    (
+                        f"added fringe pair to CCD {self._cnam} "
+                        f"from x1,y1 = {self._first_x:.2f},{self._first_y:.2f} "
+                        f"to x2,y2 = {self._x:.2f},{self._y:.2f}"
+                    )
+                )
+                self.action_prompt(True)
 
     def _show(self):
         """
@@ -548,7 +550,8 @@ as it is close enough (< 10 pixels)
 
         # search for enclosing window, print stats
         wnam, wind = utils.print_stats(
-            self.mccd[self._cnam], self._cnam, self._x, self._y, self.hsbox, False
+            self.mccd[self._cnam], self._cnam,
+            self._x, self._y, self.hsbox, False
         )
         if wnam is None:
             print('  must hit "s" inside a window')
@@ -556,7 +559,7 @@ as it is close enough (< 10 pixels)
         self.action_prompt(True)
 
     def _delete(self):
-        """This deletes the nearest frine pair to the currently selected
+        """This deletes the nearest fringe pair to the currently selected
         position, if it is near enough (within 10 pixels)
 
         """
