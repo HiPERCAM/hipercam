@@ -566,10 +566,10 @@ def pFringePair(axes, fpair):
     """
 
     a1, = axes.plot(
-        [fpair.x1,fpair.x2], [fpair.y1,fpair.y2], 'g'
+        [fpair.x1,fpair.x2], [fpair.y1,fpair.y2], 'k', lw=4
     )
-    a2, = axes.plot(fpair.x1, fpair.y1, '.r')
-    a3, = axes.plot(fpair.x2, fpair.y2, '.b')
+    a2, = axes.plot(fpair.x1, fpair.y1, 'or')
+    a3, = axes.plot(fpair.x2, fpair.y2, 'ob')
 
     return [a1,a2,a3]
 
