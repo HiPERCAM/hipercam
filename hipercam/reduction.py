@@ -227,6 +227,15 @@ class Rfile(OrderedDict):
         else:
             rfile.flat = None
 
+        if calsec["fringe"] != "":
+            rfile.fringe = hcam.MCCD.read(utils.add_extension(calsec["fringe"], hcam.HCAM))
+            rfile.fpair = hcam.fringe.MccdFringePair.read(
+                utils.add_extension(calsec["fpair"], hcam.FRNG)
+            )
+            calsec["nhalf"] = int(calsec["nhalf"])
+        else:
+            rfile.fringe = None
+
         try:
             rfile.readout = float(calsec["readout"])
         except TypeError:
