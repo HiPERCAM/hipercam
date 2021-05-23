@@ -295,7 +295,6 @@ class Winhead(Header):
         return (y + 0.5 - self.lly) / self.ybin - 0.5
 
     def extent(self):
-
         """
         Returns (left,right,bottom,top) boundaries of :class:`Winhead`
         i.e. (xlo,xhi,ylo,yhi)

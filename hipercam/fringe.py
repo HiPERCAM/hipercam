@@ -65,26 +65,61 @@ class FringePair:
             d = np.sqrt((x-xm)**2+(y-ym)**2)
         return d
 
-    def inside(self, ccd):
-        wnam1 = ccd.inside(self.x1, self.y1, 0)
-        wnam2 = ccd.inside(self.x2, self.y2, 0)
+    def inside(self, ccd, nhalf):
+        # the nhalf doesn't really test properly in the next two lines
+        # because it is measured in unbinned pixels
+        wnam1 = ccd.inside(self.x1, self.y1, nhalf)
+        wnam2 = ccd.inside(self.x2, self.y2, nhalf)
         if wnam1 is not None and wnam2 is not None and wnam1 == wnam2:
             self.wnam = wnam1
+
+            # Final check that we are far enough away from the edge to
+            # measure full averages
+            wind = ccd[self.wnam]
+            xlo, xhi, ylo, yhi = wind.extent()
+
+            if self.x1 <= xlo + nhalf*wind.xbin or \
+               self.x2 <= xlo + nhalf*wind.xbin or \
+               self.x1 >= xhi - nhalf*wind.xbin or \
+               self.x2 >= xhi - nhalf*wind.xbin or \
+               self.y1 <= ylo + nhalf*wind.ybin or \
+               self.y2 <= ylo + nhalf*wind.ybin or \
+               self.y1 >= yhi - nhalf*wind.ybin or \
+               self.y2 >= yhi - nhalf*wind.ybin:
+                self.wnam = None
         else:
             self.wnam = None
         return self.wnam
 
-    def diff(self, ccd):
+    def diff(self, ccd, nhalf):
         """Returns difference in intensity. Only run after having run
-        "inside" because it assumes the window name has been set
+        "inside" with the same value of nhalf because it assumes the
+        window name has been set
 
+        nhalf : int
+           will measure sum over region +/-nhalf binned pixels around
+           nearest pixel of either end of FringePair
         """
+
         wind = ccd[self.wnam]
-        xp1 = int(round(wind.x_pixel(self.x1)))
-        yp1 = int(round(wind.y_pixel(self.y1)))
-        xp2 = int(round(wind.x_pixel(self.x2)))
-        yp2 = int(round(wind.y_pixel(self.y2)))
-        return wind.data[yp2,xp2]-wind.data[yp1,xp1]-win
+
+        # pixel centres
+        ix1 = int(round(wind.x_pixel(self.x1)))
+        iy1 = int(round(wind.y_pixel(self.y1)))
+        ix2 = int(round(wind.x_pixel(self.x2)))
+        iy2 = int(round(wind.y_pixel(self.y2)))
+
+        # regions
+        xlo1, xhi1 = ix1-nhalf, ix1+nhalf+1
+        ylo1, yhi1 = iy1-nhalf, iy1+nhalf+1
+        xlo2, xhi2 = ix2-nhalf, ix2+nhalf+1
+        ylo2, yhi2 = iy2-nhalf, iy2+nhalf+1
+
+        # extract sums over the regions
+        mean1 = wind.data[ ylo1:yhi1, xlo1:xhi1].mean()
+        mean2 = wind.data[ ylo2:yhi2, xlo2:xhi2].mean()
+
+        return mean2 - mean1
 
     def __repr__(self):
         return \
@@ -124,38 +159,46 @@ class CcdFringePair(Group):
     def copy(self, memo=None):
         return CcdDefect(super().copy(memo))
 
-    def crop(self, ccd):
+    def crop(self, ccd, nhalf):
         """
-        Clips out FringePairs not enclosed by single
-        windows in ccd. Used to speed calculations.
-        Also stores the window name in the FringePairs
-        that come through
+        Returns version of CcdFringePair with any
+        *not* in ccd removed.
         """
-        rejects = [
-            fpnam for (fpnam,fpair) in self.items()
-            if fpair.inside(ccd) is None
-        ]
-        for fpnam in rejects:
-            del self[fpnam]
+        tccdfpair = CcdFringePair()
+        for fpnam, fpair in self.items():
+            if fpair.inside(ccd, nhalf) is not None:
+                tccdfpair[fpnam] = fpair
+        return tccdfpair
 
-    def diff(self, ccd):
-        """Returns list of differences for all FringePairs in the ccd "crop"
+    def diff(self, ccd, nhalf):
+        """Returns array of differences for all FringePairs in the ccd "crop"
         should have been run using ccd before running this.
 
         """
-        diffs = [fpair.diff(ccd) for fpair in self.values()]
+        diffs = np.array([fpair.diff(ccd, nhalf) for fpair in self.values()])
         return diffs
+
+    def scale(self, ccd, ccdref, nhalf):
+        """
+        Measures scale factor needed to subtract the fringes in
+        a reference CCD `ccdref` from `ccd`. Measures median of
+        the FringePair amplitude ratios.
+        """
+        dccd = self.diff(ccd, nhalf)
+        dccdref = self.diff(ccdref, nhalf)
+        ratios = dccd / dccdref
+        return np.nanmedian(ratios)
 
 class MccdFringePair(Group):
 
-        """Class representing all the :class:FringePairs for multiple CCDs.
+    """Class representing all the :class:FringePairs for multiple CCDs.
     Normal usage is to create an empty one and then add apertures via
     the usual mechanism for updating dictionaries, e.g.
 
-      >> mccddef = MccdFringePair()
-      >> mccddef['ccd1'] = CcdFringePair()
-      >> mccddef['ccd2'] = CcdFringePair()
-      >> mccddef['ccd1']['ap1'] = FringePair(100,200,10,15,125,False)
+    >> mccddef = MccdFringePair()
+    >> mccddef['ccd1'] = CcdFringePair()
+    >> mccddef['ccd2'] = CcdFringePair()
+    >> mccddef['ccd1']['ap1'] = FringePair(100,200,10,15,125,False)
 
     etc.
     """
@@ -170,17 +213,14 @@ class MccdFringePair(Group):
         """
         super().__init__(CcdFringePair, fpairs)
 
-    def crop(self, mccd):
-        # first remove CCDs that are not even in mccd
-        rejects = [
-            cnam for cnam in self if cnam not in mccd
-        ]
-        for cnam in rejects:
-            del self[cnam]
-
-        # then apply 
+    def crop(self, mccd, nhalf):
+        tmccdfpair = MccdFringePair()
         for cnam in mccd:
-            self[cnam].crop(mccd[cnam])
+            if cnam in self:
+                tccdfpair = self[cnam].crop(mccd[cnam], nhalf)
+                if len(tccdfpair):
+                    tmccdfpair[cnam] = tccdfpair
+        return tmccdfpair
 
     def __repr__(self):
         return "{:s}(defs={:s})".format(self.__class__.__name__, super().__repr__())
