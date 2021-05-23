@@ -143,6 +143,7 @@ class CcdFringePair(Group):
               Group of :class:`FringePair` objects
         """
         super().__init__(FringePair, fpairs)
+        self.diffrefs = None
 
     def __repr__(self):
         return "{:s}(fpairs={:s})".format(self.__class__.__name__, super().__repr__())
@@ -178,15 +179,16 @@ class CcdFringePair(Group):
         diffs = np.array([fpair.diff(ccd, nhalf) for fpair in self.values()])
         return diffs
 
-    def scale(self, ccd, ccdref, nhalf):
+    def scale(self, ccd, ccdref, nhalf, reset=False):
         """
         Measures scale factor needed to subtract the fringes in
         a reference CCD `ccdref` from `ccd`. Measures median of
         the FringePair amplitude ratios.
         """
-        dccd = self.diff(ccd, nhalf)
-        dccdref = self.diff(ccdref, nhalf)
-        ratios = dccd / dccdref
+        if self.diffrefs is None or reset:
+            self.diffrefs = self.diff(ccdref, nhalf)
+
+        ratios = self.diff(ccd, nhalf) / self.diffrefs
         return np.nanmedian(ratios)
 
 class MccdFringePair(Group):
