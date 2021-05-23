@@ -13,7 +13,7 @@ from matplotlib.patches import Circle
 from astropy.time import Time
 
 import hipercam as hcam
-from hipercam import cline, utils, spooler, defect
+from hipercam import cline, utils, spooler, defect, fringe
 from hipercam.cline import Cline
 from hipercam.mpl import Params
 
@@ -35,10 +35,10 @@ __all__ = [
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd (nx)) [imwidth pause plotall] bias [lowlevel
-    highlevel] flat defect setup [drurl cmap imwidth imheight memory]
-    msub iset (ilo ihi | plo phi) xlo xhi ylo yhi profit [method beta
-    fwhm fwhm_min shbox smooth fhbox hmin read gain thresh (fwnmax
-    fwymax fwwidth fwheight)]``
+    highlevel] flat defect fringe [fpair nhalf] setup [drurl cmap
+    imwidth imheight memory] msub iset (ilo ihi | plo phi) xlo xhi ylo
+    yhi profit [method beta fwhm fwhm_min shbox smooth fhbox hmin read
+    gain thresh (fwnmax fwymax fwwidth fwheight)]``
 
     This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
     the current PGPLOT one. Under development.
@@ -157,6 +157,18 @@ def nrtplot(args=None):
 
         defect : str
            Name of defect file, 'none' to ignore.
+
+        fringe : str
+           Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
+
+        fpair : str [if fringe is not 'none']
+           Name of fringe pair file (see e.g. `setfringe`). Required if
+           a fringe map has been specified.
+
+        nhalf : int [if fringe is not 'none']
+           When calculating the differences for fringe measurement,
+           a region extending +/-nhalf binned pixels will be used when
+           measuring the amplitudes. Basically helps the stats.
 
         setup : bool
            True/yes to access the current windows from hdriver. Useful
@@ -368,6 +380,9 @@ def nrtplot(args=None):
         cl.register("lowlevel", Cline.GLOBAL, Cline.HIDE)
         cl.register("highlevel", Cline.GLOBAL, Cline.HIDE)
         cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("fringe", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("fpair", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
         cl.register("defect", Cline.GLOBAL, Cline.PROMPT)
         cl.register("setup", Cline.GLOBAL, Cline.PROMPT)
         cl.register("drurl", Cline.GLOBAL, Cline.HIDE)
@@ -518,8 +533,31 @@ def nrtplot(args=None):
             # read the defect frame
             dfct = defect.MccdDefect.read(dfct)
 
+        # fringe file (if any)
+        frng = cl.get_value(
+            "fringe",
+            "fringe map ['none' to ignore]",
+            cline.Fname("fmap", hcam.HCAM),
+            ignore="none",
+        )
+        if frng is not None:
+            # read the fringe map
+            frng = hcam.MCCD.read(frng)
+            fpair = cl.get_value(
+                "fpair", "fringe pair file",
+                cline.Fname("fringe", hcam.FRNG)
+            )
+            fpair = fringe.MccdFringePair.read(fpair)
+
+            nhalf = cl.get_value(
+                "nhalf", "half-size of fringe measurement region",
+                2, 0
+            )
+
         # Get windows from hdriver
-        setup = cl.get_value("setup", "display current hdriver window settings", False)
+        setup = cl.get_value(
+            "setup", "display current hdriver window settings", False
+        )
 
         if setup:
             drurl = cl.get_value(
@@ -744,7 +782,9 @@ def nrtplot(args=None):
                     )
 
             if nframe == 0:
-                # get the bias and flat into shape first time through
+
+                # get the bias, flat, fringe map and fringe pair files
+                # into shape first time through
 
                 if bias is not None:
                     # crop the bias on the first frame only
@@ -753,6 +793,11 @@ def nrtplot(args=None):
                 if flat is not None:
                     # crop the flat on the first frame only
                     flat = flat.crop(mccd)
+
+                if frng is not None:
+                    # crop the fringe map and pair file
+                    frng = frng.crop(mccd)
+                    fpair = fpair.crop(mccd, nhalf)
 
             if setup:
                 # Get setup windows from hdriver / udriver. Fair bit of
@@ -822,6 +867,11 @@ def nrtplot(args=None):
                     # divide out the flat
                     if flat is not None:
                         ccd /= flat[cnam]
+
+                    # Remove fringes
+                    if frng is not None and cnam in frng:
+                        fscale = fpair[cnam].scale(ccd, frng[cnam], nhalf)
+                        ccd -= fscale*frng[cnam]
 
                     if msub:
                         # subtract median from each window
@@ -921,6 +971,10 @@ def nrtplot(args=None):
                 plt.show()
 
                 targets = cselect.targets
+                if len(targets) == 0:
+                    # nothing selected, give up on
+                    # profile fits.
+                    profit = False
 
             if profit and not not_selected:
                 # If profile fitting is being carried out, then this
