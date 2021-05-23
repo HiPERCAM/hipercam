@@ -550,7 +550,7 @@ def nrtplot(args=None):
             fpair = fringe.MccdFringePair.read(fpair)
 
             nhalf = cl.get_value(
-                "nhalf", "half-size of fringe measurement region",
+                "nhalf", "half-size of fringe measurement regions",
                 2, 0
             )
 
