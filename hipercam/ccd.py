@@ -778,16 +778,19 @@ class MCCD(Agroup):
             ccd.matches(mccd[key])
 
     def crop(self, mccd):
-        """Crops the :class:MCCD to the same format as a template, `mccd`. Returns
-        the new version. Will raise a HipercamError if it fails.
+        """Crops the :class:MCCD to the same format as a template,
+        `mccd`. Returns the new version. Will raise a HipercamError if
+        it fails.
+
         """
 
         # build an empty CCD to get the headers. this will be added to
         tmccd = MCCD(Group(CCD), self.head)
 
-        # wind through the Windows of the template CCD
+        # wind through the CCDs of the template MCCD
         for cnam, ccd in mccd.items():
-            tmccd[cnam] = self[cnam].crop(ccd)
+            if cnam in self:
+                tmccd[cnam] = self[cnam].crop(ccd)
 
         return tmccd
 
