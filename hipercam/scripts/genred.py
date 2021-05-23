@@ -26,10 +26,11 @@ __all__ = [
 
 
 def genred(args=None):
-    """``genred apfile rfile comment bias flat dark linear [inst skipbadt
-    ncpu extendx ccd location smoothfwhm method beta betamax fwhm
-    fwhmmin fwhmmax searchwidth thresh hminref hminnrf rfac rmin rmax sinner
-    souter scale psfgfac psfwidth psfpostweak]``
+    """``genred apfile rfile comment bias flat dark fringe fpair nhalf
+    [inst ncpu ngroup skipbadt] linear [extendx ccd location
+    smoothfwhm method beta betamax fwhm fwhmmin fwhmmax searchwidth
+    thresh hminref hminnrf rfac rmin rmax sinner souter scale psfgfac
+    psfwidth psfpostweak]``
 
     Generates a reduce file as needed by |reduce| or |psf_reduce|. You
     give it the name of an aperture file and a few other parameters
@@ -51,7 +52,7 @@ def genred(args=None):
 
     Parameters:
 
-        apfile : string
+        apfile : str
            the input aperture file created using |setaper| (default extension
            .ape). This will be read for the targets. The main target will be
            assumed to have been called '1', the main comparison '2'. If there
@@ -61,30 +62,41 @@ def genred(args=None):
            definable]. Target '1' will be used for the seeing plot unless it
            is linked when target '2' will be used instead.
 
-        rfile : string
+        rfile : str
            the output reduce file created by this script. The main
            target will be assumed to have been called '1', the main
            comparison '2'. If there is a '3' it will be plotted
            relative to '2'; all others will be ignored for plotting
            purposes.
 
-        comment : string
+        comment : str
            comment to add near the top of the reduce file. Obvious things to say
            are the target name and the name of the observer for instance.
 
-        bias : string
+        bias : str
            Name of bias frame; 'none' to ignore.
 
-        flat : string
+        flat : str
            Name of flat field frame; 'none' to ignore.
 
-        dark : string
+        dark : str
            Name of dark frame; 'none' to ignore.
 
-        linear : string
+        fmap : str
+           Name of fringe frame; 'none' to ignore.
+
+        fpair : str [if fmap not 'none']
+           File defining pairs to measure fringe amplitudes.
+
+        nhalf : int [if fmap not 'none', hidden]
+           Fringe amplitudes are measured from regions of +/-nhalf
+           around the pixels nearest to the pairs of points defined
+           in fpair. Use to get better stats.
+
+        linear : str
            light curve plot linear (else magnitudes)
 
-        inst : string [hidden]
+        inst : str [hidden]
            the instrument (needed to set nonlinearity and saturation levels for
            warning purposes. Possible options listed.
 
@@ -133,7 +145,7 @@ def genred(args=None):
            operation used in the initial search. No effect on results,
            but could be faster for large values of smoothfwhm.
 
-        method : string
+        method : str
            profile fitting method. 'g' for gaussian, 'm' for moffat
 
         beta : float [hidden]
@@ -253,6 +265,7 @@ def genred(args=None):
             median to reduce the effect of bright stars on the median
             profile. It does this by takeing the average in the Y direction
             and then rejecting overly bright pixels.
+
     """
 
     command, args = utils.script_args(args)
@@ -266,11 +279,14 @@ def genred(args=None):
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
         cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
-        cl.register("linear", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fringe", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nhalf", Cline.LOCAL, Cline.PROMPT)
         cl.register("inst", Cline.LOCAL, Cline.HIDE)
-        cl.register("skipbadt", Cline.LOCAL, Cline.HIDE)
         cl.register("ncpu", Cline.LOCAL, Cline.HIDE)
         cl.register("ngroup", Cline.LOCAL, Cline.HIDE)
+        cl.register("skipbadt", Cline.LOCAL, Cline.HIDE)
+        cl.register("linear", Cline.LOCAL, Cline.PROMPT)
         cl.register("extendx", Cline.LOCAL, Cline.HIDE)
         cl.register("ccd", Cline.LOCAL, Cline.HIDE)
         cl.register("location", Cline.LOCAL, Cline.HIDE)
@@ -359,6 +375,25 @@ def genred(args=None):
             ignore="none",
         )
         dark = "" if dark is None else dark
+
+        # fringe frame
+        frng = cl.get_value(
+            "fringe",
+            "fringe frame ['none' to ignore]",
+            cline.Fname("fringe", hcam.HCAM),
+            ignore="none",
+        )
+        if frng is None:
+            frng = ""
+        else:
+            fpair = cl.get_value(
+                "fpair", "fringe pair file",
+                cline.Fname("fpair", hcam.FRNG),
+            )
+            nhalf = cl.get_value(
+                "nhalf", "half-size of fringe measurement regions",
+                2, 0
+            )
 
         # hidden parameters
         inst = cl.get_value(
@@ -775,6 +810,10 @@ warn = 1 60000 64000
                 bias=bias,
                 flat=flat,
                 dark=dark,
+                dark=dark,
+                fringe=frng,
+                fpair=fpair,
+                nhalf=nhalf,
                 smooth_fwhm=smooth_fwhm,
                 linear=linear,
                 light_plot=light_plot,
@@ -854,9 +893,9 @@ TEMPLATE = """#
 # reduce. Either they will require updating to be used, or the
 # software version can be rolled back to give a compatible version of
 # reduce using 'git'. The script 'rupdate', which attempts automatic
-# update, may be worth trying if you need to update. It attempts to make
-# the minimum changes needed to an old reduce file to run with later
-# version dates.
+# update, may be worth trying if you need to update. It attempts to
+# make the minimum changes needed to an old reduce file to run with
+# later version dates.
 
 [general]
 version = {version} # must be compatible with the version in reduce
