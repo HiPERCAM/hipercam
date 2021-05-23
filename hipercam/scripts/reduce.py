@@ -643,7 +643,7 @@ def reduce(args=None):
                             # broadcasting rules
                             wind.data -= xmedian.reshape((len(xmedian), 1))
 
-                # Acummulate frames into processing groups for faster
+                # Accumulate frames into processing groups for faster
                 # parallelisation
                 pccds.append(pccd)
                 mccds.append(mccd)

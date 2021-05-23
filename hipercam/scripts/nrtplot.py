@@ -35,7 +35,7 @@ __all__ = [
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd (nx)) [imwidth pause plotall] bias [lowlevel
-    highlevel] flat defect fringe [fpair nhalf] setup [drurl cmap
+    highlevel] flat defect fringe (fpair [nhalf]) setup [drurl cmap
     imwidth imheight memory] msub iset (ilo ihi | plo phi) xlo xhi ylo
     yhi profit [method beta fwhm fwhm_min shbox smooth fhbox hmin read
     gain thresh (fwnmax fwymax fwwidth fwheight)]``
@@ -165,7 +165,7 @@ def nrtplot(args=None):
            Name of fringe pair file (see e.g. `setfringe`). Required if
            a fringe map has been specified.
 
-        nhalf : int [if fringe is not 'none']
+        nhalf : int [if fringe is not 'none', hidden]
            When calculating the differences for fringe measurement,
            a region extending +/-nhalf binned pixels will be used when
            measuring the amplitudes. Basically helps the stats.
