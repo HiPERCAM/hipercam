@@ -22,7 +22,7 @@ __all__ = [
 
 def makefringe(args=None):
     """``makefringe [source] (run first last [twait tmax] | flist) bias
-    dark ccd fwhm [clobber] output``
+    flat dark fpair ([nhalf]) ccd fwhm [clobber] output``
 
     Averages a set of images to make a frame for defringing.
 
@@ -83,12 +83,21 @@ def makefringe(args=None):
            Name of bias frame to subtract, 'none' to ignore.
 
         flat : str
-           Name of flat field
+           Name of flat field, 'none' to ignore.
 
         dark : str
            Name of dark frame to subtract, 'none' to ignore. Note that
            it is assumed all CCDs have the same exposure time when making
            a dark correction.
+
+        fpair : str
+           FringePair file (see setfringe), or 'none' to ignore. If specified
+           if will be used to scale the frames prior to combining.
+
+        nhalf : int [if fpair is not 'none']
+           When calculating the differences for fringe measurement,
+           a region extending +/-nhalf binned pixels will be used when
+           measuring the amplitudes. Basically helps the stats.
 
         ccd : str
            CCD(s) to process, '0' for all, '1 3' for '1' and '3' only, etc.
@@ -122,6 +131,8 @@ def makefringe(args=None):
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
         cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nhalf", Cline.LOCAL, Cline.HIDE)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("normalise", Cline.LOCAL, Cline.PROMPT)
         cl.register("clobber", Cline.LOCAL, Cline.HIDE)
@@ -181,6 +192,17 @@ def makefringe(args=None):
             ignore="none",
         )
 
+        fpair = cl.get_value(
+            "fpair", "fringe pair file",
+            cline.Fname("fringe", hcam.FRNG),
+            ignore="none"
+        )
+        if fpair is not None:
+            nhalf = cl.get_value(
+                "nhalf", "half-size of fringe measurement region",
+                2, 0
+            )
+
         ccdinf = spooler.get_ccd_pars(source, resource)
 
         if len(ccdinf) > 1:
@@ -192,9 +214,6 @@ def makefringe(args=None):
         else:
             ccds = list(ccdinf.keys())
 
-        normalise = cl.get_value(
-            "normalise", "normalise by the medians as well as subtract them", False
-        )
         clobber = cl.get_value(
             "clobber", "clobber any pre-existing files on output", False
         )
@@ -241,7 +260,7 @@ def makefringe(args=None):
         # mean-level subtracted and normalised results to temporary
         # files
         print("Reading all files in to determine their mean levels")
-        bframe, fframe, dframe = None, None, None
+        bframe, fframe, dframe, fpairobj = None, None, None, None
         medians = {}
         for cnam in ccds:
             medians[cnam] = {}
@@ -255,7 +274,7 @@ def makefringe(args=None):
         fnames = []
 
         mtype = []
-
+        fref = {}
         with spooler.HcamListSpool(resource) as spool:
 
             for mccd in spool:
@@ -300,9 +319,15 @@ def makefringe(args=None):
 
                     mccd /= fframe
 
-                # here we determine the median levels, subtract and
-                # (optionally) normalise by them, then save the files
-                # to disk
+                if fpair is not None:
+                    # prepare fringepairs
+                    if fpairobj is None:
+                        fpairobj = fringe.MccdFringePair.read(fpair)
+                        fpairobj = fpairobj.crop(mccd, nhalf)
+
+                # here we determine the median levels, subtract them
+                # then (optionally) normalise by the ratio of fringe
+                # amplitudes
 
                 # generate the name to save to automatically
                 fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
@@ -315,8 +340,16 @@ def makefringe(args=None):
                         cmedian = mccd[cnam].median()
                         medians[cnam][fname] = cmedian
                         mccd[cnam] -= cmedian
-                        if normalise:
-                            mccd[cnam] /= cmedian
+                        if cnam not in fref:
+                            # save reference
+                            fref[cnam] = mccd[cnam]
+
+                        elif fpair is not None:
+                            fscale = fpairobj[cnam].scale(
+                                mccd[cnam], fref[cnam], nhalf
+                            )
+                            mccd[cnam] *= fscale
+                            print(f'{cnam}, fscale = {fscale:.3f}')
 
                 # write to disk, save the name, close the filehandle
                 mccd.write(fname)
