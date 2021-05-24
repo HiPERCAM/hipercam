@@ -21,7 +21,8 @@ Plotting the data coming in
 
 Assuming that you are observing and data are being acquired to the
 rack PC at the telescope, the first command to try is |rtplot| [#f0]_
-. Try typing in a terminal as follows::
+or, preferably, |nrtplot|, an developmental upgrade to |rtplot| based
+on matploltib.  Try typing in a terminal as follows::
 
   rtplot
 
