@@ -233,6 +233,8 @@ class Rfile(OrderedDict):
                 utils.add_extension(calsec["fpair"], hcam.FRNG)
             )
             calsec["nhalf"] = int(calsec["nhalf"])
+            calsec["rmin"] = float(calsec["rmin"])
+            calsec["rmax"] = float(calsec["rmin"])
         else:
             rfile.fringe = None
 

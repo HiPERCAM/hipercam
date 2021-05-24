@@ -146,9 +146,11 @@ def rupdate(args=None):
                 if version <= 4:
                     lines.append(line)
                     lines.append("\n# Next lines were automatically added by rupdate\n")
-                    lines.append("fringe = # Fringe map\n")
-                    lines.append("fpair = # FringePair file\n")
-                    lines.append("nhalf = 2 # Half-width for FringePair measurements\n")
+                    lines.append("fringe = # Fringe map, blabk to ignore\n")
+                    lines.append("fpair = # FringePair file, ignored if fringe blank\n")
+                    lines.append("nhalf = # Half-width, ignored if fringe blank\n")
+                    lines.append("rmin = # minimum ratio, ignored if fringe blank\n")
+                    lines.append("rmax = # maximum ratio ignored if fringe blank\n")
 
             else:
                 # Default action is just to store save the line

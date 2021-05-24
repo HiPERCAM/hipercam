@@ -26,8 +26,8 @@ __all__ = [
 
 
 def genred(args=None):
-    """``genred apfile rfile comment bias flat dark fringe fpair nhalf
-    [inst ncpu ngroup skipbadt] linear [extendx ccd location
+    """``genred apfile rfile comment bias flat dark fringe fpair [nhalf
+    rmin rmax inst ncpu ngroup skipbadt] linear [extendx ccd location
     smoothfwhm method beta betamax fwhm fwhmmin fwhmmax searchwidth
     thresh hminref hminnrf rfac rmin rmax sinner souter scale psfgfac
     psfwidth psfpostweak]``
@@ -49,6 +49,9 @@ def genred(args=None):
     conditions; many others are left at default values and require
     editing to change. If you find yourself repeatedly editing a
     parameter, let me know and I will add it to this routine.
+
+    The best way to understand the parameters is to read a reduce file
+    which are fully commented.
 
     Parameters:
 
@@ -91,7 +94,13 @@ def genred(args=None):
         nhalf : int [if fmap not 'none', hidden]
            Fringe amplitudes are measured from regions of +/-nhalf
            around the pixels nearest to the pairs of points defined
-           in fpair. Use to get better stats.
+           in fpair.
+
+        rmin : float [if fmap not 'none', hidden]
+           Minimum ratio to allow.
+
+        rmax : float [if fmap not 'none', hidden]
+           Maximum ratio to allow.
 
         linear : str
            light curve plot linear (else magnitudes)
@@ -281,7 +290,9 @@ def genred(args=None):
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
         cl.register("fringe", Cline.LOCAL, Cline.PROMPT)
         cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
-        cl.register("nhalf", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nhalf", Cline.LOCAL, Cline.HIDE)
+        cl.register("rmin", Cline.LOCAL, Cline.HIDE)
+        cl.register("rmax", Cline.LOCAL, Cline.HIDE)
         cl.register("inst", Cline.LOCAL, Cline.HIDE)
         cl.register("ncpu", Cline.LOCAL, Cline.HIDE)
         cl.register("ngroup", Cline.LOCAL, Cline.HIDE)
@@ -393,6 +404,12 @@ def genred(args=None):
             nhalf = cl.get_value(
                 "nhalf", "half-size of fringe measurement regions",
                 2, 0
+            )
+            rmin = cl.get_value(
+                "rmin", "minimum individual fringe ratio", -0.1
+            )
+            rmax = cl.get_value(
+                "rmax", "maximum individual fringe ratio", 1.0
             )
 
         # hidden parameters
@@ -810,10 +827,11 @@ warn = 1 60000 64000
                 bias=bias,
                 flat=flat,
                 dark=dark,
-                dark=dark,
                 fringe=frng,
                 fpair=fpair,
                 nhalf=nhalf,
+                rmin=rmin,
+                rmax=rmax,
                 smooth_fwhm=smooth_fwhm,
                 linear=linear,
                 light_plot=light_plot,
@@ -1117,11 +1135,34 @@ thresh = 3. # threshold in terms of RMS for 'clipped'
 # bias (and hence variance calculation from the count level will be
 # wrong)
 
+# The fringe parameters are the most complex. To de-fringe you need
+# first a fringe map, e.g. as returned by makefringe. Then you need a
+# file of FringePairs as returned by 'setfringe'. These are pairs of
+# points placed at peaks and troughs of fringes. They will be used to
+# measure a series of differences in each frame of interest and the
+# fringe map from which a series of ratios is formed. The differences
+# are measured from a group of pixels extending +/-nhlaf around the
+# central pixel of each point of a FringePair. Thus nhalf=2 would give
+# a 5x5 array (unbinned pixels). Finally to reduce the effect of bad
+# values the individual ratios can be pruned if they lie outside a
+# range rmin to rmax prior to their overall median being calculated.
+# rmin should be small, but probably slightly less than zero to allow
+# for a bit of statistical fluctuation, depending on your setup. One
+# would normally expect rmax < 1 if the fringe map came from frames with
+# a long exposure compared to the data.
+
 [calibration]
 crop = yes # Crop calibrations to match the data
 bias = {bias} # Bias frame, blank to ignore
 flat = {flat} # Flat field frame, blank to ignore
 dark = {dark} # Dark frame, blank to ignore
+
+fringe = {fringe} # Fringe map frame, blank to ignore
+fpair = {fpair} # File of fringe pairs, ignored if fringe =""
+nhalf = {nhalf} # Half-size of region used for fringe ratios, ignored if fringe =""
+rmin = {rmin} # Mininum acceptable individual fringe ratio
+rmax = {rmax} # Maximum acceptable individual fringe ratio
+
 readout = {readout} # RMS ADU. Float or string name of a file or "!" to estimate on the fly
 gain = {gain} # Gain, electrons/ADU. Float or string name of a file
 
