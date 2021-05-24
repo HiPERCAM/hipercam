@@ -234,7 +234,7 @@ class Rfile(OrderedDict):
             )
             calsec["nhalf"] = int(calsec["nhalf"])
             calsec["rmin"] = float(calsec["rmin"])
-            calsec["rmax"] = float(calsec["rmin"])
+            calsec["rmax"] = float(calsec["rmax"])
         else:
             rfile.fmap = None
 
