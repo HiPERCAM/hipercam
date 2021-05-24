@@ -4,12 +4,11 @@ import sys
 import os
 import time
 import tempfile
-import getpass
 
 import numpy as np
 
 import hipercam as hcam
-from hipercam import cline, utils, spooler
+from hipercam import cline, utils, spooler, fringe
 from hipercam.cline import Cline
 
 __all__ = [
@@ -25,7 +24,8 @@ __all__ = [
 
 def grab(args=None):
     """``grab [source] run [temp] (ndigit) first last trim [twait tmax]
-    ([ncol nrow]) bias [dtype]``
+    ([ncol nrow]) bias dark flat fmap (fpair [nhalf rmin rmax verbose])
+    [dtype]``
 
     This downloads a sequence of images from a raw data file and writes them
     out to a series CCD / MCCD files.
@@ -90,8 +90,42 @@ def grab(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
-       bias : string
+       bias : str
            Name of bias frame to subtract, 'none' to ignore.
+
+       dark : str
+           Name of dark frame, 'none' to ignore.
+
+       flat : str
+           Name of flat field to divide by, 'none' to ignore. Should normally
+           only be used in conjunction with a bias, although it does allow you
+           to specify a flat even if you haven't specified a bias.
+
+       fmap : str
+           Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
+
+       fpair : str [if fmap is not 'none']
+           Name of fringe pair file (see e.g. `setfringe`). Required if
+           a fringe map has been specified.
+
+       nhalf : int [if fmap is not 'none', hidden]
+           When calculating the differences for fringe measurement,
+           a region extending +/-nhalf binned pixels will be used when
+           measuring the amplitudes. Basically helps the stats.
+
+       rmin : float [if fmap is not 'none', hidden]
+           Minimum individual ratio to accept prior to calculating the overall
+           median in order to reduce the effect of outliers. Although all ratios
+           should be positive, you might want to set this a little below zero
+           to allow for some statistical fluctuation.
+
+       rmax : float [if fmap is not 'none', hidden]
+           Maximum individual ratio to accept prior to calculating the overall
+           median in order to reduce the effect of outliers. Probably typically
+           < 1 if fringe map was created from longer exposure data.
+
+       verbose : bool
+           True to print lots of details of fringe ratios
 
        dtype : string [hidden, defaults to 'f32']
            Data type on output. Options:
@@ -129,6 +163,14 @@ def grab(args=None):
         cl.register("twait", Cline.LOCAL, Cline.HIDE)
         cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("dark", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("fmap", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("fpair", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
+        cl.register("rmin", Cline.GLOBAL, Cline.HIDE)
+        cl.register("rmax", Cline.GLOBAL, Cline.HIDE)
+        cl.register("verbose", Cline.LOCAL, Cline.HIDE)
         cl.register("dtype", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
@@ -175,6 +217,58 @@ def grab(args=None):
             cline.Fname("bias", hcam.HCAM),
             ignore="none",
         )
+        if bias is not None:
+            # read the bias frame
+            bias = hcam.MCCD.read(bias)
+
+        # dark
+        dark = cl.get_value(
+            "dark", "dark frame ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM), ignore="none"
+        )
+        if dark is not None:
+            # read the dark frame
+            dark = hcam.MCCD.read(dark)
+
+        # flat
+        flat = cl.get_value(
+            "flat", "flat field frame ['none' to ignore]",
+            cline.Fname("flat", hcam.HCAM), ignore="none"
+        )
+        if flat is not None:
+            # read the flat field frame
+            flat = hcam.MCCD.read(flat)
+
+        # fringe file (if any)
+        fmap = cl.get_value(
+            "fmap",
+            "fringe map ['none' to ignore]",
+            cline.Fname("fmap", hcam.HCAM),
+            ignore="none",
+        )
+        if fmap is not None:
+            # read the fringe frame and prompt other parameters
+            fmap = hcam.MCCD.read(fmap)
+
+            fpair = cl.get_value(
+                "fpair", "fringe pair file",
+                cline.Fname("fringe", hcam.FRNG)
+            )
+            fpair = fringe.MccdFringePair.read(fpair)
+
+            nhalf = cl.get_value(
+                "nhalf", "half-size of fringe measurement regions",
+                2, 0
+            )
+            rmin = cl.get_value(
+                "rmin", "minimum fringe pair ratio", -0.2
+            )
+            rmax = cl.get_value(
+                "rmax", "maximum fringe pair ratio", 1.0
+            )
+            verbose = cl.get_value(
+                "verbose", "verbose output", False
+            )
 
         cl.set_default("dtype", "f32")
         dtype = cl.get_value(
@@ -195,13 +289,8 @@ def grab(args=None):
 
     # Finally, we can go
     if temp:
-        # create a directory on temp for the temporary file to avoid polluting
-        # it too much
         fnames = []
-        tdir = os.path.join(
-            tempfile.gettempdir(), "hipercam-{:s}".format(getpass.getuser())
-        )
-        os.makedirs(tdir, exist_ok=True)
+        tdir = utils.temp_dir()
 
     with spooler.data_source(source, resource, first) as spool:
 
@@ -227,18 +316,54 @@ def grab(args=None):
                 if trim:
                     hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
+                if nframe == first:
+                    # First time through, need to manipulate calibration data
+                    if bias is not None:
+                        bias = bias.crop(mccd)
+                    if flat is not None:
+                        flat = flat.crop(mccd)
+                    if dark is not None:
+                        dark = dark.crop(mccd)
+                    if fmap is not None:
+                        fmap = fmap.crop(mccd)
+                        fpair = fpair.crop(mccd, nhalf)
+
+                # now any time through, apply calibrations
                 if bias is not None:
-                    # read bias after first frame so we can
-                    # chop the format
-                    if bframe is None:
+                    mccd -= bias
+                    bexpose = bias.head.get("EXPTIME", 0.0)
+                else:
+                    bexpose = 0.
 
-                        # read the bias frame
-                        bframe = hcam.MCCD.read(bias)
+                if dark is not None:
+                    # subtract dark, CCD by CCD
+                    dexpose = dark.head["EXPTIME"]
+                    for cnam in mccd:
+                        ccd = mccd[cnam]
+                        cexpose = ccd.head["EXPTIME"]
+                        scale = (cexpose - bexpose) / dexpose
+                        ccd -= scale * dark[cnam]
 
-                        # reformat
-                        bframe = bframe.crop(mccd)
+                if flat is not None:
+                    mccd /= flat
 
-                    mccd -= bframe
+                if fmap is not None:
+                    # apply CCD by CCD
+                    for cnam in fmap:
+                        if cnam in fpair:
+                            ccd = mccd[cnam]
+                            if verbose:
+                                print(f' CCD {cnam}')
+
+                            fscale = fpair[cnam].scale(
+                                ccd, fmap[cnam], nhalf, rmin, rmax,
+                                verbose=verbose
+                            )
+
+                            if verbose:
+                                print(f'  Median scale factor = {fscale}')
+
+                            ccd -= fscale*fmap[cnam]
 
                 if dtype == "u16":
                     mccd.uint16()
