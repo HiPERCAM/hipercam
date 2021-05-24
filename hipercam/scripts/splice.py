@@ -1,8 +1,6 @@
 import sys
 import os
 import time
-import tempfile
-import getpass
 
 import numpy as np
 
