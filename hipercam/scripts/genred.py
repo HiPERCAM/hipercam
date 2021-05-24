@@ -129,10 +129,10 @@ def genred(args=None):
         extendx : float [hidden]
            how many minutes to extend light curve plot by at a time
 
-        ccd : string [hidden]
+        ccd : str [hidden]
            label of the (single) CCD used for the position plot
 
-        location : string [hidden]
+        location : str [hidden]
            whether to reposition apertures or leave them fixed.
 
         toffset : int [hidden]
@@ -231,10 +231,10 @@ def genred(args=None):
            target aperture radius relative to the FWHM for 'variable' aperture
            photometry. Usual values 1.5 to 2.5.
 
-        rmin : float [hidden]
+        ramin : float [hidden]
            minimum target aperture radius [unbinned pixels]
 
-        rmax : float [hidden]
+        ramax : float [hidden]
            maximum target aperture radius [unbinned pixels]
 
         sinner : float [hidden]
@@ -258,7 +258,7 @@ def genred(args=None):
         psfwidth : int [hidden]
             half-width of box used to extract data around objects for PSF fitting
 
-        psfpostweak : string [hidden]
+        psfpostweak : str [hidden]
             During PSF fitting, either hold positions at aperture
             location ('fixed'), or fit as part of PSF model
             ('variable')
@@ -319,8 +319,8 @@ def genred(args=None):
         cl.register("alpha", Cline.LOCAL, Cline.HIDE)
         cl.register("diff", Cline.LOCAL, Cline.HIDE)
         cl.register("rfac", Cline.LOCAL, Cline.HIDE)
-        cl.register("rmin", Cline.LOCAL, Cline.HIDE)
-        cl.register("rmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("ramin", Cline.LOCAL, Cline.HIDE)
+        cl.register("ramax", Cline.LOCAL, Cline.HIDE)
         cl.register("sinner", Cline.LOCAL, Cline.HIDE)
         cl.register("souter", Cline.LOCAL, Cline.HIDE)
         cl.register("readout", Cline.LOCAL, Cline.HIDE)
@@ -342,9 +342,10 @@ def genred(args=None):
         aper = hcam.MccdAper.read(apfile)
 
         # the reduce file
+        root = os.path.splitext(os.path.basename(apfile))[0]
+        cl.set_default("rfile", cline.Fname(root, hcam.RED, cline.Fname.NEW))
         rfile = cl.get_value(
-            "rfile",
-            "reduce output file",
+            "rfile", "reduce output file",
             cline.Fname("reduce.red", hcam.RED, cline.Fname.NEW),
         )
 
@@ -582,12 +583,12 @@ warn = 1 60000 64000
 
         rfac = cl.get_value("rfac", "target aperture scale factor", 1.8, 1.0)
 
-        rmin = cl.get_value(
-            "rmin", "minimum target aperture radius [unbinned pixels]", 6.0, 1.0
+        ramin = cl.get_value(
+            "ramin", "minimum target aperture radius [unbinned pixels]", 6.0, 1.0
         )
 
-        rmax = cl.get_value(
-            "rmax", "maximum target aperture radius [unbinned pixels]", 30.0, rmin
+        ramax = cl.get_value(
+            "ramax", "maximum target aperture radius [unbinned pixels]", 30.0, ramin
         )
 
         sinner = cl.get_value(
@@ -643,11 +644,11 @@ warn = 1 60000 64000
     extraction = ""
     for cnam in aper:
         extraction += (
-            "{:s} = {:s} normal"
-            " {:.2f} {:.1f} {:.1f}"
-            " 2.5 {:.1f} {:.1f}"
-            " 3.0 {:.1f} {:.1f}\n"
-        ).format(cnam, location, rfac, rmin, rmax, sinner, sinner, souter, souter)
+            f"{cnam} = {location} normal"
+            f" {rfac:.2f} {ramin:.1f} {ramax:.1f}"
+            f" 2.5 {sinner:.1f} {sinner:.1f}"
+            f" 3.0 {souter:.1f} {souter:.1f}\n"
+        )
 
     # standard colours for CCDs
     if inst == "hipercam":
