@@ -186,7 +186,7 @@ class CcdFringePair(Group):
         diffs = np.array([fpair.diff(ccd, nhalf) for fpair in self.values()])
         return diffs
 
-    def scale(self, ccd, ccdref, nhalf, rmin=None, rmax=None, reset=False):
+    def scale(self, ccd, ccdref, nhalf, rmin=None, rmax=None, reset=False, verbose=False):
         """
         Measures scale factor needed to subtract the fringes in
         a reference CCD `ccdref` from `ccd`. Measures median of
@@ -214,11 +214,23 @@ class CcdFringePair(Group):
           rmax : float
             Highest ratio to allow. Values higher than
             this from individual points will be ignored.
+
+          reset : bool
+            Re-computes reference differences (only computed
+            first time otherwise for speed)
+
+          verbose : bool
+            True to report details of the ratios (prior to any
+            rmin to rmax editing. The ratios are reported sorted
+            by size.
         """
         if self.diffrefs is None or reset:
             self.diffrefs = self.diff(ccdref, nhalf)
 
         ratios = self.diff(ccd, nhalf) / self.diffrefs
+        if verbose:
+            print('  sorted ratios =',np.sort(ratios))
+
         if rmin is not None:
             ratios[ratios < rmin] = np.nan
         if rmax is not None:
