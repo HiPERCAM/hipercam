@@ -15,7 +15,7 @@ from .core import *
 
 __all__ = (
     "Vec2D", "add_extension", "sub_extension", "script_args", "rgb",
-    "format_hlogger_table", "what_flags",
+    "format_hlogger_table", "what_flags", "temp_dir"
 )
 
 
@@ -648,6 +648,24 @@ def dec2sexg(value, sign, dp, sep=':'):
             return f'-{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
     else:
         return f'{v1:02d}{sep}{v2:02d}{sep}{v3:0{3+dp}.{dp}f}'
+
+def temp_dir():
+    """
+    Generates the name of the hipercam temp directory which will be used to store
+    temporary files. Creates the directory if it does not exist. The temp directory
+    is called "tmp" and is created as a subdirectory of the directory containing
+    the command default files (".hipercam" by default)
+    """
+
+    # Generate temp directory name
+    home = os.environ["HOME"]
+    hdir = os.environ.get("HIPERCAM_ENV", os.path.join(home,".hipercam"))
+    tmpdir = os.path.join(hdir, "tmp")
+
+    # create it (ok if not already there)
+    os.makedirs(tmpdir, exist_ok=True)
+
+    return tmpdir
 
 # Used to translate month numbers
 LOG_MONTHS = {
