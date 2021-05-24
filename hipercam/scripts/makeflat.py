@@ -20,8 +20,8 @@ __all__ = [
 
 
 def makeflat(args=None):
-    """``makeflat [source] (run first last [twait tmax] | flist) ngroup bias
-    dark ccd lower upper [clobber] output``
+    """``makeflat [source] (run first last [twait tmax] bias dark | flist)
+    ngroup ccd lower upper [clobber] output``
 
     Averages a set of images to make a flat field.
 
@@ -94,7 +94,7 @@ def makeflat(args=None):
            run number to access, e.g. 'run034'
 
         flist : str [if source ends 'f']
-           name of file list
+           name of file list. Assumed that these are dias and dark corrected.
 
         first : int [if source ends 's' or 'l']
            exposure number to start from. 1 = first frame ('0' is
@@ -110,17 +110,17 @@ def makeflat(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
-        ngroup : int
-           the number of frames. Probably should be at least 5, preferably
-           more. Experiment to see its effect.
-
-        bias : string
+        bias : str [if source ends 's' or 'l']
            Name of bias frame to subtract, 'none' to ignore.
 
-        dark : str
+        dark : str [if source ends 's' or 'l']
            Name of dark frame to subtract, 'none' to ignore. Note that
            it is assumed all CCDs have the same exposure time when making
            a dark correction.
+
+        ngroup : int
+           the number of frames. Probably should be at least 5, preferably
+           more. Experiment to see its effect.
 
         ccd : str
            CCD(s) to process, '0' for all, '1 3' for '1' and '3' only, etc.
@@ -165,9 +165,9 @@ def makeflat(args=None):
         cl.register("twait", Cline.LOCAL, Cline.HIDE)
         cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
-        cl.register("ngroup", Cline.LOCAL, Cline.PROMPT)
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ngroup", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("lower", Cline.LOCAL, Cline.PROMPT)
         cl.register("upper", Cline.LOCAL, Cline.PROMPT)
@@ -200,6 +200,22 @@ def makeflat(args=None):
                 "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
             )
 
+            # bias frame (if any)
+            bias = cl.get_value(
+                "bias",
+                "bias frame ['none' to ignore]",
+                cline.Fname("bias", hcam.HCAM),
+                ignore="none",
+            )
+
+            # dark frame (if any)
+            dark = cl.get_value(
+                "dark",
+                "dark frame ['none' to ignore]",
+                cline.Fname("dark", hcam.HCAM),
+                ignore="none",
+            )
+
         else:
             resource = cl.get_value(
                 "flist", "file list", cline.Fname("files.lis", hcam.LIST)
@@ -208,22 +224,6 @@ def makeflat(args=None):
 
         ngroup = cl.get_value(
             "ngroup", "number of frames per median average group", 3, 1
-        )
-
-        # bias frame (if any)
-        bias = cl.get_value(
-            "bias",
-            "bias frame ['none' to ignore]",
-            cline.Fname("bias", hcam.HCAM),
-            ignore="none",
-        )
-
-        # dark frame (if any)
-        dark = cl.get_value(
-            "dark",
-            "dark frame ['none' to ignore]",
-            cline.Fname("dark", hcam.HCAM),
-            ignore="none",
         )
 
         ccdinf = spooler.get_ccd_pars(source, resource)

@@ -3,9 +3,10 @@ import os
 import tempfile
 
 import numpy as np
+from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
 
 import hipercam as hcam
-from hipercam import cline, utils, spooler
+from hipercam import cline, utils, spooler, fringe
 from hipercam.cline import Cline
 
 __all__ = [
@@ -20,8 +21,8 @@ __all__ = [
 
 
 def makefringe(args=None):
-    """``makefringe [source] (run first last [twait tmax] | flist) bias
-    flat dark fpair ([nhalf]) ccd fwhm [clobber] output``
+    """``makefringe [source] (run first last [twait tmax] | flist) (bias
+    flat dark) fpair ([nhalf]) ccd fwhm [clobber] output``
 
     Averages a set of images to make a frame for defringing.
 
@@ -62,7 +63,8 @@ def makefringe(args=None):
            run number to access, e.g. 'run034'
 
         flist : string [if source ends 'f']
-           name of file list
+           name of file list. Assumed that bias, flat-fielding etc have been applied to
+           these already.
 
         first : int [if source ends 's' or 'l']
            exposure number to start from. 1 = first frame ('0' is
@@ -78,13 +80,13 @@ def makefringe(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
-        bias : str
+        bias : str [if source ends 's' or 'l']
            Name of bias frame to subtract, 'none' to ignore.
 
-        flat : str
+        flat : str [if source ends 's' or 'l']
            Name of flat field, 'none' to ignore.
 
-        dark : str
+        dark : str [if source ends 's' or 'l']
            Name of dark frame to subtract, 'none' to ignore. Note that
            it is assumed all CCDs have the same exposure time when making
            a dark correction.
@@ -101,8 +103,10 @@ def makefringe(args=None):
         ccd : str
            CCD(s) to process, '0' for all, '1 3' for '1' and '3' only, etc.
 
-        normalise : bool
-           normalise by as well as subtract the median
+        fwhm : float
+           FWHM (unbinned pixels) of gaussian smoothing to apply to the output.
+           0 to ignore. Should be << smallest scale between fringes. Probably
+           no more than 4.
 
         clobber : bool [hidden]
            clobber any pre-existing output files
@@ -133,7 +137,7 @@ def makefringe(args=None):
         cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
         cl.register("nhalf", Cline.LOCAL, Cline.HIDE)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
-        cl.register("normalise", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fwhm", Cline.LOCAL, Cline.PROMPT)
         cl.register("clobber", Cline.LOCAL, Cline.HIDE)
         cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
@@ -161,35 +165,35 @@ def makefringe(args=None):
                 "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
             )
 
+            # bias frame (if any)
+            bias = cl.get_value(
+                "bias",
+                "bias frame ['none' to ignore]",
+                cline.Fname("bias", hcam.HCAM),
+                ignore="none",
+            )
+
+            # flat field (if any)
+            flat = cl.get_value(
+                "flat",
+                "flat field frame ['none' to ignore]",
+                cline.Fname("flat", hcam.HCAM),
+                ignore="none",
+            )
+
+            # dark frame (if any)
+            dark = cl.get_value(
+                "dark",
+                "dark frame ['none' to ignore]",
+                cline.Fname("dark", hcam.HCAM),
+                ignore="none",
+            )
+
         else:
             resource = cl.get_value(
                 "flist", "file list", cline.Fname("files.lis", hcam.LIST)
             )
             first = 1
-
-        # bias frame (if any)
-        bias = cl.get_value(
-            "bias",
-            "bias frame ['none' to ignore]",
-            cline.Fname("bias", hcam.HCAM),
-            ignore="none",
-        )
-
-        # flat field (if any)
-        flat = cl.get_value(
-            "flat",
-            "flat field frame ['none' to ignore]",
-            cline.Fname("flat", hcam.HCAM),
-            ignore="none",
-        )
-
-        # dark frame (if any)
-        dark = cl.get_value(
-            "dark",
-            "dark frame ['none' to ignore]",
-            cline.Fname("dark", hcam.HCAM),
-            ignore="none",
-        )
 
         fpair = cl.get_value(
             "fpair", "fringe pair file",
@@ -213,13 +217,16 @@ def makefringe(args=None):
         else:
             ccds = list(ccdinf.keys())
 
+        fwhm = cl.get_value(
+            "fwhm", "FWHM of gaussian smoothing to apply to final result [unbinned pixels, 0 to ignore]", 4., 0.
+        )
         clobber = cl.get_value(
             "clobber", "clobber any pre-existing files on output", False
         )
 
         output = cl.get_value(
             "output",
-            "median output frringe frame",
+            "median output fringe frame",
             cline.Fname(
                 "hcam", hcam.HCAM, cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
             ),
@@ -371,6 +378,15 @@ def makefringe(args=None):
                 dcnams.append(cnam)
         for cnam in dcnams:
             del template[cnam]
+
+        if fwhm > 0:
+            # apply gaussian smoothing
+            print(f'Smoothing with FWHM = {fwhm}')
+            sigma = fwhm / np.sqrt(8 * np.log(2))
+            kern = Gaussian2DKernel(sigma)
+            for ccd in template.values():
+                for wind in ccd.values():
+                    wind.data = convolve_fft(wind.data, kern, "fill", wind.median())
 
         # write out
         template.write(output, clobber)

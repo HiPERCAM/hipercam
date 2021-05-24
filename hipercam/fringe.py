@@ -229,7 +229,10 @@ class CcdFringePair(Group):
 
         ratios = self.diff(ccd, nhalf) / self.diffrefs
         if verbose:
-            print('  sorted ratios =',np.sort(ratios))
+            print(
+                '  sorted ratios =',
+                ' '.join([f'{rat:.3f}' for rat in np.sort(ratios)])
+            )
 
         if rmin is not None:
             ratios[ratios < rmin] = np.nan

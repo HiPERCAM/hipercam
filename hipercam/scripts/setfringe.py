@@ -188,6 +188,7 @@ def setfringe(args=None):
         cmap = None if cmap == "none" else cmap
 
         nhalf = cl.get_value("nhalf", "half-width of stats box (binned pixels)", 2, 0)
+
         iset = cl.get_value(
             "iset",
             "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
