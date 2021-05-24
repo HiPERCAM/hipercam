@@ -567,7 +567,7 @@ def pFringePair(axes, fpair):
 
     return axes.plot(
         [fpair.x1,fpair.x2], [fpair.y1,fpair.y2],
-        mfc='b', color='f', marker='o', lw=4
+        mfc='b', mec='b', color='r', marker='o', lw=4
     )
 
 def pCcdFringePair(axes, ccdFringePair, animated=False, previous=None):
