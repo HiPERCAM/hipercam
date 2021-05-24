@@ -565,14 +565,10 @@ def pFringePair(axes, fpair):
 
     """
 
-    a1, = axes.plot(
-        [fpair.x1,fpair.x2], [fpair.y1,fpair.y2], 'k', lw=4
+    return axes.plot(
+        [fpair.x1,fpair.x2], [fpair.y1,fpair.y2],
+        mfc='b', color='f', marker='o', lw=4
     )
-    a2, = axes.plot(fpair.x1, fpair.y1, 'or')
-    a3, = axes.plot(fpair.x2, fpair.y2, 'ob')
-
-    return [a1,a2,a3]
-
 
 def pCcdFringePair(axes, ccdFringePair, animated=False, previous=None):
     """Plots a :class:`CcdFringePair` object, returning references to the plot
