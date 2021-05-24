@@ -919,7 +919,7 @@ def nrtplot(args=None):
                         vmin, vmax = ccd.min(), ccd.max()
 
                     elif iset == "d":
-                        vmin, vmax = dlo, dhi
+                        vmin, vmax = ilo, ihi
 
                     content = [ccd, vmin, vmax]
 
