@@ -338,9 +338,10 @@ def grab(args=None):
                     dexpose = dark.head["EXPTIME"]
                     for cnam in mccd:
                         ccd = mccd[cnam]
-                        cexpose = ccd.head["EXPTIME"]
-                        scale = (cexpose - bexpose) / dexpose
-                        ccd -= scale * dark[cnam]
+                        if ccd.is_data():
+                            cexpose = ccd.head["EXPTIME"]
+                            scale = (cexpose - bexpose) / dexpose
+                            ccd -= scale * dark[cnam]
 
                 if flat is not None:
                     mccd /= flat
@@ -350,18 +351,19 @@ def grab(args=None):
                     for cnam in fmap:
                         if cnam in fpair:
                             ccd = mccd[cnam]
-                            if verbose:
-                                print(f' CCD {cnam}')
+                            if ccd.is_data():
+                                if verbose:
+                                    print(f' CCD {cnam}')
 
-                            fscale = fpair[cnam].scale(
-                                ccd, fmap[cnam], nhalf, rmin, rmax,
-                                verbose=verbose
-                            )
+                                fscale = fpair[cnam].scale(
+                                    ccd, fmap[cnam], nhalf, rmin, rmax,
+                                    verbose=verbose
+                                )
 
-                            if verbose:
-                                print(f'  Median scale factor = {fscale}')
+                                if verbose:
+                                    print(f'  Median scale factor = {fscale}')
 
-                            ccd -= fscale*fmap[cnam]
+                                ccd -= fscale*fmap[cnam]
 
                 if dtype == "u16":
                     mccd.uint16()
