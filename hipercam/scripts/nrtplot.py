@@ -158,7 +158,7 @@ def nrtplot(args=None):
         defect : str
            Name of defect file, 'none' to ignore.
 
-        fringe : str
+        fmap : str
            Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
 
         fpair : str [if fringe is not 'none']
@@ -391,7 +391,7 @@ def nrtplot(args=None):
         cl.register("lowlevel", Cline.GLOBAL, Cline.HIDE)
         cl.register("highlevel", Cline.GLOBAL, Cline.HIDE)
         cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("fringe", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("fmap", Cline.GLOBAL, Cline.PROMPT)
         cl.register("fpair", Cline.GLOBAL, Cline.PROMPT)
         cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
         cl.register("rmin", Cline.GLOBAL, Cline.HIDE)
@@ -548,7 +548,7 @@ def nrtplot(args=None):
 
         # fringe file (if any)
         fmap = cl.get_value(
-            "fringe",
+            "fmap",
             "fringe map ['none' to ignore]",
             cline.Fname("fmap", hcam.HCAM),
             ignore="none",
@@ -558,7 +558,7 @@ def nrtplot(args=None):
             fmap = hcam.MCCD.read(fmap)
             fpair = cl.get_value(
                 "fpair", "fringe pair file",
-                cline.Fname("fringe", hcam.FRNG)
+                cline.Fname("fpair", hcam.FRNG)
             )
             fpair = fringe.MccdFringePair.read(fpair)
 
