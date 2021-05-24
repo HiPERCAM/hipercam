@@ -35,10 +35,10 @@ __all__ = [
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd (nx)) [imwidth pause plotall] bias [lowlevel
-    highlevel] flat defect fringe (fpair [nhalf]) setup [drurl cmap
-    imwidth imheight memory] msub iset (ilo ihi | plo phi) xlo xhi ylo
-    yhi profit [method beta fwhm fwhm_min shbox smooth fhbox hmin read
-    gain thresh (fwnmax fwymax fwwidth fwheight)]``
+    highlevel] flat defect fringe (fpair [nhalf rmin rmax]) setup
+    [drurl cmap imwidth imheight memory] msub iset (ilo ihi | plo phi)
+    xlo xhi ylo yhi profit [method beta fwhm fwhm_min shbox smooth
+    fhbox hmin read gain thresh (fwnmax fwymax fwwidth fwheight)]``
 
     This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
     the current PGPLOT one. Under development.
@@ -169,6 +169,17 @@ def nrtplot(args=None):
            When calculating the differences for fringe measurement,
            a region extending +/-nhalf binned pixels will be used when
            measuring the amplitudes. Basically helps the stats.
+
+        rmin : float [if fringe is not 'none', hidden]
+           Minimum individual ratio to accept prior to calculating the overall
+           median in order to reduce the effect of outliers. Although all ratios
+           should be positive, you might want to set this a little below zero
+           to allow for some statistical fluctuation.
+
+        rmax : float [if fringe is not 'none', hidden]
+           Maximum individual ratio to accept prior to calculating the overall
+           median in order to reduce the effect of outliers. Probably typically
+           < 1 if fringe map was created from longer exposure data.
 
         setup : bool
            True/yes to access the current windows from hdriver. Useful
@@ -383,6 +394,8 @@ def nrtplot(args=None):
         cl.register("fringe", Cline.GLOBAL, Cline.PROMPT)
         cl.register("fpair", Cline.GLOBAL, Cline.PROMPT)
         cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
+        cl.register("rmin", Cline.GLOBAL, Cline.HIDE)
+        cl.register("rmax", Cline.GLOBAL, Cline.HIDE)
         cl.register("defect", Cline.GLOBAL, Cline.PROMPT)
         cl.register("setup", Cline.GLOBAL, Cline.PROMPT)
         cl.register("drurl", Cline.GLOBAL, Cline.HIDE)
@@ -534,15 +547,15 @@ def nrtplot(args=None):
             dfct = defect.MccdDefect.read(dfct)
 
         # fringe file (if any)
-        frng = cl.get_value(
+        fmap = cl.get_value(
             "fringe",
             "fringe map ['none' to ignore]",
             cline.Fname("fmap", hcam.HCAM),
             ignore="none",
         )
-        if frng is not None:
+        if fmap is not None:
             # read the fringe map
-            frng = hcam.MCCD.read(frng)
+            fmap = hcam.MCCD.read(fmap)
             fpair = cl.get_value(
                 "fpair", "fringe pair file",
                 cline.Fname("fringe", hcam.FRNG)
@@ -552,6 +565,12 @@ def nrtplot(args=None):
             nhalf = cl.get_value(
                 "nhalf", "half-size of fringe measurement regions",
                 2, 0
+            )
+            rmin = cl.get_value(
+                "rmin", "minimum fringe pair ratio", -0.2
+            )
+            rmax = cl.get_value(
+                "rmax", "maximum fringe pair ratio", 1.0
             )
 
         # Get windows from hdriver
@@ -794,9 +813,9 @@ def nrtplot(args=None):
                     # crop the flat on the first frame only
                     flat = flat.crop(mccd)
 
-                if frng is not None:
+                if fmap is not None:
                     # crop the fringe map and pair file
-                    frng = frng.crop(mccd)
+                    fmap = fmap.crop(mccd)
                     fpair = fpair.crop(mccd, nhalf)
 
             if setup:
@@ -869,9 +888,9 @@ def nrtplot(args=None):
                         ccd /= flat[cnam]
 
                     # Remove fringes
-                    if frng is not None and cnam in frng:
-                        fscale = fpair[cnam].scale(ccd, frng[cnam], nhalf)
-                        ccd -= fscale*frng[cnam]
+                    if fmap is not None and cnam in fmap and cnam in fpair:
+                        fscale = fpair[cnam].scale(ccd, fmap[cnam], nhalf, rmin, rmax)
+                        ccd -= fscale*fmap[cnam]
 
                     if msub:
                         # subtract median from each window
