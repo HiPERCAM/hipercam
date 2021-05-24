@@ -97,8 +97,9 @@ class FringePair:
         window name has been set
 
         nhalf : int
-           will measure sum over region +/-nhalf binned pixels around
-           nearest pixel of either end of FringePair
+           will measure difference in the medians over regions
+           +/-nhalf binned pixels around nearest pixel of either
+           end of FringePair
         """
 
         wind = ccd[self.wnam]
@@ -115,11 +116,11 @@ class FringePair:
         xlo2, xhi2 = ix2-nhalf, ix2+nhalf+1
         ylo2, yhi2 = iy2-nhalf, iy2+nhalf+1
 
-        # extract sums over the regions
-        mean1 = wind.data[ ylo1:yhi1, xlo1:xhi1].mean()
-        mean2 = wind.data[ ylo2:yhi2, xlo2:xhi2].mean()
+        # extract medians over the regions
+        median1 = np.median(wind.data[ ylo1:yhi1, xlo1:xhi1])
+        median2 = np.median(wind.data[ ylo2:yhi2, xlo2:xhi2])
 
-        return mean2 - mean1
+        return median2 - median1
 
     def __repr__(self):
         return \
@@ -179,16 +180,43 @@ class CcdFringePair(Group):
         diffs = np.array([fpair.diff(ccd, nhalf) for fpair in self.values()])
         return diffs
 
-    def scale(self, ccd, ccdref, nhalf, reset=False):
+    def scale(self, ccd, ccdref, nhalf, rmin=None, rmax=None, reset=False):
         """
         Measures scale factor needed to subtract the fringes in
         a reference CCD `ccdref` from `ccd`. Measures median of
         the FringePair amplitude ratios.
+
+        Parameters:
+
+          ccd : CCD
+            the CCD to remove fringes from
+
+          ccdref : CCD
+            the fringe map CCD
+
+          nhalf : int
+            fringe amplitude measurements are made from pairs
+            of points. A region of pixels extending +/-nhalf
+            binned pixels around the centre pixel of each point
+            will be used. nhalf can be 0, but a value >0 ensures
+            better stats.
+
+          rmin : float
+            Lowest ratio to allow. Values lower than
+            this from individual points will be ignored.
+
+          rmax : float
+            Highest ratio to allow. Values higher than
+            this from individual points will be ignored.
         """
         if self.diffrefs is None or reset:
             self.diffrefs = self.diff(ccdref, nhalf)
 
         ratios = self.diff(ccd, nhalf) / self.diffrefs
+        if rmin is not None:
+            ratios[ratios < rmin] = np.nan
+        if rmax is not None:
+            ratios[ratios > rmax] = np.nan
         return np.nanmedian(ratios)
 
 class MccdFringePair(Group):
