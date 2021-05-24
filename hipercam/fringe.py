@@ -1,7 +1,10 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
 Defines classes to specify pairs of points for fringe
-measurements. See 'setfringe' for usage.
+measurements. See 'setfringe' for usage. Basic idea is
+to measure peak-trough difference in two frames to measure
+the ratio of fringes between them.  Median values are used
+to eliminate discrepant points caused by objects.
 """
 
 import numpy as np
@@ -92,15 +95,18 @@ class FringePair:
         return self.wnam
 
     def diff(self, ccd, nhalf):
-        """Returns difference in intensity. Only run after having run
-        "inside" with the same value of nhalf because it assumes the
-        window name has been set
+        """Returns difference in intensity.
 
         nhalf : int
            will measure difference in the medians over regions
            +/-nhalf binned pixels around nearest pixel of either
            end of FringePair
         """
+
+        if self.wnam is None:
+            self.wnam = self.inside(ccd,nhalf)
+            if self.wnam is None:
+                return None
 
         wind = ccd[self.wnam]
 

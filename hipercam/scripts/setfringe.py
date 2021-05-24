@@ -1,5 +1,6 @@
 import sys
 import os
+import warnings
 
 import numpy as np
 import matplotlib as mpl
@@ -46,7 +47,7 @@ __all__ = [
 
 
 def setfringe(args=None):
-    """``setfringe fmap fringe ccd [width height] nx [cmap] iset (ilo ihi
+    """``setfringe fmap fringe ccd [width height] nx [cmap nhalf] iset (ilo ihi
     | plo phi)``
 
     Interactive definition of CCD fringe pairs. The idea is to place a large
@@ -92,10 +93,11 @@ def setfringe(args=None):
          There are many others; typing an incorrect one will give a list. "none"
          for matplotlib default.
 
-      hsbox  : int
+      nhalf : int [hidden]
          half-width in binned pixels of stats box as offset from central pixel
-         hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
-         the "show" option when setting FringePair
+         nhalf = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
+         the "show" option when setting FringePair and when reporting FringePair
+         differences.
 
       iset : str [single character]
          determines how the intensities are determined. There are three
@@ -131,7 +133,7 @@ def setfringe(args=None):
         cl.register("height", Cline.LOCAL, Cline.HIDE)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
-        cl.register("hsbox", Cline.GLOBAL, Cline.HIDE)
+        cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
@@ -185,7 +187,7 @@ def setfringe(args=None):
         cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
         cmap = None if cmap == "none" else cmap
 
-        hsbox = cl.get_value("hsbox", "half-width of stats box (binned pixels)", 2, 1)
+        nhalf = cl.get_value("nhalf", "half-width of stats box (binned pixels)", 2, 0)
         iset = cl.get_value(
             "iset",
             "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
@@ -217,6 +219,11 @@ def setfringe(args=None):
 
     # Inputs obtained.
 
+    # hopefully temporary to avoid warning produced by the
+    # keymap.all_axes line associated with the use of 'a' to
+    # add pairs
+    warnings.filterwarnings('ignore')
+
     # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
     # quit_all does not seem to be universal, hence the try/except
     try:
@@ -233,6 +240,7 @@ def setfringe(args=None):
         mpl.rcParams["keymap.xscale"] = ""
         mpl.rcParams["keymap.yscale"] = ""
         mpl.rcParams["keymap.zoom"] = ""
+        mpl.rcParams["keymap.all_axes"] = ""
     except KeyError:
         pass
 
@@ -293,7 +301,7 @@ def setfringe(args=None):
 
     # create the FringePair picker (see below for class def)
     picker = PickFringePair(
-        mccd, cnams, anams, toolbar, fig, mccd_fpair, fpair, hsbox, pobjs
+        mccd, cnams, anams, toolbar, fig, mccd_fpair, fpair, nhalf, pobjs
     )
 
     picker.action_prompt(False)
@@ -316,7 +324,7 @@ class PickFringePair:
     """
 
     def __init__(
-        self, mccd, cnams, anams, toolbar, fig, mccd_fpair, fringenam, hsbox, pobjs
+        self, mccd, cnams, anams, toolbar, fig, mccd_fpair, fringenam, nhalf, pobjs
     ):
 
         # save the inputs, tack on event handlers.
@@ -328,7 +336,7 @@ class PickFringePair:
         self.toolbar = toolbar
         self.mccd_fpair = mccd_fpair
         self.fringenam = fringenam
-        self.hsbox = hsbox
+        self.nhalf = nhalf
         self.pobjs = pobjs
 
         # then mutually exclusive flags to indicate the action we are in
@@ -506,15 +514,12 @@ as it is close enough (< 10 pixels)
             self._mid_pair = False
             if wnam is None:
                 print("  cannot set pairs outside windows")
-                self.action_prompt(True)
 
             elif wnam != self._first_wnam:
                 print("  cannot set pairs across different windows")
-                self.action_prompt(True)
 
             elif self._cnam != self._first_cnam:
                 print("  cannot set pairs across different CCDs")
-                self.action_prompt(True)
 
             else:
                 # add new pair
@@ -534,14 +539,17 @@ as it is close enough (< 10 pixels)
                 plt.draw()
 
                 # let user know what has happened
+                diff = frng.diff(self.mccd[self._cnam],self.nhalf)
                 print(
                     (
                         f"added fringe pair to CCD {self._cnam} "
                         f"from x1,y1 = {self._first_x:.2f},{self._first_y:.2f} "
-                        f"to x2,y2 = {self._x:.2f},{self._y:.2f}"
+                        f"to x2,y2 = {self._x:.2f},{self._y:.2f}. "
+                        f"Median difference = {diff:.2f}"
                     )
                 )
-                self.action_prompt(True)
+
+            self.action_prompt(True)
 
     def _show(self):
         """
@@ -551,7 +559,7 @@ as it is close enough (< 10 pixels)
         # search for enclosing window, print stats
         wnam, wind = utils.print_stats(
             self.mccd[self._cnam], self._cnam,
-            self._x, self._y, self.hsbox, False
+            self._x, self._y, self.nhalf, False
         )
         if wnam is None:
             print('  must hit "s" inside a window')
