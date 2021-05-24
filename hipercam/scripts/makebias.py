@@ -3,7 +3,6 @@
 import sys
 import os
 import time
-import tempfile
 import warnings
 import numpy as np
 
@@ -159,7 +158,7 @@ def makebias(args=None):
         "no",
         str(twait),
         str(tmax),
-        "none",
+        "none", "none", "none", "none",
         "f32",
     ]
     flist = hcam.scripts.grab(args)

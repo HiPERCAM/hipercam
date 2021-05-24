@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 import hipercam as hcam
-from hipercam import cline, utils
+from hipercam import cline, utils, fringe
 from hipercam.cline import Cline
 
 __all__ = [
@@ -20,7 +20,8 @@ __all__ = [
 
 def averun(args=None):
     """``averun [source] (run first last twait tmax | flist) trim ([ncol
-    nrow]) bias dark flat [method sigma adjust clobber] output``
+    nrow]) bias dark flat fmap (fpair [nhalf rmin rmax]) [method sigma
+    adjust clobber] output``
 
     Averages images from a run using median combination, skipping the junk
     frames that result from NSKIP / NBLUE options in HiPERCAM and ULTRACAM
@@ -88,6 +89,32 @@ def averun(args=None):
         flat : str
            Name of flat field to divide by, 'none' to ignore.
 
+        flat : str
+           Name of flat field to divide by, 'none' to ignore.
+
+       fmap : str
+           Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
+
+       fpair : str [if fmap is not 'none']
+           Name of fringe pair file (see e.g. `setfringe`). Required if
+           a fringe map has been specified.
+
+       nhalf : int [if fmap is not 'none', hidden]
+           When calculating the differences for fringe measurement,
+           a region extending +/-nhalf binned pixels will be used when
+           measuring the amplitudes. Basically helps the stats.
+
+       rmin : float [if fmap is not 'none', hidden]
+           Minimum individual ratio to accept prior to calculating the overall
+           median in order to reduce the effect of outliers. Although all ratios
+           should be positive, you might want to set this a little below zero
+           to allow for some statistical fluctuation.
+
+       rmax : float [if fmap is not 'none', hidden]
+           Maximum individual ratio to accept prior to calculating the overall
+           median in order to reduce the effect of outliers. Probably typically
+           < 1 if fringe map was created from longer exposure data.
+
         method : str [hidden, defaults to 'm']
            'm' for median, 'c' for clipped mean. See below for pros and cons.
 
@@ -129,8 +156,13 @@ def averun(args=None):
         cl.register("nrow", Cline.GLOBAL, Cline.HIDE)
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
-        cl.register("dark", Cline.LOCAL, Cline.PROMPT)
-        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
+        cl.register("dark", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("fmap", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("fpair", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
+        cl.register("rmin", Cline.GLOBAL, Cline.HIDE)
+        cl.register("rmax", Cline.GLOBAL, Cline.HIDE)
         cl.register("method", Cline.LOCAL, Cline.HIDE)
         cl.register("sigma", Cline.LOCAL, Cline.HIDE)
         cl.register("adjust", Cline.LOCAL, Cline.HIDE)
@@ -199,6 +231,30 @@ def averun(args=None):
             ignore="none",
         )
 
+        # fringe file (if any)
+        fmap = cl.get_value(
+            "fmap",
+            "fringe map ['none' to ignore]",
+            cline.Fname("fmap", hcam.HCAM),
+            ignore="none",
+        )
+
+        if fmap is not None:
+            fpair = cl.get_value(
+                "fpair", "fringe pair file",
+                cline.Fname("fringe", hcam.FRNG)
+            )
+            nhalf = cl.get_value(
+                "nhalf", "half-size of fringe measurement regions",
+                2, 0
+            )
+            rmin = cl.get_value(
+                "rmin", "minimum fringe pair ratio", -0.2
+            )
+            rmax = cl.get_value(
+                "rmax", "maximum fringe pair ratio", 1.0
+            )
+
         cl.set_default("method", "m")
         method = cl.get_value(
             "method", "c(lipped mean), m(edian)", "c", lvals=("c", "m")
@@ -229,74 +285,45 @@ def averun(args=None):
     if server_or_local:
         print("\nCalling 'grab' ...")
 
+        # Build argument list
+        args = [None,"prompt",source,run,"yes",str(first),str(last)]
         if trim:
-            args = [
-                None,
-                "prompt",
-                source,
-                run,
-                "yes",
-                str(first),
-                str(last),
-                "yes",
-                str(ncol),
-                str(nrow),
-                str(twait),
-                str(tmax),
-                "none",
-                "f32",
-            ]
+            args += ["yes",str(ncol),str(nrow)]
         else:
-            args = [
-                None,
-                "prompt",
-                source,
-                run,
-                "yes",
-                str(first),
-                str(last),
-                "no",
-                str(twait),
-                str(tmax),
-                "none",
-                "f32",
-            ]
-        print("arg =", args)
+            args += ["no"]
+
+        args += [
+            str(twait),str(tmax),
+            "none" if bias is None else bias,
+            "none" if dark is None else dark,
+            "none" if flat is None else flat,
+        ]
+        if fmap is None:
+            args += ["none", "f32"]
+        else:
+            args += [fmap,fpair,str(nhalf),str(rmin),str(rmax),"false","f32"]
         flist = hcam.scripts.grab(args)
 
     try:
         print("\nCalling 'combine' ...")
-        if method == "m":
-            args = [
-                None,
-                "prompt",
-                flist,
-                "none" if bias is None else bias,
-                "none" if dark is None else dark,
-                "none" if flat is None else flat,
-                method,
-                adjust,
-                "usemean=yes",
-                "plot=no",
-                "yes" if clobber else "no",
-                output,
-            ]
-        else:
-            args = [
-                None,
-                "prompt",
-                flist,
-                "none" if bias is None else bias,
-                "none" if dark is None else dark,
-                "none" if flat is None else flat,
-                method,
-                str(sigma),
-                adjust,
-                "usemean=yes",
-                "plot=no",
-                "yes" if clobber else "no",
-                output,
-            ]
+        args = [
+            None,
+            "prompt",
+            flist,
+            "none", "none", "none",
+            method
+        ]
+
+        if method != "m":
+            args += [str(sigma)]
+
+        args += [
+            adjust,
+            "usemean=yes",
+            "plot=no",
+            "yes" if clobber else "no",
+            output,
+        ]
         hcam.scripts.combine(args)
 
         # remove temporary files

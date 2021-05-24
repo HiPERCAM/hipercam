@@ -1,7 +1,6 @@
 import sys
 import os
 import tempfile
-import getpass
 
 import numpy as np
 
@@ -189,6 +188,9 @@ def makeflat(args=None):
 
         if server_or_local:
             resource = cl.get_value("run", "run name", "run005")
+            root = os.path.basename(resource)
+            cl.set_default('output', cline.Fname(root, hcam.HCAM))
+
             first = cl.get_value("first", "first frame to average", 1, 1)
             last = cl.get_value("last", "last frame to average (0 for all)", first, 0)
             twait = cl.get_value(
@@ -289,8 +291,9 @@ def makeflat(args=None):
                 "no",
                 str(twait),
                 str(tmax),
-                "none",
-                "f32",
+                "none" if bias is None else bias,
+                "none" if dark is None else dark,
+                "none", "none", "f32",
             ]
             resource = hcam.scripts.grab(args)
 
@@ -307,43 +310,13 @@ def makeflat(args=None):
             means[cnam] = {}
 
         # We might have a load of temporaries from grab, but we are about to
-        # make some more to save the bias-subtracted normalised versions.
-        tdir = os.path.join(
-            tempfile.gettempdir(), "hipercam-{:s}".format(getpass.getuser())
-        )
-        os.makedirs(tdir, exist_ok=True)
+        # make some more to save the normalised versions.
+        tdir = utils.temp_dir()
+
         fnames = []
         with spooler.HcamListSpool(resource) as spool:
 
             for mccd in spool:
-
-                if bias is not None:
-
-                    # bias subtraction
-                    if bframe is None:
-                        bframe = hcam.MCCD.read(bias)
-                        bframe = bframe.crop(mccd)
-
-                    mccd -= bframe
-                    bexpose = bframe.head.get("EXPTIME", 0.0)
-
-                else:
-                    bexpose = 0.0
-
-                if dark is not None:
-
-                    # dark subtraction
-                    if dframe is None:
-                        dframe = hcam.MCCD.read(dark)
-                        dframe = dframe.crop(mccd)
-
-                    # Factor to scale the dark frame by before
-                    # subtracting from flat. Assumes that all
-                    # frames have same exposure time.
-                    scale = (mccd.head["EXPTIME"] - bexpose) / dframe.head["EXPTIME"]
-
-                    # make dark correction
-                    mccd -= scale * dframe
 
                 # here we determine the mean levels, store them
                 # then normalise the CCDs by them and save the files
@@ -367,10 +340,7 @@ def makeflat(args=None):
                 os.close(fd)
 
                 # a bit of progress info
-                if bias is not None:
-                    print("Saved debiassed, normalised" " flat to {:s}".format(fname))
-                else:
-                    print("Saved normalised flat to {:s}".format(fname))
+                print(f"Saved processed flat to {fname}")
 
         # now we go through CCD by CCD, using the first as a template
         # for the window names in which we will also store the results.

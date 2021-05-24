@@ -1,7 +1,6 @@
 import sys
 import os
 import tempfile
-import getpass
 
 import numpy as np
 
@@ -247,8 +246,10 @@ def makefringe(args=None):
                 "no",
                 str(twait),
                 str(tmax),
-                "none",
-                "f32",
+                "none" if bias is None else bias,
+                "none" if dark is None else dark,
+                "none" if flat is None else flat,
+                "none", "f32",
             ]
             resource = hcam.scripts.grab(args)
 
@@ -267,10 +268,8 @@ def makefringe(args=None):
 
         # We might have a load of temporaries from grab, but we are about to
         # make some more to save the bias-subtracted normalised versions.
-        tdir = os.path.join(
-            tempfile.gettempdir(), "hipercam-{:s}".format(getpass.getuser())
-        )
-        os.makedirs(tdir, exist_ok=True)
+        tdir = utils.temp_dir()
+
         fnames = []
 
         mtype = []
@@ -278,46 +277,6 @@ def makefringe(args=None):
         with spooler.HcamListSpool(resource) as spool:
 
             for mccd in spool:
-
-                if bias is not None:
-
-                    # bias subtraction
-                    if bframe is None:
-                        mtype.append('debiassed')
-                        bframe = hcam.MCCD.read(bias)
-                        bframe = bframe.crop(mccd)
-
-                    mccd -= bframe
-                    bexpose = bframe.head.get("EXPTIME", 0.0)
-
-                else:
-                    bexpose = 0.0
-
-                if dark is not None:
-
-                    # dark subtraction
-                    if dframe is None:
-                        mtype.append('dark subtracted')
-                        dframe = hcam.MCCD.read(dark)
-                        dframe = dframe.crop(mccd)
-
-                    # Factor to scale the dark frame by before
-                    # subtracting from flat. Assumes that all
-                    # frames have same exposure time.
-                    scale = (mccd.head["EXPTIME"] - bexpose) / dframe.head["EXPTIME"]
-
-                    # make dark correction
-                    mccd -= scale * dframe
-
-                if flat is not None:
-
-                    # flat fielding
-                    if fframe is None:
-                        mtype.append('flat fielded')
-                        fframe = hcam.MCCD.read(flat)
-                        fframe = fframe.crop(mccd)
-
-                    mccd /= fframe
 
                 if fpair is not None:
                     # prepare fringepairs

@@ -3,7 +3,6 @@
 import sys
 import os
 import time
-import tempfile
 import warnings
 import numpy as np
 
@@ -157,6 +156,7 @@ def makedark(args=None):
         str(twait),
         str(tmax),
         bias,
+        "none", "none", "none",
         "f32",
     ]
     flist = hcam.scripts.grab(args)
