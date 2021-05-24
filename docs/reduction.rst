@@ -23,7 +23,7 @@ detailed guide to reducing your data.  It covers the following steps:
 Bias frames
 ===========
 
-All CCD images come with a near-constant electronic offset called the
+CCD images come with a near-constant electronic offset called the
 "bias" which ensures that the counts are always positive and helps
 ensure optimum readout properties. This offset does not represent
 genuine detected light and must be subtracted off any image. The
@@ -36,21 +36,25 @@ ULTRASPEC. All dome lights should be off, the focal plane slide should
 be in to block light, and ideally the telescope mirrors closed (in the
 case of ULTRASPEC point the M4 mirror towards the 4k camera). You may
 also want to put a low transmission filter in. Bias frames should be
-taken in clear mode with the shortest possible exposures to minimise
+taken with clears enabled if possible and with the shortest possible
+exposure delay (hit "page down" in the camera driver gui) to minimise
 the time spent accumulating photons.
 
-We standardly take 50 or 100 bias exposures. These can be combined by
-averaging pixel-by-pixel with rejection of outliers to remove cosmic rays, or
-by taking the pixel-by-pixel median. These operations can be carried out with
-|combine| once individual exposures have been extracted with |grab|. It is
-always advisable to inspect the frames visually with |rtplot| to check for
-problems, e.g. with the readout, or light getting onto the images. So long as
-several tens of bias exposures are available, then clipped mean combination of
-frames is preferable to median combination because it leads to a lower level
-statistical noise. Median combination works better for small number of frames
-where the clipped mean can be less effective at removing outliers. Usually one
-should combine bias frames with offsets to correct for any drift in the mean
-level which could otherwise affect the action of |combine|.
+We standardly take 51 or 101 bias exposures, more for small
+formats. These can be combined by averaging pixel-by-pixel with
+rejection of outliers to remove cosmic rays, or by taking the
+pixel-by-pixel median. These operations can be carried out with
+|combine| once individual exposures have been extracted with
+|grab|. It is always advisable to inspect the frames visually with
+|rtplot| to check for problems, e.g. with the readout, or light
+getting onto the images. So long as several tens of bias exposures are
+available, then clipped mean combination of frames is preferable to
+median combination because it leads to a lower level statistical
+noise. Median combination works better for small number of frames
+where the clipped mean can be less effective at removing
+outliers. Usually one should combine bias frames with offsets to
+correct for any drift in the mean level which could otherwise affect
+the action of |combine|.
 
 The two operations of |grab| followed by |combine|, along with clean-up of the
 temporary files can be carried out with the single command |makebias|. This
@@ -65,11 +69,11 @@ rejecting pixels deviating by more that 3.0 sigma from the mean.  You
 might also want to create a more memorable name as a soft link to the
 output hcm file, depending upon the particular type of bias::
 
-  ln -s run0002.hcm bias-ff-slow.hcm
+  ln -s run0002.hcm bias1x1_ff_slow.hcm
 
-for example, for a full-frame bias in slow readout mode. I like this
-approach because one can quickly see (e.g. 'ls -l') which run a given
-calibration frame came from.
+for example, for a 1x1 binned, full-frame bias in slow readout mode. I
+like this approach because one can quickly see (e.g. 'ls -l') which
+run a given calibration frame came from.
 
 Once you have a bias frame, then it can be used by editing in its name in the
 calibration section of the reduce file.
@@ -93,7 +97,7 @@ Darks
 =====
 
 If a CCD is left exposing in complete darkness, counts accumulate
-through thermal excitation, which is known as dark current. Correction
+through thermal excitation known as "dark current". Correction
 for this is particularly important for long exposure images. Both
 |hiper| and ULTRASPEC are kept quite cold and have relatively little
 dark current, so it is often safe to ignore it. It is also very often
@@ -124,7 +128,7 @@ try to correct for such variations. To account for this the standard
 approach is to take images of the twilight sky just after sunset or
 before sunrise. Best of all if the sky is free of many stars, but in
 any case one should always offset the (multiple) sky field frames
-taken so that the starts can be medianed out of the flat
+taken so that stars can be medianed out of the flat
 field. Normally we move in a spiral pattern to accomplish this.
 
 At the GTC, |hiper|'s driving routine, ``hdriver`` can drive the
@@ -169,12 +173,11 @@ Fringing
 With |hiper| there is some fringing in the z-band and to a much
 smaller extent in the i-band. Fringing does not flat-field away because it is
 the result of illumination by the emission-line dominated night sky whereas
-twilight flats come from broad-band illumination. It should be possible to
-correct for it, but I have yet to do so. This is mostly here for warning.
+twilight flats come from broad-band illumination.
 
 .. Warning::
-   I have yet to implement correction for fringing in the
-   |hiper| pipeline but it is high on the to-do list.
+   I have advanced a significant way towards implementing fringe correction.
+   Watch this space.
 
 Bad pixels
 ==========
