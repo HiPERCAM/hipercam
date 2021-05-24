@@ -241,10 +241,8 @@ def grab(args=None):
 
         # fringe file (if any)
         fmap = cl.get_value(
-            "fmap",
-            "fringe map ['none' to ignore]",
-            cline.Fname("fmap", hcam.HCAM),
-            ignore="none",
+            "fmap", "fringe map ['none' to ignore]",
+            cline.Fname("fmap", hcam.HCAM), ignore="none",
         )
         if fmap is not None:
             # read the fringe frame and prompt other parameters
@@ -320,6 +318,9 @@ def grab(args=None):
                     # First time through, need to manipulate calibration data
                     if bias is not None:
                         bias = bias.crop(mccd)
+                        bexpose = bias.head.get("EXPTIME", 0.0)
+                    else:
+                        bexpose = 0.
                     if flat is not None:
                         flat = flat.crop(mccd)
                     if dark is not None:
@@ -331,9 +332,6 @@ def grab(args=None):
                 # now any time through, apply calibrations
                 if bias is not None:
                     mccd -= bias
-                    bexpose = bias.head.get("EXPTIME", 0.0)
-                else:
-                    bexpose = 0.
 
                 if dark is not None:
                     # subtract dark, CCD by CCD
