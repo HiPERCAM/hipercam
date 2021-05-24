@@ -314,8 +314,10 @@ def setaper(args=None):
 
         # get inputs
         mccd = cl.get_value("mccd", "frame to plot", cline.Fname("hcam", hcam.HCAM))
+        root = os.path.splitext(os.path.basename(mccd))[0]
         mccd = hcam.MCCD.read(mccd)
 
+        cl.set_default("aper", cline.Fname(root, hcam.APER))
         aper = cl.get_value(
             "aper", "name of aperture file", cline.Fname("hcam", hcam.APER, exist=False)
         )
