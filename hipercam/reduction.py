@@ -227,8 +227,8 @@ class Rfile(OrderedDict):
         else:
             rfile.flat = None
 
-        if calsec["fringe"] != "":
-            rfile.fringe = hcam.MCCD.read(utils.add_extension(calsec["fringe"], hcam.HCAM))
+        if calsec["fmap"] != "":
+            rfile.fmap = hcam.MCCD.read(utils.add_extension(calsec["fmap"], hcam.HCAM))
             rfile.fpair = hcam.fringe.MccdFringePair.read(
                 utils.add_extension(calsec["fpair"], hcam.FRNG)
             )
@@ -236,7 +236,7 @@ class Rfile(OrderedDict):
             calsec["rmin"] = float(calsec["rmin"])
             calsec["rmax"] = float(calsec["rmin"])
         else:
-            rfile.fringe = None
+            rfile.fmap = None
 
         try:
             rfile.readout = float(calsec["readout"])
@@ -598,6 +598,11 @@ class Rfile(OrderedDict):
 
         if self.flat is not None:
             self.flat = self.flat.crop(mccd)
+
+        if self.fmap is not None:
+            self.fmap = self.fmap.crop(mccd)
+            nhalf = self['calibration']['nhalf']
+            self.fpair = self.fpair.crop(mccd, nhalf)
 
         if isinstance(self.readout, hcam.MCCD):
             self.readout = self.readout.crop(mccd)
@@ -1329,7 +1334,7 @@ class ProcessCCDs:
         # propagating between one group of frames and the next
         self.store = {}
 
-    def __call__(self, pccds, mccds, nframes):
+    def __call__(self, pccds, bccds, mccds, nframes):
 
         """Carries out the multi-processing reduction of a set of frames
 
@@ -1342,6 +1347,9 @@ class ProcessCCDs:
               that are incurred by processing each frame as it comes
               in (old method). All frames should have an identical set
               of CCDs in them.
+
+           bccds : list of MCCDs
+              purely debiassed versions, used for variance computation
 
            mccds : list of MCCDs
               their unprocessed counterparts, used to determine saturation.
@@ -1367,10 +1375,11 @@ class ProcessCCDs:
             # build lists of specific CCDs from each frame as opposed to lists
             # of frames. Only accumulate ones marked as having data (i.e. skip
             # NSKIP frames).  this is where the parellisation split is made.
-            pcds, mcds, nfrs = [], [], []
-            for pccd, mccd, nframe in zip(pccds, mccds, nframes):
+            pcds, bcds, mcds, nfrs = [], [], [], []
+            for pccd, bccd, mccd, nframe in zip(pccds, bccds, mccds, nframes):
                 if pccd[cnam].is_data():
                     pcds.append(pccd[cnam])
+                    bcds.append(bccd[cnam])
                     mcds.append(mccd[cnam])
                     nfrs.append(nframe)
 
@@ -1400,6 +1409,7 @@ class ProcessCCDs:
                 res = self.ccdproc(
                     cnam,
                     pcds,
+                    bcds,
                     mcds,
                     nfrs,
                     self.read[cnam],
@@ -1416,6 +1426,7 @@ class ProcessCCDs:
                     (
                         cnam,
                         pcds,
+                        bcds,
                         mcds,
                         nfrs,
                         self.read[cnam],
@@ -1441,7 +1452,6 @@ class ProcessCCDs:
 
         # pass back the results
         return allres
-
 
 def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results

@@ -26,7 +26,7 @@ __all__ = [
 
 
 def genred(args=None):
-    """``genred apfile rfile comment bias flat dark fringe fpair [nhalf
+    """``genred apfile rfile comment bias flat dark fmap fpair [nhalf
     rmin rmax inst ncpu ngroup skipbadt] linear [extendx ccd location
     smoothfwhm method beta betamax fwhm fwhmmin fwhmmax searchwidth
     thresh hminref hminnrf rfac rmin rmax sinner souter scale psfgfac
@@ -288,7 +288,7 @@ def genred(args=None):
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
         cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
-        cl.register("fringe", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fmap", Cline.LOCAL, Cline.PROMPT)
         cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
         cl.register("nhalf", Cline.LOCAL, Cline.HIDE)
         cl.register("rmin", Cline.LOCAL, Cline.HIDE)
@@ -388,14 +388,14 @@ def genred(args=None):
         dark = "" if dark is None else dark
 
         # fringe frame
-        frng = cl.get_value(
-            "fringe",
+        fmap = cl.get_value(
+            "fmap",
             "fringe frame ['none' to ignore]",
             cline.Fname("fringe", hcam.HCAM),
             ignore="none",
         )
-        if frng is None:
-            frng = ""
+        if fmap is None:
+            fmap = ""
         else:
             fpair = cl.get_value(
                 "fpair", "fringe pair file",
@@ -827,7 +827,7 @@ warn = 1 60000 64000
                 bias=bias,
                 flat=flat,
                 dark=dark,
-                fringe=frng,
+                fmap=fmap,
                 fpair=fpair,
                 nhalf=nhalf,
                 rmin=rmin,
@@ -1157,11 +1157,11 @@ bias = {bias} # Bias frame, blank to ignore
 flat = {flat} # Flat field frame, blank to ignore
 dark = {dark} # Dark frame, blank to ignore
 
-fringe = {fringe} # Fringe map frame, blank to ignore
-fpair = {fpair} # File of fringe pairs, ignored if fringe =""
-nhalf = {nhalf} # Half-size of region used for fringe ratios, ignored if fringe =""
-rmin = {rmin} # Mininum acceptable individual fringe ratio
-rmax = {rmax} # Maximum acceptable individual fringe ratio
+fmap = {fmap} # Fringe map frame, blank to ignore
+fpair = {fpair} # File of fringe pairs, ignored if fmap =""
+nhalf = {nhalf} # Half-size of region used for fringe ratios, ignored if fmap =""
+rmin = {rmin} # Mininum acceptable individual fmap ratio, ignored if fmap =""
+rmax = {rmax} # Maximum acceptable individual fmap ratio, ignored if fmap =""
 
 readout = {readout} # RMS ADU. Float or string name of a file or "!" to estimate on the fly
 gain = {gain} # Gain, electrons/ADU. Float or string name of a file

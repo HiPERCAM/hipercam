@@ -42,22 +42,25 @@ def reduce(args=None):
     ([ncol nrow]) log lplot implot (ccd nx msub xlo xhi ylo yhi iset
     (ilo ihi | plo phi))``
 
-    Reduces a sequence of multi-CCD images, plotting lightcurves as images
-    come in. It can extract with either simple aperture photometry or Tim
-    Naylor's optimal photometry, on specific targets defined in an aperture
-    file using |setaper|.
+    Reduces a sequence of multi-CCD images, plotting lightcurves as
+    images come in. It can extract with either simple aperture
+    photometry or Tim Naylor's optimal photometry, on specific targets
+    defined in an aperture file using |setaper|.
 
-    reduce can source data from both the ULTRACAM and HiPERCAM servers, from
-    local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml + .dat for ULTRACAM, 3D
-    FITS files for HiPERCAM) and from lists of HiPERCAM '.hcm' files. If you
-    have data from a different instrument you should convert into the
-    FITS-based hcm format.
+    reduce can source data from both the ULTRACAM and HiPERCAM
+    servers, from local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml +
+    .dat for ULTRACAM, 3D FITS files for HiPERCAM) and from lists of
+    HiPERCAM '.hcm' files. If you have data from a different
+    instrument you should convert into the FITS-based hcm format.
 
-    reduce is primarily configured from a file with extension ".red". This
-    contains a series of directives, e.g. to say how to re-position and
-    re-size the apertures. An initial reduce file is best generated with
-    the script |genred| after you have created an aperture file. This contains
-    lots of help on what to do.
+    reduce is primarily configured from a file with extension
+    ".red". This contains a series of directives, e.g. to say how to
+    re-position and re-size the apertures. An initial reduce file is
+    best generated with the script |genred| after you have created an
+    aperture file. This contains lots of help on what to do. |genred|
+    tries to get something usable fast for observing purposes, but the
+    parameters can nearly always be tweaked to produce better
+    outcomes.
 
     A reduce run can be terminated at any point with ctrl-C without doing
     any harm. You may often want to do this at the start in order to adjust
@@ -414,9 +417,9 @@ def reduce(args=None):
         # whether some parameters have been initialised
         initialised = False
 
-        # containers for the processed and raw MCCD groups
+        # containers for the processed, debiassed and raw MCCD groups
         # and their frame numbers
-        pccds, mccds, nframes = [], [], []
+        pccds, bccds, mccds, nframes = [], [], [], []
 
         ##############################################
         #
@@ -511,7 +514,7 @@ def reduce(args=None):
 
                     if len(mccds):
                         # finish processing remaining frames
-                        results = processor(pccds, mccds, nframes)
+                        results = processor(pccds, bccds, mccds, nframes)
 
                         # write out results to the log file
                         alerts = logfile.write_results(results)
@@ -581,13 +584,16 @@ def reduce(args=None):
                     initialised = True
 
                 # De-bias the data. Retain a copy of the raw data as 'mccd'
-                # in order to judge saturation. Processed data called 'pccd'
+                # in order to judge saturation. Plain debiassed data called
+                # bccd. Data for full processing called 'pccd'
                 if rfile.bias is not None:
                     # subtract bias
-                    pccd = mccd - rfile.bias
+                    bccd = mccd - rfile.bias
+                    pccd = bccd.copy()
                     bexpose = rfile.bias.head.get("EXPTIME", 0.0)
                 else:
                     # no bias subtraction
+                    bccd = mccd.copy()
                     pccd = mccd.copy()
                     bexpose = 0.0
 
@@ -643,16 +649,31 @@ def reduce(args=None):
                             # broadcasting rules
                             wind.data -= xmedian.reshape((len(xmedian), 1))
 
+                if rfile.fmap is not None:
+                    # fringe correction
+                    calsec = rfile["calibration"]
+
+                    # apply only to CCDs present in both fmap and fpair
+                    for cnam in rfile.fmap:
+                        if cnam in rfile.fpair:
+                            ccd = pccd[cnam]
+                            fscale = rfile.fpair[cnam].scale(
+                                ccd, rfile.fmap[cnam],
+                                calsec['nhalf'], calsec['rmin'], calsec['rmax']
+                            )
+                            ccd -= fscale*rfile.fmap[cnam]
+
                 # Accumulate frames into processing groups for faster
                 # parallelisation
                 pccds.append(pccd)
                 mccds.append(mccd)
+                bccds.append(bccd)
                 nframes.append(nframe)
 
                 if len(pccds) == rfile["general"]["ngroup"]:
                     # parallel processing. This should usually be the first
                     # points at which it takes place
-                    results = processor(pccds, mccds, nframes)
+                    results = processor(pccds, bccds, mccds, nframes)
 
                     # write out results to the log file
                     alerts = logfile.write_results(results)
@@ -700,7 +721,7 @@ def reduce(args=None):
         if len(mccds):
             # out of loop now. Finish processing any remaining
             # frames.
-            results = processor(pccds, mccds, nframes)
+            results = processor(pccds, bccds, mccds, nframes)
 
             # write out results to the log file
             alerts = logfile.write_results(results)
@@ -751,10 +772,10 @@ def reduce(args=None):
 # the same name but different action are located in psf_reduce
 
 
-def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
+def ccdproc(cnam, ccds, bccds, rccds, nframes, read, gain, ccdwin, rfile, store):
     """Processing steps for a sequential set of images from the same
     CCD. This is designed for parallelising the processing across CCDs
-    of multiarm cameras like ULTRACAM and HiPERCAM using
+    of multi-arm cameras like ULTRACAM and HiPERCAM using
     multiprocessing. To be called *after* checking that any processing
     is needed.
 
@@ -766,6 +787,9 @@ def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
        ccds : List of CCDs
           the CCDs for processing which should have been debiassed, flat
           fielded and multiplied by the gain to get into electrons.
+
+       bccds : List of CCDs
+          the CCDs for processing which should just have been debiassed
 
        rccds : List of CCDs
           unprocessed CCDs, one-to-one correspondence with 'ccds', used
@@ -808,7 +832,7 @@ def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
     # are used to initialise profile fits next time.
 
     res = []
-    for ccd, rccd, nframe in zip(ccds, rccds, nframes):
+    for ccd, bccd, rccd, nframe in zip(ccds, bccds, rccds, nframes):
         # Loop through the CCDs supplied
 
         # move the apertures
@@ -816,8 +840,8 @@ def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
 
         # extract flux from all apertures of each CCD. Return with the CCD
         # name, the store dictionary, ccdaper and then the results from
-        # extractFlux for compatibility with multiprocessing. Note
-        results = extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store)
+        # extractFlux for compatibility with multiprocessing.
+        results = extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store)
 
         # Save the essentials
         res.append(
@@ -836,7 +860,7 @@ def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
     return (cnam, res)
 
 
-def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
+def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     """This extracts the flux of all apertures of a given CCD.
 
     The steps are (1) aperture resizing, (2) sky background estimation, (3)
@@ -865,7 +889,10 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
           CCD identifier label
 
        ccd : CCD
-           the debiassed, flat-fielded CCD.
+           the fully processed CCD (debiassed, dark-corrected, flat-fielded, fringe-corrected)
+
+       bccd : CCD
+           debiassed-only CCD. Used in variance computation.
 
        rccd : CCD
           corresponding raw CCD, used to work out whether data are
@@ -980,6 +1007,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
         wnam = ccdwin[apnam]
 
         wdata = ccd[wnam]
+        wbias = bccd[wnam]
         wread = read[wnam]
         wgain = gain[wnam]
         wraw = rccd[wnam]
@@ -1004,6 +1032,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
 
             # extract sub-Windows
             swdata = wdata.window(x1, x2, y1, y2)
+            swbias = wbias.window(x1, x2, y1, y2)
             swread = wread.window(x1, x2, y1, y2)
             swgain = wgain.window(x1, x2, y1, y2)
             swraw = wraw.window(x1, x2, y1, y2)
@@ -1168,6 +1197,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
 
             # the values needed to extract the flux.
             dtarg = swdata.data[dok]
+            dbtarg = swbias.data[dok]
             dread = swread.data[dok]
             dgain = swgain.data[dok]
             wtarg = wgt[dok]
@@ -1236,7 +1266,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                     # in this case we are using the true readout noise and we
                     # just use the data (which should be debiassed) without
                     # removal of the sky.
-                    var = (wtarg ** 2 * (rd ** 2 + np.maximum(0, dtarg) / dgain)).sum()
+                    var = (wtarg ** 2 * (rd ** 2 + np.maximum(0, dbtarg) / dgain)).sum()
 
                 if serror > 0:
                     # add in factor due to uncertainty in sky estimate
