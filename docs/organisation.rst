@@ -2,8 +2,8 @@
 
 .. include:: globals.rst
 
-Organisation
-************
+File organisation
+*****************
 
 This page contains advice on how to organise |hiper| reduction in terms of
 directory structure and file names.
@@ -84,21 +84,29 @@ available. Then a name like 'flat_ugr_caution.hcm' might be warranted.
 Reduction file names
 ====================
 
-Once all set with calibrations, then for a given run, I use the root name
-('run023' or 'run0034' or whatever) for all files associated with that
-run. The pipeline defines a set of standard extensions that will be added to
-any given file to allow this. Thus you will end up with multiple files of the
-form 'run023.XXX', with 'XXX' being the file extension. A full set of such
-files and their likely meanings are:
+Once all set with calibrations, then for a given run, I use the root
+name ('run023' or 'run0034' or whatever) for all files associated with
+that run. The pipeline defines a set of standard extensions that will
+be added to any given file to allow this. Thus you will end up with
+multiple files of the form 'run023.XXX', with 'XXX' being the file
+extension. This makes it much easier to keep track of what a given
+file is associated with. Many of the pipeline scripts are designed
+with this in mind, e.g. |averun| will set the default output name
+according to the run name. A full set of such files and their likely
+meanings (including a few ancilliary files not associated with
+specific runs) are:
 
 ===========  =========== =======================================================================
 Name         Type        Meaning
 ===========  =========== =======================================================================
 run023.hcm   Binary FITS Representative image of the run, probably from its start using |averun|
-run023.ape   JSON text   File of photometric apertures (JSON text file)
+run023.ape   JSON text   File of photometric apertures
 run023.red   ASCII text  Reduction driver file for |reduce|
 run023.log   ASCII text  Output log file from a run of |reduce|
 run023.fits  Binary FITS FITS version of a |reduce| log file made with |hlog2fits|
+defect.dft   JSON text   File of CCD defects
+fringe.frng  JSON text   File of peak/trough pairs for fringe measurement
+files.lis    ASCII text  Column of file names (source='hf' option in some commands)
 ===========  =========== =======================================================================
 
 If you find such a set, within a directory, then assuming the pipeline version
@@ -106,5 +114,6 @@ used to make the log file still applies, you should be able to re-reduce using
 the aperture ('.ape') and reduction ('.red') files. A run of |setaper| with
 the hcm ('.hcm') and ('.ape') files will show the apertures selected. If the
 reduction fails, then you may want to re-generate the reduction driver file
-using |genred|.
+using |genred|; see also |rupdate| which attempts to bring old reduction files
+up to date.
 

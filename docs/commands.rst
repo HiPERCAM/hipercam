@@ -29,7 +29,8 @@
 .. |ol-ltrans|   replace:: computes transforms to align frames
 .. |ol-makebias| replace:: combine a run to make a bias frame
 .. |ol-makedark| replace:: combine a run to make a dark frame
-.. |ol-makeflat| replace:: combine a list of frames into a flat
+.. |ol-makeflat| replace:: combine a set of frames into a flat
+.. |ol-makefringe| replace:: combine a set frames into a fringe map
 .. |ol-makemovie| replace:: makes stills for movies from a run
 .. |ol-mstats|   replace:: list stats of multiple frames from a run
 .. |ol-mul|      replace:: multiply two frames
@@ -41,6 +42,7 @@
 .. |ol-rtplot|   replace:: plot frames as they come in [pgplot]
 .. |ol-setaper|  replace:: define the photometric apertures
 .. |ol-setdefect| replace:: define a file of CCD defects
+.. |ol-setfringe| replace:: define peak/trough pairs for fringe measurement
 .. |ol-splice|   replace:: splice two frames together
 .. |ol-stats|    replace:: report statistics of a frame
 .. |ol-sub|      replace:: subtract two frames
@@ -128,6 +130,8 @@ useful.
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |makeflat|   | |ol-makeflat|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |makefringe| | |ol-makefringe|| Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
    | |makemovie|  | |ol-makemovie| |          |          | Yes     |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |mstats|     | |ol-mstats|    |          |          |         |           | Yes        |
@@ -149,6 +153,8 @@ useful.
    | |setaper|    | |ol-setaper|   | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |setdefect|  | |ol-setdefect| | Yes      |          |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |setfringe|  | |ol-setfringe| | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |splice|     | |ol-splice|    |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -176,16 +182,17 @@ you get up to speed.
 Basic parameter input
 ---------------------
 
-The command ``rtplot`` has more parameters than most others and is a good one
-to start with. Suppose then that we have a raw |hiper| file,
-:file:`run0076.fits`, that we want to plot. If we type 'rtplot' and follow
-the prompts, the first few lines might be::
+The command |rtplot| has more parameters than most others and is a
+good one to start with (see also its replacement |nrtplot|). Suppose
+then that we have a raw |hiper| file, :file:`run0076.fits`, that we
+want to plot. If we type 'rtplot' and follow the prompts, the first
+few lines might be::
 
   rtplot
   run - run name [run0064]: run0076
   first - first frame to plot [10]: 1
 
-This shows that the last time ``rtplot`` was invoked, it was used to look
+This shows that the last time |rtplot| was invoked, it was used to look
 as :file:`run0064.fits` starting with frame 10. Note that the extension
 '.fits' is not needed: |hiper| makes significant use of extensions to
 differentiate between different forms of file, all of which could be
@@ -208,7 +215,7 @@ will do, and the first two parameters could be similarly specified::
   rtplot first=1 run=run0076
 
 Note that by naming the parameters, the order becomes immaterial. Now,
-assuming that the command was completed, if you run ``rtplot`` again you
+assuming that the command was completed, if you run |rtplot| again you
 might get::
 
   rtplot
@@ -337,8 +344,8 @@ Global vs local parameters
 
 All |hiper| pipeline parameters fall into one of two classes, either being
 'local' to a command or 'global' to multiple commands. The ``run`` parameter
-of ``rtplot`` for instance also appears in ``grab`` and if you change it in
-``rtplot``, it will be changed in ``grab``. This is very useful when running
+of |rtplot| for instance also appears in |grab| and if you change it in
+|rtplot|, it will be changed in |grab|. This is very useful when running
 a series of commands on the same file as the commands almost 'know' what you want,
 saving much typing.
 
@@ -452,6 +459,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.makebias
 .. autofunction:: hipercam.scripts.makedark
 .. autofunction:: hipercam.scripts.makeflat
+.. autofunction:: hipercam.scripts.makefringe
 .. autofunction:: hipercam.scripts.makemovie
 .. autofunction:: hipercam.scripts.mstats
 .. autofunction:: hipercam.scripts.mul
@@ -463,6 +471,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.rupdate
 .. autofunction:: hipercam.scripts.setaper
 .. autofunction:: hipercam.scripts.setdefect
+.. autofunction:: hipercam.scripts.setfringe
 .. autofunction:: hipercam.scripts.splice
 .. autofunction:: hipercam.scripts.stats
 .. autofunction:: hipercam.scripts.sub

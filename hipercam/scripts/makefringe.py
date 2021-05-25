@@ -24,7 +24,8 @@ def makefringe(args=None):
     """``makefringe [source] (run first last [twait tmax] | flist) (bias
     flat dark) fpair ([nhalf]) ccd fwhm [clobber] output``
 
-    Averages a set of images to make a frame for defringing.
+    Averages a set of images to make a frame for defringing (referred
+    to elsewhere as a "fringe map").
 
     At long wavelengths, CCDs suffer what is known as "fringing",
     which in terms of structure looks something like the coloured
@@ -34,16 +35,25 @@ def makefringe(args=None):
     additive in nature.
 
     De-fringing in |hiper| is implemented according to the method
-    suggested by Snodgrass & Carry (2013Msngr.152...14S). The idea
-    here is to create a set of pairs of points the ratios of which
-    will be used to estimate the level of fringing compared to a
-    reference frame. ``makefringe'' is used to make the reference
-    frame. It works as follows: given an input list of files (or
-    optionally a single run), it reads them all in, debiases,
+    suggested by Snodgrass & Carry (2013Msngr.152...14S). The idea is
+    to create a set of pairs of points marking the peak and troughs of
+    fringes. The difference in intensity between these in the data to
+    be corrected is compared with the difference in a reference
+    "fringe map" by taking their ratio. This is done many times so
+    that the median can be taken to eliminate ratios affected by
+    celestial targets or cosmic rays. the ratios of which will be used
+    to estimate the level of fringing compared to a reference
+    frame. ``makefringe`` is used to make the reference fringe map. It
+    works as follows: given an input list of files (or optionally a
+    single run), it reads them all in, optionally debiases,
     dark-subtracts and flat-fields them, calculates a median count
-    level of each one which is subtracted from and (optionally)
-    divided into each frame individually. The pixel-by-pixel median of
-    all frames is then calculated.
+    level of each one which is subtracted from each CCD
+    individually. The pixel-by-pixel median of all frames is then
+    calculated. It is also possible to apply the fringe pair ratio
+    measurement to scale each frame before combining which allows
+    frames of similar pattern but varying amplitude to be
+    combined. Finally, the output can be smoothed because fringes are
+    usually a medium to large scale pattern.
 
     Parameters:
 
