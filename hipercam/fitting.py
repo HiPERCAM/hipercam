@@ -145,7 +145,7 @@ def combFit(
         )
 
     else:
-        raise NotImplementedError("{:s} fitting method not implemented".format(method))
+        raise NotImplementedError(f"Fitting method = {method} method not implemented")
 
     if method == "g":
         message = (
@@ -328,8 +328,11 @@ def fitMoffat(
 
     """
 
-    if fwhm < fwhm_min or beta > beta_max:
-        raise HipercamError("fwhm and/or beta out of range")
+    if fwhm < fwhm_min:
+        raise HipercamError(f"fwhm < fwhm_min ({fwhm} < {fwhm_min})")
+
+    if beta > beta_max:
+        raise HipercamError(f"beta > beta_max ({beta} > {beta_max})")
 
     # construct function object for Moffat fit. First the mode.
     mode = "" if sky is None else "s"
@@ -495,7 +498,7 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
       ndiv : int
          Parameter controlling treatment of sub-pixellation. If > 0, every
          pixel will be sub-divided first into unbinned pixels, and then each
-         unbinned pixels will be split into a square array of ndiv by ndiv
+         unbinned pixel will be split into a square array of ndiv by ndiv
          points. The profile will be evaluated and averaged over each of these
          points. Thus if the pixels are binned xbin by ybin, there will be
          xbin*ybin*ndiv**2 evaluations per pixel. This is to cope with the
