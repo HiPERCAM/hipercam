@@ -13,7 +13,20 @@ lists of past changes can be seen on github in any case). NB the
 version of these docs may reflect a development version subsequent to
 the most recent release and hence will appear to be one click on.
 
-#  :doc:`Updates since 0.22.0 <change_log_0.22.0_to_now>`. Most recent release: 0.22.2
+#  :doc:`Updates since 1.0.0 <change_log_1.0.0_to_now>`. Most recent release: 1.0.0
+
+#. **25 May 2021, Version 1.0.0**: fringe-correction added
+
+     * fringe correction added to |nrtplot|, |grab|, |averun|, |reduce|. Associated
+       new commands |makefringe| and |setfringe| added.
+     * |nrtplot| improved responsiveness by updating plots while-u-wait
+     * more synchronisation of default output names with inputs
+     * |makemovie| for movie stills added
+     * |joinup| to export joined up frames added
+     * |rtplot| bug fix
+
+   Here is the
+   :doc:`full list of changes, 0.22.0 to 1.0.0 <change_log_0.22.0_1.0.0>`.
 
 #. **05 May 2021, Version 0.22.0**: matplotlib-based real time image plotter
    introduced
