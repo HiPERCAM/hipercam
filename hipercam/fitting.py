@@ -15,23 +15,22 @@ __all__ = ("combFit", "fitMoffat", "fitGaussian", "moffat", "gaussian")
 
 
 def combFit(
-    wind,
-    method,
-    sky,
-    height,
-    x,
-    y,
-    fwhm,
-    fwhm_min,
-    fwhm_fix,
-    beta,
-    beta_max,
-    beta_fix,
-    read,
-    gain,
-    thresh,
-    ndiv=0,
-    max_nfev=None
+        wind,
+        sigma,
+        method,
+        sky,
+        height,
+        x,
+        y,
+        fwhm,
+        fwhm_min,
+        fwhm_fix,
+        beta,
+        beta_max,
+        beta_fix,
+        thresh,
+        ndiv=0,
+        max_nfev=None
 ):
     """Fits a stellar profile in a :class:Window using either a 2D Gaussian
     or Moffat profile. This is a convenience wrapper of fitMoffat and
@@ -41,6 +40,10 @@ def combFit(
 
         wind : :class:`Window`
             the Window containing the stellar profile to fit.
+
+        sigma : np.array
+            array of sigma estimates matching dimensions of wind. Modified
+            on exit. Rejected points will be negative.
 
         method : string
             fitting method 'g' for Gaussian, 'm' for Moffat
@@ -75,16 +78,11 @@ def combFit(
         beta_fix : bool [if method == 'm']
             fix beta (i.e. don't fit it)
 
-        read : float | array
-            readout noise, RMS ADU
-
-        gain : float | array
-            gain, electrons per ADU
-
         thresh : float
             threshold in terms of RMS for rejection. The RMS is obtained from
             read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
-            = 4
+            = 4. The first fit is carried out with 2*thresh as the rejection
+            threshold to avoid spurious rejections.
 
         ndiv : int
             Parameter controlling treatment of sub-pixellation. If ndiv > 0,
@@ -112,13 +110,12 @@ def combFit(
           or it hit the minimum value.
 
        extras : tuple
-          (fit,x,y,sigma,chisq,nok,nrej,npar,message) -- `fit` is an Window
+          (fit,x,y,chisq,nok,nrej,npar,message) -- `fit` is an Window
           containing the best fit; `x` and `x` are the X and Y coordinates of
-          the pixels, sigma are the final uncertainties used for each pixel,
-          any negative were rejected; `chisq` is the chi**2 of the fit; `nok`
+          the pixels; `chisq` is the chi**2 of the fit; `nok`
           is the number of points fitted; `nrej` is the number rejected;
           `npar` is the number of parameters fitted; `message` summarises the
-          fit values. `x`, `y` and `sigma` are all 2D numpy arrays matching
+          fit values. `x`  and `y` are 2D numpy arrays matching
           the dimensions of the data.
 
     Raises a HipercamError if least_squares fails.
@@ -130,10 +127,10 @@ def combFit(
         (
             (sky, height, x, y, fwhm),
             (esky, eheight, ex, ey, efwhm),
-            (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev)
+            (fit, X, Y, chisq, nok, nrej, npar, nfev)
         ) = fitGaussian(
-            wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, read, gain, thresh,
-            ndiv, max_nfev
+            wind, sigma, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
+            thresh, ndiv, max_nfev
         )
 
     elif method == "m":
@@ -141,10 +138,10 @@ def combFit(
         (
             (sky, height, x, y, fwhm, beta),
             (esky, eheight, ex, ey, efwhm, ebeta),
-            (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev)
+            (fit, X, Y, chisq, nok, nrej, npar, nfev)
         ) = fitMoffat(
-            wind, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta,
-            beta_max, beta_fix, read, gain, thresh, ndiv, max_nfev
+            wind, sigma, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta,
+            beta_max, beta_fix, thresh, ndiv, max_nfev
         )
 
     else:
@@ -175,7 +172,7 @@ def combFit(
     return (
         (sky, height, x, y, fwhm, beta),
         (esky, eheight, ex, ey, efwhm, ebeta),
-        (fit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
+        (fit, X, Y, chisq, nok, nrej, npar, nfev, message),
     )
 
 
@@ -187,22 +184,21 @@ def combFit(
 
 
 def fitMoffat(
-    wind,
-    sky,
-    height,
-    xcen,
-    ycen,
-    fwhm,
-    fwhm_min,
-    fwhm_fix,
-    beta,
-    beta_max,
-    beta_fix,
-    read,
-    gain,
-    thresh,
-    ndiv,
-    max_nfev=None,
+        wind,
+        sigma,
+        sky,
+        height,
+        xcen,
+        ycen,
+        fwhm,
+        fwhm_min,
+        fwhm_fix,
+        beta,
+        beta_max,
+        beta_fix,
+        thresh,
+        ndiv,
+        max_nfev=None,
 ):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
@@ -222,6 +218,10 @@ def fitMoffat(
             the Window with the data to be fitted. Ideally should contain
             only one target, so chopping down to a small region around
             the target of interest is usually a good idea.
+
+        sigma : np.array
+            array of sigma estimates matching dimensions of wind. Modified on
+            exit; rejected points are multiplied by -1
 
         sky : float or None
             initial value of the (assumed constant) sky background (counts
@@ -309,15 +309,13 @@ def fitMoffat(
                 the sky is not fitted, skye comes back as -1.
 
            extras : tuple
-                (fit, x, y, sigma, chisq, nok, nrej, npar, nfev)
-                where: `fit` is an :class:`Window` containing the best
-                fit; `x` and `y` are the x and y positions of all
-                pixels (2D numpy arrays); `sigma` is the final set of
-                RMS uncertainties on each pixel (2D numpy array);
-                `chisq` is the raw chi**2; `nok` is the number of
-                points fitted; `nrej` is the number rejected; `npar`
-                is the number of parameters fitted (3 to 6), `nfev` is
-                the number of functions evaluations.
+                (fit, x, y, chisq, nok, nrej, npar, nfev) where: `fit`
+                is an :class:`Window` containing the best fit; `x` and
+                `y` are the x and y positions of all pixels (2D numpy
+                arrays); `chisq` is the raw chi**2; `nok` is the
+                number of points fitted; `nrej` is the number
+                rejected; `npar` is the number of parameters fitted (3
+                to 6), `nfev` is the number of functions evaluations.
 
     The program re-scales the uncertainties on the fit parameters by
     sqrt(chi**2/ndof) where ndof is the number of degrees of freedom =
@@ -337,7 +335,7 @@ def fitMoffat(
     mode = "" if sky is None else "s"
     mode = mode if fwhm_fix else mode + "f"
     mode = mode if beta_fix else mode + "b"
-    mfit = Mfit(wind, read, gain, ndiv, mode, fwhm, beta)
+    mfit = Mfit(wind, sigma, ndiv, mode, fwhm, beta)
 
     mode_switch = False
 
@@ -393,8 +391,8 @@ def fitMoffat(
                 raise HipercamError("Negative covariance in fitMoffat")
 
             # compute chi**2 and number of OK points
-            ok = mfit.mask & (mfit.sigma > 0)
-            resid = (wind.data - fit.data) / mfit.sigma
+            ok = mfit.mask & (sigma > 0)
+            resid = (wind.data - fit.data) / sigma
             chisq = (resid[ok] ** 2).sum()
             nok1 = len(resid[ok])
             sfac = np.sqrt(chisq / nok1)
@@ -402,19 +400,19 @@ def fitMoffat(
             # reject any above the defined threshold
             if first_fit:
                 # first fit carried out with higher threshold for safety
-                mfit.sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
             else:
-                mfit.sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
 
             # check whether any have been rejected
-            ok = mfit.mask & (mfit.sigma > 0)
-            nok = len(mfit.sigma[ok])
+            ok = mfit.mask & (sigma > 0)
+            nok = len(sigma[ok])
 
             if nok == nok1:
                 # no more pixels have been rejected.  calculate how
                 # many have been, re-scale the uncertainties to
                 # reflect the actual chi**2
-                nrej = len(mfit.sigma[mfit.mask]) - nok
+                nrej = len(sigma[mfit.mask]) - nok
                 skyfe, heightfe, xfe, yfe, fwhmfe, betafe = mfit.get_epar(
                     sfac * np.sqrt(covs)
                 )
@@ -424,14 +422,13 @@ def fitMoffat(
             first_fit = False
 
     # Make sure all regions masked off have sigma < 0
-    mfit.sigma[~mfit.mask] = - np.abs(mfit.sigma[~mfit.mask])
+    sigma[~mfit.mask] = - np.abs(sigma[~mfit.mask])
 
     # OK we are done.
     extras = (
         fit,
         mfit.x,
         mfit.y,
-        mfit.sigma,
         chisq,
         nok,
         nrej,
@@ -775,25 +772,20 @@ class Mfit:
 
     """
 
-    def __init__(self, wind, read, gain, ndiv, mode, fwhm=None, beta=None):
+    def __init__(self, wind, sigma, ndiv, mode, fwhm=None, beta=None):
         """
         Arguments::
 
-          wind  : Window
+          wind : Window
              the Window containing data to fit
 
-          read  : float | array
-             readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
-
-          gain  : float | array
-             gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
+          sigma : np.array
+             matching array of uncertainties
 
           ndiv  : int
              pixel sub-division factor. See comments in fitMoffat
         """
-        self.sigma = np.sqrt(read ** 2 + np.maximum(0, wind.data) / gain)
+        self.sigma = sigma
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.x, self.y = np.meshgrid(x, y)
@@ -1025,19 +1017,18 @@ class Mfit:
 
 
 def fitGaussian(
-    wind,
-    sky,
-    height,
-    xcen,
-    ycen,
-    fwhm,
-    fwhm_min,
-    fwhm_fix,
-    read,
-    gain,
-    thresh,
-    ndiv,
-    max_nfev=0,
+        wind,
+        sigma,
+        sky,
+        height,
+        xcen,
+        ycen,
+        fwhm,
+        fwhm_min,
+        fwhm_fix,
+        thresh,
+        ndiv,
+        max_nfev=0,
 ):
     """Fits the profile of one target in an Window with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
@@ -1054,6 +1045,10 @@ def fitGaussian(
             the Window with the data to be fitted. Ideally should contain only
             one target, so chopping down to a small region around the target
             of interest is usually a good idea.
+
+        sigma : np.array
+            array of uncertainties matching wind. Modified on exit. Rejected
+            points multiplied by -1
 
         sky : float
             initial value of the (assumed constant) sky background (counts per
@@ -1128,15 +1123,13 @@ def fitGaussian(
                 `fwhm_fix` == True, then `fwhme` will come back as -1.
 
            extras : tuple
-                (fit, x, y, sigma, chisq, nok, nrej, npar, nfev)
-                where: `fit` is an :class:`Window` containing the best
-                fit; `x` and `y` are the x and y positions of all
-                pixels (2D numpy arrays); `sigma` is the final set of
-                RMS uncertainties on each pixel (2D numpy array);
-                `chisq` is the raw chi**2; `nok` is the number of
-                points fitted; `nrej` is the number rejected; `npar`
-                is the number of parameters fitted (3 to 5), `nfev` is
-                the number of functions evaluations.
+                (fit, x, y, chisq, nok, nrej, npar, nfev) where: `fit`
+                is an :class:`Window` containing the best fit; `x` and
+                `y` are the x and y positions of all pixels (2D numpy
+                arrays); `chisq` is the raw chi**2; `nok` is the
+                number of points fitted; `nrej` is the number
+                rejected; `npar` is the number of parameters fitted (3
+                to 5), `nfev` is the number of functions evaluations.
 
     Raises a HipercamError least_squares fails.
 
@@ -1199,8 +1192,8 @@ def fitGaussian(
                 raise HipercamError("Negative covariance in fitGaussian")
 
             # compute chi**2 and number of OK points
-            ok = gfit.mask & (gfit.sigma > 0)
-            resid = (wind.data - fit.data) / gfit.sigma
+            ok = gfit.mask & (sigma > 0)
+            resid = (wind.data - fit.data) / sigma
             chisq = (resid[ok] ** 2).sum()
             nok1 = len(resid[ok])
             sfac = np.sqrt(chisq / nok1)
@@ -1208,19 +1201,19 @@ def fitGaussian(
             # reject any above the defined threshold
             if first_fit:
                 # first fit carried out with higher threshold for safety
-                gfit.sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
             else:
-                gfit.sigma[ok & (np.abs(resid) > sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > sfac*thresh)] *= -1
 
             # check whether any have been rejected
-            ok = gfit.mask & (gfit.sigma > 0)
-            nok = len(gfit.sigma[ok])
+            ok = gfit.mask & (sigma > 0)
+            nok = len(sigma[ok])
 
             if nok == nok1:
                 # no more pixels have been rejected.  calculate how
                 # many have been, re-scale the uncertainties to
                 # reflect the actual chi**2
-                nrej = len(gfit.sigma[gfit.mask]) - nok
+                nrej = len(sigma[gfit.mask]) - nok
                 skyfe, heightfe, xfe, yfe, fwhmfe = gfit.get_epar(
                     sfac * np.sqrt(covs)
                 )
@@ -1230,14 +1223,13 @@ def fitGaussian(
             first_fit = False
 
     # Make sure all regions masked off have sigma < 0
-    gfit.sigma[~gfit.mask] = - np.abs(gfit.sigma[~gfit.mask])
+    sigma[~gfit.mask] = - np.abs(sigma[~gfit.mask])
 
     # OK we are done.
     extras = (
         fit,
         gfit.x,
         gfit.y,
-        gfit.sigma,
         chisq,
         nok,
         nrej,
@@ -1488,20 +1480,15 @@ class Gfit:
 
     """
 
-    def __init__(self, wind, read, gain, ndiv, mode, fwhm=None):
+    def __init__(self, wind, sigma, ndiv, mode, fwhm=None):
         """
         Arguments::
 
           wind  : Window
              the Window containing data to fit
 
-          read  : float | array
-             readout noise in RMS counts. Can be a 2D array if dimensions
-             same as the data in wind
-
-          gain  : float | array
-             gain in electrons / count. Can be a 2D array if dimensions
-             same as the data in wind
+          sigma : np.array
+             array of uncertainties matching wind
 
           ndiv : int
              pixel sub-division factor. See comments in fitMoffat
@@ -1513,7 +1500,7 @@ class Gfit:
              FWHM in unbinned pixels
 
         """
-        self.sigma = np.sqrt(read ** 2 + np.maximum(0, wind.data) / gain)
+        self.sigma = sigma
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.x, self.y = np.meshgrid(x, y)
