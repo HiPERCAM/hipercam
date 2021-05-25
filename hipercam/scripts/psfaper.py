@@ -674,13 +674,17 @@ class PickRef:
             )
             sky = np.percentile(fwind.data, 25)
 
+            # uncertainties
+            sigma = np.sqrt(self.read**2 + np.maximum(0,fwind.data)/self.gain)
+
             # refine the Aperture position by fitting the profile
             (
                 (sky, height, x, y, fwhm, beta),
                 (esky, eheight, ex, ey, efwhm, ebeta),
-                (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
+                (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
             ) = hcam.fitting.combFit(
                 fwind,
+                sigma,
                 self.method,
                 sky,
                 peak - sky,
@@ -692,8 +696,6 @@ class PickRef:
                 self.beta,
                 self.beta_max,
                 self.beta_fix,
-                self.read,
-                self.gain,
                 self.rejthresh,
             )
 

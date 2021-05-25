@@ -51,9 +51,13 @@ def setaper(args=None):
     betafix betamax) fwhm fwfix (fwmin) shbox smooth splot fhbox read
     gain thresh]``
 
-    Interactive definition of photometric extraction apertures. This is
-    a matplotlib-based routine allowing you to place apertures on targets
-    using the cursor. It is an essential prerequisite to running |reduce|.
+    Interactive definition of photometric extraction apertures. This
+    is a matplotlib-based routine allowing you to place apertures on
+    targets using the cursor. It is an essential prerequisite to
+    running |reduce|.  You are advised at the minimum to have
+    subtracted the bias from the frame of interest since that makes
+    the assignment of uncertainties to the data used when making
+    profile fits much more reliable.
 
     Parameters:
 
@@ -166,8 +170,8 @@ def setaper(args=None):
          to huge beta.
 
       fwhm : float [hidden]
-         default FWHM, unbinned pixels. Take care to set it something of the right
-         order of magnitude to avoid spurious rejection of good pixels.
+         default FWHM, unbinned pixels. It helps to get this of the right order of
+         mag at the start; too large is better than too small.
 
       fwfix: bool [hidden]
          don't fit the FWHM. Can be more robust; the position is still fitted.
@@ -1027,13 +1031,16 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                 sky = np.percentile(fwind.data, 25)
 
+                # uncertainties
+                sigma = np.sqrt(self.read2**2 + np.maximum(0,fwind.data)/self.gain)
+
                 # refine the Aperture position by fitting the profile
                 (
                     (sky, height, x, y, fwhm, beta),
                     epars,
-                    (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
+                    (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
                 ) = hcam.fitting.combFit(
-                    fwind,
+                    fwind, sigma,
                     self.method,
                     sky,
                     peak - sky,
@@ -1045,8 +1052,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     self.beta,
                     self.beta_max,
                     self.beta_fix,
-                    self.read,
-                    self.gain,
                     self.thresh,
                     self.ndiv
                 )
@@ -1167,13 +1172,16 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                     sky = np.percentile(fwind.data, 25)
 
+                    # uncertainties
+                    sigma = np.sqrt(self.read2**2 + np.maximum(0,fwind.data)/self.gain)
+
                     # refine the Aperture position by fitting the profile
                     (
                         (sky, height, x, y, fwhm, beta),
                         epars,
-                        (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
+                        (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
                     ) = hcam.fitting.combFit(
-                        fwind,
+                        fwind, sigma,
                         self.method,
                         sky,
                         peak - sky,
@@ -1185,8 +1193,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         self.beta,
                         self.beta_max,
                         self.beta_fix,
-                        self.read,
-                        self.gain,
                         self.thresh,
                         self.ndiv
                     )

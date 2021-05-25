@@ -1453,7 +1453,7 @@ class ProcessCCDs:
         # pass back the results
         return allres
 
-def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
+def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results
     that will be used to start the fits from one frame to the next. It must
     start as {'mfwhm': -1., 'mbeta': -1.}. The values of these will be revised
@@ -1469,13 +1469,16 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
            CCD label
 
        ccd : CCD
-           the debiassed, flat-fielded CCD.
+           the processed CCD.
+
+       bccd : CCD
+           debiassed only CCD.
 
        read : CCD
-           readnoise divided by the flat-field
+           readnoise
 
        gain : CCD
-           gain multiplied by the flat field
+           gain, e-/ADU.
 
        ccdwin : dict
            the Window label corresponding to each Aperture
@@ -1547,6 +1550,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 # extract the Window of the processed data, read noise and
                 # gain frames
                 wdata = ccd[wnam]
+                wbias = bccd[wnam]
                 wread = read[wnam]
                 wgain = gain[wnam]
 
@@ -1568,13 +1572,14 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 # Now for a more refined fit. First extract fit Window
                 fhbox = apsec["fit_half_width"]
                 fwdata = wdata.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
+                fwbias = wbias.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
                 fwread = wread.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
                 fwgain = wgain.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
 
                 # initial estimate of background
                 sky = np.percentile(fwdata.data, 50)
 
-                # get some parameters from previous run where possible
+                # get some parameters from the previous run where possible
                 fit_fwhm = store["mfwhm"] if store["mfwhm"] > 0.0 else apsec["fit_fwhm"]
                 fit_beta = store["mbeta"] if store["mbeta"] > 0.0 else apsec["fit_beta"]
 
@@ -1582,13 +1587,16 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 # wander to high values and never come down.
                 fit_beta = min(fit_beta, apsec["fit_beta_max"])
 
+                # This is where the pure-debiassed data are used
+                sigma = np.sqrt(fwread.data**2+np.maximum(0,fwbias)/fwgain.data)
+
                 # refine the Aperture position by fitting the profile
                 (
                     (sky, height, x, y, fwhm, beta),
                     (esky, eheight, ex, ey, efwhm, ebeta),
                     extras,
                 ) = hcam.fitting.combFit(
-                    fwdata,
+                    fwdata, sigma,
                     rfile.method,
                     sky,
                     peak - sky,
@@ -1600,8 +1608,6 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     fit_beta,
                     apsec["fit_beta_max"],
                     False,
-                    fwread.data,
-                    fwgain.data,
                     apsec["fit_thresh"],
                     apsec["fit_ndiv"],
                 )
@@ -1814,6 +1820,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
             # extract Window for data, rflat and flat
             wnam = ccdwin[apnam]
             wdata = ccd[wnam]
+            wbias = bccd[wnam]
             wread = read[wnam]
             wgain = gain[wnam]
 
@@ -1850,6 +1857,7 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 # now for a more refined fit. First extract fit Window
                 fhbox = apsec["fit_half_width"]
                 fwdata = wdata.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
+                fwbias = wbias.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
                 fwread = wread.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
                 fwgain = wgain.window(x - fhbox, x + fhbox, y - fhbox, y + fhbox)
 
@@ -1872,13 +1880,16 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                 # to wander to high values and never come down.
                 fit_beta = min(fit_beta, apsec["fit_beta_max"])
 
+                # This is where the pure-debiassed data are used
+                sigma = np.sqrt(fwread.data**2+np.maximum(0,fwbias)/fwgain.data)
+
                 # finally, attempt to fit the target profile
                 (
                     (sky, height, x, y, fwhm, beta),
                     (esky, eheight, ex, ey, efwhm, ebeta),
                     extras,
                 ) = hcam.fitting.combFit(
-                    fwdata,
+                    fwdata, sigma,
                     rfile.method,
                     sky,
                     peak - sky,
@@ -1890,8 +1901,6 @@ def moveApers(cnam, ccd, read, gain, ccdwin, rfile, store):
                     fit_beta,
                     apsec["fit_beta_max"],
                     False,
-                    fwread.data,
-                    fwgain.data,
                     apsec["fit_thresh"],
                     apsec["fit_ndiv"],
                 )

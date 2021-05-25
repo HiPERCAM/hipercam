@@ -1937,7 +1937,7 @@ class Fpar:
             # Set a fairly high readout noise to start with in this case
             # to equalise weights a bit as we are going to cycle it with a
             # second fit
-            read1= 20.
+            read1= 40.
         else:
             read1 = read
 
@@ -1958,13 +1958,16 @@ class Fpar:
             # crude estimate of sky background
             sky = np.percentile(fwind.data, 50)
 
+            # uncertainties
+            sigma = np.sqrt(read1**2 + np.maximum(0,fwind.data)/gain)
+
             # refine the Aperture position by fitting the profile
             (
                 (sky, height, x, y, fwhm, beta),
                 epars,
-                (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
+                (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
             ) = hcam.fitting.combFit(
-                fwind,
+                fwind, sigma,
                 method,
                 sky,
                 peak - sky,
@@ -1976,8 +1979,6 @@ class Fpar:
                 self.beta,
                 20.,
                 False,
-                read1,
-                gain,
                 thresh,
             )
 
@@ -2002,13 +2003,16 @@ class Fpar:
                         read2 = np.sqrt(var-sky/gain)
                         extra = f', read = {read2:.2f}'
 
+                    # uncertainties
+                    sigma = np.sqrt(read2**2 + np.maximum(0,fwind.data)/gain)
+
                     # refine the Aperture position by fitting the profile
                     (
                         (sky, height, x, y, fwhm, beta),
                         epars,
-                        (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
+                        (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
                     ) = hcam.fitting.combFit(
-                        fwind,
+                        fwind, sigma,
                         method,
                         sky,
                         (wfit.data-sky).max(),
@@ -2020,8 +2024,6 @@ class Fpar:
                         beta,
                         20.,
                         False,
-                        read2,
-                        gain,
                         thresh,
                     )
                     message += extra

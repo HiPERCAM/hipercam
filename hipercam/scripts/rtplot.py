@@ -857,11 +857,14 @@ def rtplot(args=None):
                         # crude estimate of sky background
                         sky = np.percentile(fwind.data, 50)
 
+                        # uncertainties
+                        sigma = np.sqrt(read**2 + np.maximum(0,fwind.data)/gain)
+
                         # refine the Aperture position by fitting the profile
                         (
                             (sky, height, x, y, fwhm, beta),
                             epars,
-                            (wfit, X, Y, sigma, chisq, nok, nrej, npar, nfev, message),
+                            (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
                         ) = hcam.fitting.combFit(
                             fwind,
                             method,

@@ -836,7 +836,7 @@ def ccdproc(cnam, ccds, bccds, rccds, nframes, read, gain, ccdwin, rfile, store)
         # Loop through the CCDs supplied
 
         # move the apertures
-        moveApers(cnam, ccd, read, gain, ccdwin, rfile, store)
+        moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store)
 
         # extract flux from all apertures of each CCD. Return with the CCD
         # name, the store dictionary, ccdaper and then the results from

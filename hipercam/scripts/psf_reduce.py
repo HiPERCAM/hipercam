@@ -1023,8 +1023,11 @@ def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
     for ccd, rccd, nframe in zip(ccds, rccds, nframes):
         # Loop through the CCDs supplied
 
-        # move the apertures
-        moveApers(cnam, ccd, read, gain, ccdwin, rfile, store)
+        # move the apertures.
+        # NB the second 'ccd' in the argument list is a stop-gap --
+        # it should actually be the debiassed-only CCD rather than
+        # the fully processed version -- see reduce
+        moveApers(cnam, ccd, ccd, read, gain, ccdwin, rfile, store)
 
         # extract flux from all apertures of each CCD. Return with the CCD
         # name, the store dictionary, ccdaper and then the results from
