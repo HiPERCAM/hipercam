@@ -72,12 +72,17 @@ Here is a summary table of all environment variables associated with
 |hiper| and their purpose. If you are simply reducing data at your home
 institute, you probably won't need to set any of these.
 
-====================  ============================================================
-Environment variable  Purpose
-====================  ============================================================
-HIPERCAM_DEFAULT_URL  URL of the |hiper| FileServer on the rack PC to access data
-HIPERCAM_ENV          Directory for storage of default parameter files
-                      (~/.hipercam by default) 
-ULTRACAM_DEFAULT_URL  URL of the ULTRACAM FileServer on the rack PC to access data
-====================  ============================================================
+=======================  ==============================================================
+Environment variable     Purpose
+=======================  ==============================================================
+HIPERCAM_DEFAULT_SOURCE  Sets the default "source". Primarily useful for the instrument
+                         control computer.
+HIPERCAM_DEFAULT_URL     URL of the |hiper| FileServer on the rack PC to access data
+HIPERCAM_ENV             Directory for storage of default parameter files
+                         (~/.hipercam by default). Temporary files are stored in a
+                         sub-drectory of this called "tmp". Although attempts are made
+                         to delete such files, it is worth checking every now an again
+                         that it does not contain too much junk.
+ULTRACAM_DEFAULT_URL     URL of the ULTRACAM FileServer on the rack PC to access data
+=======================  ==============================================================
 

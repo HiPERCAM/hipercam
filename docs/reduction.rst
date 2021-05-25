@@ -168,6 +168,8 @@ in the green and blue CCDs especially.
    significant effect on the removal of stars from the final frame and
    then to compare the results against each other. See |makeflat|.
 
+.. _fringing:
+
 Fringing
 ========
 

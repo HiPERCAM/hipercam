@@ -18,12 +18,18 @@ the most recent release and hence will appear to be one click on.
 #. **25 May 2021, Version 1.0.0**: fringe-correction added
 
      * fringe correction added to |nrtplot|, |grab|, |averun|, |reduce|. Associated
-       new commands |makefringe| and |setfringe| added.
-     * |nrtplot| improved responsiveness by updating plots while-u-wait
-     * more synchronisation of default output names with inputs
-     * |makemovie| for movie stills added
-     * |joinup| to export joined up frames added
-     * |rtplot| bug fix
+       new commands |makefringe| and |setfringe| added. Initial z-band fringe map
+       for |hiper| created (for more see :ref:`fringing <fringing>`  and
+       :ref:`fringing files <fringing_files>`)
+     * |nrtplot| improved responsiveness by updating plots while-u-wait. This uses
+       a hidden parameter `tupdate` that might require tuning a little according to
+       the connection, although it may turn out not to matter.
+     * more synchronisation of default output names with inputs (|makeflat|, |makebias|,
+       |setaper|)
+     * |makemovie| for movie stills added.
+     * |joinup| to export joined up frames added.
+     * |rtplot| bug fix that was causing problem with percentile scalings with small
+       windows.
 
    Here is the
    :doc:`full list of changes, 0.22.0 to 1.0.0 <change_log_0.22.0_1.0.0>`.
