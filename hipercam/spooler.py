@@ -521,7 +521,7 @@ def get_ccd_pars(source, resource):
             )
 
 
-def hang_about(obj, twait, tmax, total_time, updaters=None):
+def hang_about(obj, twait, tmax, total_time, updaters=None, tupdate=None):
     """Carries out some standard actions when we loop through frames which are
     common to rtplot, reduce and grab. This is a case of seeing whether we
     want to try again for a frame or a time that may have arrived while we
@@ -529,23 +529,26 @@ def hang_about(obj, twait, tmax, total_time, updaters=None):
 
     Arguments::
 
-         obj   : object or None
+         obj : object or None
             something, e.g. an MCCD or a Time, it does not matter what,
             because the only thing that is tested is whether it is 'None'. If
             it is, that is a trigger to wait a bit before trying again
 
-         twait  : (float)
+         twait : float
             how long to wait each time, seconds
 
-         tmax   : (float)
+         tmax : float
             maximum time to wait, seconds
 
-         total_time : (float)
+         total_time : float
             total time waited. Should be initialised to zero
 
-         updaters : None or tuple of functions
-            update functions that will be run every 0.2 seconds if twait
-            is > 0.4 second. Designed for use by nrtplot.
+         updaters : None | tuple of functions
+            update functions that will be run if twait
+            is longer than 2*tupdate. Designed for use by nrtplot.
+
+         tupdate : None | float
+            time period for triggering an update
 
     Returns: (give_up, try_again, total_time)
 
@@ -578,11 +581,10 @@ def hang_about(obj, twait, tmax, total_time, updaters=None):
                 " twait = {:.1f} sec.".format(total_time, tmax, twait)
             )
 
-            if updaters is not None and len(updaters) and twait > 0.4:
-                # run the updaters every 0.2 seconds or so if twait is
-                # a little long. Designed for nrplot to make the plot
-                # more responsive
-                nupdate = int(twait/0.2)
+            if updaters is not None and len(updaters) and twait > 2*tupdate:
+                # run the updaters if twait is a little long. Designed
+                # for nrplot to make the plot more responsive
+                nupdate = int(twait/tupdate)
                 for n in range(nupdate):
                     time.sleep(twait/nupdate)
                     for updater in updaters:

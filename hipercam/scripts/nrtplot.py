@@ -34,7 +34,7 @@ __all__ = [
 
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
-    nrow]) (ccd (nx)) [imwidth pause plotall] bias [lowlevel
+    nrow]) (ccd (nx)) [imwidth pause tupdate plotall] bias [lowlevel
     highlevel] flat defect fringe (fpair [nhalf rmin rmax]) setup
     [drurl cmap imwidth imheight memory] msub iset (ilo ihi | plo phi)
     xlo xhi ylo yhi profit [method beta fwhm fwhm_min shbox smooth
@@ -131,6 +131,15 @@ def nrtplot(args=None):
            seconds to pause between frames (defaults to 0). This is in addition
            to any time taken per frame to read and display it, so is just to slow
            things not to set an exact rate.
+
+        tupdate : float [hidden]
+           target number of seconds between plot updates. This is to
+           make the plots more responsive and get round issues with
+           plots freezing until the next frame comes through which can
+           be especially annoying with virtual desktops. You might
+           need to tone the default 0.2 while remote observing as it
+           does imply VNC traffic which the network might cope badly
+           with. Experiment for best feel.
 
         plotall : bool [hidden]
            plot all frames regardless of status (i.e. including blank frames
@@ -386,6 +395,7 @@ def nrtplot(args=None):
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("pause", Cline.LOCAL, Cline.HIDE)
+        cl.register("tupdate", Cline.LOCAL, Cline.HIDE)
         cl.register("plotall", Cline.LOCAL, Cline.HIDE)
         cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
         cl.register("lowlevel", Cline.GLOBAL, Cline.HIDE)
@@ -498,6 +508,10 @@ def nrtplot(args=None):
         cl.set_default("pause", 0.0)
         pause = cl.get_value(
             "pause", "time delay to add between" " frame plots [secs]", 0.0, 0.0
+        )
+
+        tupdate = cl.get_value(
+            "tupdate", "target time between plot updates [secs]", 0.2, 0.01
         )
 
         cl.set_default("plotall", False)
@@ -743,7 +757,7 @@ def nrtplot(args=None):
                     updaters = (imanager.update, fwhmmanager.update)
 
                 give_up, try_again, total_time = spooler.hang_about(
-                    mccd, twait, tmax, total_time, updaters
+                    mccd, twait, tmax, total_time, updaters, tupdate
                 )
 
                 if give_up:
@@ -1077,11 +1091,10 @@ def nrtplot(args=None):
 
             if not (profit and not_selected) and pause > 0.0:
                 # pause between frames
-                if pause > 0.4:
-                    # run the updaters every 0.2 seconds or so
-                    # if pause is a little long. Designed to
-                    # make the plot more responsive
-                    nupdate = int(pause/0.2)
+                if pause > 2*tupdate:
+                    # run the updaters if pause is a little
+                    # long. Designed to make the plot more responsive
+                    nupdate = int(pause/tupdate)
                     for n in range(nupdate):
                         time.sleep(pause/nupdate)
                         if not first_image:
