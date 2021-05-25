@@ -148,7 +148,15 @@ def makeflat(args=None):
            clobber any pre-existing output files
 
         output : str
-           output file
+           output file. will be set by default to match the input name.
+
+      .. Note::
+
+         This routine writes the files returned by 'grab' to
+         automatically generated files, typically in .hipercam/tmp, to
+         avoid polluting the working directory. These are removed at
+         the end, but may not be if you ctrl-C. You should check
+         .hipercam/tmp for redundant files every so often
 
     """
 

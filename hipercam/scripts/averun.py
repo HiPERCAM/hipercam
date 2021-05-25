@@ -89,28 +89,26 @@ def averun(args=None):
         flat : str
            Name of flat field to divide by, 'none' to ignore.
 
-        flat : str
-           Name of flat field to divide by, 'none' to ignore.
 
-       fmap : str
+        fmap : str
            Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
 
-       fpair : str [if fmap is not 'none']
+        fpair : str [if fmap is not 'none']
            Name of fringe pair file (see e.g. `setfringe`). Required if
            a fringe map has been specified.
 
-       nhalf : int [if fmap is not 'none', hidden]
+        nhalf : int [if fmap is not 'none', hidden]
            When calculating the differences for fringe measurement,
            a region extending +/-nhalf binned pixels will be used when
            measuring the amplitudes. Basically helps the stats.
 
-       rmin : float [if fmap is not 'none', hidden]
+        rmin : float [if fmap is not 'none', hidden]
            Minimum individual ratio to accept prior to calculating the overall
            median in order to reduce the effect of outliers. Although all ratios
            should be positive, you might want to set this a little below zero
            to allow for some statistical fluctuation.
 
-       rmax : float [if fmap is not 'none', hidden]
+        rmax : float [if fmap is not 'none', hidden]
            Maximum individual ratio to accept prior to calculating the overall
            median in order to reduce the effect of outliers. Probably typically
            < 1 if fringe map was created from longer exposure data.

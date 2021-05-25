@@ -134,29 +134,29 @@ def joinup(args=None):
            depend upon the nature of the data.  'none' is fastest. See
            astropy.io.fits for further documentation.
 
-    Note::
+    .. Note::
 
-        Be careful of running this on highly windowed data since it
-        could end up expanding the total amount of "data" hugely.
-        It's really aimed at full frame runs above all. The "dmax"
-        and "nmax" parameters are aimed at heading off disaster.
+       Be careful of running this on highly windowed data since it
+       could end up expanding the total amount of "data" hugely.
+       It's really aimed at full frame runs above all. The "dmax"
+       and "nmax" parameters are aimed at heading off disaster.
 
-        This routine will fail if windows have been binned but are out
-        of step (not "in sync") with each other because there is no
-        way to register  such data within a single image.
+       This routine will fail if windows have been binned but are out
+       of step (not "in sync") with each other because there is no
+       way to register  such data within a single image.
 
-        The routine only creates a window big enough to contain all
-        the windows. Thus it might end up representing a sub-array of
-        the CCD as opposed to all of it. The location can be
-        determined from the 'LLX' and 'LLY' parameters that are
-        written to the header. These represent the location of the
-        lowest and leftmost unbinned pixel that is contained within
-        the data array. The bottom-left pixel of the CCD is considered
-        to be (1,1), so full frame images have LLX=LLY=1.
+       The routine only creates a window big enough to contain all
+       the windows. Thus it might end up representing a sub-array of
+       the CCD as opposed to all of it. The location can be
+       determined from the 'LLX' and 'LLY' parameters that are
+       written to the header. These represent the location of the
+       lowest and leftmost unbinned pixel that is contained within
+       the data array. The bottom-left pixel of the CCD is considered
+       to be (1,1), so full frame images have LLX=LLY=1.
 
-        A HipercamError will be raised if an attempt is made to write out
-        data outside the range 0 to 65535 into unit16 format and nothing
-        will be written
+       A HipercamError will be raised if an attempt is made to write out
+       data outside the range 0 to 65535 into unit16 format and nothing
+       will be written
 
     """
 

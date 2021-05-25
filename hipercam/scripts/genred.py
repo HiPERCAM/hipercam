@@ -942,16 +942,22 @@ skipbadt = {skipbadt}
 {warn_levels}
 
 # The aperture reposition and extraction stages can be run in separate
-# CPUs in parallel for each CCD offering speed advtages. 'ncpu' is the
-# number of CPUs to use for this. The maximum useful and best number
-# to use is the number of CCDs in the instrument, e.g. 5 for
-# HiPERCAM. You probably also want to leave at least one CPU to do
-# other stuff, but if you have more than 2 CPUs, this parameter may
-# help speed things. If you use this option (ncpu > 1), then there is
-# also an advantage in terms of reducing parallelisation overheads in
-# reading frames a few at a time before processing. This is controlled
-# using 'ngroup'. i.e. with ngroup=10, 10 full frames are read before
-# being processed. This parameter is ignored if ncpu==1
+# CPUs in parallel for each CCD potentially offering speed
+# advantages. 'ncpu' is the number of CPUs to use for this. The
+# maximum useful and best number to use is the number of CCDs in the
+# instrument, e.g. 5 for HiPERCAM. You probably also want to leave at
+# least one CPU to do other stuff, but if you have more than 2 CPUs,
+# this parameter may help speed things. If you use this option (ncpu >
+# 1), then there is also an advantage in terms of reducing
+# parallelisation overheads in reading frames a few at a time before
+# processing. This is controlled using 'ngroup'. i.e. with ngroup=10,
+# 10 full frames are read before being processed. This parameter is
+# ignored if ncpu==1
+
+# I have had mixed results with this, which could depend a lot on the
+# installation. On my home desktop is works better with ncpu=1 because
+# it already seems to parallelise and it only gets worse if I split things
+# up. But no harm trying.
 
 ncpu = {ncpu}
 ngroup = {ngroup}
@@ -1007,11 +1013,12 @@ ngroup = {ngroup}
 # at multiple points within each pixel of the fit. First it will
 # evaluate the profile for every unbinned pixel within a binned pixel
 # if the pixels are binned; second, it will evaluate the profile over
-# an ndiv by ndiv square grid within each unbinned pixel. Obviously
-# this will slow things, but it could help if your images are
-# under-sampled. I would always start with fit_ndiv=0, and only raise
-# it if the measured FWHM seem to be close to or below two binned
-# pixels.
+# an ndiv by ndiv square grid within each unbinned pixel. Thus ndiv=1
+# means one evaluation at the centre of each unbinned pixel,
+# etc. Obviously this will slow things, but it could help if your
+# images are under-sampled. I would always start with fit_ndiv=0, and
+# only raise it if the measured FWHM seem to be close to or below two
+# binned pixels.
 
 # If you use reference targets (you should if possible), the initial
 # positions for the non-reference targets should be good. You can then
@@ -1056,7 +1063,7 @@ fit_method = {profile_type} # gaussian or moffat
 fit_beta = {beta:.1f} # Moffat exponent
 fit_beta_max = {beta_max:.1f} # max Moffat expt
 fit_fwhm = {fwhm:.1f} # FWHM, unbinned pixels
-fit_fwhm_min = {fwhm_min:.1f} # Minimum FWHM, unbinned pixels
+fit_fwhm_min = {fwhm_min:.1f} # Minimum FWHM, unbinned pixels [MUST be < fit_fwhm!]
 fit_fwhm_max = {fwhm_max:.1f} # Maximum FWHM, unbinned pixels
 fit_ndiv = 0 # sub-pixellation factor
 fit_fwhm_fixed = no # Might want to set = 'yes' for defocussed images

@@ -359,7 +359,7 @@ def nrtplot(args=None):
            FWHM display plot height in inches (0 for default, which will
            also cause the width to go to its default value)
 
-    Note::
+    .. Note::
 
         To help with *dithered* long exposures especially, for which
         'profit' performs very poorly, clicking on any object will

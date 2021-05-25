@@ -77,13 +77,13 @@ def makedark(args=None):
        output  : string
            name of final combined file
 
-      .. Note:: 
+      .. Note::
 
-         This routine writes the files returned by 'grab' to automatically
-         generated files, typically in /tmp, to avoid polluting the working
-         directory. These are removed at the end, but won't be if you
-         ctrl-C. You should check your /tmp disk for redundant files in this
-         case.
+         This routine writes the files returned by 'grab' to
+         automatically generated files, typically in .hipercam/tmp, to
+         avoid polluting the working directory. These are removed at
+         the end, but may not be if you ctrl-C. You should check
+         .hipercam/tmp for redundant files every so often
 
     """
 

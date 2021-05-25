@@ -126,6 +126,14 @@ def makefringe(args=None):
            (but it will have a different extension so they won't
            clash)
 
+      .. Note::
+
+         This routine writes the files returned by 'grab' to
+         automatically generated files, typically in .hipercam/tmp, to
+         avoid polluting the working directory. These are removed at
+         the end, but may not be if you ctrl-C. You should check
+         .hipercam/tmp for redundant files every so often
+
     """
 
     command, args = utils.script_args(args)
