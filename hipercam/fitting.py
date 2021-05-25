@@ -341,6 +341,8 @@ def fitMoffat(
 
     mode_switch = False
 
+    first_fit = True
+    nfev = 0
     while True:
 
         # retrieve current fit mode
@@ -358,6 +360,7 @@ def fitMoffat(
         )
         if not res.success:
             raise HipercamError(res.message)
+        nfev += res.nfev
 
         # get Jacobian
         J = np.matrix(res.jac)
@@ -397,7 +400,11 @@ def fitMoffat(
             sfac = np.sqrt(chisq / nok1)
 
             # reject any above the defined threshold
-            mfit.sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
+            if first_fit:
+                # first fit carried out with higher threshold for safety
+                mfit.sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+            else:
+                mfit.sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
 
             # check whether any have been rejected
             ok = mfit.mask & (mfit.sigma > 0)
@@ -411,7 +418,10 @@ def fitMoffat(
                 skyfe, heightfe, xfe, yfe, fwhmfe, betafe = mfit.get_epar(
                     sfac * np.sqrt(covs)
                 )
-                break
+                if not first_fit:
+                    # always carry out at least 1
+                    break
+            first_fit = False
 
     # Make sure all regions masked off have sigma < 0
     mfit.sigma[~mfit.mask] = - np.abs(mfit.sigma[~mfit.mask])
@@ -426,7 +436,7 @@ def fitMoffat(
         nok,
         nrej,
         len(param),
-        res.nfev
+        nfev
     )
 
     if sky is None:
@@ -1142,6 +1152,8 @@ def fitGaussian(
 
     mode_switch = False
 
+    first_fit = True
+    nfev = 0
     while True:
 
         # retrieve current fit mode
@@ -1159,6 +1171,7 @@ def fitGaussian(
         )
         if not res.success:
             raise HipercamError(res.message)
+        nfev += nfev
 
         # get Jacobian
         J = np.matrix(res.jac)
@@ -1193,7 +1206,11 @@ def fitGaussian(
             sfac = np.sqrt(chisq / nok1)
 
             # reject any above the defined threshold
-            gfit.sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
+            if first_fit:
+                # first fit carried out with higher threshold for safety
+                gfit.sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+            else:
+                gfit.sigma[ok & (np.abs(resid) > sfac*thresh)] *= -1
 
             # check whether any have been rejected
             ok = gfit.mask & (gfit.sigma > 0)
@@ -1207,7 +1224,11 @@ def fitGaussian(
                 skyfe, heightfe, xfe, yfe, fwhmfe = gfit.get_epar(
                     sfac * np.sqrt(covs)
                 )
-                break
+                if not first_fit:
+                    # always carry out at least 1
+                    break
+            first_fit = False
+
     # Make sure all regions masked off have sigma < 0
     gfit.sigma[~gfit.mask] = - np.abs(gfit.sigma[~gfit.mask])
 
@@ -1221,7 +1242,7 @@ def fitGaussian(
         nok,
         nrej,
         len(param),
-        res.nfev
+        nfev
     )
 
     if sky is None:
