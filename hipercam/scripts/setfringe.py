@@ -220,10 +220,8 @@ def setfringe(args=None):
 
     # Inputs obtained.
 
-    # hopefully temporary to avoid warning produced by the
-    # keymap.all_axes line associated with the use of 'a' to
-    # add pairs
-    warnings.filterwarnings('ignore')
+    # ignore irritating warning associated with my use of 'a'
+    warnings.filterwarnings('ignore', '', mpl.cbook.mplDeprecation)
 
     # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
     # quit_all does not seem to be universal, hence the try/except
