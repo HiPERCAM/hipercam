@@ -41,6 +41,7 @@
 .. |makebias| replace:: :func:`makebias <hipercam.scripts.makebias>`
 .. |makedark| replace:: :func:`makedark <hipercam.scripts.makedark>`
 .. |makeflat| replace:: :func:`makeflat <hipercam.scripts.makeflat>`
+.. |makefringe| replace:: :func:`makefringe <hipercam.scripts.makefringe>`
 .. |makemovie| replace:: :func:`makemovie <hipercam.scripts.makemovie>`
 .. |mstats| replace:: :func:`mstats <hipercam.scripts.mstats>`
 .. |mul| replace:: :func:`mul <hipercam.scripts.mul>`
@@ -54,6 +55,7 @@
 .. |rupdate| replace:: :func:`rupdate <hipercam.scripts.rupdate>`
 .. |setaper| replace:: :func:`setaper <hipercam.scripts.setaper>`
 .. |setdefect| replace:: :func:`setdefect <hipercam.scripts.setdefect>`
+.. |setfringe| replace:: :func:`setfringe <hipercam.scripts.setfringe>`
 .. |splice| replace:: :func:`splice <hipercam.scripts.splice>`
 .. |stats| replace:: :func:`stats <hipercam.scripts.stats>`
 .. |sub| replace:: :func:`sub <hipercam.scripts.sub>`

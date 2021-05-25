@@ -2,7 +2,8 @@
 
 .. include:: globals.rst
 
-.. |fig-1| replace:: :numref:`fig-1`
+.. |fig-setaper| replace:: :numref:`fig-setaper`
+.. |fig-fmap| replace:: :numref:`fig-fmap`
 
 Reduction
 *********
@@ -170,47 +171,75 @@ in the green and blue CCDs especially.
 Fringing
 ========
 
-With |hiper| there is some fringing in the z-band and to a much
-smaller extent in the i-band. Fringing does not flat-field away because it is
-the result of illumination by the emission-line dominated night sky whereas
-twilight flats come from broad-band illumination.
+With |hiper| there is significant fringing in the z-band. ULTRACAM
+shows it is the z-band and to a much lesser extent in the
+i-band. Fringing does not flat-field away because it is the result of
+illumination by the emission-line dominated night sky whereas twilight
+flats come from broad-band illumination.
 
-.. Warning::
-   I have advanced a significant way towards implementing fringe correction.
-   Watch this space.
+De-fringing in the pipeline works by comparing differences across many
+pairs of points in the data versus a reference "fringe map". The pairs
+of points should lie on peaks and troughs of the fringes. Figure |fig-fmap|
+shows fringes from |hiper|'s z-band arm.
+
+.. _fig-fmap:
+
+.. figure:: fmap.png
+   :scale: 50 %
+   :alt: Click on image to enlarge
+   :align: center
+
+   Fringe map of |hiper| z-band CCD with peak/trough pairs, created from dithered
+   data taken on 2018-04-15 on the GTC.
+
+The idea is to estimate the ratio of fringing amplitude in the data
+versus the reference image. The effect of defringing can be seen by
+applying it in |nrtplot|, and |grab|. The latter has a "verbose"
+option which prints out data that might help when setting up for
+reduction where there are two editing parameters `rmin` and `rmax` that
+are tricky to get a feel for.
+
+There are two scripts specific to fringing in the pipeline called
+|makefringe| and |setfringe|. |makefringe| builds a fringe map from
+dithered data; you may be best off just using a pre-prepared frame
+unless you have specifically acquired such data. |setfringe| defines
+peak/trough pairs, and again you may be able to use a pre-prepared
+file, although for specially window formats it may make sense to adapt
+the standard set of pairs. See :doc:`files` for pre-prepared files.
+
 
 Bad pixels
 ==========
 
-Some pixels and columns of pixels are to be avoided at all costs. They
-may however still fall near to some targets. My intention is that
-these bad pixels will be flagged if they fall into the target aperture
-or ignored if they fall into the sky aperture. This, like fringing, is
-TBD.
+This is TBD; the pipeline does not cope with bad pixels fully yet,
+although they can be marked as "defects" during observing, which is
+probably the most important aspect of all.
 
 Aperture files
 ==============
 
-The pipeline photometry provides straightforward aperture photometry. Many of
-the details can be defined when setting the apertures using |setaper|. Not
-only can you choose your targets, but you can mask nearby stars from the sky
-aperture, and you can to a certain extent sculpt your target apertures which
-can help with blended interlopers by including them in an over-sized aperture.
+The pipeline photometry provides straightforward aperture
+photometry. Many of the details can be defined when setting the
+apertures using |setaper|. Not only can you choose your targets, but
+you can mask nearby stars from the sky aperture, and you can to a
+certain extent sculpt your target apertures which can help with
+blended interlopers by including them in an over-sized aperture.
 
-A key decision to be made at this stage is whether you think your target will
-remain detectable on each frame throughout the run. Detectable means that it's
-position can be measured and thus the relevant aperture re-positioned.  If
-not, then |setaper| gives you the option of ``linking`` any target to another,
-with the idea that a brighter target can define the position shifts which are
-applied to the fainter target. Linking is best reserved for the most difficult
-cases because it does bring its own issues: see the sections 
-on :ref:`linked apertures <linked_apertures>` and
-:ref:`aperture positioning <aperture_positioning>` for more details.
+A key decision to be made at this stage is whether you think your
+target will remain detectable on each frame throughout the
+run. Detectable means that it's position can be measured and thus the
+relevant aperture re-positioned.  If not, then |setaper| gives you the
+option of ``linking`` any target to another, with the idea that a
+brighter target can define the position shifts which are applied to
+the fainter target. Linking is best reserved for the most difficult
+cases because it does bring its own issues: see the sections on
+:ref:`linked apertures <linked_apertures>` and :ref:`aperture
+positioning <aperture_positioning>` for more details.
 
 An example of a set of apertures showing all these features is shown in
-|fig-1|.
+|fig-setaper|.
 
-.. _fig-1:
+.. _fig-setaper:
 
 .. figure:: complex_mask.png
    :scale: 50 %
@@ -221,28 +250,30 @@ An example of a set of apertures showing all these features is shown in
    circles in the lower-right. The comparison star is in the upper-left.
    [click on the image to enlarge it].
 
-In this case the target star has two nearby companions which causes three
-problems: (1) the sky annulus may include flux from the companions, (2) the
-target aperture can include a variable contribution from the companions,
-depending upon the seeing, and (3) it is hard to locate the object because the
-position location can jump to the nearby objects. The set of apertures shown
-in |fig-1| combats these problems as follows. First, there are pink/purplish
-dashed circles connected to the centre of the apertures. These are *mask*
-regions which exclude the circled regions from any consideration in sky
-estimation. NB they *do not* exclude the pixels from inclusion in target
-apertures; this is not possible without systematic bias without full-blown
-profile fits. Second, are somewhat similar brown/green dashed circles. These
-are *extra* apertures which indicate that the flux in the regions enclosed is
-to be added to the flux in the target aperture. This offsets the problem of
-variable amounts of nearby stars' flux being included in the
-aperture. Finally, the thick pink arrow pointing from the lower-right (target)
-aperture to the upper-left reference aperture (green circle) *links* the
-target aperture. This means its position is calculated using a fixed offset
-from the reference aperture. This is often useful for very faint targets, or
-those, which like the one shown here, have close-by objects that can confuse
-the re-positioning code.  See the sections on
-:ref:`linked apertures <linked_apertures>` and
-:ref:`aperture positioning <aperture_positioning>` for more details.
+In this case the target star has two nearby companions which causes
+three problems: (1) the sky annulus may include flux from the
+companions, (2) the target aperture can include a variable
+contribution from the companions, depending upon the seeing, and (3)
+it is hard to locate the object because the position location can jump
+to the nearby objects. The set of apertures shown in |fig-setaper|
+combats these problems as follows. First, there are pink/purplish
+dashed circles connected to the centre of the apertures. These are
+*mask* regions which exclude the circled regions from any
+consideration in sky estimation. NB they *do not* exclude the pixels
+from inclusion in target apertures; this is not possible without
+systematic bias without full-blown profile fits. Second, are somewhat
+similar brown/green dashed circles. These are *extra* apertures which
+indicate that the flux in the regions enclosed is to be added to the
+flux in the target aperture. This offsets the problem of variable
+amounts of nearby stars' flux being included in the aperture. Finally,
+the thick pink arrow pointing from the lower-right (target) aperture
+to the upper-left reference aperture (green circle) *links* the target
+aperture. This means its position is calculated using a fixed offset
+from the reference aperture. This is often useful for very faint
+targets, or those, which like the one shown here, have close-by
+objects that can confuse the re-positioning code.  See the sections on
+:ref:`linked apertures <linked_apertures>` and :ref:`aperture
+positioning <aperture_positioning>` for more details.
 
 Reduction files
 ===============
