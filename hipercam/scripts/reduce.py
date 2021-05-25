@@ -716,7 +716,7 @@ def reduce(args=None):
                     )
 
                     # Reset the frame buffers
-                    pccds, mccds, nframes = [], [], []
+                    pccds, bccds, mccds, nframes = [], [], [], []
 
         if len(mccds):
             # out of loop now. Finish processing any remaining

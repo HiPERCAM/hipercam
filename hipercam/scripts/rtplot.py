@@ -866,7 +866,7 @@ def rtplot(args=None):
                             epars,
                             (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
                         ) = hcam.fitting.combFit(
-                            fwind,
+                            fwind, sigma,
                             method,
                             sky,
                             peak - sky,
@@ -878,8 +878,6 @@ def rtplot(args=None):
                             fpar.beta,
                             20.,
                             False,
-                            read,
-                            gain,
                             thresh,
                         )
 

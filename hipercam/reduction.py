@@ -1588,7 +1588,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 fit_beta = min(fit_beta, apsec["fit_beta_max"])
 
                 # This is where the pure-debiassed data are used
-                sigma = np.sqrt(fwread.data**2+np.maximum(0,fwbias)/fwgain.data)
+                sigma = np.sqrt(fwread.data**2+np.maximum(0,fwbias.data)/fwgain.data)
 
                 # refine the Aperture position by fitting the profile
                 (
@@ -1681,16 +1681,17 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 else:
                     raise hcam.HipercamError(
                         (
-                            "CCD {:s}, reference aperture {:s}"
-                            ", peak = {:.1f} < {:.1f}"
-                        ).format(cnam, apnam, height, apsec["fit_height_min_ref"])
+                            f"CCD {cnam}, reference aperture {apnam}"
+                            f", peak = {height:.1f}"
+                            f" < {apsec['fit_height_min_ref']:.1f}"
+                        )
                     )
 
     except hcam.HipercamError as err:
         # trap problems during the fits
         print(
-            "CCD {:s}, reference aperture {:s},"
-            " fit failed; extraction aborted. Error = {!s}".format(cnam, apnam, err),
+            f"CCD {cnam}, reference aperture {apnam},"
+            f" fit failed; extraction aborted. Error = {err}",
             file=sys.stderr,
         )
 
@@ -1792,9 +1793,8 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
             store["mbeta"] = NaN
 
             print(
-                (
-                    "CCD {:s}: no reference aperture " "fit was successful; extraction aborted"
-                ).format(cnam),
+                f"CCD {cnam}: no reference aperture "
+                "fit was successful; extraction aborted",
                 file=sys.stderr,
             )
             return False
@@ -1881,7 +1881,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 fit_beta = min(fit_beta, apsec["fit_beta_max"])
 
                 # This is where the pure-debiassed data are used
-                sigma = np.sqrt(fwread.data**2+np.maximum(0,fwbias)/fwgain.data)
+                sigma = np.sqrt(fwread.data**2+np.maximum(0,fwbias.data)/fwgain.data)
 
                 # finally, attempt to fit the target profile
                 (

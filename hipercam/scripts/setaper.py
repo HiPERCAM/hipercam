@@ -1032,7 +1032,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 sky = np.percentile(fwind.data, 25)
 
                 # uncertainties
-                sigma = np.sqrt(self.read2**2 + np.maximum(0,fwind.data)/self.gain)
+                sigma = np.sqrt(self.read**2 + np.maximum(0,fwind.data)/self.gain)
 
                 # refine the Aperture position by fitting the profile
                 (
