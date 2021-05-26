@@ -13,7 +13,8 @@ lists of past changes can be seen on github in any case). NB the
 version of these docs may reflect a development version subsequent to
 the most recent release and hence will appear to be one click on.
 
-#  :doc:`Updates since 1.0.0 <change_log_1.0.0_to_now>`. Most recent release: 1.0.0
+#  :doc:`Updates since 1.0.0 <change_log_1.0.0_to_now>`. Most recent release: 1.0.1;
+   the list here may include updates since this release.
 
 #. **25 May 2021, Version 1.0.0**: fringe-correction added
 

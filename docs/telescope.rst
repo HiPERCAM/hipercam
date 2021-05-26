@@ -168,13 +168,16 @@ Commands mentioned in this section: |grab|, |hplot|.
 Plotting defects during target acquisition
 ==========================================
 
-It is **strongly** recommended that you plot CCD defects during
-acquisition.  We have created :ref:`defect files <defect_files>` for
+**IT IS STRONGLY RECOMMENDED THAT YOU PLOT CCD DEFECTS DURING
+ACQUISITION!**.  We have created :ref:`defect files <defect_files>` for
 each camera for this purpose from flat-field and bias frames, but it's
 never a bad idea to look for changes.  Flat-field defects in
 particular can often be hard to see, during acquistion, especially if
 the sky is dark. Plotting them can help you avoid the worst defects
-which you only later discover during reduction, when it is too late.
+which you might only otherwise discover during reduction, by which
+time it is too late. Check defects near your target and the
+comparisons in all CCDs.  |nrtplot|, which allows zooming and panning
+(in contrast to |rtplot|) is particularly useful for such checking.
 
 Getting reduction going
 =======================
