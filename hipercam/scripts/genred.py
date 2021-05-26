@@ -397,6 +397,10 @@ def genred(args=None):
         )
         if fmap is None:
             fmap = ""
+            fpair = ""
+            nhalf = ""
+            rmin = ""
+            rmin = ""
         else:
             fpair = cl.get_value(
                 "fpair", "fringe pair file",
