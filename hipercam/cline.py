@@ -599,7 +599,7 @@ command line to check.""", ClineWarning,
             ):
                 reply = "?"
                 while reply == "?":
-                    reply = input("{:s} - {:s} [{!s}]: ".format(param, prompt, value))
+                    reply = input(f"{param} - {prompt} [{value}]: ")
                     if reply == "\\":
                         self._usedef = True
                     elif reply == "?":
