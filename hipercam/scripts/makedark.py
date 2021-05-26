@@ -4,6 +4,8 @@ import sys
 import os
 import time
 import warnings
+import signal
+
 import numpy as np
 
 import hipercam as hcam
@@ -163,32 +165,33 @@ def makedark(args=None):
     # helpful in case of difficulty. i.e.  rather than just 'prompt' you would
     # use 'prompt', 'list'
 
-    try:
+    if server_or_local or bias is not None:
 
-        finished = False
+        print("\nCalling 'grab' ...")
 
-        if server_or_local or bias is not None:
+        args = [None, "prompt", source, "yes"]
 
-            print("\nCalling 'grab' ...")
-
-            args = [None, "prompt", source, "yes"]
-
-            if server_or_local:
-                args += [
-                    resource, str(first), str(last),
-                    str(twait), str(tmax)
-                ]
-            else:
-                args += [flist]
-
+        if server_or_local:
             args += [
-                "no",
-                "none" if bias is None else bias,
-                "none",
-                "none", "none", "f32",
+                resource, str(first), str(last),
+                str(twait), str(tmax)
             ]
-            resource = hcam.scripts.grab(args)
+        else:
+            args += [flist]
 
+        args += [
+            "no",
+            "none" if bias is None else bias,
+            "none",
+            "none", "none", "f32",
+        ]
+        resource = hcam.scripts.grab(args)
+
+    # 'resource' is a list of temporary files at this point
+
+    with CleanUp(resource, server_or_local or bias is not None) as cleanup:
+
+        # The above line to handle ctrl-c and temporaries
         if first == 1:
             # test readout mode if the first == 1 as, with non clear
             # modes, the first file is different from all others. A
@@ -228,17 +231,10 @@ def makedark(args=None):
 
         print("\nCalling 'combine' ...")
         args = [
-            None,
-            "prompt",
-            resource,
-            "none",
-            "none",
-            "none",
-            "c",
-            str(sigma),
-            "i",
-            "yes",
-            output,
+            None, "prompt", resource,
+            "none", "none", "none",
+            "c", str(sigma), "i",
+            "yes", output,
         ]
         hcam.scripts.combine(args)
 
@@ -262,21 +258,34 @@ def makedark(args=None):
                 " the bias hence could not correct it in the dark"
             )
 
-        finished = True
-
-    except KeyboardInterrupt:
-        print("makedark aborted")
-        pass
-
-    if server_or_local or bias is not None:
-        # this to ensure we delete the temporary files
-        with open(resource) as fin:
-            for fname in fin:
-                fname = fname.strip()
-                os.remove(fname)
-        os.remove(flist)
-        print("\ntemporary files have been deleted")
-
-    if finished:
         print("makedark finished")
 
+class CleanUp:
+    """
+    Context manager to handle temporary files
+    """
+    def __init__(self, flist, temp):
+        self.flist = flist
+        self.temp = temp
+        self.ok = True
+
+    def _sigint_handler(self, signal_received, frame):
+        print("\nmakedark aborted")
+        self.ok = False
+        sys.exit(1)
+
+    def __enter__(self):
+        signal.signal(signal.SIGINT, self._sigint_handler)
+
+    def __exit__(self, type, value, traceback):
+        if self.temp:
+            with open(self.flist) as fp:
+                for line in fp:
+                    os.remove(line.strip())
+            os.remove(self.flist)
+            print('temporary files removed')
+
+        if self.ok:
+            return True
+        else:
+            return False

@@ -1,6 +1,7 @@
 import sys
 import os
 import tempfile
+import signal
 
 import numpy as np
 
@@ -256,7 +257,7 @@ def makeflat(args=None):
         lowers = cl.get_value(
             "lower",
             "lower limits on mean count level for included flats, 1 per CCD",
-            len(ccds) * (5000,),
+            len(ccds) * (5000,)
         )
 
         uppers = cl.get_default("upper")
@@ -266,7 +267,7 @@ def makeflat(args=None):
         uppers = cl.get_value(
             "upper",
             "lower limits on mean count level for included flats, 1 per CCD",
-            len(ccds) * (50000,),
+            len(ccds) * (50000,)
         )
 
         clobber = cl.get_value(
@@ -278,42 +279,45 @@ def makeflat(args=None):
             "output average",
             cline.Fname(
                 "hcam", hcam.HCAM, cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
-            ),
+            )
         )
 
     # inputs done with.
 
-    try:
-        # big try / except section here to trap ctrl-C to allow the temporary
-        # files to be deleted. First make a directory for the temporary files
+    if server_or_local or bias is not None or dark is not None:
 
-        if server_or_local or bias is not None or dark is not None:
-            print("\nCalling 'grab' ...")
+        print("\nCalling 'grab' ...")
 
-            args = [None, "prompt", source, "yes"]
+        args = [None, "prompt", source, "yes"]
 
-            if server_or_local:
-                args += [
-                    resource, str(first), str(last),
-                    str(twait), str(tmax)
-                ]
-            else:
-                args += [flist]
-
+        if server_or_local:
             args += [
-                "no",
-                "none" if bias is None else bias,
-                "none" if dark is None else dark,
-                "none", "none", "f32",
+                resource, str(first), str(last),
+                str(twait), str(tmax)
             ]
-            resource = hcam.scripts.grab(args)
+        else:
+            args += [flist]
 
-        # at this point 'resource' is a list of files, no matter the input
-        # method.
+        args += [
+            "no",
+            "none" if bias is None else bias,
+            "none" if dark is None else dark,
+            "none", "none", "f32",
+        ]
+        resource = hcam.scripts.grab(args)
 
-        # Read all the files to determine mean levels (after bias subtraction)
-        # save the bias-subtracted, mean-level normalised results to temporary
-        # files
+    # at this point 'resource' is a list of files, no matter the input
+    # method. 'fnames' below will be used to store still more temporaries
+
+    fnames = []
+    with CleanUp(
+            resource, fnames,
+            server_or_local or bias is not None or dark is not None
+    ) as cleanup:
+
+        # Read all the files to determine mean levels (after bias
+        # subtraction) save the bias-subtracted, mean-level normalised
+        # results to temporary files
         print("Reading all files in to determine their mean levels")
         bframe, dframe = None, None
         means = {}
@@ -324,7 +328,6 @@ def makeflat(args=None):
         # make some more to save the normalised versions.
         tdir = utils.temp_dir()
 
-        fnames = []
         with spooler.HcamListSpool(resource) as spool:
 
             for mccd in spool:
@@ -346,8 +349,8 @@ def makeflat(args=None):
                         mccd[cnam] /= cmean
 
                 # write the disk, save the name, close the filehandle
-                mccd.write(fname)
                 fnames.append(fname)
+                mccd.write(fname)
                 os.close(fd)
 
                 # a bit of progress info
@@ -460,19 +463,38 @@ def makeflat(args=None):
         template.write(output, clobber)
         print("\nFinal result written to {:s}".format(output))
 
-    except KeyboardInterrupt:
+class CleanUp:
+    """
+    Context manager to handle temporary files
+    """
+    def __init__(self, flist, fnames, temp):
+        self.flist = flist
+        self.fnames = fnames
+        self.temp = temp
+        self.ok = True
+
+    def _sigint_handler(self, signal_received, frame):
         print("\nmakeflat aborted")
+        self.ok = False
+        sys.exit(1)
 
-    if server_or_local or bias is not None or dark is not None:
-        # grab has created a load of temporaries, including the file list
-        # 'resource'
-        with open(resource) as fin:
-            for fname in fin:
-                os.remove(fname.strip())
-        os.remove(resource)
+    def __enter__(self):
+        signal.signal(signal.SIGINT, self._sigint_handler)
 
-    # and another load were created during the later running of the script
-    for fname in fnames:
-        os.remove(fname)
+    def __exit__(self, type, value, traceback):
+        if self.temp:
+            with open(self.flist) as fp:
+                for line in fp:
+                    os.remove(line.strip())
+            os.remove(self.flist)
 
-    print("temporary files have been removed.")
+        for fname in self.fnames:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+        print('temporary files removed')
+
+        if self.ok:
+            return True
+        else:
+            return False

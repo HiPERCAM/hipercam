@@ -4,6 +4,7 @@ import sys
 import os
 import time
 import warnings
+import signal
 import numpy as np
 
 import hipercam as hcam
@@ -146,27 +147,23 @@ def makebias(args=None):
 
     # Now the actual work.
 
-    # We pass full argument lists to grab and combine because with None as the
-    # command name, the default file mechanism is by-passed. 'prompt' is used
-    # to expose the hidden parameters. Every argument needed is passed to
-    # avoid any interactive prompting. Note that because of the Cline
-    # mechanisms, in particular prompting of one parameter depending on
-    # another, it can be tricky to get this right. The keyword 'list' can be
-    # helpful in case of difficulty. i.e.  rather than just 'prompt' you would
-    # use 'prompt', 'list'
+    # We pass full argument lists to grab and combine because with
+    # None as the command name, the default file mechanism is
+    # by-passed. 'prompt' is used to expose the hidden parameters.
 
-    try:
+    print("\nCalling 'grab' ...")
+    args = [
+        None, "prompt", source, "yes", run,
+        str(first), str(last), str(twait), str(tmax),
+        "no", "none", "none", "none", "none", "f32",
+    ]
+    resource = hcam.scripts.grab(args)
 
-        finished = False
+    # 'resource' is a list of temporary files at this point
 
-        print("\nCalling 'grab' ...")
+    with CleanUp(resource) as cleanup:
 
-        args = [
-            None, "prompt", source, "yes", run,
-            str(first), str(last), str(twait), str(tmax),
-            "no", "none", "none", "none", "none", "f32",
-        ]
-        resource = hcam.scripts.grab(args)
+        # The above line to handle ctrl-c and temporaries
 
         if first == 1:
             # test readout mode if the first == 1 as, with non clear
@@ -190,47 +187,50 @@ def makebias(args=None):
                             "not have clear enabled since the first frame is "
                             "different from all others."
                         )
-                else:
-                    warnings.warn(
-                        f"{instrument} has readout modes with both clears enabled "
-                        "or not between exposures. When no clear is enabled, the "
-                        "first frame is different from all others and should "
-                        "normally not be included when making a bias. This "
-                        "message is a temporary stop gap until the nature of the "
-                        "readout mode has been determined with respect to clears."
-                    )
+                    else:
+                        warnings.warn(
+                            f"{instrument} has readout modes with both clears enabled "
+                            "or not between exposures. When no clear is enabled, the "
+                            "first frame is different from all others and should "
+                            "normally not be included when making a bias. This "
+                            "message is a temporary stop gap until the nature of the "
+                            "readout mode has been determined with respect to clears."
+                        )
 
         print("\nCalling 'combine' ...")
         args = [
-            None,
-            "prompt",
-            resource,
-            "none",
-            "none",
-            "none",
-            "c",
-            str(sigma),
-            "b",
-            "yes",
-            "yes" if plot else "no",
-            "yes",
+            None, "prompt", resource,
+            "none", "none", "none",
+            "c", str(sigma), "b",
+            "yes", "yes" if plot else "no", "yes",
             output,
         ]
         hcam.scripts.combine(args)
-        finished = True
-
-    except KeyboardInterrupt:
-        print("makebias aborted")
-        pass
-
-    # remove temporary files
-    with open(resource) as fin:
-        for fname in fin:
-            fname = fname.strip()
-            os.remove(fname)
-    os.remove(resource)
-    print("temporary files have been deleted")
-    if finished:
         print("makebias finished")
 
+class CleanUp:
+    """
+    Context manager to handle temporary files
+    """
+    def __init__(self, flist):
+        self.flist = flist
+        self.ok = True
 
+    def _sigint_handler(self, signal_received, frame):
+        print("\nmakebias aborted")
+        self.ok = False
+        sys.exit(1)
+
+    def __enter__(self):
+        signal.signal(signal.SIGINT, self._sigint_handler)
+
+    def __exit__(self, type, value, traceback):
+        with open(self.flist) as fp:
+            for line in fp:
+                os.remove(line.strip())
+        os.remove(self.flist)
+        print('temporary files removed')
+        if self.ok:
+            return True
+        else:
+            return False

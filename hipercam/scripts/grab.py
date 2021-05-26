@@ -4,7 +4,7 @@ import sys
 import os
 import time
 import tempfile
-from signal import signal, SIGINT
+import signal
 
 import numpy as np
 
@@ -158,6 +158,9 @@ def grab(args=None):
        |grab| is used by several other scripts such as |averun| so take great
        care when changing anything to do with its input parameters.
 
+       If you use the "temp" option to write to temporary files, then those
+       files will be deleted if you interrup with CTRL-C. This is to prevent
+       the accumulation of such frames.
     """
 
     command, args = utils.script_args(args)
@@ -341,13 +344,14 @@ def grab(args=None):
     bframe = None
 
     # Finally, we can go
+    fnames = []
     if temp:
-        fnames = []
         tdir = utils.temp_dir()
 
-    with spooler.data_source(source, resource, first) as spool:
+    with CleanUp(fnames, temp) as cleanup:
+        # The above line to handle ctrl-c and temporaries
 
-        try:
+        with spooler.data_source(source, resource, first) as spool:
 
             for mccd in spool:
 
@@ -453,62 +457,57 @@ def grab(args=None):
                 if last and nframe > last:
                     break
 
-        except KeyboardInterrupt:
-            # trap ctrl-C so we can delete temporary files if temp
-            if temp:
-                for fname in fnames:
-                    os.remove(fname)
-                print("\ntemporary files deleted")
-                print("grab aborted")
-            else:
-                print("\ngrab aborted")
-            sys.exit(1)
+        if temp:
+            if len(fnames) == 0:
+                raise hcam.HipercamError(
+                    'no files were grabbed; please check'
+                    ' input parameters, especially "first"'
+                )
 
-    if temp:
-        if len(fnames) == 0:
-            raise hcam.HipercamError(
-                'no files were grabbed; please check'
-                ' input parameters, especially "first"'
-            )
+            # write the file names to a list
+            fd, fname = tempfile.mkstemp(suffix=hcam.LIST, dir=tdir)
+            cleanup.flist = fname
+            with open(fname, "w") as fout:
+                for fnam in fnames:
+                    fout.write(fnam + "\n")
+            os.close(fd)
+            print("temporary file names written to {:s}".format(fname))
 
-        # write the file names to a list
-        fd, fname = tempfile.mkstemp(suffix=hcam.LIST, dir=tdir)
-        with open(fname, "w") as fout:
-            for fnam in fnames:
-                fout.write(fnam + "\n")
-        os.close(fd)
-        print("temporary file names written to {:s}".format(fname))
-
-        # return the name of the file list
-        return fname
+            # return the name of the file list
+            return fname
 
 class CleanUp:
     """
-    to cope with removal of temporaries
+    Removes temporaries on ctrl-C. Context manager
     """
-    def __init__(self, fnames):
+    def __init__(self, fnames, temp):
         self.fnames = fnames
+        self.temp = temp
+        self.flist = None
+        self.original_sigint_handler = signal.getsignal(signal.SIGINT)
+        self.ok = True
+        signal.signal(signal.SIGINT, self._sigint_handler)
 
-    Handle adjusting plot width defaults in a way that can be used
-    as a handler for signal
-    """
-    def __init__(self, hipenv, hipconf, command, args, fig):
-        self.hipenv = hipenv
-        self.hipconf = hipconf
-        self.command = command
-        self.args = args
-        self.fig = fig
-
-    def __call__(self, signal_recieved, frame):
-        self.finish()
+    def _sigint_handler(self, signal_received, frame):
+        if self.temp:
+            for fname in self.fnames:
+                os.remove(fname)
+            if self.flist is not None:
+                os.remove(self.flist)
+            print("\ngrab aborted; temporary files deleted")
+        else:
+            print("\ngrab aborted")
+        self.ok = False
         sys.exit(1)
 
-    def finish(self):
-        with Cline(self.hipenv, self.hipconf, self.command, self.args) as cl:
-            width = self.fig.get_figwidth()
-            height = self.fig.get_figheight()
-            cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
-            cl.register("imheight", Cline.LOCAL, Cline.HIDE)
-            cl.set_default("imwidth",width)
-            cl.set_default("imheight",height)
-            print(f'\nImage display size updated to width, height = {width}, {height} [memory=True]')
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        # Reset to original sigint handler
+        signal.signal(signal.SIGINT, self.original_sigint_handler)
+        if self.ok:
+            print("grab finished")
+            return True
+        else:
+            return False
