@@ -1,5 +1,6 @@
 import sys
 import os
+import signal
 
 import numpy as np
 
@@ -88,7 +89,6 @@ def averun(args=None):
 
         flat : str
            Name of flat field to divide by, 'none' to ignore.
-
 
         fmap : str
            Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
@@ -180,8 +180,8 @@ def averun(args=None):
         server_or_local = source.endswith("s") or source.endswith("l")
 
         if server_or_local:
-            run = cl.get_value("run", "run name", "run005")
-            root = os.path.basename(run)
+            resource = cl.get_value("run", "run name", "run005")
+            root = os.path.basename(resource)
             cl.set_default('output', cline.Fname(root, hcam.HCAM))
 
             first = cl.get_value("first", "first frame to average", 1, 1)
@@ -195,7 +195,7 @@ def averun(args=None):
             )
 
         else:
-            flist = cl.get_value(
+            resource = cl.get_value(
                 "flist", "file list", cline.Fname("files.lis", hcam.LIST)
             )
             first = 1
@@ -280,18 +280,20 @@ def averun(args=None):
 
     # inputs done with. Now do the work with 'grab' and 'combine'
 
-    if server_or_local:
+    if server_or_local or bias is not None or dark is not None or \
+       flat is not None or fmap is not None:
+
         print("\nCalling 'grab' ...")
 
         # Build argument list
-        args = [None,"prompt",source,run,"yes",str(first),str(last)]
+        args = [None,"prompt",source,"yes",resource]
+        if server_or_local:
+            args += [str(first), str(last),str(twait), str(tmax)]
         if trim:
             args += ["yes",str(ncol),str(nrow)]
         else:
             args += ["no"]
-
         args += [
-            str(twait),str(tmax),
             "none" if bias is None else bias,
             "none" if dark is None else dark,
             "none" if flat is None else flat,
@@ -300,45 +302,53 @@ def averun(args=None):
             args += ["none", "f32"]
         else:
             args += [fmap,fpair,str(nhalf),str(rmin),str(rmax),"false","f32"]
-        flist = hcam.scripts.grab(args)
 
-    try:
+        resource = hcam.scripts.grab(args)
+
+    # at this point 'resource' is a list of files, no matter the input
+    # method. 
+
+    with CleanUp(
+            resource, server_or_local or bias is not None or dark is not None
+            or flat is not None or fmap is not None
+    ) as cleanup:
+
         print("\nCalling 'combine' ...")
         args = [
-            None,
-            "prompt",
-            flist,
+            None, "prompt", resource,
             "none", "none", "none",
             method
         ]
-
         if method != "m":
             args += [str(sigma)]
-
         args += [
-            adjust,
-            "usemean=yes",
-            "plot=no",
-            "yes" if clobber else "no",
+            adjust, "usemean=yes",
+            "plot=no", "yes" if clobber else "no",
             output,
         ]
         hcam.scripts.combine(args)
 
-        # remove temporary files
-        with open(flist) as fin:
-            for fname in fin:
-                fname = fname.strip()
-                os.remove(fname)
-        os.remove(flist)
-        print("\ntemporary files have been deleted")
         print("averun finished")
 
-    except KeyboardInterrupt:
-        # this to ensure we delete the temporary files
-        with open(flist) as fin:
-            for fname in fin:
-                fname = fname.strip()
-                os.remove(fname)
-        os.remove(flist)
-        print("\ntemporary files have been deleted")
-        print("averun aborted")
+class CleanUp:
+    """
+    Context manager to handle temporary files
+    """
+    def __init__(self, flist, temp):
+        self.flist = flist
+        self.temp = temp
+
+    def _sigint_handler(self, signal_received, frame):
+        print("\naverun aborted")
+        sys.exit(1)
+
+    def __enter__(self):
+        signal.signal(signal.SIGINT, self._sigint_handler)
+
+    def __exit__(self, type, value, traceback):
+        if self.temp:
+            with open(self.flist) as fp:
+                for line in fp:
+                    os.remove(line.strip())
+            os.remove(self.flist)
+            print('temporary files removed')
