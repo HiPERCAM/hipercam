@@ -462,6 +462,7 @@ def makeflat(args=None):
         # write out
         template.write(output, clobber)
         print("\nFinal result written to {:s}".format(output))
+        print('makeflat finished')
 
 class CleanUp:
     """

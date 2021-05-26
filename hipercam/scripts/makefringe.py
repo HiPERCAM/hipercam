@@ -1,6 +1,7 @@
 import sys
 import os
 import tempfile
+import signal
 
 import numpy as np
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
@@ -21,8 +22,8 @@ __all__ = [
 
 
 def makefringe(args=None):
-    """``makefringe [source] (run first last [twait tmax] | flist) (bias
-    flat dark) fpair ([nhalf]) ccd fwhm [clobber] output``
+    """``makefringe [source] (run first last [twait tmax] | flist) bias
+    dark flat fpair ([nhalf]) ccd fwhm [clobber] output``
 
     Averages a set of images to make a frame for defringing (referred
     to elsewhere as a "fringe map").
@@ -72,10 +73,6 @@ def makefringe(args=None):
         run : string [if source ends 's' or 'l']
            run number to access, e.g. 'run034'
 
-        flist : string [if source ends 'f']
-           name of file list. Assumed that bias, flat-fielding etc have been applied to
-           these already.
-
         first : int [if source ends 's' or 'l']
            exposure number to start from. 1 = first frame ('0' is
            not supported).
@@ -90,16 +87,18 @@ def makefringe(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
-        bias : str [if source ends 's' or 'l']
+        flist : string [if source ends 'f']
+           name of file list. Assumed that bias, flat-fielding etc have been applied to
+           these already.
+
+        bias : str
            Name of bias frame to subtract, 'none' to ignore.
 
-        flat : str [if source ends 's' or 'l']
-           Name of flat field, 'none' to ignore.
+        dark : str
+           Name of dark frame to subtract, 'none' to ignore.
 
-        dark : str [if source ends 's' or 'l']
-           Name of dark frame to subtract, 'none' to ignore. Note that
-           it is assumed all CCDs have the same exposure time when making
-           a dark correction.
+        flat : str
+           Name of flat field, 'none' to ignore.
 
         fpair : str
            FringePair file (see setfringe), or 'none' to ignore. If specified
@@ -150,8 +149,8 @@ def makefringe(args=None):
         cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
-        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
         cl.register("nhalf", Cline.LOCAL, Cline.HIDE)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
@@ -183,35 +182,35 @@ def makefringe(args=None):
                 "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
             )
 
-            # bias frame (if any)
-            bias = cl.get_value(
-                "bias",
-                "bias frame ['none' to ignore]",
-                cline.Fname("bias", hcam.HCAM),
-                ignore="none",
-            )
-
-            # flat field (if any)
-            flat = cl.get_value(
-                "flat",
-                "flat field frame ['none' to ignore]",
-                cline.Fname("flat", hcam.HCAM),
-                ignore="none",
-            )
-
-            # dark frame (if any)
-            dark = cl.get_value(
-                "dark",
-                "dark frame ['none' to ignore]",
-                cline.Fname("dark", hcam.HCAM),
-                ignore="none",
-            )
-
         else:
             resource = cl.get_value(
                 "flist", "file list", cline.Fname("files.lis", hcam.LIST)
             )
             first = 1
+
+        # bias frame (if any)
+        bias = cl.get_value(
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
+        )
+
+        # dark frame (if any)
+        dark = cl.get_value(
+            "dark",
+            "dark frame ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM),
+            ignore="none",
+        )
+
+        # flat field (if any)
+        flat = cl.get_value(
+            "flat",
+            "flat field frame ['none' to ignore]",
+            cline.Fname("flat", hcam.HCAM),
+            ignore="none",
+        )
 
         fpair = cl.get_value(
             "fpair", "fringe pair file",
@@ -236,7 +235,8 @@ def makefringe(args=None):
             ccds = list(ccdinf.keys())
 
         fwhm = cl.get_value(
-            "fwhm", "FWHM of gaussian smoothing to apply to final result [unbinned pixels, 0 to ignore]", 4., 0.
+            "fwhm", "FWHM of gaussian smoothing to apply"
+            " to final result [unbinned pixels, 0 to ignore]", 4., 0.
         )
         clobber = cl.get_value(
             "clobber", "clobber any pre-existing files on output", False
@@ -252,41 +252,44 @@ def makefringe(args=None):
 
     # inputs done with.
 
-    try:
+    if server_or_local or bias is not None or dark is not None or flat is not None:
 
-        # big try / except section here to trap ctrl-C to allow the temporary
-        # files to be deleted. First make a directory for the temporary files
+        print("\nCalling 'grab' ...")
 
+        args = [None, "prompt", source, "yes"]
         if server_or_local:
-            print("\nCalling 'grab' ...")
-
-            args = [
-                None,
-                "prompt",
-                source,
-                resource,
-                "yes",
-                str(first),
-                str(last),
-                "no",
-                str(twait),
-                str(tmax),
-                "none" if bias is None else bias,
-                "none" if dark is None else dark,
-                "none" if flat is None else flat,
-                "none", "f32",
+            args += [
+                resource, str(first), str(last),
+                str(twait), str(tmax)
             ]
-            resource = hcam.scripts.grab(args)
+        else:
+            args += [flist]
+        args += [
+            "no",
+            "none" if bias is None else bias,
+            "none" if dark is None else dark,
+            "none" if flat is None else flat,
+            "none", "f32",
+        ]
+        resource = hcam.scripts.grab(args)
 
-        # at this point 'resource' is a list of files, no matter the input
-        # method.
+    # at this point 'resource' is a list of files, no matter the input
+    # method.
+
+    fnames = []
+    with CleanUp(
+            resource, fnames,
+            server_or_local or bias is not None or dark is not None
+    ) as cleanup:
 
         # Read all the files to determine mean levels (after bias
         # subtraction) save the bias-subtracted, flat-fielded,
         # mean-level subtracted and normalised results to temporary
         # files
+
         print("Reading all files in to determine their mean levels")
         bframe, fframe, dframe, fpairobj = None, None, None, None
+
         medians = {}
         for cnam in ccds:
             medians[cnam] = {}
@@ -294,8 +297,6 @@ def makefringe(args=None):
         # We might have a load of temporaries from grab, but we are about to
         # make some more to save the bias-subtracted normalised versions.
         tdir = utils.temp_dir()
-
-        fnames = []
 
         mtype = []
         fref = {}
@@ -317,8 +318,9 @@ def makefringe(args=None):
                 fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
 
                 for cnam in ccds:
-                    # its unlikely that fringe frames would be taken with skips, but
-                    # you never know. Eliminate them from consideration now.
+                    # its unlikely that fringe frames would be taken
+                    # with skips, but you never know. Eliminate them
+                    # from consideration now.
                     ccd = mccd[cnam]
                     if ccd.is_data():
                         cmedian = mccd[cnam].median()
@@ -336,8 +338,8 @@ def makefringe(args=None):
                             print(f'{cnam}, fscale = {fscale:.3f}')
 
                 # write to disk, save the name, close the filehandle
-                mccd.write(fname)
                 fnames.append(fname)
+                mccd.write(fname)
                 os.close(fd)
 
                 # a bit of progress info
@@ -409,20 +411,35 @@ def makefringe(args=None):
         # write out
         template.write(output, clobber)
         print(f"\nFinal result written to {output}")
+        print('makefringe finished')
 
-    except KeyboardInterrupt:
+class CleanUp:
+    """
+    Context manager to handle temporary files
+    """
+    def __init__(self, flist, fnames, temp):
+        self.flist = flist
+        self.fnames = fnames
+        self.temp = temp
+
+    def _sigint_handler(self, signal_received, frame):
         print("\nmakefringe aborted")
+        sys.exit(1)
 
-    if server_or_local:
-        # grab has created a load of temporaries, including the file
-        # list 'resource'
-        with open(resource) as fin:
-            for fname in fin:
-                os.remove(fname.strip())
-        os.remove(resource)
+    def __enter__(self):
+        signal.signal(signal.SIGINT, self._sigint_handler)
 
-    # and another load were created during the later running of the script
-    for fname in fnames:
-        os.remove(fname)
+    def __exit__(self, type, value, traceback):
+        if self.temp:
+            with open(self.flist) as fp:
+                for line in fp:
+                    os.remove(line.strip())
+            os.remove(self.flist)
 
-    print("temporary files have been removed.")
+        for fname in self.fnames:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+        print('temporary files removed')
+
+
