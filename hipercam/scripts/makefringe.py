@@ -152,7 +152,7 @@ def makefringe(args=None):
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
         cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
-        cl.register("nhalf", Cline.LOCAL, Cline.HIDE)
+        cl.register("nhalf", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("fwhm", Cline.LOCAL, Cline.PROMPT)
         cl.register("clobber", Cline.LOCAL, Cline.HIDE)
@@ -256,14 +256,9 @@ def makefringe(args=None):
 
         print("\nCalling 'grab' ...")
 
-        args = [None, "prompt", source, "yes"]
+        args = [None, "prompt", source, "yes", resource]
         if server_or_local:
-            args += [
-                resource, str(first), str(last),
-                str(twait), str(tmax)
-            ]
-        else:
-            args += [flist]
+            args += [str(first), str(last), str(twait), str(tmax)]
         args += [
             "no",
             "none" if bias is None else bias,

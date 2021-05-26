@@ -169,15 +169,10 @@ def makedark(args=None):
 
         print("\nCalling 'grab' ...")
 
-        args = [None, "prompt", source, "yes"]
+        args = [None, "prompt", source, "yes", resource]
 
         if server_or_local:
-            args += [
-                resource, str(first), str(last),
-                str(twait), str(tmax)
-            ]
-        else:
-            args += [flist]
+            args += [str(first), str(last), str(twait), str(tmax)]
 
         args += [
             "no",
