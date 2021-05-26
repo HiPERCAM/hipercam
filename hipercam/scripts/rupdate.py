@@ -119,12 +119,10 @@ def rupdate(args=None):
 
                 elif version == "20200318":
                     # update version number
-                    line = (
-                        "version = {:s} # must be"
-                        " compatible with the"
-                        " version in reduce\n"
-                    ).format(hcam.REDUCE_FILE_VERSION)
-                    lines.append(line)
+                    lines.append(
+                        f"version = {hcam.REDUCE_FILE_VERSION} # must be"
+                        " compatible with the version in reduce\n"
+                    )
 
                     # record version in case we need other actions later
                     nversion = 4
@@ -135,22 +133,22 @@ def rupdate(args=None):
                     exit(1)
 
             elif line.startswith("fit_fwhm_min ="):
-                if version <= 3:
-                    lines.append(line)
+                lines.append(line)
+                if nversion <= 3:
                     lines.append("\n# Next line was automatically added by rupdate\n")
                     lines.append(
                         "fit_fwhm_max = 1000 # Maximum FWHM, unbinned pixels\n"
                     )
 
             elif line.startswith("dark ="):
-                if version <= 4:
-                    lines.append(line)
+                lines.append(line)
+                if nversion <= 4:
                     lines.append("\n# Next lines were automatically added by rupdate\n")
-                    lines.append("fringe = # Fringe map, blabk to ignore\n")
+                    lines.append("fmap = # Fringe map, blank to ignore\n")
                     lines.append("fpair = # FringePair file, ignored if fringe blank\n")
                     lines.append("nhalf = # Half-width, ignored if fringe blank\n")
                     lines.append("rmin = # minimum ratio, ignored if fringe blank\n")
-                    lines.append("rmax = # maximum ratio ignored if fringe blank\n")
+                    lines.append("rmax = # maximum ratio ignored if fringe blank\n\n")
 
             else:
                 # Default action is just to store save the line

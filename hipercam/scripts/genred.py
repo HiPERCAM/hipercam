@@ -592,7 +592,7 @@ warn = 1 60000 64000
         )
 
         sinner = cl.get_value(
-            "sinner", "inner sky aperture radius [unbinned pixels]", 30.0, rmax
+            "sinner", "inner sky aperture radius [unbinned pixels]", 30.0, ramax
         )
 
         souter = cl.get_value(
