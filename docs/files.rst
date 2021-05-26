@@ -10,6 +10,8 @@ Useful files
 This page documents some files that may come in useful while observing or
 during reduction.
 
+.. _defect_files:
+
 CCD defects
 ===========
 

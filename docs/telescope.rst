@@ -118,17 +118,20 @@ parameter input system.
 
 .. Note::
 
-  |rtplot| is one of the most useful commands during observing runs. Three
-  useful features are (1) the ability to fit the profiles of selected targets
-  when displaying a single CCD; (2) the option to plot a file of CCD defects
-  (:download:`hipercam defect file <hipercam_defects_2018_05_21.dft>`;
-  :download:`ultracam defect file <ultracam_defects_2018_06_02.dft>`;
-  :download:`ultraspec defect file <ultraspec_defects_2019_12_08.dft>`).
-  Use this to avoid bad regions of the CCDs; (3) the `setup` option which
-  interrogates the `hdriver` GUI for the current set of windows. This is
-  useful for optimising the CCD setup on a target.
+  |rtplot| is one of the most useful commands during
+  observing runs. Three useful features are (1) the ability to fit the
+  profiles of selected targets when displaying a single CCD; (2) the
+  option to plot a file of CCD defects. Use this to avoid bad
+  regions of the CCDs; (3) the `setup` option which interrogates the
+  `hdriver` GUI for the current set of windows. This is useful for
+  optimising the CCD setup on a target.
 
-Commands used in this section: |rtplot|, |hls|
+  |nrtplot| adds the ability to fit the profiles of more than one CCD
+  which it plots as a FWHM versus frame number. This is useful when observing
+  for focussing a run. It also allows you to zoom and pan the plots which
+  is very helpful for checking bad pixels.
+
+Commands used in this section: |rtplot|, |nrtplot|, |hls|
 
 Looking in more detail
 ======================
@@ -166,25 +169,24 @@ Plotting defects during target acquisition
 ==========================================
 
 It is **strongly** recommended that you plot CCD defects during
-acquisition.  We have created defect files ('.dft') for this purpose
-from flat-field and bias frames; see the note on |rtplot| above.
-Flat-field defects in particular can often be hard to see, during
-acquistion, especially if the sky is dark. Plotting them can help you
-avoid the worst defects which you only later discover during
-reduction, when it is too late. Note that the format of the defect
-files has changed from the old ULTRACAM pipeline to the |hiper| one,
-and you won't be able to use a defect file created under one system on the other.
+acquisition.  We have created :ref:`defect files <defect_files>` for
+each camera for this purpose from flat-field and bias frames, but it's
+never a bad idea to look for changes.  Flat-field defects in
+particular can often be hard to see, during acquistion, especially if
+the sky is dark. Plotting them can help you avoid the worst defects
+which you only later discover during reduction, when it is too late.
 
 Getting reduction going
 =======================
 
 Typically one of the first things you want to do during a run is to
 start a reduction which allows you to monitor the conditions, above
-all the transparency and seeing (and therefore the telescope
-focus). For multi-CCD images it is important to measure the FWHM in
-all CCDs because if the cameras are not par-focal, you may have good
-images in one but not another, but even with just one CCD as with
-ULTRASPEC, one of the first things you should do is check the focus.
+all the transparency and seeing (and therefore the telescope focus,
+although see the not concerning |nrtplot| above). For multi-CCD images
+it is important to measure the FWHM in all CCDs because if the cameras
+are not par-focal, you may have good images in one but not another,
+but even with just one CCD as with ULTRASPEC, one of the first things
+you should do is check the focus.
 
 The |hiper| reduction is essentially a three-step process:
 
@@ -203,21 +205,34 @@ cursor over an image. For the image, you can simply extract a single frame
 from the run using |grab|, but it is better practice to average a few frames
 which is easily done with |averun|::
 
-  averun run0076 1 10 none run0076
+  averun run0076 1 10 \\
 
-which averages (actually take the median in this case) the first 10 frames
-without bias subtraction, and stores the result in :file:`run0076.hcm`. Next
-run |setaper| on this image. This should display the image and allow you to
-add apertures one by one. Standard |hiper| practice is to label the main
-target '1', the main comparison star '2', and then number them from then on in
-order of increasing faintness. See the docs on |setaper| for the many features
-of the program. The end result of |setaper| is an "aperture file" with
-extension `.ape`, which it is recommended you call by the same name as the run
-itself, and thus in this case you would end up with a file called
-:file:`run0076.ape`. This is a JSON-format text file, and can be edited
-directly, although it is much safer to let |setaper| do the job for you.
+which averages (actually take the median in this case) the first 10
+frames, and stores the result in :file:`run0076.hcm`. Next run
+|setaper| on this image. This should display the image and allow you
+to add apertures one by one. Standard |hiper| practice is to label the
+main target '1', the main comparison star '2', and then number them
+from then on in order of increasing faintness. See the docs on
+|setaper| for the many features of the program. The end result of
+|setaper| is an "aperture file" with extension `.ape`, which it is
+recommended you call by the same name as the run itself, and thus in
+this case you would end up with a file called
+:file:`run0076.ape`. This is a JSON-format text file, and can be
+edited directly, although it is much safer to let |setaper| do the job
+for you.
 
 Commands mentioned in this section: |averun|, |grab|, |setaper|.
+
+.. Note::
+
+   Many of the pipeline commands generate default names for the output
+   using the input as the template. Thus the input file for |averun|
+   above was `run0076` (a |hiper| raw .fits files) and the output
+   defaulted to :file:`run0076.hcm`. The different extensions avoid
+   clashes between different files. |setaper| similarly produces
+   :file:`run0076.hcm`. The different extensions avoid clashes between
+   different files but keep them all connected by the root name, `run0076`
+   in this case.
 
 Generating a reduce file
 ------------------------
