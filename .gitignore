@@ -53,6 +53,7 @@ distribute-*.tar.gz
 
 # Python virtualenv
 env
+.env
 
 dev
 
@@ -60,3 +61,5 @@ dev
 *.hcm
 data
 data/*
+testing
+testing/*
