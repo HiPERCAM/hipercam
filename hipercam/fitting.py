@@ -1144,7 +1144,7 @@ def fitGaussian(
     # construct function object for gaussian fit. First the mode.
     mode = "" if sky is None else "s"
     mode = mode if fwhm_fix else mode + "f"
-    gfit = Gfit(wind, read, gain, ndiv, mode, fwhm)
+    gfit = Gfit(wind, sigma, ndiv, mode, fwhm)
 
     mode_switch = False
 
