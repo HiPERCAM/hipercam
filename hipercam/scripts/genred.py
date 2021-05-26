@@ -400,7 +400,7 @@ def genred(args=None):
             fpair = ""
             nhalf = ""
             rmin = ""
-            rmin = ""
+            rmax = ""
         else:
             fpair = cl.get_value(
                 "fpair", "fringe pair file",
