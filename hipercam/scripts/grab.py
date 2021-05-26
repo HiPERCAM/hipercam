@@ -454,7 +454,7 @@ def grab(args=None):
 
                 # update the frame number
                 nframe += 1
-                if last and nframe > last:
+                if server_or_local and last and nframe > last:
                     break
 
         if temp:
