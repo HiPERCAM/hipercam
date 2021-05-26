@@ -5,7 +5,7 @@ hipercam is the reduction package for the multi-CCD camera HiPERCAM
 built through an ERC Advanced Grant awarded to Vik Dhillon. HiPERCAM
 is a multi-CCD high-speed camera for astrophysical research. The
 hipercam pipeline can also be used to reduce data from the ULTRACAM
-and ULTRASPEC high-speed cameras, and usually other instruments too
+and ULTRASPEC high-speed cameras, and other instruments too
 after a little data format wrangling.
 
 Installation
@@ -29,23 +29,23 @@ If you have multiple versions of python, then you might need to
 specify pip3. If you want a self-contained install, I suggest looking
 into using "pipenv".
 
-To get the important command |setaper| working, make sure to use the
-Qt5Agg matplotlib backend. I have this set as the default in my
-.config/matplotlib/matplotlibrc file with the line `backend: Qt5Agg`
+I use the Qt5Agg backend to ensure that the important command
+|setaper| works. Others may work too of course. I have this set as the
+default in my .config/matplotlib/matplotlibrc configuartion file with
+the line `backend: Qt5Agg`
 
 Third-Party Modules
 ===================
 
-One of the great strengths of Python is its many modules allowing
-effective code re-use rather than re-invention of the wheel.  Apart
-from Cython and trm.pgplot, I hope that most of the extras will get
-automatically installed if necessary by pip. So, if you have Cython and
-PGPLOT ready, you might as well try ``pip install . --user`` here and now.
+Apart from Cython and trm.pgplot, I hope that most of the extras will
+get automatically installed if necessary by pip. So, if you have
+Cython and PGPLOT ready, you might as well try ``pip install
+. --user`` here and now.
 
 If something seems amiss, here are details of the third-party packages
 which you can either install via pip or by looking for the packages in
 your O/S package manager. e.g. under fedora, Cython appears as
-python3-Cython.
+``python3-Cython``.
 
   astropy :
          astronomical Python package with lots of useful stuff.
@@ -93,29 +93,32 @@ python3-Cython.
          package to manage version numbers from the git repository
 
   trm.pgplot :
-         my own Cython-ised wrapper for PGPLOT which I wrote specifically
-         for hipercam although it is entirely independent of it. PGPLOT
-         is needed for some of the faster plots as matplotlib is way too
-         slow. PGPLOT itself must be installed for this to work. Once
-         you have PGPLOT, you can get trm.pgplot from my github site
-         with::
+         Cython-ised wrapper for PGPLOT which I wrote specifically for
+         hipercam although it is entirely independent of it. PGPLOT is
+         needed for some of the faster plots as matplotlib is way too
+         slow (at least as standardly used; I am hoping to move
+         towards matplotlib-only). PGPLOT itself (F77/C library) must
+         be installed for this to work. Once you have PGPLOT, you can
+         get trm.pgplot from my github site with::
 
              git clone https://github.com/trmrsh/trm-pgplot
 
-         trm.pgplot is not to be confused with "ppgplot" which, although
-         very similar, is a more hand-crafted version with some
-         differences in the calls. Once you have cloned it, you can
-         enter trm-pgplot and install with pip, but make sure to set
-         the enviroment variable PGPLOT_PNG to "true" or "false" first,
-         according to whether you installed the PNG drivers with PGPLOT.
+         trm.pgplot is not to be confused with "ppgplot" which,
+         although very similar, is a more hand-crafted version with
+         some differences in the calls. Once you have cloned it, you
+         can enter trm-pgplot and install with pip, but make sure to
+         set the enviroment variable PGPLOT_PNG inside setup.py to
+         "true" or "false" first, according to whether you installed
+         the PNG drivers with PGPLOT.
 
   websocket-client :
          for talking to the hipercam server.
 
   xlsxwriter :
-         if you want to use the logging scripts hlogger, ulogger,
-         the object search script logsearch or build log database
-         tools that output xlsx files. Since these are unusual
+         if you want to use the logging scripts hlogger, the object
+         search script logsearch, or build log database tools that
+         output xlsx files. Since these are unusual, the software is
+         designed to build without insisting on this module.
 
 Further Information
 ===================
