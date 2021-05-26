@@ -24,7 +24,8 @@ __all__ = [
 
 
 def makedark(args=None):
-    """``makedark [source] run first last bias sigma plot [twait tmax output]``
+    """``makedark [source] (run first last [twait tmax] | flist) bias
+    sigma output``
 
     Combines the frames of a single run into a single frame using clipped-mean
     averaging. This uses ``grab`` to get the frames and ``combine`` to combine
@@ -40,6 +41,7 @@ def makedark(args=None):
              |   'hl' : local HiPERCAM FITS file
              |   'us' : ULTRACAM server
              |   'ul' : local ULTRACAM .xml/.dat files
+             |   'hf' : list of HiPERCAM hcm FITS-format files
 
            The standard start-off default for ``source`` can be set
            using the environment variable
@@ -48,33 +50,36 @@ def makedark(args=None):
            started with the ULTRACAM server by default. If
            unspecified, it defaults to 'hl'.
 
-       run : string
+       run : str [if source ends 's' or 'l']
            run name to access
 
-       first : int
+       first : int [if source ends 's' or 'l']
            First frame to access
 
-       last : int
+       last : int [if source ends 's' or 'l']
            Last frame to access, 0 for the lot
 
-       bias : string
+       twait : float [[if source ends 's' or 'l', hidden]
+           time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [[if source ends 's' or 'l', hidden]
+           maximum time to wait between attempts to find a new exposure,
+           seconds.
+
+       flist : str [if source ends 'f']
+           name of file list. Assumed that these are dias and dark corrected.
+
+       bias : str
            Names of bias frame (made e.g. with |makebias|). This is
            so that the counts left in the dark frame are genuine dark
            counts which can be scaled by the ratio of exposure lengths
            during dark subtraction.
 
-       sigma   : float
+       sigma : float
            The value of 'sigma' to pass to the clipped mean combination in
            'combine'
 
-       twait   : float [hidden]
-           time to wait between attempts to find a new exposure, seconds.
-
-       tmax    : float [hidden]
-           maximum time to wait between attempts to find a new exposure,
-           seconds.
-
-       output  : string
+       output : str
            name of final combined file
 
       .. Note::
@@ -97,38 +102,54 @@ def makedark(args=None):
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
         cl.register("first", Cline.LOCAL, Cline.PROMPT)
         cl.register("last", Cline.LOCAL, Cline.PROMPT)
-        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
-        cl.register("sigma", Cline.LOCAL, Cline.PROMPT)
         cl.register("twait", Cline.LOCAL, Cline.HIDE)
         cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("flist", Cline.LOCAL, Cline.PROMPT)
+        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
+        cl.register("sigma", Cline.LOCAL, Cline.PROMPT)
         cl.register("output", Cline.GLOBAL, Cline.PROMPT)
 
         # get inputs
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
         source = cl.get_value(
             "source",
-            "data source [hs, hl, us, ul]",
+            "data source [hs, hl, us, ul, hf]",
             default_source,
-            lvals=("hs", "hl", "us", "ul"),
+            lvals=("hs", "hl", "us", "ul", "hf"),
         )
 
-        run = cl.get_value("run", "run name", "run005")
+        # set a flag
+        server_or_local = source.endswith("s") or source.endswith("l")
 
-        first = cl.get_value("first", "first frame to grab", 1, 0)
-        last = cl.get_value("last", "last frame to grab", 0)
-        if last < first and last != 0:
-            sys.stderr.write("last must be >= first or 0")
-            sys.exit(1)
+        if server_or_local:
+            resource = cl.get_value("run", "run name", "run005")
+            root = os.path.basename(resource)
+            cl.set_default('output', cline.Fname(root, hcam.HCAM))
+            first = cl.get_value("first", "first frame to grab", 1, 0)
+            last = cl.get_value("last", "last frame to grab", first, 0)
+            if last < first and last != 0:
+                sys.stderr.write("last must be >= first or 0")
+                sys.exit(1)
+            twait = cl.get_value(
+                "twait", "time to wait for a new frame [secs]",
+                1.0, 0.0
+            )
+            tmax = cl.get_value(
+                "tmax", "maximum time to wait for a new frame [secs]",
+                10.0, 0.0
+            )
+
+        else:
+            resource = cl.get_value(
+                "flist", "file list", cline.Fname("files.lis", hcam.LIST)
+            )
+            first = 1
 
         bias = cl.get_value("bias", "bias to subtract", "bias")
 
-        sigma = cl.get_value("sigma", "number of RMS deviations to clip", 3.0, 1.0)
-
-        twait = cl.get_value("twait", "time to wait for a new frame [secs]", 1.0, 0.0)
-        tmax = cl.get_value(
-            "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+        sigma = cl.get_value(
+            "sigma", "number of RMS deviations to clip", 3.0, 1.0
         )
-
         output = cl.get_value("output", "output name", "bias")
 
     # Now the actual work.
@@ -142,61 +163,74 @@ def makedark(args=None):
     # helpful in case of difficulty. i.e.  rather than just 'prompt' you would
     # use 'prompt', 'list'
 
-    print("\nCalling 'grab' ...")
-
-    args = [
-        None,
-        "prompt",
-        source,
-        run,
-        "yes",
-        str(first),
-        str(last),
-        "no",
-        str(twait),
-        str(tmax),
-        bias,
-        "none", "none", "none",
-        "f32",
-    ]
-    flist = hcam.scripts.grab(args)
-
-    if first == 1:
-        # test readout mode if the first == 1 as, with non clear modes, the
-        # first file is different from all others. A warning is issued.
-        with open(flist) as f:
-            first_frame = f.readline().strip()
-
-        mccd = hcam.MCCD.read(first_frame)
-        instrument = mccd.head.get("INSTRUME", "UNKNOWN")
-        if (
-            instrument == "ULTRACAM"
-            or instrument == "HIPERCAM"
-            or instrument == "ULTRASPEC"
-        ):
-            if "CLEAR" in mccd.head:
-                if not mccd.head["CLEAR"]:
-                    warnings.warn(
-                        """You should not include the first frame of a run when making a dark from
-readout modes which do not have clear enabled since the first frame is
-different from all others."""
-                    )
-            else:
-                warnings.warn(
-                    """Instrument = {:s} has readout modes with both clears enabled or not
-between exposures. When no clear is enabled, the first frame is different
-from all others and should normally not be included when making a dark.
-This message is a temporary stop gap until the nature of the readout mode
-has been determined with respect to clears."""
-                )
-
     try:
+
+        finished = False
+
+        if server_or_local or bias is not None:
+
+            print("\nCalling 'grab' ...")
+
+            args = [None, "prompt", source, "yes"]
+
+            if server_or_local:
+                args += [
+                    resource, str(first), str(last),
+                    str(twait), str(tmax)
+                ]
+            else:
+                args += [flist]
+
+            args += [
+                "no",
+                "none" if bias is None else bias,
+                "none",
+                "none", "none", "f32",
+            ]
+            resource = hcam.scripts.grab(args)
+
+        if first == 1:
+            # test readout mode if the first == 1 as, with non clear
+            # modes, the first file is different from all others. A
+            # warning is issued.
+            with open(resource) as f:
+                for line in f:
+                    if not line.startswith('#') or not line.isspace():
+                        first_frame = line.strip()
+                        break
+
+            mccd = hcam.MCCD.read(first_frame)
+            instrument = mccd.head.get("INSTRUME", "UNKNOWN")
+            if (
+                    instrument == "ULTRACAM"
+                    or instrument == "HIPERCAM"
+                    or instrument == "ULTRASPEC"
+            ):
+                if "CLEAR" in mccd.head:
+                    if not mccd.head["CLEAR"]:
+                        warnings.warn(
+                            "You should not include the first frame"
+                            " of a run when making a dark from readout"
+                            " modes which do not have clear enabled"
+                            " since the first frame is different from"
+                            " all others."
+                        )
+                else:
+                    warnings.warn(
+                        f"{instrument} has readout modes with both clears "
+                        "enabled or not between exposures. When no clear "
+                        "is enabled, the first frame is different from all "
+                        "others and should normally not be included when "
+                        "making a bias. This message is a temporary stop "
+                        "gap until the nature of the readout mode has been "
+                        "determined with respect to clears."
+                    )
 
         print("\nCalling 'combine' ...")
         args = [
             None,
             "prompt",
-            flist,
+            resource,
             "none",
             "none",
             "none",
@@ -207,14 +241,6 @@ has been determined with respect to clears."""
             output,
         ]
         hcam.scripts.combine(args)
-
-        # remove temporary files
-        with open(flist) as fin:
-            for fname in fin:
-                fname = fname.strip()
-                os.remove(fname)
-        os.remove(flist)
-        print("temporary files have been deleted")
 
         # correct exposure time of dark frame by the exposure time of
         # the bias frame used
@@ -236,14 +262,21 @@ has been determined with respect to clears."""
                 " the bias hence could not correct it in the dark"
             )
 
-        print("makedark finished")
+        finished = True
 
     except KeyboardInterrupt:
+        print("makedark aborted")
+        pass
+
+    if server_or_local or bias is not None:
         # this to ensure we delete the temporary files
-        with open(flist) as fin:
+        with open(resource) as fin:
             for fname in fin:
                 fname = fname.strip()
                 os.remove(fname)
         os.remove(flist)
         print("\ntemporary files have been deleted")
-        print("makedark aborted")
+
+    if finished:
+        print("makedark finished")
+

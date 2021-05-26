@@ -4,6 +4,7 @@ import sys
 import os
 import time
 import tempfile
+from signal import signal, SIGINT
 
 import numpy as np
 
@@ -23,65 +24,59 @@ __all__ = [
 
 
 def grab(args=None):
-    """``grab [source] run [temp] (ndigit) first last trim [twait tmax]
-    ([ncol nrow]) bias dark flat fmap (fpair [nhalf rmin rmax verbose])
-    [dtype]``
+    """``grab [source temp] (run first last (ndigit) [twait tmax] | flist
+    (prefix)) trim ([ncol nrow]) bias dark flat fmap (fpair [nhalf rmin
+    rmax verbose]) [dtype]``
 
     This downloads a sequence of images from a raw data file and writes them
     out to a series CCD / MCCD files.
 
     Parameters:
 
-       source : string [hidden]
+       source : str [hidden]
            Data source, four options:
 
               | 'hs' : HiPERCAM server
               | 'hl' : local HiPERCAM FITS file
               | 'us' : ULTRACAM server
               | 'ul' : local ULTRACAM .xml/.dat files
+              | 'hf' : list of HiPERCAM hcm FITS-format files
 
            The standard start-off default for ``source`` can be set
            using the environment variable
            HIPERCAM_DEFAULT_SOURCE. e.g. in bash :code:`export
            HIPERCAM_DEFAULT_SOURCE="us"` would ensure it always
            started with the ULTRACAM server by default. If
-           unspecified, it defaults to 'hl'.
-
-       run : string
-           run name to access
+           unspecified, it defaults to 'hl'. 'hf' is useful if you
+           want to apply pipeline calibrations (bias, flat, etc) to
+           files imported from a 'foreign' format. In this case the
+           output files will have the same name as the inputs but
+           with a prefix added.
 
        temp : bool [hidden, defaults to False]
-           True to indicate that the frames should be written to temporary
-           files with automatically-generated names in the expectation of
-           deleting them later. This also writes out a file listing the names.
-           The aim of this is to allow grab to be used as a feeder for other
-           routines in larger scripts.  If temp == True, grab will return with
-           the name of the list of hcm files. Look at 'makebias' for an
-           example that uses this feature.
+           True to indicate that the frames should be written to
+           temporary files with automatically-generated names in the
+           expectation of deleting them later. This also writes out a
+           file listing the names.  The aim of this is to allow grab
+           to be used as a feeder for other routines in larger
+           scripts.  If temp == True, grab will return with the name
+           of the list of hcm files. Look at 'makebias' for an example
+           that uses this feature.
 
-       ndigit : int [if not temp]
-           Files created will be written as 'run005_0013.fits' etc. `ndigit`
-           is the number of digits used for the frame number (4 in this
-           case). Any pre-existing files of the same name will be
-           over-written.
+       run : str [if source ends 's' or 'l']
+           run number to access, e.g. 'run034'
 
-       first : int
+       first : int [if source ends 's' or 'l']
            First frame to access
 
-       last : int
+       last : int [if source ends 's' or 'l']
            Last frame to access, 0 for the lot
 
-       trim : bool
-           True to trim columns and/or rows off the edges of windows nearest
-           the readout. Particularly useful for ULTRACAM windowed data where
-           the first few rows and columns can contain bad data.
-
-       ncol : int [if trim, hidden]
-           Number of columns to remove (on left of left-hand window, and right
-           of right-hand windows)
-
-       nrow : int [if trim, hidden]
-           Number of rows to remove (bottom of windows)
+       ndigit : int [if source ends 's' or 'l' and not temp]
+           Files created will be written as 'run005_0013.fits'
+           etc. `ndigit` is the number of digits used for the frame
+           number (4 in this case). Any pre-existing files of the same
+           name will be over-written.
 
        twait : float [hidden]
            time to wait between attempts to find a new exposure, seconds.
@@ -89,6 +84,26 @@ def grab(args=None):
        tmax : float [hidden]
            maximum time to wait between attempts to find a new exposure,
            seconds.
+
+       flist : str [if source ends 'f']
+           name of file list. Output files will have the same names
+           as the input files with a prefix added
+
+       prefix : str [if source ends 'f' and not temp]
+           prefix to add to create output file names
+
+       trim : bool
+           True to trim columns and/or rows off the edges of windows
+           nearest the readout. Particularly useful for ULTRACAM
+           windowed data where the first few rows and columns can
+           contain bad data.
+
+       ncol : int [if trim, hidden]
+           Number of columns to remove (on left of left-hand window,
+           and right of right-hand windows)
+
+       nrow : int [if trim, hidden]
+           Number of rows to remove (bottom of windows)
 
        bias : str
            Name of bias frame to subtract, 'none' to ignore.
@@ -152,16 +167,18 @@ def grab(args=None):
 
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
-        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
         cl.register("temp", Cline.GLOBAL, Cline.HIDE)
-        cl.register("ndigit", Cline.LOCAL, Cline.PROMPT)
+        cl.register("run", Cline.GLOBAL, Cline.PROMPT)
         cl.register("first", Cline.LOCAL, Cline.PROMPT)
         cl.register("last", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ndigit", Cline.LOCAL, Cline.PROMPT)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("flist", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("prefix", Cline.GLOBAL, Cline.PROMPT)
         cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ncol", Cline.GLOBAL, Cline.HIDE)
         cl.register("nrow", Cline.GLOBAL, Cline.HIDE)
-        cl.register("twait", Cline.LOCAL, Cline.HIDE)
-        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
         cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
         cl.register("dark", Cline.GLOBAL, Cline.PROMPT)
@@ -177,39 +194,75 @@ def grab(args=None):
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
         source = cl.get_value(
             "source",
-            "data source [hs, hl, us, ul]",
+            "data source [hs, hl, us, ul, hf]",
             default_source,
-            lvals=("hs", "hl", "us", "ul"),
+            lvals=("hs", "hl", "us", "ul", "hf"),
         )
-
-        # OK, more inputs
-        resource = cl.get_value("run", "run name", "run005")
 
         cl.set_default("temp", False)
         temp = cl.get_value(
-            "temp", "save to temporary automatically-generated file names?", True
+            "temp",
+            "save to temporary automatically-generated file names?",
+            True
         )
 
-        if not temp:
-            ndigit = cl.get_value(
-                "ndigit", "number of digits in frame identifier", 3, 0
+        # set some flags
+        server_or_local = source.endswith("s") or source.endswith("l")
+
+        if server_or_local:
+            resource = cl.get_value("run", "run name", "run005")
+            first = cl.get_value("first", "first frame to grab", 1, 0)
+            last = cl.get_value("last", "last frame to grab", 0)
+            if last < first and last != 0:
+                sys.stderr.write("last must be >= first or 0")
+                sys.exit(1)
+
+            if not temp:
+                ndigit = cl.get_value(
+                    "ndigit",
+                    "number of digits in frame identifier",
+                    3, 0
+                )
+
+            twait = cl.get_value(
+                "twait",
+                "time to wait for a new frame [secs]",
+                1.0, 0.0
+            )
+            tmax = cl.get_value(
+                "tmax",
+                "maximum time to wait for a new frame [secs]",
+                10.0, 0.0
             )
 
-        first = cl.get_value("first", "first frame to grab", 1, 0)
-        last = cl.get_value("last", "last frame to grab", 0)
-        if last < first and last != 0:
-            sys.stderr.write("last must be >= first or 0")
-            sys.exit(1)
+        else:
+            resource = cl.get_value(
+                "flist", "file list", cline.Fname("files.lis", hcam.LIST)
+            )
+            if not temp:
+                prefix = cl.get_value(
+                    "prefix", "prefix to add to file names on output",
+                    "pfx_"
+                )
+            first = 1
 
-        trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
-        if trim:
-            ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
-            nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
-
-        twait = cl.get_value("twait", "time to wait for a new frame [secs]", 1.0, 0.0)
-        tmax = cl.get_value(
-            "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
+        trim = cl.get_value(
+            "trim",
+            "do you want to trim edges of windows?",
+            True
         )
+
+        if trim:
+            ncol = cl.get_value(
+                "ncol",
+                "number of columns to trim from windows",
+                0
+            )
+            nrow = cl.get_value(
+                "nrow",
+                "number of rows to trim from windows",
+                0
+            )
 
         bias = cl.get_value(
             "bias",
@@ -270,14 +323,16 @@ def grab(args=None):
 
         cl.set_default("dtype", "f32")
         dtype = cl.get_value(
-            "dtype", "data type [f32, f64, u16]", "f32", lvals=("f32", "f64", "u16")
+            "dtype",
+            "data type [f32, f64, u16]",
+            "f32", lvals=("f32", "f64", "u16")
         )
 
     # Now the actual work.
 
     # strip off extensions
     if resource.endswith(hcam.HRAW):
-        resource = resource[: resource.find(hcam.HRAW)]
+        resource = resource[:resource.find(hcam.HRAW)]
 
     # initialisations
     total_time = 0  # time waiting for new frame
@@ -296,16 +351,17 @@ def grab(args=None):
 
             for mccd in spool:
 
-                # Handle the waiting game ...
-                give_up, try_again, total_time = spooler.hang_about(
-                    mccd, twait, tmax, total_time
-                )
+                if server_or_local:
+                    # Handle the waiting game ...
+                    give_up, try_again, total_time = spooler.hang_about(
+                        mccd, twait, tmax, total_time
+                    )
 
-                if give_up:
-                    print("grab stopped")
-                    break
-                elif try_again:
-                    continue
+                    if give_up:
+                        print("grab stopped")
+                        break
+                    elif try_again:
+                        continue
 
                 # Trim the frames: ULTRACAM windowed data has bad
                 # columns and rows on the sides of windows closest to
@@ -376,11 +432,18 @@ def grab(args=None):
                 if temp:
                     # generate name automatically
                     fd, fname = tempfile.mkstemp(suffix=hcam.HCAM, dir=tdir)
+                    fnames.append(fname)
                     mccd.write(fname, True)
                     os.close(fd)
-                    fnames.append(fname)
+
+                elif server_or_local:
+                    fname = f"{root}_{nframe:0{ndigit}}{hcam.HCAM}"
+                    mccd.write(fname, True)
+
                 else:
-                    fname = "{:s}_{:0{:d}}{:s}".format(root, nframe, ndigit, hcam.HCAM)
+                    fname = utils.add_extension(
+                        f"{prefix}{mccd.head['FILENAME']}"
+                    )
                     mccd.write(fname, True)
 
                 print("Written frame {:d} to {:s}".format(nframe, fname))
@@ -404,8 +467,10 @@ def grab(args=None):
     if temp:
         if len(fnames) == 0:
             raise hcam.HipercamError(
-                'no files were grabbed; please check input parameters, especially "first"'
+                'no files were grabbed; please check'
+                ' input parameters, especially "first"'
             )
+
         # write the file names to a list
         fd, fname = tempfile.mkstemp(suffix=hcam.LIST, dir=tdir)
         with open(fname, "w") as fout:
@@ -416,3 +481,34 @@ def grab(args=None):
 
         # return the name of the file list
         return fname
+
+class CleanUp:
+    """
+    to cope with removal of temporaries
+    """
+    def __init__(self, fnames):
+        self.fnames = fnames
+
+    Handle adjusting plot width defaults in a way that can be used
+    as a handler for signal
+    """
+    def __init__(self, hipenv, hipconf, command, args, fig):
+        self.hipenv = hipenv
+        self.hipconf = hipconf
+        self.command = command
+        self.args = args
+        self.fig = fig
+
+    def __call__(self, signal_recieved, frame):
+        self.finish()
+        sys.exit(1)
+
+    def finish(self):
+        with Cline(self.hipenv, self.hipconf, self.command, self.args) as cl:
+            width = self.fig.get_figwidth()
+            height = self.fig.get_figheight()
+            cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+            cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+            cl.set_default("imwidth",width)
+            cl.set_default("imheight",height)
+            print(f'\nImage display size updated to width, height = {width}, {height} [memory=True]')

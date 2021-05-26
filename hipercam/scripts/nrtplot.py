@@ -31,7 +31,6 @@ __all__ = [
 #
 ######################################
 
-
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd (nx)) [imwidth pause tupdate plotall] bias [lowlevel

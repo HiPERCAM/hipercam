@@ -224,8 +224,8 @@ class HcamDiskSpool(SpoolerBase):
 class HcamListSpool(SpoolerBase):
 
     """Provides an iterable context manager to loop through frames within
-    a list of HiPERCAM .hcm files, either a file listing the files, or a Python
-    list. Use as::
+    a list of HiPERCAM .hcm files, either a file listing the files, or
+    a Python list. Use as::
 
         with spooler.HcamListSpool(flist) as spool:
             for mccd in spool:
@@ -233,12 +233,12 @@ class HcamListSpool(SpoolerBase):
 
     to get :class:`MCCD`  objects or::
 
-
         with spooler.HcamListSpool(flist,cnam) as spool:
             for ccd in spool:
                 ...
 
     to get :class:`CCD` objects.
+
     """
 
     def __init__(self, lname, cnam=None):

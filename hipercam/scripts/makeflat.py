@@ -20,8 +20,8 @@ __all__ = [
 
 
 def makeflat(args=None):
-    """``makeflat [source] (run first last [twait tmax] bias dark | flist)
-    ngroup ccd lower upper [clobber] output``
+    """``makeflat [source] (run first last [twait tmax] | flist)
+    bias dark ngroup ccd lower upper [clobber] output``
 
     Averages a set of images to make a flat field.
 
@@ -93,9 +93,6 @@ def makeflat(args=None):
         run : str [if source ends 's' or 'l']
            run number to access, e.g. 'run034'
 
-        flist : str [if source ends 'f']
-           name of file list. Assumed that these are dias and dark corrected.
-
         first : int [if source ends 's' or 'l']
            exposure number to start from. 1 = first frame ('0' is
            not supported).
@@ -110,10 +107,13 @@ def makeflat(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
-        bias : str [if source ends 's' or 'l']
+        flist : str [if source ends 'f']
+           name of file list. Assumed that these are dias and dark corrected.
+
+        bias : str
            Name of bias frame to subtract, 'none' to ignore.
 
-        dark : str [if source ends 's' or 'l']
+        dark : str
            Name of dark frame to subtract, 'none' to ignore. Note that
            it is assumed all CCDs have the same exposure time when making
            a dark correction.
@@ -198,9 +198,11 @@ def makeflat(args=None):
             resource = cl.get_value("run", "run name", "run005")
             root = os.path.basename(resource)
             cl.set_default('output', cline.Fname(root, hcam.HCAM))
-
             first = cl.get_value("first", "first frame to average", 1, 1)
             last = cl.get_value("last", "last frame to average (0 for all)", first, 0)
+            if last < first and last != 0:
+                sys.stderr.write("last must be >= first or 0")
+                sys.exit(1)
             twait = cl.get_value(
                 "twait", "time to wait for a new frame [secs]", 1.0, 0.0
             )
@@ -208,27 +210,27 @@ def makeflat(args=None):
                 "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
             )
 
-            # bias frame (if any)
-            bias = cl.get_value(
-                "bias",
-                "bias frame ['none' to ignore]",
-                cline.Fname("bias", hcam.HCAM),
-                ignore="none",
-            )
-
-            # dark frame (if any)
-            dark = cl.get_value(
-                "dark",
-                "dark frame ['none' to ignore]",
-                cline.Fname("dark", hcam.HCAM),
-                ignore="none",
-            )
-
         else:
             resource = cl.get_value(
                 "flist", "file list", cline.Fname("files.lis", hcam.LIST)
             )
             first = 1
+
+        # bias frame (if any)
+        bias = cl.get_value(
+            "bias",
+            "bias frame ['none' to ignore]",
+            cline.Fname("bias", hcam.HCAM),
+            ignore="none",
+        )
+
+        # dark frame (if any)
+        dark = cl.get_value(
+            "dark",
+            "dark frame ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM),
+            ignore="none",
+        )
 
         ngroup = cl.get_value(
             "ngroup", "number of frames per median average group", 3, 1
@@ -285,20 +287,21 @@ def makeflat(args=None):
         # big try / except section here to trap ctrl-C to allow the temporary
         # files to be deleted. First make a directory for the temporary files
 
-        if server_or_local:
+        if server_or_local or bias is not None or dark is not None:
             print("\nCalling 'grab' ...")
 
-            args = [
-                None,
-                "prompt",
-                source,
-                resource,
-                "yes",
-                str(first),
-                str(last),
+            args = [None, "prompt", source, "yes"]
+
+            if server_or_local:
+                args += [
+                    resource, str(first), str(last),
+                    str(twait), str(tmax)
+                ]
+            else:
+                args += [flist]
+
+            args += [
                 "no",
-                str(twait),
-                str(tmax),
                 "none" if bias is None else bias,
                 "none" if dark is None else dark,
                 "none", "none", "f32",
@@ -460,7 +463,7 @@ def makeflat(args=None):
     except KeyboardInterrupt:
         print("\nmakeflat aborted")
 
-    if server_or_local:
+    if server_or_local or bias is not None or dark is not None:
         # grab has created a load of temporaries, including the file list
         # 'resource'
         with open(resource) as fin:
