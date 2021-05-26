@@ -399,7 +399,7 @@ def joinup(args=None):
                         ystart = (wind.lly - llymin) // ybin
                         data[ystart:ystart+wind.ny,xstart:xstart+wind.nx] = wind.data
 
-                    if dtype == 'uint16' and data.min() < 0 or data.max() > 65535:
+                    if dtype == 'uint16' and (data.min() < 0 or data.max() > 65535):
                         raise hcam.HipercamError(
                             f'CCD {cnam}, frame {nf}, data range {data.min()} to {data.max()}, is incompatible with uint16'
                         )
