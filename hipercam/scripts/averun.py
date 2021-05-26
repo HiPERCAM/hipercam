@@ -306,7 +306,7 @@ def averun(args=None):
         resource = hcam.scripts.grab(args)
 
     # at this point 'resource' is a list of files, no matter the input
-    # method. 
+    # method.
 
     with CleanUp(
             resource, server_or_local or bias is not None or dark is not None

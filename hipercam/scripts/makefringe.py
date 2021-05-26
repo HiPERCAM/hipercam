@@ -33,28 +33,28 @@ def makefringe(args=None):
     patterns you see when there is a thin layer of oil on water. Both
     patterns are caused by interference.  In the case of CCDs this is
     caused by sky emission lines and is variable in strength, and
-    additive in nature.
+    additive in nature, but seems mostly fairly fixed in position.
 
     De-fringing in |hiper| is implemented according to the method
     suggested by Snodgrass & Carry (2013Msngr.152...14S). The idea is
     to create a set of pairs of points marking the peak and troughs of
-    fringes. The difference in intensity between these in the data to
-    be corrected is compared with the difference in a reference
-    "fringe map" by taking their ratio. This is done many times so
-    that the median can be taken to eliminate ratios affected by
-    celestial targets or cosmic rays. the ratios of which will be used
-    to estimate the level of fringing compared to a reference
-    frame. ``makefringe`` is used to make the reference fringe map. It
-    works as follows: given an input list of files (or optionally a
-    single run), it reads them all in, optionally debiases,
-    dark-subtracts and flat-fields them, calculates a median count
-    level of each one which is subtracted from each CCD
-    individually. The pixel-by-pixel median of all frames is then
-    calculated. It is also possible to apply the fringe pair ratio
-    measurement to scale each frame before combining which allows
-    frames of similar pattern but varying amplitude to be
-    combined. Finally, the output can be smoothed because fringes are
-    usually a medium to large scale pattern.
+    fringes. The differences in intensity between these point pairs in
+    the data to be corrected is compared with the differences for the
+    same pairs in a reference "fringe map" by taking their
+    ratios. Many pairs are used so that the median can be taken to
+    eliminate ratios affected by celestial targets or cosmic rays. The
+    median ratio is used to scale the reference data and thereby
+    subtract the fringes. ``makefringe`` is used to make the reference
+    fringe map. It works as follows: given a single run or a list of
+    files, it reads them all in, optionally debiases, dark-subtracts
+    and flat-fields them, calculates a median count level of each one
+    which is subtracted from each CCD individually. The pixel-by-pixel
+    median of all frames is then calculated. It is also possible (and
+    a good idea) to apply the fringe pair ratio measurements to scale
+    each frame before combining them, which allows frames of similar
+    pattern but varying amplitude to be combined. Finally, the output
+    can be smoothed because fringes are usually a medium- to
+    large-scale pattern.
 
     Parameters:
 
@@ -123,7 +123,7 @@ def makefringe(args=None):
         output  : str
            output file. Set by default to match the last part of "run"
            (but it will have a different extension so they won't
-           clash)
+           clash). The default is 
 
       .. Note::
 
