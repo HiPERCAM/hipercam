@@ -596,10 +596,15 @@ class Rhead:
             if "ESO DET GPS" in hd:
                 self.thead["GPS"] = hd.get_full("ESO DET GPS")
 
+            if "INSTRUME" in hd:
+                self.thead["INSTRUME"] = hd.get_full("INSTRUME")
+
+            if "TELESCOP" in hd:
+                self.thead["TELESCOP"] = hd.get_full("TELESCOP")
+
             self.thead["XBIN"] = hd.get_full("ESO DET BINX1")
             self.thead["YBIN"] = hd.get_full("ESO DET BINY1")
             self.thead["SPEED"] = hd.get_full("ESO DET SPEED")
-            self.thead["INSTRUME"] = ('HIPERCAM', 'Instrument')
 
         if "EXPTIME" in hd:
             self.thead["EXPTIME"] = hd.get_full("EXPTIME")
