@@ -4,7 +4,9 @@ import os
 import numpy as np
 from astropy.time import Time
 from astropy.io import fits
-from astropy.wcs import WCS
+from astropy import wcs
+from astropy.coordinates import SkyCoord, Angle
+import astropy.units as u
 
 import hipercam as hcam
 from hipercam import cline, utils, spooler, defect, fringe
@@ -540,17 +542,43 @@ def joinup(args=None):
 
                     # Make header
                     header=fits.Header(phead.cards)
+
+                    # attempt to generate a WCS
                     instrume = header.get('INSTRUME','UNKNOWN')
-                    if instrume == 'HIPERCAM':
-                        # Try for a WCS ...
-                        scale = 0.081 # arcsec/pixel
-                        wcs = WCS(naxis=2)
-                        wcs.ctype = ["RA---TAN", "DEC--TAN"]
-                        wcs.crval = [180., 0.]
-                        wcs.cdelt = [scale/3600,scale/3600]
-                        wcs.cunit = ['deg', 'deg']
-                        wcs.crpix = [1024.,512.]
-                        wcs.naxis = [1024.,512.]
+                    if instrume == 'HIPERCAM' and 'RA' in header and \
+                       'DEC' in header and 'INSTRPA' in header:
+                        ra = header['RA']
+                        dec = header['DEC']
+                        pa = header['INSTRPA']
+                        x0, y0 = (1020.-llxmin+1)/xbin, (524.-llymin+1)/ybin
+                        pos0 = SkyCoord(ra, dec, unit=(u.hourangle, u.deg))
+                        print(ra, dec, pos0.to_string('hmsdms'))
+                        scale = 0.081*u.arcsec # pixel scale
+
+                        # 5 points in all, centred upon the rotator centre x0, y0
+                        # in a + shape.
+                        # 1) centre, 2) up, 3) right, 4) down, 5) left
+                        xsteps = [0,0,100,0,-100]
+                        ysteps = [0,100,0,-100,0]
+                        bfacs = [1,ybin,xbin,ybin,xbin]
+                        seps = [0,100,100,100,100]
+                        pa -= 90
+                        pas = [0,pa,pa+90,pa+180,pa+270]
+                        xs,ys,poss = [],[],[]
+                        for xstep,ystep,bfac,sep,pa in zip(xsteps,ysteps,bfacs,seps,pas):
+                            x = x0 + xstep
+                            y = y0 + ystep
+                            pos = pos0.directional_offset_by(pa*u.deg, bfac*sep*scale)
+                            xs.append(x)
+                            ys.append(y)
+                            poss.append(pos)
+                        poss = SkyCoord(poss)
+                        w = wcs.utils.fit_wcs_from_points(
+                            (np.array(xs),np.array(ys)),
+                            poss, proj_point='center',
+                        )
+                        print('wcs=',w)
+                        header.update(w.to_header())
 
                     # make the first & only HDU
                     hdul = fits.HDUList()
