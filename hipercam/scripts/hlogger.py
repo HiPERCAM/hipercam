@@ -675,7 +675,7 @@ def hlogger(args=None):
                             itype = hd.get("IMAGETYP", '')
                         else:
                             itype = hd.get("DTYPE", '')
-                        if itype == 'data caution':
+                        if itype == 'acquisition' or itype == 'data caution':
                             itype = 'acquire'
                         nhtml.write(f'<td class="left">{itype}</td>')
                         brow.append(itype)
