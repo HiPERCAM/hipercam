@@ -599,6 +599,7 @@ class Rhead:
             self.thead["XBIN"] = hd.get_full("ESO DET BINX1")
             self.thead["YBIN"] = hd.get_full("ESO DET BINY1")
             self.thead["SPEED"] = hd.get_full("ESO DET SPEED")
+            self.thead["INSTRUME"] = ('HIPERCAM', 'Instrument')
 
         if "EXPTIME" in hd:
             self.thead["EXPTIME"] = hd.get_full("EXPTIME")

@@ -305,7 +305,7 @@ class HcamServSpool(SpoolerBase):
     a raw HiPERCAM file served from Stu's FileServer
     """
 
-    def __init__(self, run, first=1):
+    def __init__(self, run, first=1, full=True):
         """Attaches the HcamServSpool to a run.
 
         Arguments::
@@ -318,7 +318,7 @@ class HcamServSpool(SpoolerBase):
               The first frame to access, 0 to always try to return the last complete one.
 
         """
-        self._iter = hcam.Rdata(run, first, True)
+        self._iter = hcam.Rdata(run, first, True, full=full)
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
@@ -404,7 +404,7 @@ def data_source(source, resource, first=1, **kwargs):
     elif source == "ul":
         return UcamDiskSpool(resource, first)
     elif source == "hs":
-        return HcamServSpool(resource, first)
+        return HcamServSpool(resource, first, **kwargs)
     elif source == "hl":
         return HcamDiskSpool(resource, first, **kwargs)
     elif source == "hf":

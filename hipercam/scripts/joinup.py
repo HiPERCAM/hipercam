@@ -4,6 +4,7 @@ import os
 import numpy as np
 from astropy.time import Time
 from astropy.io import fits
+from astropy.wcs import WCS
 
 import hipercam as hcam
 from hipercam import cline, utils, spooler, defect, fringe
@@ -537,12 +538,26 @@ def joinup(args=None):
                         print(f'Written {nfile} FITS files to disk.')
                         return
 
+                    # Make header
+                    header=fits.Header(phead.cards)
+                    instrume = header.get('INSTRUME','UNKNOWN')
+                    if instrume == 'HIPERCAM':
+                        # Try for a WCS ...
+                        scale = 0.081 # arcsec/pixel
+                        wcs = WCS(naxis=2)
+                        wcs.ctype = ["RA---TAN", "DEC--TAN"]
+                        wcs.crval = [180., 0.]
+                        wcs.cdelt = [scale/3600,scale/3600]
+                        wcs.cunit = ['deg', 'deg']
+                        wcs.crpix = [1024.,512.]
+                        wcs.naxis = [1024.,512.]
+
                     # make the first & only HDU
                     hdul = fits.HDUList()
                     if compress == 'none':
-                        hdul.append(fits.PrimaryHDU(data, header=fits.Header(phead.cards)))
+                        hdul.append(fits.PrimaryHDU(data, header=header))
                     else:
-                        hdul.append(fits.PrimaryHDU(header=fits.Header(phead.cards)))
+                        hdul.append(fits.PrimaryHDU(header=header))
                         compressed_hdu = fits.CompImageHDU(
                             data=data, compression_type=ctrans[compress]
                         )
