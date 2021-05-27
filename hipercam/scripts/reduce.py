@@ -38,7 +38,7 @@ NaN = float('NaN')
 #
 ################################################
 def reduce(args=None):
-    """``reduce [source] rfile (run first last twait tmax | flist) trim
+    """``reduce [source] rfile (run first last [twait tmax]| flist) trim
     ([ncol nrow]) log lplot implot (ccd nx msub xlo xhi ylo yhi iset
     (ilo ihi | plo phi))``
 

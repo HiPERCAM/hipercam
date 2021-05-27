@@ -960,13 +960,6 @@ def nrtplot(args=None):
                         )
                     skipped = False
 
-                elif not (profit and not_selected):
-                    # If we are in a state of accumulating for profile fit
-                    # selection we want each CCD to have something, so
-                    # we don't overwrite with None on skipped images
-                    # as we normally do
-                    img_accum[nc] = None
-
             # Print messages
             if skipped:
                 print(f'{message}skipped')
@@ -981,7 +974,7 @@ def nrtplot(args=None):
             # [ccd, vmin, vmax, swindows, dfct]
             #
             # i.e. the CCD, intensity range, setup windows and defects, or
-            # "None" if the CCD was skipped due to nskip
+            # "None" if the CCD has yet to be initialised due to nskip
 
             if profit and not_selected and plotted.all():
                 # Finally have at least one proper exposure of all CCDs
@@ -995,7 +988,7 @@ def nrtplot(args=None):
                         ax, cnam, xlo, xhi, ylo, yhi, cmap, content, False
                     )
 
-                # Cursor selection routine. comes back with a set of targets
+                # Cursor selection routine. Comes back with a set of targets
                 cselect = ProfitCursorSelect(
                     img_fig, img_axs, ccds, img_accum, shbox, fwhm, beta,
                     method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
@@ -1690,7 +1683,7 @@ class FwhmManager:
 
 class ProfitCursorSelect:
     """
-    Avoids spurious panning clicks from being registered. This one stores up targets.
+    Selection of targets to profile fit for animation
     """
 
     def __init__(self,
@@ -1720,24 +1713,22 @@ class ProfitCursorSelect:
         self.gain = gain
         self.thresh = thresh
 
-        self.press = False
-        self.move = False
-        self.c1=self.cnv.mpl_connect('button_press_event', self._onpress)
-        self.c2=self.cnv.mpl_connect('button_release_event', self._onrelease)
-        self.c3=self.cnv.mpl_connect('motion_notify_event', self._onmove)
-
-        print('\nClick to select stars; q to exit and start animation')
+        # accumulating target list
         self.targets = []
         self.ntarg = 0
+        print('\nUse the SpaceBar to select targets for profile fitting; q(uit) to exit selection and start animation')
+        self.kp = self.cnv.mpl_connect('key_press_event', self._keyPressEvent)
 
-    def _onclick(self, event):
+    def _keyPressEvent(self, event):
         """
         Where stuff is done
         """
 
-        if event.inaxes is not None:
+        if event.key == " " and event.inaxes is not None:
+
             for ax, cnam, content in zip(self.axs,self.ccds,self.img_accum):
 
+                # search to identify the CCD
                 if event.inaxes == ax:
 
                     # clicked inside an Axes
@@ -1750,8 +1741,8 @@ class ProfitCursorSelect:
                     wnam = ccd.inside(x, y, 2)
 
                     if wnam is not None:
-                        # store the position, Window label, target number,
-                        # box size fwhm, beta
+                        # store the position, Window label, target
+                        # number, box size fwhm, beta
                         fpar = Fpar(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
                         results, message = fpar.fit(
                             ccd, self.method, self.smooth, self.fhbox,
@@ -1772,24 +1763,9 @@ class ProfitCursorSelect:
                             print(f'\n   ** fit failed for position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}; no new target added')
                             print(f'   ** fit message = {message}')
 
-    def _onpress(self,event):
-        self.press = True
-
-    def _onmove(self,event):
-        if self.press:
-            self.move = True
-
-    def _onrelease(self,event):
-        # only call onclick in special circumstances
-        if self.press and not self.move:
-            self._onclick(event)
-        self.press = False
-        self.move = False
-
 class OntheflyCursorSelect:
     """
-    Avoids spurious panning clicks from being registered. This
-    one makes no attempt to store targets.
+    Selection of targets for on-the-fly fits
     """
 
     def __init__(self,
@@ -1822,22 +1798,20 @@ class OntheflyCursorSelect:
         self.gain = gain
         self.thresh = thresh
 
-        self.press = False
-        self.move = False
-        self.c1=self.cnv.mpl_connect('button_press_event', self._onpress)
-        self.c2=self.cnv.mpl_connect('button_release_event', self._onrelease)
-        self.c3=self.cnv.mpl_connect('motion_notify_event', self._onmove)
+        print('\n(use the SpaceBar to select targets for one-off profile fits)\n')
+        self.kp = self.cnv.mpl_connect('key_press_event', self._keyPressEvent)
 
     def update(self, img_accum):
         self.img_accum_old = self.img_accum
         self.img_accum = img_accum.copy()
 
-    def _onclick(self, event):
+    def _keyPressEvent(self, event):
         """
         Where stuff is done
         """
 
-        if event.inaxes is not None and self.img_accum_old is not None:
+        if event.key == " " and event.inaxes is not None and self.img_accum_old is not None:
+
             for ax, cnam, content in zip(self.axs,self.ccds,self.img_accum_old):
 
                 if event.inaxes == ax:

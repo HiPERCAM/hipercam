@@ -725,7 +725,7 @@ class PickStar:
         This is where we do the hard work. Every key press event is diverted
         to this method. It either takes an action based on the input, such as
         removing an Aperture, or sometimes it causes a state change such that
-        input is diverted to and accumulated in a buffer until 'enter' is hit.
+        input is diverted to and accumulated in a buffer unqqtil 'enter' is hit.
         The latter stage comes first.
         """
 
