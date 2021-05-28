@@ -26,21 +26,23 @@ __all__ = [
 def joinup(args=None):
     """``joinup [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd) bias dark flat fmap (fpair nhalf rmin rmax) msub
-    dtype dmax nmax overwrite compress``
+    dtype dmax nmax [overwrite] compress``
 
     Converts a run or a list of hcm images into as near as possible
     "standard" FITS files with one image in the primary HDU per file,
     representing a single CCD with all windows merged. The aim above
     all is to have a file that plays nicely with 'ds9'. A file such as
     'run0002.fits' (|hiper|) will end up producing files with names
-    like run0002_ccd1_0001.fits, run0002_ccd1_0002.fits, etc and the
-    same for any of the other CCDs. They will be written to the
+    like run0002_0001_ccd1.fits, run0002_001_ccd2.fits, etc and the
+    same for any of the other CCDs for frame 1, then
+    run0002_0002_ccd1.fits. '_ccd1' etc will be tacked onto the names
+    froma list of files. The generated files will be written to the
     present working directory. If the windows have gaps, then they
     will be filled with zeroes.
 
     Parameters:
 
-        source : string [hidden]
+        source : str [hidden]
            Data source, five options:
 
              |  'hs' : HiPERCAM server
@@ -77,7 +79,7 @@ def joinup(args=None):
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
-        flist : string [if source ends 'f']
+        flist : str [if source ends 'f']
            name of file list
 
         trim : bool [if source starts with 'u']
@@ -156,8 +158,9 @@ def joinup(args=None):
            million+ frame run. File systems tend not to behave well
            with vast numbers of files.
 
-        overwrite : bool
-           overwrite any pre-existing files.
+        overwrite : bool [hidden]
+           overwrite any pre-existing files. Alwayts defaults to 'False'
+           for safety.
 
         compress : str
            allows data to be compressed with FITS's internal lossless
@@ -212,20 +215,20 @@ def joinup(args=None):
         cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
-        cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("dark", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("fmap", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("fpair", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
+        cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fmap", Cline.LOCAL, Cline.PROMPT)
+        cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
         cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
         cl.register("rmin", Cline.GLOBAL, Cline.HIDE)
         cl.register("rmax", Cline.GLOBAL, Cline.HIDE)
-        cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("msub", Cline.LOCAL, Cline.PROMPT)
         cl.register("ndigit", Cline.LOCAL, Cline.PROMPT)
         cl.register("dtype", Cline.LOCAL, Cline.PROMPT)
         cl.register("dmax", Cline.LOCAL, Cline.PROMPT)
         cl.register("nmax", Cline.LOCAL, Cline.PROMPT)
-        cl.register("overwrite", Cline.LOCAL, Cline.PROMPT)
+        cl.register("overwrite", Cline.LOCAL, Cline.HIDE)
         cl.register("compress", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
@@ -362,9 +365,9 @@ def joinup(args=None):
             "nmax",
             "maximum allowable number of frames to write out", 10000, 0
         )
+        cl.set_default('overwrite',False)
         overwrite = cl.get_value(
-            "overwrite",
-            "overwrite pre-existing files on output?",
+            "overwrite", "overwrite pre-existing files on output?",
             False
         )
         compress = cl.get_value(
@@ -545,40 +548,38 @@ def joinup(args=None):
 
                     # attempt to generate a WCS
                     instrume = header.get('INSTRUME','UNKNOWN')
-                    if instrume == 'HIPERCAM' and 'RA' in header and \
-                       'DEC' in header and 'INSTRPA' in header:
-                        ra = header['RA']
-                        dec = header['DEC']
-                        pa = header['INSTRPA']
-                        x0, y0 = (1020.-llxmin+1)/xbin, (524.-llymin+1)/ybin
-                        pos0 = SkyCoord(ra, dec, unit=(u.hourangle, u.deg))
-                        print(ra, dec, pos0.to_string('hmsdms'))
-                        scale = 0.081*u.arcsec # pixel scale
+                    if instrume == 'HIPERCAM' and 'RADEG' in header and \
+                       'DECDEG' in header and 'INSTRPA' in header:
 
-                        # 5 points in all, centred upon the rotator centre x0, y0
-                        # in a + shape.
-                        # 1) centre, 2) up, 3) right, 4) down, 5) left
-                        xsteps = [0,0,100,0,-100]
-                        ysteps = [0,100,0,-100,0]
-                        bfacs = [1,ybin,xbin,ybin,xbin]
-                        seps = [0,100,100,100,100]
-                        pa -= 90
-                        pas = [0,pa,pa+90,pa+180,pa+270]
-                        xs,ys,poss = [],[],[]
-                        for xstep,ystep,bfac,sep,pa in zip(xsteps,ysteps,bfacs,seps,pas):
-                            x = x0 + xstep
-                            y = y0 + ystep
-                            pos = pos0.directional_offset_by(pa*u.deg, bfac*sep*scale)
-                            xs.append(x)
-                            ys.append(y)
-                            poss.append(pos)
-                        poss = SkyCoord(poss)
-                        w = wcs.utils.fit_wcs_from_points(
-                            (np.array(xs),np.array(ys)),
-                            poss, proj_point='center',
-                        )
-                        print('wcs=',w)
+                        ZEROPOINT = 69.3 # rotator zeropoint
+                        SCALE = 0.081 # pixel scale, "/unbinned pixel
+
+                        # ra, dec in degrees at rotator centre
+                        ra = header['RADEG']
+                        dec = header['DECDEG']
+
+                        # position angle, degrees
+                        pa = header['INSTRPA'] - ZEROPOINT
+
+                        # position within binned array of rotator centre
+                        x0, y0 = (1020.-llxmin+1)/xbin, (524.-llymin+1)/ybin
+
+                        # Build the WCS
+                        w = wcs.WCS(naxis=2)
+                        w.wcs.crpix = [x0, y0]
+                        w.wcs.crval = [ra,dec]
+                        cpa = np.cos(np.radians(pa))
+                        spa = np.sin(np.radians(pa))
+                        cd = np.array([[xbin*cpa,-ybin*spa],[xbin*spa,ybin*cpa]])
+                        cd = np.array([[xbin*cpa,ybin*spa],[-xbin*spa,ybin*cpa]])
+                        cd *= SCALE/3600
+                        w.wcs.cd = cd
+                        w.wcs.ctype = ['RA---TAN','DEC--TAN']
+                        w.wcs.cunit = ["deg", "deg"]
                         header.update(w.to_header())
+                        print(f'   CCD {cnam}: added WCS')
+                    else:
+                        print(f'   CCD {cnam}: missing positional data; no WCS added')
 
                     # make the first & only HDU
                     hdul = fits.HDUList()
@@ -591,10 +592,19 @@ def joinup(args=None):
                         )
                         hdul.append(compressed_hdu)
 
-                    oname = f'{os.path.basename(resource)}_ccd{cnam}_{nf:0{ndigit}d}.fits'
+                    if server_or_local:
+                        oname = f'{os.path.basename(resource)}_ccd{cnam}_{nf:0{ndigit}d}.fits'
+                    else:
+                        root = os.path.basename(
+                            os.path.splitext(mccd.head['FILENAME'])[0]
+                        )
+                        oname = f'{root}_ccd{cnam}.fits'
                     hdul.writeto(oname, overwrite=overwrite)
-                    print(f'   CCD {cnam} written to {oname}')
+                    print(f'   CCD {cnam}: written to {oname}')
                     nfile += 1
+
+                else:
+                    print(f'   CCD {cnam} skipped')
 
             # update the frame number
             nframe += 1
