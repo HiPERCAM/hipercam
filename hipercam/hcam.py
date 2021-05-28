@@ -587,6 +587,12 @@ class Rhead:
             if "DEC" in hd:
                 self.thead["DEC"] = hd.get_full("DEC")
 
+            if "RADEG" in hd:
+                self.thead["RADEG"] = hd.get_full("RADEG")
+
+            if "DECDEG" in hd:
+                self.thead["DECDEG"] = hd.get_full("DECDEG")
+
             if "INSTRPA" in hd:
                 self.thead["INSTRPA"] = hd.get_full("INSTRPA")
 
