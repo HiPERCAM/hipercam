@@ -239,6 +239,9 @@ class HcamListSpool(SpoolerBase):
 
     to get :class:`CCD` objects.
 
+    The name of the file that each MCCD was read from is written to
+    .head as 'FILENAME'.
+
     """
 
     def __init__(self, lname, cnam=None):
