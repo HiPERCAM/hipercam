@@ -172,6 +172,12 @@ def joinup(args=None):
            depend upon the nature of the data. 'none' is fastest. See
            astropy.io.fits for further documentation.
 
+        odir : str
+           directory for output files. This routine can produce many
+           files so it often makes sense to direct them to a specific
+           directory. '.' for the PWD. [Must exist prior to running
+           the script.]
+
     .. Note::
 
        Be careful of running this on highly windowed data since it
@@ -230,6 +236,7 @@ def joinup(args=None):
         cl.register("nmax", Cline.LOCAL, Cline.PROMPT)
         cl.register("overwrite", Cline.LOCAL, Cline.HIDE)
         cl.register("compress", Cline.LOCAL, Cline.PROMPT)
+        cl.register("odir", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
@@ -268,10 +275,16 @@ def joinup(args=None):
             )
             first = 1
 
-        trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
+        trim = cl.get_value(
+            "trim", "do you want to trim edges of windows?", True
+        )
         if trim:
-            ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
-            nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
+            ncol = cl.get_value(
+                "ncol", "number of columns to trim from windows", 0
+            )
+            nrow = cl.get_value(
+                "nrow", "number of rows to trim from windows", 0
+            )
 
         # define the panel grid. first get the labels and maximum dimensions
         ccdinf = spooler.get_ccd_pars(source, resource)
@@ -284,7 +297,9 @@ def joinup(args=None):
                 ccds = ccd.split()
                 check = set(ccdinf.keys())
                 if not set(ccds) <= check:
-                    raise hcam.HipercamError("At least one invalid CCD label supplied")
+                    raise hcam.HipercamError(
+                        "At least one invalid CCD label supplied"
+                    )
 
         else:
             ccds = list(ccdinf.keys())
@@ -349,7 +364,8 @@ def joinup(args=None):
 
         msub = cl.get_value("msub", "subtract median from each window?", True)
         ndigit = cl.get_value(
-            "ndigit", "number of digits to use for frame numbers in output names",
+            "ndigit",
+            "number of digits to use for frame numbers in output names",
             4, 1
         )
         dtype = cl.get_value(
@@ -376,6 +392,10 @@ def joinup(args=None):
             lvals=[
                 'none', 'rice', 'gzip1', 'gzip2'
             ]
+        )
+        odir = cl.get_value(
+            "odir",
+            "directory for the output files", '.',
         )
 
     ################################################################
@@ -599,6 +619,7 @@ def joinup(args=None):
                             os.path.splitext(mccd.head['FILENAME'])[0]
                         )
                         oname = f'{root}_ccd{cnam}.fits'
+                    oname = os.path.join(odir, oname)
                     hdul.writeto(oname, overwrite=overwrite)
                     print(f'   CCD {cnam}: written to {oname}')
                     nfile += 1
