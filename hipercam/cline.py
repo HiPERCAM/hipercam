@@ -78,7 +78,6 @@ from collections import OrderedDict
 
 # next two lines allow tab completion of file names
 import readline
-
 readline.parse_and_bind("tab: complete")
 
 from .core import HipercamError, HipercamWarning
@@ -764,8 +763,8 @@ command line to check.""", ClineWarning,
         if multipleof != None and value % multipleof != 0:
             raise ClineError(str(value) + " is not a multiple of " + str(multipleof))
 
-        # update appropriate set of defaults. In the case of Fnames, strip the
-        # extension
+        # update appropriate set of defaults. In the case of Fnames,
+        # strip the extension
         if self._rpars[param]["g_or_l"] == Cline.GLOBAL:
             if isinstance(defval, Fname):
                 self._gpars[param] = defval.noext(value)
@@ -842,7 +841,8 @@ class Fname(str):
 
         """
 
-        if ftype != Fname.OLD and ftype != Fname.NEW and ftype != Fname.NOCLOBBER:
+        if ftype != Fname.OLD and ftype != Fname.NEW and \
+           ftype != Fname.NOCLOBBER:
             raise ClineError("ftype must be either OLD, NEW or NOCLOBBER")
 
         # store root with no extension
@@ -854,9 +854,9 @@ class Fname(str):
         return fname
 
     def __init__(self, root, ext="", ftype=OLD, exist=True):
-        """Initialiser. In the following text items in capitals such as 'OLD' are
-        static variables so that one should use hipercam.cline.Fname.OLD or
-        equivalent to refer to them.
+        """Initialiser. In the following text items in capitals such as 'OLD'
+        are static variables so that one should use
+        hipercam.cline.Fname.OLD or equivalent to refer to them.
 
         Arguments::
 
@@ -868,14 +868,14 @@ class Fname(str):
              extension, e.g. '.dat'
 
           ftype : (int)
-             If exist=True and ftype=OLD, the file :must: exist. If exist=False, the file may or may
-             not exist already.
+             If exist=True and ftype=OLD, the file :must: exist. If
+             exist=False, the file may or may not exist already.
 
           exist : (bool)
              If True, the file must exist.
 
-        ext, ftype and exist are stored as identically-named attributes. 'root'
-        is stored as the base string.
+        ext, ftype and exist are stored as identically-named
+        attributes. 'root' is stored as the base string.
 
         """
 
@@ -884,16 +884,16 @@ class Fname(str):
         self.exist = exist
 
     def __call__(self, fname):
-        """Given a potential file name, this first ensures that it has the correct
-        extension, and then tests for its existence if need be, depending upon
-        the values of `ftype` and `exist` defined at instantiation.
+        """Given a potential file name, this first ensures that it has the
+        correct extension, and then tests for its existence if need
+        be, depending upon the values of `ftype` and `exist` defined
+        at instantiation.
 
         Arguments::
 
-           fname : (string)
-
-              file name. The extension associated with the :class:`Fname` will
-              be added if necessary.
+           fname : str
+              file name. The extension associated with the
+              :class:`Fname` will be added if necessary.
 
         Returns the file name to use. Raises a ClineError exception if there
         are problems.
@@ -925,7 +925,6 @@ class Fname(str):
 
         """
         return (str(self), self.ext, self.ftype, self.exist)
-
 
 class ClineError(HipercamError):
     """For throwing exceptions from hipercam.cline"""
