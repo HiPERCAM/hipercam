@@ -1,6 +1,8 @@
 import sys
 import os
-import tempfile
+import signal
+import re
+import shutil
 
 import numpy as np
 from astropy.time import Time
@@ -29,11 +31,11 @@ def hpackage(args=None):
 
     ``hpackage`` looks for standard data products run#.hcm, run#.ape,
     run#.red, run#.log, (where # is an integer identifier), spits out
-    joined up images of the CCDs in run#.hcm, converts the log to fits,
-    and writes out a "region" file representing the apertures readable by
-    ds9. It then tars the whole lot up. For simplicity, it deliberately runs
-    with a minimal set or arguments: the run name. It won't overwrite any
-    file.
+    joined up images of the CCDs in run#.hcm, converts the log to
+    fits, and writes out a "region" file representing the apertures
+    readable by ds9. It then tars the whole lot up. For simplicity, it
+    deliberately runs with a minimal set or arguments: the run
+    name. It must be run in the directory with all the files.
 
     """
 
@@ -45,28 +47,50 @@ def hpackage(args=None):
         # register parameters
         cl.register("run", Cline.LOCAL, Cline.PROMPT)
         run = cl.get_value("run", "run name", cline.Fname("run005", hcam.HCAM))
-        mccd = hcam.MCCD.read(run)
+        if os.path.dirname(run) != '':
+            raise hcam.HipercamError(
+                'hpackage only runs on files in the working directory'
+            )
+
+    # strip extension
+    root = os.path.splitext(run)[0]
+
+    nre = re.compile('(\d\d\d\d)[-_](\d\d)[-_](\d\d)')
+    cwd = os.getcwd()
+    m = nre.search(cwd)
+    if m is None:
+        raise hcam.HipercamError(
+            'hpackage must be run in a sub-directory'
+            ' of a night directory [YYYY[-_]MM[-_]DD]'
+        )
+
+    # Finally, read the hcm file
+    mccd = hcam.MCCD.read(run)
 
     # check for existence of various files
-    if not os.path.exists(run + HCAM.APE):
-        raise hcam.HipercamError(f'Could not find file = {run + hcam.APE}')
+    night_run = f'{m.group(1)}-{m.group(2)}-{m.group(3)}-{root}'
 
-    # check for existence of various files
-    if not os.path.exists(run + HCAM.LOG):
-        raise hcam.HipercamError(f'Could not find file = {run + hcam.LOG}')
+    # Make name of temporary directory
+    tdir = utils.temp_dir()
+    tmpdir = os.path.join(tdir, night_run)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # create temporary directory where everything
-        # gets written
-        print('Will write files to {tmpdir}')
+    with CleanUp(tmpdir) as cleanup:
 
-        # First make individual CCDs from .hcm file
+        # create directory
+        os.makedirs(tmpdir, exist_ok=True)
+        print(f'Will write files to {tmpdir}')
 
-        for nc, cnam in enumerate(ccds):
-            ccd = mccd[cnam]
+        # copy standard files over
+        for ext in (hcam.APER,hcam.LOG,hcam.RED):
+            source = utils.add_extension(root,ext)
+            target = os.path.join(tmpdir,source)
+            shutil.copyfile(source, target)
+            print(f'copied {source} to {target}')
 
-            # We need to generate a single data array for all data. First
-            # check that it is even possible
+        for cnam, ccd in mccd.items():
+
+            # We need to generate a single data array for all
+            # data. First check that it is even possible
 
             for n, wind in enumerate(ccd.values()):
                 if n == 0:
@@ -83,9 +107,16 @@ def hpackage(args=None):
                     urxmax = max(urxmax, wind.urx)
                     urymax = max(urymax, wind.ury)
                     if xbin != wind.xbin or ybin != wind.ybin:
-                        raise hcam.HipercamError('Found windows with clashing binning factors')
-                    if (wind.llx - llx) % xbin != 0 or (wind.lly - lly) % ybin != 0:
-                        raise hcam.HipercamError('Found windows which are out of sync with each other')
+                        raise hcam.HipercamError(
+                            'Found windows with clashing binning factors'
+                        )
+
+                    if (wind.llx - llx) % xbin != 0 or \
+                       (wind.lly - lly) % ybin != 0:
+                        raise hcam.HipercamError(
+                            'Found windows which are out '
+                            'of sync with each other'
+                        )
 
             # create huge array of nothing
             ny = (urymax-llymin+1) // ybin
@@ -104,9 +135,14 @@ def hpackage(args=None):
 
             # Add some extra stuff
             phead["CCDLABEL"] = (cnam, "CCD label")
-            phead["NFRAME"] = (nf, "Frame number")
-            phead["LLX"] = (llxmin, "X of lower-left unbinned pixel (starts at 1)")
-            phead["LLY"] = (llymin, "Y of lower-left unbinned pixel (starts at 1)")
+            phead["LLX"] = (
+                llxmin,
+                "X of lower-left unbinned pixel (starts at 1)"
+            )
+            phead["LLY"] = (
+                llymin,
+                "Y of lower-left unbinned pixel (starts at 1)"
+            )
             phead["NXTOT"] = (ccd.nxtot, "Total unbinned X dimension")
             phead["NYTOT"] = (ccd.nytot, "Total unbinned Y dimension")
             phead.add_comment('Written by HiPERCAM script "hpackage"')
@@ -145,9 +181,9 @@ def hpackage(args=None):
                 w.wcs.ctype = ['RA---TAN','DEC--TAN']
                 w.wcs.cunit = ["deg", "deg"]
                 header.update(w.to_header())
-                print(f'   CCD {cnam}: added WCS')
+                print(f'CCD {cnam}: added WCS')
             else:
-                print(f'   CCD {cnam}: missing positional data; no WCS added')
+                print(f'CCD {cnam}: missing positional data; no WCS added')
 
             # make the first & only HDU
             hdul = fits.HDUList()
@@ -157,9 +193,25 @@ def hpackage(args=None):
             )
             hdul.append(compressed_hdu)
 
-            root = os.path.basename(os.path.splitext(run])[0])
             oname = os.path.join(tmpdir, f'{root}_ccd{cnam}.fits')
 
-            hdul.writeto(oname, overwrite=overwrite)
-            print(f'   CCD {cnam}: written to {oname}')
+            hdul.writeto(oname)
+            print(f'CCD {cnam}: written to {oname}')
 
+class CleanUp:
+    """
+    Context manager to handle temporary files
+    """
+    def __init__(self, tmpdir):
+        self.tmpdir = tmpdir
+
+    def _sigint_handler(self, signal_received, frame):
+        print("\nhpackage aborted")
+        sys.exit(1)
+
+    def __enter__(self):
+        signal.signal(signal.SIGINT, self._sigint_handler)
+
+    def __exit__(self, type, value, traceback):
+        print(f'removing temporary directory {self.tmpdir}')
+#        shutil.rmtree(self.tmpdir)

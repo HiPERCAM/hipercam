@@ -25,7 +25,7 @@ __all__ = [
 
 def joinup(args=None):
     """``joinup [source] (run first [twait tmax] | flist) trim ([ncol
-    nrow]) (ccd) bias dark flat fmap (fpair nhalf rmin rmax) msub
+    nrow]) (ccd) (aper) bias dark flat fmap (fpair nhalf rmin rmax) msub
     dtype dmax nmax [overwrite] compress``
 
     Converts a run or a list of hcm images into as near as possible
@@ -80,7 +80,7 @@ def joinup(args=None):
            seconds.
 
         flist : str [if source ends 'f']
-           name of file list
+           name of file list or just a single hcm file
 
         trim : bool [if source starts with 'u']
            True to trim columns and/or rows off the edges of windows nearest
@@ -95,6 +95,12 @@ def joinup(args=None):
 
         ccd : string
            CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
+
+        aper : str [if source ends 's' or 'l' or just a single file]
+           A photometric aperture file associated with the run or images.
+           This will be translated into a file of "regions" (extension .reg)
+           for each CCD they are defined for. The file can be loaded into
+           ds9 showing the apertures over the image.
 
         bias : str
            Name of bias frame to subtract, 'none' to ignore.
@@ -221,6 +227,7 @@ def joinup(args=None):
         cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("flist", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("aper", Cline.GLOBAL, Cline.PROMPT)
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
         cl.register("flat", Cline.LOCAL, Cline.PROMPT)
@@ -249,6 +256,7 @@ def joinup(args=None):
 
         # set some flags
         server_or_local = source.endswith("s") or source.endswith("l")
+        ask_aper = server_or_local
 
         if server_or_local:
             resource = cl.get_value("run", "run name", "run005")
@@ -270,9 +278,23 @@ def joinup(args=None):
             )
 
         else:
+            # file or file list
             resource = cl.get_value(
-                "flist", "file list", cline.Fname("files.lis", hcam.LIST)
+                "flist", "file name or file list",
+                "run005.hcm"
             )
+            root,ext = os.path.splitext(resource)
+            if (ext == hcam.HCAM and os.path.exists(resource)) or \
+               (ext != hcam.LIST and \
+                os.path.exists(utils.add_extension(resource,hcam.HCAM))):
+                # single file
+                resource = [resource]
+                ask_aper = True
+
+            elif ext != hcam.LIST or not os.path.exists(resource):
+                raise hcam.HipercamError(
+                    f'Cannot interpret {resource} as either a single file or a list'
+                )
             first = 1
 
         trim = cl.get_value(
@@ -303,6 +325,20 @@ def joinup(args=None):
 
         else:
             ccds = list(ccdinf.keys())
+
+        if ask_aper:
+            # aperture  file (if any)
+            aper = cl.get_value(
+                "aper",
+                "aperture file to generate regions for ds9 ['none' to ignore]",
+                cline.Fname("run005", hcam.APER),
+                ignore="none",
+            )
+            if aper is not None:
+                # read the aperture file
+                aper = hcam.aperture.MccdAper.read(aper)
+        else:
+            aper = None
 
         # bias frame (if any)
         bias = cl.get_value(
@@ -457,7 +493,7 @@ def joinup(args=None):
                     fmap = fmap.crop(mccd)
                     fpair = fpair.crop(mccd, nhalf)
 
-            # OK here goes
+            # Now the images
             for nc, cnam in enumerate(ccds):
                 ccd = mccd[cnam]
 
@@ -511,9 +547,13 @@ def joinup(args=None):
                             urxmax = max(urxmax, wind.urx)
                             urymax = max(urymax, wind.ury)
                             if xbin != wind.xbin or ybin != wind.ybin:
-                                raise hcam.HipercamError('Found windows with clashing binning factors')
+                                raise hcam.HipercamError(
+                                    'Found windows with clashing binning factors'
+                                )
                             if (wind.llx - llx) % xbin != 0 or (wind.lly - lly) % ybin != 0:
-                                raise hcam.HipercamError('Found windows which are out of sync with each other')
+                                raise hcam.HipercamError(
+                                    'Found windows which are out of sync with each other'
+                                )
 
                     # create huge array of nothing
                     ny = (urymax-llymin+1) // ybin
@@ -528,7 +568,8 @@ def joinup(args=None):
 
                     if dtype == 'uint16' and (data.min() < 0 or data.max() > 65535):
                         raise hcam.HipercamError(
-                            f'CCD {cnam}, frame {nf}, data range {data.min()} to {data.max()}, is incompatible with uint16'
+                            f'CCD {cnam}, frame {nf}, data range '
+                            f'{data.min()} to {data.max()}, is incompatible with uint16'
                         )
 
                     # Header
@@ -621,7 +662,30 @@ def joinup(args=None):
                         oname = f'{root}_ccd{cnam}.fits'
                     oname = os.path.join(odir, oname)
                     hdul.writeto(oname, overwrite=overwrite)
-                    print(f'   CCD {cnam}: written to {oname}')
+                    print(f'   CCD {cnam}: written {oname}')
+
+                if nframe == first and aper is not None and cnam in aper:
+                    # ds9 region files
+
+                    if server_or_local:
+                        abase = os.path.basename(resource)
+                    else:
+                        abase = os.path.basename(resource[0])
+                    abase = os.path.join(odir, abase)
+                    oname = f'{abase}_ccd{cnam}.reg'
+
+                    caper = aper[cnam]
+
+                    with open(oname,'w') as fp:
+                        fp.write(DS9_REG_HEADER)
+                        for apnam, ap in caper.items():
+                            x = (ap.x - llxmin + 1) / xbin
+                            y = (ap.y - llymin + 1) / ybin
+                            rad = ap.rsky2/xbin
+                            fp.write(f'circle({x},{y},{rad})\n')
+                            fp.write(f'# text({x-rad},{y-rad}) text={{{apnam}}}\n')
+
+                    print(f'   CCD {cnam}: written {oname}')
                     nfile += 1
 
                 else:
@@ -633,3 +697,10 @@ def joinup(args=None):
                 break
 
     print(f'Written {nfile} FITS files to disk.')
+
+DS9_REG_HEADER = """
+# Region file format: DS9 version 4.1
+global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
+image
+"""
+
