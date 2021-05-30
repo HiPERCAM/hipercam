@@ -354,6 +354,11 @@ def combine(args=None):
                 )
             )
 
+        # set data status to OK on output CCDs
+        for ccd in template.values():
+            wind = ccd.next()
+            wind.head['DSTATUS'] = (True, "Valid data or not")
+
     # write out
     template.write(outfile, clobber)
     print("\nFinal result written to {:s}".format(outfile))

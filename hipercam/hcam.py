@@ -1079,7 +1079,7 @@ class Rdata(Rhead):
             # mode or intermediate junk frames in the case of NSKIP>0
             ch["DSTATUS"] = (
                 (self.nframe > self.ndwins) and (self.nframe % ch["NCYCLE"] == 0),
-                "Valid data (else junk frame)",
+                "Valid data or not",
             )
 
             # Get time at centre of exposure. Some care here to store a
