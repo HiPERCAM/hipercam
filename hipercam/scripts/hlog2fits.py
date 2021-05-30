@@ -20,7 +20,7 @@ __all__ = [
 
 
 def hlog2fits(args=None):
-    """``hlog2fits log``
+    """``hlog2fits log [origin dir]``
 
     Converts a |hiper| ASCII log into a FITS file. As well as a modest
     reduction in file size (~40%, the ASCII logs are written relatively
@@ -41,13 +41,17 @@ def hlog2fits(args=None):
          will have the same root name but end .fits. The routine will abort
          if there is a pre-existing file of the same name.
 
-      origin : str
+      origin : str [hidden]
          'h' or 'u' depending upon whether the log file was created with
-         the hipercam or old ultracam pipeline.
+         the hipercam or old ultracam pipeline. Defaults to 'h'.
 
-    NB Because of the danger of over-writing raw data (also ends .fits), this 
-    routine will not over-write pre-existing files. You should delete clashing
-    files if you really want to proceed.
+      dir : str [hidden]
+         directory for the output; defaults to the present working directory
+
+    NB Because of the danger of over-writing raw data (also ends
+    .fits), this routine will not over-write pre-existing files. You
+    should delete clashing files if you really want to proceed.
+
     """
 
     command, args = utils.script_args(args)
@@ -57,7 +61,8 @@ def hlog2fits(args=None):
 
         # register parameters
         cl.register("log", Cline.LOCAL, Cline.PROMPT)
-        cl.register("origin", Cline.LOCAL, Cline.PROMPT)
+        cl.register("origin", Cline.LOCAL, Cline.HIDE)
+        cl.register("dir", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         log = cl.get_value(
@@ -66,18 +71,23 @@ def hlog2fits(args=None):
             cline.Fname("red", hcam.LOG),
         )
 
+        cl.set_default('origin','h')
         origin = cl.get_value(
-            "origin", "h(ipercam) or u(ltracam) pipeline?", "h", lvals=["h", "u"]
+            "origin", "h(ipercam) or u(ltracam) pipeline?", "h",
+            lvals=["h", "u"]
         )
 
-    oname = os.path.basename(log)
-    oname = oname[: oname.rfind(".")] + ".fits"
+        cl.set_default('dir','.')
+        dir = cl.get_value(
+            "dir", "directory for output", ".",
+        )
+
+    root = os.path.splitext(os.path.basename(log))[0]
+    oname = os.path.join(dir, root + ".fits")
     if os.path.exists(oname):
         raise hcam.HipercamError(
-            (
-                "A file called {:s} already exists and"
-                " will not be over-written; aborting"
-            ).format(oname)
+            f"A file called {oname} already exists and"
+            " will not be over-written; aborting"
         )
 
     # Read in the ASCII log
@@ -86,7 +96,7 @@ def hlog2fits(args=None):
     elif origin == "u":
         hlg = hcam.hlog.Hlog.fulog(log)
 
-    print("Loaded ASCII log = {:s}".format(log))
+    print(f"Loaded ASCII log = {log}")
 
     # Generate HDU list
 
@@ -103,13 +113,16 @@ def hlog2fits(args=None):
         hdr = fits.Header()
         hdr["CCDNAME"] = (cnam, "CCD name")
         hdul.append(
-            fits.BinTableHDU(hlg[cnam], header=hdr, name="CCD {:s}".format(cnam))
+            fits.BinTableHDU(
+                hlg[cnam], header=hdr,
+                name=f"CCD {cnam}"
+            )
         )
 
     hdul = fits.HDUList(hdul)
 
     # finally write to disk
-    print("Writing to disk in file = {:s}".format(oname))
+    print(f"Writing to disk in file = {oname}")
     hdul.writeto(oname)
 
-    print("Converted {:s} to {:s}".format(log, oname))
+    print(f"Converted {log} to {oname}")
