@@ -25,8 +25,8 @@ __all__ = [
 
 def joinup(args=None):
     """``joinup [source] (run first [twait tmax] | flist) trim ([ncol
-    nrow]) (ccd) (aper) bias dark flat fmap (fpair nhalf rmin rmax) msub
-    dtype dmax nmax [overwrite] compress``
+    nrow]) (ccd) (aper) bias dark flat fmap (fpair nhalf rmin rmax)
+    msub (ndigit) dtype dmax nmax [overwrite] compress odir``
 
     Converts a run or a list of hcm images into as near as possible
     "standard" FITS files with one image in the primary HDU per file,
@@ -136,7 +136,7 @@ def joinup(args=None):
            subtract the median from each window. If set this happens after any
            bias subtraction etc.
 
-        ndigit : int
+        ndigit : int [if source ends 's' or 'l']
            number of digits to be used in the frame counter attached
            to the output file names. These are zero-padded so that the
            frames order alphabetically. Thus 'run0002_ccd1_0001.fits',
@@ -312,7 +312,7 @@ def joinup(args=None):
         ccdinf = spooler.get_ccd_pars(source, resource)
 
         if len(ccdinf) > 1:
-            ccd = cl.get_value("ccd", "CCD(s) to plot [0 for all]", "0")
+            ccd = cl.get_value("ccd", "CCD(s) to join up [0 for all]", "0")
             if ccd == "0":
                 ccds = list(ccdinf.keys())
             else:
@@ -399,11 +399,14 @@ def joinup(args=None):
             )
 
         msub = cl.get_value("msub", "subtract median from each window?", True)
-        ndigit = cl.get_value(
-            "ndigit",
-            "number of digits to use for frame numbers in output names",
-            4, 1
-        )
+
+        if server_or_local:
+            ndigit = cl.get_value(
+                "ndigit",
+                "number of digits to use for frame numbers in output names",
+                4, 1
+            )
+
         dtype = cl.get_value(
             "dtype",
             "output data type", 'float32',
@@ -493,13 +496,14 @@ def joinup(args=None):
                     fmap = fmap.crop(mccd)
                     fpair = fpair.crop(mccd, nhalf)
 
-            # Now the images
             for nc, cnam in enumerate(ccds):
                 ccd = mccd[cnam]
 
-                if ccd.is_data():
+                if ccd.is_data() or (not server_or_local and ask_aper):
                     # this should be data as opposed to a blank frame
                     # between data frames that occur with nskip > 0
+                    # special case for a single frame where we ignore
+                    # the data status
 
                     # subtract the bias
                     if bias is not None:
@@ -600,7 +604,9 @@ def joinup(args=None):
                         return
 
                     if nfile >= nmax:
-                        print(f'Reached maximum allowable number of frames = {nmax}; stopping.')
+                        print(
+                            f'Reached maximum allowable number of frames = {nmax}; stopping.'
+                        )
                         print(f'Written {nfile} FITS files to disk.')
                         return
 
@@ -654,7 +660,9 @@ def joinup(args=None):
                         hdul.append(compressed_hdu)
 
                     if server_or_local:
-                        oname = f'{os.path.basename(resource)}_ccd{cnam}_{nf:0{ndigit}d}.fits'
+                        oname = \
+                            f'{os.path.basename(resource)}' + \
+                            f'_ccd{cnam}_{nf:0{ndigit}d}.fits'
                     else:
                         root = os.path.basename(
                             os.path.splitext(mccd.head['FILENAME'])[0]
@@ -679,8 +687,8 @@ def joinup(args=None):
                     with open(oname,'w') as fp:
                         fp.write(DS9_REG_HEADER)
                         for apnam, ap in caper.items():
-                            x = (ap.x - llxmin + 1) / xbin
-                            y = (ap.y - llymin + 1) / ybin
+                            x = (ap.x - (llxmin + (xbin-1)/2)) / xbin + 1
+                            y = (ap.y - (llymin + (ybin-1)/2)) / ybin + 1
                             rad = ap.rsky2/xbin
                             fp.write(f'circle({x},{y},{rad})\n')
                             fp.write(f'# text({x-rad},{y-rad}) text={{{apnam}}}\n')
@@ -703,4 +711,3 @@ DS9_REG_HEADER = """
 global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
 image
 """
-
