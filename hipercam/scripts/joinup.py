@@ -655,7 +655,7 @@ def joinup(args=None):
                     else:
                         hdul.append(fits.PrimaryHDU(header=header))
                         compressed_hdu = fits.CompImageHDU(
-                            data=data, compression_type=ctrans[compress]
+                            data=data, compression_type=ctrans[compress], header=header
                         )
                         hdul.append(compressed_hdu)
 
@@ -671,6 +671,7 @@ def joinup(args=None):
                     oname = os.path.join(odir, oname)
                     hdul.writeto(oname, overwrite=overwrite)
                     print(f'   CCD {cnam}: written {oname}')
+                    nfile += 1
 
                 if nframe == first and aper is not None and cnam in aper:
                     # ds9 region files
@@ -693,11 +694,10 @@ def joinup(args=None):
                             fp.write(f'circle({x},{y},{rad})\n')
                             fp.write(f'# text({x-rad},{y-rad}) text={{{apnam}}}\n')
 
-                    print(f'   CCD {cnam}: written {oname}')
-                    nfile += 1
+                    print(f'   CCD {cnam}: written ds9 region file {oname}')
 
                 else:
-                    print(f'   CCD {cnam} skipped')
+                    print(f'   CCD {cnam}: no ds9 region file')
 
             # update the frame number
             nframe += 1
