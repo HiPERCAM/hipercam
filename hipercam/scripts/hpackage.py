@@ -28,7 +28,7 @@ __all__ = [
 
 
 def hpackage(args=None):
-    """``hpackage runs label tar``
+    """``hpackage runs dname tar``
 
     ``hpackage`` looks for standard reduce data products and bundles
     them up into a single directory and optionally creates a tar
@@ -113,7 +113,7 @@ def hpackage(args=None):
 
     # Make name of temporary directory
     tdir = utils.temp_dir()
-    tmpdir = os.path.join(tdir, label)
+    tmpdir = os.path.join(tdir, dname)
 
     with CleanUp(tmpdir, tar) as cleanup:
 
@@ -165,9 +165,10 @@ def hpackage(args=None):
 
             # now the calibrations
             rfile = hcam.reduction.Rfile.read(run + hcam.RED)
+            csec = rfile['calibration']
             if rfile.bias is not None:
                 source = utils.add_extension(
-                    rfile.bias.head['FILENAME'], hcam.HCAM
+                    csec['bias'], hcam.HCAM
                 )
                 if os.path.dirname(source) != '':
                     raise HipercamError(
@@ -179,7 +180,7 @@ def hpackage(args=None):
 
             if rfile.dark is not None:
                 source = utils.add_extension(
-                    rfile.dark.head['FILENAME'], hcam.HCAM
+                    csec['dark'], hcam.HCAM
                 )
                 if os.path.dirname(source) != '':
                     raise HipercamError(
@@ -191,7 +192,7 @@ def hpackage(args=None):
 
             if rfile.flat is not None:
                 source = utils.add_extension(
-                    rfile.flat.head['FILENAME'], hcam.HCAM
+                    csec['flat'], hcam.HCAM
                 )
                 if os.path.dirname(source) != '':
                     raise HipercamError(
@@ -204,7 +205,7 @@ def hpackage(args=None):
             if rfile.fmap is not None:
 
                 source = utils.add_extension(
-                    rfile.fmap.head['FILENAME'], hcam.HCAM
+                    csec['fmap'], hcam.HCAM
                 )
                 if os.path.dirname(source) != '':
                     raise HipercamError(
@@ -217,7 +218,7 @@ def hpackage(args=None):
                 if rfile.fpair is not None:
 
                     source = utils.add_extension(
-                        rfile.fpair.head['FILENAME'], hcam.FRNG
+                        csec['fpair'], hcam.FRNG
                     )
                     if os.path.dirname(source) != '':
                         raise HipercamError(
@@ -233,7 +234,7 @@ def hpackage(args=None):
             fp.write(README)
 
         # tar up the results
-        args = ['tar','cvfz',f'{label}.tar.gz','-C',tdir,label]
+        args = ['tar','cvfz',f'{dname}.tar.gz','-C',tdir,dname]
         subprocess.run(args)
 
 class CleanUp:
@@ -257,7 +258,7 @@ class CleanUp:
             print(f'removing temporary directory {self.tmpdir}')
             shutil.rmtree(self.tmpdir)
         else:
-            print(f'Files are contained in the directory = {tmpdir}')
+            print(f'All files have been written to {self.tmpdir}')
 
 README = """
 This tar file contains data products from the HiPERCAM pipeline,
