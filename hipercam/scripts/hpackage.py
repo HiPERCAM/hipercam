@@ -28,12 +28,13 @@ __all__ = [
 
 
 def hpackage(args=None):
-    """``hpackage runs label``
+    """``hpackage runs label tar``
 
     ``hpackage`` looks for standard reduce data products and bundles
-    them up for users. The idea is to copy all the files needed to be
-    bale to re-run the reduction with the pipeline, while also adding
-    a few helpfule extras. Given 'run123' for instance, it looks for:
+    them up into a single directory and optionally creates a tar
+    file. The idea is to copy all the files needed to be able to
+    re-run the reduction with the pipeline, while also adding a few
+    helpful extras. Given 'run123' for instance, it looks for:
 
       run123.hcm -- typically the result from a run of |averun|
       run123.ape -- file of photometric apertures
@@ -41,26 +42,37 @@ def hpackage(args=None):
       run123.log -- result from |reduce|
 
     It also looks for calibration files inside the reduce file and
-    copies them. It requires them to be within the same direcory and
+    copies them. It requires them to be within the same directory and
     will fail if they are not.
 
     It produces several extra files which are:
 
       run123.fits -- FITS version of the log file
+
       run123_ccd1.fits -- joined-up ds9-able version of run123.hcm
                           (and ccd2 etc)
+
       run123_ccd1.reg -- ds9-region file representing the apertures
                          from run123.ape
+
+      README -- a file of explanation.
+
+    The files are all copied to a temporary directory. 
 
     Arguments:
 
       run : str
          Series of run names of the ones to copy, separated by spaces.
 
-      label : str
-         Name for the directory to store all files forming root of
-         output tar file
+      dname : str
+         Name for the directory to store all files forming the root of
+         any output tar file created from it.
 
+      tar : bool
+         Make a tar.gz file of the directory at the end; the directory and
+         the files in it will be deleted. Otherwise, no tar file is made and
+         the directory is left untouched. The directory will however be deleted
+         if the program is aborted early.
     """
 
     command, args = utils.script_args(args)
@@ -71,7 +83,8 @@ def hpackage(args=None):
 
         # register parameters
         cl.register("runs", Cline.LOCAL, Cline.PROMPT)
-        cl.register("label", Cline.LOCAL, Cline.PROMPT)
+        cl.register("dname", Cline.LOCAL, Cline.PROMPT)
+        cl.register("tar", Cline.LOCAL, Cline.PROMPT)
 
         runs = cl.get_value(
             "runs", "run names [space separated]",
@@ -89,16 +102,20 @@ def hpackage(args=None):
                         f'could not find {run+fext}'
                     )
 
-        label = cl.get_value(
-            "label", "label for output tar file",
+        dname = cl.get_value(
+            "dname", "name of directory for storage of files (will be used to any tar file as well)",
             'hdata'
+        )
+
+        tar = cl.get_value(
+            "tar", "make a tar file (and delete temporary directory at end)?", True
         )
 
     # Make name of temporary directory
     tdir = utils.temp_dir()
     tmpdir = os.path.join(tdir, label)
 
-    with CleanUp(tmpdir) as cleanup:
+    with CleanUp(tmpdir, tar) as cleanup:
 
         # create directory
         os.makedirs(tmpdir, exist_ok=True)
@@ -223,62 +240,75 @@ class CleanUp:
     """
     Context manager to handle temporary files
     """
-    def __init__(self, tmpdir):
+    def __init__(self, tmpdir, tar):
         self.tmpdir = tmpdir
+        self.delete = tar
 
     def _sigint_handler(self, signal_received, frame):
         print("\nhpackage aborted")
+        self.delete = True
         sys.exit(1)
 
     def __enter__(self):
         signal.signal(signal.SIGINT, self._sigint_handler)
 
     def __exit__(self, type, value, traceback):
-        print(f'removing temporary directory {self.tmpdir}')
-        shutil.rmtree(self.tmpdir)
+        if self.delete:
+            print(f'removing temporary directory {self.tmpdir}')
+            shutil.rmtree(self.tmpdir)
+        else:
+            print(f'Files are contained in the directory = {tmpdir}')
 
 README = """
 This tar file contains data products from the HiPERCAM pipeline,
-but could include HiPERCAM, ULTRACAM or ULTRASPEC data. The aim
-is to provide all the files needed to carry out a reduction with
-the pipeline command "reduce", and also some support files that
-integrate with 'ds9' and 'fv'. For each run, say "run123" you
-should find the following files:
+but can include HiPERCAM, ULTRACAM or ULTRASPEC data depending on
+the data. The aim is to provide all the files needed to carry out
+a (re-)reduction with the pipeline command "reduce", and also some
+support files that integrate with 'ds9' and 'fv'. For each run,
+say "run123", you should find the following files:
 
   run123.ape -- JSON file of photometric apertures
-  run123.hcm -- HiPERCAM file of CCD data
+
+  run123.hcm -- HiPERCAM file of CCD data (
+
   run123.log -- ASCII result of running "reduce", i.e. photometry
+
   run123.red -- text file of reduction parameters
+
   run123.fits - a FITS-format version of run123.log which is usually
                 easier to understand (e.g. look at it with 'fv').
 
   run123_ccd1.fits -- ds9-able joined up HDU of CCD 1
+
   run123_ccd2.fits -- same for CCD 2 if there is one, etc
   .
   .
 
   run123_ccd1.reg -- set of region equivalent to run123.ape for ds9
+
   run123_ccd2.reg -- same for CCD 2, allows easy identification of targets
   .
   .
 
-You may also find some othe "hcm" files with names like bias.hcm, flat.hcm,
-dark.hcm, fmap.hcm and possibly fpair.frng which are calibration files that
-you will see are needed by "reduce" if you look into run123.red.
+You may also find some other "hcm" files with names like bias.hcm,
+flat.hcm, dark.hcm, and fmap.hcm (and possibly fpair.frng) which are
+calibration files that you will see are needed by "reduce" if you look
+into run123.red.
 
 Notes:
 
-1) "hcm" files are multi-HDU files that can be looked at by ds9, but the
-joined up images should have a WCS in the case of HiPERCAM.
+1) "hcm" files are multi-HDU files that can be looked at by ds9, but
+   the joined up images should have a WCS in the case of HiPERCAM and
+   will be easier to start with.
 
 2) Typically this package of files will come from the telescope where
-reduction is done on the fly. It is *extremely likely* that you can
-optimise the settings in the ".red" reduction file to improve the
-result.
+   reduction is done on the fly. It is *extremely likely* that you can
+   optimise the settings in the ".red" reduction file to improve the
+   result.
 
 3) By convention, we assign aperture 1 to the main target, 2 to the
    brightest comparison. But note that the comparison may change between
    CCDs, so always look at all of them to be sure.
 
-If you encounter problems, please contact Tom Marsh
+If you encounter problems, please contact Tom Marsh.
 """
