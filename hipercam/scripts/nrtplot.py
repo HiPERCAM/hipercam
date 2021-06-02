@@ -610,8 +610,11 @@ def nrtplot(args=None):
         else:
             drurl = None
 
-        # Some settings for the imaghe plots
-        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+        # Some settings for the image plots
+        cmap = cl.get_value(
+            "cmap",
+            "colour map to use ['none' for mpl default]", "Greys"
+        )
         cmap = None if cmap == "none" else cmap
 
         imwidth = cl.get_value(

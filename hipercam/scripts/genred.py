@@ -26,7 +26,7 @@ __all__ = [
 
 
 def genred(args=None):
-    """``genred apfile rfile bias flat dark fmap fpair seeing (binfac)
+    """``genred apfile rfile bias dark flat fmap fpair seeing (binfac)
     template (inst (nccd (ccd) nonlin sat scale readout gain))``
 
     Generates a reduce file as needed by |reduce| or |psf_reduce|. You
@@ -38,10 +38,18 @@ def genred(args=None):
 
     It is assumed that the target is called '1', the main comparison '2'.
 
-
-    genred does not prompt for all parameters but accepts a "template"
-    file which can just be from a previous run of genred where such
-    parameters can be altered.
+    To avoid endless prompts, genred does not prompt for all
+    parameters but accepts a "template" file which can just be from a
+    previous run of genred where such parameters can be altered by
+    editing with a standard text editor before running genred. genred
+    recognises some standard instrument telescope combinations which
+    it uses to set parameters such as the pixel scale and readout
+    noise, but if you choose other, you will be prompted for these
+    details. The main parameters it does prompt for are calibration
+    files, and it allows you to define a "seeing" which then controls
+    the setting of various profile fit parameters. This can be ignored
+    by setting = 0, in which case any template parameters will be passed
+    unchanged.
 
     Parameters:
 
@@ -66,11 +74,11 @@ def genred(args=None):
         bias : str
            Name of bias frame; 'none' to ignore.
 
-        flat : str
-           Name of flat field frame; 'none' to ignore.
-
         dark : str
            Name of dark frame; 'none' to ignore.
+
+        flat : str
+           Name of flat field frame; 'none' to ignore.
 
         fmap : str
            Name of fringe frame; 'none' to ignore.
@@ -141,8 +149,8 @@ def genred(args=None):
         cl.register("rfile", Cline.GLOBAL, Cline.PROMPT)
         cl.register("comment", Cline.LOCAL, Cline.PROMPT)
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
-        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("fmap", Cline.LOCAL, Cline.PROMPT)
         cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
         cl.register("seeing", Cline.LOCAL, Cline.PROMPT)
@@ -182,19 +190,19 @@ def genred(args=None):
             ignore="none",
         )
 
-        # flat field frame
-        flat = cl.get_value(
-            "flat",
-            "flat field frame ['none' to ignore]",
-            cline.Fname("flat", hcam.HCAM),
-            ignore="none",
-        )
-
         # dark frame
         dark = cl.get_value(
             "dark",
             "dark field frame ['none' to ignore]",
             cline.Fname("dark", hcam.HCAM),
+            ignore="none",
+        )
+
+        # flat field frame
+        flat = cl.get_value(
+            "flat",
+            "flat field frame ['none' to ignore]",
+            cline.Fname("flat", hcam.HCAM),
             ignore="none",
         )
 
@@ -1220,4 +1228,3 @@ dthresh = {fsec['dthresh']}
         )
 
     print("Reduce file written to {:s}".format(rfile))
-
