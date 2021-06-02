@@ -536,3 +536,35 @@ no one prescription that works for all cases. Faint targets normally require
 different settings from bright ones for the best results (e.g. smaller target
 aperture radii). Very faint target may benefit from optimal extraction, while
 brighter ones can look worse.
+
+Specific errors
+---------------
+
+I hope to list commonly encountered error traces here.
+
+Mis-matching calibration files
+..............................
+
+An error message such as this::
+
+  nrtplot ../run0012
+  first - first frame to plot [1]: \
+  1, utc= 2021-05-10 03:01:12.777 (ok), Traceback (most recent call last):
+    File "/home/phsaap/.local/bin/nrtplot", line 8, in <module>
+      sys.exit(nrtplot())
+    File "/home/phsaap/.local/lib/python3.9/site-packages/hipercam/scripts/nrtplot.py", line 836, in nrtplot
+      bias = bias.crop(mccd)
+    File "/home/phsaap/.local/lib/python3.9/site-packages/hipercam/ccd.py", line 795, in crop
+      tmccd[cnam] = self[cnam].crop(ccd)
+    File "/home/phsaap/.local/lib/python3.9/site-packages/hipercam/ccd.py", line 552, in crop
+      raise HipercamError(
+  hipercam.core.HipercamError: failed to find any enclosing window for window label = E1
+
+is a good sign that you have a problem with a mis-match between a
+calibration file and the data. In this case the bias frame selected
+was taken with 2x2 binning while the data were unbinned, and so it was
+impossible for it to recover. NB The code does attempt to go the other
+way, i.e.  to bin up 1x1 into 2x2 if need be, although this can only
+ever be approximate.  The other way for this message to occur is you
+try to use windowed calibration data which does not span the windows
+of the data.
