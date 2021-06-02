@@ -613,6 +613,37 @@ def joinup(args=None):
                     # Make header
                     header=fits.Header(phead.cards)
 
+                    # Now a set of parameters to facilitate ds9 display
+                    header["CCDSUM"] = "{:d} {:d}".format(xbin, ybin)
+
+                    # sections
+                    header["CCDSEC"] = f"[1:{nx},1:{ny}]"
+                    header["AMPSEC"] = f"[1:{nx},1:{ny}]"
+                    header["DATASEC"] = f"[{llxmin}:{llxmin+xbin*nx-1},{llymin}:{llymin+ybin*ny-1}]"
+                    #header["DETSEC"] = "[{:d}:{:d},{:d}:{:d}]".format(
+                    #    xoff + self.llx, xoff + self.urx, yoff + self.lly, yoff + self.ury
+                    #)
+
+                    # transforms
+
+                    # amplifier coords
+                    header["ATM1_1"] = 1.0
+                    header["ATM2_2"] = 1.0
+                    header["ATV1"] = 0.0
+                    header["ATV2"] = 0.0
+
+                    # image coords
+                    header["LTM1_1"] = 1.0 / xbin
+                    header["LTM2_2"] = 1.0 / ybin
+                    header["LTV1"] = 1 - (llxmin + (xbin - 1) / 2) / xbin
+                    header["LTV2"] = 1 - (llymin + (ybin - 1) / 2) / ybin
+
+                    # detector coords
+                    #header["DTM1_1"] = 1.0
+                    #header["DTM2_2"] = 1.0
+                    #header["DTV1"] = float(xoff)
+                    #header["DTV2"] = float(yoff)
+
                     # attempt to generate a WCS
                     instrume = header.get('INSTRUME','UNKNOWN')
                     if instrume == 'HIPERCAM' and 'RADEG' in header and \
