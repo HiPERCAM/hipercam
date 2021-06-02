@@ -465,11 +465,9 @@ class CleanUp:
         self.flist = flist
         self.fnames = fnames
         self.temp = temp
-        self.ok = True
 
     def _sigint_handler(self, signal_received, frame):
         print("\nmakeflat aborted")
-        self.ok = False
         sys.exit(1)
 
     def __enter__(self):
@@ -488,7 +486,3 @@ class CleanUp:
 
         print('temporary files removed')
 
-        if self.ok:
-            return True
-        else:
-            return False
