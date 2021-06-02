@@ -33,6 +33,9 @@ def rupdate(args=None):
     by adding in the new options but in a way that should give the old
     behaviour. The file is modified in place.
 
+    There are some cases where a full update might not be possible and
+    a further manual edit of the reduce file might be required.
+
     Parameters:
 
         rfile    : string
@@ -127,10 +130,25 @@ def rupdate(args=None):
                     # record version in case we need other actions later
                     nversion = 4
 
+                elif version == "20210523":
+                    # update version number
+                    lines.append(
+                        f"version = {hcam.REDUCE_FILE_VERSION} # must be"
+                        " compatible with the version in reduce\n"
+                    )
+
+                    # record version in case we need other actions later
+                    nversion = 5
+
                 else:
                     print("Version = {:s} not recognised".format(version))
                     print("Aborting update; nothing changed.")
                     exit(1)
+
+                if nversion <= 5:
+                    lines.append("\n# Next lines were automatically added by rupdate\n")
+                    lines.append("instrument = UNKNOWN # instrument-telescope\n")
+                    lines.append("scale = UNKNOWN # scale, arcsec/unbinned pixel\n")
 
             elif line.startswith("fit_fwhm_min ="):
                 lines.append(line)
@@ -146,9 +164,16 @@ def rupdate(args=None):
                     lines.append("\n# Next lines were automatically added by rupdate\n")
                     lines.append("fmap = # Fringe map, blank to ignore\n")
                     lines.append("fpair = # FringePair file, ignored if fringe blank\n")
-                    lines.append("nhalf = # Half-width, ignored if fringe blank\n")
-                    lines.append("rmin = # minimum ratio, ignored if fringe blank\n")
-                    lines.append("rmax = # maximum ratio ignored if fringe blank\n\n")
+                    lines.append("nhalf = 3 # Half-width, ignored if fringe blank\n")
+                    lines.append("rmin = -2 # minimum ratio, ignored if fringe blank\n")
+                    lines.append("rmax = 1 # maximum ratio ignored if fringe blank\n\n")
+
+            elif line.startswith("scale =") and nversion <= 5:
+                arr = line.split()
+                try:
+                    scale = float(arr[2])
+                except:
+                    scale = 'UNKNOWN'
 
             else:
                 # Default action is just to store save the line
@@ -157,7 +182,10 @@ def rupdate(args=None):
     # Write out modified file
     with open(rfile, "w") as fout:
         for line in lines:
-            fout.write(line)
+            if line.startswith('scale =') and scale != 'UNKNOWN':
+                fout.write(f'scale = {scale:.3f} # scale, arcsec per unbinned pixel\n')
+            else:
+                fout.write(line)
 
         # This could be the point at which extra lines are tacked
         # on to the end of the file.
