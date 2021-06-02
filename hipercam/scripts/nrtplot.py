@@ -135,10 +135,9 @@ def nrtplot(args=None):
            target number of seconds between plot updates. This is to
            make the plots more responsive and get round issues with
            plots freezing until the next frame comes through which can
-           be especially annoying with virtual desktops. You might
-           need to tone the default 0.2 while remote observing as it
-           does imply VNC traffic which the network might cope badly
-           with. Experiment for best feel.
+           be especially annoying with virtual desktops. Experiments
+           with ULTRACAM@NTT indicated 0.2 to 0.6 secs or so works OK.
+           Main impact seems to be on drpc CPU. 
 
         plotall : bool [hidden]
            plot all frames regardless of status (i.e. including blank frames
@@ -169,22 +168,22 @@ def nrtplot(args=None):
         fmap : str
            Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
 
-        fpair : str [if fringe is not 'none']
+        fpair : str [if fmap is not 'none']
            Name of fringe pair file (see e.g. `setfringe`). Required if
            a fringe map has been specified.
 
-        nhalf : int [if fringe is not 'none', hidden]
+        nhalf : int [if fmap is not 'none', hidden]
            When calculating the differences for fringe measurement,
            a region extending +/-nhalf binned pixels will be used when
            measuring the amplitudes. Basically helps the stats.
 
-        rmin : float [if fringe is not 'none', hidden]
+        rmin : float [if fmap is not 'none', hidden]
            Minimum individual ratio to accept prior to calculating the overall
            median in order to reduce the effect of outliers. Although all ratios
            should be positive, you might want to set this a little below zero
            to allow for some statistical fluctuation.
 
-        rmax : float [if fringe is not 'none', hidden]
+        rmax : float [if fmap is not 'none', hidden]
            Maximum individual ratio to accept prior to calculating the overall
            median in order to reduce the effect of outliers. Probably typically
            < 1 if fringe map was created from longer exposure data.
