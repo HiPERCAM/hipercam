@@ -34,7 +34,7 @@ __all__ = [
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
     nrow]) (ccd (nx)) [imwidth pause tupdate plotall] bias [lowlevel
-    highlevel] flat defect fringe (fpair [nhalf rmin rmax]) setup
+    highlevel] dark flat fmap (fpair [nhalf rmin rmax]) defect setup
     [drurl cmap imwidth imheight memory] msub iset (ilo ihi | plo phi)
     xlo xhi ylo yhi profit [method beta fwhm fwhm_min shbox smooth
     fhbox hmin read gain thresh (fwnmax fwymax fwwidth fwheight)]``
@@ -158,13 +158,13 @@ def nrtplot(args=None):
            to ignore. Applied to first window of first CCD. 3500 about
            right for ULTRACAM.
 
+        dark : str
+           Name of dark frame to subtract, 'none' to ignore
+
         flat : str
            Name of flat field to divide by, 'none' to ignore. Should normally
            only be used in conjunction with a bias, although it does allow you
            to specify a flat even if you haven't specified a bias.
-
-        defect : str
-           Name of defect file, 'none' to ignore.
 
         fmap : str
            Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
@@ -188,6 +188,9 @@ def nrtplot(args=None):
            Maximum individual ratio to accept prior to calculating the overall
            median in order to reduce the effect of outliers. Probably typically
            < 1 if fringe map was created from longer exposure data.
+
+        defect : str
+           Name of defect file, 'none' to ignore.
 
         setup : bool
            True/yes to access the current windows from hdriver. Useful
@@ -399,6 +402,7 @@ def nrtplot(args=None):
         cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
         cl.register("lowlevel", Cline.GLOBAL, Cline.HIDE)
         cl.register("highlevel", Cline.GLOBAL, Cline.HIDE)
+        cl.register("dark", Cline.GLOBAL, Cline.PROMPT)
         cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
         cl.register("fmap", Cline.GLOBAL, Cline.PROMPT)
         cl.register("fpair", Cline.GLOBAL, Cline.PROMPT)
@@ -540,6 +544,15 @@ def nrtplot(args=None):
             "highlevel", "bias level upper limit for warnings", 3500.0
         )
 
+        # dark (if any)
+        dark = cl.get_value(
+            "dark", "dark frame to subtract ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM), ignore="none"
+        )
+        if dark is not None:
+            # read the dark frame
+            dark = hcam.MCCD.read(dark)
+
         # flat (if any)
         flat = cl.get_value(
             "flat", fprompt, cline.Fname("flat", hcam.HCAM), ignore="none"
@@ -547,17 +560,6 @@ def nrtplot(args=None):
         if flat is not None:
             # read the flat frame
             flat = hcam.MCCD.read(flat)
-
-        # defect file (if any)
-        dfct = cl.get_value(
-            "defect",
-            "defect file ['none' to ignore]",
-            cline.Fname("defect", hcam.DFCT),
-            ignore="none",
-        )
-        if dfct is not None:
-            # read the defect frame
-            dfct = defect.MccdDefect.read(dfct)
 
         # fringe file (if any)
         fmap = cl.get_value(
@@ -585,6 +587,17 @@ def nrtplot(args=None):
             rmax = cl.get_value(
                 "rmax", "maximum fringe pair ratio", 1.0
             )
+
+        # defect file (if any)
+        dfct = cl.get_value(
+            "defect",
+            "defect file ['none' to ignore]",
+            cline.Fname("defect", hcam.DFCT),
+            ignore="none",
+        )
+        if dfct is not None:
+            # read the defect frame
+            dfct = defect.MccdDefect.read(dfct)
 
         # Get windows from hdriver
         setup = cl.get_value(
@@ -815,12 +828,19 @@ def nrtplot(args=None):
 
             if nframe == 0:
 
-                # get the bias, flat, fringe map and fringe pair files
+                # get the bias, dark, flat, fringe map and fringe pair files
                 # into shape first time through
 
                 if bias is not None:
                     # crop the bias on the first frame only
                     bias = bias.crop(mccd)
+                    bexpose = bias.head.get("EXPTIME", 0.0)
+                else:
+                    bexpose = 0.
+
+                if dark is not None:
+                    # crop the dark on the first frame only
+                    dark = dark.crop(mccd)
 
                 if flat is not None:
                     # crop the flat on the first frame only
@@ -895,6 +915,12 @@ def nrtplot(args=None):
                     # subtract the bias
                     if bias is not None:
                         ccd -= bias[cnam]
+
+                    if dark is not None:
+                        dexpose = dark.head["EXPTIME"]
+                        cexpose = ccd.head["EXPTIME"]
+                        scale = (cexpose - bexpose) / dexpose
+                        ccd -= scale * dark[cnam]
 
                     # divide out the flat
                     if flat is not None:
