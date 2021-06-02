@@ -1422,7 +1422,7 @@ class Rtbytes(Rhead):
 
         Arguments::
 
-           nframe : int | none
+           nframe : int | None
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted.
 
@@ -1472,6 +1472,9 @@ class Rtbytes(Rhead):
 
         # update the internal frame counter
         self.nframe += 1
+
+        # set the reset status to save effort if next time
+        # we simply want the next frame
         self.reset = False
 
         return tbytes
@@ -1479,23 +1482,21 @@ class Rtbytes(Rhead):
     def set(self, nframe=1):
         """Resets the position so that we are just about to read
         the timing data of nframe, but does not read them unlike
-        __call__
+        __call__. Set the internal "reset" flag if needed.
 
         Arguments::
 
-           nframe : int | none
+           nframe : int | None
               frame number to get, starting at 1. 0 for the last (complete)
-              frame. 'None' indicates that the next frame is wanted.
+              frame. 'None' indicates just read whatever is the next frame.
 
-        Returns:: the timing bytes of the frame
+        Returns:: the frame number of entry
         """
 
         old_frame = self.nframe
 
-        if nframe is None:
-            # just read whatever frame we are now on
-            self.reset = False
-        else:
+        if nframe is not None:
+
             if nframe == 0:
                 # go for the last one
                 nframe = self.ntotal()
