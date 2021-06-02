@@ -638,12 +638,6 @@ def joinup(args=None):
                     header["LTV1"] = 1 - (llxmin + (xbin - 1) / 2) / xbin
                     header["LTV2"] = 1 - (llymin + (ybin - 1) / 2) / ybin
 
-                    # detector coords
-                    #header["DTM1_1"] = 1.0
-                    #header["DTM2_2"] = 1.0
-                    #header["DTV1"] = float(xoff)
-                    #header["DTV2"] = float(yoff)
-
                     # attempt to generate a WCS
                     instrume = header.get('INSTRUME','UNKNOWN')
                     if instrume == 'HIPERCAM' and 'RADEG' in header and \
