@@ -261,55 +261,59 @@ class CleanUp:
             print(f'All files have been written to {self.tmpdir}')
 
 README = """
-This tar file contains data products from the HiPERCAM pipeline,
-but can include HiPERCAM, ULTRACAM or ULTRASPEC data depending on
-the data. The aim is to provide all the files needed to carry out
-a (re-)reduction with the pipeline command "reduce", and also some
-support files that integrate with 'ds9' and 'fv'. For each run,
-say "run123", you should find the following files:
+This tar file contains data products from the HiPERCAM pipeline, (but
+might include HiPERCAM, ULTRACAM or ULTRASPEC data, depending on the
+instrument in use). The aim is to provide all the files needed to
+carry out a (re-)reduction with the pipeline command "reduce", along
+with some support files that integrate with 'ds9' and 'fv'. For each
+run, say "run123", you should find the following files:
 
   run123.ape -- JSON file of photometric apertures
-
-  run123.hcm -- HiPERCAM file of CCD data (
-
-  run123.log -- ASCII result of running "reduce", i.e. photometry
-
+  run123.hcm -- HiPERCAM file of CCD data (see note below)
+  run123.log -- ASCII log from running "reduce", i.e. the photometry
   run123.red -- text file of reduction parameters
-
   run123.fits - a FITS-format version of run123.log which is usually
                 easier to understand (e.g. look at it with 'fv').
-
-  run123_ccd1.fits -- ds9-able joined up HDU of CCD 1
-
-  run123_ccd2.fits -- same for CCD 2 if there is one, etc
+  run123_ccd1.fits -- single joined up HDU version of CCD 1 from run123.hcm
+  run123_ccd2.fits -- same for CCD 2, if there is one
   .
   .
-
-  run123_ccd1.reg -- set of region equivalent to run123.ape for ds9
-
-  run123_ccd2.reg -- same for CCD 2, allows easy identification of targets
+  run123_ccd1.reg -- set of ds9 "regions" equivalent to run123.ape
+  run123_ccd2.reg -- same for CCD 2, if there is one
   .
   .
 
 You may also find some other "hcm" files with names like bias.hcm,
-flat.hcm, dark.hcm, and fmap.hcm (and possibly fpair.frng) which are
-calibration files that you will see are needed by "reduce" if you look
-into run123.red.
+flat.hcm, dark.hcm, and fmap.hcm (which should come accompanied by
+something like fpair.frng). These are calibration files that needed
+by "reduce" (look inside "run123.red").
 
 Notes:
 
-1) "hcm" files are multi-HDU files that can be looked at by ds9, but
-   the joined up images should have a WCS in the case of HiPERCAM and
-   will be easier to start with.
+1) "hcm" files are multi-HDU FITS files that can be looked at by ds9,
+   but the joined up images should have a WCS in the case of HiPERCAM,
+   and will be easier to start with.
 
 2) Typically this package of files will come from the telescope where
    reduction is done on the fly. It is *extremely likely* that you can
-   optimise the settings in the ".red" reduction file to improve the
-   result.
+   optimise the settings in the ".red" reduction file to improve your
+   data. For instance the default sky annuli are usually quite large
+   to accommodate possible seeing variations, but if in fact seeing is
+   stable, they can probably be reduced in a re-reduction.
 
 3) By convention, we assign aperture 1 to the main target, 2 to the
    brightest comparison. But note that the comparison may change between
    CCDs, so always look at all of them to be sure.
+
+4) Given "run123_ccd2.fits" and "run123_ccd2.reg", the following command
+   should display them with ds9, using the "zscale" intensity scaling
+   option:
+
+     ds9 run123_ccd2.fits -regions run123_ccd2.reg -zscale
+
+5) The HiPERCAM pipeline can be obtained from:
+
+       https://github.com/HiPERCAM/hipercam
 
 If you encounter problems, please contact Tom Marsh.
 """
