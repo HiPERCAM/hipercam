@@ -234,10 +234,13 @@ class CcdFringePair(Group):
                 ' '.join([f'{rat:.3f}' for rat in np.sort(ratios)])
             )
 
-        if rmin is not None:
+        if rmin is not None and rmax is not None:
+            ratios[(ratios < rmin) & (ratios > rmax)] = np.nan
+        elif rmin is not None:
             ratios[ratios < rmin] = np.nan
-        if rmax is not None:
+        elif rmax is not None:
             ratios[ratios > rmax] = np.nan
+
         return np.nanmedian(ratios)
 
 class MccdFringePair(Group):
