@@ -853,8 +853,8 @@ def hlogger(args=None):
                                 fpslide = round(fpslide,1)
                             except:
                                 fpslide = ''
-                                nhtml.write(f'<td class="cen">{fpslide}</td>')
-                                brow.append(noval(fpslide))
+                            nhtml.write(f'<td class="cen">{fpslide}</td>')
+                            brow.append(noval(fpslide))
 
                             # Observers
                             observers = hd.get("OBSERVRS", '')
