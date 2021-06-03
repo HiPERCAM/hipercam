@@ -265,7 +265,7 @@ def hplot(args=None):
                 for wind in mccd[cnam].values():
                     wind -= wind.median()
 
-            vmin, vmax = hcam.mpl.pCcd(
+            vmin, vmax, _ = hcam.mpl.pCcd(
                 axes,
                 mccd[cnam],
                 iset,
