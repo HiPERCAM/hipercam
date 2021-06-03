@@ -1362,7 +1362,7 @@ def make_times(night, runs, observatory, times, full, instrument):
                         tflag = time.good
                         expose = round(time.expose,3)
 
-                    if tflag:
+                    if instrument == 'HiPERCAM' or tflag:
                         mjd_start = time.mjd
                         tdelta = mjd_start-mjd_ref
                         if tdelta > 0 and tdelta < 1.5:
@@ -1429,7 +1429,7 @@ def make_times(night, runs, observatory, times, full, instrument):
                         tflag = time.good
                         nexpose = round(time.expose,3)
 
-                    if tflag:
+                    if instrument == 'HiPERCAM' or tflag:
                         mjd = time.mjd
                         if mjd >= mjd_start and mjd < mjd_start + 0.4:
                             mjd_end = mjd
