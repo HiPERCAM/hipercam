@@ -497,9 +497,9 @@ warn = 1 60000 64000
 
         rfac = 1.8
         ramin = 3*binfac
-        ramax = max(ramin,3*rfac*seeing/scale)
+        ramax = max(ramin,2.5*rfac*seeing/scale)
         sinner = ramax
-        souter = 1.4*sinner
+        souter = 1.5*sinner
 
     # standard colours for CCDs
     if instrument.startswith("hipercam"):
