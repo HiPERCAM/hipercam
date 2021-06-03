@@ -297,7 +297,7 @@ warn = 1 60000 64000
                 nccd = 1
                 ccd = '1'
 
-            else:
+            elif instrument == "other":
 
                 # unrecognised instrument need extra stuff
                 nccd = cl.get_value("nccd", "how many CCDs?", 3, 1)
@@ -343,6 +343,11 @@ warn = 1 60000 64000
 
                 gain = cl.get_value(
                     "gain", "gain, electrons/ADU, (float or file name)", "1.1"
+                )
+
+            else:
+                raise hcam.HipercamError(
+                    "Programming error: instrument unrecognised"
                 )
 
 
@@ -497,28 +502,28 @@ warn = 1 60000 64000
         souter = 1.4*sinner
 
     # standard colours for CCDs
-    if instrument == "hipercam":
+    if instrument.startswith("hipercam"):
         CCD_COLS = {
-            "1": "purple",
+            "1": "blue",
             "2": "green",
             "3": "orange",
             "4": "red",
             "5": "darkred",
         }
 
-    elif instrument == "ultracam":
+    elif instrument.startswith("ultracam"):
         CCD_COLS = {
             "1": "red",
             "2": "green",
             "3": "blue",
         }
 
-    elif instrument == "ultraspec":
+    elif instrument.startswith("ultraspec"):
         CCD_COLS = {
             "1": "green",
         }
 
-    else:
+    elif instrument == "other":
         # 'other'
         CCD_COLS = {
             "1": "green",
@@ -527,6 +532,10 @@ warn = 1 60000 64000
             "4": "orange",
             "5": "purple",
         }
+    else:
+        raise hcam.HipercamError(
+            "Programming error: instrument unrecognised"
+        )
 
     # Extraction lines
     extraction = ""
