@@ -116,8 +116,7 @@ def pWin(axes, win, label="", animated=False, artists=None):
         # just update
         line = artists[0]
         line.set_data(
-            [left, right, right, left, left],
-            [bottom, bottom, top, top, bottom]
+            [left, right, right, left, left], [bottom, bottom, top, top, bottom]
         )
 
         if label != "":
@@ -129,10 +128,7 @@ def pWin(axes, win, label="", animated=False, artists=None):
     return artists
 
 def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artists=None):
-    """Plots :class:`Window` as an image with a line border. (matplotlib).
-    Note that the keyword arguments are only passed to :func:`imshow` and
-    you should plot the border separately if you want anything out of the
-    ordinary.
+    """Plots :class:`Window` as an image with a line border.
 
     Arguments::
 
@@ -159,7 +155,9 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
            If not None, should be a saved version of a list of
            returned from a previous call to this routine with
            animated=True. In this case they are updated rather
-           than re-created.
+           than re-created. NB the border is assumed fixed and
+           not updated, i.e. only the image is updated for new
+           data and scaling.
 
     Returns with a list of created / updated artists.
     """
@@ -195,16 +193,16 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
         img.set_data(wind.data)
         img.set_clim(vmin,vmax)
 
-        wlist = artists[1:]
-        wlist = pWin(axes, wind, label, animated, wlist)
-        artists = [img] + wlist
+        #wlist = artists[1:]
+        #wlist = pWin(axes, wind, label, animated, wlist)
+        #artists = [img] + wlist
 
     return artists
 
 def pCcd(
         axes, ccd,
         iset="p", plo=5.0, phi=95.0, dlo=0.0, dhi=1000.0,
-        tlabel="",
+        tlabel="", xlabel="X", ylabel="Y",
         xlo=None, xhi=None, ylo=None, yhi=None,
         cmap="Greys",
         animated=False, artists=None
@@ -237,9 +235,14 @@ def pCcd(
        dhi : float
            value to use for upper intensity limit (if iset='d')
 
-       tlabel : string
-           label to use for top of plot; 'X' and 'Y' will also be
-           added if this is not blank.
+       tlabel : str
+           label to use for top of plot
+
+       xlabel : str
+           label for X axis
+
+       ylabel : str
+           label for Y axis
 
        xlo : int | None
            left-hand limit to define region for computing percentile
@@ -293,26 +296,47 @@ def pCcd(
         # create the artists
         artists = {}
         for key, wind in ccd.items():
-            pWind(axes, wind, vmin, vmax, key, cmap=cmap)
+            artists[key] = pWind(axes, wind, vmin, vmax, key, cmap, animated)
 
-    # plot outermost border of CCD
-    axes.plot(
-        [0.5, ccd.nxtot + 0.5, ccd.nxtot + 0.5, 0.5, 0.5],
-        [0.5, 0.5, ccd.nytot + 0.5, ccd.nytot + 0.5, 0.5],
-        color=Params["ccd.box.col"],
-    )
-    if tlabel != "":
-        axes.set_title(
-            tlabel, color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
-        )
-        axes.set_xlabel(
-            "X", color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
-        )
-        axes.set_ylabel(
-            "Y", color=Params["axis.label.col"], fontsize=Params["axis.label.fs"]
-        )
+        # plot outermost border of CCD
+        artists['border'] = \
+            axes.plot(
+                [0.5, ccd.nxtot + 0.5, ccd.nxtot + 0.5, 0.5, 0.5],
+                [0.5, 0.5, ccd.nytot + 0.5, ccd.nytot + 0.5, 0.5],
+                color=Params["ccd.box.col"], animated=animated
+            )
 
-    return (vmin, vmax)
+        artists['labels'] = []
+        if tlabel != "":
+            artists['labels'].append(
+                axes.set_title(
+                    tlabel, color=Params["axis.label.col"],
+                    fontsize=Params["axis.label.fs"], animated=animated
+                )
+            )
+
+        if xlabel != "":
+            artists['labels'].append(
+                axes.set_xlabel(
+                    xlabel, color=Params["axis.label.col"],
+                    fontsize=Params["axis.label.fs"], animated=animated
+                )
+            )
+
+        if ylabel != "":
+            artists['labels'].append(
+                axes.set_ylabel(
+                    ylabel, color=Params["axis.label.col"],
+                    fontsize=Params["axis.label.fs"], animated=animated
+                )
+            )
+
+    else:
+        # only need to update the images
+        for key, wind in ccd.items():
+            artists[key] = pWind(axes, wind, vmin, vmax, key, cmap, animated, artists[key])
+
+    return (vmin, vmax, artists)
 
 def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
     """Plots an :class:`Aperture` object, returning a list of the artists
@@ -574,8 +598,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
             # draw the line
             line = artists[n]
             line.set_data(
-                [aper.x, aper.x + xoff],
-                [aper.y, aper.y + yoff]
+                [aper.x, aper.x + xoff], [aper.y, aper.y + yoff]
             )
             n += 1
 
@@ -622,14 +645,17 @@ def pCcdAper(axes, ccdAper, animated=False, artists=None):
     the artists used to plot each Aperture. This can be used to delete
     or update them if need be.
     """
-    pobjs = {}
-    for key, aper in ccdAper.items():
-        if artists is None:
-            pobjs[key] = pAper(axes, aper, key, ccdAper, animated)
-        else:
-            pobjs[key] = pAper(axes, aper, key, ccdAper, animated, artists[key])
+    if artists is None:
+        artists = {}
 
-    return pobjs
+    if ccdAper is not None:
+        for key, aper in ccdAper.items():
+            if artists is None:
+                artists[key] = pAper(axes, aper, key, ccdAper, animated)
+            else:
+                artists[key] = pAper(axes, aper, key, ccdAper, animated, artists[key])
+
+    return artists
 
 def pDefect(axes, dfct, animated=False, artists=None):
     """Plots a :class:`Defect` object, returning a list of
@@ -744,14 +770,17 @@ def pCcdDefect(axes, ccdDefect, animated=False, artists=None):
     or update them (if animated) if need be.
 
     """
-    pobjs = {}
-    for key, dfct in ccdDefect.items():
-        if artists is None:
-            pobjs[key] = pDefect(axes, dfct, animated)
-        else:
-            pobjs[key] = pDefect(axes, dfct, animated, artists[key])
+    if artists is None:
+        artists = {}
 
-    return pobjs
+    if ccdDefect is not None:
+        for key, dfct in ccdDefect.items():
+            if artists is None:
+                artists[key] = pDefect(axes, dfct, animated)
+            else:
+                artists[key] = pDefect(axes, dfct, animated, artists[key])
+
+    return artists
 
 def pFringePair(axes, fpair):
     """Plots a :class:`FringePair` object, returning
