@@ -294,8 +294,8 @@ def setdefect(args=None):
     cnams = {}
     anams = {}
 
-    # this is a container for all the objects used to plot Defects to allow
-    # deletion. 
+    # this is a container for all the objects used to plot Defects to
+    # allow deletion.
     pobjs = {}
 
     for n, cnam in enumerate(ccds):
@@ -306,7 +306,6 @@ def setdefect(args=None):
             axes.set_ylim(ylo, yhi)
         else:
             axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
-#            axes.set_aspect("equal", adjustable="datalim")
             axes.set_aspect("equal", adjustable="box")
 
         if msub:
@@ -740,7 +739,8 @@ close enough (< 10 pixels)
         if dmin is not None and dmin < 10:
 
             # near enough for deletion
-            self.pobjs[self._cnam][dfnam].remove()
+            for pobj in self.pobjs[self._cnam][dfnam]:
+                pobj.remove()
 
             # delete Defect from containers
             del self.pobjs[self._cnam][dfnam]
