@@ -595,14 +595,20 @@ def hlogger(args=None):
                                     print("Position problem on run = ", runname)
                             else:
                                 tel_ra_deg, tel_dec_deg = None, None
-                            brow += [target, autoid, rastr, decstr, ra, dec, tel_ra, tel_dec, tel_ra_deg, tel_dec_deg, noval(tel_pa)]
+                            brow += [
+                                target, autoid, rastr, decstr, ra, dec, tel_ra,
+                                tel_dec, tel_ra_deg, tel_dec_deg, noval(tel_pa)
+                            ]
 
                         elif instrument == 'ULTRASPEC':
                             # instr PA
                             tel_ra = hd.get("RA", "")
                             tel_dec = hd.get("Dec", "")
                             tel_pa = hd.get("PA", "")
-                            nhtml.write(f'<td class="cen">{tel_ra}</td><td class="cen">{tel_dec}</td><td class="cen">{tel_pa}</td>')
+                            nhtml.write(
+                                f'<td class="cen">{tel_ra}</td><td class="cen">'
+                                f'{tel_dec}</td><td class="cen">{tel_pa}</td>'
+                            )
                             if tel_ra != '' and tel_dec != '':
                                 try:
                                     tel_ra_deg, tel_dec_deg, syst = str2radec(tel_ra + ' ' + tel_dec)
@@ -644,7 +650,8 @@ def hlogger(args=None):
                             mjd_end = float(mjd_end)
                             ttime = round(86400.*(mjd_end - mjd_start))
                             nhtml.write(
-                                f'<td class="cen">{ut_end}</td> <td class="right">{ttime}</td> <td class="right">{cadence}</td>'
+                                f'<td class="cen">{ut_end}</td> <td class="right">'
+                                f'{ttime}</td> <td class="right">{cadence}</td>'
                             )
                             brow += [ut_end, mjd_start, mjd_end, ttime, noval(cadence)]
                         except:
@@ -656,7 +663,9 @@ def hlogger(args=None):
                         brow.append(noval(expose))
 
                         # number of frames, number ok
-                        nhtml.write(f'<td class="right">{ntotal}</td><td class="right">{nok}</td>')
+                        nhtml.write(
+                            f'<td class="right">{ntotal}</td><td class="right">{nok}</td>'
+                        )
                         brow += [noval(ntotal), noval(nok)]
 
                         # filters used
@@ -837,15 +846,15 @@ def hlogger(args=None):
                                 nhtml.write(f'<td class="cen">{hv_gain}</td>')
                                 brow.append(hv_gain)
 
-                                # Focal plane slide
-                                fpslide = hd.get('SLIDEPOS','UNKNOWN')
-                                try:
-                                    fpslide = float(fpslide)
-                                    fpslide = round(fpslide,1)
-                                except:
-                                    fpslide = ''
-                                    nhtml.write(f'<td class="cen">{fpslide}</td>')
-                                    brow.append(noval(fpslide))
+                            # Focal plane slide
+                            fpslide = hd.get('SLIDEPOS','UNKNOWN')
+                            try:
+                                fpslide = float(fpslide)
+                                fpslide = round(fpslide,1)
+                            except:
+                                fpslide = ''
+                                nhtml.write(f'<td class="cen">{fpslide}</td>')
+                                brow.append(noval(fpslide))
 
                             # Observers
                             observers = hd.get("OBSERVRS", '')
@@ -1820,8 +1829,6 @@ ULTRACAM_COLNAMES = (
     ('auto_id', 'str', 'Lookup name, from disk files or SIMBAD'),
     ('ra_hms', 'str', 'Target RA (J2000), HMS'),
     ('dec_dms', 'str', 'Target Dec (J2000), DMS'),
-    ('ra_deg', 'float64', 'Target RA (J2000), degrees'),
-    ('dec_deg', 'float64', 'Target Dec (J2000), degrees'),
     ('ra_deg', 'float64', 'Target RA (J2000), degrees'),
     ('dec_deg', 'float64', 'Target Dec (J2000), degrees'),
     ('date_start', 'str', 'Date at the start of the run'),
