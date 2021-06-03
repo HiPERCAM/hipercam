@@ -113,7 +113,7 @@ def pWin(axes, win, label="", animated=False, artists=None):
                 )
             )
     else:
-        # just update
+        # just update. not sure why one would ever want to do this ...
         line = artists[0]
         line.set_data(
             [left, right, right, left, left], [bottom, bottom, top, top, bottom]
@@ -193,10 +193,6 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
         img.set_data(wind.data)
         img.set_clim(vmin,vmax)
 
-        #wlist = artists[1:]
-        #wlist = pWin(axes, wind, label, animated, wlist)
-        #artists = [img] + wlist
-
     return artists
 
 def pCcd(
@@ -267,7 +263,7 @@ def pCcd(
            than re-created.
 
     Returns: (vmin,vmax,artists), the intensity limits used and
-    a list of artists.
+    a dictionary, the values of which are all lists of artists.
 
     """
     if iset == "p":
@@ -645,17 +641,16 @@ def pCcdAper(axes, ccdAper, animated=False, artists=None):
     the artists used to plot each Aperture. This can be used to delete
     or update them if need be.
     """
-    if artists is None:
-        artists = {}
 
+    pobjs = {}
     if ccdAper is not None:
         for key, aper in ccdAper.items():
             if artists is None:
-                artists[key] = pAper(axes, aper, key, ccdAper, animated)
+                pobjs[key] = pAper(axes, aper, key, ccdAper, animated)
             else:
-                artists[key] = pAper(axes, aper, key, ccdAper, animated, artists[key])
+                pobjs[key] = pAper(axes, aper, key, ccdAper, animated, artists[key])
 
-    return artists
+    return pobjs
 
 def pDefect(axes, dfct, animated=False, artists=None):
     """Plots a :class:`Defect` object, returning a list of
@@ -770,17 +765,15 @@ def pCcdDefect(axes, ccdDefect, animated=False, artists=None):
     or update them (if animated) if need be.
 
     """
-    if artists is None:
-        artists = {}
-
+    pobjs = {}
     if ccdDefect is not None:
         for key, dfct in ccdDefect.items():
             if artists is None:
-                artists[key] = pDefect(axes, dfct, animated)
+                pobjs[key] = pDefect(axes, dfct, animated)
             else:
-                artists[key] = pDefect(axes, dfct, animated, artists[key])
+                pobjs[key] = pDefect(axes, dfct, animated, artists[key])
 
-    return artists
+    return pobjs
 
 def pFringePair(axes, fpair):
     """Plots a :class:`FringePair` object, returning
