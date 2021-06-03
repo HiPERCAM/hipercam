@@ -76,7 +76,7 @@ def rupdate(args=None):
                     version = version[: version.find("#")]
 
                 if version == hcam.REDUCE_FILE_VERSION:
-                    print("reduce file = {:s} is up to date".format(file))
+                    print(f"reduce file = {rfile} is up to date")
                     exit(0)
 
                 elif version == "20181107":
@@ -203,4 +203,4 @@ dthresh = 4
 """
             )
 
-    print("Updated reduce file = {:s}".format(rfile))
+    print(f"Updated reduce file = {rfile}")
