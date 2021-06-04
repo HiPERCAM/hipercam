@@ -109,7 +109,6 @@ class Rfile(OrderedDict):
                 "If your reduce file date is earlier than the reduce version, you may want to try"
                 f"updating it using the pipeline command 'rupdate {filename}'"
             )
-        )
 
         sect["scale"] = float(sect["scale"])
         if sect["scale"] <= 0:
