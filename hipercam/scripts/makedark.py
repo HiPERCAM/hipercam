@@ -262,11 +262,9 @@ class CleanUp:
     def __init__(self, flist, temp):
         self.flist = flist
         self.temp = temp
-        self.ok = True
 
     def _sigint_handler(self, signal_received, frame):
         print("\nmakedark aborted")
-        self.ok = False
         sys.exit(1)
 
     def __enter__(self):
@@ -279,8 +277,3 @@ class CleanUp:
                     os.remove(line.strip())
             os.remove(self.flist)
             print('temporary files removed')
-
-        if self.ok:
-            return True
-        else:
-            return False

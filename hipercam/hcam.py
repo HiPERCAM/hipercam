@@ -587,6 +587,12 @@ class Rhead:
             if "DEC" in hd:
                 self.thead["DEC"] = hd.get_full("DEC")
 
+            if "RADEG" in hd:
+                self.thead["RADEG"] = hd.get_full("RADEG")
+
+            if "DECDEG" in hd:
+                self.thead["DECDEG"] = hd.get_full("DECDEG")
+
             if "INSTRPA" in hd:
                 self.thead["INSTRPA"] = hd.get_full("INSTRPA")
 
@@ -595,6 +601,12 @@ class Rhead:
 
             if "ESO DET GPS" in hd:
                 self.thead["GPS"] = hd.get_full("ESO DET GPS")
+
+            if "INSTRUME" in hd:
+                self.thead["INSTRUME"] = hd.get_full("INSTRUME")
+
+            if "TELESCOP" in hd:
+                self.thead["TELESCOP"] = hd.get_full("TELESCOP")
 
             self.thead["XBIN"] = hd.get_full("ESO DET BINX1")
             self.thead["YBIN"] = hd.get_full("ESO DET BINY1")
@@ -1067,7 +1079,7 @@ class Rdata(Rhead):
             # mode or intermediate junk frames in the case of NSKIP>0
             ch["DSTATUS"] = (
                 (self.nframe > self.ndwins) and (self.nframe % ch["NCYCLE"] == 0),
-                "Valid data (else junk frame)",
+                "Valid data or not",
             )
 
             # Get time at centre of exposure. Some care here to store a
@@ -1410,7 +1422,7 @@ class Rtbytes(Rhead):
 
         Arguments::
 
-           nframe : int | none
+           nframe : int | None
               frame number to get, starting at 1. 0 for the last (complete)
               frame. 'None' indicates that the next frame is wanted.
 
@@ -1460,6 +1472,9 @@ class Rtbytes(Rhead):
 
         # update the internal frame counter
         self.nframe += 1
+
+        # set the reset status to save effort if next time
+        # we simply want the next frame
         self.reset = False
 
         return tbytes
@@ -1467,23 +1482,21 @@ class Rtbytes(Rhead):
     def set(self, nframe=1):
         """Resets the position so that we are just about to read
         the timing data of nframe, but does not read them unlike
-        __call__
+        __call__. Set the internal "reset" flag if needed.
 
         Arguments::
 
-           nframe : int | none
+           nframe : int | None
               frame number to get, starting at 1. 0 for the last (complete)
-              frame. 'None' indicates that the next frame is wanted.
+              frame. 'None' indicates just read whatever is the next frame.
 
-        Returns:: the timing bytes of the frame
+        Returns:: the frame number of entry
         """
 
         old_frame = self.nframe
 
-        if nframe is None:
-            # just read whatever frame we are now on
-            self.reset = False
-        else:
+        if nframe is not None:
+
             if nframe == 0:
                 # go for the last one
                 nframe = self.ntotal()

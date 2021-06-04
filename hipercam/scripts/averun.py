@@ -61,7 +61,7 @@ def averun(args=None):
            not supported).
 
         last : int [if source ends 's' or 'l']
-           last exposure number must be >= first.
+           last exposure number must be >= first, or 0 for the lot
 
         twait : float [if source ends 's' or 'l'; hidden]
            time to wait between attempts to find a new exposure, seconds.
@@ -132,8 +132,9 @@ def averun(args=None):
            clobber any pre-existing output files
 
         output : str
-           output file. Set by default to match the last part of "run" (but it will have a different
-           extension so they won't clash)
+           output file. Set by default to match the last part of "run"
+           (but it will have a different extension so they won't
+           clash)
 
     """
 
@@ -185,7 +186,7 @@ def averun(args=None):
             cl.set_default('output', cline.Fname(root, hcam.HCAM))
 
             first = cl.get_value("first", "first frame to average", 1, 1)
-            last = cl.get_value("last", "last frame to average", first, first)
+            last = cl.get_value("last", "last frame to average", first, 0)
 
             twait = cl.get_value(
                 "twait", "time to wait for a new frame [secs]", 1.0, 0.0
@@ -288,7 +289,7 @@ def averun(args=None):
         # Build argument list
         args = [None,"prompt",source,"yes",resource]
         if server_or_local:
-            args += [str(first), str(last),str(twait), str(tmax)]
+            args += [str(first), str(last), str(twait), str(tmax)]
         if trim:
             args += ["yes",str(ncol),str(nrow)]
         else:

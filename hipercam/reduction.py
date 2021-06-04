@@ -47,9 +47,12 @@ class Rfile(OrderedDict):
     """
 
     @classmethod
-    def read(cls, filename):
+    def read(cls, filename, readcal=True):
         """Builds an Rfile from a reduce file. A few checks for viability are
         applied.
+
+        readcal -- can be used to turn off default reading of
+                   calibration data (e.g. see genred)
 
         """
 
@@ -102,10 +105,14 @@ class Rfile(OrderedDict):
         if sect["version"] != hcam.REDUCE_FILE_VERSION:
             # check the version
             raise hcam.HipercamError(
-                "Version mismatch: file = {:s}, reduce = {:s}".format(
-                    sect["version"], hcam.REDUCE_FILE_VERSION
-                )
+                f"Version mismatch: reduce file = {sect['version']}, reduce = {hcam.REDUCE_FILE_VERSION}"
+                "If your reduce file date is earlier than the reduce version, you may want to try"
+                f"updating it using the pipeline command 'rupdate {filename}'"
             )
+
+        sect["scale"] = float(sect["scale"])
+        if sect["scale"] <= 0:
+            raise hcam.HipercamError("general.scale must be > 0")
 
         sect["lwidth"] = float(sect["lwidth"])
         if sect["lwidth"] < 0:
@@ -131,6 +138,7 @@ class Rfile(OrderedDict):
         warns = sect.get("warn", [])
         if isinstance(warns, str):
             warns = [warns]
+        sect['warns'] = warns
 
         # store a dictionary of warning levels. If
         # any CCD does not have any warning levels,
@@ -178,14 +186,14 @@ class Rfile(OrderedDict):
         toBool(rfile, "apertures", "fit_fwhm_fixed")
         toBool(rfile, "apertures", "search_smooth_fft")
 
-        apsec["search_half_width"] = int(apsec["search_half_width"])
+        apsec["search_half_width"] = float(apsec["search_half_width"])
         apsec["search_smooth_fwhm"] = float(apsec["search_smooth_fwhm"])
         apsec["fit_fwhm"] = float(apsec["fit_fwhm"])
         apsec["fit_fwhm_min"] = float(apsec["fit_fwhm_min"])
         apsec["fit_ndiv"] = int(apsec["fit_ndiv"])
         apsec["fit_beta"] = float(apsec["fit_beta"])
         apsec["fit_beta_max"] = float(apsec["fit_beta_max"])
-        apsec["fit_half_width"] = int(apsec["fit_half_width"])
+        apsec["fit_half_width"] = float(apsec["fit_half_width"])
         apsec["fit_thresh"] = float(apsec["fit_thresh"])
         apsec["fit_height_min_ref"] = float(apsec["fit_height_min_ref"])
         apsec["fit_height_min_nrf"] = float(apsec["fit_height_min_nrf"])
@@ -212,48 +220,61 @@ class Rfile(OrderedDict):
 
         toBool(rfile, "calibration", "crop")
 
-        if calsec["bias"] != "":
-            rfile.bias = hcam.MCCD.read(utils.add_extension(calsec["bias"], hcam.HCAM))
-        else:
-            rfile.bias = None
+        if readcal:
+            if calsec["bias"] != "":
+                rfile.bias = hcam.MCCD.read(
+                    utils.add_extension(calsec["bias"], hcam.HCAM)
+                )
+            else:
+                rfile.bias = None
 
-        if calsec["dark"] != "":
-            rfile.dark = hcam.MCCD.read(utils.add_extension(calsec["dark"], hcam.HCAM))
-        else:
-            rfile.dark = None
+            if calsec["dark"] != "":
+                rfile.dark = hcam.MCCD.read(
+                    utils.add_extension(calsec["dark"], hcam.HCAM)
+                )
+            else:
+                rfile.dark = None
 
-        if calsec["flat"] != "":
-            rfile.flat = hcam.MCCD.read(utils.add_extension(calsec["flat"], hcam.HCAM))
-        else:
-            rfile.flat = None
+            if calsec["flat"] != "":
+                rfile.flat = hcam.MCCD.read(
+                    utils.add_extension(calsec["flat"], hcam.HCAM)
+                )
+            else:
+                rfile.flat = None
 
-        if calsec["fmap"] != "":
-            rfile.fmap = hcam.MCCD.read(utils.add_extension(calsec["fmap"], hcam.HCAM))
-            rfile.fpair = hcam.fringe.MccdFringePair.read(
-                utils.add_extension(calsec["fpair"], hcam.FRNG)
-            )
-            calsec["nhalf"] = int(calsec["nhalf"])
-            calsec["rmin"] = float(calsec["rmin"])
-            calsec["rmax"] = float(calsec["rmax"])
-        else:
-            rfile.fmap = None
+            if calsec["fmap"] != "":
+                rfile.fmap = hcam.MCCD.read(
+                    utils.add_extension(calsec["fmap"], hcam.HCAM)
+                )
+                rfile.fpair = hcam.fringe.MccdFringePair.read(
+                    utils.add_extension(calsec["fpair"], hcam.FRNG)
+                )
+                calsec["nhalf"] = int(calsec["nhalf"])
+                calsec["rmin"] = float(calsec["rmin"])
+                calsec["rmax"] = float(calsec["rmax"])
+            else:
+                rfile.fmap = None
 
         try:
             rfile.readout = float(calsec["readout"])
         except TypeError:
-            rfile.readout = hcam.MCCD.read(
-                utils.add_extension(calsec["readout"], hcam.HCAM)
-            )
+            if readcal:
+                rfile.readout = hcam.MCCD.read(
+                    utils.add_extension(calsec["readout"], hcam.HCAM)
+                )
 
         try:
             rfile.gain = float(calsec["gain"])
         except TypeError:
-            rfile.gain = hcam.MCCD.read(utils.add_extension(calsec["gain"], hcam.HCAM))
+            if readcal:
+                rfile.gain = hcam.MCCD.read(
+                    utils.add_extension(calsec["gain"], hcam.HCAM)
+                )
 
         # Extraction section
 
-        # Separate the extraction entries into lists, check and convert some
-        # entries
+        # Separate the extraction entries into lists, check and
+        # convert some entries
         extsec = rfile["extraction"]
 
         for cnam in extsec:
@@ -287,10 +308,14 @@ class Rfile(OrderedDict):
                     "sky.error == variance requires sky.method == clipped"
                 )
         elif skysec["error"] != "photon":
-            raise hcam.HipercamError("sky.error must be either 'variance' or 'photon'")
+            raise hcam.HipercamError(
+                "sky.error must be either 'variance' or 'photon'"
+            )
 
         if skysec["method"] != "clipped" and skysec["method"] != "median":
-            raise hcam.HipercamError("sky.method must be either 'clipped' or 'median'")
+            raise hcam.HipercamError(
+                "sky.method must be either 'clipped' or 'median'"
+            )
 
         skysec["thresh"] = float(skysec["thresh"])
 
@@ -559,10 +584,6 @@ class Rfile(OrderedDict):
             if sect["ymax"] <= 0:
                 raise hcam.HipercamError("seeing.ymax must be > 0")
 
-            sect["scale"] = float(sect["scale"])
-            if sect["scale"] <= 0:
-                raise hcam.HipercamError("seeing.scale must be > 0")
-
             sect["extend_y"] = float(sect["extend_y"])
             if sect["extend_y"] <= 0:
                 raise hcam.HipercamError("seeing.extend_y must be > 0")
@@ -823,7 +844,7 @@ def setup_plot_buffers(rfile):
     sbuffer = []
     if rfile.seeing:
         for plot_config in rfile["seeing"]["plot"]:
-            sbuffer.append(Seeing(plot_config, rfile["seeing"]["scale"]))
+            sbuffer.append(Seeing(plot_config, rfile["general"]["scale"]))
 
     return lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
 

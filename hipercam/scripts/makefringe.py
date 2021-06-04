@@ -406,7 +406,7 @@ def makefringe(args=None):
         # write out
         template.write(output, clobber)
         print(f"\nFinal result written to {output}")
-        print('makefringe finished')
+    print('makefringe finished')
 
 class CleanUp:
     """

@@ -24,6 +24,7 @@ from .hlog2fits import hlog2fits
 from .hlog2col import hlog2col
 from .hls import hls
 from .hmeta import hmeta
+from .hpackage import hpackage
 from .hplot import hplot
 from .joinup import joinup
 from .jtrawl import jtrawl
@@ -72,6 +73,7 @@ __all__ = [
     "hlog2fits",
     "hlogger",
     "hls",
+    "hpackage",
     "hplot",
     "joinup",
     "ltimes",

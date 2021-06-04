@@ -501,6 +501,7 @@ class Winhead(Header):
             self.llx,
             self.llx + self.xbin * int(math.ceil((xlo - self.xlo) / self.xbin)),
         )
+
         lly = max(
             self.lly,
             self.lly + self.ybin * int(math.ceil((ylo - self.ylo) / self.ybin)),

@@ -3,7 +3,7 @@ import os
 from time import gmtime, strftime
 
 import hipercam as hcam
-from hipercam import cline, utils
+from hipercam import cline, utils, reduction
 from hipercam.cline import Cline
 
 # get hipercam version to write into the reduce file
@@ -26,44 +26,43 @@ __all__ = [
 
 
 def genred(args=None):
-    """``genred apfile rfile comment bias flat dark fmap fpair [nhalf
-    rmin rmax inst ncpu ngroup skipbadt] linear [extendx ccd location
-    smoothfwhm method beta betamax fwhm fwhmmin fwhmmax searchwidth
-    thresh hminref hminnrf rfac rmin rmax sinner souter scale psfgfac
-    psfwidth psfpostweak]``
+    """``genred apfile rfile bias dark flat fmap fpair seeing (binfac)
+    template (inst (nccd (ccd) nonlin sat scale readout gain))``
 
     Generates a reduce file as needed by |reduce| or |psf_reduce|. You
-    give it the name of an aperture file and a few other parameters
-    and it will write out a reduce file which you can then refine by
-    hand. A few simplifying assumptions are made, e.g. that the target
-    is called '1'; see below for more.  This script effectively
-    defines the format of reduce files. The script attempts above all
-    to generate a self-consistent reduce file.  e.g. if there are no
-    apertures in CCD 5, it does not attempt to plot any corresponding
-    light curves.
+    give it the name of an aperture file, calibration frames and a few
+    other parameters and it will write out a reduce file which you can
+    then refine by hand. The aim is to try to get a reduce file that
+    is self-consistent and works to get observing started as soon as
+    possible. The parameters are not necessarily the best.
 
-    To avoid excessive prompting, |genred| has many hidden
-    parameters. The very first time you use it on a run, specify
-    ``prompt`` on the command line to see all of these.  They are
-    chosen to be the parameters most likely to vary with telescope or
-    conditions; many others are left at default values and require
-    editing to change. If you find yourself repeatedly editing a
-    parameter, let me know and I will add it to this routine.
+    It is assumed that the target is called '1', the main comparison '2'.
 
-    The best way to understand the parameters is to read a reduce file
-    which are fully commented.
+    To avoid endless prompts, genred does not prompt for all
+    parameters but accepts a "template" file which can just be from a
+    previous run of genred where such parameters can be altered by
+    editing with a standard text editor before running genred. genred
+    recognises some standard instrument telescope combinations which
+    it uses to set parameters such as the pixel scale and readout
+    noise, but if you choose other, you will be prompted for these
+    details. The main parameters it does prompt for are calibration
+    files, and it allows you to define a "seeing" which then controls
+    the setting of various profile fit parameters. This can be ignored
+    by setting = 0, in which case any template parameters will be passed
+    unchanged.
 
     Parameters:
 
         apfile : str
-           the input aperture file created using |setaper| (default extension
-           .ape). This will be read for the targets. The main target will be
-           assumed to have been called '1', the main comparison '2'. If there
-           is a '3' it will be plotted relative to '2'; all others will be
-           ignored for plotting purposes. Target '2' will be used to define
-           the position and transmission plots for one CCD only [user
-           definable]. Target '1' will be used for the seeing plot unless it
-           is linked when target '2' will be used instead.
+           the input aperture file created using |setaper| (default
+           extension .ape). This will be read for the targets. The
+           main target will be assumed to have been called '1', the
+           main comparison '2'. If there is a '3' it will be plotted
+           relative to '2'; all others will be ignored for plotting
+           purposes. Target '2' will be used to define the position
+           and transmission plots for one CCD only [user
+           definable]. Target '1' will be used for the seeing plot
+           unless it is linked when target '2' will be used instead.
 
         rfile : str
            the output reduce file created by this script. The main
@@ -72,18 +71,14 @@ def genred(args=None):
            relative to '2'; all others will be ignored for plotting
            purposes.
 
-        comment : str
-           comment to add near the top of the reduce file. Obvious things to say
-           are the target name and the name of the observer for instance.
-
         bias : str
            Name of bias frame; 'none' to ignore.
 
-        flat : str
-           Name of flat field frame; 'none' to ignore.
-
         dark : str
            Name of dark frame; 'none' to ignore.
+
+        flat : str
+           Name of flat field frame; 'none' to ignore.
 
         fmap : str
            Name of fringe frame; 'none' to ignore.
@@ -91,189 +86,57 @@ def genred(args=None):
         fpair : str [if fmap not 'none']
            File defining pairs to measure fringe amplitudes.
 
-        nhalf : int [if fmap not 'none', hidden]
-           Fringe amplitudes are measured from regions of +/-nhalf
-           around the pixels nearest to the pairs of points defined
-           in fpair.
+        seeing : float
+           estimate of seeing which will be used to define several of
+           the profile fitting parameters. Enter 0 to ignore and use
+           defaults from the template or genred instead.
 
-        rmin : float [if fmap not 'none', hidden]
-           Minimum ratio to allow.
+        binfac : int [if seeing > 0]
+           binning factor. e.g. 4 if using 4x4. Needed to optimise some
+           profile parameters.
 
-        rmax : float [if fmap not 'none', hidden]
-           Maximum ratio to allow.
+        template : str
+           Reduce file to use as a template for any parameters not set
+           by genred. This allows one to tweak settings by running
+           genred without a template, then modifying the resultant
+           file and using it as a template. 'none' to ignore, and then
+           these values will be set by genred by default. Some will be
+           modified anyway (e.g. the calibration file names), and if
+           seeing > 0, then several of the profile fitting paramaters
+           will be adapted to the value given along with the
+           instrument parameters.  genred will try to keep as many of
+           the 'extraction', 'position', 'transmission', 'light' etc
+           lines associated with particular CCDs in this case without
+           modification, and will pass readout, saturation levels etc
+           unchanged from the template.
 
-        linear : str
-           light curve plot linear (else magnitudes)
+        inst : str [if template == 'none']
+           the instrument. 'hipercam-gtc', 'ultracam-ntt', 'ultraspec-tnt',
+           'ultracam-wht', 'ultracam-vlt',  or 'other'. Sets pixel scale and
+           standard readnoise params.
 
-        inst : str [hidden]
-           the instrument (needed to set nonlinearity and saturation levels for
-           warning purposes. Possible options listed.
+        nccd : int [if inst == 'other']
+           number of CCDs.
 
-        skipbadt : bool [hidden]
-           whether to skip data with bad times or not. Should be True
-           for ULTRACAM and ULTRASPEC; False for HiPERCAM.
+        ccd : int [if nccd > 1]
+           the CCD to use for position plots
 
-        ncpu : int [hidden]
-           some increase in speed can be obtained by running the
-           reduction in parallel. This parameter is the number of CPUs
-           to use. The parellisation is over the CCDs, and there is no
-           point having ncpu greater than the number of CCDs, but it should
-           ideally equal the number of CCDs. There is no point using this
-           for single CCD reduction.
+        nonlin : list(float) [if inst == 'other']
+           values for warning of non linearity
 
-        ngroup : int [hidden, if ncpu > 1]
-           to reduce parallelisation overheads, this parameter means
-           that ngroup frames are read before being split up for the
-           parallisation step is applied.
+        sat : list(float) [if inst == 'other']
+           values for warning of saturation
 
-        extendx : float [hidden]
-           how many minutes to extend light curve plot by at a time
-
-        ccd : str [hidden]
-           label of the (single) CCD used for the position plot
-
-        location : str [hidden]
-           whether to reposition apertures or leave them fixed.
-
-        toffset : int [hidden]
-           integer offset to subtract from the MJD times in order to
-           reduce round-off.  i.e. rather 55678.123456789, if you
-           specified toffset=55600, you would reduce the round-off
-           error by a factor ~1000. With typical MJDs, round off is
-           around the 0.5 microsecond level. If you want to improve on
-           that, set an appropriate offset value. It is set by default
-           to 0, i.e. it will be 0 unless you explicitly set it
-           otherwise. The value used is recorded in the log
-           file. toffset must be >= 0.
-
-        smoothfwhm : float [hidden]
-           FWHM to use for smoothing during initial search [binned pixels]
-
-        fft : bool [hidden]
-           whether or not to use FFTs when carrying out the convolution
-           operation used in the initial search. No effect on results,
-           but could be faster for large values of smoothfwhm.
-
-        method : str
-           profile fitting method. 'g' for gaussian, 'm' for moffat
-
-        beta : float [hidden]
-           default Moffat exponent to use to start fitting
-
-        betamax : float [hidden]
-           maximum Moffat exponent to pass on to subsequent fits. Prevents
-           it wandering to silly values which can happen.
-
-        fwhm : float [hidden]
-           the default FWHM to use when fitting [unbinned pixels].
-
-        fwhmmin : float [hidden]
-           the minimum FWHM to allow when fitting [unbinned pixels].
-
-        fwhmmax : float [hidden]
-           the maximum FWHM to allow when fitting [unbinned pixels].
-
-        searchwidth : int [hidden]
-           half width in (binned) pixels for the target searches
-
-        fitwidth : int [hidden]
-           half width in (binned) pixels for the profile fits
-
-        maxshift : float [hidden]
-           maximum shift of non-reference targets relative to the initial
-           positions derived from the reference targets. The reference targets
-           should give good initial positions, thus this can be set to quite a
-           small value to improve robustness against duff positions, caused
-           e.g. by cosmic rays or field crowding in periods of bad seeing. Use
-           linked apertures for more difficult cases still.
-
-        thresh : float [hidden]
-           RMS rejection threshold for profile fits.
-
-        hminref : float [hidden]
-           minimum peak height for a fit to a reference aperture to be
-           accepted. This applies to the peak height in the *smoothed* image
-           used during the initial search as well as the peak height after
-           profile fitting. It is the check on the smoothed image that is more
-           consistent since the seeing-limited peak height can be highly
-           variable, and the more stringent since smoothing reduces the peak
-           height by seeing**2/(seeing**2+smoothfwhm**2) where 'seeing' is the
-           FWHM of the seeing in binned pixels. If smoothfwhm is chosen to be
-           larger than seeing is likely to be, this makes the peak heights
-           more consistent so that the thresholding is better behaved. But, it
-           means you should use a value lower than you might guess from the
-           images.  A peak of height `h` in a smoothed image will contain
-           about (seeing**2+smoothfwhm**2)*h counts in total (but fewer if
-           binned).
-
-        hminnrf : float [hidden]
-           minimum peak height for a fit to a non-reference aperture to be
-           accepted. This applies above all to the smoothed peak height as for
-           hminref.
-
-        alpha : float [hidden]
-           amount by which non-reference apertures are corrected relative to
-           their expected positions when reference apertures are enabled. The
-           idea is that the positions of non-reference relative to reference
-           apertures should vary little, so rather than simply re-positioning
-           independently every frame, one might want to build in a bit of past
-           history. This can be done by setting alpha small. If alpha = 1,
-           then that simply returns to fully independent positioning for each
-           frame.
-
-        diff : float [hidden]
-           maximum difference in the shifts of reference apertures, when more
-           than one has been defined on a CCD. If exceeded, no extraction is
-           performed. This is to guard against perturbations of the reference
-           apertures by meteors, cosmic rays and the like. [unbinned pixels]
-
-        rfac : float [hidden]
-           target aperture radius relative to the FWHM for 'variable' aperture
-           photometry. Usual values 1.5 to 2.5.
-
-        ramin : float [hidden]
-           minimum target aperture radius [unbinned pixels]
-
-        ramax : float [hidden]
-           maximum target aperture radius [unbinned pixels]
-
-        sinner : float [hidden]
-           inner sky aperture radius [unbinned pixels]
-
-        souter : float [hidden]
-           outer sky aperture radius [unbinned pixels]
-
-        readout : float | string [hidden]
-           readout noise, RMS ADU. Can either be a single value or an hcm file.
-
-        gain : float [hidden]
-           gain, electrons per ADU. Can either be a single value or an hcm file.
-
-        scale : float [hidden]
+        scale : float [if inst == 'other']
            image scale in arcsec/pixel
 
-        psfgfac : float [hidden]
-            multiple of FWHM used to group objects together for PSF fitting
+        readout : float | string [if inst == 'other']
+           readout noise, RMS ADU. Can either be a single value or an
+           hcm file.
 
-        psfwidth : int [hidden]
-            half-width of box used to extract data around objects for PSF fitting
-
-        psfpostweak : str [hidden]
-            During PSF fitting, either hold positions at aperture
-            location ('fixed'), or fit as part of PSF model
-            ('variable')
-
-        demask: bool [hidden]
-            True to attempt to correct for a misplaced frame transfer mask
-            that can affect drift mode data. Sympton is a step in the 
-            illumination with Y. This will attempt to subtract the median
-            in X from each window. Do not use unless you need to.
-
-        dthresh: float [hidden, if demask]
-            Threshold (in RMS) to reject pixels in X before taking the
-            median to reduce the effect of bright stars on the median
-            profile. It does this by takeing the average in the Y direction
-            and then rejecting overly bright pixels.
+        gain : float | string [if inst == 'other']
+           gain, electrons per ADU. Can either be a single value or an
+           hcm file.
 
     """
 
@@ -286,51 +149,19 @@ def genred(args=None):
         cl.register("rfile", Cline.GLOBAL, Cline.PROMPT)
         cl.register("comment", Cline.LOCAL, Cline.PROMPT)
         cl.register("bias", Cline.LOCAL, Cline.PROMPT)
-        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("dark", Cline.LOCAL, Cline.PROMPT)
+        cl.register("flat", Cline.LOCAL, Cline.PROMPT)
         cl.register("fmap", Cline.LOCAL, Cline.PROMPT)
         cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
-        cl.register("nhalf", Cline.LOCAL, Cline.HIDE)
-        cl.register("rmin", Cline.LOCAL, Cline.HIDE)
-        cl.register("rmax", Cline.LOCAL, Cline.HIDE)
-        cl.register("inst", Cline.LOCAL, Cline.HIDE)
-        cl.register("ncpu", Cline.LOCAL, Cline.HIDE)
-        cl.register("ngroup", Cline.LOCAL, Cline.HIDE)
-        cl.register("skipbadt", Cline.LOCAL, Cline.HIDE)
-        cl.register("linear", Cline.LOCAL, Cline.PROMPT)
-        cl.register("extendx", Cline.LOCAL, Cline.HIDE)
-        cl.register("ccd", Cline.LOCAL, Cline.HIDE)
-        cl.register("location", Cline.LOCAL, Cline.HIDE)
-        cl.register("toffset", Cline.LOCAL, Cline.HIDE)
-        cl.register("smoothfwhm", Cline.LOCAL, Cline.HIDE)
-        cl.register("fft", Cline.LOCAL, Cline.HIDE)
-        cl.register("method", Cline.LOCAL, Cline.HIDE)
-        cl.register("beta", Cline.LOCAL, Cline.HIDE)
-        cl.register("betamax", Cline.LOCAL, Cline.HIDE)
-        cl.register("fwhm", Cline.LOCAL, Cline.HIDE)
-        cl.register("fwhmmin", Cline.LOCAL, Cline.HIDE)
-        cl.register("fwhmmax", Cline.LOCAL, Cline.HIDE)
-        cl.register("searchwidth", Cline.LOCAL, Cline.HIDE)
-        cl.register("fitwidth", Cline.LOCAL, Cline.HIDE)
-        cl.register("maxshift", Cline.LOCAL, Cline.HIDE)
-        cl.register("thresh", Cline.LOCAL, Cline.HIDE)
-        cl.register("hminref", Cline.LOCAL, Cline.HIDE)
-        cl.register("hminnrf", Cline.LOCAL, Cline.HIDE)
-        cl.register("alpha", Cline.LOCAL, Cline.HIDE)
-        cl.register("diff", Cline.LOCAL, Cline.HIDE)
-        cl.register("rfac", Cline.LOCAL, Cline.HIDE)
-        cl.register("ramin", Cline.LOCAL, Cline.HIDE)
-        cl.register("ramax", Cline.LOCAL, Cline.HIDE)
-        cl.register("sinner", Cline.LOCAL, Cline.HIDE)
-        cl.register("souter", Cline.LOCAL, Cline.HIDE)
-        cl.register("readout", Cline.LOCAL, Cline.HIDE)
-        cl.register("gain", Cline.LOCAL, Cline.HIDE)
-        cl.register("scale", Cline.LOCAL, Cline.HIDE)
-        cl.register("psfgfac", Cline.LOCAL, Cline.HIDE)
-        cl.register("psfwidth", Cline.LOCAL, Cline.HIDE)
-        cl.register("psfpostweak", Cline.LOCAL, Cline.HIDE)
-        cl.register("demask", Cline.LOCAL, Cline.HIDE)
-        cl.register("dthresh", Cline.LOCAL, Cline.HIDE)
+        cl.register("seeing", Cline.LOCAL, Cline.PROMPT)
+        cl.register("binfac", Cline.LOCAL, Cline.PROMPT)
+        cl.register("inst", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nonlin", Cline.LOCAL, Cline.PROMPT)
+        cl.register("sat", Cline.LOCAL, Cline.PROMPT)
+        cl.register("scale", Cline.LOCAL, Cline.PROMPT)
+        cl.register("template", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
 
@@ -349,17 +180,7 @@ def genred(args=None):
             cline.Fname("reduce.red", hcam.RED, cline.Fname.NEW),
         )
 
-        # user comment string
-        comment = cl.get_value(
-            "comment", "user comment to add [<cr>" " for newline to get multilines]", ""
-        )
-        if comment == "":
-            comment = "# There was no user comment\n"
-        else:
-            comment_lines = comment.split("<cr>")
-            comment = "# User comment:\n#\n# " + "\n# ".join(comment_lines)
-
-        # ones you might quite often want to change
+        # calibrations
 
         # bias frame
         bias = cl.get_value(
@@ -368,16 +189,6 @@ def genred(args=None):
             cline.Fname("bias", hcam.HCAM),
             ignore="none",
         )
-        bias = "" if bias is None else bias
-
-        # flat field frame
-        flat = cl.get_value(
-            "flat",
-            "flat field frame ['none' to ignore]",
-            cline.Fname("flat", hcam.HCAM),
-            ignore="none",
-        )
-        flat = "" if flat is None else flat
 
         # dark frame
         dark = cl.get_value(
@@ -386,7 +197,14 @@ def genred(args=None):
             cline.Fname("dark", hcam.HCAM),
             ignore="none",
         )
-        dark = "" if dark is None else dark
+
+        # flat field frame
+        flat = cl.get_value(
+            "flat",
+            "flat field frame ['none' to ignore]",
+            cline.Fname("flat", hcam.HCAM),
+            ignore="none",
+        )
 
         # fringe frame
         fmap = cl.get_value(
@@ -395,288 +213,318 @@ def genred(args=None):
             cline.Fname("fringe", hcam.HCAM),
             ignore="none",
         )
-        if fmap is None:
-            fmap = ""
-            fpair = ""
-            nhalf = ""
-            rmin = ""
-            rmax = ""
-        else:
+        if fmap is not None:
             fpair = cl.get_value(
                 "fpair", "fringe pair file",
                 cline.Fname("fpair", hcam.FRNG),
             )
-            nhalf = cl.get_value(
-                "nhalf", "half-size of fringe measurement regions",
-                2, 0
-            )
-            rmin = cl.get_value(
-                "rmin", "minimum individual fringe ratio", -0.1
-            )
-            rmax = cl.get_value(
-                "rmax", "maximum individual fringe ratio", 1.0
+        else:
+            fpair = None
+
+        seeing = cl.get_value(
+            "seeing",
+            "approximate seeing [arcsec, 0 to ignore]",
+            1.0, 0.
+        )
+        if seeing > 0.:
+            binfac = cl.get_value(
+                "binfac", "binning factor",
+                1, 1
             )
 
-        # hidden parameters
-        inst = cl.get_value(
-            "inst",
-            "instrument (hipercam, ultracam, ultraspec, other)",
-            "hipercam",
-            lvals=["hipercam", "ultracam", "ultraspec", "other"],
+        # template
+        template = cl.get_value(
+            "template",
+            "template reduce file ['none' to ignore]",
+            cline.Fname("template", hcam.RED),
+            ignore="none",
         )
 
-        if inst == "hipercam":
-            warn_levels = """# Warning levels for instrument = HiPERCAM
+        if template is None:
+
+            instrument = cl.get_value(
+                "inst",
+                "the instrument-telescope",
+                "hipercam-gtc",
+                lvals=["hipercam-gtc", "ultracam-ntt", "ultracam-wht", "ultracam-vlt",
+                       "ultraspec-tnt", "other"],
+            )
+
+            if instrument.startswith("hipercam"):
+                warn_levels = """
 warn = 1 50000 64000
 warn = 2 50000 64000
 warn = 3 50000 64000
 warn = 4 50000 64000
 warn = 5 50000 64000
-"""
-            maxcpu = 5
-            cl.set_default("skipbadt", False)
+                """
+                maxcpu = 5
+                skipbadt = False
+                scale = 0.081
+                readout = '4.2'
+                gain = '1.1'
+                nccd = 5
+                ccd = '2'
 
-        elif inst == "ultracam":
-            warn_levels = """# Warning levels for instrument = ULTRACAM
+            elif instrument.startswith("ultracam"):
+                warn_levels = """
 warn = 1 28000 64000
 warn = 2 28000 64000
 warn = 3 50000 64000
-"""
-            maxcpu = 3
-            cl.set_default("skipbadt", True)
+            """
+                maxcpu = 3
+                skipbadt = True
+                readout = '2.8'
+                gain = '1.1'
+                nccd = 3
+                ccd = '2'
+                if instrument.endswith("ntt"):
+                    scale = 0.35
+                elif instrument.endswith("wht"):
+                    scale = 0.30
+                elif instrument.endswith("vlt"):
+                    scale = 0.15
 
-        elif inst == "ultraspec":
-            warn_levels = """# Warning levels for instrument = ULTRASPEC
+            elif instrument.startswith("ultraspec"):
+                warn_levels = """
 warn = 1 60000 64000
-"""
-            maxcpu = 1
-            cl.set_default("skipbadt", True)
+            """
+                maxcpu = 1
+                skipbadt = True
+                scale = 0.45
+                readout = '5.0'
+                gain = '1.1'
+                nccd = 1
+                ccd = '1'
 
-        else:
-            warn_levels = """# No warning levels have been set!!
-# Format: warn = ccd nonlinear saturated, e.g.
-# warn = 1 50000 64000
-"""
-            maxcpu = 20
+            elif instrument == "other":
 
-        if maxcpu > 1:
-            ncpu = cl.get_value(
-                "ncpu", "number of CPUs to use (<= number of CCDs)", 1, 1, maxcpu
-            )
-        else:
-            ncpu = 1
+                # unrecognised instrument need extra stuff
+                nccd = cl.get_value("nccd", "how many CCDs?", 3, 1)
+                if nccd > 1:
+                    ccd = cl.get_value("ccd", "which CCD for the position plot?", 1, 1, nccd)
+                    ccd = str(ccd)
+                else:
+                    ccd = '1'
 
-        if ncpu > 1:
-            ngroup = cl.get_value(
-                "ngroup",
-                "number of frames per group to reduce parallelisation overheads",
-                1,
-                1,
-            )
-        else:
-            ngroup = 1
-
-        skipbadt = cl.get_value("skipbadt", "skip points with bad times or not", True)
-
-        linear = cl.get_value("linear", "linear light curve plot?", False)
-        linear = "yes" if linear else "no"
-
-        extendx = cl.get_value(
-            "extendx", "how much to extend light curve plot [mins]", 10.0, 0.01
-        )
-
-        if inst == "ultraspec":
-            # only one CCD for ULTRASPEC
-            ccd = "1"
-        else:
-            ccd = cl.get_value(
-                "ccd", "label for the CCD used for the position plot", "2"
-            )
-            if ccd not in aper:
-                raise hcam.HipercamError(
-                    "CCD {:s} not found in aperture file {:s}".format(ccd, apfile)
+                # non-linearity warning levels
+                nonlin = cl.get_default("nonlin")
+                if nonlin is not None and len(nonlin) != nccd:
+                    cl.set_default("nonlin", nccd * (50000.,))
+                nonlins = cl.get_value(
+                    "nonlin",
+                    "levels to indicate non-linear behaviour, 1 per CCD",
+                    nccd*(50000.,)
                 )
 
-        location = cl.get_value(
-            "location",
-            "aperture location, f(ixed) or v(ariable)",
-            "v",
-            lvals=["f", "v"],
-        )
-        location = "variable" if location == "v" else "fixed"
-        comm_seeing = "#" if location == "fixed" else ""
-        comm_position = "#" if location == "fixed" else ""
+                # saturation warning levels
+                sat = cl.get_default("sat")
+                if sat is not None and len(sat) != nccd:
+                    cl.set_default("sat", nccd * (62000.,))
+                sats = cl.get_value(
+                    "sat",
+                    "levels to indicate saturation, 1 per CCD",
+                    nccd*(62000.,)
+                )
+                warn_levels = ""
+                for n, (nonlin,sat) in zip(nonlins,sats):
+                    warn_levels += \
+                        f"warn = {n+1} {nonlin} {sat}\n"
+                maxcpu = nccd
 
-        cl.set_default("toffset", 0)
-        toffset = cl.get_value(
-            "toffset",
-            "offset to subtract from the MJD times (to reduce round-off) [days]",
-            0,
-            0,
-        )
+                scale = cl.get_value(
+                    "scale", "image scale [arcsec/unbinned pixel]",
+                    0.3, 0.001
+                )
 
-        smooth_fwhm = cl.get_value(
-            "smoothfwhm", "search smoothing FWHM [binned pixels]", 6.0, 3.0
-        )
+                readout = cl.get_value(
+                    "readout", "readout noise, RMS ADU (float or file name)", "4.5"
+                )
 
-        smooth_fft = cl.get_value("fft", "use FFT when smoothing", False)
+                gain = cl.get_value(
+                    "gain", "gain, electrons/ADU, (float or file name)", "1.1"
+                )
 
-        profile_type = cl.get_value(
-            "method",
-            "profile fit method, g(aussian) or m(offat)",
-            "g",
-            lvals=["g", "m"],
-        )
-        profile_type = "gaussian" if profile_type == "g" else "moffat"
+            else:
+                raise hcam.HipercamError(
+                    "Programming error: instrument unrecognised"
+                )
 
-        beta = cl.get_value("beta", "starting value of beta", 4.0, 3.0)
 
-        beta_max = cl.get_value(
-            "betamax", "maximum value of beta to start consecutive fits", 20.0, beta
-        )
-
-        fwhm = cl.get_value("fwhm", "starting FWHM, unbinned pixels", 5.0, 1.5)
-
-        fwhm_min = cl.get_value("fwhmmin", "minimum FWHM, unbinned pixels", 2, 0.0)
-
-        fwhm_max = cl.get_value(
-            "fwhmmax", "maximum FWHM, unbinned pixels", 100.0, fwhm_min
-        )
-
-        search_half_width = cl.get_value(
-            "searchwidth", "half width for initial searches, unbinned pixels", 11, 3
-        )
-
-        fit_half_width = cl.get_value(
-            "fitwidth", "half width for profile fits, unbinned pixels", 21, 5
-        )
-
-        fit_max_shift = cl.get_value(
-            "maxshift", "maximum non-reference shift, unbinned pixels", 15.0, 0.0
-        )
-
-        thresh = cl.get_value(
-            "thresh", "RMS rejection threshold for fits (sigma)", 5.0, 2.0
-        )
-
-        height_min_ref = cl.get_value(
-            "hminref",
-            "minimum peak height for a fit to reference aperture [counts]",
-            10.0,
-            0.0,
-        )
-
-        height_min_nrf = cl.get_value(
-            "hminnrf",
-            "minimum peak height for a fit to non-reference aperture [counts]",
-            5.0,
-            0.0,
-        )
-
-        fit_alpha = cl.get_value(
-            "alpha",
-            "non-reference aperture fractional shift parameter (range: (0,1])",
-            1.0,
-            1.0e-5,
-            1.0,
-        )
-
-        fit_diff = cl.get_value(
-            "diff", "maximum differential reference aperture shift", 2.0, 1.0e-5
-        )
-
-        rfac = cl.get_value("rfac", "target aperture scale factor", 1.8, 1.0)
-
-        ramin = cl.get_value(
-            "ramin", "minimum target aperture radius [unbinned pixels]", 6.0, 1.0
-        )
-
-        ramax = cl.get_value(
-            "ramax", "maximum target aperture radius [unbinned pixels]", 30.0, ramin
-        )
-
-        sinner = cl.get_value(
-            "sinner", "inner sky aperture radius [unbinned pixels]", 30.0, ramax
-        )
-
-        souter = cl.get_value(
-            "souter", "outer sky aperture radius [unbinned pixels]", 50.0, sinner + 1
-        )
-
-        readout = cl.get_value(
-            "readout", "readout noise, RMS ADU (float or file name)", "4.5"
-        )
-
-        gain = cl.get_value("gain", "gain, electrons/ADU, (float or file name)", "1.1")
-
-        scale = cl.get_value("scale", "image scale [arcsec/unbinned pixel]", 0.3, 0.001)
-
-        psfgfac = cl.get_value(
-            "psfgfac", "multiple of FWHM used to group objects for PSF fitting", 3, 0.1
-        )
-
-        psfwidth = cl.get_value(
-            "psfwidth", "half width for PSF fits, unbinned pixels", 15, 5
-        )
-
-        psfpostweak = cl.get_value(
-            "psfpostweak",
-            "locations during PSF fitting stage, f(ixed) or v(ariable)",
-            "f",
-            lvals=["f", "v"],
-        )
-        psfpostweak = "variable" if psfpostweak == "v" else "fixed"
-
-        demask = cl.get_value(
-            "demask", "correct for badly located focal plane mask?", False
-        )
-
-        if demask:
-            dthresh = cl.get_value(
-                "dthresh", "RMS threshold for rejection in X before median", 3.0, 0.1
-            )
-        else:
-            dthresh = 3.0
+            if ccd not in aper:
+                # make sure 'ccd' is in aper, even if our
+                # favoured one isn't
+                for cnam in aper:
+                    ccd = cnam
+                    break
 
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
 
-    # Generate the extraction lines. Note that the aperture location
-    # parameter maps into the same names as the aperture re-size
-    # parameter
-    extraction = ""
-    for cnam in aper:
-        extraction += (
-            f"{cnam} = {location} normal"
-            f" {rfac:.2f} {ramin:.1f} {ramax:.1f}"
-            f" 2.5 {sinner:.1f} {sinner:.1f}"
-            f" 3.0 {souter:.1f} {souter:.1f}\n"
-        )
+
+    if template is not None:
+
+        # read the template to define many unprompted values
+        # shortcut names defines
+        vals = reduction.Rfile.read(template, False)
+        gsec = vals['general']
+        instrument = gsec.get('instrument')
+        scale = gsec.get('scale')
+        warn_levels = ''.join(gsec['warn'])
+
+        asec = vals['apertures']
+        psfsec = vals['psf_photom']
+        sksec = vals['sky']
+        csec = vals['calibration']
+        lcsec = vals['lcplot']
+        lsec = vals['light']
+        psec = vals.get('position',None)
+        tsec = vals.get('transmission',None)
+        ssec = vals.get('seeing',None)
+
+    else:
+
+        # define default values for unprompted params.
+        if seeing == 0.:
+            seeing = 1.5
+            binfac = 1
+
+        # same name as read into template
+        vals = {}
+
+        # general section
+        gsec = vals['general'] = {}
+        gsec['instrument'] = instrument
+        gsec['scale'] = scale
+        gsec['ldevice'] = '1/xs'
+        gsec['lwidth'] = 0.
+        gsec['lheight'] = 0.
+        gsec['idevice'] = '2/xs'
+        gsec['iwidth'] = 0.
+        gsec['iheight'] = 0.
+        gsec['toffset'] = 0
+        gsec['skipbadt'] = 'yes'
+        gsec['ncpu'] = 1
+        gsec['ngroup'] = 1
+
+        # aperture section
+        asec = vals['apertures'] = {}
+        asec['location'] = 'variable'
+        asec['search_smooth_fft'] = 'no'
+        asec['fit_method'] = 'moffat'
+        asec['fit_beta'] = 5.0
+        asec['fit_beta_max'] = 20.0
+        asec['fit_ndiv'] = 0
+        asec['fit_fwhm_fixed'] = 'no'
+        asec['fit_thresh'] = 8.
+        asec['fit_height_min_ref'] = 40.
+        asec['fit_height_min_nrf'] = 10.
+        asec['fit_alpha'] = 0.1
+
+        # sky
+        sksec = vals['sky'] = {}
+        sksec['error'] = 'variance'
+        sksec['method'] = 'clipped'
+        sksec['thresh'] = 3.0
+
+        # calibration
+        csec = vals['calibration'] = {}
+        csec['crop'] = 'yes'
+        csec['nhalf'] = 3
+        csec['rmin'] = -1.
+        csec['rmax'] = 2.
+        csec['readout'] = readout
+        csec['gain'] = gain
+
+        # PSF photom
+        psfsec = vals['psf_photom'] = {}
+        psfsec['gfac'] = 3.0
+        psfsec['fit_half_width'] = 15.0
+        psfsec['positions'] = 'fixed'
+
+        # light curve
+        lcsec = vals['lcplot'] = {}
+        lcsec['xrange'] = 0
+        lcsec['extend_x'] = 10.0
+
+        # light
+        lsec = vals['light'] = {}
+        lsec['linear'] = 'no'
+        lsec['y_fixed'] = 'no'
+        lsec['y1'] = 0
+        lsec['y2'] = 0
+        lsec['extend_y'] = 0.1
+
+        # position
+        psec = vals['position'] = {}
+        psec['height'] = 0.5
+        psec['x_fixed'] = 'no'
+        psec['x_min'] = -5.0
+        psec['x_max'] = +5.0
+        psec['y_fixed'] = 'no'
+        psec['y_min'] = -5.0
+        psec['y_max'] = +5.0
+        psec['extend_y'] = 0.2
+
+        # transmission
+        tsec = vals['transmission'] = {}
+        tsec['height'] = 0.5
+        tsec['ymax'] = 110.
+
+        # seeing
+        ssec = vals['seeing'] = {}
+        ssec['height'] = 0.5
+        ssec['ymax'] = 2.999
+        ssec['y_fixed'] = 'no'
+        ssec['extend_y'] = 0.2
+
+        fsec = vals['focal_mask'] = {}
+        fsec['demask'] = 'no'
+        fsec['dthresh'] = 3.0
+
+    # apply seeing/instrument-related fixes...
+    # *always* gets run in the no template case
+    if seeing > 0.:
+        asec['search_half_width'] = max(3., 4*seeing/scale)
+        asec['search_smooth_fwhm'] = max(2.,seeing/scale/binfac)
+        asec['fwhm_min'] = 2*binfac
+        asec['fwhm'] = max(2*binfac, seeing/scale)
+        asec['fwhm_max'] = 5.*seeing/scale
+        asec['fit_max_shift'] = seeing/scale/3.
+        asec['fit_half_width'] = max(3., 3*seeing/scale)
+        asec['fit_diff'] = max(1., seeing/scale/4.)
+
+        rfac = 1.8
+        ramin = 3*binfac
+        ramax = max(ramin,2.5*rfac*seeing/scale)
+        sinner = ramax
+        souter = 1.5*sinner
 
     # standard colours for CCDs
-    if inst == "hipercam":
+    if instrument.startswith("hipercam"):
         CCD_COLS = {
-            "1": "purple",
+            "1": "blue",
             "2": "green",
             "3": "orange",
             "4": "red",
             "5": "darkred",
         }
 
-    elif inst == "ultracam":
+    elif instrument.startswith("ultracam"):
         CCD_COLS = {
             "1": "red",
             "2": "green",
             "3": "blue",
         }
 
-    elif inst == "ultraspec":
+    elif instrument.startswith("ultraspec"):
         CCD_COLS = {
             "1": "green",
         }
 
-    else:
+    elif instrument == "other":
+        # 'other'
         CCD_COLS = {
             "1": "green",
             "2": "blue",
@@ -684,214 +532,253 @@ warn = 1 60000 64000
             "4": "orange",
             "5": "purple",
         }
+    else:
+        raise hcam.HipercamError(
+            "Programming error: instrument unrecognised"
+        )
+
+    # Extraction lines
+    extraction = ""
+    if template is None:
+        # generate one for each CCD
+        for cnam in aper:
+            extraction += (
+                f"{cnam} = variable normal"
+                f" {rfac:.2f} {ramin:.1f} {ramax:.1f}"
+                f" 2.5 {sinner:.1f} {sinner:.1f}"
+                f" 3.0 {souter:.1f} {souter:.1f}\n"
+            )
+    else:
+        # pass through unchanged where possible if
+        # a template being used but check for consistency
+        esec = template['extraction']
+        for cnam, lst in esec.items():
+            if cnam in aper:
+                # unpack items
+                ltype,etype,rfac,ramin,ramax,sifac,simin,simax,sofac,somin,somax = lst
+                extraction += (
+                    f"{cnam} = variable normal"
+                    f" {rfac:.2f} {ramin:.1f} {ramax:.1f}"
+                    f" {sifac:.2f} {simin:.1f} {simax:.1f}"
+                    f" {sofac:.2f} {somin:.1f} {somax:.1f}\n"
+                )
+            else:
+                warnings.warn(
+                    f'CCD {nam} has an extraction line in {template} but no apertures in {apfile} and will be skipped'
+                )
+
+        # warn if there are apertures for a CCD but no extraction line
+        for cnam in aper:
+            if cnam not in esec:
+                warnings.warn(
+                    f'CCD {nam} has apertures defined in {apfile} but no extraction line in {template}'
+                )
 
     # Generate the light curve plot lines
     light_plot = ""
     no_light = True
-    for cnam in aper:
-        ccdaper = aper[cnam]
-        if "1" in ccdaper and "2" in ccdaper:
-            light_plot += (
-                "plot = {:s} 1 2 0 1 {:10s} !  "
-                " # ccd, targ, comp, off, fac, dcol, ecol\n"
-            ).format(cnam, CCD_COLS.get(cnam,"black"))
-            no_light = False
 
-        elif "1" in ccdaper and "2" not in ccdaper:
-            light_plot += (
-                "plot = {:s} 1 ! 0 1 {:10s} !  "
-                " # ccd, targ, comp, off, fac, dcol, ecol\n"
-            ).format(cnam, CCD_COLS.get(cnam,"black"))
-            no_light = False
+    if template is None:
+        # Here we assume target in aperture 1, main comparison in aperture 2
+        for cnam in aper:
+            ccdaper = aper[cnam]
+            if "1" in ccdaper and "2" in ccdaper:
+                # favour 2 as the comparison
+                light_plot += (
+                    f'plot = {cnam} 1 2 0 1 {CCD_COLS.get(cnam,"black")} !  '
+                    " # ccd, targ, comp, off, fac, dcol, ecol\n"
+                )
+                no_light = False
 
-        if "2" in ccdaper and "3" in ccdaper:
-            light_plot += (
-                "plot = {:s} 3 2 0 1 {:10s} !  "
-                " # ccd, targ, domp, off, fac, dcol, ecol\n"
-            ).format(cnam, CCD_COLS.get(cnam,"black"))
-            no_light = False
+            elif "1" in ccdaper and "3" in ccdaper:
+                # but try 3 if need be
+                light_plot += (
+                    f'plot = {cnam} 1 3 0 1 {CCD_COLS.get(cnam,"black")} !  '
+                    " # ccd, targ, comp, off, fac, dcol, ecol\n"
+                )
+                no_light = False
+
+            elif "1":
+                # just plot 1 as last resort
+                light_plot += (
+                    f'plot = {cnam} 1 ! 0 1 {CCD_COLS.get(cnam,"black")} !  '
+                    " # ccd, targ, comp, off, fac, dcol, ecol\n"
+                )
+                no_light = False
+
+    else:
+
+        # template case: pass as many of the lines as we can but
+        # run checks of apertures
+        plots = template['light']['plot']
+        for pl in plots:
+            cnam = pl['cnam']
+            targ = pl['targ']
+            comp = pl['comp']
+            if cnam in aper and targ in aper[cnam] and (comp == '!' or comp in aper[cnam]):
+                light_plot += (
+                    f"plot = {cnam} {targ} {comp} {pl['off']} {pl['fac']} {pl['dcol']} {pl['ecol']}"
+                    " # ccd, targ, comp, off, fac, dcol, ecol\n"
+                )
+                no_light = False
+            else:
+                warnings.warn(
+                    "Light curve plot line:\n"
+                    f"plot = {cnam} {targ} {comp} {pl['off']} {pl['fac']} {pl['dcol']} {pl['ecol']}\n"
+                    f"from {template} is incompatible with {apfile} and has been skipped"
+                )
 
     if no_light:
         raise hcam.HipercamError(
-            "Found no targets for light curve plots in any"
-            " CCD; cannot make light curve plot"
+            "Found no targets for light curve plots in any CCD; cannot make light "
+            "curve plot. Needs at least aperture '1' defined and preferably '2' as well,"
+            "for at least one CCD"
         )
 
-    # Generate the position plot lines
+    # Generate the position plot lines. Favour the comparisons first, then the target.
     position_plot = ""
-    ccdaper = aper[ccd]
     no_position = True
-    if "2" in ccdaper:
-        position_plot += (
-            "{:s}plot = {:s} 2 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-        ).format(comm_position, ccd, CCD_COLS.get(cnam,"black"))
-        no_position = False
+    if template is None:
+        ccdaper = aper[ccd]
+        for targ in ('2','3','1'):
+            if targ in ccdaper:
+                position_plot += (
+                    f'plot = {ccd} {targ} '
+                    f'{CCD_COLS.get(cnam,"black")} ! '
+                    '# ccd, targ, dcol, ecol\n'
+                )
+                no_position = False
+                break
 
-    elif "3" in ccdaper:
-        position_plot += (
-            "{:s}plot = {:s} 3 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-        ).format(comm_position, ccd, CCD_COLS.get(cnam,"black"))
-        no_position = False
+        if no_position:
+            warnings.warn(
+                f"Targets 2, 1, or 3 not found in CCD = {ccd} in {apfile}"
+            )
 
-    elif "1" in ccdaper:
-        position_plot += (
-            "{:s}plot = {:s} 1 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-        ).format(comm_position, ccd, CCD_COLS.get(cnam,"black"))
-        no_position = False
+    elif psec is not None:
+        plots = psec['plot']
+        for pl in plots:
+            cnam, targ, dcol, ecol = pl
+            if cnam in aper and targ in aper[cnam]:
+                position_plot += (
+                    f'plot = {cnam} {apnam} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
+                )
+                no_position = False
+            else:
+                warnings.warn(
+                    f"Position target {targ} / CCD {cnam} not found in {apfile}; will skip"
+                )
 
     if no_position:
-        raise hcam.HipercamError(
-            "Targets 1, 2 and 3 not found in "
-            "CCD = {:s}; cannot make position plot".format(ccd)
-        )
+        warnings.warn(f"No position plot will be made")
 
-    # Generate the transmission plot lines
+    # Generate the transmission plot lines, again comparisons first,
+    # target only if desperate.
     transmission_plot = ""
     no_transmission = True
-    for cnam in aper:
-        ccdaper = aper[cnam]
-        if "2" in ccdaper:
-            transmission_plot += (
-                "plot = {:s} 2 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(cnam, CCD_COLS.get(cnam,"black"))
-            no_transmission = False
+    if template is None:
+        for cnam in aper:
+            ccdaper = aper[cnam]
+            for targ in ('2','3','1'):
+                if targ in ccdaper:
+                    transmission_plot += (
+                        f'plot = {cnam} {targ} '
+                        f'{CCD_COLS.get(cnam,"black")} ! '
+                        f"# ccd, targ, dcol, ecol\n"
+                    )
+                    no_transmission = False
+                    break
 
-        elif "3" in ccdaper:
-            transmission_plot += (
-                "plot = {:s} 3 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(cnam, CCD_COLS.get(cnam,"black"))
-            no_transmission = False
+        if no_transmission:
+            warning.warn(
+                f"Targets 2, 3, or 1 not found in any CCD within {apfile}; no transmission plot"
+            )
 
-        elif "1" in ccdaper:
-            transmission_plot += (
-                "plot = {:s} 1 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(cnam, CCD_COLS.get(cnam,"black"))
-            no_transmission = False
+    elif tsec is not None:
+        plots = tsec['plot']
+        for pl in plots:
+            cnam, targ, dcol, ecol = pl
+            if cnam in aper and targ in aper[cnam]:
+                transmission_plot += (
+                    f'plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
+                )
+                no_transmission = False
+            else:
+                warnings.warn(
+                    f"Transmission target {targ} / CCD {cnam} not found in {apfile}; will skip"
+                )
 
     if no_transmission:
-        raise hcam.HipercamError(
-            "Targets 1, 2 and 3 not found in any CCDs;" " cannot make transmission plot"
-        )
+        warnings.warn(f"No transmission plot will be made")
 
-    # Generate the seeing plot lines
+    # Generate the seeing plot lines. Prioritise the target in this case.
     seeing_plot = ""
     no_seeing = True
-    for cnam in aper:
-        ccdaper = aper[cnam]
-        if "1" in ccdaper and not ccdaper["1"].linked:
-            seeing_plot += (
-                "{:s}plot = {:s} 1 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(comm_seeing, cnam, CCD_COLS.get(cnam,"black"))
-            no_seeing = False
+    if template is None:
+        for cnam in aper:
+            ccdaper = aper[cnam]
+            for targ in ('1','2','3'):
+                if targ in ccdaper and not ccdaper[targ].linked:
+                    seeing_plot += (
+                        f"plot = {cnam} {targ}"
+                        f' {CCD_COLS.get(cnam,"black")} ! '
+                        "# ccd, targ, dcol, ecol\n"
+                    )
+                    no_seeing = False
+                    break
 
-        elif "2" in ccdaper and not ccdaper["2"].linked:
-            seeing_plot += (
-                "{:s}plot = {:s} 2 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(comm_seeing, cnam, CCD_COLS.get(cnam,"black"))
-            no_seeing = False
+        if no_seeing:
+            raise hcam.HipercamError(
+                "Targets 1, 2 and 3 not found in any CCD"
+                " (or they are linked); cannot make seeing plot"
+            )
 
-        elif "3" in ccdaper and not ccdaper["3"].linked:
-            seeing_plot += (
-                "{:s}plot = {:s} 3 {:10s} !  " " # ccd, targ, dcol, ecol\n"
-            ).format(comm_seeing, cnam, CCD_COLS.get(cnam,"black"))
-            no_seeing = False
+    elif ssec is not None:
+        plots = tsec['plot']
+        for pl in plots:
+            cnam, targ, dcol, ecol = pl
+            if cnam in aper and targ in aper[cnam] and not aper[cnam][targ].linked:
+                seeing_plot += (
+                    f'plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
+                )
+                no_seeing = False
+            else:
+                warnings.warn(
+                    f"Seeing target {targ} / CCD {cnam} not found or linked in {apfile}; will skip"
+                )
 
     if no_seeing:
-        raise hcam.HipercamError(
-            "Targets 1, 2 and 3 not found in any CCD"
-            " (or they are linked); cannot make seeing plot"
-        )
+        warnings.warn(f"No seeing plot will be made")
 
-    # monitor targets (whole lot by default)
-    targs = set()
-    for cnam in aper:
-        ccdaper = aper[cnam]
-        for targ in ccdaper:
-            targs.add(targ)
-    monitor = ""
-    for targ in sorted(targs):
-        monitor += (
-            "{:s} = NO_EXTRACTION TARGET_SATURATED TARGET_AT_EDGE"
-            " TARGET_NONLINEAR NO_SKY NO_FWHM NO_DATA SKY_AT_EDGE\n"
-        ).format(targ)
+    # monitor targets (all of them by default)
+    if template is None:
+        targs = set()
+        for cnam in aper:
+            ccdaper = aper[cnam]
+            for targ in ccdaper:
+                targs.add(targ)
+        monitor = ""
+        for targ in sorted(targs):
+            monitor += (
+                f"{targ} = NO_EXTRACTION TARGET_SATURATED TARGET_AT_EDGE"
+                " TARGET_NONLINEAR NO_SKY NO_FWHM NO_DATA SKY_AT_EDGE\n"
+            )
+    else:
+        monitor = ""
+        msec = template['monitor']
+        rlook = dict([(k,v) for v,k in hcam.FLAGS])
+        for targ, masks in msec:
+            smasks = ' '.join([rlook[mask] for mask in masks])
+            monitor += f'{targ} = {smasks}'
 
     # time stamp
     tstamp = strftime("%d %b %Y %H:%M:%S (UTC)", gmtime())
 
-    # finally write out the reduce file.
+    # Finally, write out the reduce file ...
     with open(rfile, "w") as fout:
         # write out file
         fout.write(
-            TEMPLATE.format(
-                version=hcam.REDUCE_FILE_VERSION,
-                apfile=apfile,
-                fwhm=fwhm,
-                fwhm_min=fwhm_min,
-                fwhm_max=fwhm_max,
-                extraction=extraction,
-                bias=bias,
-                flat=flat,
-                dark=dark,
-                fmap=fmap,
-                fpair=fpair,
-                nhalf=nhalf,
-                rmin=rmin,
-                rmax=rmax,
-                smooth_fwhm=smooth_fwhm,
-                linear=linear,
-                light_plot=light_plot,
-                position_plot=position_plot,
-                transmission_plot=transmission_plot,
-                seeing_plot=seeing_plot,
-                monitor=monitor,
-                comment=comment,
-                tstamp=tstamp,
-                hipercam_version=hipercam_version,
-                location=location,
-                comm_seeing=comm_seeing,
-                extendx=extendx,
-                comm_position=comm_position,
-                scale=scale,
-                warn_levels=warn_levels,
-                ncpu=ncpu,
-                ngroup=ngroup,
-                search_half_width=search_half_width,
-                fit_half_width=fit_half_width,
-                profile_type=profile_type,
-                height_min_ref=height_min_ref,
-                height_min_nrf=height_min_nrf,
-                beta=beta,
-                beta_max=beta_max,
-                thresh=thresh,
-                readout=readout,
-                gain=gain,
-                fit_max_shift=fit_max_shift,
-                fit_alpha=fit_alpha,
-                fit_diff=fit_diff,
-                psfgfac=psfgfac,
-                psfpostweak=psfpostweak,
-                psfwidth=psfwidth,
-                toffset=toffset,
-                smooth_fft="yes" if smooth_fft else "no",
-                skipbadt="yes" if skipbadt else "no",
-                demask="yes" if demask else "no",
-                dthresh=dthresh,
-            )
-        )
-
-    print("Reduce file written to {:s}".format(rfile))
-
-
-#################################################################
-#
-# Below is the template that defines reduce files. It is a single
-# string with various string format section {} which get replaced
-# by the script. All are done as keys to make the format statement
-# easier to follow.
-#
-#################################################################
-
-TEMPLATE = """#
+            f"""#
 # This is a HiPERCAM "reduce file" which defines the operation of the
 # reduce script. It was written by the HiPERCAM pipeline command
 # 'genred'.  It consists of a series of sections each of which
@@ -903,10 +790,8 @@ TEMPLATE = """#
 
 # File written on {tstamp}
 #
-# HiPERCAM pipeline version: {hipercam_version}
+# HiPERCAM pipeline version: {hcam.REDUCE_FILE_VERSION}
 #
-{comment}
-
 # Start with some general items that tend not to change
 # much. 'version' is the version of the reduce file format which
 # changes more slowly than the software does. It must match the same
@@ -921,22 +806,25 @@ TEMPLATE = """#
 # later version dates.
 
 [general]
-version = {version} # must be compatible with the version in reduce
+version = {hcam.REDUCE_FILE_VERSION} # must be compatible with the version in reduce
 
-ldevice = 1/xs # PGPLOT plot device for light curve plots
-lwidth = 0 # light curve plot width, inches, 0 to let program choose
-lheight = 0 # light curve plot height, inches
+instrument = {gsec['instrument']} # instrument
+scale = {gsec['scale']} # pixel scale, arcsec/pixel
 
-idevice = 2/xs # PGPLOT plot device for image plots [if implot True]
-iwidth = 0 # image curve plot width, inches, 0 to let program choose
-iheight = 0 # image curve plot height, inches
+ldevice = {gsec['ldevice']} # PGPLOT plot device for light curve plots
+lwidth = {gsec['lwidth']} # light curve plot width, inches, 0 to let program choose
+lheight = {gsec['lheight']} # light curve plot height, inches
 
-toffset = {toffset:d} # offset subtracted from the MJD
+idevice = {gsec['idevice']} # PGPLOT plot device for image plots [if implot True]
+iwidth = {gsec['iwidth']} # image curve plot width, inches, 0 to let program choose
+iheight = {gsec['iheight']} # image curve plot height, inches
+
+toffset = {gsec['toffset']} # integer offset to subtract from the MJD
 
 # skip points with bad times in plots. HiPERCAM has a problem in not
 # correctly indicating bad times so one does not usually want to
 # skip "bad time" points, whereas one should for ULTRACAM and ULTRASPEC.
-skipbadt = {skipbadt}
+skipbadt = {gsec['skipbadt']}
 
 # series of count levels at which warnings will be triggered for (a)
 # non linearity and (b) saturation. Each line starts 'warn =', and is
@@ -963,8 +851,8 @@ skipbadt = {skipbadt}
 # it already seems to parallelise and it only gets worse if I split things
 # up. But no harm trying.
 
-ncpu = {ncpu}
-ngroup = {ngroup}
+ncpu = {gsec['ncpu']}
+ngroup = {gsec['ngroup']}
 
 # The next section '[apertures]' defines how the apertures are
 # re-positioned from frame to frame. Apertures are re-positioned
@@ -1057,27 +945,27 @@ ngroup = {ngroup}
 
 [apertures]
 aperfile = {apfile} # file of software apertures for each CCD
-location = {location} # aperture locations: 'fixed' or 'variable'
+location = {asec['location']} # aperture locations: 'fixed' or 'variable'
 
-search_half_width = {search_half_width:d} # for initial search for objects around previous position, unbinned pixels
-search_smooth_fwhm = {smooth_fwhm:.1f} # smoothing FWHM, binned pixels
-search_smooth_fft = {smooth_fft} # use FFTs for smoothing, 'yes' or 'no'.
+search_half_width = {asec['search_half_width']:.1f} # for initial search for objects around previous position, unbinned pixels
+search_smooth_fwhm = {asec['search_smooth_fwhm']:.1f} # smoothing FWHM, binned pixels
+search_smooth_fft = {asec['search_smooth_fft']} # use FFTs for smoothing, 'yes' or 'no'.
 
-fit_method = {profile_type} # gaussian or moffat
-fit_beta = {beta:.1f} # Moffat exponent
-fit_beta_max = {beta_max:.1f} # max Moffat expt
-fit_fwhm = {fwhm:.1f} # FWHM, unbinned pixels
-fit_fwhm_min = {fwhm_min:.1f} # Minimum FWHM, unbinned pixels [MUST be < fit_fwhm!]
-fit_fwhm_max = {fwhm_max:.1f} # Maximum FWHM, unbinned pixels
-fit_ndiv = 0 # sub-pixellation factor
-fit_fwhm_fixed = no # Might want to set = 'yes' for defocussed images
-fit_half_width = {fit_half_width:d} # for fit, unbinned pixels
-fit_thresh = {thresh:.2f} # RMS rejection threshold for fits
-fit_height_min_ref = {height_min_ref:.1f} # minimum height to accept a fit, reference aperture
-fit_height_min_nrf = {height_min_nrf:.1f} # minimum height to accept a fit, non-reference aperture
-fit_max_shift = {fit_max_shift:.1f} # max. non-ref. shift, unbinned pixels.
-fit_alpha = {fit_alpha:.2f} # Fraction of non-reference aperture shift to apply
-fit_diff = {fit_diff:.2f} # Maximum differential shift of multiple reference apertures
+fit_method = {asec['fit_method']} # gaussian or moffat
+fit_beta = {asec['fit_beta']:.1f} # Moffat exponent
+fit_beta_max = {asec['fit_beta_max']:.1f} # max Moffat expt
+fit_fwhm = {asec['fwhm']:.1f} # FWHM, unbinned pixels
+fit_fwhm_min = {asec['fwhm_min']:.1f} # Minimum FWHM, unbinned pixels [MUST be < fit_fwhm!]
+fit_fwhm_max = {asec['fwhm_max']:.1f} # Maximum FWHM, unbinned pixels
+fit_ndiv = {asec['fit_ndiv']} # sub-pixellation factor
+fit_fwhm_fixed = {asec['fit_fwhm_fixed']} # Might want to set = 'yes' for defocussed images
+fit_half_width = {asec['fit_half_width']:.1f} # for fit, unbinned pixels
+fit_thresh = {asec['fit_thresh']:.2f} # RMS rejection threshold for fits
+fit_height_min_ref = {asec['fit_height_min_ref']:.1f} # minimum height to accept a fit, reference aperture
+fit_height_min_nrf = {asec['fit_height_min_nrf']:.1f} # minimum height to accept a fit, non-reference aperture
+fit_max_shift = {asec['fit_max_shift']:.1f} # max. non-ref. shift, unbinned pixels.
+fit_alpha = {asec['fit_alpha']:.2f} # Fraction of non-reference aperture shift to apply
+fit_diff = {asec['fit_diff']:.2f} # Maximum differential shift of multiple reference apertures, unbinned
 
 # The next lines define how the apertures will be re-sized and how the
 # flux will be extracted from the aperture. There is one line per CCD
@@ -1126,9 +1014,9 @@ fit_diff = {fit_diff:.2f} # Maximum differential shift of multiple reference ape
 # sources.
 
 [psf_photom]
-gfac = {psfgfac:.1f}  # multiple of the FWHM to use in grouping objects
-fit_half_width = {psfwidth:d}  # size of window used to collect the data to do the fitting
-positions = {psfpostweak:s}   # 'fixed' or 'variable'
+gfac = {psfsec['gfac']:.1f}  # multiple of the FWHM to use in grouping objects
+fit_half_width = {psfsec['fit_half_width']:.1f}  # size of window used to collect the data to do the fitting
+positions = {psfsec['positions']}   # 'fixed' or 'variable'
 
 # Next lines determine how the sky background level is
 # calculated. Note you can only set error = variance if method =
@@ -1136,9 +1024,9 @@ positions = {psfpostweak:s}   # 'fixed' or 'variable'
 # noticable steps in light curves. It's here as a comparator.
 
 [sky]
-method = clipped # 'clipped' | 'median'
-error  = variance # 'variance' | 'photon': first uses actual variance of sky
-thresh = 3. # threshold in terms of RMS for 'clipped'
+method = {sksec['method']} # 'clipped' | 'median'
+error  = {sksec['error']} # 'variance' | 'photon': first uses actual variance of sky
+thresh = {sksec['thresh']:.1f} # threshold in terms of RMS for 'clipped'
 
 # Calibration frames and constants
 
@@ -1164,19 +1052,18 @@ thresh = 3. # threshold in terms of RMS for 'clipped'
 # a long exposure compared to the data.
 
 [calibration]
-crop = yes # Crop calibrations to match the data
-bias = {bias} # Bias frame, blank to ignore
-flat = {flat} # Flat field frame, blank to ignore
-dark = {dark} # Dark frame, blank to ignore
+crop = {csec['crop']} # Crop calibrations to match the data
+bias = {'' if bias is None else bias} # Bias frame, blank to ignore
+flat = {'' if flat is None else flat} # Flat field frame, blank to ignore
+dark = {'' if dark is None else dark} # Dark frame, blank to ignore
+fmap = {'' if fmap is None else fmap} # Fringe map frame, blank to ignore
+fpair = {'' if fpair is None else fpair} # File of fringe pairs, ignored if fmap blank
 
-fmap = {fmap} # Fringe map frame, blank to ignore
-fpair = {fpair} # File of fringe pairs, ignored if fmap =""
-nhalf = {nhalf} # Half-size of region used for fringe ratios, ignored if fmap =""
-rmin = {rmin} # Mininum acceptable individual fmap ratio, ignored if fmap =""
-rmax = {rmax} # Maximum acceptable individual fmap ratio, ignored if fmap =""
-
-readout = {readout} # RMS ADU. Float or string name of a file or "!" to estimate on the fly
-gain = {gain} # Gain, electrons/ADU. Float or string name of a file
+nhalf = {csec['nhalf']} # Half-size of region used for fringe ratios, binned pix, ignored if fmap blank=""
+rmin = {csec['rmin']:.2f} # Mininum acceptable individual fmap ratio, ignored if fmap blank
+rmax = {csec['rmax']:.2f} # Maximum acceptable individual fmap ratio, ignored if fmap blank
+readout = {csec['readout']} # RMS ADU. Float or string name of a file or "!" to estimate on the fly
+gain = {csec['gain']} # Gain, electrons/ADU. Float or string name of a file
 
 # The light curve plot which consists of light curves, X & Y
 # poistions, the transmission and seeing. All but the light curves can
@@ -1184,8 +1071,8 @@ gain = {gain} # Gain, electrons/ADU. Float or string name of a file
 # general parameters.
 
 [lcplot]
-xrange  = 0 # maximum range in X to plot (minutes), <= 0 for everything
-extend_x = {extendx:.2f} # amount by which to extend xrange, minutes.
+xrange  = {lcsec['xrange']} # maximum range in X to plot (minutes), <= 0 for everything
+extend_x = {lcsec['extend_x']} # amount by which to extend xrange, minutes.
 
 # The light curve panel (must be present). Mostly obvious, then a
 # series of lines, each starting 'plot' which specify one light curve
@@ -1197,72 +1084,140 @@ extend_x = {extendx:.2f} # amount by which to extend xrange, minutes.
 # height and all others are scaled relative to this.
 
 [light]
-linear  = {linear} # linear vertical scale (else magnitudes): 'yes' or 'no'
-y_fixed = no # keep a fixed vertical range or not: 'yes' or 'no'
-y1 = 0 # initial lower y value
-y2 = 0 # initial upper y value. y1=y2 for auto scaling
-extend_y = 0.1 # fraction of plot height to extend when rescaling
+linear  = {lsec['linear']} # linear vertical scale (else magnitudes): 'yes' or 'no'
+y_fixed = {lsec['y_fixed']} # keep a fixed vertical range or not: 'yes' or 'no'
+y1 = {lsec['y1']} # initial lower y value
+y2 = {lsec['y2']} # initial upper y value. y1=y2 for auto scaling
+extend_y = {lsec['extend_y']} # fraction of plot height to extend when rescaling
 
 # line or lines defining the targets to plot
 {light_plot}
+"""
+        )
 
+        # position plot (optional)
+        if no_position:
+            fout.write(
+                f"""# The X,Y position panel. Uncomment to show
 
-# The X,Y position panel. Can be commented out if you don't want it
-# but make sure to comment it out completely, section name and all
-# parameters.  You can have multiple plot lines.
+#[position]
+#height = 0.5 # height relative to light curve plot
+#x_fixed = no # keep X-position vertical range fixed
+#x_min = -5 # lower limit for X-position
+#x_max = +5 # upper limit for X-position
+#y_fixed = no # keep Y-position vertical range fixed
+#y_min = -5 # lower limit for Y-position
+#y_max = +5 # upper limit for Y-position
+#extend_y = 0.2 # Vertical extension fraction if limits exceeded
 
-{comm_position}[position]
-{comm_position}height = 0.5 # height relative to light curve plot
-{comm_position}x_fixed = no # keep X-position vertical range fixed
-{comm_position}x_min = -5 # lower limit for X-position
-{comm_position}x_max = +5 # upper limit for X-position
-{comm_position}y_fixed = no # keep Y-position vertical range fixed
-{comm_position}y_min = -5 # lower limit for Y-position
-{comm_position}y_max = +5 # upper limit for Y-position
-{comm_position}extend_y = 0.2 # Vertical extension fraction if limits exceeded
+## line or lines defining the targets to plot
+# plot = 1 1 darkred ! # ccd, targ, dcol, ecol
+"""
+            )
+
+        else:
+            fout.write(
+                f"""# The X,Y position panel. Comment *every* line
+# if you don't want it.
+
+[position]
+height = {psec['height']} # height relative to light curve plot
+x_fixed = {psec['x_fixed']} # keep X-position vertical range fixed
+x_min = {psec['x_min']} # lower limit for X-position
+x_max = {psec['x_max']} # upper limit for X-position
+y_fixed = {psec['y_fixed']} # keep Y-position vertical range fixed
+y_min = {psec['y_min']} # lower limit for Y-position
+y_max = {psec['y_max']} # upper limit for Y-position
+extend_y = {psec['extend_y']} # Vertical extension fraction if limits exceeded
 
 # line or lines defining the targets to plot
 {position_plot}
+"""
+            )
 
-# The transmission panel. Can be commented out if you don't want one
-# but make sure to comment it out completely, section name and all
-# parameters.  You can have multiple plot lines. This simply plots the
-# flux in whatever apertures are chosen, scaling them by their maximum
-# (hence one can sometimes find that what you thought was 100%
-# transmission was actually only 50% revealed as the cloud clears).
+        # Transmission plot, optional
+        if no_transmission:
+            fout.write(
+                f"""# The transmission panel. Uncomment if you want it
+# Simply plots the flux in whatever apertures are chosen,
+# scaling them by their maximum (hence one can sometimes
+# find that what you thought was 100% transmission was
+# actually only 50% revealed as the cloud clears).
+
+#[transmission]
+#height = 0.5 # height relative to the light curve plot
+#ymax = 110 # Maximum transmission to plot (>= 100 to slow replotting)
+
+## line or lines defining the targets to plot
+# plot = 1 2 green ! # ccd, targ, dcol, ecol
+"""
+            )
+        else:
+            fout.write(
+                f"""# The transmission panel. If you comment it out,
+# comment *every* line.
+# Simply plots the flux in whatever apertures are chosen,
+# scaling them by their maximum (hence one can sometimes
+# find that what you thought was 100% transmission was
+# actually only 50% revealed as the cloud clears).
 
 [transmission]
-height = 0.5 # height relative to the light curve plot
-ymax = 110 # Maximum transmission to plot (>= 100 to slow replotting)
+height = {tsec['height']} # height relative to the light curve plot
+ymax = {tsec['ymax']} # Maximum transmission to plot (>= 100 to slow replotting)
 
 # line or lines defining the targets to plot
 {transmission_plot}
+"""
+            )
 
-# The seeing plot. Can be commented out if you don't want one but make
+        if no_seeing:
+            fout.write(
+                f"""# The seeing panel. Uncomment if you want it.
+# You can have multiple plot lines. Don't choose linked
+# targets as their FWHMs are not measured.
+
+#[seeing]
+#height = 0.5 # height relative to the light curve plot
+#ymax = 2.999 # Initial maximum seeing
+#y_fixed = no # fix the seeing scale (or not)
+#extend_y = 0.2 # Y extension fraction if out of range and not fixed
+
+## line or lines defining the targets to plot
+# plot = 1 2 green ! # ccd, targ, dcol, ecol
+"""
+            )
+
+        else:
+            fout.write(
+                f"""# The seeing panel. Can be commented out if you don't want one but make
 # sure to comment it out completely, section name and all
 # parameters. You can have multiple plot lines. Don't choose linked
 # targets as their FWHMs are not measured.
 
-{comm_seeing}[seeing]
-{comm_seeing}height = 0.5 # height relative to the light curve plot
-{comm_seeing}ymax = 1.999 # Initial maximum seeing
-{comm_seeing}y_fixed = no # fix the seeing scale (or not)
-{comm_seeing}scale = {scale:.2f} # Arcsec per unbinned pixel
-{comm_seeing}extend_y = 0.2 # Y extension fraction if out of range and not fixed
+[seeing]
+height = {ssec['height']} # height relative to the light curve plot
+ymax = {ssec['ymax']} # Initial maximum seeing
+y_fixed = {ssec['y_fixed']} # fix the seeing scale (or not)
+extend_y = {ssec['extend_y']} # Y extension fraction if out of range and not fixed
 
 # line or lines defining the targets to plot
 {seeing_plot}
+"""
+            )
 
+        # Finish up
+        fout.write(
+            f"""
 # This option attempts to correct for a badly-positioned focal plane mask
-# in drift mode which combined with a high background can lead to steps in 
+# in drift mode which combined with a high background can lead to steps in
 # illumination in the Y direction. This tries to subtract the median in the
 # X-direction of each window. 'dthresh' is a threshold used to reject X
 # pixels prior to taking the median. The purpose is to prevent the stars
 # from distorting the median. Take care with this option which is experimental.
 
 [focal_mask]
-demask = {demask}
-dthresh = {dthresh}
+demask = {fsec['demask']}
+dthresh = {fsec['dthresh']}
 
 # Monitor section. This section allows you to monitor particular
 # targets for problems. If they occur, then messages will be printed
@@ -1287,3 +1242,6 @@ dthresh = {dthresh}
 [monitor]
 {monitor}
 """
+        )
+
+    print("Reduce file written to {:s}".format(rfile))

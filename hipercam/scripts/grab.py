@@ -476,6 +476,8 @@ def grab(args=None):
             # return the name of the file list
             return fname
 
+    print("grab finished")
+
 class CleanUp:
     """
     Removes temporaries on ctrl-C. Context manager
@@ -485,7 +487,6 @@ class CleanUp:
         self.temp = temp
         self.flist = None
         self.original_sigint_handler = signal.getsignal(signal.SIGINT)
-        self.ok = True
         signal.signal(signal.SIGINT, self._sigint_handler)
 
     def _sigint_handler(self, signal_received, frame):
@@ -497,7 +498,6 @@ class CleanUp:
             print("\ngrab aborted; temporary files deleted")
         else:
             print("\ngrab aborted")
-        self.ok = False
         sys.exit(1)
 
     def __enter__(self):
@@ -506,8 +506,3 @@ class CleanUp:
     def __exit__(self, type, value, traceback):
         # Reset to original sigint handler
         signal.signal(signal.SIGINT, self.original_sigint_handler)
-        if self.ok:
-            print("grab finished")
-            return True
-        else:
-            return False

@@ -239,6 +239,9 @@ class HcamListSpool(SpoolerBase):
 
     to get :class:`CCD` objects.
 
+    The name of the file that each MCCD was read from is written to
+    .head as 'FILENAME'.
+
     """
 
     def __init__(self, lname, cnam=None):
@@ -305,7 +308,7 @@ class HcamServSpool(SpoolerBase):
     a raw HiPERCAM file served from Stu's FileServer
     """
 
-    def __init__(self, run, first=1):
+    def __init__(self, run, first=1, full=True):
         """Attaches the HcamServSpool to a run.
 
         Arguments::
@@ -318,7 +321,7 @@ class HcamServSpool(SpoolerBase):
               The first frame to access, 0 to always try to return the last complete one.
 
         """
-        self._iter = hcam.Rdata(run, first, True)
+        self._iter = hcam.Rdata(run, first, True, full=full)
 
     def __exit__(self, *args):
         self._iter.__exit__(args)
@@ -404,7 +407,7 @@ def data_source(source, resource, first=1, **kwargs):
     elif source == "ul":
         return UcamDiskSpool(resource, first)
     elif source == "hs":
-        return HcamServSpool(resource, first)
+        return HcamServSpool(resource, first, **kwargs)
     elif source == "hl":
         return HcamDiskSpool(resource, first, **kwargs)
     elif source == "hf":
@@ -420,11 +423,11 @@ def get_ccd_pars(source, resource):
 
     Parameters:
 
-        source  : string
+        source  : str
            Data source. See 'data_source' for details.
 
-       resource : string
-          File name. Either a run number or a file list. Again, see
+        resource : str
+          Either a run number, a file list or a list of names. Again, see
           'data_source' for details.
 
     Returns with a list of tuples with the information outlined above. In the
@@ -451,22 +454,31 @@ def get_ccd_pars(source, resource):
             return OrderedDict((("1", (1056, 1072, 0, 0)),))
 
         else:
-            raise ValueError("instrument = {:s} not supported".format(rhead.instrument))
+            raise ValueError(
+                "instrument = {:s} not supported".format(rhead.instrument)
+            )
 
     elif source.startswith("h"):
         if source.endswith("f"):
             # file list: we access the first file of the list to read the key
             # and dimension info on the assumption that it is the same, for
             # all files.
-            with open(resource) as flp:
-                for fname in flp:
-                    if not fname.startswith("#") and not fname.isspace():
-                        break
-                else:
-                    raise ValueError(
-                        "failed to find any file names in {:s}".format(resource)
-                    )
-            return ccd.get_ccd_info(utils.add_extension(fname.strip(), core.HCAM))
+            try:
+                with open(resource) as flp:
+                    for fname in flp:
+                        if not fname.startswith("#") and not fname.isspace():
+                            break
+                    else:
+                        raise ValueError(
+                            f"failed to find any file names in {resource}"
+                        )
+            except:
+                # assume resource is a list and read the first one
+                fname = resource[0]
+
+            return ccd.get_ccd_info(
+                utils.add_extension(fname.strip(), core.HCAM)
+            )
 
         else:
             # HiPERCAM raw data file: fixed data

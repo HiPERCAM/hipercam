@@ -151,6 +151,7 @@ setup(
             'hlog2fits=hipercam.scripts.hlog2fits:hlog2fits',
             'hls=hipercam.scripts.hls:hls',
             'hmeta=hipercam.scripts.hmeta:hmeta',
+            'hpackage=hipercam.scripts.hpackage:hpackage',
             'hplot=hipercam.scripts.hplot:hplot',
             'joinup=hipercam.scripts.joinup:joinup',
             'jtrawl=hipercam.scripts.jtrawl:jtrawl',

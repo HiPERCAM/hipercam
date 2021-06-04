@@ -10,7 +10,7 @@ from matplotlib.gridspec import GridSpec
 from astropy.time import Time
 
 import hipercam as hcam
-from hipercam import cline, utils, spooler, defect
+from hipercam import cline, utils, spooler, defect, fringe
 from hipercam.cline import Cline
 from hipercam import mpl, hlog
 
@@ -97,6 +97,9 @@ def makemovie(args=None):
         bias : str
            Name of bias frame to subtract, 'none' to ignore.
 
+        dark : str
+           Name of dark frame to subtract, 'none' to ignore.
+
         flat : str
            Name of flat field to divide by, 'none' to ignore. Should normally
            only be used in conjunction with a bias, although it does allow you
@@ -104,6 +107,29 @@ def makemovie(args=None):
 
         defect : str
            Name of defect file, 'none' to ignore.
+
+        fmap : str
+           Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
+
+        fpair : str [if fringe is not 'none']
+           Name of fringe pair file (see e.g. `setfringe`). Required if
+           a fringe map has been specified.
+
+        nhalf : int [if fringe is not 'none', hidden]
+           When calculating the differences for fringe measurement,
+           a region extending +/-nhalf binned pixels will be used when
+           measuring the amplitudes. Basically helps the stats.
+
+        rmin : float [if fringe is not 'none', hidden]
+           Minimum individual ratio to accept prior to calculating the overall
+           median in order to reduce the effect of outliers. Although all ratios
+           should be positive, you might want to set this a little below zero
+           to allow for some statistical fluctuation.
+
+        rmax : float [if fringe is not 'none', hidden]
+           Maximum individual ratio to accept prior to calculating the overall
+           median in order to reduce the effect of outliers. Probably typically
+           < 1 if fringe map was created from longer exposure data.
 
         log : str
            Name of reduce log file for light curve plot, 'none' to ignore
@@ -230,7 +256,13 @@ def makemovie(args=None):
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("dark", Cline.GLOBAL, Cline.PROMPT)
         cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("fmap", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("fpair", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
+        cl.register("rmin", Cline.GLOBAL, Cline.HIDE)
+        cl.register("rmax", Cline.GLOBAL, Cline.HIDE)
         cl.register("defect", Cline.GLOBAL, Cline.PROMPT)
         cl.register("log", Cline.LOCAL, Cline.PROMPT)
         cl.register("targ", Cline.LOCAL, Cline.PROMPT)
@@ -278,7 +310,7 @@ def makemovie(args=None):
         if server_or_local:
             resource = cl.get_value("run", "run name", "run005")
             first = cl.get_value("first", "first frame to plot", 1)
-            last = cl.get_value("last", "last frame to plot [0 to go to the end]", max(1,first), first)
+            last = cl.get_value("last", "last frame to plot [0 to go to the end]", max(1,first), 0)
         else:
             resource = cl.get_value(
                 "flist", "file list", cline.Fname("files.lis", hcam.LIST)
@@ -331,6 +363,15 @@ def makemovie(args=None):
         else:
             fprompt = "flat frame ['none' is normal choice with no bias]"
 
+        # dark (if any)
+        dark = cl.get_value(
+            "dark", "dark frame to subtract ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM), ignore="none"
+        )
+        if dark is not None:
+            # read the dark frame
+            dark = hcam.MCCD.read(dark)
+
         # flat (if any)
         flat = cl.get_value(
             "flat", fprompt, cline.Fname("flat", hcam.HCAM), ignore="none"
@@ -338,6 +379,33 @@ def makemovie(args=None):
         if flat is not None:
             # read the flat frame
             flat = hcam.MCCD.read(flat)
+
+        # fringe file (if any)
+        fmap = cl.get_value(
+            "fmap",
+            "fringe map ['none' to ignore]",
+            cline.Fname("fmap", hcam.HCAM),
+            ignore="none",
+        )
+        if fmap is not None:
+            # read the fringe map
+            fmap = hcam.MCCD.read(fmap)
+            fpair = cl.get_value(
+                "fpair", "fringe pair file",
+                cline.Fname("fpair", hcam.FRNG)
+            )
+            fpair = fringe.MccdFringePair.read(fpair)
+
+            nhalf = cl.get_value(
+                "nhalf", "half-size of fringe measurement regions",
+                2, 0
+            )
+            rmin = cl.get_value(
+                "rmin", "minimum fringe pair ratio", -0.2
+            )
+            rmax = cl.get_value(
+                "rmax", "maximum fringe pair ratio", 1.0
+            )
 
         # defect file (if any)
         dfct = cl.get_value(
@@ -422,7 +490,7 @@ def makemovie(args=None):
             T0, tmax = None, None
             for cnam, yn, yo in zip(ccds, ynorm, yoffset):
                 nframes = hlg[cnam]['nframe']
-                keep = (nframes >= first) & (nframes <= last)
+                keep = (nframes >= first) and (last == 0 or (nframes <= last))
                 hlg[cnam] = hlg[cnam][keep]
                 lc = (hlg.tseries(cnam,targ) / hlg.tseries(cnam,comp)) / yn + yo
                 if T0 is None:
@@ -561,10 +629,22 @@ def makemovie(args=None):
                 if bias is not None:
                     # crop the bias on the first frame only
                     bias = bias.crop(mccd)
+                    bexpose = bias.head.get("EXPTIME", 0.0)
+                else:
+                    bexpose = 0.
+
+                if dark is not None:
+                    # crop the dark on the first frame only
+                    dark = dark.crop(mccd)
 
                 if flat is not None:
                     # crop the flat on the first frame only
                     flat = flat.crop(mccd)
+
+                if fmap is not None:
+                    # crop the fringe map and pair file
+                    fmap = fmap.crop(mccd)
+                    fpair = fpair.crop(mccd, nhalf)
 
             # wind through the CCDs to display, accumulating stuff
             # to send to the plot manager
@@ -583,9 +663,20 @@ def makemovie(args=None):
                     if bias is not None:
                         ccd -= bias[cnam]
 
+                    if dark is not None:
+                        dexpose = dark.head["EXPTIME"]
+                        cexpose = ccd.head["EXPTIME"]
+                        scale = (cexpose - bexpose) / dexpose
+                        ccd -= scale * dark[cnam]
+
                     # divide out the flat
                     if flat is not None:
                         ccd /= flat[cnam]
+
+                    # Remove fringes
+                    if fmap is not None and cnam in fmap and cnam in fpair:
+                        fscale = fpair[cnam].scale(ccd, fmap[cnam], nhalf, rmin, rmax)
+                        ccd -= fscale*fmap[cnam]
 
                     if msub:
                         # subtract median from each window
@@ -670,7 +761,10 @@ def makemovie(args=None):
                 # plot images
                 for n, (cnam, ccd, ilo, ihi)  in enumerate(zip(ccds, current_ccds, ilos, ihis)):
                     ax = fig.add_subplot(gs[n // nx, n % nx])
-                    mpl.pCcd(ax, ccd, iset, plo, phi, ilo, ihi, f'CCD {cnam}', xlo, xhi, ylo, yhi, cmap)
+                    mpl.pCcd(
+                        ax, ccd, iset, plo, phi, ilo, ihi, f'CCD {cnam}',
+                        xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi, cmap=cmap
+                    )
                     ax.set_xlim(xlo,xhi)
                     ax.set_ylim(ylo,yhi)
                     ax.tick_params(axis="x", direction="in")
@@ -683,5 +777,5 @@ def makemovie(args=None):
                 plt.clf()
                 print(f'   written figure to {oname}')
 
-            if nframe + first == last:
+            if last and nframe + first == last:
                 break

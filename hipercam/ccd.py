@@ -710,7 +710,9 @@ class MCCD(Agroup):
 
         """
         with fits.open(fname) as hdul:
-            return cls.rhdul(hdul)
+            mccd = cls.rhdul(hdul)
+        mccd.head['FILENAME'] = fname
+        return mccd
 
     @classmethod
     def rhdul(cls, hdul):

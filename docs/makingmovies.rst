@@ -43,7 +43,9 @@ raw data, run0005.fits sat.
   trim = False
   ccd = 2
   bias = bias3x3_slow.hcm
+  dark = none
   flat = none
+  fmap = none
   defect = none
   log = run0005.log
   targ = 1
@@ -84,7 +86,9 @@ Once you have the stills, you still need to actually make the movie. I use the c
 which would find any files of the form 'run0005_0340.png' starting
 from 'run0005_0123.png'. 'ffmpeg' has a million-and-one options and
 there be ways to tweak it, but this does a reasonable job I find.
+You can loop the movie with something like:
 
+  ``ffmpeg -start_number 3 -i run0011_%04d.png -filter_complex loop=5:362 -c:v libx264 -pix_fmt yuv420p movie.mp4 -y``
 
-
+which would add 6 loops.
 

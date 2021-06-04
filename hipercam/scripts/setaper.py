@@ -520,11 +520,11 @@ def setaper(args=None):
     cnams = {}
     anams = {}
 
-    # this is a container for all the objects used to plot apertures to allow
-    # deletion. This is Group of Group objects supporting tuple storage. The
-    # idea is that pobjs[cnam][anam] returns the objects used to plot aperture
-    # anam of CCD cnam. It is initially empty,
-    pobjs = hcam.Group(hcam.Group)
+    # this is a container for all the objects used to plot apertures
+    # to allow deletion. The idea is that pobjs[cnam][anam] returns
+    # the objects used to plot aperture anam of CCD cnam. It is
+    # initially empty
+    pobjs = {}
 
     for n, cnam in enumerate(ccds):
         if ax is None:
@@ -542,29 +542,20 @@ def setaper(args=None):
                 wind -= wind.median()
 
         hcam.mpl.pCcd(
-            axes,
-            mccd[cnam],
-            iset,
-            plo,
-            phi,
-            ilo,
-            ihi,
-            "CCD {:s}".format(cnam),
-            xlo,
-            xhi,
-            ylo,
-            yhi,
+            axes, mccd[cnam],
+            iset, plo, phi, ilo, ihi,
+            f"CCD {cnam}", xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi,
             cmap=cmap
         )
 
-        # keep track of the CCDs associated with each axes
+        # keep track of the CCDs associated with each Axes
         cnams[axes] = cnam
 
-        # and axes associated with each CCD
+        # and the Axes associated with each CCD
         anams[cnam] = axes
 
         if cnam in mccdaper:
-            # plot any pre-existing apertures, keeping track of
+            # plot any pre-existing apertures, keeping a reference to
             # the plot objects
             pobjs[cnam] = hcam.mpl.pCcdAper(axes, mccdaper[cnam])
 
@@ -573,37 +564,20 @@ def setaper(args=None):
             mccdaper[cnam] = hcam.CcdAper()
 
             # and an empty container for any new plot objects
-            pobjs[cnam] = hcam.Group(tuple)
+            pobjs[cnam] = {}
 
     # create the aperture picker (see below for class def)
     picker = PickStar(
-        mccd,
-        cnams,
-        anams,
-        toolbar,
-        fig,
-        mccdaper,
-        linput,
-        rtarg,
-        rsky1,
-        rsky2,
-        profit,
-        method,
-        beta,
-        beta_max,
-        beta_fix,
-        fwhm,
-        fwhm_min,
-        fwhm_fix,
-        shbox,
-        smooth,
-        fhbox,
-        read,
-        gain,
-        thresh,
-        ndiv,
-        aper,
-        pobjs,
+        mccd, cnams, anams,
+        toolbar, fig,
+        mccdaper, linput,
+        rtarg, rsky1, rsky2,
+        profit, method,
+        beta, beta_max, beta_fix,
+        fwhm, fwhm_min, fwhm_fix,
+        shbox, smooth, fhbox,
+        read, gain, thresh,
+        ndiv, aper, pobjs,
     )
 
     try:
