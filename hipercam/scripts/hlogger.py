@@ -528,7 +528,7 @@ def hlogger(args=None):
                                 traceback.print_exc(file=sys.stdout)
                                 print(f"Problem on run = {runname}")
                             else:
-                                print(f"Problem on run = {runnam} [framesize]")
+                                print(f"Problem on run = {runname} [framesize]")
 
                             # dummy info line just to allow us to proceed
                             nhtml.write("<tr>\n")
