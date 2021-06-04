@@ -13,8 +13,8 @@ lists of past changes can be seen on github in any case). NB the
 version of these docs may reflect a development version subsequent to
 the most recent release and hence will appear to be one click on.
 
-#  :doc:`Updates since 1.1.0 <change_log_1.1.0_to_now>` updates since the most
-   recent release.
+#. :doc:`Updates since 1.1.0 <change_log_1.1.0_to_now>`: updates since the most
+   recent release (not necessarily any yet).
 
 #. **04 June 2021, Version 1.1.0**: over-haul of genred, hpackage, WCS in joinup
 

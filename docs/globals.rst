@@ -34,6 +34,7 @@
 .. |hlog2fits| replace:: :func:`hlog2fits <hipercam.scripts.hlog2fits>`
 .. |hls| replace:: :func:`hls <hipercam.scripts.hls>`
 .. |hmeta| replace:: :func:`hmeta <hipercam.scripts.hmeta>`
+.. |hpackage| replace:: :func:`hpackage <hipercam.scripts.hpackage>`
 .. |hplot| replace:: :func:`hplot <hipercam.scripts.hplot>`
 .. |joinup| replace:: :func:`joinup <hipercam.scripts.joinup>`
 .. |ltimes| replace:: :func:`ltimes <hipercam.scripts.ltimes>`

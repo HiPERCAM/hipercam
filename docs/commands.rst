@@ -23,6 +23,7 @@
 .. |ol-hlog2col| replace:: produce ASCII column data from a reduce log
 .. |ol-hlog2fits| replace:: convert a reduction log file to FITS
 .. |ol-hls|      replace:: list the runs on the |hiper| server
+.. |ol-hpackage| replace:: bundles up reduce data files
 .. |ol-hplot|    replace:: plot a frame
 .. |ol-joinup|   replace:: joins windows into a single image per CCD
 .. |ol-ltimes|   replace:: list times of a run
@@ -117,6 +118,8 @@ useful.
    | |hlog2fits|  | |ol-hlog2fits| |          | Yes      |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hls|        | |ol-hls|       | Yes      |          |         |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |hpackage|   | |ol-hpackage|  | Yes      | Yes      |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |hplot|      | |ol-hplot|     | Yes      | Yes      |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -453,6 +456,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.hlog2fits
 .. autofunction:: hipercam.scripts.hls
 .. autofunction:: hipercam.scripts.hplot
+.. autofunction:: hipercam.scripts.hpackage
 .. autofunction:: hipercam.scripts.joinup
 .. autofunction:: hipercam.scripts.ltimes
 .. autofunction:: hipercam.scripts.ltrans
