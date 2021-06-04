@@ -13,8 +13,20 @@ lists of past changes can be seen on github in any case). NB the
 version of these docs may reflect a development version subsequent to
 the most recent release and hence will appear to be one click on.
 
-#  :doc:`Updates since 1.0.0 <change_log_1.0.0_to_now>`. Most recent release: 1.0.1;
-   the list here may include updates since this release.
+#  :doc:`Updates since 1.1.0 <change_log_1.1.0_to_now>` updates since the most
+   recent release.
+
+#. **04 June 2021, Version 1.1.0**: over-haul of genred, hpackage, WCS in joinup
+
+     * |genred| simplified but made more configurable by allowing one to define
+       most parameters via a previously edited template reduce file
+     * |hpackage| new command for bundling up standard reduce products
+     * |joinup| use telescope pointing data for HiPERCAM+GTC to add a WCS.
+     * improved handling of cleanup of temporary files
+     * |nrtplot| and |joinup| both now include dark and fringe subtraction.
+     * |joinup| can generate ds9 "region" files from |hiper| aperture files
+
+   :doc:`Full list of changes, 1.0.0 to 1.1.0 <change_log_1.0.0_1.1.0>`.
 
 #. **25 May 2021, Version 1.0.0**: fringe-correction added
 
@@ -32,8 +44,7 @@ the most recent release and hence will appear to be one click on.
      * |rtplot| bug fix that was causing problem with percentile scalings with small
        windows.
 
-   Here is the
-   :doc:`full list of changes, 0.22.0 to 1.0.0 <change_log_0.22.0_1.0.0>`.
+   :doc:`Full list of changes, 0.22.0 to 1.0.0 <change_log_0.22.0_1.0.0>`.
 
 #. **05 May 2021, Version 0.22.0**: matplotlib-based real time image plotter
    introduced
