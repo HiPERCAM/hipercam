@@ -25,6 +25,7 @@ from hipercam import (
     gregorian_to_mjd,
     mjd_to_gregorian,
     fday_to_hms,
+    HipercamError
 )
 
 __all__ = ["Rhead", "Rdata", "Rtime", "Rtbytes"]
@@ -189,7 +190,7 @@ class Rhead:
             self.nccd = 1
             self.nxmax, self.nymax = 1056, 1072
         else:
-            raise ValueError(
+            raise HipercamError(
                 "run = {:s}, failed to identify instrument.".format(self.run)
             )
 
@@ -341,7 +342,7 @@ class Rhead:
         ):
             mode = "PONOFF"
         else:
-            raise ValueError(
+            raise HipercamError(
                 "file = {:s} failed to identify application = {:s}".format(
                     self.run, app
                 )
@@ -545,7 +546,7 @@ class Rhead:
                 fsize += 2 * nx * ny
 
         if fsize != self.framesize:
-            raise ValueError(
+            raise HipercamError(
                 (
                     "file = {:s}. Framesize = {:d} clashes with calculated "
                     "value = {:d}"
@@ -572,14 +573,14 @@ class Rhead:
                 int(param["REVISION"]) if "REVISION" in param else int(param["VERSION"])
             )
             if vcheck != version:
-                raise ValueError(
+                raise HipercamError(
                     "clashing version numbers: {:d} vs {:d}".format(version, vcheck)
                 )
 
         if self.headerwords == 16:
             VERSIONS = [100222, 111205, 120716, 120813, 130307, 130317, 130417, 140331]
             if version not in VERSIONS:
-                raise ValueError(f"could not recognise version = {version}")
+                raise HipercamError(f"could not recognise version = {version}")
 
         self.whichRun = ""
         if instrument == "ULTRACAM":
@@ -2559,7 +2560,7 @@ def get_nframe_from_server(run):
         end = resp.text[loc + 9 :].find('"')
         return int(resp.text[loc + 9 : loc + 9 + end])
     else:
-        raise ValueError("failed to parse server response to " + full_url)
+        raise HipercamError("failed to parse server response to " + full_url)
 
 
 class UltracamError(Exception):
