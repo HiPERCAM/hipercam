@@ -579,27 +579,30 @@ warn = 1 60000 64000
     no_light = True
 
     if template is None:
-        # Here we assume target in aperture 1, comparison in aperture 2
+        # Here we assume target in aperture 1, main comparison in aperture 2
         for cnam in aper:
             ccdaper = aper[cnam]
             if "1" in ccdaper and "2" in ccdaper:
+                # favour 2 as the comparison
                 light_plot += (
                     f'plot = {cnam} 1 2 0 1 {CCD_COLS.get(cnam,"black")} !  '
                     " # ccd, targ, comp, off, fac, dcol, ecol\n"
                 )
                 no_light = False
 
-            elif "1" in ccdaper and "2" not in ccdaper:
+            elif "1" in ccdaper and "3" in ccdaper:
+                # but try 3 if need be
                 light_plot += (
-                    f'plot = {cnam} 1 ! 0 1 {CCD_COLS.get(cnam,"black")} !  '
+                    f'plot = {cnam} 1 3 0 1 {CCD_COLS.get(cnam,"black")} !  '
                     " # ccd, targ, comp, off, fac, dcol, ecol\n"
                 )
                 no_light = False
 
-            if "2" in ccdaper and "3" in ccdaper:
+            elif "1":
+                # just plot 1 as last resort
                 light_plot += (
-                    f'plot = {cnam} 3 2 0 1 {CCD_COLS.get(cnam,"black")} !  '
-                    " # ccd, targ, domp, off, fac, dcol, ecol\n"
+                    f'plot = {cnam} 1 ! 0 1 {CCD_COLS.get(cnam,"black")} !  '
+                    " # ccd, targ, comp, off, fac, dcol, ecol\n"
                 )
                 no_light = False
 
@@ -627,10 +630,12 @@ warn = 1 60000 64000
 
     if no_light:
         raise hcam.HipercamError(
-            "Found no targets for light curve plots in any CCD; cannot make light curve plot"
+            "Found no targets for light curve plots in any CCD; cannot make light "
+            "curve plot. Needs at least aperture '1' defined and preferably '2' as well,"
+            "for at least one CCD"
         )
 
-    # Generate the position plot lines
+    # Generate the position plot lines. Favour the comparisons first, then the target.
     position_plot = ""
     no_position = True
     if template is None:
@@ -667,7 +672,8 @@ warn = 1 60000 64000
     if no_position:
         warnings.warn(f"No position plot will be made")
 
-    # Generate the transmission plot lines
+    # Generate the transmission plot lines, again comparisons first,
+    # target only if desperate.
     transmission_plot = ""
     no_transmission = True
     if template is None:
@@ -681,10 +687,11 @@ warn = 1 60000 64000
                         f"# ccd, targ, dcol, ecol\n"
                     )
                     no_transmission = False
+                    break
 
         if no_transmission:
             warning.warn(
-                f"Targets 2, 3, or 1 not found in and CCD within {apfile}"
+                f"Targets 2, 3, or 1 not found in any CCD within {apfile}; no transmission plot"
             )
 
     elif tsec is not None:
@@ -704,7 +711,7 @@ warn = 1 60000 64000
     if no_transmission:
         warnings.warn(f"No transmission plot will be made")
 
-    # Generate the seeing plot lines
+    # Generate the seeing plot lines. Prioritise the target in this case.
     seeing_plot = ""
     no_seeing = True
     if template is None:
@@ -718,6 +725,7 @@ warn = 1 60000 64000
                         "# ccd, targ, dcol, ecol\n"
                     )
                     no_seeing = False
+                    break
 
         if no_seeing:
             raise hcam.HipercamError(
@@ -742,7 +750,7 @@ warn = 1 60000 64000
     if no_seeing:
         warnings.warn(f"No seeing plot will be made")
 
-    # monitor targets (whole lot by default)
+    # monitor targets (all of them by default)
     if template is None:
         targs = set()
         for cnam in aper:
