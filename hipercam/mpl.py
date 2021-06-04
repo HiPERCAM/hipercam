@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-matplotlib plotting functions. 
+matplotlib plotting functions.
 """
 
 import os
@@ -505,7 +505,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                     ha="right",
                     va="top",
                     bbox=dict(ec="0.8", fc="0.8", alpha=0.5),
-                    animated=True
+                    animated=animated
                 )
             )
     else:
