@@ -105,10 +105,11 @@ class Rfile(OrderedDict):
         if sect["version"] != hcam.REDUCE_FILE_VERSION:
             # check the version
             raise hcam.HipercamError(
-                "Version mismatch: file = {:s}, reduce = {:s}".format(
-                    sect["version"], hcam.REDUCE_FILE_VERSION
-                )
+                f"Version mismatch: reduce file = {sect['version']}, reduce = {hcam.REDUCE_FILE_VERSION}"
+                "If your reduce file date is earlier than the reduce version, you may want to try"
+                f"updating it using the pipeline command 'rupdate {filename}'"
             )
+        )
 
         sect["scale"] = float(sect["scale"])
         if sect["scale"] <= 0:
