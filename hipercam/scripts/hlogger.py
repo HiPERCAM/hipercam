@@ -511,13 +511,24 @@ def hlogger(args=None):
                                 rthead = hcam.hcam.Rtime(runname)
                             else:
                                 rthead = hcam.ucam.Rhead(runname)
-                        except:
-                            exc_type, exc_value, exc_traceback = sys.exc_info()
-                            traceback.print_tb(
-                                exc_traceback, limit=1, file=sys.stdout
-                            )
-                            traceback.print_exc(file=sys.stdout)
-                            print("Problem on run = ", runname)
+                        except Exception as err:
+
+                            # So many ways to fail while this takes so
+                            # long to run, that we basically want to
+                            # soldier on if we possibly can but print
+                            # stuff out. But there are a few ULTRACAM
+                            # files with invalid framesizes so we
+                            # don't bother saying anythin with these
+
+                            if instrument == 'HiPERCAM' or str(err).find('Framesize') > -1:
+                                exc_type, exc_value, exc_traceback = sys.exc_info()
+                                traceback.print_tb(
+                                    exc_traceback, limit=1, file=sys.stdout
+                                )
+                                traceback.print_exc(file=sys.stdout)
+                                print(f"Problem on run = {runname}")
+                            else:
+                                print(f"Problem on run = {runnam} [framesize]")
 
                             # dummy info line just to allow us to proceed
                             nhtml.write("<tr>\n")
@@ -525,7 +536,7 @@ def hlogger(args=None):
                             nhtml.write(f'<td class="lalert">{run}</td>')
                             nhtml.write("</tr>\n")
                             if instrument == 'ULTRACAM':
-                                brow = [rname, night, run[3:]] + 48*[None]
+                                brow = [rname, night, run[3:]] + 47*[None]
                             elif instrument == 'ULTRASPEC':
                                 brow = [rname, night, run[3:]] + 54*[None]
                             elif instrument == 'HiPERCAM':
