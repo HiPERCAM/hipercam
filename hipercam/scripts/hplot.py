@@ -266,18 +266,12 @@ def hplot(args=None):
                     wind -= wind.median()
 
             vmin, vmax, _ = hcam.mpl.pCcd(
-                axes,
-                mccd[cnam],
-                iset,
-                plo,
-                phi,
-                ilo,
-                ihi,
+                axes, mccd[cnam],
+                iset, plo, phi,
+                ilo, ihi,
                 "CCD {:s}".format(cnam),
-                xlo,
-                xhi,
-                ylo,
-                yhi, cmap=cmap
+                xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi,
+                cmap=cmap
             )
             print("CCD =", cnam, "plot range =", vmin, "to", vmax)
 

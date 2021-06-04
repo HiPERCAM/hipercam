@@ -544,7 +544,7 @@ def setaper(args=None):
         hcam.mpl.pCcd(
             axes, mccd[cnam],
             iset, plo, phi, ilo, ihi,
-            f"CCD {cnam}", xlo, xhi, ylo, yhi,
+            f"CCD {cnam}", xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi,
             cmap=cmap
         )
 

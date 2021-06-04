@@ -761,7 +761,10 @@ def makemovie(args=None):
                 # plot images
                 for n, (cnam, ccd, ilo, ihi)  in enumerate(zip(ccds, current_ccds, ilos, ihis)):
                     ax = fig.add_subplot(gs[n // nx, n % nx])
-                    mpl.pCcd(ax, ccd, iset, plo, phi, ilo, ihi, f'CCD {cnam}', xlo, xhi, ylo, yhi, cmap)
+                    mpl.pCcd(
+                        ax, ccd, iset, plo, phi, ilo, ihi, f'CCD {cnam}',
+                        xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi, cmap=cmap
+                    )
                     ax.set_xlim(xlo,xhi)
                     ax.set_ylim(ylo,yhi)
                     ax.tick_params(axis="x", direction="in")
