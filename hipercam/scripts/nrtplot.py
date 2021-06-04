@@ -69,6 +69,10 @@ def nrtplot(args=None):
     for anything to happen. See the parameter 'memory' below which can
     help.
 
+    When you first run it, try to get the initial fit parameters about
+    right; it doesn't like to be miles out at the start for some reason
+    and will refuse to fit.
+
     Parameters:
 
         source : str [hidden]
@@ -137,7 +141,7 @@ def nrtplot(args=None):
            plots freezing until the next frame comes through which can
            be especially annoying with virtual desktops. Experiments
            with ULTRACAM@NTT indicated 0.2 to 0.6 secs or so works OK.
-           Main impact seems to be on drpc CPU. 
+           Main impact seems to be on drpc CPU.
 
         plotall : bool [hidden]
            plot all frames regardless of status (i.e. including blank frames
@@ -287,7 +291,8 @@ def nrtplot(args=None):
            default Moffat exponent
 
         fwhm : float [hidden]
-           default FWHM, unbinned pixels.
+           default FWHM, unbinned pixels. Do try to get this about right as
+           it affects whether the profile can be fitted at all.
 
         fwhm_min : float [hidden]
            minimum FWHM to allow, unbinned pixels.
