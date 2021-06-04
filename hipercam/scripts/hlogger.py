@@ -520,7 +520,7 @@ def hlogger(args=None):
                             # files with invalid framesizes so we
                             # don't bother saying anythin with these
 
-                            if instrument == 'HiPERCAM' or str(err).find('Framesize') > -1:
+                            if instrument == 'HiPERCAM' or str(err).find('Framesize')== -1:
                                 exc_type, exc_value, exc_traceback = sys.exc_info()
                                 traceback.print_tb(
                                     exc_traceback, limit=1, file=sys.stdout
