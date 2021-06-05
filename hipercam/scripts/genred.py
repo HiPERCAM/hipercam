@@ -512,9 +512,9 @@ warn = 1 60000 64000
         asec['fwhm_min'] = 2*binfac
         asec['fwhm'] = max(2*binfac, seeing/scale)
         asec['fwhm_max'] = 3.*sworst/scale
-        asec['fit_max_shift'] = sworst/scale/5.
+        asec['fit_max_shift'] = max(1., sworst/scale/4.)
         asec['fit_half_width'] = max(5., 2*sworst/scale)
-        asec['fit_diff'] = max(1., sworst/scale/5.)
+        asec['fit_diff'] = max(1., sworst/scale/6.)
 
         rfac = 1.8
         ramin = 3*binfac
