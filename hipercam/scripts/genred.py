@@ -26,8 +26,9 @@ __all__ = [
 
 
 def genred(args=None):
-    """``genred apfile rfile bias dark flat fmap fpair seeing (binfac)
-    template (inst (nccd (ccd) nonlin sat scale readout gain))``
+    """``genred apfile rfile bias dark flat fmap fpair seeing (sworst
+    binfac) template (inst (nccd (ccd) nonlin sat scale readout
+    gain))``
 
     Generates a reduce file as needed by |reduce| or |psf_reduce|. You
     give it the name of an aperture file, calibration frames and a few
@@ -89,7 +90,17 @@ def genred(args=None):
         seeing : float
            estimate of seeing which will be used to define several of
            the profile fitting parameters. Enter 0 to ignore and use
-           defaults from the template or genred instead.
+           defaults from the template (or genred if no template)
+           instead.
+
+        sworst : float [if seeing > 0]
+           worst seeing expected during run. Expands the search and
+           fitting boxes which can cause difficulties if they are
+           too small. It also sets the maximum target aperture radius
+           which will set to ~ 1.8*sworst, converted to pixels, and the
+           sky annulus radii. It has to be at least 2*seeing. Always
+           remember that you can override the automated settings using
+           a pre-edited template and seeing = 0.
 
         binfac : int [if seeing > 0]
            binning factor. e.g. 4 if using 4x4. Needed to optimise some
@@ -154,6 +165,7 @@ def genred(args=None):
         cl.register("fmap", Cline.LOCAL, Cline.PROMPT)
         cl.register("fpair", Cline.LOCAL, Cline.PROMPT)
         cl.register("seeing", Cline.LOCAL, Cline.PROMPT)
+        cl.register("sworst", Cline.LOCAL, Cline.PROMPT)
         cl.register("binfac", Cline.LOCAL, Cline.PROMPT)
         cl.register("inst", Cline.LOCAL, Cline.PROMPT)
         cl.register("nccd", Cline.LOCAL, Cline.PROMPT)
@@ -227,6 +239,11 @@ def genred(args=None):
             1.0, 0.
         )
         if seeing > 0.:
+            sworst = cl.get_value(
+                "sworst",
+                "worst expected seeing [arcsec]",
+                max(3., 2.5*seeing), 2.*seeing
+            )
             binfac = cl.get_value(
                 "binfac", "binning factor",
                 1, 1
@@ -246,8 +263,11 @@ def genred(args=None):
                 "inst",
                 "the instrument-telescope",
                 "hipercam-gtc",
-                lvals=["hipercam-gtc", "ultracam-ntt", "ultracam-wht", "ultracam-vlt",
-                       "ultraspec-tnt", "other"],
+                lvals=[
+                    "hipercam-gtc", "ultracam-ntt",
+                    "ultracam-wht", "ultracam-vlt",
+                    "ultraspec-tnt", "other"
+                ],
             )
 
             if instrument.startswith("hipercam"):
@@ -388,6 +408,7 @@ warn = 1 60000 64000
         # define default values for unprompted params.
         if seeing == 0.:
             seeing = 1.5
+            sworst = 4.0
             binfac = 1
 
         # same name as read into template
@@ -486,18 +507,18 @@ warn = 1 60000 64000
     # apply seeing/instrument-related fixes...
     # *always* gets run in the no template case
     if seeing > 0.:
-        asec['search_half_width'] = max(3., 4*seeing/scale)
-        asec['search_smooth_fwhm'] = max(2.,seeing/scale/binfac)
+        asec['search_half_width'] = max(5., sworst/scale)
+        asec['search_smooth_fwhm'] = max(2., seeing/scale/binfac)
         asec['fwhm_min'] = 2*binfac
         asec['fwhm'] = max(2*binfac, seeing/scale)
-        asec['fwhm_max'] = 5.*seeing/scale
-        asec['fit_max_shift'] = seeing/scale/3.
-        asec['fit_half_width'] = max(3., 3*seeing/scale)
-        asec['fit_diff'] = max(1., seeing/scale/4.)
+        asec['fwhm_max'] = 3.*sworst/scale
+        asec['fit_max_shift'] = max(1., sworst/scale/4.)
+        asec['fit_half_width'] = max(5., 2*sworst/scale)
+        asec['fit_diff'] = max(1., sworst/scale/6.)
 
         rfac = 1.8
         ramin = 3*binfac
-        ramax = max(ramin,2.5*rfac*seeing/scale)
+        ramax = max(ramin,rfac*sworst/scale)
         sinner = ramax
         souter = 1.5*sinner
 
