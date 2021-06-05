@@ -246,8 +246,11 @@ def genred(args=None):
                 "inst",
                 "the instrument-telescope",
                 "hipercam-gtc",
-                lvals=["hipercam-gtc", "ultracam-ntt", "ultracam-wht", "ultracam-vlt",
-                       "ultraspec-tnt", "other"],
+                lvals=[
+                    "hipercam-gtc", "ultracam-ntt",
+                    "ultracam-wht", "ultracam-vlt",
+                    "ultraspec-tnt", "other"
+                ],
             )
 
             if instrument.startswith("hipercam"):
@@ -486,13 +489,13 @@ warn = 1 60000 64000
     # apply seeing/instrument-related fixes...
     # *always* gets run in the no template case
     if seeing > 0.:
-        asec['search_half_width'] = max(3., 4*seeing/scale)
+        asec['search_half_width'] = max(5., 4*seeing/scale)
         asec['search_smooth_fwhm'] = max(2.,seeing/scale/binfac)
         asec['fwhm_min'] = 2*binfac
         asec['fwhm'] = max(2*binfac, seeing/scale)
         asec['fwhm_max'] = 5.*seeing/scale
         asec['fit_max_shift'] = seeing/scale/3.
-        asec['fit_half_width'] = max(3., 3*seeing/scale)
+        asec['fit_half_width'] = max(5., 3*seeing/scale)
         asec['fit_diff'] = max(1., seeing/scale/4.)
 
         rfac = 1.8
