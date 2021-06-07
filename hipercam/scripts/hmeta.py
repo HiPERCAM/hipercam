@@ -90,7 +90,10 @@ def hmeta(args=None):
         source = 'hl'
         cnams = ('1','2','3','4','5')
     else:
-        print("** hmeta: cannot find either ultracam, ultraspec or hipercam in path")
+        print(
+            "** hmeta: cannot find either ultracam, "
+            "ultraspec or hipercam in path"
+        )
         print("hmeta aborted", file=sys.stderr)
         return
 
@@ -129,8 +132,10 @@ def hmeta(args=None):
 
         # load all the run names
         if itype == 'U':
-            runs = [run[:-4] for run in os.listdir(nname) if ure.match(run) and
-                    os.path.exists(os.path.join(nname,run[:-4]+'.dat'))]
+            runs = [
+                run[:-4] for run in os.listdir(nname) if ure.match(run) and
+                os.path.exists(os.path.join(nname,run[:-4]+'.dat'))
+            ]
         else:
             runs = [run[:-5] for run in os.listdir(nname) if hre.match(run)]
         runs.sort()
@@ -184,14 +189,14 @@ def hmeta(args=None):
                 continue
 
             ncframes = {}
-            if instrument == 'ULTRASPEC':
+            if linstrument == 'ultraspec':
                 # just the one CCD here. nstep defines how often we sample.
                 # note that ntotal has to be 2*NLIM before nstep > 1.
                 nstep = ntotal // min(ntotal, NLIM)
                 ncframes['1'] = list(range(1,ntotal+1,nstep))
                 nframes = ncframes['1']
 
-            elif instrument == 'ULTRACAM':
+            elif linstrument == 'ultracam':
                 # CCD 1, 2 read out each time, but 3 can be skipped
                 nstep = ntotal // min(ntotal, NLIM)
                 ncframes['1'] = list(range(1,ntotal+1,nstep))
@@ -204,11 +209,15 @@ def hmeta(args=None):
 
             else:
                 # All CCDs potentially skippable
-                nskips = rdat.skips
+                nskips = rdat.nskips
                 nsteps = []
-                for cnam,nskip in zip( cnams, nskips):
-                    nstep = nskip*max(1, ntotal // min(ntotal, NLIM*nskip))
-                    ncframes[cnam] = list(range(nskip,ntotal+1,nstep))
+                for cnam, nskip in zip( cnams, nskips):
+                    nstep = (nskip+1)*max(
+                        1, ntotal // min(
+                            ntotal, NLIM*(nskip+1)
+                        )
+                    )
+                    ncframes[cnam] = list(range(nskip+1,ntotal+1,nstep))
 
                 # sorted list of frames to access
                 nframes = sorted(
@@ -224,14 +233,14 @@ def hmeta(args=None):
             medians, means, mins, p1s, p5s, p16s, p84s, p95s, p99s, maxs = \
                 {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
             for cnam, ncframe in ncframes.items():
-                if instrument == 'ULTRASPEC':
+                if linstrument == 'ultraspec':
                     medians[cnam] = np.empty_like(ncframe,dtype=np.float)
-                elif instrument == 'ULTRACAM':
+                elif linstrument == 'ultracam':
                     medians[cnam] = {
                         'L' : np.empty_like(ncframe,dtype=np.float),
                         'R' : np.empty_like(ncframe,dtype=np.float)
                     }
-                elif  instrument == 'HIPERCAM':
+                elif linstrument == 'hipercam':
                     medians[cnam] = {
                         'E' : np.empty_like(ncframe,dtype=np.float),
                         'F' : np.empty_like(ncframe,dtype=np.float),
@@ -260,12 +269,12 @@ def hmeta(args=None):
                         if nf in ncframe:
                             ccd = mccd[cnam]
                             nc = ns[cnam]
-                            if instrument == 'ULTRASPEC':
+                            if linstrument == 'ultraspec':
                                 medval = ccd.median()
                                 ccd -= medval
                                 medians[cnam][nc] = medval
 
-                            elif instrument == 'ULTRACAM':
+                            elif linstrument == 'ultracam':
                                 wl = hcam.Group(hcam.Window)
                                 wr = hcam.Group(hcam.Window)
                                 for nw, wnam in enumerate(ccd):
@@ -282,7 +291,7 @@ def hmeta(args=None):
                                 medians[cnam]['L'][nc] = medl
                                 medians[cnam]['R'][nc] = medr
 
-                            elif instrument == 'HIPERCAM':
+                            elif linstrument == 'hipercam':
                                 we = hcam.Group(hcam.Window)
                                 wf = hcam.Group(hcam.Window)
                                 wg = hcam.Group(hcam.Window)
@@ -343,24 +352,29 @@ def hmeta(args=None):
                     traceback.print_exc(file=sys.stderr)
                     continue
 
-            # All numbers extracted from the run. Now want to create pandas dataframe
-            # for easy output
+            # All numbers extracted from the run. Now want to create
+            # pandas dataframe for easy output
 
-            # Create pandas dataframe for easy output. First names and datatypes
-            cnames, dtypes = get_cnames_dtypes(instrument)
+            # Create pandas dataframe for easy output. First names and
+            # datatypes
+            cnames, dtypes = get_cnames_dtypes(linstrument)
 
             for cnam in cnams:
-                # one file per CCD because of potentially different column lengths
+                # one file per CCD because of potentially different
+                # column lengths
                 oname = os.path.join(meta, f'{run}_{cnam}.csv')
 
                 # Form output array
                 barr = [ncframes[cnam],]
-                if instrument == 'ULTRASPEC':
+                if linstrument == 'ultraspec':
                     barr.append(medians[cnam])
-                elif instrument == 'ULTRACAM':
+                elif linstrument == 'ultracam':
                     barr += [medians[cnam]['L'],medians[cnam]['R']]
-                elif instrument == 'HIPERCAM':
-                    barr += [medians[cnam]['E'],medians[cnam]['F'],medians[cnam]['G'],medians[cnam]['H']]
+                elif linstrument == 'hipercam':
+                    barr += [
+                        medians[cnam]['E'],medians[cnam]['F'],
+                        medians[cnam]['G'],medians[cnam]['H']
+                    ]
 
                 barr += [
                     means[cnam], mins[cnam],
@@ -376,11 +390,11 @@ def hmeta(args=None):
                 print(f'  {dfile}, written stats to {oname}')
 
 def get_cnames_dtypes(instrument):
-    if instrument == 'ULTRASPEC':
+    if instrument == 'ultraspec':
         coldefs = ULTRASPEC_COLNAMES
-    elif instrument == 'ULTRACAM':
+    elif instrument == 'ultracam':
         coldefs = ULTRACAM_COLNAMES
-    elif instrument == 'HIPERCAM':
+    elif instrument == 'hipercam':
         coldefs = HIPERCAM_COLNAMES
 
     cnames, dtypes = [], {}

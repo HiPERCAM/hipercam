@@ -13,8 +13,8 @@ lists of past changes can be seen on github in any case). NB the
 version of these docs may reflect a development version subsequent to
 the most recent release and hence will appear to be one click on.
 
-#. :doc:`Updates since 1.1.0 <change_log_1.1.0_to_now>`: updates since the most
-   recent release (not necessarily any yet).
+#. :doc:`Updates since 1.1.0 <change_log_1.1.0_to_now>`: patches released
+   since the most recent minor version update.
 
 #. **04 June 2021, Version 1.1.0**: over-haul of genred, hpackage, WCS in joinup
 
@@ -58,8 +58,7 @@ the most recent release and hence will appear to be one click on.
      * makebias output name synchronised with input
      * lots of minor improvements to logging scripts
 
-   Here is the
-   :doc:`full list of changes, 0.21.0 to 0.22.0 <change_log_0.21.0_0.22.0>`.
+   :doc:`Full list of changes, 0.21.0 to 0.22.0 <change_log_0.21.0_0.22.0>`.
 
 
 
