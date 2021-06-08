@@ -56,12 +56,6 @@ def hmeta(args=None):
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument(
-        "-f",
-        dest="full",
-        action="store_true",
-        help="carry out full re-computation of stats for all valid nights",
-    )
-    parser.add_argument(
         "-n",
         dest="night",
         help="name of specific night [for testing purposes]",
@@ -152,15 +146,17 @@ def hmeta(args=None):
         for run in runs:
             dfile = os.path.join(nname, run)
 
-            if not args.full:
-                # check for existence of data files
-                for cnam in cnams:
-                    oname = os.path.join(meta, f'{run}_{cnam}.csv')
-                    if not os.path.exists(oname):
-                        break
+            # check for existence of data files
+            for cnam in cnams:
+                oname = os.path.join(meta, f'{run}_{cnam}.csv')
+                if not os.path.exists(oname):
+                    break
+            else:
+                if len(cnams) > 1:
+                    print(f'  {dfile}: stats files already exist and will not be re-created')
                 else:
-                    print(f'  {dfile}, stats file(s) already exist')
-                    continue
+                    print(f'  {dfile}: stats file already exists and will not be re-created')
+                continue
 
             try:
                 if itype == 'U':
