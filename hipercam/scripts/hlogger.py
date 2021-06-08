@@ -6,6 +6,7 @@ import re
 import warnings
 import argparse
 import sqlite3
+import json
 
 import numpy as np
 import pandas as pd
@@ -135,15 +136,29 @@ def hlogger(args=None):
         print("hlogger aborted")
         return
 
+    # POSITIONS are any positional data from phase II entries,
+    # of use for coordinate lookup when simbad fails.
+    POSITIONS = {}
     if cwd.find("ultracam") > -1:
         instrument = "ULTRACAM"
         COLNAMES = ULTRACAM_COLNAMES
+        if 'ULTRACAM_PHASEII' in os.environ:
+            with open(os.environ['ULTRACAM_PHASEII']) as fp:
+                POSITIONS = json.load(fp)
+
     elif cwd.find("ultraspec") > -1:
         instrument = "ULTRASPEC"
         COLNAMES = ULTRASPEC_COLNAMES
+        if 'ULTRASPEC_PHASEII' in os.environ:
+            with open(os.environ['ULTRASPEC_PHASEII']) as fp:
+                POSITIONS = json.load(fp)
+
     elif cwd.find("hipercam") > -1:
         instrument = "HiPERCAM"
         COLNAMES = HIPERCAM_COLNAMES
+        if 'HIPERCAM_PHASEII' in os.environ:
+            with open(os.environ['HIPERCAM_PHASEII']) as fp:
+                POSITIONS = json.load(fp)
     else:
         print("** hlogger: cannot find hipercam, ultracam or ultraspec in path")
         print("hlogger aborted")
@@ -175,7 +190,7 @@ def hlogger(args=None):
             raise ValueError('did not recognise telescope =',telescope)
 
         tpath = os.readlink(tlink)
-        rname = os.path.basename(os.path.dirname(tlink))
+        rname = os.path.basename(os.path.dirname(tpath))
         # read and store the hand written log
         handlog = os.path.join(args.night, f"{args.night}.dat")
         hlog = Log(handlog)
@@ -204,10 +219,14 @@ def hlogger(args=None):
 
         # make the positions
         posdata = os.path.join(meta, 'posdata')
+
+        crname = CORRECTORS.get(rname,rname)
+        p2positions = POSITIONS.get(crname,{})
+
         make_positions(
             args.night, runs, observatory, instrument, hlog, targets,
             skip_targets, tdata, posdata, False, None, True, rname,
-            smessages, fmessages
+            smessages, fmessages, p2positions
         )
         print(f'Created & wrote positional data for {args.night} to {posdata}')
         print(f'Finished creating time & position data for {args.night}')
@@ -484,9 +503,13 @@ def hlogger(args=None):
                     posdata = os.path.join(meta, 'posdata')
                     load_old = not args.full and not args.positions
 
+                    crname = CORRECTORS.get(rname,rname)
+                    p2positions = POSITIONS.get(crname,{})
+
                     pdata = make_positions(
                         night, runs, observatory, instrument, hlog, targets, skip_targets,
-                        tdata, posdata, load_old, args.retry, False, rname, smessages, fmessages
+                        tdata, posdata, load_old, args.retry, False, rname, smessages,
+                        fmessages, p2positions
                     )
 
                     # Right, finally!
@@ -1529,7 +1552,7 @@ def make_times(night, runs, observatory, times, full, instrument):
 def make_positions(
         night, runs, observatory, instrument, hlog, targets,
         skip_targets, tdata, posdata, load_old, retry,
-        full, rname, smessages, fmessages
+        full, rname, smessages, fmessages, p2positions
 ):
     """Determine positional info, write to podata, return as dictionary
     keyed on the runs. Uses pre-determined timing data from
@@ -1559,6 +1582,8 @@ def make_positions(
       rname : run name
       smessages : buffer of successful target lookup messages
       fmessages : buffer of failed target lookup messages
+      p2positions : positions keyed by target name (RA, Dec pairs, sexagesimal)
+                    used as a last resort
 
     Returns with dictionary of positional data.
 
@@ -1644,6 +1669,7 @@ def make_positions(
                     autoid, ra, dec = targets(target)
                     recomp = True
                 except:
+                    # apparently we don't ...
                     try:
                         # attempt simbad lookup here
                         autoid, ra, dec = target_lookup(target)
@@ -1658,15 +1684,28 @@ def make_positions(
                         recomp = True
 
                     except:
-                        # nothing worked
-                        print(f'  No position found for {runname}, target = "{target}"')
-                        autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
-                        skip_targets.append(target)
+                        if target in p2positions:
+                            # data loaded at the phase II stage -- last resort
+                            ra, dec = p2positions[target]
+                            print(f'  Found {target} in phaseII data at RA={ra}, Dec={dec}')
+                            pos = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg))
+                            targets.add_target(target, pos.ra.hour, pos.dec.value, target)
 
-                        # save in suitable format for adding to FAILED_TARGETS if wanted.
-                        fmessages.append(
-                            f"{target.replace(' ','~'):32s} {rname} {night} {run}"
-                        )
+                            # save successful lookups
+                            smessages.append(
+                                f"{target.replace(' ','~'):32s} {pos.to_string('hmsdms',sep=':',precision=2)} {target.replace(' ','~')}"
+                            )
+                            recomp = True
+                        else:
+                            # nothing worked
+                            print(f'  No position found for {runname}, target = "{target}"')
+                            autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
+                            skip_targets.append(target)
+
+                            # save in suitable format for adding to FAILED_TARGETS if wanted.
+                            fmessages.append(
+                                f"{target.replace(' ','~'):32s} {rname} {night} {run}"
+                            )
 
             if not recomp:
                 # can save a stack of time by not recomputing any Sun / Moon stuff
@@ -2265,4 +2304,11 @@ TRANSLATE_MODE = {
     "OneWindow": "1-QUAD",
     "TwoWindows": "2-QUAD",
     "DriftWindow": "DRIFT",
+}
+
+
+# Run name correctors for picking up positions
+
+CORRECTORS = {
+    '2021-P107' : 'P107'
 }
