@@ -33,7 +33,7 @@ def jtrawl(args=None):
     in the "raw_data" directory containing night-by-night directories
     of data for |hipercam|, ULTRACAM or ULTRASPEC. It looks for stats
     data in the meta subdirectories of night directories containing
-    runs and attemps simple-minded identification of bad data basically
+    runs and attempts simple-minded identification of bad data basically
     to try to reduce the amount of space.
 
     """
@@ -68,7 +68,7 @@ def jtrawl(args=None):
 
     linstrument = instrument.lower()
 
-    # Now the actual work.  Next are regular expressions to match run
+    # Now the actual work. Next are regular expressions to match run
     # directories, nights, and run files
     nre = re.compile("^\d\d\d\d-\d\d-\d\d$")
     ure = re.compile("^run\d\d\d\.xml$")
