@@ -4,6 +4,7 @@
 
 .. |fig-setaper| replace:: :numref:`fig-setaper`
 .. |fig-fmap| replace:: :numref:`fig-fmap`
+.. |fig-dhist| replace:: :numref:`fig-dhist`
 
 Reduction
 *********
