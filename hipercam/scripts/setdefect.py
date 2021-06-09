@@ -54,16 +54,16 @@ def setdefect(args=None):
 
     Parameters:
 
-      mccd   : string
+      mccd : str
          name of an MCCD file, as produced by e.g. 'grab'
 
-      defect : string
+      defect : str
          the name of a defect file. If it exists it will be read so that
          defects can be added to it. If it does not exist, it will be
          created on exiting the routine. The defect files are in a fairly
          readable / editiable text format
 
-      ccd : string
+      ccd : str
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
          are possible inputs (without the quotes). '3 4' will plot CCD '3' and
          CCD '4'. If you want to plot more than one CCD, then you will be
@@ -81,7 +81,7 @@ def setdefect(args=None):
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
 
-      msub   : bool
+      msub : bool
          True/False to subtract median from each window before scaling
 
       cmap : str [hidden]
@@ -91,36 +91,36 @@ def setdefect(args=None):
 
       ffield : bool
          If True, all defects will be assumed to be flat-field or poor
-         charge transfer defects as opposed to hot pixels. The latter are
-         best set from dark frames, and have a different impact than the
+         charge transfer defects as opposed to hot pixels. The latter should
+         be set from dark frames, and have a different impact than the
          first two types in that they are worst for faint targets. Hot pixels
          and flat-field defects are shown with the same colours for moderate
          and severe, but different symbols (filled circles for flat-field
-         defects, stars for hot pixels). If you say no to add hot pixels,
-         the line defect option is not available.
+         defects, stars for hot pixels). If you say "no" in order to add hot
+         pixels, the line defect option is not available.
 
       hsbox : int
          half-width in binned pixels of stats box as offset from central pixel
          hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
          the "show" option when setting defects.
 
-      iset   : string [single character]
+      iset : str [single character]
          determines how the intensities are determined. There are three
          options: 'a' for automatic simply scales from the minimum to the
          maximum value found on a per CCD basis. 'd' for direct just takes two
          numbers from the user. 'p' for percentile dtermines levels based upon
          percentiles determined from the entire CCD on a per CCD bais.
 
-      ilo    : float [if iset=='d']
+      ilo : float [if iset=='d']
          lower intensity level
 
-      ihi    : float [if iset=='d']
+      ihi : float [if iset=='d']
          upper intensity level
 
-      plo    : float [if iset=='p']
+      plo : float [if iset=='p']
          lower percentile level
 
-      phi    : float [if iset=='p']
+      phi : float [if iset=='p']
          upper percentile level
 
     There are a few conveniences to make setdefect easier:

@@ -37,13 +37,19 @@ categories, so a really bad feature might appear in multiple pixels
 CCD 4 for example). I plan to update the file with time, and retain
 old ones for monitoring purposes.  I identified the bad pixels using a
 flat field divided by a smoothed version of itself (smoothed with a 40
-pixel FWHM 2D gaussian filter).
+pixel FWHM 2D gaussian filter). I have also marked some lines caused I suspect
+by charge traps. These are visible in biases at least; I am unsure
+what effect they have when enough light is coming in.
 
 When observing, you should move the target and essential comparison
 stars away from any such defects, particularly those that appear in
 red. The zoom/pan feature of |nrtplot| is useful for this.
 
 Files:
+
+  #. 2021-06-09 (:download:`HiPERCAM defect file
+     <hipercam_defects_2021_06_09.dft>`) Some linear
+     charge trap (?) features marked.
 
   #. 2021-05-13 (:download:`HiPERCAM defect file
      <hipercam_defects_2021_05_13.dft>`) New hair in
