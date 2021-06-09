@@ -173,6 +173,8 @@ def genred(args=None):
         cl.register("nonlin", Cline.LOCAL, Cline.PROMPT)
         cl.register("sat", Cline.LOCAL, Cline.PROMPT)
         cl.register("scale", Cline.LOCAL, Cline.PROMPT)
+        cl.register("readout", Cline.LOCAL, Cline.PROMPT)
+        cl.register("gain", Cline.LOCAL, Cline.PROMPT)
         cl.register("template", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
@@ -346,8 +348,9 @@ warn = 1 60000 64000
                     "levels to indicate saturation, 1 per CCD",
                     nccd*(62000.,)
                 )
+
                 warn_levels = ""
-                for n, (nonlin,sat) in zip(nonlins,sats):
+                for n, (nonlin,sat) in enumerate(zip(nonlins,sats)):
                     warn_levels += \
                         f"warn = {n+1} {nonlin} {sat}\n"
                 maxcpu = nccd
