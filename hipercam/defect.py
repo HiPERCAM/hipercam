@@ -205,33 +205,38 @@ class Hot(Defect):
 
     Attributes::
 
-      severity   : Severity
+      severity : Severity
          severity of the Defect
 
-      x, y       : float, float
+      x, y : float, float
          coordinates of the pixel, starting (1,1) at lower-left
+
+      rate : float
+         count rate [cts/sec]
     """
 
-    def __init__(self, severity, x, y):
+    def __init__(self, severity, x, y, rate):
         """Constructor. Arguments::
 
-           severity     : Severity
+           severity : Severity
               indicator of the severity of a defect
 
-           x, y         : float, float
+           x, y : float, float
               coordinates of the pixel, starting (1,1) at lower-left
         """
         super().__init__(severity)
         self.x = x
         self.y = y
+        self.rate = rate
 
     def copy(self, memo=None):
         """Returns with a copy of the Hot"""
-        return Hot(self.severity, self.x, self.y)
+        return Hot(self.severity, self.x, self.y, self.rate)
 
     def __repr__(self):
-        return "Hot(severity={!r}, x={!r}, y={!r})".format(
-            self.severity, self.x, self.y
+        return (
+            f"Hot(severity={self.severity},"
+            f" x={self.x}, y={self.y}, rate={self.rate})"
         )
 
     def dist(self, x, y):
@@ -373,6 +378,7 @@ class _Encoder(json.JSONEncoder):
                     ("severity", obj.severity.name),
                     ("x", obj.x),
                     ("y", obj.y),
+                    ("rate", obj.rate),
                 )
             )
 
@@ -397,6 +403,6 @@ class _Decoder(json.JSONDecoder):
                     obj["y2"],
                 )
             elif obj["Comment"] == "hipercam.defect.Hot":
-                return Hot(getattr(Severity, obj["severity"]), obj["x"], obj["y"])
+                return Hot(getattr(Severity, obj["severity"]), obj["x"], obj["y"], obj["rate"])
 
         return obj

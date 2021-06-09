@@ -50,7 +50,7 @@ Params = {
     # aperture extra colour
     "aper.extra.col": CIS[1],
     # moderate defect colour
-    "defect.moderate.col": CIS[15],
+    "defect.moderate.col": CIS[8],
     # severe defect colour
     "defect.severe.col": CIS[2],
 }
@@ -504,7 +504,8 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                     color=Params["aper.label.col"],
                     ha="right",
                     va="top",
-                    bbox=dict(ec="0.8", fc="0.8", alpha=0.5),
+                    bbox=dict(ec="0.8", fc="0.8", alpha=0.7, boxstyle='round, pad=0'),
+                    clip_on=True,
                     animated=animated
                 )
             )
@@ -684,12 +685,12 @@ def pDefect(axes, dfct, animated=False, artists=None):
         if isinstance(dfct, defect.Point):
             if dfct.severity == defect.Severity.MODERATE:
                 artists = axes.plot(
-                    dfct.x, dfct.y, "o", color=Params["defect.moderate.col"], ms=2.5,
+                    dfct.x, dfct.y, "o", color=Params["defect.moderate.col"], ms=3,
                     animated=animated
                 )
             elif dfct.severity == defect.Severity.SEVERE:
                 artists = axes.plot(
-                    dfct.x, dfct.y, "o", color=Params["defect.severe.col"], ms=2.5,
+                    dfct.x, dfct.y, "o", color=Params["defect.severe.col"], ms=3,
                     animated=animated
                 )
 
@@ -712,26 +713,33 @@ def pDefect(axes, dfct, animated=False, artists=None):
 
         elif isinstance(dfct, defect.Hot):
             if dfct.severity == defect.Severity.MODERATE:
-                artists = axes.plot(
-                    dfct.x, dfct.y, "*", color=Params["defect.moderate.col"], ms=2.5,
-                    animated=animated
-                )
+                col = Params["defect.moderate.col"]
             elif dfct.severity == defect.Severity.SEVERE:
-                artists = axes.plot(
-                    dfct.x, dfct.y, "*", color=Params["defect.severe.col"], ms=2.5,
-                    animated=animated
+                col = Params["defect.severe.col"]
+
+            artists = [
+                axes.text(
+                    dfct.x, dfct.y,
+                    f'{int(round(dfct.rate))}',
+                    color=col, ha="center", va="center",
+                    bbox=dict(ec="0.8", fc="0.8", alpha=0.5, boxstyle='round, pad=0'),
+                    clip_on=True, animated=animated
                 )
+            ]
 
         else:
             raise HipercamError("Did not recognise Defect")
 
     else:
         # update previously created artists
-        if isinstance(dfct, defect.Point) or isinstance(dfct, defect.Hot):
+        if isinstance(dfct, defect.Point):
             artists[0].set_data(dfct.x, dfct.y)
 
         elif isinstance(dfct, defect.Line):
             artists[0].set_data([dfct.x1, dfct.x2], [dfct.y1, dfct.y2])
+
+        elif isinstance(dfct, defect.Hot):
+            artists[0].set_position(dfct.x, dfct.y)
 
         else:
             raise HipercamError("Did not recognise Defect")

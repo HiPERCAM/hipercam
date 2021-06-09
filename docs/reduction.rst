@@ -106,16 +106,31 @@ not at all easy to take dark calibration frames because of light
 leakage. At minimum they typically need to be taken at night with the
 dome closed, so they are a good bad weather calibration. One should
 normally take a set of biases before and after as well to allow for
-bias level drift. Dark current is particularly important for ULTRACAM
+bias level drift. Dark current is however important for ULTRACAM
 where the CCDs run relatively warm. In particular there are multiple
 "hot pixels" with dark currents significantly above the background.
+Figure |fig-dhist| shows histograms of the combination of a series of
+60-second darks. 600 on the X-axis corresponds to 10 counts/second,
+and there are some pixels over 10x higher than this.
+
+.. _fig-dhist:
+
+.. figure:: dark-hist.png
+   :scale: 50 %
+   :alt: Click on image to enlarge
+   :align: center
+
 The program |makedark| handles making dark calibration frames
 including correction for whatever exposure is included in the bias. If
 dark current is significant, then the flat fields should also be
 corrected. Note that correcting for dark current does not mean that
 you should not try to avoid hot pixels; the worst of these could add
 significant noise and the very worst are poorly behaved and do not
-correct well.
+correct well. The effect of hot pixels is particularly important in
+the u-band of ULTRACAM where count rates from targets are generally
+lower. If you plot defects with |rtplot| or |nrtplot|, the worst
+hot pixels should be obvious.
+
 
 Flat fields
 ===========

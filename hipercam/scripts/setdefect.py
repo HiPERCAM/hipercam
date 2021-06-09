@@ -47,7 +47,7 @@ __all__ = [
 
 def setdefect(args=None):
     """``setdefect mccd defect ccd [width height] nx msub [cmap] ffield
-    hsbox iset (ilo ihi | plo phi)``
+    (auto (hlo hhi severity)) hsbox iset (ilo ihi | plo phi)``
 
     Interactive definition of CCD defects. This is a matplotlib-based routine
     allowing you to define defects using the cursor.
@@ -98,6 +98,22 @@ def setdefect(args=None):
          and severe, but different symbols (filled circles for flat-field
          defects, stars for hot pixels). If you say "no" in order to add hot
          pixels, the line defect option is not available.
+
+      auto : bool [if ffield==False]
+         Hot pixels can be set automatically if wanted. If so then a few extra
+         parameters are needed. This only makes sense if you are feeding setdefect
+         with a dark frame produced by |makedark| so that the intensity levels
+         mean something.
+
+      hlo : float [if auto]
+         lower limit to flag as a hot pixel as a count rate per second
+
+      hhi : float [if auto]
+         upper limit to flag as a hot pixel as a count rate per second
+
+      severity : str [if auto]
+         'm' for moderate, 'n' for nasty. Controls colour used to plot
+         the hot pixel; it will be labelled with a rate as well.
 
       hsbox : int
          half-width in binned pixels of stats box as offset from central pixel
@@ -164,7 +180,11 @@ def setdefect(args=None):
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
-        cl.register("ffield", Cline.GLOBAL, Cline.PROMPT)
+        cl.register("ffield", Cline.LOCAL, Cline.PROMPT)
+        cl.register("auto", Cline.LOCAL, Cline.PROMPT)
+        cl.register("hlo", Cline.LOCAL, Cline.PROMPT)
+        cl.register("hhi", Cline.LOCAL, Cline.PROMPT)
+        cl.register("severity", Cline.LOCAL, Cline.PROMPT)
         cl.register("hsbox", Cline.GLOBAL, Cline.HIDE)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
@@ -223,6 +243,19 @@ def setdefect(args=None):
         cmap = None if cmap == "none" else cmap
 
         ffield = cl.get_value("ffield", "flat field defects? [else hot pixels]", True)
+        if not ffield:
+            auto = cl.get_value("auto", "automatic assignation of hot pixels?", False)
+            hlo = cl.get_value("hlo", "lower rate threshold", 10., 0.)
+            hhi = cl.get_value("hhi", "upper rate threshold", max(hlo, 100.), hlo)
+            severity = cl.get_value("severity", "severity of hot pixels", 'm', lvals=('m','n'))
+            if severity == "m":
+                severity = defect.Severity.MODERATE
+            elif severity == "n":
+                severity = defect.Severity.SEVERE
+            else:
+                raise hcam.HipercamError(f"Severity = {severity} not recognised; programming error")
+        else:
+            auto = False
 
         hsbox = cl.get_value("hsbox", "half-width of stats box (binned pixels)", 2, 1)
         iset = cl.get_value(
@@ -276,6 +309,9 @@ def setdefect(args=None):
         pass
 
     # start plot
+    nccd = len(ccds)
+    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+
     if width > 0 and height > 0:
         fig = plt.figure(figsize=(width, height))
     else:
@@ -286,8 +322,6 @@ def setdefect(args=None):
     toolbar = fig.canvas.manager.toolbar
     toolbar.pan()
 
-    nccd = len(ccds)
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
     # we need to store some stuff
     ax = None
@@ -299,6 +333,9 @@ def setdefect(args=None):
     pobjs = {}
 
     for n, cnam in enumerate(ccds):
+
+        ccd = mccd[cnam]
+
         if ax is None:
             axes = ax = fig.add_subplot(ny, nx, n + 1)
             axes.set_aspect("equal", adjustable="box")
@@ -310,11 +347,11 @@ def setdefect(args=None):
 
         if msub:
             # subtract median from each window
-            for wind in mccd[cnam].values():
+            for wind in ccd.values():
                 wind -= wind.median()
 
         hcam.mpl.pCcd(
-            axes, mccd[cnam], iset, plo, phi, ilo, ihi, f"CCD {cnam}", cmap=cmap
+            axes, ccd, iset, plo, phi, ilo, ihi, f"CCD {cnam}", cmap=cmap
         )
 
         # keep track of the CCDs associated with each axes
@@ -322,6 +359,36 @@ def setdefect(args=None):
 
         # and axes associated with each CCD
         anams[cnam] = axes
+
+        if auto:
+            # add hot pixels if auto option enabled
+            if cnam in mccd_dfct:
+                cdfct = mccd_dfct[cnam]
+            else:
+                cdfct = mccd_dfct[cnam] = defect.CcdDefect()
+
+            # Calculate the largest number, label the new Defect
+            # with one more
+            high = 0
+            for ndfct in cdfct:
+                try:
+                    high = max(high, int(ndfct))
+                except ValueError:
+                    pass
+            high += 1
+
+            dexpose = mccd.head["EXPTIME"]
+            clo = hlo*dexpose
+            chi = hhi*dexpose
+
+            for wnam,wind in ccd.items():
+                flag = (wind.data > clo) & (wind.data < chi)
+                xs = wind.x(np.arange(wind.nx))
+                ys = wind.y(np.arange(wind.ny))
+                Xs,Ys = np.meshgrid(xs,ys)
+                for x,y,c in zip(Xs[flag],Ys[flag],wind.data[flag]):
+                    cdfct[str(high)] = defect.Hot(severity, x, y, c/dexpose)
+                    high += 1
 
         if cnam in mccd_dfct:
             # plot any pre-existing Defects, keeping track of
@@ -555,7 +622,7 @@ close enough (< 10 pixels)
 
                 # old files are over-written at this point
                 out_dfct.write(self.dfctnam)
-                print("\nDefects saved to {:s}.\nBye".format(self.dfctnam))
+                print(f"\nDefects saved to {self.dfctnam}.\nBye")
 
             elif key == "enter":
                 self.action_prompt(True)
@@ -596,10 +663,25 @@ close enough (< 10 pixels)
             if self.ffield:
                 # flat-field defect
                 dfct = defect.Point(self._severity, self._x, self._y)
+                name = 'defect'
 
             else:
+                wind = self.mccd[self._cnam][wnam]
+                dexpose = self.mccd.head["EXPTIME"]
+                xp = int(round(wind.x_pixel(self._x)))
+                yp = int(round(wind.y_pixel(self._y)))
+                if xp < 0 or xp >= wind.nx or yp < 0 or yp >= wind.ny:
+                    print(f"  xp = {xp}, yp = {yp} outside window")
+                    self.action_prompt(True)
+                    return
+
+                # translate back to physical space
+                self._x = wind.x(xp)
+                self._y = wind.y(yp)
+
                 # hot pixel
-                dfct = defect.Hot(self._severity, self._x, self._y)
+                dfct = defect.Hot(self._severity, self._x, self._y, wind.data[yp,xp]/dexpose)
+                name = 'hot pixel'
 
             self.mccd_dfct[self._cnam][self._buffer] = dfct
 
@@ -615,9 +697,8 @@ close enough (< 10 pixels)
             )
 
             print(
-                "added {:s} level defect {:s} to CCD {:s} at x,y = {:.2f},{:.2f}".format(
-                    level, self._buffer, self._cnam, self._x, self._y
-                )
+                f"added {level} level {name} {self._buffer} to CCD {self._cnam}"
+                f" at x,y = {self._x:.2f},{self._y:.2f}"
             )
 
         self.action_prompt(True)

@@ -50,7 +50,7 @@ Params = {
     # aperture extra colour
     "aper.extra.ci": 1,
     # moderate defect colour
-    "defect.moderate.ci": 15,
+    "defect.moderate.ci": 8,
     # severe defect colour
     "defect.severe.ci": 2,
 }
@@ -300,6 +300,7 @@ def pAper(aper, label="", ccdAper=None):
 
     if label != "":
         pgsci(Params["aper.label.ci"])
+        pgsch(1.0)
         pgptxt(aper.x - aper.rsky2, aper.y - aper.rsky2, 0.0, 1.0, label)
 
 
@@ -319,7 +320,7 @@ def pCcdAper(ccdaper):
 
 def pDefect(dfct):
     """y
-    Plots a :class:`Defect` o the current PGPLOT device
+    Plots a :class:`Defect` to the current PGPLOT device
 
     Arguments::
 
@@ -356,13 +357,13 @@ def pDefect(dfct):
 
         if dfct.severity == defect.Severity.MODERATE:
             pgsci(Params["defect.moderate.ci"])
-            pgsch(1.3)
-            pgpt1(dfct.x, dfct.y, 6)
+            pgsch(1.)
 
         elif dfct.severity == defect.Severity.SEVERE:
             pgsci(Params["defect.severe.ci"])
-            pgsch(1.7)
-            pgpt1(dfct.x, dfct.y, 6)
+            pgsch(1.1)
+
+        pgptxt(dfct.x, dfct.y, 0, 0.5, f'{int(round(dfct.rate))}')
 
     else:
         raise HipercamError("Did not recognise Defect")
