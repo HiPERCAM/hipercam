@@ -331,10 +331,10 @@ def psf_reduce(args=None):
                     ymin = min(ymin, float(-nypad))
                     ymax = max(ymax, float(nytot + nypad + 1))
 
-            xlo = cl.get_value("xlo", "left-hand X value", xmin, xmin, xmax)
-            xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax)
-            ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax)
-            yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax)
+            xlo = cl.get_value("xlo", "left-hand X value", xmin, xmin, xmax, enforce=False)
+            xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax, enforce=False)
+            ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax, enforce=False)
+            yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax, enforce=False)
 
         else:
             xlo, xhi, ylo, yhi = None, None, None, None

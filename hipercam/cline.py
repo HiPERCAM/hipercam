@@ -30,7 +30,7 @@ command<cr>
 
 (npoint and output will be prompted for)
 
-or 
+or
 
 command device=/ps npoint=20<cr>
 
@@ -481,16 +481,11 @@ command line to check.""", ClineWarning,
         return defval
 
     def get_value(
-        self,
-        param,
-        prompt,
-        defval,
-        minval=None,
-        maxval=None,
-        lvals=None,
-        fixlen=True,
-        multipleof=None,
-        ignore=None,
+            self, param, prompt, defval,
+            minval=None, maxval=None,
+            lvals=None, fixlen=True,
+            multipleof=None, ignore=None,
+            enforce=True
     ):
         """Gets the value of a parameter, either from the command arguments, or by
         retrieving default values or by prompting the user as required. This
@@ -500,27 +495,29 @@ command line to check.""", ClineWarning,
 
         Parameters:
 
-          param   : string
+          param : str
              parameter name.
 
-          prompt  : string
+          prompt : str
              the prompt string associated with the parameter
 
-          defval  : various
+          defval : various
              default value if no other source can be found (e.g. at start).
              This also defines the data type of the parameter (see below for
              possibilities)
 
-          minval  : same as defval's type
-             the minimum value of the parameter to allow.
+          minval : same as defval's type
+             the minimum value of the parameter to allow. This is also the
+             value that will be used if the user type "min". See also "enforce".
 
-          maxval  : same as defval's type
-             the maximum value of the parameter to allow.
+          maxval : same as defval's type
+             the maximum value of the parameter to allow. This is also the
+             value that will be used if the user type "max". See also "enforce".
 
-          lvals   : list
+          lvals : list
              list of possible values (exact matching used)
 
-          fixlen  : bool
+          fixlen : bool
              for lists or tuples, this insists that the user input has the
              same length
 
@@ -528,17 +525,23 @@ command line to check.""", ClineWarning,
              specifies a number that the final value must be a multiple of
              (integers only)
 
-          ignore : string
+          ignore : str
              for Fname inputs, this is a value that will cause the checks on
              existence of files to be skipped.
 
+          enforce : bool
+             controls whether "min" and "max" are used to prevent user input
+             outside the range. In some case one really does not want input
+             outside of min and max, whereas in others, it would not matter
+             and "min" and "max" are mainly as guidance.
+
         Data types: at the moment, only certain data types are recognised by
         this routine. These are the standard numerical types, 'int', 'long',
-        'float', the logical type 'bool' which can be set with any of (case
-        insensitively) 'true', 'yes', 'y', '1' (all True), or 'false', 'no',
-        'n', '0' (all False), strings, and hipercam.cline.Fname objects to
-        represent filenames with specific extensions, and lists. In the case
-        of tuples, it is the default value 'defval' which sets the type.
+        'float', the logical type 'bool' (which can be set with any of, case
+        insensitively, 'true', 'yes', 'y', '1' (all True), or 'false', 'no',
+        'n', '0' (all False)), strings, tuples, lists, and hipercam.cline.Fname
+        objects to represent filenames with specific extensions. In the case
+        of tuples and lists, it is the default value 'defval' which sets the type.
 
         """
 
@@ -603,33 +606,25 @@ command line to check.""", ClineWarning,
                         self._usedef = True
                     elif reply == "?":
                         print()
+                        qualifier = "must" if enforce else "should normally"
                         if minval is not None and maxval is not None:
                             print(
-                                (
-                                    'Parameter = "{:s}" must lie from' " {!s} to {!s}"
-                                ).format(param, minval, maxval)
+                                f'Parameter = "{param}" {qualifier} lie from {minval} to {maxval}'
                             )
                         elif minval is not None:
                             print(
-                                (
-                                    'Parameter = "{:s}" must be' " greater than {!s}"
-                                ).format(param, minval)
+                                f'Parameter = "{param}" {qualifier} be greater than {minval}'
                             )
                         elif maxval is not None:
                             print(
-                                ('Parameter = "{:s}" must be ' "less than {!s}").format(
-                                    param, maxval
-                                )
+                                f'Parameter = "{param}" {qualifier} be less than {maxval}'
                             )
                         else:
                             print(
-                                (
-                                    'Parameter = "{:s}" has no '
-                                    "restriction on its value"
-                                ).format(param)
+                                f'Parameter = "{param}" has no restriction on its value'
                             )
 
-                        print('"{:s}" has data type = {!s}'.format(param, type(defval)))
+                        print(f'"{param}" has data type = {type(defval)}')
                         if lvals is not None:
                             print("Only the following values are allowed:")
                             print(lvals)
@@ -701,12 +696,12 @@ command line to check.""", ClineWarning,
                         if minval is not None:
                             value = minval
                         else:
-                            raise ClineError("{:s} has no minimum value".format(param))
+                            raise ClineError(f"{param} has no minimum value")
                     elif value == "max":
                         if maxval is not None:
                             value = maxval
                         else:
-                            raise ClineError("{:s} has no maximum value".format(param))
+                            raise ClineError(f"{param} has no maximum value")
 
                 value = int(value)
 
@@ -719,12 +714,12 @@ command line to check.""", ClineWarning,
                         if minval is not None:
                             value = minval
                         else:
-                            raise ClineError("{:s} has no minimum value".format(param))
+                            raise ClineError(f"{param} has no minimum value")
                     elif value == "max":
                         if maxval is not None:
                             value = maxval
                         else:
-                            raise ClineError("{:s} has no maximum value".format(param))
+                            raise ClineError(f"{param} has no maximum value")
 
                 value = float(value)
 
@@ -740,18 +735,17 @@ command line to check.""", ClineWarning,
                     value = tuple(value)
             else:
                 raise ClineError(
-                    "did not recognize the data type of the default supplied for parameter {:s} = {!s}".format(
-                        param, type(defval)
-                    )
+                    "did not recognize the data type of the default"
+                    " supplied for parameter {param} = {type(defval)}"
                 )
 
         except ValueError as err:
-            raise ClineError("{!s}".format(err))
+            raise ClineError(str(err))
 
         # ensure value is within range
-        if minval != None and value < minval:
+        if minval != None and value < minval and enforce:
             raise ClineError(param + " = " + str(value) + " < " + str(minval))
-        elif maxval != None and value > maxval:
+        elif maxval != None and value > maxval and enforce:
             raise ClineError(param + " = " + str(value) + " > " + str(maxval))
 
         # and that it is an OK value
