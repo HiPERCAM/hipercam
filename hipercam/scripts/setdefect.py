@@ -50,7 +50,11 @@ def setdefect(args=None):
     (auto (hlo hhi severity)) hsbox iset (ilo ihi | plo phi)``
 
     Interactive definition of CCD defects. This is a matplotlib-based routine
-    allowing you to define defects using the cursor.
+    allowing you to define defects using the cursor. Various routines allow
+    you to overplot defects, above all |rtplot| / |nrtplot|. Point-like and
+    line-like defects of two different colours (orange for moderate, red for
+    severe can be marked). Hot pixels can be marked by their count rate as
+    measured in dark frames.
 
     Parameters:
 
