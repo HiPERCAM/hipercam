@@ -16,14 +16,8 @@ detailed guide to reducing your data.  It covers the following steps:
 .. contents::
    :local:
 
-.. Note::
-
-  I am aware that these pages need more illustrations. This is work in
-  progress.
-
-
-Bias frames
-===========
+Bias correction
+===============
 
 CCD images come with a near-constant electronic offset called the
 "bias" which ensures that the counts are always positive and helps
@@ -58,12 +52,12 @@ outliers. Usually one should combine bias frames with offsets to
 correct for any drift in the mean level which could otherwise affect
 the action of |combine|.
 
-The two operations of |grab| followed by |combine|, along with clean-up of the
-temporary files can be carried out with the single command |makebias|. This
-also saves the frames to a temporary location to avoid polluting the working
-directory with lots of files. Thus assuming all frames in bias run
-:file:`run0002` are OK, the following command will make the combined
-bias frame::
+The two operations of |grab| followed by |combine|, along with
+clean-up of the temporary files can be carried out with the single
+command |makebias|. This also saves the frames to a temporary location
+to avoid polluting the working directory with lots of files. Thus
+assuming all frames in bias run :file:`run0002` are OK, the following
+command will make the combined bias frame::
 
   makebias run0002 1 0 3.0 yes run0002
 
@@ -77,8 +71,8 @@ for example, for a 1x1 binned, full-frame bias in slow readout mode. I
 like this approach because one can quickly see (e.g. 'ls -l') which
 run a given calibration frame came from.
 
-Once you have a bias frame, then it can be used by editing in its name in the
-calibration section of the reduce file.
+Once you have a bias frame, then it can be used by editing in its name
+in the calibration section of the reduce file.
 
 .. Note::
    One should take bias calibration images in all the output formats used
@@ -95,8 +89,8 @@ calibration section of the reduce file.
    always worth plotting the mean levels which ideally should drift by
    at most a few counts.
 
-Darks
-=====
+Dark correction (thermal noise)
+===============================
 
 If a CCD is left exposing in complete darkness, counts accumulate
 through thermal excitation known as "dark current". Correction
@@ -121,20 +115,34 @@ and there are some pixels over 10x higher than this.
    :alt: Click on image to enlarge
    :align: center
 
+   Histogram of an ULTRACAM dark frame showing that there are a few pixels
+   that rack up thermal counts at over 100 per second.
+
 The program |makedark| handles making dark calibration frames
 including correction for whatever exposure is included in the bias. If
 dark current is significant, then the flat fields should also be
 corrected. Note that correcting for dark current does not mean that
 you should not try to avoid hot pixels; the worst of these could add
 significant noise and the very worst are poorly behaved and do not
-correct well. The effect of hot pixels is particularly important in
-the u-band of ULTRACAM where count rates from targets are generally
-lower. If you plot defects with |rtplot| or |nrtplot|, the worst
-hot pixels should be obvious.
+correct well, but certainly dark correction should offset the worst
+effects of thermal noise. The effect of hot pixels is particularly
+important in the u-band of ULTRACAM where count rates from targets are
+generally lower. If you plot a defect file which include hot pixels
+with |rtplot| or |nrtplot|, any marked hot pixels will appear as
+integers with their count rate in counts per second. If you zoom in
+close around targets of interest, it will be obvious whether you need
+to move the position.
+
+.. Warning::
+   |makedark| uses clipped mean combination, which is rather insensitive
+   for small numbers of points, so ideally you need at least
+   20+ frames, or to take some care with the value of sigma that you set.
+   This is a crucial step to avoid propagating cosmic rays into the
+   final output.
 
 
-Flat fields
-===========
+Flat field correction
+=====================
 
 CCDs are not of uniform sensitivity. There are pixel-to-pixel
 variations, there may be dust on the optics, and there may be overall
@@ -146,7 +154,9 @@ approach is to take images of the twilight sky just after sunset or
 before sunrise. Best of all if the sky is free of many stars, but in
 any case one should always offset the (multiple) sky field frames
 taken so that stars can be medianed out of the flat
-field. Normally we move in a spiral pattern to accomplish this.
+field. Normally we move in a spiral pattern to accomplish this, so
+you will usually see a comment about "telescope spiralling" and should
+look for moving objects in flat fields. If things move, that is good.
 
 At the GTC, |hiper|'s driving routine, ``hdriver`` can drive the
 telescope as well as the instrument, making spiralling during sky
@@ -155,23 +165,24 @@ in a single run, but the different CCDs will have different count
 levels on any one frame, and will come out of saturation at different
 times. The count levels will also be falling or rising according to
 whether the flats were taken at evening or morning twilight. At the
-NTT and TNT, we ask the TO to spiral the telescope.
+NTT and TNT, we ask the TO to spiral the telescope. 
 
 The task of making the flat fields is to combine a series of frames
 with differing count levels, while removing features that vary between
-images. In order to do this, one must normalise the images by their
-mean levels, but weight them appropriately in the final combination to
-avoid giving too much weight to under-exposed images. This is tedious
-by hand, and therefore the command |makeflat| was written to carry out
-all the necessary tasks.
+images (cosmic rays). In order to do this, one must normalise the
+images by their mean levels, but weight them appropriately in the
+final combination to avoid giving too much weight to under-exposed
+images. This is tedious by hand, and therefore the command |makeflat|
+was written to carry out all the necessary tasks.
 
-As with the biases, it is strongly recommended that you inspect the frames to
-be combined using |rtplot| to avoid including any disastrous ones. Saturated
-frames can be spotted using user-defined mean levels at which to reject
-frames. The documentation of |makeflat| has details of how it works, and you
-are referred to this for more information. Recommended mean level limits are
-~4000 for each CCD for the lower limits, and (55000, 58000, 58000, 50000 and
-42000) for CCDs 1 to 5 (|hiper|), (50000, 28000 and 28000) for
+As with the biases, it is strongly recommended that you inspect the
+frames to be combined using |rtplot| to avoid including any disastrous
+ones. Saturated frames can be spotted using user-defined mean levels
+at which to reject frames. The documentation of |makeflat| has details
+of how it works, and you are referred to this for more
+information. Recommended mean level limits are ~4000 for each CCD for
+the lower limits, and (55000, 58000, 58000, 50000 and 42000) for CCDs
+1 to 5 (|hiper|), (50000, 28000 and 28000) for
 ULTRACAM and 50000 for ULTRASPEC. The low upper level for CCD 5 of
 |hiper| is to avoid a nasty feature that develops in the lower-right
 readout channel at high count levels. The limits for ULTRACAM are to
@@ -186,8 +197,8 @@ in the green and blue CCDs especially.
 
 .. _fringing:
 
-Fringing
-========
+Defringing
+==========
 
 With |hiper| there is significant fringing in the z-band. ULTRACAM
 shows it is the z-band and to a much lesser extent in the
@@ -207,8 +218,8 @@ shows fringes from |hiper|'s z-band arm.
    :alt: Click on image to enlarge
    :align: center
 
-   Fringe map of |hiper| z-band CCD with peak/trough pairs, created from dithered
-   data taken on 2018-04-15 on the GTC.
+   Fringe map of |hiper| z-band CCD with peak/trough pairs, created from
+   dithered data taken on 2018-04-15 on the GTC.
 
 The idea is to estimate the ratio of fringing amplitude in the data
 versus the reference image. The effect of defringing can be seen by
@@ -226,12 +237,13 @@ file, although for specially window formats it may make sense to adapt
 the standard set of pairs. See :doc:`files` for pre-prepared files.
 
 
-Bad pixels
-==========
+Bad pixels and defect files
+===========================
 
-This is TBD; the pipeline does not cope with bad pixels fully yet,
-although they can be marked as "defects" during observing, which is
-probably the most important aspect of all.
+There is no explicit accounting for bad pixels in the pipeline (yet).
+The approach has always been to try to avoid them in the first place.
+We do so through plotting of files of defects during acqusition.
+See :doc:`files` for pre-prepared files.
 
 Aperture files
 ==============
@@ -342,55 +354,93 @@ you to plot one parameter versus another, including division by
 comparison stars. If you use Python, the |plog| code is a good place
 to start from when analysing your data in more detail. In particular
 it shows you how to load in the rather human-unreadable |hiper| log
-files (huge numbers of columns and rows).
+files (huge numbers of columns and rows). While observing |plog| is
+helpful for plotting the sky level as twilight approaches.
 
 Customisation
 =============
 
-You may well find that your data has particular features that the current
-pipeline does not allow for. An obvious one is with crowded fields, which
-can only roughly be accommodated with judicious application of the options
-within |setaper|. The pipeline does not aim to replicate packages designed to
-handle crowded fields, and you are best advised to port the data over into
-single frames using |grab|, remembering that the 'hcm' files are nothing more
-than a particular form of FITS. If your data requires only a small level of
-tweaking then there are a few simple aritematical commands such as |add| and
-|cmul| that might help, but it is not the intention to provide a full suite of
-tools that can deal with all cases. Instead, the recommended route is to code
-Python scripts to manipulate your data, and the :doc:`api/api` is designed to make
-it relatively easy to access |hiper| data. If you devise routines of generic
-interest, you are encouraged to submit them for possible inclusion within the
-main pipeline commands. The existing pipeline commands are a good place to
+You may well find that your data has particular features that the
+current pipeline does not allow for. An obvious one is with crowded
+fields, which can only roughly be accommodated with judicious
+application of the options within |setaper|. The pipeline does not aim
+to replicate packages designed to handle crowded fields, and you are
+best advised to port the data over into single frames using |grab|,
+remembering that the 'hcm' files are nothing more than a particular
+form of FITS. If your data requires only a small level of tweaking
+then there are a few simple aritematical commands such as |add| and
+|cmul| that might help, but it is not the intention to provide a full
+suite of tools that can deal with all cases. Instead, the recommended
+route is to code Python scripts to manipulate your data, and the
+:doc:`api/api` is designed to make it relatively easy to access
+|hiper| data. If you devise routines of generic interest, you are
+encouraged to submit them for possible inclusion within the main
+pipeline commands. The existing pipeline commands are a good place to
 start when looking for examples.
 
 The reduce log files
 ====================
 
 |reduce| writes all results to an ASCII log file. This can be pretty
-enormous with many columns. The log file is self-documenting with an
+enormous with many entries per line. The log file is self-documenting with an
 extensive header section which is worth a look through. In particular
 the columns are named and given data types to aid ingestion into numpy
 recarrays. The pipeline command |plog| provides a crude interface to
 plotting these files, and module :mod:`hipercam.hlog` should allow you
 to develop scripts to access the data and to make your own
-plots. |hlog2fits| can convert the ASCII logs into rather more
+plots. |hlog2fits| can convert the ASCII logs into a more
 comprehensible FITS versions, with one HDU per CCD. These can be
 easily explored with standard FITS utilities like ``fv``. Note however
-that the ASCII logs comes with a lot of header lines that FITS is singularly
-bad for, so the ASCII logs are to be preferred in the main. They are also
-the ones expected for the |flagcloud| script which allows you to interactively
-define cloudy and junk data.
+that the ASCII logs comes with a lot of header lines that FITS is
+singularly bad for, so the ASCII logs are to be preferred in the
+main. They are also the ones expected for the |flagcloud| script which
+allows you to interactively define cloudy and junk data. Here is a
+short bit of code to show you how you might plot your data, assuming
+you had the pipeline available:
+
+.. code-block:: python
+
+   # import matplotlib
+   import matplotlib.pyplot as plt
+
+   # import the pipeline
+   import hipercam as hcam
+
+   # load the reduction log. Creates
+   # a hipercam.hlog.Hlog object
+   hlg = hcam.hlog.Hlog.rascii('run0012.log')
+
+   # Extract a hipercam.hlog.Tseries from
+   # aperture '1' from CCD '2'
+   targ = hlg.tseries('2','1')
+
+   # now the comparison (aperture '2')
+   comp = hlg.tseries('2','2')
+
+   # take their ratio (propagates uncertainties correctly)
+   lc = targ / comp
+
+   # Make an interactive plot
+   lc.mplot(plt)
+   plt.show()
+
+The methods of :class:`hipercam.hlog.Tseries` are worth
+looking through. e.g. you can convert to magnitudes, change
+the time axis, dump to an ASCII file, etc.
+
 
 |ultra| vs |hiper|
 ==========================
 
-The |hiper| pipeline is designed to be usable with |ultra| data
-as well as data from |hiper| itself. You will need a different set of
-CCD defects, otherwise the two are very similar. One extra ULTRACAM
-needs is proper dark subtraction. Finally, at the telescope you can
-access the |ultra| file server using |uls| versus |hls| for |hiper|, and
-you will need the environment variable ``ULTRACAM_DEFAULT_URL`` to
-have been set (standard on the "observer" accounts at the TNT and NTT).
+The |hiper| pipeline is designed to be usable with |ultra| data as
+well as data from |hiper| itself. You will need a different set of CCD
+defects, otherwise the two are very similar. One extra ULTRACAM needs
+is proper dark subtraction (see above), while the z-band (CCD 5)
+images from |hiper| need fringe correction (as do z-band from |ultra|
+but it is much rarer). Finally, at the telescope you can access the
+|ultra| file server using |uls| versus |hls| for |hiper|, and you will
+need the environment variable ``ULTRACAM_DEFAULT_URL`` to have been
+set (standard on the "observer" accounts at the TNT and NTT).
 
 Trouble shooting reduction
 ==========================
@@ -403,13 +453,13 @@ Aperture positioning
 --------------------
 
 Tracking multiple targets in multiple CCDs over potentially tens of
-thousands of frames can be a considerable challenge. A single meteor or cosmic ray can
-throw the position of a target off and you may never recover. This
-could happen after many minutes of reduction have gone by, which can be
-annoying. It is by far the most likely problem that you will encounter,
-because once the aperture positions are determined, extraction is trivial.
-The 'apertures' section of reduce files has multiple parameters designed
-to help avoid such problems.
+thousands of frames can be a considerable challenge. A single meteor
+or cosmic ray can throw the position of a target off and you may never
+recover. This could happen after many minutes of reduction have gone
+by, which can be annoying. It is by far the most likely problem that
+you will encounter, because once the aperture positions are
+determined, extraction is trivial.  The 'apertures' section of reduce
+files has multiple parameters designed to help avoid such problems.
 
 As emphasised above, if you identify a star (or stars) as (a)
 reference aperture(s), their position(s) are the first to be
@@ -470,13 +520,14 @@ attempted. This is effective as a back-stop for a cosmic ray affecting
 the position of one of the reference apertures. However, it has the
 downside of requiring all reference stars to be successfully
 re-located, which could introduce a higher drop-out rate from double
-jeapardy. Careful selection of reference stars is important!
+jeapardy. Careful selection of reference stars is important! Note that
+this means you need to take some care during |setaper|.
 
-In bad cases, nothing you try will work. Then the final fallback is to reduce
-the run in chunks using the ``first`` parameter (prompted in |reduce|) to skip
-past the part causing problems. This is a little annoying for later analysis,
-but there will always be some cases which cannot be easily traversed in any
-other way.
+In bad cases, nothing you try will work. Then the final fallback is to
+reduce the run in chunks using the ``first`` parameter (prompted in
+|reduce|) to skip past the part causing problems. This is a little
+annoying for later analysis, but there will always be some cases which
+cannot be easily traversed in any other way.
 
 
 Defocussed images
@@ -493,7 +544,10 @@ profile fit (if someone is interested in implementing a better model
 profile for such cases, we would welcome the input). For very
 defocussed images, it is important to avoid too narrow a FWHM
 otherwise you could end up zeroing in on random peaks in the
-doughnut-like profile.
+doughnut-like profile. If you are contemplating defocussing, then
+just a small amount, say FWHM shifts from 0.9 to 1.5", can still be
+reasonably fit with a gaussian or moffat and the standard reducyion can
+be applied. This can be useful to avoid saturation.
 
 .. _linked_apertures:
 
@@ -509,10 +563,11 @@ have to link an aperture, try to do so with a nearby object to
 minimise such drift. It does not need to be super-bright (although
 preferably it should be brighter than your target), or your main
 comparison; the key point should be that its position can be securely
-tracked.  If your target is trackable at all, then the ``fit_alpha``
-parameter may be a better alternative. It allows for variable offsets from
-the reference targets by but average over the previous 1/`fit_alpha`
-frames. This allows you to ride over frames that are too faint. This
+tracked.  If your target is trackable at all, but drops out sometimes,
+then the ``fit_alpha`` parameter may be a better alternative. It
+allows for variable offsets from the reference targets by averaging
+over the previous 1/`fit_alpha` frames (approx; exponential weighting
+is used). This allows you to ride over frames that are too faint. This
 can be an effective way to cope with deep eclipses or clouds whilst
 allowing for differential image motion in a way that linked apertures
 cannot manage.
@@ -556,7 +611,8 @@ brighter ones can look worse.
 Specific errors
 ---------------
 
-I hope to list commonly encountered error traces here.
+I hope to list commonly encountered error traces here. Send any that confused
+you to me to add here.
 
 Mis-matching calibration files
 ..............................
@@ -576,7 +632,7 @@ An error message such as this::
       raise HipercamError(
   hipercam.core.HipercamError: failed to find any enclosing window for window label = E1
 
-is a good sign that you have a problem with a mis-match between a
+is a good sign that you have a problem with a format mis-match between a
 calibration file and the data. In this case the bias frame selected
 was taken with 2x2 binning while the data were unbinned, and so it was
 impossible for it to recover. NB The code does attempt to go the other
