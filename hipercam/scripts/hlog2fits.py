@@ -92,7 +92,7 @@ def hlog2fits(args=None):
 
     # Read in the ASCII log
     if origin == "h":
-        hlg = hcam.hlog.Hlog.read(log)
+        hlg = hcam.hlog.Hlog.rascii(log)
     elif origin == "u":
         hlg = hcam.hlog.Hlog.fulog(log)
 

@@ -145,7 +145,7 @@ def plog(args=None):
         title = cl.get_value("title", "plot title", "Plot Title")
 
     # load the reduce log
-    hlog = hcam.hlog.Hlog.read(log)
+    hlog = hcam.hlog.Hlog.rascii(log)
 
     if width > 0 and height > 0:
         fig = plt.figure(figsize=(width, height))

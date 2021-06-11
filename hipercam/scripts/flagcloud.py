@@ -140,7 +140,7 @@ def flagcloud(args=None):
         hlog = cl.get_value(
             "hlog", "hipercam ASCII log file", cline.Fname("hcam", hcam.LOG)
         )
-        hlog = hcam.hlog.Hlog.read(hlog)
+        hlog = hcam.hlog.Hlog.rascii(hlog)
         cnams = sorted(hlog.keys())
         apnames = set()
         for cnam in cnams:

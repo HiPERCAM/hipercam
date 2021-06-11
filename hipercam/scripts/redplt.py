@@ -142,7 +142,7 @@ def redplt(args=None):
             # OK attempt a plot
             try:
 
-                hlog = hcam.hlog.Hlog.read(rlog)
+                hlog = hcam.hlog.Hlog.rascii(rlog)
 
                 # Two panels, target / comparison and comparison
                 fig,(ax1,ax2) = plt.subplots(2,1,sharex=True)
