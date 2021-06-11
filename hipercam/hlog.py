@@ -8,19 +8,23 @@ For example, suppose a log file 'eg.log' has been written with 2 CCDs,
 target and comparison. Then the following commands would load it,
 divide target by comparison and plot the result with matplotlib:
 
-  >> import matplotlib.pyplot as plt
-  >> import hipercam as hcam
-  >>
-  >> hlog = hcam.hlog.Hlog.rascii('ts.log')
-  >> targ = hlog.tseries('2','1')
-  >> comp = hlog.tseries('2','2')
-  >>
-  >> ratio = targ / comp
-  >> ratio.mplot(plt, 'r')
-  >> plt.show()
+.. code-block::
 
-:class:`hipercam.hlog.Tseries` objects know about bad data and carray
-a bitmask array reflecting problems flagged during reduction.
+  import matplotlib.pyplot as plt
+  import hipercam as hcam
+
+  hlog = hcam.hlog.Hlog.rascii('ts.log')
+  targ = hlog.tseries('2','1')
+  comp = hlog.tseries('2','2')
+
+  ratio = targ / comp
+  ratio.mplot(plt, 'r')
+  plt.show()
+
+:class:`hipercam.hlog.Tseries` objects know about bad data and carry
+a bitmask array reflecting problems flagged during reduction, so for
+example the bitmask array of the `ratio` object above combined the
+bitmask array of the objects `targ` and `comp` used to create it.
 
 """
 
