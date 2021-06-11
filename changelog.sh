@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 #
-# Generates change log between two tags specified as arguments
+# Generates change log between two tags specified as arguments, e.g.:
 #
-# Run e.g. as ./changelog.sh 0.19.8 0.20.0
+#  ./changelog.sh 0.19.8 0.20.0
+#
+# will list changes between these two tag, or from a given tag and the
+# present, e.g.
+#
+#  ./changelog.sh 0.20.8
 
-tag1=$1
-tag2=$2
+if [ "$#" -eq 2 ]; then
 
-clog=docs/change_log_${tag1}_${tag2}.rst
+    tag1=$1
+    tag2=$2
 
-cat<<EOF > $clog
+    clog=docs/change_log_${tag1}_${tag2}.rst
+
+    cat<<EOF > $clog
 .. changelog created on `date`
 
 .. include:: globals.rst
@@ -21,11 +28,17 @@ List of changes from git, newest first, with the commit keys linked to github:
 
 EOF
 
-git log ${tag1}..${tag2} --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' >> $clog
+    git log ${tag1}..${tag2} --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' >> $clog
 
-clog=docs/change_log_${tag2}_to_now.rst
+    echo 'Written '$clog
 
-cat<<EOF > $clog
+elif [ "$#" -eq 1 ]; then
+
+    tag=$1
+
+    clog=docs/change_log_${tag}_to_now.rst
+
+    cat<<EOF > $clog
 .. changelog created on `date`
 
 .. include:: globals.rst
@@ -37,5 +50,12 @@ List of changes from git, newest first, with the commit keys linked to github:
 
 EOF
 
-git log ${tag2}..HEAD --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' >> $clog
+    git log ${tag}..HEAD --pretty=format:'  * `%H <https://github.com/HiPERCAM/hipercam/commit/%H>`_ %s' >> $clog
 
+    echo 'Written '$clog
+
+else
+
+    echo "changelog takes either 1 or 2 arguments"
+
+fi
