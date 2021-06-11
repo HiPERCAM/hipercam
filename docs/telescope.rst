@@ -16,12 +16,17 @@ that the pipeline is run entirely from command lines entered in a
 terminal, so first of all open a terminal on the "drpc" (data
 reduction PC).
 
+.. Note::
+
+   Many of the precise arguments & prompts you will see on these pages
+   have changed with software updates, so don't worry if you spot differences.
+
 Plotting the data coming in
 ===========================
 
 Assuming that you are observing and data are being acquired to the
 rack PC at the telescope, the first command to try is |rtplot| [#f0]_
-or, preferably, |nrtplot|, an developmental upgrade to |rtplot| based
+or, preferably, |nrtplot|, a developmental upgrade to |rtplot| based
 on matploltib.  Try typing in a terminal as follows::
 
   rtplot
@@ -287,6 +292,14 @@ Look at :doc:`reduction` for a longer and slower look at how to get more
 out of the reduction.
 
 Commands mentioned in this section: |reduce|.
+
+|plog|
+------
+
+Once you have a reduction log file, then the command |plog| can be useful
+to make simple plots of counts, count ratios, FWHMs etc, while allowing
+to zoomand pan in an interactive matplotlib plot. It can be run while |reduce|
+itself is running.
 
 .. rubric:: Footnotes
 
