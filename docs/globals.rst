@@ -46,6 +46,7 @@
 .. |makemovie| replace:: :func:`makemovie <hipercam.scripts.makemovie>`
 .. |mstats| replace:: :func:`mstats <hipercam.scripts.mstats>`
 .. |mul| replace:: :func:`mul <hipercam.scripts.mul>`
+.. |ncal| replace:: :func:`ncal <hipercam.scripts.ncal>`
 .. |nrtplot| replace:: :func:`nrtplot <hipercam.scripts.nrtplot>`
 .. |plog| replace:: :func:`plog <hipercam.scripts.plog>`
 .. |psf_reduce| replace:: :func:`psf_reduce <hipercam.scripts.psf_reduce>`

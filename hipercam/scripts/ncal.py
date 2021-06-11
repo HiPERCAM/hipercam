@@ -36,8 +36,13 @@ def ncal(args=None):
     """``ncal [source] (run first last [twait tmax] | flist) trim ([ncol
     nrow]) (ccd) bias dark flat xybox read gain grain``
 
-    Calibrates noise characteristics of CCDs but plotting estimator
-    of RMS vs signal level from a series of frames.
+    Calibrates noise characteristics of CCDs by plotting estimator
+    of RMS vs signal level from a series of frames. The estimate
+    is the mean of the absolute difference between each pixel
+    and the mean of its 8 near-neighbours. This is very local and
+    fairly robust. Assuming gaussian noise, the RMS is sqrt(4*Pi/9)
+    times this value, and this is what is plotted as the RMS by this
+    routine.
 
     Parameters:
 

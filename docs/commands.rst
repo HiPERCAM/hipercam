@@ -35,6 +35,7 @@
 .. |ol-makemovie| replace:: makes stills for movies from a run
 .. |ol-mstats|   replace:: list stats of multiple frames from a run
 .. |ol-mul|      replace:: multiply two frames
+.. |ol-ncal|     replace:: noise calibration
 .. |ol-nrtplot|  replace:: plot frames as they come in [matplotlib]
 .. |ol-plog|     replace:: plot output log from |reduce|
 .. |ol-redanal|  replace:: analyse a reduction log file
@@ -140,6 +141,8 @@ useful.
    | |mstats|     | |ol-mstats|    |          |          |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |mul|        | |ol-mul|       |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |ncal|       | |ol-ncal|      | Yes      | Yes      |  Yes    |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |nrtplot|    | |ol-nrtplot|   | Yes      | Yes      |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -467,6 +470,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.makemovie
 .. autofunction:: hipercam.scripts.mstats
 .. autofunction:: hipercam.scripts.mul
+.. autofunction:: hipercam.scripts.ncal
 .. autofunction:: hipercam.scripts.nrtplot
 .. autofunction:: hipercam.scripts.plog
 .. autofunction:: hipercam.scripts.redanal
