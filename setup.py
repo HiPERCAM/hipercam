@@ -167,6 +167,7 @@ setup(
             'makemovie=hipercam.scripts.makemovie:makemovie',
             'mstats=hipercam.scripts.mstats:mstats',
             'mul=hipercam.scripts.arith:mul',
+            'ncal=hipercam.scripts.ncal:ncal',
             'pfolder=hipercam.scripts.pfolder:pfolder',
             'plog=hipercam.scripts.plog:plog',
             'psf_reduce=hipercam.scripts.psf_reduce:psf_reduce',

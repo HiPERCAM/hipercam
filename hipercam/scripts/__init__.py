@@ -38,6 +38,7 @@ from .makefringe import makefringe
 from .makemovie import makemovie
 from .makestuff import makemccd, makefield
 from .mstats import mstats
+from .ncal import ncal
 from .pfolder import pfolder
 from .plog import plog
 from .redplt import redplt
@@ -86,6 +87,7 @@ __all__ = [
     "makemovie",
     "mstats",
     "mul",
+    "ncal",
     "pfolder",
     "plog",
     "redanal",

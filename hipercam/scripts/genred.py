@@ -315,7 +315,7 @@ warn = 1 60000 64000
                 skipbadt = True
                 scale = 0.45
                 readout = '5.0'
-                gain = '1.1'
+                gain = '0.8'
                 nccd = 1
                 ccd = '1'
 
