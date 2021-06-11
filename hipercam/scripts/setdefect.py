@@ -56,6 +56,11 @@ def setdefect(args=None):
     severe can be marked). Hot pixels can be marked by their count rate as
     measured in dark frames.
 
+    You should apply this in stages using bias frames and flat fields
+    to set the point and line defects, and a darkframe from |makedark|
+    to set hot pixels. The latter can be set semi-automatically by
+    flagging pixels between pre-set rate values.
+
     Parameters:
 
       mccd : str
@@ -95,19 +100,20 @@ def setdefect(args=None):
 
       ffield : bool
          If True, all defects will be assumed to be flat-field or poor
-         charge transfer defects as opposed to hot pixels. The latter should
-         be set from dark frames, and have a different impact than the
-         first two types in that they are worst for faint targets. Hot pixels
-         and flat-field defects are shown with the same colours for moderate
-         and severe, but different symbols (filled circles for flat-field
-         defects, stars for hot pixels). If you say "no" in order to add hot
-         pixels, the line defect option is not available.
+         charge transfer defects as opposed to hot pixels. The latter
+         should be set from dark frames, and have a different impact
+         than the first two types in that they are worst for faint
+         targets. Hot pixels and flat-field defects are shown with the
+         same colours for moderate and severe, but different symbols
+         (filled circles for flat-field defects, stars for hot
+         pixels). If you say "no" in order to add hot pixels, the line
+         defect option is not available.
 
       auto : bool [if ffield==False]
-         Hot pixels can be set automatically if wanted. If so then a few extra
-         parameters are needed. This only makes sense if you are feeding setdefect
-         with a dark frame produced by |makedark| so that the intensity levels
-         mean something.
+         Hot pixels can be set automatically if wanted. If so then a
+         few extra parameters are needed. This only makes sense if you
+         are feeding setdefect with a dark frame produced by
+         |makedark| so that the intensity levels mean something.
 
       hlo : float [if auto]
          lower limit to flag as a hot pixel as a count rate per second

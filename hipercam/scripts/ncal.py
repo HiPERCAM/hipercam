@@ -42,7 +42,11 @@ def ncal(args=None):
     and the mean of its 8 near-neighbours. This is very local and
     fairly robust. Assuming gaussian noise, the RMS is sqrt(4*Pi/9)
     times this value, and this is what is plotted as the RMS by this
-    routine.
+    routine. `ncal` is best to applied to a series of frames with
+    a large dynamic range, ideally starting from bias-like frames
+    to well exposed sky flats. A long flat-field run going to low
+    levels, or a run into twilight at the end of the night could be
+    good places to start.
 
     Parameters:
 
@@ -113,8 +117,8 @@ def ncal(args=None):
            to specify a flat even if you haven't specified a bias.
 
         xybox : int
-           the stats will be taken over boxes of xybox-squared pixels to keep the
-           number of points down.
+           the stats will be taken over boxes of xybox-squared pixels
+           to keep the number of points and scatter under control.
 
         read : float
            readout noise, RMS ADU, for overplotting a model
@@ -359,7 +363,7 @@ def procdata(data, xybox):
     difference of each pixel from the 8 surrounding pixels.  Only
     pixels more than 1 in from the edge are processed as a result.
 
-    Very loopy this routine hence the "numba" directive
+    Very loopy this routine, hence the "numba" directive
     """
 
     ny,nx = data.shape
