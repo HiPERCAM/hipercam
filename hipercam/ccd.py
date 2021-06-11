@@ -3,7 +3,8 @@
 
 A :class:`CCD` is built as a :class:`Group` of :class:`Window`
 objects, while a multi-CCD of :class:`MCCD` is built as a
-:class:`Group` of :class:`CCD` objects.
+:class:`Group` of :class:`CCD` objects. These classes allow
+handling of CCD data.
 
 """
 

@@ -1,8 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""CCD window modules
+"""CCD windows module
 
 Defines classes to represent sub-windows of a CCD and associated
-functions.
+functions. Starts from a class representing just the header and format
+of a window, adds data to that, and also adds classes that bundle up a
+CCD's-worth and multiple-CCD's-wprth of such headers into single
+objects.
 
 """
 
@@ -47,29 +50,38 @@ class Winhead(Header):
 
     Parameters:
     -----------
-    llx : int
-        X position of lower-left pixel of window (unbinned pixels)
-    lly : int
-        Y position of lower-left pixel of window (unbinned pixels)
-    nx : int
-        X dimension of window, binned pixels
-    ny : int
-        Y dimension of window, binned pixels
-    xbin : int
-        Binning factor in X
-    ybin : int
-        Binning factor in Y
-    outamp : str, {'','LL','LR','UL','UR'}
-        Location of output amplifier. Options: '' == unknown; 'LL' ==
-        lower-left; 'LR' == lower-right; 'UL' == upper-left; 'UR' ==
-        upper-right. Used when trimming to remove the correct part of
-        the window.
-    head : :class:`Header`, optional
-        Arbitrary header items (excluding ones such as LLX reserved
-        for containing the above parameters when reading and writing
-        Winhead objects). This will be deep copied to avoid different
-        Winheads sharing the same header. See 'copy' for how the header
-        is tranferred into the Winhead
+
+      llx : int
+         X position of lower-left pixel of window (unbinned pixels)
+
+     lly : int
+         Y position of lower-left pixel of window (unbinned pixels)
+
+     nx : int
+         X dimension of window, binned pixels
+
+     ny : int
+         Y dimension of window, binned pixels
+
+     xbin : int
+         Binning factor in X
+
+     ybin : int
+         Binning factor in Y
+
+     outamp : str, {'','LL','LR','UL','UR'}
+         Location of output amplifier. Options: '' == unknown; 'LL' ==
+         lower-left; 'LR' == lower-right; 'UL' == upper-left; 'UR' ==
+         upper-right. Used when trimming to remove the correct part of
+         the window.
+
+     head : :class:`Header`, optional
+         Arbitrary header items (excluding ones such as LLX reserved
+         for containing the above parameters when reading and writing
+         Winhead objects). This will be deep copied to avoid different
+         Winheads sharing the same header. See 'copy' for how the
+         header is tranferred into the Winhead
+
     copy : bool, optional
         Controls whether the header is copied by value (True) or
         simply by reference (False). The latter is lightweight and
@@ -79,24 +91,49 @@ class Winhead(Header):
 
     Attributes
     ----------
-    llx : int
-        X ordinate lower-left pixel, unbinned pixels
-    lly : int
-        Y ordinate lower-left pixel, unbinned pixels
-    xbin : int
-        X-binning factor
-    ybin : int
-        Y-binning factor
-    nx : int
-    ny : int
-    outamp : str, {'','LL','LR','UL','UR'}
-        output amplifier location
-    urx : int
-    ury : int
-    xlo : float
-    xhi : float
-    ylo : float
-    yhi : float
+
+      llx : int
+          X ordinate lower-left pixel, unbinned pixels
+
+      lly : int
+          Y ordinate lower-left pixel, unbinned pixels
+
+      xbin : int
+          X-binning factor
+
+      ybin : int
+          Y-binning factor
+
+      nx : int
+          X-dimension, binned pixels
+
+      ny : int
+          Y-dimension, binned pixels
+
+      outamp : str, {'','LL','LR','UL','UR'}
+          output amplifier location
+
+      urx : int
+          X-ordinate of unbinned pixed at upper right
+          of Winhead (starts from 1 on the left)
+
+      ury : int
+          Y-ordinate of unbinned pixed at upper right
+          of Winhead (starts from 1 on the left)
+
+      xlo : float
+          Left-most edge of window. Will be something-point-five
+          as the centre of pixels are integers.
+
+      xhi : float
+          Right-most edge of window.
+
+      ylo : float
+          Lower edge of window
+
+      yhi : float
+          Upper edge of window
+
     """
 
     def __init__(self, llx, lly, nx, ny, xbin, ybin, outamp, head=None, copy=False):

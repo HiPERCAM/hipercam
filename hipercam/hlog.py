@@ -1,25 +1,26 @@
-"""hlog is a sub-module for reading in the log files written by reduce. It
-defines one class `Hlog` to hold log files and another `Tseries` to represent
-time series to allow quick development of scripts to plot results.
+"""hlog is a sub-module for reading in the log files written by
+reduce. It defines one class :class:`hipercam.hlog.Hlog` to hold log
+files and another :class:`hipercam.hlog.Tseries` to represent time
+series to allow quick development of scripts to plot results.
 
 For example, suppose a log file 'eg.log' has been written with 2 CCDs,
-'1' and '2', and that CCD '2' has apertures labelled 't' and 'c' for
+'1' and '2', and that CCD '2' has apertures labelled '1' and '2' for
 target and comparison. Then the following commands would load it,
 divide target by comparison and plot the result with matplotlib:
 
   >> import matplotlib.pyplot as plt
   >> import hipercam as hcam
   >>
-  >> hlog = hcam.hlog.Hlog.read('ts.log')
-  >> targ = hlog.tseries('2','t')
-  >> comp = hlog.tseries('2','c')
+  >> hlog = hcam.hlog.Hlog.rascii('ts.log')
+  >> targ = hlog.tseries('2','1')
+  >> comp = hlog.tseries('2','2')
   >>
   >> ratio = targ / comp
   >> ratio.mplot(plt, 'r')
   >> plt.show()
 
-The `Tseries` object know about bad data and carray a bitmask array
-reflecting problems flagged during reduction.
+:class:`hipercam.hlog.Tseries` objects know about bad data and carray
+a bitmask array reflecting problems flagged during reduction.
 
 """
 
@@ -77,59 +78,62 @@ CNAME_TO_FMT = {
 
 
 class Hlog(dict):
-    """Class to represent a HiPERCAM log as produced by reduce.  Based on
+    """Class to represent |hiper| logs as produced by |reduce|.  Based on
     dictionaries, Hlog files contain numpy structured arrays for each CCD
     which can be accessed by the CCD label name. Each array contains data that
     can be accessed by the label of the column. e.g.
 
+    .. code-block:: python
+
        >> import hipercam as hcam
-       >> hlog = hcam.hlog.Hlog.from_ascii('run011.log')
+       >> hlog = hcam.hlog.Hlog.rascii('run011.log')
        >> print(hlog['2']['x_1'])
 
     would print the X-values of aperture '1' from CCD '2'.
 
-    Hlog objects have four attributes:
+    Hlog objects have in addition four attributes::
 
-     1) 'apnames', a dictionary keyed by CCD label giving a list of the
-        aperture labels used for each CCD. i.e.
+       apnames : dict
+         Keyed by CCD label, gives a list of the
+         aperture labels used for each CCD. e.g.
 
-        >> print(hlog.apnames['2'])
+         .. code-block:: python
 
-        might return ['1','2','3'].
+            >> print(hlog.apnames['2'])
 
-    2) 'cnames', a dictionary keyed by CCD label giving a list of the column
-        names in the order they appeared in the original file. This is to
-        help write out the data
+         might return ['1','2','3'] meaning the apertures used for CCD 2.
 
-    3) 'comments', a list of strings storing the header comments to
-       allow the Hlog to be written out with full information if read
-       from an ASCII log.
+       cnames : dict
+         Keyed by CCD label giving a list of the column
+         names in the order they appeared in the original file. This is to
+         help write out the data
 
-    4) 'writable', a flag to say whether the Hlog can be written which
-       at the moment is only true if it has been read from an ASCII
-       |hipercam| log file. Potentially fixable in the future.
+       comments : list
+         List of strings storing the header comments to
+         allow the Hlog to be written out with full information if read
+         from an ASCII log.
+
+       writable : bool
+         Flag to say whether the Hlog can be written which
+         at the moment is only true if it has been read from an ASCII
+         |hiper| log file.
 
     """
 
     @classmethod
-    def read(cls, fname):
-        warnings.warn("Hlog.read() is deprecated; use Hlog.rascii() instead.", DeprecationWarning)
-        return Hlog.rascii(fname)
-
-    @classmethod
     def rascii(cls, fname):
-        """
-        Loads a HiPERCAM ASCII log file written by reduce. Each CCD is loaded
+        """Loads a HiPERCAM ASCII log file written by reduce. Each CCD is loaded
         into a separate structured array, returned in a dictionary keyed by
         the CCD label.
 
         Argument::
 
-           fname : string | list
-              Can be a single log file name or a list of log file names. If a list,
-              just the first file's comments will be read, the others ignored, and
-              it will be assumed, but not checked, that the later files have the
-              same number and order of columns.
+           fname : str | list
+              Can be a single log file name or a list of log file
+              names. If a list, just the first file's comments will be
+              read, the others ignored, and it will be assumed, but
+              not checked, that the later files have the same number
+              and order of columns.
 
         """
 
@@ -556,7 +560,7 @@ class Hlog(dict):
         """Writes out the Hlog to an ASCII file. This is to allow one to read
         in a log file, modify it and then write it out, useful for
         example to flag cloudy data. At the moment, it will only work
-        for an Hlog read from a |hipercam| ASCII log file. NB It won't
+        for an Hlog read from a |hiper| ASCII log file. NB It won't
         exactly replicate the log file input since it writes out in
         CCD order.
 
@@ -584,8 +588,11 @@ class Hlog(dict):
 
 
 class Tseries:
-    """Class representing a basic time series with times, y values, y
-    errors and flags, and allowing bad data. Attributes are::
+    """Class to represent time series with times, y values, y
+    errors and flags, and allowing bad data. Tseries objects know how
+    to plot themselves with matplotlib.
+
+    Attributes::
 
        t : ndarray
          mid-times
@@ -600,9 +607,9 @@ class Tseries:
          bitmask propagated through from reduce log, that indicates possible
          problems affecting each data point. See core.py for the defined flags.
 
-       te : None : ndarray
+       te : None | ndarray
          Exposure times (not much is done with these, but sometimes it's good
-         to have them on output.
+         to have them on output).
 
        cpy : bool
          If True, copy the arrays by value, not reference.
@@ -926,14 +933,14 @@ class Tseries:
         Divides the Tseries by 'other' in place. See __truediv__ for more details.
         """
         if isinstance(other, Tseries):
-            
+
             with np.errstate(divide='ignore', invalid='ignore'):
                 self.ye = np.sqrt(
                     self.ye**2 + (self.y*other.ye/other.y)**2
                 ) / np.abs(other.y)
 
                 self.y /= other.y
-                
+
             self.bmask |= other.bmask
             if self.te is None and other.te is not None:
                 self.te = other.te.copy()
@@ -1134,22 +1141,22 @@ class Tseries:
         -------
         TSeries : Tseries object
             Binned Timeseries. If any output bin has no allowed input points (all
-            bad or flagged by bitmask
+            bad or flagged by bitmask)
 
-        .. Notes::
+        .. Note::
 
-           (1) If the ratio between the Tseries length and the binsize is not
-           a whole number, then the remainder of the data points will be
-           ignored.
+           1. If the ratio between the Tseries length and the binsize is not
+              a whole number, then the remainder of the data points will be
+              ignored.
 
-           (2) The binned TSeries will report the root-mean-square error.
+           2. The binned TSeries will report the root-mean-square error.
 
-           (3) The bitwise OR of the quality flags will be returned per bin.
+           3. The bitwise OR of the quality flags will be returned per bin.
 
-           (4) Any bins with no points will have their data set bad to mask them
+           4. Any bins with no points will have their data set bad to mask them
 
-           (5) The exposure time will be set to span the first to last time contributing
-               to the bin.
+           5. The exposure time will be set to span the first to last time
+              contributing to the bin.
         """
 
         n_bins = len(self) // binsize
@@ -1287,7 +1294,9 @@ class Tseries:
 
         For instance:
 
-           >>> ts.ttrans(lambda t : 1440*(t-T0), lambda te : 1440*te)
+           .. code-block::
+
+              ts.ttrans(lambda t : 1440*(t-T0), lambda te : 1440*te)
 
         would convert times in days to minutes offset from T0.
         """
@@ -1685,8 +1694,8 @@ def scatter(
          yts : Tseries
             The Y-axis data
 
-         color: str | rgb tuple
-            matplotlib colour
+         color: str | tuple
+            matplotlib colour, either string or rgb tuple
 
          fmt: str
             matplotlib marker symbol to use
