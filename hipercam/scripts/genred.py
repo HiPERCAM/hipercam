@@ -259,6 +259,7 @@ def genred(args=None):
             ignore="none",
         )
 
+
         if template is None:
 
             instrument = cl.get_value(
@@ -390,21 +391,21 @@ warn = 1 60000 64000
 
         # read the template to define many unprompted values
         # shortcut names defines
-        vals = reduction.Rfile.read(template, False)
-        gsec = vals['general']
+        tvals = reduction.Rfile.read(template, False)
+        gsec = tvals['general']
         instrument = gsec.get('instrument')
         scale = gsec.get('scale')
         warn_levels = ''.join(gsec['warn'])
 
-        asec = vals['apertures']
-        psfsec = vals['psf_photom']
-        sksec = vals['sky']
-        csec = vals['calibration']
-        lcsec = vals['lcplot']
-        lsec = vals['light']
-        psec = vals.get('position',None)
-        tsec = vals.get('transmission',None)
-        ssec = vals.get('seeing',None)
+        asec = tvals['apertures']
+        psfsec = tvals['psf_photom']
+        sksec = tvals['sky']
+        csec = tvals['calibration']
+        lcsec = tvals['lcplot']
+        lsec = tvals['light']
+        psec = tvals.get('position',None)
+        tsec = tvals.get('transmission',None)
+        ssec = tvals.get('seeing',None)
 
     else:
 
@@ -415,10 +416,10 @@ warn = 1 60000 64000
             binfac = 1
 
         # same name as read into template
-        vals = {}
+        tvals = {}
 
         # general section
-        gsec = vals['general'] = {}
+        gsec = tvals['general'] = {}
         gsec['instrument'] = instrument
         gsec['scale'] = scale
         gsec['ldevice'] = '1/xs'
@@ -433,7 +434,7 @@ warn = 1 60000 64000
         gsec['ngroup'] = 1
 
         # aperture section
-        asec = vals['apertures'] = {}
+        asec = tvals['apertures'] = {}
         asec['location'] = 'variable'
         asec['search_smooth_fft'] = 'no'
         asec['fit_method'] = 'moffat'
@@ -447,13 +448,13 @@ warn = 1 60000 64000
         asec['fit_alpha'] = 0.1
 
         # sky
-        sksec = vals['sky'] = {}
+        sksec = tvals['sky'] = {}
         sksec['error'] = 'variance'
         sksec['method'] = 'clipped'
         sksec['thresh'] = 3.0
 
         # calibration
-        csec = vals['calibration'] = {}
+        csec = tvals['calibration'] = {}
         csec['crop'] = 'yes'
         csec['nhalf'] = 3
         csec['rmin'] = -1.
@@ -462,18 +463,18 @@ warn = 1 60000 64000
         csec['gain'] = gain
 
         # PSF photom
-        psfsec = vals['psf_photom'] = {}
+        psfsec = tvals['psf_photom'] = {}
         psfsec['gfac'] = 3.0
         psfsec['fit_half_width'] = 15.0
         psfsec['positions'] = 'fixed'
 
         # light curve
-        lcsec = vals['lcplot'] = {}
+        lcsec = tvals['lcplot'] = {}
         lcsec['xrange'] = 0
         lcsec['extend_x'] = 10.0
 
         # light
-        lsec = vals['light'] = {}
+        lsec = tvals['light'] = {}
         lsec['linear'] = 'no'
         lsec['y_fixed'] = 'no'
         lsec['y1'] = 0
@@ -481,7 +482,7 @@ warn = 1 60000 64000
         lsec['extend_y'] = 0.1
 
         # position
-        psec = vals['position'] = {}
+        psec = tvals['position'] = {}
         psec['height'] = 0.5
         psec['x_fixed'] = 'no'
         psec['x_min'] = -5.0
@@ -492,18 +493,18 @@ warn = 1 60000 64000
         psec['extend_y'] = 0.2
 
         # transmission
-        tsec = vals['transmission'] = {}
+        tsec = tvals['transmission'] = {}
         tsec['height'] = 0.5
         tsec['ymax'] = 110.
 
         # seeing
-        ssec = vals['seeing'] = {}
+        ssec = tvals['seeing'] = {}
         ssec['height'] = 0.5
         ssec['ymax'] = 2.999
         ssec['y_fixed'] = 'no'
         ssec['extend_y'] = 0.2
 
-        fsec = vals['focal_mask'] = {}
+        fsec = tvals['focal_mask'] = {}
         fsec['demask'] = 'no'
         fsec['dthresh'] = 3.0
 
@@ -575,7 +576,7 @@ warn = 1 60000 64000
     else:
         # pass through unchanged where possible if
         # a template being used but check for consistency
-        esec = template['extraction']
+        esec = tvals['extraction']
         for cnam, lst in esec.items():
             if cnam in aper:
                 # unpack items
@@ -634,7 +635,7 @@ warn = 1 60000 64000
 
         # template case: pass as many of the lines as we can but
         # run checks of apertures
-        plots = template['light']['plot']
+        plots = tvals['light']['plot']
         for pl in plots:
             cnam = pl['cnam']
             targ = pl['targ']
@@ -789,7 +790,7 @@ warn = 1 60000 64000
             )
     else:
         monitor = ""
-        msec = template['monitor']
+        msec = tvals['monitor']
         rlook = dict([(k,v) for v,k in hcam.FLAGS])
         for targ, masks in msec:
             smasks = ' '.join([rlook[mask] for mask in masks])
