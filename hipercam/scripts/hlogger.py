@@ -1690,6 +1690,7 @@ def make_positions(
                             print(f'  Found {target} in phaseII data at RA={ra}, Dec={dec}')
                             pos = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg))
                             targets.add_target(target, pos.ra.hour, pos.dec.value, target)
+                            autoid, ra, dec = targets(target)
 
                             # save successful lookups
                             smessages.append(
