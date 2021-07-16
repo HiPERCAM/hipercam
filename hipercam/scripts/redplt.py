@@ -144,23 +144,26 @@ def redplt(args=None):
 
                 hlog = hcam.hlog.Hlog.rascii(rlog)
 
-                # Two panels, target / comparison and comparison
-                fig,(ax1,ax2) = plt.subplots(2,1,sharex=True)
-
+                # LHS for targ/comp, RHS for comp
                 cnams = sorted(list(hlog.keys()))
+                fig, axs = plt.subplots(len(cnams),2,sharex=True)
+
+                made_a_plot = False
                 apnames = hlog.apnames
 
-                # use the next to work out optimal plot ranges
-                tymin, tymax, cymin, cymax = 4*[None]
-                for cnam in cnams:
+                for nc, cnam in enumerate(cnams):
                     if cnam in apnames:
                         apnams = apnames[cnam]
+
                         if '1' in apnams:
+                            # we have a target
                             targ = hlog.tseries(cnam,'1')
+
                             if '2' in apnams:
+                                # we have a comparison
                                 comp = hlog.tseries(cnam,'2')
 
-                                # run some checks
+                                # run checks
                                 ts = targ.t[~targ.get_mask(hcam.BAD_TIME) & ~comp.get_mask(hcam.BAD_TIME)]
                                 if len(ts) < NMIN:
                                     print(f'{run}, CCD={cnam} has too few points ({len(ts)} < {NMIN})')
@@ -174,31 +177,31 @@ def redplt(args=None):
 
                                 ndat = len(targ)
                                 if ndat > 3000:
-                                    # stop plotting too many points to keep
+                                    # avoid plotting too many points to keep
                                     # size down
                                     binsize = ndat // 1500
                                     targ.bin(binsize)
                                     comp.bin(binsize)
 
-                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([5,95],  bitmask=hcam.BAD_TIME)
-                                (_d,_d),(cylo,_d),(_d,cyhi) = comp.percentile([5,95],  bitmask=hcam.BAD_TIME)
-                                if tymax is not None:
-                                    off = tymax - tylo
-                                    targ += off
-                                    tymax += tyhi-tylo
-                                else:
-                                    tymin, tymax = tylo, tyhi
-                                if cymax is not None:
-                                    off = cymax - cylo
-                                    comp += off
-                                    cymax += cyhi-cylo
-                                else:
-                                    cymin, cymax = cylo, cyhi
+                                (_d,_d),(ylo,_d),(_d,yhi) = targ.percentile([5,95],  bitmask=hcam.BAD_TIME)
+                                yrange = yhi-ylo
+                                ylo -= 0.1*yrange
+                                yhi += 0.1*yrange
+                                targ.mplot(axs[nc,0],utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
+                                axs[nc,0].set_ylim(ylo,yhi)
 
-                                targ.mplot(ax1,utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
-                                comp.mplot(ax2,utils.rgb(cols[cnam]),ecolor='0.5',  bitmask=hcam.BAD_TIME)
+                                (_d,_d),(ylo,_d),(_d,yhi) = comp.percentile([5,95],  bitmask=hcam.BAD_TIME)
+                                yrange = yhi-ylo
+                                ylo -= 0.1*yrange
+                                yhi += 0.1*yrange
+                                comp.mplot(axs[nc,1],utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
+                                axs[nc,1].set_ylim(ylo,yhi)
+
+                                made_a_plot = True
 
                             else:
+                                # target only
+
                                 # run some checks
                                 ts = targ.t[~targ.get_mask(hcam.BAD_TIME)]
                                 if len(ts) < NMIN:
@@ -216,27 +219,25 @@ def redplt(args=None):
                                     binsize = ndat // 1500
                                     targ.bin(binsize)
 
-                                (_d,_d),(tylo,_d),(_d,tyhi) = targ.percentile([5,95],  bitmask=hcam.BAD_TIME)
-                                if tymax is not None:
-                                    off = tymax - tylo
-                                    targ += off
-                                    tymax += tyhi-tylo
-                                else:
-                                    tymin, tymax = tylo, tyhi
-                                targ.mplot(ax1,utils.rgb(cols[cnam]),ecolor='0.5',  bitmask=hcam.BAD_TIME)
+                                (_d,_d),(ylo,_d),(_d,yhi) = targ.percentile([5,95],  bitmask=hcam.BAD_TIME)
+                                yrange = yhi-ylo
+                                ylo -= 0.1*yrange
+                                yhi += 0.1*yrange
+                                targ.mplot(axs[nc,0],utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
+                                axs[nc,0].set_ylim(ylo,yhi)
 
-                if tymin is not None:
-                    yrange = tymax-tymin
-                    ax1.set_ylim(tymin-yrange/4, tymax+yrange/4)
-                    if cymin is not None:
-                        yrange = cymax-cymin
-                        ax2.set_ylim(cymin-yrange/4, cymax+yrange/4)
-                    ax1.set_ylabel('Target / Comparison')
-                    ax1.set_title(f'{nname}, {run}')
-                    ax2.set_ylabel('Comparison')
-                    ax2.set_xlabel('Time [MJD]')
-                    plt.savefig(pname)
-                    print(f'Written {pname}')
+                                made_a_plot = True
+
+                            axs[nc,0].set_ylabel('Targ / Comp')
+                            axs[nc,1].set_ylabel('Comp')
+
+                    if made_a_plot:
+                        axs[0,0].set_title(f'{nname}, {run}')
+                        axs[0,1].set_title(f'{nname}, {run}')
+                        axs[-1,0].set_xlabel('Time [MJD]')
+                        axs[-1,1].set_xlabel('Time [MJD]')
+                        plt.savefig(pname)
+                        print(f'Written {pname}')
                 plt.close()
 
             except:
