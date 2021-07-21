@@ -1,5 +1,6 @@
 import sys
 import os
+import warnings
 from time import gmtime, strftime
 
 import hipercam as hcam
