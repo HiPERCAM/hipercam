@@ -39,9 +39,8 @@ def redplt(args=None):
 
     The code assumes that aperture 1 contains the target while
     aperture 2 has the best comparison. It produces plots in which the
-    top panel shows the target divided by the comparison, and the
-    bottom panel shows the comparison alone to give some sense of
-    clouds.
+    LHS panels show the target divided by the comparison while the RHS shows
+    the comparison only as a crude check on clouds.
 
     Runs with fewer than 20 points or lasting less than 10 minutes will
     not be plotted.
@@ -146,7 +145,10 @@ def redplt(args=None):
 
                 # LHS for targ/comp, RHS for comp
                 cnams = sorted(list(hlog.keys()))
-                fig, axs = plt.subplots(len(cnams),2,sharex=True)
+                fig, axs = plt.subplots(
+                    len(cnams),2,sharex=True,
+                    figsize=(16,len(cnams)*4)
+                )
 
                 made_a_plot = False
                 apnames = hlog.apnames
@@ -183,17 +185,17 @@ def redplt(args=None):
                                     targ.bin(binsize)
                                     comp.bin(binsize)
 
-                                (_d,_d),(ylo,_d),(_d,yhi) = targ.percentile([5,95],  bitmask=hcam.BAD_TIME)
+                                (_d,_d),(ylo,_d),(_d,yhi) = targ.percentile([2,98],  bitmask=hcam.BAD_TIME)
                                 yrange = yhi-ylo
-                                ylo -= 0.1*yrange
-                                yhi += 0.1*yrange
+                                ylo -= 0.2*yrange
+                                yhi += 0.2*yrange
                                 targ.mplot(axs[nc,0],utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
                                 axs[nc,0].set_ylim(ylo,yhi)
 
-                                (_d,_d),(ylo,_d),(_d,yhi) = comp.percentile([5,95],  bitmask=hcam.BAD_TIME)
+                                (_d,_d),(ylo,_d),(_d,yhi) = comp.percentile([2,98],  bitmask=hcam.BAD_TIME)
                                 yrange = yhi-ylo
-                                ylo -= 0.1*yrange
-                                yhi += 0.1*yrange
+                                ylo -= 0.2*yrange
+                                yhi += 0.2*yrange
                                 comp.mplot(axs[nc,1],utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
                                 axs[nc,1].set_ylim(ylo,yhi)
 
@@ -219,10 +221,10 @@ def redplt(args=None):
                                     binsize = ndat // 1500
                                     targ.bin(binsize)
 
-                                (_d,_d),(ylo,_d),(_d,yhi) = targ.percentile([5,95],  bitmask=hcam.BAD_TIME)
+                                (_d,_d),(ylo,_d),(_d,yhi) = targ.percentile([2,98],  bitmask=hcam.BAD_TIME)
                                 yrange = yhi-ylo
-                                ylo -= 0.1*yrange
-                                yhi += 0.1*yrange
+                                ylo -= 0.2*yrange
+                                yhi += 0.2*yrange
                                 targ.mplot(axs[nc,0],utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
                                 axs[nc,0].set_ylim(ylo,yhi)
 
@@ -231,13 +233,14 @@ def redplt(args=None):
                             axs[nc,0].set_ylabel('Targ / Comp')
                             axs[nc,1].set_ylabel('Comp')
 
-                    if made_a_plot:
-                        axs[0,0].set_title(f'{nname}, {run}')
-                        axs[0,1].set_title(f'{nname}, {run}')
-                        axs[-1,0].set_xlabel('Time [MJD]')
-                        axs[-1,1].set_xlabel('Time [MJD]')
-                        plt.savefig(pname)
-                        print(f'Written {pname}')
+                if made_a_plot:
+                    plt.tight_layout()
+                    axs[0,0].set_title(f'{nname}, {run}')
+                    axs[0,1].set_title(f'{nname}, {run}')
+                    axs[-1,0].set_xlabel('Time [MJD]')
+                    axs[-1,1].set_xlabel('Time [MJD]')
+                    plt.savefig(pname)
+                    print(f'Written {pname}')
                 plt.close()
 
             except:
