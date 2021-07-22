@@ -161,6 +161,11 @@ def redplt(args=None):
                             # we have a target
                             targ = hlog.tseries(cnam,'1')
 
+                            if len(axs) == 1:
+                                axl, axr = axs[0], axs[1]
+                            else:
+                                axl, axr = axs[nc,0], axs[nc,1]
+
                             if '2' in apnams:
                                 # we have a comparison
                                 comp = hlog.tseries(cnam,'2')
@@ -189,15 +194,15 @@ def redplt(args=None):
                                 yrange = yhi-ylo
                                 ylo -= 0.2*yrange
                                 yhi += 0.2*yrange
-                                targ.mplot(axs[nc,0],utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
-                                axs[nc,0].set_ylim(ylo,yhi)
+                                targ.mplot(axl,utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
+                                axl.set_ylim(ylo,yhi)
 
                                 (_d,_d),(ylo,_d),(_d,yhi) = comp.percentile([2,98],  bitmask=hcam.BAD_TIME)
                                 yrange = yhi-ylo
                                 ylo -= 0.2*yrange
                                 yhi += 0.2*yrange
-                                comp.mplot(axs[nc,1],utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
-                                axs[nc,1].set_ylim(ylo,yhi)
+                                comp.mplot(axr,utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
+                                axr.set_ylim(ylo,yhi)
 
                                 made_a_plot = True
 
@@ -225,20 +230,26 @@ def redplt(args=None):
                                 yrange = yhi-ylo
                                 ylo -= 0.2*yrange
                                 yhi += 0.2*yrange
-                                targ.mplot(axs[nc,0],utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
-                                axs[nc,0].set_ylim(ylo,yhi)
+                                targ.mplot(axl,utils.rgb(cols[cnam]),ecolor='0.5', bitmask=hcam.BAD_TIME)
+                                axl.set_ylim(ylo,yhi)
 
                                 made_a_plot = True
 
-                            axs[nc,0].set_ylabel('Targ / Comp')
-                            axs[nc,1].set_ylabel('Comp')
+                            axl.set_ylabel('Targ / Comp')
+                            axr.set_ylabel('Comp')
 
                 if made_a_plot:
                     plt.tight_layout()
-                    axs[0,0].set_title(f'{nname}, {run}')
-                    axs[0,1].set_title(f'{nname}, {run}')
-                    axs[-1,0].set_xlabel('Time [MJD]')
-                    axs[-1,1].set_xlabel('Time [MJD]')
+                    if len(axs) == 1:
+                        axs[0].set_title(f'{nname}, {run}')
+                        axs[1].set_title(f'{nname}, {run}')
+                        axs[0].set_xlabel('Time [MJD]')
+                        axs[1].set_xlabel('Time [MJD]')
+                    else:
+                        axs[0,0].set_title(f'{nname}, {run}')
+                        axs[0,1].set_title(f'{nname}, {run}')
+                        axs[-1,0].set_xlabel('Time [MJD]')
+                        axs[-1,1].set_xlabel('Time [MJD]')
                     plt.savefig(pname)
                     print(f'Written {pname}')
                 plt.close()
