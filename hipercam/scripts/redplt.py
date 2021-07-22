@@ -147,6 +147,7 @@ def redplt(args=None):
                 cnams = sorted(list(hlog.keys()))
                 fig, axs = plt.subplots(
                     len(cnams),2,sharex=True,
+                    squeeze=False,
                     figsize=(16,len(cnams)*4)
                 )
 
@@ -161,10 +162,7 @@ def redplt(args=None):
                             # we have a target
                             targ = hlog.tseries(cnam,'1')
 
-                            if len(axs) == 1:
-                                axl, axr = axs[0], axs[1]
-                            else:
-                                axl, axr = axs[nc,0], axs[nc,1]
+                            axl, axr = axs[nc,0], axs[nc,1]
 
                             if '2' in apnams:
                                 # we have a comparison
@@ -240,16 +238,10 @@ def redplt(args=None):
 
                 if made_a_plot:
                     plt.tight_layout()
-                    if len(axs) == 1:
-                        axs[0].set_title(f'{nname}, {run}')
-                        axs[1].set_title(f'{nname}, {run}')
-                        axs[0].set_xlabel('Time [MJD]')
-                        axs[1].set_xlabel('Time [MJD]')
-                    else:
-                        axs[0,0].set_title(f'{nname}, {run}')
-                        axs[0,1].set_title(f'{nname}, {run}')
-                        axs[-1,0].set_xlabel('Time [MJD]')
-                        axs[-1,1].set_xlabel('Time [MJD]')
+                    axs[0,0].set_title(f'{nname}, {run}')
+                    axs[1,1].set_title(f'{nname}, {run}')
+                    axs[-1,0].set_xlabel('Time [MJD]')
+                    axs[-1,1].set_xlabel('Time [MJD]')
                     plt.savefig(pname)
                     print(f'Written {pname}')
                 plt.close()
