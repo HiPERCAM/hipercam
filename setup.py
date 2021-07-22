@@ -90,10 +90,11 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         'sep', 'numpy', 'astropy', 'matplotlib', 'requests',
-        'numba', 'websocket-client', 'fitsio', 'pandas', 'Cython'
+        'numba', 'websocket-client', 'fitsio', 'pandas', 'Cython',
+        'urllib3>=1.26.5'
     ],
 
-    # Makes significant use of f-strings which came in in 3.6
+    # Makes significant use of f-strings which came in 3.6
     python_requires='>=3.6',
 
     # need numpy version 1.12
