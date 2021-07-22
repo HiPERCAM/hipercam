@@ -239,7 +239,7 @@ def redplt(args=None):
                 if made_a_plot:
                     plt.tight_layout()
                     axs[0,0].set_title(f'{nname}, {run}')
-                    axs[1,1].set_title(f'{nname}, {run}')
+                    axs[0,1].set_title(f'{nname}, {run}')
                     axs[-1,0].set_xlabel('Time [MJD]')
                     axs[-1,1].set_xlabel('Time [MJD]')
                     plt.savefig(pname)
