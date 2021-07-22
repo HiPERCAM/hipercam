@@ -297,18 +297,20 @@ class Hlog(dict):
 
             # per CCD corrections
             for key, corrs in fixes['perccd'].items():
-                ok = ~np.isnan(ccd[key])
-                bad = ccd[key][ok] <= 0.
-                for corr in corrs:
-                    ccd[corr][ok][bad] = NaN
+                if key in ccd:
+                    ok = ~np.isnan(ccd[key])
+                    bad = ccd[key][ok] <= 0.
+                    for corr in corrs:
+                        ccd[corr][ok][bad] = NaN
 
             # per aperture corrections
             for key, corrs in fixes['peraper'].items():
                 for apnam in hlog.apnames[cnam]:
-                    ok = ~np.isnan(ccd[f"{key}_{apnam}"])
-                    bad = ccd[f"{key}_{apnam}"][ok] <= 0.
-                    for corr in corrs:
-                        ccd[f"{corr}_{apnam}"][ok][bad] = NaN
+                    if f"{key}_{apnam}" in ccd:
+                        ok = ~np.isnan(ccd[f"{key}_{apnam}"])
+                        bad = ccd[f"{key}_{apnam}"][ok] <= 0.
+                        for corr in corrs:
+                            ccd[f"{corr}_{apnam}"][ok][bad] = NaN
 
         hlog.writable = True
         return hlog
