@@ -590,14 +590,14 @@ warn = 1 60000 64000
                 )
             else:
                 warnings.warn(
-                    f'CCD {nam} has an extraction line in {template} but no apertures in {apfile} and will be skipped'
+                    f'CCD {cnam} has an extraction line in {template} but no apertures in {apfile} and will be skipped'
                 )
 
         # warn if there are apertures for a CCD but no extraction line
         for cnam in aper:
             if cnam not in esec:
                 warnings.warn(
-                    f'CCD {nam} has apertures defined in {apfile} but no extraction line in {template}'
+                    f'CCD {cnam} has apertures defined in {apfile} but no extraction line in {template}'
                 )
 
     # Generate the light curve plot lines
@@ -687,7 +687,7 @@ warn = 1 60000 64000
             cnam, targ, dcol, ecol = pl
             if cnam in aper and targ in aper[cnam]:
                 position_plot += (
-                    f'plot = {cnam} {apnam} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
+                    f'plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
                 )
                 no_position = False
             else:
@@ -716,7 +716,7 @@ warn = 1 60000 64000
                     break
 
         if no_transmission:
-            warning.warn(
+            warnings.warn(
                 f"Targets 2, 3, or 1 not found in any CCD within {apfile}; no transmission plot"
             )
 
