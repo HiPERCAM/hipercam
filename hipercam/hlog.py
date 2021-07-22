@@ -297,7 +297,7 @@ class Hlog(dict):
 
             # per CCD corrections
             for key, corrs in fixes['perccd'].items():
-                if key in ccd:
+                if key in ccd.dtype.fields:
                     ok = ~np.isnan(ccd[key])
                     bad = ccd[key][ok] <= 0.
                     for corr in corrs:
@@ -306,7 +306,7 @@ class Hlog(dict):
             # per aperture corrections
             for key, corrs in fixes['peraper'].items():
                 for apnam in hlog.apnames[cnam]:
-                    if f"{key}_{apnam}" in ccd:
+                    if f"{key}_{apnam}" in ccd.dtype.fields:
                         ok = ~np.isnan(ccd[f"{key}_{apnam}"])
                         bad = ccd[f"{key}_{apnam}"][ok] <= 0.
                         for corr in corrs:
