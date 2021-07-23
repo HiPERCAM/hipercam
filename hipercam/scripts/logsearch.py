@@ -1,15 +1,9 @@
 import sys
-import traceback
-import os
-import shutil
 import re
-import warnings
+import sqlite3
 
 import numpy as np
 import pandas as pd
-import matplotlib.pylab as plt
-
-import astropy.units as u
 
 import hipercam as hcam
 from hipercam import cline, utils
@@ -175,18 +169,19 @@ def logsearch(args=None):
         declo = dec - field
         dechi = dec + field
 
+    # assemble pairs of databases files and tables
     dbases = []
-    if hcamdb is not None: dbases.append(hcamdb)
-    if ucamdb is not None: dbases.append(ucamdb)
-    if uspecdb is not None: dbases.append(uspecdb)
+    if hcamdb is not None: dbases.append((hcamdb,'hipercam'))
+    if ucamdb is not None: dbases.append((ucamdb,'ultracam'))
+    if uspecdb is not None: dbases.append((uspecdb,'ultraspec'))
 
-    for dbase in dbases:
+    for dbase, dtable in dbases:
 
         # connect to database
         conn = sqlite3.connect(dbase)
 
         # build query string
-        query = f"SELECT * FROM {dbase}\n"
+        query = f'SELECT * FROM {dtable}\n'
 
         if target is not None:
             query += (
@@ -203,7 +198,7 @@ def logsearch(args=None):
             conn.create_function("REGEXP", 2, regexp)
             query += f'WHERE (REGEXP("{regex}",target) AND total > {tmin})'
 
-        print(f'\nQuerying {dbase} ....')
+        print(f'\nQuerying {dbase}\n')
         res = pd.read_sql_query(query, conn)
         if len(res):
             print(res)
