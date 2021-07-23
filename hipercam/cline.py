@@ -526,8 +526,13 @@ command line to check.""", ClineWarning,
              (integers only)
 
           ignore : str
-             for Fname inputs, this is a value that will cause the checks on
-             existence of files to be skipped.
+             a string value that will cause the routine to immediately return
+             with a None. The idea is to enable ignoring of parameter values
+             based on checking for None later in the calling code. For Fname
+             inputs in particular, this skips any checks on the existence of
+             files. If used, one should put the string needed to match the value
+             of ignore in the prompt. The usual value used in the hipercam
+             pipeline is 'none'.
 
           enforce : bool
              controls whether "min" and "max" are used to prevent user input
@@ -651,14 +656,15 @@ command line to check.""", ClineWarning,
                         else:
                             value = reply
 
+        if value == ignore:
+            return None
+
         # at this stage we have the value, now try to convert to the right
         # type according to the type of 'defval'
         try:
             if isinstance(defval, Fname):
-                if value != ignore:
-                    # run Fname checks if the input value does not match
-                    # 'ignore'
-                    value = defval(value)
+                # run Fname checks
+                value = defval(value)
 
             elif isinstance(defval, str):
                 value = str(value)
@@ -772,11 +778,6 @@ command line to check.""", ClineWarning,
 
         if self._list:
             print(param, "=", value)
-
-        if isinstance(defval, Fname) and value == ignore:
-            # return None in this case since this is a
-            # value to be ignored.
-            value = None
 
         return value
 
