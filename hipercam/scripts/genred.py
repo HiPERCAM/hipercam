@@ -638,7 +638,7 @@ warn = 1 60000 64000
         # run checks of apertures
         plots = tvals['light']['plot']
         for pl in plots:
-            cnam = pl['cnam']
+            cnam = pl['ccd']
             targ = pl['targ']
             comp = pl['comp']
             if cnam in aper and targ in aper[cnam] and (comp == '!' or comp in aper[cnam]):
