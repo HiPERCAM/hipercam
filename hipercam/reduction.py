@@ -72,7 +72,7 @@ class Rfile(OrderedDict):
                     if line.startswith("["):
                         # new section
                         section = line[1 : line.find("]")].strip()
-                        sec = rfile[section] = cls()
+                        sec = rfile[section] = OrderedDict()
                         insection = True
 
                     elif insection:
@@ -2909,34 +2909,38 @@ def ctrans(cname):
 
 
 def toBool(rfile, section, param):
-    """
-    Converts yes / no responses into True / False. This is used a few times
-    in the code to read a reduce file.
+    """Converts yes / no / true / false string responses into boolean
+    True / False. This is used a few times in the code to read a
+    reduce file.
 
     Arguments::
 
-       rfile  : Rfile
+       rfile : Rfile
          the reduce file, an Odict of Odicts
 
       section : str
          the section name
 
-      param   : str
+      param : str
          the parameter
 
     Returns nothing; rfile modified on exit. A ValueError is
-    raised if the initial value is neither 'yes' nor 'no.
+    raised if the initial value is neither 'yes', 'no', 'true'
+    of 'false' (case-independent)
+
     """
 
-    if rfile[section][param] == "yes":
+    lstr = rfile[section][param].lower()
+
+    if lstr == "yes" or lstr == "true":
         rfile[section][param] = True
-    elif rfile[section][param] == "no":
+    elif lstr == "no" or lstr == "false":
         rfile[section][param] = False
     else:
         raise hcam.HipercamError(
-            "{:s}.{:s}: 'yes' or 'no' are the only supported values".format(
-                section, param
-            )
+            f"{section}.{param} is a boolean; 'yes', 'no', 'true' and 'false'"
+            " (case-insensitive) are the only supported values. It's current"
+            f" (invalid) value = {rfile[section][param]}; please correct it."
         )
 
 
