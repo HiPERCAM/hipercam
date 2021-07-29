@@ -21,8 +21,8 @@ if [ "$#" -eq 2 ]; then
 
 .. include:: globals.rst
 
-|hiper| pipeline change log from ${tag1} to ${tag2}
-***************************************************
+|hiper| pipeline changes from v${tag1} to v${tag2}
+**************************************************
 
 List of changes from git, newest first, with the commit keys linked to github:
 
@@ -43,8 +43,8 @@ elif [ "$#" -eq 1 ]; then
 
 .. include:: globals.rst
 
-|hiper| pipeline change log from ${tag2}
-****************************************
+|hiper| pipeline changes since v${tag}
+**************************************
 
 List of changes from git, newest first, with the commit keys linked to github:
 
