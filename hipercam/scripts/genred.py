@@ -25,7 +25,6 @@ __all__ = [
 #
 ################################################
 
-
 def genred(args=None):
     """``genred apfile rfile bias dark flat fmap fpair seeing (sworst
     binfac) template (inst (nccd (ccd) nonlin sat scale readout
@@ -40,18 +39,23 @@ def genred(args=None):
 
     It is assumed that the target is called '1', the main comparison '2'.
 
-    To avoid endless prompts, genred does not prompt for all
-    parameters but accepts a "template" file which can just be from a
-    previous run of genred where such parameters can be altered by
-    editing with a standard text editor before running genred. genred
-    recognises some standard instrument telescope combinations which
-    it uses to set parameters such as the pixel scale and readout
-    noise, but if you choose other, you will be prompted for these
-    details. The main parameters it does prompt for are calibration
-    files, and it allows you to define a "seeing" which then controls
-    the setting of various profile fit parameters. This can be ignored
-    by setting = 0, in which case any template parameters will be passed
-    unchanged.
+    To avoid endless prompts, genred does not try to prompt for all
+    parameters even via hidden ones (a change from its previous
+    behaviour).  However, if you find yourself always making the samed
+    edits to the file produced by genred, you may start wanting a way
+    to alter some of the otherwise fixed parameters. You can do so by
+    supplying a template file, which can just be from a previous run
+    of genred where such parameters can be altered by editing with a
+    standard text editor before running genred.
+
+    genred recognises some standard instrument telescope combinations
+    which it uses to set parameters such as the pixel scale and
+    readout noise, but if you choose 'other', you will be prompted for
+    these details. The main parameters it does prompt for are
+    calibration files, and it allows you to define a "seeing" which
+    then controls the setting of various profile fit parameters. This
+    can be ignored by setting = 0, in which case any template
+    parameters will be passed unchanged.
 
     Parameters:
 
@@ -391,12 +395,14 @@ warn = 1 60000 64000
     if template is not None:
 
         # read the template to define many unprompted values
-        # shortcut names defines
+        # shortcut names define.
         tvals = reduction.Rfile.read(template, False)
         gsec = tvals['general']
         instrument = gsec.get('instrument')
         scale = gsec.get('scale')
-        warn_levels = ''.join(gsec['warn'])
+        warn_levels = ""
+        for value in gsec['warn']:
+            warn_levels += f'warn = {value}\n'
 
         asec = tvals['apertures']
         psfsec = tvals['psf_photom']
@@ -407,6 +413,7 @@ warn = 1 60000 64000
         psec = tvals.get('position',None)
         tsec = tvals.get('transmission',None)
         ssec = tvals.get('seeing',None)
+        fsec = tvals.get('focal_mask',None)
 
     else:
 
@@ -638,19 +645,19 @@ warn = 1 60000 64000
         # run checks of apertures
         plots = tvals['light']['plot']
         for pl in plots:
-            cnam = pl['ccd']
-            targ = pl['targ']
-            comp = pl['comp']
+            cnam, targ, comp = pl['ccd'], pl['targ'], pl['comp']
+            off, fac, dcol, ecol = pl['off'], pl['fac'], ct(pl['dcol']), ct(pl['ecol'])
+
             if cnam in aper and targ in aper[cnam] and (comp == '!' or comp in aper[cnam]):
                 light_plot += (
-                    f"plot = {cnam} {targ} {comp} {pl['off']} {pl['fac']} {pl['dcol']} {pl['ecol']}"
+                    f"plot = {cnam} {targ} {comp} {off} {fac} {dcol} {ecol}"
                     " # ccd, targ, comp, off, fac, dcol, ecol\n"
                 )
                 no_light = False
             else:
                 warnings.warn(
                     "Light curve plot line:\n"
-                    f"plot = {cnam} {targ} {comp} {pl['off']} {pl['fac']} {pl['dcol']} {pl['ecol']}\n"
+                    f"plot = {cnam} {targ} {comp} {off} {fac} {dcol} {ecol}\n"
                     f"from {template} is incompatible with {apfile} and has been skipped"
                 )
 
@@ -684,7 +691,7 @@ warn = 1 60000 64000
     elif psec is not None:
         plots = psec['plot']
         for pl in plots:
-            cnam, targ, dcol, ecol = pl
+            cnam, targ, dcol, ecol = pl['ccd'], pl['targ'], ct(pl['dcol']), ct(pl['ecol'])
             if cnam in aper and targ in aper[cnam]:
                 position_plot += (
                     f'plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
@@ -723,7 +730,7 @@ warn = 1 60000 64000
     elif tsec is not None:
         plots = tsec['plot']
         for pl in plots:
-            cnam, targ, dcol, ecol = pl
+            cnam, targ, dcol, ecol = pl['ccd'], pl['targ'], ct(pl['dcol']), ct(pl['ecol'])
             if cnam in aper and targ in aper[cnam]:
                 transmission_plot += (
                     f'plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
@@ -762,7 +769,7 @@ warn = 1 60000 64000
     elif ssec is not None:
         plots = tsec['plot']
         for pl in plots:
-            cnam, targ, dcol, ecol = pl
+            cnam, targ, dcol, ecol = pl['ccd'], pl['targ'], ct(pl['dcol']), ct(pl['ecol'])
             if cnam in aper and targ in aper[cnam] and not aper[cnam][targ].linked:
                 seeing_plot += (
                     f'plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
@@ -793,9 +800,9 @@ warn = 1 60000 64000
         monitor = ""
         msec = tvals['monitor']
         rlook = dict([(k,v) for v,k in hcam.FLAGS])
-        for targ, masks in msec:
+        for targ, masks in msec.items():
             smasks = ' '.join([rlook[mask] for mask in masks])
-            monitor += f'{targ} = {smasks}'
+            monitor += f'{targ} = {smasks}\n'
 
     # time stamp
     tstamp = strftime("%d %b %Y %H:%M:%S (UTC)", gmtime())
@@ -1040,8 +1047,8 @@ fit_diff = {asec['fit_diff']:.2f} # Maximum differential shift of multiple refer
 # sources.
 
 [psf_photom]
-gfac = {psfsec['gfac']:.1f}  # multiple of the FWHM to use in grouping objects
-fit_half_width = {psfsec['fit_half_width']:.1f}  # size of window used to collect the data to do the fitting
+gfac = {psfsec['gfac']}  # multiple of the FWHM to use in grouping objects
+fit_half_width = {psfsec['fit_half_width']}  # size of window used to collect the data to do the fitting
 positions = {psfsec['positions']}   # 'fixed' or 'variable'
 
 # Next lines determine how the sky background level is
@@ -1086,8 +1093,8 @@ fmap = {'' if fmap is None else fmap} # Fringe map frame, blank to ignore
 fpair = {'' if fpair is None else fpair} # File of fringe pairs, ignored if fmap blank
 
 nhalf = {csec['nhalf']} # Half-size of region used for fringe ratios, binned pix, ignored if fmap blank=""
-rmin = {csec['rmin']:.2f} # Mininum acceptable individual fmap ratio, ignored if fmap blank
-rmax = {csec['rmax']:.2f} # Maximum acceptable individual fmap ratio, ignored if fmap blank
+rmin = {csec['rmin']} # Mininum acceptable individual fmap ratio, ignored if fmap blank
+rmax = {csec['rmax']} # Maximum acceptable individual fmap ratio, ignored if fmap blank
 readout = {csec['readout']} # RMS ADU. Float or string name of a file or "!" to estimate on the fly
 gain = {csec['gain']} # Gain, electrons/ADU. Float or string name of a file
 
@@ -1271,3 +1278,17 @@ dthresh = {fsec['dthresh']}
         )
 
     print("Reduce file written to {:s}".format(rfile))
+
+# swap keys and values in colour name dict from core.py
+# used in 'ct' below
+ITOCNAM = {v:k for k,v in hcam.CNAMS.items()}
+
+def ct(col):
+    """
+    Wrapper to translate colours from Rfile versions to versions suited
+    for output to a reduce file
+    """
+    if col is None:
+        return '!'
+    else:
+        return ITOCNAM[col]
