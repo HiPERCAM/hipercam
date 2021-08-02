@@ -61,8 +61,8 @@ Current files:
 
   #. 2021-08-02 (:download:`HiPERCAM defect file
      <hipercam_defects_2021_08_02.dft>`) Hair on CCD 2 gone
-     after removal by Vik following removale of CCD window
-     to fix leak.
+     after cleaning by Vik following removal of the CCD window
+     to fix a leak.
 
   #. 2021-06-09 (:download:`ULTRACAM defect file
      <ultracam_defects_2021_06_09.dft>`) Hot pixels marked.
