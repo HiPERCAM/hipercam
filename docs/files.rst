@@ -59,9 +59,10 @@ red. The zoom/pan feature of |nrtplot| is useful for this.
 
 Current files:
 
-  #. 2021-06-09 (:download:`HiPERCAM defect file
-     <hipercam_defects_2021_06_09.dft>`) Some linear
-     charge trap (?) features marked.
+  #. 2021-08-02 (:download:`HiPERCAM defect file
+     <hipercam_defects_2021_08_02.dft>`) Hair on CCD 2 gone
+     after removal by Vik following removale of CCD window
+     to fix leak.
 
   #. 2021-06-09 (:download:`ULTRACAM defect file
      <ultracam_defects_2021_06_09.dft>`) Hot pixels marked.
@@ -71,9 +72,13 @@ Current files:
 
 Old files:
 
+  #. 2021-06-09 (:download:`HiPERCAM defect file
+     <hipercam_defects_2021_06_09.dft>`) Some linear
+     charge trap (?) features marked.
+
   #. 2021-05-13 (:download:`HiPERCAM defect file
      <hipercam_defects_2021_05_13.dft>`) New hair in
-     upper-right of CCD 4.
+     upper-right of CCD 2.
 
   #. 2018-06-21 (:download:`ULTRACAM defect file
      <ultracam_defects_2018_06_21.dft>`) Added another bad column in CCD 2
