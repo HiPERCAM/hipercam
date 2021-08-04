@@ -389,12 +389,14 @@ def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simba
     one of three ways:
 
       1) First it attempts to find coordinates in simbad by running
-         a query ID with target (unless target is None or ''). 
+         a query ID with target (unless target is None or ''). If the
+         target name starts with "STD_" (GTC flux standard), that is
+         stripped off first.
 
       2) If (1) fails, try to find coordinates within the name in the
          form JHHMMSS.S[+/-]DDMMSS [can be more precise, but not less]
 
-      3) If 1 and 2 fail or target == '' or None, then attempt a coordinate
+      4) If (1) and (2) fail or target == '' or None, then attempt a coordinate
          search in simbad within a limit of dist arcmin (default equals half
          diagonal of ULTRASPEC. It needs a unique match in this case. The
          search position comes from ra_tel and dec_tel
@@ -413,6 +415,9 @@ def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simba
     RESPC = re.compile('\s+')
 
     if target is not None and target != '':
+        if target.startswith('STD_'):
+            target = target[4:]
+            
         # simbad query script
         query = f"""set limit 2
 format object form1 "Target: %IDLIST(1) | %COO(A D;ICRS)"
