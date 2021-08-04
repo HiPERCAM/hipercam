@@ -36,6 +36,7 @@ more information on
    files
    api/bugs
    makingmovies
+   phaseII
 
 Indices and tables
 ==================

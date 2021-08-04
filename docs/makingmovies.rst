@@ -4,8 +4,8 @@
 
 .. highlightlang:: rest
 
-Making movies from |hiper| data
-*******************************
+Making |hiper| movies
+*********************
 
 The |makemovie| command allows you to generate stills from a movie. It
 is a little painful to run and even more so to actually compile the

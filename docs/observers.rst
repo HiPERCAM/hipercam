@@ -25,4 +25,3 @@ underlying principles, which contains further tips on good practice.
    photometry
    organisation
    checklists
-   setup
