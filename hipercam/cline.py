@@ -525,7 +525,7 @@ command line to check.""", ClineWarning,
              specifies a number that the final value must be a multiple of
              (integers only)
 
-          ignore : str
+          ignore : same as defval | None
              a string value that will cause the routine to immediately return
              with a None. The idea is to enable ignoring of parameter values
              based on checking for None later in the calling code. For Fname
@@ -657,6 +657,10 @@ command line to check.""", ClineWarning,
                             value = reply
 
         if value == ignore:
+            if self._rpars[param]["g_or_l"] == Cline.GLOBAL:
+                self._gpars[param] = ignore
+            else:
+                self._lpars[param] = ignore
             return None
 
         # at this stage we have the value, now try to convert to the right
