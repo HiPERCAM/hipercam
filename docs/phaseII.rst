@@ -26,8 +26,55 @@ hfinder in action:
 
 .. image:: hfinder.png
   :width: 500
-  :alt: Screenshot of hfinder 
+  :alt: Screenshot of hfinder
 
+If you are in a hurry, at least read through the various warnings as they
+might save you some future grief.
+
+Checklist
+=========
+
+To start off, here is a checklist for |hiper|'s phase II to prompt
+thought about your setup; the rest of the document expands on these
+items. The hope is that you have answers to all the questions!
+
+#. What spatial sampling do you need? 1x1 binning is very rarely the
+   best choice, and sometimes can have a very negative impact on noise.
+   |hiper|'s native pixel size is only 0.081" on the GTC.
+
+#. Could your setup lead to saturation in good seeing? If so, is there
+   leeway for the observer to reduce the exposure time (a relatively easy
+   change) without the need to change the setup (time consuming)?
+
+#. Have you checked the peak counts per pixel in *all* CCDs,
+   especially CCD 1 (u-band)? Is it comfortably above readout? (100
+   counts or more). The nskip parameters (nu, ng, nr, ni, nz) may
+   help.
+
+#. Is your target away from the medial lines of the CCDs in both X and Y
+   to avoid a split readout and consequent data reduction problems?
+
+#. Have you ensured that no very bright objects are aligned along the
+   Y direction and in the same quadrant as your target?
+
+#. For blue targets, have you included a bright comparison star (if available)
+   for the u-band, even if it looks too bright for the griz bands?
+
+#. For variable targets, have you considered the impact of the full range
+   of their variability in terms of possible saturation or readnoise?
+
+#. Is the duty cycle of your setup what you expect? For most observations
+   it should be above 95%.
+
+#. Is your setup tolerant of the full range of conditions you have
+   specified for it? Variations in seeing especially, can cause
+   dramatic variations in peak count levels and may veer you
+   towards either saturation or readout noise limitations.
+
+#. Does the product of the number of exposures and the cadence match the
+   time you want to follow your target?
+
+#. Do you need to dither your observations for optimum background subtraction?
 
 Cadence / exposure time
 =======================
@@ -51,7 +98,7 @@ this minimum by adding an arbitrary "exposure delay"; this is a key
 parameter of the ``hfinder`` setup. So perhaps your setup can be
 readout in 3 seconds, but for reasons of signal-to-noise perhaps you
 add 7 seconds exposure delay. Then your exposure time (and cadence, as
-dead time is negigible in this case) will be 10 seconds. If you set
+dead time is negligible in this case) will be 10 seconds. If you set
 the exposure delay to 0 however, your exposure will be 3 seconds and
 you wouldn't be able to go faster without altering the setup. An
 important consideration in phase II is to avoid setups that make it
@@ -114,7 +161,7 @@ There are three reasons for this:
    There is a caveat to this in that if the sky counts are greater
    than this level, then there is less to be gained since binning
    increase the target and sky counts per pixel by the same factor,
-   but when going fast, the sky can often be quite low lowel
+   but when going fast, the sky can often be quite low level
    (especially in CCDs 1, 2 and 3, i.e.  ugr). This means it can make sense
    sometimes to use very large binning factors when going fast and sky
    noise is low. It is this sort of case when binning can quite dramatically
@@ -157,7 +204,7 @@ saved) is moved into the masked area prior to readout. This involves a
 charger transfer in the Y-direction of half the frame height, which
 costs some deadtime. In very high-speed cases, this overhead can rise
 to unacceptable levels. The way to reveal this is to switch to
-windowed mode, choose some fairly high binning, a minimal expure
+windowed mode, choose some fairly high binning, a minimal exposure
 delay, and then start to chop the windows down. As one does so, the
 reported "Duty cycle" starts to drop below 100%, as the result of the
 frame transfer overhead. e.g. with 8x8 binning and 128x128 windows,
@@ -221,7 +268,7 @@ the case that a comparison that is moderately brighter than the target
 in the redder bands is scarcely visible in u. Remember one does not
 need to use the same star as comparison in each filter and its OK for
 a comparison used in u to saturate in all other bands, as long as
-there is a backup comparison for thos bands.
+there is a backup comparison for those bands.
 
 .. Warning::
 
@@ -229,6 +276,13 @@ there is a backup comparison for thos bands.
    same X position) and same quadrant as a faint target. This is because
    the frame transfer leaves a low level vertical streak that could
    be problematic if there is a very bright star lined up with your target.
+
+.. Warning::
+
+   Do not place your target or comparisons close to the half-way point
+   in either X or Y in full frame mode because the |hiper| CCDs are
+   read out at the 4 corners and you risk your target being divided across
+   multiple outputs.
 
 
 Condition-tolerant setups
@@ -256,7 +310,7 @@ If you look at ``hfinder`` you will see two values of
 signal-to-noise. One, "S/N", is the signal-to-noise of one frame. The
 other, "S/N (3h)", is the total signal-to-noise after 3 hours of
 data. The latter can reach unrealistically large values (e.g. 14584 in
-the screenshot) which are meaninglessly high in practive,
+the screenshot) which are meaninglessly high in practice,
 nevertheless, the "S/N (3h)" value is one of the best ways to compare
 different setups as it accounts for the issue of shorter exposures
 versus a larger number of exposure and also deadtime. One way to find
@@ -272,7 +326,7 @@ becomes obvious if I add 0.1 seconds to the exposure delay giving
 0.201 cadence, 96.1% duty. The S/N (3h) becomes 5306. That's the
 equivalent of :math:`(5306/3772)^2 = 1.98` times longer exposure, but
 the duty cycle only increased by a factor of 1.04. The large
-improvment is because I have halved the number of readouts.
+improvement is because I have halved the number of readouts.
 
 What if I still want the 0.1 seconds? Then I should bin. So, the same
 target and conditions, but now with binning 4x4 and cadence 0.1
@@ -292,7 +346,11 @@ the exposure, so not only is it a bad setup, but it gets worse more quickly.
 
    These are not small effects, and you need to think about them for all
    CCDs. CCD 1 (the u-band) is almost always the most sensitive of all to
-   readout noise issues. "nskip" is your friend then.
+   readout noise issues. "nskip" is your friend then. If possible try to find
+   the sweet spot between being well above the readout noise, but not in
+   danger of saturation. Peak counts (factoring in any nskips) from 1000
+   to 15000 are what you might want to aim for, although they won't always
+   be possible.
 
 
 Beyond drift mode
