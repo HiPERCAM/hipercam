@@ -507,10 +507,9 @@ class Hlog(dict):
         return hlog
 
     def tseries(self, cnam, apnam, name="counts", ecol=True):
-        """
-        Returns with a Tseries corresponding to CCD cnam and
+        """Returns with a Tseries corresponding to CCD cnam and
         aperture apnam. By default it accesses the 'counts',
-        but 'x', 'y', 'fwhm', 'beta' and 'sky' are alternative
+        but 'x', 'y', 'fwhm', 'beta', 'sky' and 'cmax' are alternative
         choices. Looks at the column names in a HiPERCAM log.
         Can also access items not specific to apertures.
 
@@ -530,9 +529,11 @@ class Hlog(dict):
               else f"{name}"
 
            ecol : bool
-              If True, an attempt will be made to read errors from a column called
-              f"{name}e_{apnam}" or f"{name}e" will be made. Otherwise the errors
-              are set = 0.
+              If True, an attempt will be made to read errors from a
+              column called f"{name}e_{apnam}" or f"{name}e" will be
+              made. If ecol is False or the error columns don't exist,
+              the errors are set = 0.
+
         """
         ccd = self[str(cnam)]
 
@@ -547,19 +548,18 @@ class Hlog(dict):
 
         if apnam is None:
             data = ccd[f"{name}"].copy()
-            if ecol:
+            if ecol and f"{name}e" in ccd.dtype.fields:
                 errors = ccd[f"{name}e"].copy()
             else:
                 errors = np.zeros_like(mjdok)
             bmask = tmask
         else:
             data = ccd[f"{name}_{apnam}"].copy()
-            if ecol:
+            if ecol and f"{name}e_{apnam}" in ccd.dtype.fields:
                 errors = ccd[f"{name}e_{apnam}"].copy()
             else:
                 errors = np.zeros_like(mjdok)
             bmask = ccd[f"flag_{apnam}"] | tmask
-
         return Tseries(times, data, errors, bmask, texps)
 
     def write(self, fname):

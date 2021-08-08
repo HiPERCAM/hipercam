@@ -46,7 +46,8 @@ def plog(args=None):
 
       param1 : str
          first parameter to consider. Choices are 'x' = X position,
-         'y' = Y position, 'f' = FWHM, 'b' = Moffat beta, 's' = sky.
+         'y' = Y position, 'f' = FWHM, 'b' = Moffat beta, 's' = sky,
+         'm' = maximum counts in aperture
 
       ccd2 : str
          second CCD to consider; '!' to ignore. Can be (and typically
@@ -112,9 +113,9 @@ def plog(args=None):
         aper1 = cl.get_value("aper1", "first aperture", "1")
         param1 = cl.get_value(
             "param1",
-            "first parameter [x, y, f(whm), b(eta), c(ounts), s(ky)]",
+            "first parameter [x, y, f(whm), b(eta), c(ounts), s(ky), m(ax)]",
             "c",
-            lvals=("x", "y", "f", "b", "c", "s"),
+            lvals=("x", "y", "f", "b", "c", "s", "m"),
         )
         lab1 = "[CCD={:s},ap={:s},p={:s}]".format(ccd1, aper1, param1)
 
@@ -130,7 +131,10 @@ def plog(args=None):
             lab2 = "[CCD={:s},ap={:s},p={:s}]".format(ccd2, aper2, param2)
 
         # map to names used in reduce log files
-        MAP = {"x": "x", "y": "y", "f": "fwhm", "b": "beta", "c": "counts", "s": "sky"}
+        MAP = {
+            "x": "x", "y": "y", "f": "fwhm", "b": "beta",
+            "c": "counts", "s": "sky", "m" : "cmax"
+        }
         pname1 = MAP[param1]
         if ccd2 != "!":
             pname2 = MAP[param2]
