@@ -521,8 +521,8 @@ warn = 1 60000 64000
     if seeing > 0.:
         asec['search_half_width'] = max(5., sworst/scale)
         asec['search_smooth_fwhm'] = max(2., seeing/scale/binfac)
-        asec['fwhm_min'] = 2*binfac
-        asec['fwhm'] = max(2*binfac, seeing/scale)
+        asec['fwhm_min'] = 1.5*binfac
+        asec['fwhm'] = max(1.5*binfac, seeing/scale)
         asec['fwhm_max'] = 3.*sworst/scale
         asec['fit_max_shift'] = max(1., sworst/scale/4.)
         asec['fit_half_width'] = max(5., 2*sworst/scale)
