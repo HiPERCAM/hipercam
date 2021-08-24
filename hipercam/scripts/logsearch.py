@@ -226,9 +226,9 @@ def logsearch(args=None):
         # close connection
         conn.close()
 
-        if output is not None:
-            total = pd.concat(results)
-            total.to_csv(output)
+    if output is not None:
+        total = pd.concat(results)
+        total.to_csv(output)
 
 def regexp(expr, item):
     reg = re.compile(expr,re.IGNORECASE)
