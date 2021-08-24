@@ -71,8 +71,9 @@ def hlogger(args=None):
     they already exist. Even so, a default run takes a while and if
     you just want to see the logs for a few new nights, the '-q'
     option could help as that skips re-creating already existing logs
-    and the spreadsheet and database. Similarly the '-n' option is
-    useful to simply focus of the timing and positional data of a
+    and the spreadsheet and database (although it means the night-to-night
+    links might not be quite right). Similarly the '-n' option is
+    useful to simply focus on the timing and positional data of a
     single night.
 
     """
@@ -86,6 +87,11 @@ def hlogger(args=None):
         dest="full",
         action="store_true",
         help="carry out full re-computation of times, positional data, html logs, spreadsheet and SQL database",
+    )
+    parser.add_argument(
+        "-m",
+        dest="missing", default=None,
+        help="lists all targets without positional info but creates no files.",
     )
     parser.add_argument(
         "-n",
@@ -116,6 +122,10 @@ def hlogger(args=None):
 
     if (args.full or args.positions) and args.night is not None:
         print('-n switch is not compatible with either -f or -p; please check help')
+        return
+
+    if args.missing and (args.night or args.positions or args.full or args.quick or args.retry):
+        print('-m switch is not compatible with any other; please check help')
         return
 
     # start with defining a few regular expressions to match run directories, nights,
@@ -214,7 +224,7 @@ def hlogger(args=None):
 
         # make the times
         times = os.path.join(meta, 'times')
-        tdata = make_times(args.night, runs, observatory, times, True, instrument)
+        tdata = make_times(args.night, runs, observatory, times, True, instrument, True)
         print(f'Created & wrote timing data for {args.night} to {times}\n')
 
         # make the positions
@@ -226,7 +236,7 @@ def hlogger(args=None):
         make_positions(
             args.night, runs, observatory, instrument, hlog, targets,
             skip_targets, tdata, posdata, False, None, True, rname,
-            smessages, fmessages, p2positions
+            smessages, fmessages, p2positions, True
         )
         print(f'Created & wrote positional data for {args.night} to {posdata}')
         print(f'Finished creating time & position data for {args.night}')
@@ -280,10 +290,14 @@ def hlogger(args=None):
     # right permissions
     os.umask(0o022)
 
-    # Ensure the root directory exists.
-    os.makedirs(root, exist_ok=True)
+    # shortcut
+    okwrite = not args.missing
 
-    print(f'Will write to directory = "{root}".')
+    # Ensure the root directory exists.
+    if okwrite:
+        os.makedirs(root, exist_ok=True)
+
+        print(f'Will write to directory = "{root}".')
 
     # initialise storage list
     barr = []
@@ -296,9 +310,14 @@ def hlogger(args=None):
 
     # Index file. To avoid too much down time, write to a
     # a temporary that will be switched in at the end,
-    index_tmp = os.path.join(root, 'index.html.tmp')
-    index = os.path.join(root, 'index.html')
+    if okwrite:
+        index_tmp = os.path.join(root, 'index.html.tmp')
+        index = os.path.join(root, 'index.html')
+    else:
+        index_tmp = os.devnull
+
     with open(index_tmp, "w") as ihtml:
+
         # start the top level index html file
         ihtml.write(
             INDEX_HEADER.format(
@@ -378,22 +397,23 @@ def hlogger(args=None):
 
             # scan through the nights to work out which to re-do (time saving)
             redo = {}
-            one_before_is_new = False
-            for nn, night in enumerate(nnames):
-                if args.full or args.positions or not args.quick:
-                    redo[night] = True
-                else:
-                    already_there = os.path.exists(os.path.join(root, night, 'index.html'))
-                    if one_before_is_new:
-                        # Has to be re-done under any circumstances
-                        # because of the previous/next links
+            if not args.missing:
+                one_before_is_new = False
+                for nn, night in enumerate(nnames):
+                    if args.full or args.positions or not args.quick:
                         redo[night] = True
-                        one_before_is_new = not already_there
                     else:
-                        redo[night] = one_before_is_new = not already_there
-                        if one_before_is_new and nn > 0:
-                            # Need to re-do one before because of previous/next links
-                            redo[nnames[nn-1]] = True
+                        already_there = os.path.exists(os.path.join(root, night, 'index.html'))
+                        if one_before_is_new:
+                            # Has to be re-done under any circumstances
+                            # because of the previous/next links
+                            redo[night] = True
+                            one_before_is_new = not already_there
+                        else:
+                            redo[night] = one_before_is_new = not already_there
+                            if one_before_is_new and nn > 0:
+                                # Need to re-do one before because of previous/next links
+                                redo[nnames[nn-1]] = True
 
             for nn, night in enumerate(nnames):
 
@@ -430,7 +450,8 @@ def hlogger(args=None):
 
                 # create directory for any meta info such as the times
                 meta = os.path.join(night, 'meta')
-                os.makedirs(meta, exist_ok=True)
+                if okwrite:
+                    os.makedirs(meta, exist_ok=True)
 
                 # Add links to previous and next night of the run
                 links = '<p><a href="../index.html">Run index</a>'
@@ -447,11 +468,12 @@ def hlogger(args=None):
                 # Create the directory for the night
                 date = f"{night}, {telescope}"
                 ndir = os.path.join(root, night)
-                os.makedirs(ndir, exist_ok=True)
-
-                # and now the index file
-                fname = os.path.join(ndir, 'index.html')
-                fname_tmp = os.path.join(ndir, 'index.html.tmp')
+                if okwrite:
+                    os.makedirs(ndir, exist_ok=True)
+                    fname = os.path.join(ndir, 'index.html')
+                    fname_tmp = os.path.join(ndir, 'index.html.tmp')
+                else:
+                    fname_tmp = os.devnull
 
                 with open(fname_tmp, "w") as nhtml:
 
@@ -495,7 +517,7 @@ def hlogger(args=None):
                     else:
                         # need to generate timing data, which can take a while so
                         # we store the results to a disk file for fast lookup later.
-                        tdata = make_times(night, runs, observatory, times, False, instrument)
+                        tdata = make_times(night, runs, observatory, times, False, instrument, okwrite)
 
                     ##################################
                     # Get or create positional info
@@ -509,7 +531,7 @@ def hlogger(args=None):
                     pdata = make_positions(
                         night, runs, observatory, instrument, hlog, targets, skip_targets,
                         tdata, posdata, load_old, args.retry, False, rname, smessages,
-                        fmessages, p2positions
+                        fmessages, p2positions, okwrite
                     )
 
                     # Right, finally!
@@ -541,7 +563,7 @@ def hlogger(args=None):
                             # soldier on if we possibly can but print
                             # stuff out. But there are a few ULTRACAM
                             # files with invalid framesizes so we
-                            # don't bother saying anythin with these
+                            # don't bother saying anything with these
 
                             if instrument == 'HiPERCAM' or str(err).find('Framesize')== -1:
                                 exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -956,8 +978,9 @@ def hlogger(args=None):
                     # finish off the night file
                     nhtml.write(NIGHT_FOOTER.format(links=links))
 
-                # rename night file
-                shutil.move(fname_tmp, fname)
+                if okwrite:
+                    # rename night file
+                    shutil.move(fname_tmp, fname)
 
             ihtml.write('</td></tr>\n')
 
@@ -967,24 +990,25 @@ def hlogger(args=None):
         # finish the main index
         ihtml.write(INDEX_FOOTER)
 
-    # rename index file (means that any old index
-    # file still exists while new one is being written)
-    shutil.move(index_tmp, index)
+    if okwrite:
+        # rename index file (means that any old index
+        # file still exists while new one is being written)
+        shutil.move(index_tmp, index)
 
-    # write out the css file
-    css = os.path.join(root, f"hiper.css")
-    with open(css, "w") as fout:
-        fout.write(LOG_CSS)
+        # write out the css file
+        css = os.path.join(root, f"hiper.css")
+        with open(css, "w") as fout:
+            fout.write(LOG_CSS)
 
-    # write out the js file
-    css = os.path.join(root, f"hiper.js")
-    with open(css, "w") as fout:
-        fout.write(LOGS_JS)
+        # write out the js file
+        css = os.path.join(root, f"hiper.js")
+        with open(css, "w") as fout:
+            fout.write(LOGS_JS)
 
-    # write out page of info about sql database
-    sqdb = os.path.join(root, 'sqldb.html')
-    with open(sqdb, "w") as sqout:
-        sqout.write(f'''<html>
+        # write out page of info about sql database
+        sqdb = os.path.join(root, 'sqldb.html')
+        with open(sqdb, "w") as sqout:
+            sqout.write(f'''<html>
 <head>
 <title>{instrument} sqlite3 database</title>
 </head>
@@ -1080,16 +1104,16 @@ The database is called {linstrument}.db and contains a single table called
 <tr><th class="left">Column name</th><th class="left">Data type</th><th class="left">Definition</th></tr>
 ''')
 
-        dtypes = {}
-        cnames = []
-        for cname, dtype, definition in COLNAMES:
-            sqout.write(
-                f'<tr><td class="left">{cname}</td><td>{dtype}</td><td class="left">{definition}</td></tr>\n'
-            )
-            cnames.append(cname)
-            dtypes[cname] = dtype
+            dtypes = {}
+            cnames = []
+            for cname, dtype, definition in COLNAMES:
+                sqout.write(
+                    f'<tr><td class="left">{cname}</td><td>{dtype}</td><td class="left">{definition}</td></tr>\n'
+                )
+                cnames.append(cname)
+                dtypes[cname] = dtype
 
-        sqout.write("""</table>
+            sqout.write("""</table>
 
 <hr>
 <address>Tom Marsh, Warwick</address>
@@ -1097,37 +1121,37 @@ The database is called {linstrument}.db and contains a single table called
 </html>
 """)
 
-    print('\nFinished generation of the web pages.')
+        print('\nFinished generation of the web pages.')
 
-    if args.full or args.positions or not args.quick:
-        print('Now generating a spreadsheet and an SQL database')
+        if args.full or args.positions or not args.quick:
+            print('Now generating a spreadsheet and an SQL database')
 
-        # create pd.DataFrame containing all info
-        ptable = pd.DataFrame(data=barr,columns=cnames)
+            # create pd.DataFrame containing all info
+            ptable = pd.DataFrame(data=barr,columns=cnames)
 
-        # enforce data types
-        ptable = ptable.astype(dtypes)
+            # enforce data types
+            ptable = ptable.astype(dtypes)
 
-        spreadsheet = os.path.join(root, f"{linstrument}.xlsx")
-        format_hlogger_table(spreadsheet, ptable, linstrument)
-        print(f'Written spreadsheet to {linstrument}.xlsx')
+            spreadsheet = os.path.join(root, f"{linstrument}.xlsx")
+            format_hlogger_table(spreadsheet, ptable, linstrument)
+            print(f'Written spreadsheet to {linstrument}.xlsx')
 
-        # write out sqlite database
-        sqldb = os.path.join(root, f'{linstrument}.db')
-        cnx = sqlite3.connect(sqldb)
-        ptable.to_sql(name=f'{linstrument}', con=cnx, if_exists='replace')
-        cnx.commit()
-        cnx.close()
-        print(f'Written sqlite database to {linstrument}.db')
-        print(f'Table dimensions (rows,columns) = {ptable.shape}')
-    else:
-        print("""
+            # write out sqlite database
+            sqldb = os.path.join(root, f'{linstrument}.db')
+            cnx = sqlite3.connect(sqldb)
+            ptable.to_sql(name=f'{linstrument}', con=cnx, if_exists='replace')
+            cnx.commit()
+            cnx.close()
+            print(f'Written sqlite database to {linstrument}.db')
+            print(f'Table dimensions (rows,columns) = {ptable.shape}')
+        else:
+            print("""
 Skipping generation of the spreadsheet and SQL database as not
 all nights have been processed. Use the "-l" switch to get a
 slower update that includes the spreadsheet and database, and
 see other switches for even slower and more in-depth options.""")
 
-    print(f'\nAll done. Look in {root} for the outputs.')
+        print(f'\nAll done. Look in {root} for the outputs.')
 
     if len(smessages):
         print('\nYou may want to add the following to TARGETS to short-circuit SIMBAD lookups:\n')
@@ -1364,7 +1388,7 @@ class TimeHMSCustom(TimeISO):
     subfmts = (("date_hms", "%H%M%S", "{hour:02d}:{min:02d}:{sec:02d}"),)
 
 
-def make_times(night, runs, observatory, times, full, instrument):
+def make_times(night, runs, observatory, times, full, instrument, okwrite):
     """Generates timing data for a set of runs from a particular night.
     Results are stored in a file called "times", and returned as
     dictionary keyed on run numbers.
@@ -1378,7 +1402,7 @@ def make_times(night, runs, observatory, times, full, instrument):
     mjd_ref = Time(night).mjd - observatory.lon.degree/360 + 0.25
 
     tdata = {}
-    with open(times,'w') as tout:
+    with open(times if okwrite else os.devnull,'w') as tout:
         for run in runs:
             if full:
                 print(f'Analysing times for run {run}')
@@ -1546,13 +1570,15 @@ def make_times(night, runs, observatory, times, full, instrument):
                 tdata[run] = 8*['']
                 tout.write(f'{run} {" ".join(8*["UNDEF"])}\n')
 
-    print('Written timing data to',times)
+    if okwrite:
+        print('Written timing data to',times)
+
     return tdata
 
 def make_positions(
         night, runs, observatory, instrument, hlog, targets,
         skip_targets, tdata, posdata, load_old, retry,
-        full, rname, smessages, fmessages, p2positions
+        full, rname, smessages, fmessages, p2positions, okwrite
 ):
     """Determine positional info, write to podata, return as dictionary
     keyed on the runs. Uses pre-determined timing data from
@@ -1607,7 +1633,7 @@ def make_positions(
         if not retry:
             return pdata
 
-    with open(posdata,'w') as pout:
+    with open(posdata if okwrite else os.devnull,'w') as pout:
         for run in runs:
 
             if len(tdata[run]) == 1:
@@ -1804,7 +1830,9 @@ def make_positions(
                 '' if val == 'UNDEF' else val for val in arr
             ]
 
-    print('Written positional data to',posdata)
+    if okwrite:
+        print('Written positional data to',posdata)
+
     return pdata
 
 HIPERCAM_COLNAMES = (
