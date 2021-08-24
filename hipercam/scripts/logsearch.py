@@ -22,7 +22,8 @@ __all__ = [
 
 def logsearch(args=None):
     description = \
-    """``logsearch target (dmax) regex (nocase) tmin [hcamdb ucamdb uspecdb]``
+    """``logsearch target (dmax) regex (nocase) tmin [hcamdb ucamdb
+    uspecdb] output``
 
     Searches for targets in the |hiper| and |ucam| logs. It can carry
     out a coordinate lookup given a name and/or carry out a regular
@@ -76,7 +77,15 @@ def logsearch(args=None):
           the full path when setting this to allow searches to be undertaken from
           any directory.
 
-    """
+       output : str
+          Name of CSV file to store the results. 'none' to ignore. The
+          results are best viewed in an excel-type programme or
+          topcat, or they can be read programatically into a pandas
+          Dataframe using pd.read_csv('results.csv'). Results from all
+          instruments are concatenated which for instance means that a
+          column appropriate for hipercam, might be blank for ULTRACAM
+          and vice versa. An extra "Instrument" column is added to
+          make the origin clear.  """
 
     command, args = utils.script_args(args)
 
@@ -91,6 +100,7 @@ def logsearch(args=None):
         cl.register("hcamdb", Cline.LOCAL, Cline.HIDE)
         cl.register("ucamdb", Cline.LOCAL, Cline.HIDE)
         cl.register("uspecdb", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         target = cl.get_value(
@@ -139,6 +149,11 @@ def logsearch(args=None):
             cline.Fname("ultraspec.db", ".db"), ignore="none"
         )
 
+        output = cl.get_value(
+            "output", "name of spreadsheet of results ['none' to ignore]",
+            cline.Fname('results', '.csv', cline.Fname.NEW), ignore="none"
+        )
+
     # check that at least one database is defined
     dbs = []
     if hcamdb is not None: dbs.append('HiPERCAM')
@@ -175,6 +190,7 @@ def logsearch(args=None):
     if ucamdb is not None: dbases.append((ucamdb,'ultracam'))
     if uspecdb is not None: dbases.append((uspecdb,'ultraspec'))
 
+    results = []
     for dbase, dtable in dbases:
 
         # connect to database
@@ -202,11 +218,17 @@ def logsearch(args=None):
         res = pd.read_sql_query(query, conn)
         if len(res):
             print(res)
+            res['Instrument'] = dtable
+            results.append(res)
         else:
             print('   no runs found')
 
         # close connection
         conn.close()
+
+        if output is not None:
+            total = pd.concat(results)
+            total.to_csv(output)
 
 def regexp(expr, item):
     reg = re.compile(expr,re.IGNORECASE)
