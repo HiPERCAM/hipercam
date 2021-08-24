@@ -34,6 +34,9 @@ import numpy as np
 import copy
 from astropy.io import fits
 from astropy.stats import sigma_clip
+from astropy.time import Time
+from astropy.coordinates import SkyCoord, EarthLocation
+import astropy.units as u
 
 from .core import *
 from . import utils
@@ -913,7 +916,7 @@ class Tseries:
         the bit masks are bitwise_or-ed together.
         """
         if isinstance(other, Tseries):
-            
+
             with np.errstate(divide='ignore', invalid='ignore'):
                 y = self.y / other.y
                 ye = np.sqrt(
@@ -1317,6 +1320,44 @@ class Tseries:
             if efunc is not None and self.te is not None:
                 new_ts.te = efunc(new_ts.te)
             return new_ts
+
+    def mjd2tdb(self, position, telescope, inplace=True):
+        """Convert times in MJD to BMJD(TDB), i.e. barycentrically
+        corrected the time into phase.
+
+        Arguments::
+
+          position : str | SkyCoord
+            RA/Dec string (sexagesimal form e.g. 20:23:04,5 -00:02:56.3")
+            suitable for creating an astropy.coordinates.SkyCoord object,
+            or a pre-built SkyCoord
+
+          telescope : str | EarthLocation
+            string recognised for creating an astropy.coordinates.EarthLocation
+            object, or a pre-built EarthLocation. Examples: 'lapalma', 'paranal'.
+
+          inplace : bool
+            whether to transform the times in the object or create a new object
+        """
+        if not isinstance(position, SkyCoord):
+            position = SkyCoord(position, unit=(u.hourangle, u.deg))
+
+        if not isinstance(telescope, EarthLocation):
+            telescope = EarthLocation.of_site(telescope)
+
+        # assuming MJDs at this point
+        times = Time(self.t, format='mjd', scale='utc', location=telescope)
+
+        # Barycentric correction: add to get to barycentre
+        ltt_bary = times.light_travel_time(position)
+        times = times.tdb + ltt_bary
+
+        if inplace:
+            self.t = times.mjd
+        else:
+            return Tseries(
+                times.mjd, self.y, self.ye, self.bmask, self.te
+            )
 
     def phase(self, t0, period, fold=False, inplace=True):
         """Convert the time into phase.
