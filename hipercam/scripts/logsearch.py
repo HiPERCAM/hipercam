@@ -200,11 +200,20 @@ def logsearch(args=None):
         query = f'SELECT * FROM {dtable}\n'
 
         if target is not None:
-            query += (
-                f"WHERE (ra_deg > {ralo} AND ra_deg < {rahi}\n"
-                f"AND dec_deg > {declo} AND dec_deg < {dechi}\n"
-                f"AND total > {tmin})\n"
-            )
+            if dtable == 'ultracam':
+                query += (
+                    f"WHERE (ra_deg > {ralo} AND ra_deg < {rahi}\n"
+                    f"AND dec_deg > {declo} AND dec_deg < {dechi}\n"
+                    f"AND total > {tmin})\n"
+                )
+            else:
+                query += (
+                    f"WHERE ((ra_deg > {ralo} AND ra_deg < {rahi}\n"
+                    f"AND dec_deg > {declo} AND dec_deg < {dechi}) OR\n"
+                    f"(ra_tel_deg > {ralo} AND ra_tel_deg < {rahi}\n"
+                    f"AND dec_tel_deg > {declo} AND dec_tel_deg < {dechi})\n"
+                    f"AND total > {tmin})\n"
+                )
 
             if regex is not None:
                 conn.create_function("REGEXP", 2, regexp)
