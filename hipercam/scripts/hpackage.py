@@ -34,7 +34,8 @@ def hpackage(args=None):
     them up into a single directory and optionally creates a tar
     file. The idea is to copy all the files needed to be able to
     re-run the reduction with the pipeline, while also adding a few
-    helpful extras. Given 'run123' for instance, it looks for:
+    helpful extras where possible. Given 'run123' for instance, it
+    looks for:
 
       run123.hcm -- typically the result from a run of |averun|
       run123.ape -- file of photometric apertures
@@ -50,10 +51,11 @@ def hpackage(args=None):
       run123.fits -- FITS version of the log file
 
       run123_ccd1.fits -- joined-up ds9-able version of run123.hcm
-                          (and ccd2 etc)
+                          (and ccd2 etc) [but only if the windows are
+                          in sync.
 
       run123_ccd1.reg -- ds9-region file representing the apertures
-                         from run123.ape
+                         from run123.ape [see above re synced windows]
 
       README -- a file of explanation.
 
@@ -73,6 +75,7 @@ def hpackage(args=None):
          the files in it will be deleted. Otherwise, no tar file is made and
          the directory is left untouched. The directory will however be deleted
          if the program is aborted early.
+
     """
 
     command, args = utils.script_args(args)
@@ -136,19 +139,22 @@ def hpackage(args=None):
                 utils.add_extension(run,hcam.HCAM)
             )
 
-            # convert the  hcm and ape files using joinup
-            args = [
-                None,'prompt','list','hf',run,'no'
-            ]
-            if len(mccd) > 1:
-                args += ['0']
-            args += [
-                root + hcam.APER,
-                'none','none','none','none','no',
-                'float32',str(100),str(100),'no','rice',
-                tmpdir
-            ]
-            hcam.scripts.joinup(args)
+            try:
+                # convert the  hcm and ape files using joinup
+                args = [
+                    None,'prompt','list','hf',run,'no'
+                ]
+                if len(mccd) > 1:
+                    args += ['0']
+                args += [
+                    root + hcam.APER,
+                    'none','none','none','none','no',
+                    'float32',str(100),str(100),'no','rice',
+                    tmpdir
+                ]
+                hcam.scripts.joinup(args)
+            except:
+                print('failed to joinup hcm / aper files')
 
             # convert log to fits as well
             args = [
@@ -282,6 +288,9 @@ run, say "run123", you should find the following files:
   run123_ccd2.reg -- same for CCD 2, if there is one
   .
   .
+
+although the _ccd1.fits & .reg files may not be present if the attempt
+to joinup the data failed owing to non-synchronised windowed data.
 
 You may also find some other "hcm" files with names like bias.hcm,
 flat.hcm, dark.hcm, and fmap.hcm (which should come accompanied by
