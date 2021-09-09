@@ -19,13 +19,13 @@
 .. |cmul| replace:: :func:`cmul <hipercam.scripts.cmul>`
 .. |combine| replace:: :func:`combine <hipercam.scripts.combine>`
 .. |csub| replace:: :func:`csub <hipercam.scripts.csub>`
-.. |digest| replace:: :func:`digest <hipercam.scripts.digest>`
 .. |div| replace:: :func:`div <hipercam.scripts.div>`
 .. |fits2hcm| replace:: :func:`fits2hcm <hipercam.scripts.fits2hcm>`
 .. |flagcloud| replace:: :func:`flagcloud <hipercam.scripts.flagcloud>`
 .. |ftargets| replace:: :func:`ftargets <hipercam.scripts.ftargets>`
 .. |genred| replace:: :func:`genred <hipercam.scripts.genred>`
 .. |grab| replace:: :func:`grab <hipercam.scripts.grab>`
+.. |harchive| replace:: :func:`harchive <hipercam.scripts.harchive>`
 .. |hfilter| replace:: :func:`hfilter <hipercam.scripts.hfilter>`
 .. |hinfo| replace:: :func:`hinfo <hipercam.scripts.hinfo>`
 .. |hist| replace:: :func:`hist <hipercam.scripts.hist>`

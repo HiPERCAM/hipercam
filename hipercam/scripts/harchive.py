@@ -16,17 +16,17 @@ from hipercam import cline, utils, spooler
 from hipercam.cline import Cline
 
 __all__ = [
-    "digest",
+    "harchive",
 ]
 
 ###########################################################
 #
-# digest -- ingests hipercam etc data for archival purposes
+# harchive -- ingests hipercam etc data for archival purposes
 #
 ###########################################################
 
 
-def digest(args=None):
+def harchive(args=None):
     description = """Ingests hipercam/ultra(cam|spec) data from the telescope for
     archiving purposes.
 
@@ -53,7 +53,7 @@ def digest(args=None):
     '-h' to see help. It is not uncommon for there to be more log
     entries that there are runs if people pre-populate the log file
     but never take the runs. This causes an error that can be skipped
-    with the '-i' option. 'digest' also now takes a more relaxed approach
+    with the '-i' option. 'harchive' also now takes a more relaxed approach
     to any directories grouped under 'Others' where it will try to carry
     out checks but ignore problems where possible because it is common
     for other observers not to conform to our standards.
@@ -66,7 +66,7 @@ def digest(args=None):
 
     username = getpass.getuser()
     if username != "phsaap":
-        print("digest is for archiving HiPERCAM runs and not " "meant for general use")
+        print("harchive is for archiving HiPERCAM runs and not " "meant for general use")
         return
 
     parser = argparse.ArgumentParser(description=description)
@@ -96,8 +96,8 @@ def digest(args=None):
 
     cwd = os.getcwd()
     if os.path.basename(cwd) != "raw_data":
-        print("** digest must be run in a directory called 'raw_data'")
-        print("digest aborted", file=sys.stderr)
+        print("** harchive must be run in a directory called 'raw_data'")
+        print("harchive aborted", file=sys.stderr)
         return
 
     if cwd.find("ultracam") > -1 or cwd.find("ultraspec") > -1:
@@ -105,8 +105,8 @@ def digest(args=None):
     elif cwd.find("hipercam") > -1:
         itype = 'H'
     else:
-        print("** digest: failed to find one of hipercam, ultracam or ultraspec in path")
-        print("digest aborted", file=sys.stderr)
+        print("** harchive: failed to find one of hipercam, ultracam or ultraspec in path")
+        print("harchive aborted", file=sys.stderr)
         return
 
     # regular expression to match run directory, e.g. 2018-10 [2018, October],
@@ -133,7 +133,7 @@ def digest(args=None):
 
     if not len(rdirs):
         print("\n** Found no run directories", file=sys.stderr)
-        print("digest aborted", file=sys.stderr)
+        print("harchive aborted", file=sys.stderr)
         return
 
     print("\nChecking run-by-run ...\n")
@@ -175,7 +175,7 @@ def digest(args=None):
             nnew = os.path.basename(ndir).replace('_','-')
             if os.path.exists(nnew):
                 print(f'A directory called {nnew} already exists clashing with {ndir}')
-                print('digest aborted',file=sys.stderr)
+                print('harchive aborted',file=sys.stderr)
                 return
 
             log = os.path.join(ndir, f"{night}_log.dat")
@@ -196,7 +196,7 @@ def digest(args=None):
                 lruns = None
                 print(f"** no log file called {log} found", file=sys.stderr)
                 if strict:
-                    print("digest aborted", file=sys.stderr)
+                    print("harchive aborted", file=sys.stderr)
                     return
 
 
@@ -233,7 +233,7 @@ def digest(args=None):
                 if ignore:
                     print("ignoring problem and continuing.")
                 else:
-                    print("digest aborted", file=sys.stderr)
+                    print("harchive aborted", file=sys.stderr)
                     return
 
 
@@ -257,7 +257,7 @@ def digest(args=None):
                         f"** no md5sum file called {md5} found", file=sys.stderr
                     )
                     if strict:
-                        print("digest aborted", file=sys.stderr)
+                        print("harchive aborted", file=sys.stderr)
                         return
 
                 if strict and set(mruns) != set(runs):
@@ -267,7 +267,7 @@ def digest(args=None):
                         file=sys.stderr,
                     )
                     print(f"Runs not in common are: {set(runs) ^ set(mruns)}")
-                    print("digest aborted", file=sys.stderr)
+                    print("harchive aborted", file=sys.stderr)
                     return
 
 
@@ -300,7 +300,7 @@ def digest(args=None):
                                         file=sys.stderr,
                                     )
                                     if strict:
-                                        print("digest aborted")
+                                        print("harchive aborted")
                                         return
 
         # Now change the data structure into my standard form:

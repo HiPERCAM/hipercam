@@ -16,6 +16,7 @@ from .flagcloud import flagcloud
 from .ftargets import ftargets
 from .grab import grab
 from .genred import genred
+from .harchive import harchive
 from .hist import hist
 from .hinfo import hinfo
 from .hfilter import hfilter
