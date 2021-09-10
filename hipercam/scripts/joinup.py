@@ -164,8 +164,17 @@ def joinup(args=None):
            million+ frame run. File systems tend not to behave well
            with vast numbers of files.
 
+        force : bool
+           'joinup' first tries to join up the windows with exactly the
+           pixels that are in the image, maintaining whatever binning
+           was used. However, for binning factors other than 1x1, it is
+           possible to have windows that are not in step with each other,
+           i.e. not "synchronised" in ULTRACAM jargon. In this case, if
+           force=True, 'joinup' will switch to 1x1 binning in effect, with
+           the binned pixels replicated on output.
+
         overwrite : bool [hidden]
-           overwrite any pre-existing files. Alwayts defaults to 'False'
+           overwrite any pre-existing files. Always defaults to 'False'
            for safety.
 
         compress : str
@@ -190,10 +199,6 @@ def joinup(args=None):
        could end up expanding the total amount of "data" hugely.  It's
        really aimed at full frame runs above all. The "dmax" and
        "nmax" parameters are aimed at heading off disaster.
-
-       This routine will fail if windows have been binned but are out
-       of step (not "in sync") with each other because there is no way
-       to register such data within a single image.
 
        The routine only creates a window big enough to contain all the
        windows. Thus it might end up representing a sub-array of the
@@ -241,6 +246,7 @@ def joinup(args=None):
         cl.register("dtype", Cline.LOCAL, Cline.PROMPT)
         cl.register("dmax", Cline.LOCAL, Cline.PROMPT)
         cl.register("nmax", Cline.LOCAL, Cline.PROMPT)
+        cl.register("force", Cline.LOCAL, Cline.PROMPT)
         cl.register("overwrite", Cline.LOCAL, Cline.HIDE)
         cl.register("compress", Cline.LOCAL, Cline.PROMPT)
         cl.register("odir", Cline.LOCAL, Cline.PROMPT)
@@ -420,6 +426,10 @@ def joinup(args=None):
             "nmax",
             "maximum allowable number of frames to write out", 10000, 0
         )
+        force = cl.get_value(
+            "force", "force a join, even when windows are out of step?",
+            True
+        )
         cl.set_default('overwrite',False)
         overwrite = cl.get_value(
             "overwrite", "overwrite pre-existing files on output?",
@@ -536,6 +546,7 @@ def joinup(args=None):
                     # single data array for all data. First check that
                     # it is even possible
 
+                    expand = False
                     for n, wind in enumerate(ccd.values()):
                         if n == 0:
                             llx = llxmin = wind.llx
@@ -551,24 +562,44 @@ def joinup(args=None):
                             urxmax = max(urxmax, wind.urx)
                             urymax = max(urymax, wind.ury)
                             if xbin != wind.xbin or ybin != wind.ybin:
-                                raise hcam.HipercamError(
-                                    'Found windows with clashing binning factors'
-                                )
+                                expand = True
+                                emessage = 'Found windows with clashing binning factors'
+                                break
+
                             if (wind.llx - llx) % xbin != 0 or (wind.lly - lly) % ybin != 0:
-                                raise hcam.HipercamError(
-                                    'Found windows which are out of sync with each other'
-                                )
+                                expand = True
+                                emessage = 'Found windows which are out of sync with each other'
+                                break
+
+                    if not force and expand:
+                        raise hcam.HipercamError(
+                            emessage +
+                            '\nSee the "force" option to try to override this'
+                        )
 
                     # create huge array of nothing
-                    ny = (urymax-llymin+1) // ybin
-                    nx = (urxmax-llxmin+1) // xbin
+                    if expand:
+                        # going to have to expand everything
+                        ny = urymax-llymin+1
+                        nx = urxmax-llxmin+1
+                    else:
+                        # using native binning
+                        ny = (urymax-llymin+1) // ybin
+                        nx = (urxmax-llxmin+1) // xbin
                     data = np.zeros((ny,nx))
 
                     # fill it with data
                     for n, wind in enumerate(ccd.values()):
-                        xstart = (wind.llx - llxmin) // xbin
-                        ystart = (wind.lly - llymin) // ybin
-                        data[ystart:ystart+wind.ny,xstart:xstart+wind.nx] = wind.data
+                        if expand:
+                            # this is the expansion stage
+                            xstart = wind.llx - llxmin
+                            ystart = wind.lly - llymin
+                            data[ystart:ystart+wind.ny*ybin,xstart:xstart+wind.nx*xbin] = \
+                                np.repeat(np.repeat(wind.data,xbin,1),ybin,0)
+                        else:
+                            xstart = (wind.llx - llxmin) // xbin
+                            ystart = (wind.lly - llymin) // ybin
+                            data[ystart:ystart+wind.ny,xstart:xstart+wind.nx] = wind.data
 
                     if dtype == 'uint16' and (data.min() < 0 or data.max() > 65535):
                         raise hcam.HipercamError(
@@ -614,12 +645,19 @@ def joinup(args=None):
                     header=fits.Header(phead.cards)
 
                     # Now a set of parameters to facilitate ds9 display
-                    header["CCDSUM"] = "{:d} {:d}".format(xbin, ybin)
+                    if expand:
+                        header["CCDSUM"] = "1 1"
+                    else:
+                        header["CCDSUM"] = "{:d} {:d}".format(xbin, ybin)
+
 
                     # sections
                     header["CCDSEC"] = f"[1:{nx},1:{ny}]"
                     header["AMPSEC"] = f"[1:{nx},1:{ny}]"
-                    header["DATASEC"] = f"[{llxmin}:{llxmin+xbin*nx-1},{llymin}:{llymin+ybin*ny-1}]"
+                    if expand:
+                        header["DATASEC"] = f"[{llxmin}:{llxmin+nx-1},{llymin}:{llymin+ny-1}]"
+                    else:
+                        header["DATASEC"] = f"[{llxmin}:{llxmin+xbin*nx-1},{llymin}:{llymin+ybin*ny-1}]"
                     #header["DETSEC"] = "[{:d}:{:d},{:d}:{:d}]".format(
                     #    xoff + self.llx, xoff + self.urx, yoff + self.lly, yoff + self.ury
                     #)
@@ -633,10 +671,16 @@ def joinup(args=None):
                     header["ATV2"] = 0.0
 
                     # image coords
-                    header["LTM1_1"] = 1.0 / xbin
-                    header["LTM2_2"] = 1.0 / ybin
-                    header["LTV1"] = 1 - (llxmin + (xbin - 1) / 2) / xbin
-                    header["LTV2"] = 1 - (llymin + (ybin - 1) / 2) / ybin
+                    if expand:
+                        header["LTM1_1"] = 1.0
+                        header["LTM2_2"] = 1.0
+                        header["LTV1"] = 1 - llxmin
+                        header["LTV2"] = 1 - llymin
+                    else:
+                        header["LTM1_1"] = 1.0 / xbin
+                        header["LTM2_2"] = 1.0 / ybin
+                        header["LTV1"] = 1 - (llxmin + (xbin - 1) / 2) / xbin
+                        header["LTV2"] = 1 - (llymin + (ybin - 1) / 2) / ybin
 
                     # attempt to generate a WCS
                     instrume = header.get('INSTRUME','UNKNOWN')
@@ -654,7 +698,10 @@ def joinup(args=None):
                         pa = header['INSTRPA'] - ZEROPOINT
 
                         # position within binned array of rotator centre
-                        x0, y0 = (1020.-llxmin+1)/xbin, (524.-llymin+1)/ybin
+                        if expand:
+                            x0, y0 = 1020.-llxmin+1, 524.-llymin+1
+                        else:
+                            x0, y0 = (1020.-llxmin+1)/xbin, (524.-llymin+1)/ybin
 
                         # Build the WCS
                         w = wcs.WCS(naxis=2)
@@ -662,8 +709,12 @@ def joinup(args=None):
                         w.wcs.crval = [ra,dec]
                         cpa = np.cos(np.radians(pa))
                         spa = np.sin(np.radians(pa))
-                        cd = np.array([[xbin*cpa,-ybin*spa],[xbin*spa,ybin*cpa]])
-                        cd = np.array([[xbin*cpa,ybin*spa],[-xbin*spa,ybin*cpa]])
+                        if expand:
+                            cd = np.array([[cpa,-spa],[spa,cpa]])
+                            cd = np.array([[cpa,spa],[-spa,cpa]])
+                        else:
+                            cd = np.array([[xbin*cpa,-ybin*spa],[xbin*spa,ybin*cpa]])
+                            cd = np.array([[xbin*cpa,ybin*spa],[-xbin*spa,ybin*cpa]])
                         cd *= SCALE/3600
                         w.wcs.cd = cd
                         w.wcs.ctype = ['RA---TAN','DEC--TAN']
@@ -713,9 +764,15 @@ def joinup(args=None):
                     with open(oname,'w') as fp:
                         fp.write(DS9_REG_HEADER)
                         for apnam, ap in caper.items():
-                            x = (ap.x - (llxmin + (xbin-1)/2)) / xbin + 1
-                            y = (ap.y - (llymin + (ybin-1)/2)) / ybin + 1
-                            rad = ap.rsky2/xbin
+                            if expand:
+                                x = ap.x - llxmin + 1
+                                y = ap.y - llymin + 1
+                                rad = ap.rsky2
+                            else:
+                                x = (ap.x - (llxmin + (xbin-1)/2)) / xbin + 1
+                                y = (ap.y - (llymin + (ybin-1)/2)) / ybin + 1
+                                rad = ap.rsky2/xbin
+
                             fp.write(f'circle({x},{y},{rad})\n')
                             fp.write(f'# text({x-rad},{y-rad}) text={{{apnam}}}\n')
 
