@@ -40,6 +40,15 @@ def joinup(args=None):
     present working directory. If the windows have gaps, then they
     will be filled with zeroes.
 
+    When binning has been used it is possible for sub-windows to be
+    out of sync with each other so they cannot be simply added into
+    to a single image. In this case the routine will instead try to
+    place them within an unbinned image with each binned pixel
+    repeated within this image xbin by ybin times. This and the zero
+    filling can mean that the resulting images are much larger than the
+    originals. There are safety parameters to guard against disaster in
+    such cases.
+
     Parameters:
 
         source : str [hidden]
@@ -164,15 +173,6 @@ def joinup(args=None):
            million+ frame run. File systems tend not to behave well
            with vast numbers of files.
 
-        force : bool
-           'joinup' first tries to join up the windows with exactly the
-           pixels that are in the image, maintaining whatever binning
-           was used. However, for binning factors other than 1x1, it is
-           possible to have windows that are not in step with each other,
-           i.e. not "synchronised" in ULTRACAM jargon. In this case, if
-           force=True, 'joinup' will switch to 1x1 binning in effect, with
-           the binned pixels replicated on output.
-
         overwrite : bool [hidden]
            overwrite any pre-existing files. Always defaults to 'False'
            for safety.
@@ -246,7 +246,6 @@ def joinup(args=None):
         cl.register("dtype", Cline.LOCAL, Cline.PROMPT)
         cl.register("dmax", Cline.LOCAL, Cline.PROMPT)
         cl.register("nmax", Cline.LOCAL, Cline.PROMPT)
-        cl.register("force", Cline.LOCAL, Cline.PROMPT)
         cl.register("overwrite", Cline.LOCAL, Cline.HIDE)
         cl.register("compress", Cline.LOCAL, Cline.PROMPT)
         cl.register("odir", Cline.LOCAL, Cline.PROMPT)
@@ -426,10 +425,6 @@ def joinup(args=None):
             "nmax",
             "maximum allowable number of frames to write out", 10000, 0
         )
-        force = cl.get_value(
-            "force", "force a join, even when windows are out of step?",
-            True
-        )
         cl.set_default('overwrite',False)
         overwrite = cl.get_value(
             "overwrite", "overwrite pre-existing files on output?",
@@ -563,19 +558,8 @@ def joinup(args=None):
                             urymax = max(urymax, wind.ury)
                             if xbin != wind.xbin or ybin != wind.ybin:
                                 expand = True
-                                emessage = 'Found windows with clashing binning factors'
-                                break
-
                             if (wind.llx - llx) % xbin != 0 or (wind.lly - lly) % ybin != 0:
                                 expand = True
-                                emessage = 'Found windows which are out of sync with each other'
-                                break
-
-                    if not force and expand:
-                        raise hcam.HipercamError(
-                            emessage +
-                            '\nSee the "force" option to try to override this'
-                        )
 
                     # create huge array of nothing
                     if expand:
@@ -594,8 +578,8 @@ def joinup(args=None):
                             # this is the expansion stage
                             xstart = wind.llx - llxmin
                             ystart = wind.lly - llymin
-                            data[ystart:ystart+wind.ny*ybin,xstart:xstart+wind.nx*xbin] = \
-                                np.repeat(np.repeat(wind.data,xbin,1),ybin,0)
+                            dexp = np.repeat(np.repeat(wind.data,xbin,1),ybin,0)
+                            data[ystart:ystart+wind.ny*ybin,xstart:xstart+wind.nx*xbin] = dexp
                         else:
                             xstart = (wind.llx - llxmin) // xbin
                             ystart = (wind.lly - llymin) // ybin

@@ -149,8 +149,8 @@ def hpackage(args=None):
                 args += [
                     root + hcam.APER,
                     'none','none','none','none','no',
-                    'float32',str(100),str(100),'no','rice',
-                    tmpdir
+                    'float32',str(100),str(100),
+                    'no','rice',tmpdir
                 ]
                 hcam.scripts.joinup(args)
             except:
