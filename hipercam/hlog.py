@@ -1717,10 +1717,10 @@ Data written by hipercam.hlog.Tseries.write.
         """
         if has_exposures:
             t, te, y, ye, bmask = np.loadtxt(fname, unpack=True)
-            return Tseries(t, y, ye, mask, te)
+            return Tseries(t, y, ye, bmask, te)
         else:
             t, y, ye, bmask = np.loadtxt(fname, unpack=True)
-            return Tseries(t, y, ye, mask, None)
+            return Tseries(t, y, ye, bmask, None)
 
 
 def scatter(
