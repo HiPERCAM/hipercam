@@ -1557,7 +1557,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
     shifts = []
 
     # next is a shift that will be updated after the first fit. This allows
-    # the later reference stars to be not so good as the first. 
+    # the later reference stars to be not so good as the first.
     xshift, yshift = 0., 0.
 
     try:

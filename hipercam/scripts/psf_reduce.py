@@ -381,7 +381,7 @@ def psf_reduce(args=None):
 
         # containers for the processed and raw MCCD groups
         # and their frame numbers
-        pccds, mccds, nframes = [], [], []
+        bccds, pccds, mccds, nframes = [], [], [], []
 
         ##############################################
         #
@@ -466,7 +466,7 @@ def psf_reduce(args=None):
 
                     if len(mccds):
                         # finish processing remaining frames
-                        results = processor(pccds, mccds, nframes)
+                        results = processor(pccds, bccds, mccds, nframes)
 
                         # write out results to the log file
                         alerts = logfile.write_results(results)
@@ -539,9 +539,11 @@ def psf_reduce(args=None):
                 if rfile.bias is not None:
                     # subtract bias
                     pccd = mccd - rfile.bias
+                    bccd = pccd.copy()
                 else:
                     # no bias subtraction
                     pccd = mccd.copy()
+                    bccd = pccd.copy()
 
                 if rfile.flat is not None:
                     # apply flat field to processed frame
@@ -550,13 +552,14 @@ def psf_reduce(args=None):
                 # Acummulate frames into processing groups for faster
                 # parallelisation
                 pccds.append(pccd)
+                bccds.append(bccd)
                 mccds.append(mccd)
                 nframes.append(nframe)
 
                 if len(pccds) == rfile["general"]["ngroup"]:
                     # parallel processing. This should usually be the first
                     # points at which it takes place
-                    results = processor(pccds, mccds, nframes)
+                    results = processor(pccds, bccds, mccds, nframes)
 
                     # write out results to the log file
                     alerts = logfile.write_results(results)
@@ -761,6 +764,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 "skye": 0.0,
                 "nsky": 0,
                 "nrej": 0,
+                "cmax": 0,
                 "flag": flag,
             }
         return results
@@ -797,6 +801,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 "skye": 0.0,
                 "nsky": 0,
                 "nrej": 0,
+                "cmax": 0,
                 "flag": flag,
             }
             return results
@@ -825,7 +830,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
     daogroup = DAOGroup(gfac * mfwhm / bin_fac)
     mmm_bkg = MMMBackground(sigma_clip=SigmaClip(sclip))
     fitter = LevMarLSQFitter()
-    fitshape_box_size = int(2 * int(rfile["psf_photom"]["fit_half_width"]) + 1)
+    fitshape_box_size = int(2 * float(rfile["psf_photom"]["fit_half_width"]) + 1)
     fitshape = (fitshape_box_size, fitshape_box_size)
 
     photometry_task = BasicPSFPhotometry(
@@ -934,6 +939,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 "skye": 0,
                 "nsky": 0,
                 "nrej": 0,
+                "cmax": 0,
                 "flag": flag,
             }
 
@@ -957,6 +963,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 "skye": 0.0,
                 "nsky": 0,
                 "nrej": 0,
+                "cmax": 0,
                 "flag": flag,
             }
 
@@ -964,7 +971,7 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
     return results
 
 
-def ccdproc(cnam, ccds, rccds, nframes, read, gain, ccdwin, rfile, store):
+def ccdproc(cnam, ccds, bccds, rccds, nframes, read, gain, ccdwin, rfile, store):
     """Processing steps for a sequential set of images from the same
     CCD. This is designed for parallelising the processing across CCDs
     of multiarm cameras like ULTRACAM and HiPERCAM using
