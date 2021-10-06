@@ -38,6 +38,7 @@ __all__ = [
     "psf_reduce",
 ]
 
+NaN = float('NaN')
 
 #####################################################################
 #
@@ -758,10 +759,10 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 "fwhme": info["fwhme"],
                 "beta": info["beta"],
                 "betae": info["betae"],
-                "counts": 0.0,
-                "countse": -1,
-                "sky": 0.0,
-                "skye": 0.0,
+                "counts": NaN,
+                "countse": NaN,
+                "sky": NaN,
+                "skye": NaN,
                 "nsky": 0,
                 "nrej": 0,
                 "cmax": 0,
@@ -795,10 +796,10 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 "fwhme": info["fwhme"],
                 "beta": info["beta"],
                 "betae": info["betae"],
-                "counts": 0.0,
-                "countse": -1,
-                "sky": 0.0,
-                "skye": 0.0,
+                "counts": NaN,
+                "countse": NaN,
+                "sky": NaN,
+                "skye": NaN,
                 "nsky": 0,
                 "nrej": 0,
                 "cmax": 0,
@@ -957,10 +958,10 @@ def extractFlux(cnam, ccd, rccd, read, gain, ccdwin, rfile, store):
                 "fwhme": info["fwhme"],
                 "beta": info["beta"],
                 "betae": info["betae"],
-                "counts": 0.0,
-                "countse": -1,
-                "sky": 0.0,
-                "skye": 0.0,
+                "counts": NaN,
+                "countse": NaN,
+                "sky": NaN,
+                "skye": NaN,
                 "nsky": 0,
                 "nrej": 0,
                 "cmax": 0,
