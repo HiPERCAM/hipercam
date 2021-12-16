@@ -1612,7 +1612,7 @@ class Tseries:
             new_ts.ye = (np.log(10.) / 2.5) * new_ts.y * self.ye
             return new_ts
 
-    def write(self, fname, lcurve=False, bitmask=None, **kwargs):
+    def write(self, fname, lcurve=False, bitmask=None, skip=False, **kwargs):
         """Writes out the Tseries to an ASCII file using numpy.savetxt. Other
         arguments to savetxt can be passed via kwargs. The data are
         written with a default choice of "fmt" sent to savetxt unless
@@ -1633,9 +1633,12 @@ class Tseries:
              value is given. Explanotory header info is tacked onto to whatever header
              is passed via kwargs to savetxt.
 
-           bitmask : None | int
+           bitmask : None | int [if lcurve]
              if lcurve=True, this is used to set the weight on matching points to 0.
              This allows bad data to be plotted but not fitted e.g. by "lroche"
+
+           skip : bool [if lcurve]
+             if True, any data matched by bitmask are simply skipped on output.
 
         """
 
@@ -1646,8 +1649,14 @@ class Tseries:
             # Avoid bad data in the case of lcurve data
             good = ~self.get_mask()
             mask = self.get_mask(bitmask)
-            wgt = np.ones_like(good[good])
-            wgt[mask[good]] = 0.0
+            if skip:
+                # in this case we cut the bitmask data out
+                good &= ~mask
+                wgt = np.ones_like(good[good])
+            else:
+                # in this case we set it's weight to zero
+                wgt = np.ones_like(good[good])
+                wgt[mask[good]] = 0.0
 
             # we don't supply bitmask flags in this case
             header = kwargs.get("header", "") + \
