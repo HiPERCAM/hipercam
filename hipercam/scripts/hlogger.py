@@ -2088,13 +2088,17 @@ NIGHT_HEADER = """<!DOCTYPE html>
 
 HIPERCAM_TABLE_HEADER = """
 <col span="2">
-<col span="3" class="hide">
+<col span="6" class="hide">
 <col>
 <col class="hide">
 <col span="4">
-<col class="hide">
-<col span="10">
-<col span="6" class="hide">
+<col span="2" class="hide">
+<col span="2">
+<col span="3" class="hide">
+<col span="2">
+<col span="5" class="hide">
+<col>
+<col span="9" class="hide">
 <col>
 
 <thead>
