@@ -24,7 +24,7 @@ The sequence of steps is then as follows:
    into this directory. The nights should have dates of the form
    2017_04_03 etc.
 
-#. cd up the raw_data directory. Run the command |digest| with no
+#. cd up the raw_data directory. Run the command |harchive| with no
    arguments.  (If you add further nights later, you should run it
    with the switch '-f' or it will skip the run.) This checks for a
    set of expected files, changes the directory structure a bit and
@@ -32,7 +32,10 @@ The sequence of steps is then as follows:
    which the checks are lighter touch since they are not core data of
    the vikcam team.
 
-#. Now run |hlogger|. This work through all runs,
+#. Run |redplt| which looks for reduction log files and makes
+   png plots of them.
+   
+#. Run |hlogger|. This works through all runs,
    extracting header and timing data (which will be written to a
    sub-directory 'meta' of each night directory. They also attempt to
    identify the target using the name in the header. This is often
@@ -50,30 +53,3 @@ The sequence of steps is then as follows:
    with partial files. You will normally need to kill using ctrl-Z
    followed by kill, since ctrl-C gets trapped (something I should
    probably change).
-
-#. By this stage you should have a set of web pages with logs of the
-   nights. There is a little more that can be done however. Since
-   early 2019 we have been saving any |reduce| log files if the
-   observer has followed a standard convention of reducing runs in a
-   directory named after the night as sub-directory of "reduce" on the
-   drpc. Paul Kerry's end_of_night script picks these up, and then the
-   script |redplt| hunts these out and makes standard plots of them.
-   Then there is |hmeta| which generates some simple statistics on
-   runs which are of use for database purposes. Once these are finished,
-   |hlogger| needs to be re-run to pick on the new data.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
