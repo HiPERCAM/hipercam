@@ -34,23 +34,23 @@ def hpackage(args=None):
     them up into a single directory and optionally creates a tar
     file. The idea is to copy all the files needed to be able to
     re-run the reduction with the pipeline, while also adding a few
-    helpful extras where possible. Given 'run123' for instance, it
-    looks for:
+    helpful extras where possible. This is to make export of a reduction
+    relatively painless.
+
+    Given 'run123' for instance, it looks for:
 
       run123.hcm -- typically the result from a run of |averun|. This *must*
                     exist for each run included.
-      run123.ape -- file of photometric apertures
-      run123.red -- reduce file as made by |genred|
-      run123.log -- result from |reduce|
-      run123-alt.red -- another reduce file
-      run123-alt.log -- and another log file
+      run123.ape -- file of photometric apertures. Also must exist.
+      run123*.red -- reduce file as made by |genred| (* == any string)
+      run123*.log -- result from |reduce| (* == any string)
 
-    Note the '-alt' at the end can be anything. The idea is to allow
-    for multiple alternative reductions. But they must start 'run123'
-    and end '.red' and '.log' to be included. It also looks for
-    calibration files inside the reduce file and copies them. It
-    requires them to be within the same directory and will fail if
-    they are not.
+    Note the '*' means that multiple .red / .log pairs are possible to
+    allow for multiple alternative reductions. But they must start
+    'run123' and end '.red' and '.log' to be included. There has to be
+    at least one such pair. It also looks for calibration files inside
+    the reduce file and copies them. It requires them to be within the
+    same directory and will fail if they are not.
 
     It produces several extra files which are:
 
@@ -85,7 +85,7 @@ def hpackage(args=None):
     """
 
     command, args = utils.script_args(args)
-    FEXTS = (hcam.HCAM, hcam.APER, hcam.LOG, hcam.RED)
+    FEXTS = (hcam.HCAM, hcam.APER)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -100,6 +100,11 @@ def hpackage(args=None):
             'run005'
         )
         runs = runs.split()
+
+        # for storing of log / red pairs
+        logreds = {}
+        flist = os.listdir('.')
+
         for run in runs:
             if os.path.dirname(run) != '':
                 raise hcam.HipercamError(
@@ -111,8 +116,28 @@ def hpackage(args=None):
                         f'could not find {run+fext}'
                     )
 
+            # try to look for .red / .log pairs
+            rered = re.compile(f'({run}.*)\{hcam.RED}$')
+            relog = re.compile(f'({run}.*)\{hcam.LOG}$')
+            reds, logs = [], []
+            for fname in flist:
+                m = rered.match(fname)
+                if m:
+                    reds.append(m.group(1))
+                m = relog.match(fname)
+                if m:
+                    logs.append(m.group(1))
+
+            logred = set(reds) & set(logs)
+            if len(logred) == 0:
+                raise hcam.HipercamError(
+                    f'found no .log / .red pair starting "{run}"'
+                )
+            logreds[run] = logred
+
         dname = cl.get_value(
-            "dname", "name of directory for storage of files (will be used to any tar file as well)",
+            "dname",
+            "name of directory for storage of files (will be used for any tar file too)",
             'hdata'
         )
 
@@ -162,12 +187,6 @@ def hpackage(args=None):
             except:
                 print('failed to joinup hcm / aper files')
 
-            # convert log to fits as well
-            args = [
-                None,'prompt',run,'h',tmpdir
-            ]
-            hcam.scripts.hlog2fits(args)
-
             # copy standard files over
             for fext in FEXTS:
                 source = utils.add_extension(root,fext)
@@ -176,101 +195,103 @@ def hpackage(args=None):
                 print(f'copied {source} to {target}')
 
             # try to look for alternative .red / .log pairs
-            flist = os.listdir('.')
-            rered = re.compile(f'({run}.+)\{hcam.RED}$')
-            relog = re.compile(f'({run}.+)\{hcam.LOG}$')
-            rextras, lextras = [], []
-            for fname in flist:
-                m = rered.match(fname)
-                if m:
-                    rextras.append(m.group(1))
-                m = relog.match(fname)
-                if m:
-                    lextras.append(m.group(1))
-            extras = set(rextras + lextras)
-            for extra in extras:
+            for logred in logreds[run]:
+
                 # copy .red and .log over
-                source = utils.add_extension(extra,hcam.RED)
+                source = utils.add_extension(logred,hcam.RED)
                 target = os.path.join(tmpdir,source)
                 shutil.copyfile(source, target)
                 print(f'copied {source} to {target}')
 
-                source = utils.add_extension(extra,hcam.LOG)
+                source = utils.add_extension(logred,hcam.LOG)
                 target = os.path.join(tmpdir,source)
                 shutil.copyfile(source, target)
                 print(f'copied {source} to {target}')
 
                 # convert log to fits
                 args = [
-                    None,'prompt',extra,'h',tmpdir
+                    None,'prompt',logred,'h',tmpdir
                 ]
                 hcam.scripts.hlog2fits(args)
 
-            # now the calibrations
-            rfile = hcam.reduction.Rfile.read(run + hcam.RED)
-            csec = rfile['calibration']
-            if rfile.bias is not None:
-                source = utils.add_extension(
-                    csec['bias'], hcam.HCAM
-                )
-                if os.path.dirname(source) != '':
-                    raise HipercamError(
-                        f'bias = {source} is not in the present working directory'
-                    )
-                target = os.path.join(tmpdir,source)
-                shutil.copyfile(source, target)
-                print(f'copied {source} to {target}')
-
-            if rfile.dark is not None:
-                source = utils.add_extension(
-                    csec['dark'], hcam.HCAM
-                )
-                if os.path.dirname(source) != '':
-                    raise HipercamError(
-                        f'dark = {source} is not in the present working directory'
-                    )
-                target = os.path.join(tmpdir,source)
-                shutil.copyfile(source, target)
-                print(f'copied {source} to {target}')
-
-            if rfile.flat is not None:
-                source = utils.add_extension(
-                    csec['flat'], hcam.HCAM
-                )
-                if os.path.dirname(source) != '':
-                    raise HipercamError(
-                        f'flat = {source} is not in the present working directory'
-                    )
-                target = os.path.join(tmpdir,source)
-                shutil.copyfile(source, target)
-                print(f'copied {source} to {target}')
-
-            if rfile.fmap is not None:
-
-                source = utils.add_extension(
-                    csec['fmap'], hcam.HCAM
-                )
-                if os.path.dirname(source) != '':
-                    raise HipercamError(
-                        f'fringe map = {source} is not in the present working directory'
-                    )
-                target = os.path.join(tmpdir,source)
-                shutil.copyfile(source, target)
-                print(f'copied {source} to {target}')
-
-                if rfile.fpair is not None:
-
+                # now the calibrations
+                rfile = hcam.reduction.Rfile.read(logred + hcam.RED)
+                csec = rfile['calibration']
+                if rfile.bias is not None:
                     source = utils.add_extension(
-                        csec['fpair'], hcam.FRNG
+                        csec['bias'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
                         raise HipercamError(
-                            f'fringe peak/trough pair file = {source}'
-                            ' is not in the present working directory'
+                            f'bias = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
-                    shutil.copyfile(source, target)
-                    print(f'copied {source} to {target}')
+                    if os.path.exists(target):
+                        print(f'copy skipped: {target} exists')
+                    else:
+                        shutil.copyfile(source, target)
+                        print(f'copied {source} to {target}')
+
+                if rfile.dark is not None:
+                    source = utils.add_extension(
+                        csec['dark'], hcam.HCAM
+                    )
+                    if os.path.dirname(source) != '':
+                        raise HipercamError(
+                            f'dark = {source} is not in the present working directory'
+                        )
+                    target = os.path.join(tmpdir,source)
+                    if os.path.exists(target):
+                        print(f'copy skipped: {target} exists')
+                    else:
+                        shutil.copyfile(source, target)
+                        print(f'copied {source} to {target}')
+
+                if rfile.flat is not None:
+                    source = utils.add_extension(
+                        csec['flat'], hcam.HCAM
+                    )
+                    if os.path.dirname(source) != '':
+                        raise HipercamError(
+                            f'flat = {source} is not in the present working directory'
+                        )
+                    target = os.path.join(tmpdir,source)
+                    if os.path.exists(target):
+                        print(f'copy skipped: {target} exists')
+                    else:
+                        shutil.copyfile(source, target)
+                        print(f'copied {source} to {target}')
+
+                if rfile.fmap is not None:
+                    source = utils.add_extension(
+                        csec['fmap'], hcam.HCAM
+                    )
+                    if os.path.dirname(source) != '':
+                        raise HipercamError(
+                            f'fringe map = {source} is not in the present working directory'
+                        )
+                    target = os.path.join(tmpdir,source)
+                    if os.path.exists(target):
+                        print(f'copy skipped: {target} exists')
+                    else:
+                        shutil.copyfile(source, target)
+                        print(f'copied {source} to {target}')
+
+                    if rfile.fpair is not None:
+                        source = utils.add_extension(
+                            csec['fpair'], hcam.FRNG
+                        )
+                        if os.path.dirname(source) != '':
+                            raise HipercamError(
+                                f'fringe peak/trough pair file = {source}'
+                                ' is not in the present working directory'
+                            )
+                        target = os.path.join(tmpdir,source)
+                        if os.path.exists(target):
+                            print(f'copy skipped: {target} exists')
+                        else:
+                            shutil.copyfile(source, target)
+                            print(f'copied {source} to {target}')
 
         readme = os.path.join(tmpdir,'README')
         with open(readme,'w') as fp:
