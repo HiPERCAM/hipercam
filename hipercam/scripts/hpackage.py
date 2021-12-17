@@ -37,14 +37,20 @@ def hpackage(args=None):
     helpful extras where possible. Given 'run123' for instance, it
     looks for:
 
-      run123.hcm -- typically the result from a run of |averun|
+      run123.hcm -- typically the result from a run of |averun|. This *must*
+                    exist for each run included.
       run123.ape -- file of photometric apertures
       run123.red -- reduce file as made by |genred|
       run123.log -- result from |reduce|
+      run123-alt.red -- another reduce file
+      run123-alt.log -- and another log file
 
-    It also looks for calibration files inside the reduce file and
-    copies them. It requires them to be within the same directory and
-    will fail if they are not.
+    Note the '-alt' at the end can be anything. The idea is to allow
+    for multiple alternative reductions. But they must start 'run123'
+    and end '.red' and '.log' to be included. It also looks for
+    calibration files inside the reduce file and copies them. It
+    requires them to be within the same directory and will fail if
+    they are not.
 
     It produces several extra files which are:
 
@@ -59,7 +65,7 @@ def hpackage(args=None):
 
       README -- a file of explanation.
 
-    The files are all copied to a temporary directory. 
+    The files are all copied to a temporary directory.
 
     Arguments:
 
@@ -168,6 +174,37 @@ def hpackage(args=None):
                 target = os.path.join(tmpdir,source)
                 shutil.copyfile(source, target)
                 print(f'copied {source} to {target}')
+
+            # try to look for alternative .red / .log pairs
+            flist = os.listdir('.')
+            rered = re.compile(f'({run}.+)\{hcam.RED}$')
+            relog = re.compile(f'({run}.+)\{hcam.LOG}$')
+            rextras, lextras = [], []
+            for fname in flist:
+                m = rered.match(fname)
+                if m:
+                    rextras.append(m.group(1))
+                m = relog.match(fname)
+                if m:
+                    lextras.append(m.group(1))
+            extras = set(rextras + lextras)
+            for extra in extras:
+                # copy .red and .log over
+                source = utils.add_extension(extra,hcam.RED)
+                target = os.path.join(tmpdir,source)
+                shutil.copyfile(source, target)
+                print(f'copied {source} to {target}')
+
+                source = utils.add_extension(extra,hcam.LOG)
+                target = os.path.join(tmpdir,source)
+                shutil.copyfile(source, target)
+                print(f'copied {source} to {target}')
+
+                # convert log to fits
+                args = [
+                    None,'prompt',extra,'h',tmpdir
+                ]
+                hcam.scripts.hlog2fits(args)
 
             # now the calibrations
             rfile = hcam.reduction.Rfile.read(run + hcam.RED)
