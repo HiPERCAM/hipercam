@@ -678,6 +678,22 @@ class Tseries:
         """
         self.bmask[mask] |= bitmask
 
+    def clear_bitmask(self, bitmask, mask):
+        """This clears any of the internal bitmask elements of the
+        input bitmask value 'bitmask' for all values for which 'mask'
+        is true. 'mask' should match the Tseries length.  It does
+        this by bitwise_and-ing with ~bitmask. It reverses the effect
+        of set_bitmask. Arguments::
+
+           bitmask : int
+             a bitmask value which will be cleaned from the current bitmask array
+
+           mask: np.ndarray
+             the bitmask will be applied to every element for which mask is True.
+
+        """
+        self.bmask[mask] &= ~bitmask
+
     def get_bad(self):
         """Returns with a numpy boolean array of bad data defined as data
         where any one of t, y, ye has been set to NaN or Inf
