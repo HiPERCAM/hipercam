@@ -61,6 +61,9 @@ your O/S package manager. e.g. under fedora, Cython appears as
          Has some features that the pure python implementation in astropy
          lacks.
 
+  keyring:
+         Used in 'logsearch' to store some passwords safely.
+
   matplotlib :
          standard plotting package for Python. You will also need
          a Qt backend. In opensuse for instance the package
