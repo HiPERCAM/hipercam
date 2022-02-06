@@ -582,11 +582,11 @@ def hlogger(args=None):
                             nhtml.write(f'<td class="lalert">{run}</td>')
                             nhtml.write("</tr>\n")
                             if instrument == 'ULTRACAM':
-                                brow = [rname, night, run[3:]] + 49*[None]
+                                brow = [rname, night, run[3:]] + 50*[None]
                             elif instrument == 'ULTRASPEC':
-                                brow = [rname, night, run[3:]] + 56*[None]
+                                brow = [rname, night, run[3:]] + 57*[None]
                             elif instrument == 'HiPERCAM':
-                                brow = [rname, night, run[3:]] + 61*[None]
+                                brow = [rname, night, run[3:]] + 62*[None]
                             continue
 
                         hd = rthead.header
@@ -739,9 +739,11 @@ def hlogger(args=None):
 
                         # number of frames, number ok
                         nhtml.write(
-                            f'<td class="right">{ntotal}</td><td class="right">{nok}</td>'
+                            f'<td class="right">{ntotal}</td>' +
+                            f'<td class="right">{nok}</td>' +
+                            f'<td class="right">{pdat[11]}</td>'
                         )
-                        brow += [noval(ntotal), noval(nok), nval(pdat[11])]
+                        brow += [noval(ntotal), noval(nok)]
 
                         # filters used
                         if hlog.format == 1:
@@ -876,8 +878,9 @@ def hlogger(args=None):
                             brow.append(fpslide)
 
                             # CCD temps
-                            t1,t2,t3,t4,t5 = hd.get("CCD1TEMP", 0.0), hd.get("CCD2TEMP", 0.0), \
-                                hd.get("CCD3TEMP", 0.0), hd.get("CCD4TEMP", 0.0), hd.get("CCD5TEMP", 0.0),
+                            t1,t2,t3,t4,t5 = hd.get("CCD1TEMP", 0.0), \
+                                hd.get("CCD2TEMP", 0.0), hd.get("CCD3TEMP", 0.0), \
+                                hd.get("CCD4TEMP", 0.0), hd.get("CCD5TEMP", 0.0)
 
                             ccdtemps = f'{t1:.1f},{t2:.1f},{t3:.1f},{t4:.1f},{t5:.1f}'
                             nhtml.write(f'<td class="cen">{ccdtemps}</td>')
@@ -985,12 +988,15 @@ def hlogger(args=None):
 
                         # Finally tack on extra positional stuff for the spreadsheet only
                         brow += [noval(v) for v in pdat[3:]]
-
+                        
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
 
                         if len(brow) != len(COLNAMES):
-                            print(f'{runname}: data items vs colnames = {len(brow)} vs {len(COLNAMES)}')
+                            print(
+                                f'{runname}: data items vs colnames' +
+                                f' = {len(brow)} vs {len(COLNAMES)}'
+                            )
 
                         barr.append(brow)
 
@@ -1630,11 +1636,10 @@ def make_positions(
       p2positions : positions keyed by target name (RA, Dec pairs, sexagesimal)
                     used as a last resort
 
-    Returns with dictionary of positional data.
+    Returns with dictionary of positional data. Each entry is keyed by run name
+    and contains the following 19 items:
 
-    Positional data files have rows with 20 items:
-
-    run ra dec autoid alt1 alt2 alt3 az1 az2 az3 seczmin seczmax seczdelta
+    ra dec autoid alt1 alt2 alt3 az1 az2 az3 seczmin seczmax seczdelta
     sund moond salt1 salt2 malt1 malt2 sm
     """
 
@@ -1823,7 +1828,7 @@ def make_positions(
                     arr += alts + azs
 
                     # Calculate range of airmasses
-                    seczs = np.array([secz for secz in points.secz.degree])
+                    seczs = np.array([secz for secz in points.secz])
                     secz_min, secz_max = seczs.min(), seczs.max()
 
                     # Need to check for meridian crossing, and if it happens
@@ -1838,7 +1843,7 @@ def make_positions(
                         else:
                             s2 = sinas[1]
                             t2 = tmid
-                        while s1 - s2 > 0.001:
+                        while s1 - s2 > 0.0005:
                             tguess = t1 + s1/(s1-s2)*(t2-t1)
                             frame = AltAz(obstime=tguess, location=observatory)
                             point = pos.transform_to(frame)
@@ -1849,9 +1854,7 @@ def make_positions(
                             else:
                                 s2 = sina
                                 t2 = tguess
-                        print(f'secz_min1 = {secz_min}')
                         secz_min = point.secz
-                        print(f'secz_min2 = {secz_min}')
 
                     dsecz = round(secz_max-secz_min,2)
                     arr += [round(secz_min,2), round(secz_max,2), dsecz]
