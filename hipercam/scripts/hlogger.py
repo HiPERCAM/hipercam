@@ -15,7 +15,8 @@ from astropy.coordinates import get_sun, get_moon, EarthLocation, SkyCoord, AltA
 import astropy.units as u
 
 import hipercam as hcam
-from hipercam.utils import format_hlogger_table, target_lookup, dec2sexg, str2radec, LOG_CSS, LOG_MONTHS
+from hipercam.utils import format_hlogger_table, target_lookup, dec2sexg, str2radec, \
+    LOG_CSS, LOG_MONTHS
 
 __all__ = [
     "hlogger",
@@ -581,11 +582,11 @@ def hlogger(args=None):
                             nhtml.write(f'<td class="lalert">{run}</td>')
                             nhtml.write("</tr>\n")
                             if instrument == 'ULTRACAM':
-                                brow = [rname, night, run[3:]] + 47*[None]
+                                brow = [rname, night, run[3:]] + 49*[None]
                             elif instrument == 'ULTRASPEC':
-                                brow = [rname, night, run[3:]] + 54*[None]
+                                brow = [rname, night, run[3:]] + 56*[None]
                             elif instrument == 'HiPERCAM':
-                                brow = [rname, night, run[3:]] + 59*[None]
+                                brow = [rname, night, run[3:]] + 61*[None]
                             continue
 
                         hd = rthead.header
@@ -597,7 +598,10 @@ def hlogger(args=None):
                         png = os.path.join(meta,f'{run}.png')
                         if os.path.exists(png):
                             npng = os.path.join(ndir, f'{run}.png')
-                            nhtml.write(f'<td class="left"><a href="{run}.png">{run}</a></td>')
+                            nhtml.write(
+                                f'<td class="left"><a href="{run}.png">' +
+                                f'{run}</a></td>'
+                            )
                             shutil.copyfile(png, npng)
                         else:
                             nhtml.write(f'<td class="left">{run}</td>')
@@ -627,15 +631,24 @@ def hlogger(args=None):
                         except:
                             rastr, decstr, ra, dec = ['','',None,None]
 
-                        nhtml.write(f'<td class="left">{target}</td><td class="left">{autoid}</td>')
-                        nhtml.write(f'<td class="left">{rastr}</td><td class="left">{decstr}</td>')
+                        nhtml.write(
+                            f'<td class="left">{target}</td>' +
+                            f'<td class="left">{autoid}</td>'
+                        )
+                        nhtml.write(
+                            f'<td class="left">{rastr}' +
+                            f'</td><td class="left">{decstr}</td>'
+                        )
 
                         if instrument == 'HiPERCAM':
                             # instr PA
                             tel_ra = tradec(hd.get("RA", ""),False)
                             tel_dec = tradec(hd.get("Dec", ""),True)
                             tel_pa = hd.get("INSTRPA", "")
-                            nhtml.write(f'<td class="cen">{tel_ra}</td><td class="cen">{tel_dec}</td><td class="cen">{tel_pa}</td>')
+                            nhtml.write(
+                                f'<td class="cen">{tel_ra}</td><td class="cen">' +
+                                f'{tel_dec}</td><td class="cen">{tel_pa}</td>'
+                            )
                             if tel_ra != '' and tel_dec != '':
                                 try:
                                     tel_ra_deg, tel_dec_deg, syst = str2radec(tel_ra + ' ' + tel_dec)
@@ -667,7 +680,8 @@ def hlogger(args=None):
                             )
                             if tel_ra != '' and tel_dec != '':
                                 try:
-                                    tel_ra_deg, tel_dec_deg, syst = str2radec(tel_ra + ' ' + tel_dec)
+                                    tel_ra_deg, tel_dec_deg, syst = \
+                                        str2radec(tel_ra + ' ' + tel_dec)
                                     tel_ra_deg = round(15*tel_ra_deg,5)
                                     tel_dec_deg = round(tel_dec_deg,4)
                                 except:
@@ -680,12 +694,17 @@ def hlogger(args=None):
                                     print("Position problem on run = ", runname)
                             else:
                                 tel_ra_deg, tel_dec_deg = None, None
-                            brow += [target, autoid, rastr, decstr, ra, dec, tel_ra, tel_dec, tel_ra_deg, tel_dec_deg, noval(tel_pa)]
+                            brow += [
+                                target, autoid, rastr, decstr,
+                                ra, dec, tel_ra, tel_dec,
+                                tel_ra_deg, tel_dec_deg, noval(tel_pa)
+                            ]
                         else:
                             brow += [target, autoid, rastr, decstr, ra, dec]
 
                         # Timing info
-                        ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
+                        ut_start, mjd_start, ut_end, mjd_end, \
+                            cadence, expose, nok, ntotal = tdata[run]
 
                         try:
                             # Start time, date
@@ -722,7 +741,7 @@ def hlogger(args=None):
                         nhtml.write(
                             f'<td class="right">{ntotal}</td><td class="right">{nok}</td>'
                         )
-                        brow += [noval(ntotal), noval(nok)]
+                        brow += [noval(ntotal), noval(nok), nval(pdat[11])]
 
                         # filters used
                         if hlog.format == 1:
@@ -1613,6 +1632,10 @@ def make_positions(
 
     Returns with dictionary of positional data.
 
+    Positional data files have rows with 20 items:
+
+    run ra dec autoid alt1 alt2 alt3 az1 az2 az3 seczmin seczmax seczdelta
+    sund moond salt1 salt2 malt1 malt2 sm
     """
 
     pdata = {}
@@ -1622,8 +1645,10 @@ def make_positions(
         with open(posdata) as pin:
             for line in pin:
                 arr = line.split()
-                if len(arr) != 17:
-                    raise ValueError(f'Line = "{line.strip()}" from {posdata} had {len(arr)}!=17 items')
+                if len(arr) != 19:
+                    raise ValueError(
+                        f'Line = "{line.strip()}" from {posdata} had {len(arr)}!=19 items'
+                    )
                 arr[3] = arr[3].replace('~',' ')
                 pdata[arr[0]] = [
                     '' if val == 'UNDEF' else val for val in arr[1:]
@@ -1649,7 +1674,8 @@ def make_positions(
                     pout.write(
                         f"{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} {arr[4]} " +
                         f"{arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} {arr[10]} " +
-                        f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n"
+                        f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]} " +
+                        f"{arr[16]} {arr[17]} {arr[18]}\n"
                     )
                     continue
                 recomp = False
@@ -1705,7 +1731,9 @@ def make_positions(
 
                         # save successful SIMBAD-based lookup
                         smessages.append(
-                            f"{autoid.replace(' ','~'):32s} {pos.to_string('hmsdms',sep=':',precision=2)} {target.replace(' ','~')}"
+                            f"{autoid.replace(' ','~'):32s} " +
+                            f"{pos.to_string('hmsdms',sep=':',precision=2)} " +
+                            f"{target.replace(' ','~')}"
                         )
                         recomp = True
 
@@ -1720,12 +1748,16 @@ def make_positions(
 
                             # save successful lookups
                             smessages.append(
-                                f"{target.replace(' ','~'):32s} {pos.to_string('hmsdms',sep=':',precision=2)} {target.replace(' ','~')}"
+                                f"{target.replace(' ','~'):32s} " +
+                                f"{pos.to_string('hmsdms',sep=':',precision=2)} " +
+                                f"{target.replace(' ','~')}"
                             )
                             recomp = True
                         else:
                             # nothing worked
-                            print(f'  No position found for {runname}, target = "{target}"')
+                            print(
+                                f'  No position found for {runname}, target = "{target}"'
+                            )
                             autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
                             skip_targets.append(target)
 
@@ -1741,7 +1773,8 @@ def make_positions(
                 pout.write(
                     f"{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} {arr[4]} " +
                     f"{arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} {arr[10]} " +
-                    f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n"
+                    f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]} " +
+                    f"{arr[16]} {arr[17]} {arr[18]}\n"
                 )
                 continue
 
@@ -1749,8 +1782,9 @@ def make_positions(
             arr = [ra, dec, autoid]
 
             if ra == 'UNDEF' and dec == 'UNDEF' and instrument == 'ULTRASPEC':
-                # for altitude / Sun / Moon stuff, telescope position is good enough, so this
-                # is one final go at getting a usable position.
+                # for altitude / Sun / Moon stuff, telescope position
+                # is good enough, so this is one final go at getting a
+                # usable position.
                 hd = rhead.header
 
                 ra = hd.get("RA", "UNDEF")
@@ -1762,7 +1796,8 @@ def make_positions(
                         pass
 
             # time-dependent info
-            ut_start, mjd_start, ut_end, mjd_end, cadence, expose, nok, ntotal = tdata[run]
+            ut_start, mjd_start, ut_end, mjd_end, cadence, \
+                expose, nok, ntotal = tdata[run]
             try:
 
                 mjd_start = float(mjd_start)
@@ -1771,23 +1806,58 @@ def make_positions(
                 tmid = Time((mjd_start+mjd_end)/2, format='mjd')
                 tend = Time(mjd_end, format='mjd')
 
-                # Scale Sun-Moon angle at mid time (0 = New Moon, 1 = Full)
+                # Scale Sun-Moon angle at mid time (0 = New Moon, 1 =
+                # Full)
                 sun_mid = get_sun(tmid)
                 moon_mid = get_moon(tmid)
                 sun_moon = sun_mid.separation(moon_mid).degree / 180
 
                 if ra != 'UNDEF' and dec != 'UNDEF':
-                    # Calculate the Alt, Az at
-                    # start, middle, end
+
+                    # Calculate the Alt, Az at start, middle, end
                     frames = AltAz(obstime=[tstart,tmid,tend], location=observatory)
-                    points = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg)).transform_to(frames)
+                    pos = SkyCoord(f'{ra} {dec}',unit=(u.hourangle, u.deg))
+                    points = pos.transform_to(frames)
                     alts = [round(alt,1) for alt in points.alt.degree]
                     azs = [round(az,1) for az in points.az.degree]
                     arr += alts + azs
 
-                    # Now calculate the angular
-                    # distance from the Sun and
-                    # Moon at the mid-time
+                    # Calculate range of airmasses
+                    seczs = np.array([secz for secz in points.secz.degree])
+                    secz_min, secz_max = seczs.min(), seczs.max()
+
+                    # Need to check for meridian crossing, and if it happens
+                    # we need to close in on it
+                    sinas = [np.sin(az) for az in points.az]
+                    if sinas[0] > 0 and sinas[2] < 0:
+                        s1, s2 = sinas[0], sinas[2]
+                        t1, t2 = tstart, tend
+                        if sinas[1] > 0:
+                            s1 = sinas[1]
+                            t1 = tmid
+                        else:
+                            s2 = sinas[1]
+                            t2 = tmid
+                        while s1 - s2 > 0.001:
+                            tguess = t1 + s1/(s1-s2)*(t2-t1)
+                            frame = AltAz(obstime=tguess, location=observatory)
+                            point = pos.transform_to(frame)
+                            sina = np.sin(point.az)
+                            if sina > 0:
+                                s1 = sina
+                                t1 = tguess
+                            else:
+                                s2 = sina
+                                t2 = tguess
+                        print(f'secz_min1 = {secz_min}')
+                        secz_min = point.secz
+                        print(f'secz_min2 = {secz_min}')
+
+                    dsecz = round(secz_max-secz_min,2)
+                    arr += [round(secz_min,2), round(secz_max,2), dsecz]
+                    
+                    # Now calculate the angular distance from the Sun
+                    # and Moon at the mid-time
                     sun_mid_trans = sun_mid.transform_to(frames[1])
                     moon_mid_trans = moon_mid.transform_to(frames[1])
                     point_mid = points[1]
@@ -1796,7 +1866,7 @@ def make_positions(
                     arr += [round(sun_dist,1),round(moon_dist,1)]
 
                 else:
-                    arr = arr[:3] + 8*['UNDEF']
+                    arr = arr[:3] + 11*['UNDEF']
 
                 # Now some data on the altitude of the Sun & Moon
                 frame = AltAz(obstime=tstart, location=observatory)
@@ -1816,13 +1886,14 @@ def make_positions(
 
             except:
                 # write out info
-                arr = arr[:3] + 13*['UNDEF']
+                arr = arr[:3] + 16*['UNDEF']
 
             arr[2] = arr[2].replace(' ','~')
             pout.write(
                 f"{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} {arr[4]} " +
                 f"{arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} {arr[10]} " +
-                f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]}\n"
+                f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]} " +
+                f"{arr[16]} {arr[17]} {arr[18]}\n"
             )
 
             arr[2] = arr[2].replace('~',' ')
@@ -1891,6 +1962,9 @@ HIPERCAM_COLNAMES = (
     ('az_start', 'float32', 'Target azimuth at start of run, degrees'),
     ('az_middle', 'float32', 'Target azimuth in middle of run, degrees'),
     ('az_end', 'float32', 'Target azimuth at end of run, degrees'),
+    ('secz_min', 'float32', 'Minimum airmass'),
+    ('secz_max', 'float32', 'Maximum airmass'),
+    ('secz_del', 'float32', 'Change in airmass'),
     ('sun_dist', 'float32', 'Distance from Sun, degrees, middle of run'),
     ('moon_dist', 'float32', 'Distance from Moon, degrees, middle of run'),
     ('sun_alt_start', 'float32', 'Altitude of Sun at start of run'),
@@ -1944,6 +2018,9 @@ ULTRACAM_COLNAMES = (
     ('az_start', 'float32', 'Target azimuth at start of run, degrees'),
     ('az_middle', 'float32', 'Target azimuth in middle of run, degrees'),
     ('az_end', 'float32', 'Target azimuth at end of run, degrees'),
+    ('secz_min', 'float32', 'Minimum airmass'),
+    ('secz_max', 'float32', 'Maximum airmass'),
+    ('secz_del', 'float32', 'Change in airmass'),
     ('sun_dist', 'float32', 'Distance from Sun, degrees, middle of run'),
     ('moon_dist', 'float32', 'Distance from Moon, degrees, middle of run'),
     ('sun_alt_start', 'float32', 'Altitude of Sun at start of run'),
@@ -2004,6 +2081,9 @@ ULTRASPEC_COLNAMES = (
     ('az_start', 'float32', 'Target azimuth at start of run, degrees'),
     ('az_middle', 'float32', 'Target azimuth in middle of run, degrees'),
     ('az_end', 'float32', 'Target azimuth at end of run, degrees'),
+    ('secz_min', 'float32', 'Minimum airmass'),
+    ('secz_max', 'float32', 'Maximum airmass'),
+    ('secz_del', 'float32', 'Change in airmass'),
     ('sun_dist', 'float32', 'Distance from Sun, degrees, middle of run'),
     ('moon_dist', 'float32', 'Distance from Moon, degrees, middle of run'),
     ('sun_alt_start', 'float32', 'Altitude of Sun at start of run'),
@@ -2016,7 +2096,6 @@ ULTRASPEC_COLNAMES = (
 
 def noval(value):
     return None if value == '' else value
-
 
 # Header of the main file
 
@@ -2092,7 +2171,9 @@ HIPERCAM_TABLE_HEADER = """
 <col>
 <col class="hide">
 <col span="4">
-<col span="2" class="hide">
+<col class="hide">
+<col>
+<col class="hide">
 <col span="2">
 <col span="3" class="hide">
 <col span="2">
@@ -2118,6 +2199,7 @@ HIPERCAM_TABLE_HEADER = """
 <th class="right">Exp.<br>(sec)</th>
 <th class="right">Nfrm</th>
 <th class="right">Nok</th>
+<th class="right">Dsecz</th>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
@@ -2161,7 +2243,7 @@ ULTRACAM_TABLE_HEADER = """
 <col class="hide">
 <col span="4">
 <col class="hide">
-<col span="10">
+<col span="11">
 <col span="6" class="hide">
 <col>
 
@@ -2179,6 +2261,7 @@ ULTRACAM_TABLE_HEADER = """
 <th class="right">Exp.<br>(sec)</th>
 <th class="right">Nfrm</th>
 <th class="right">Nok</th>
+<th class="right">Dsecz</th>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
@@ -2209,7 +2292,7 @@ ULTRASPEC_TABLE_HEADER = """
 <col class="hide">
 <col span="4">
 <col class="hide">
-<col span="10">
+<col span="11">
 <col span="8" class="hide">
 <col>
 
@@ -2230,6 +2313,7 @@ ULTRASPEC_TABLE_HEADER = """
 <th class="right">Exp.<br>(sec)</th>
 <th class="right">Nfrm</th>
 <th class="right">Nok</th>
+<th class="right">Dsecz</th>
 <th class="cen">Filters</th>
 <th class="left">Type</th>
 <th class="cen">Read<br>mode</th>
