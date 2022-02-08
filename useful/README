@@ -1,0 +1,8 @@
+This is a directory of one-off scripts that, with some editing
+perhaps, might be useful as the start of developing other
+scripts. Basically a storehouse of potentially useful stuff that may
+save on future effofrt.
+
+extinction.py  -- computation of extinction from a HiPERCAM log file.
+fringe-runs.py -- digs out runs of potential use for fringe maps.
+pfind.py       -- searches for periodic signals, fits amplitude of highest.
