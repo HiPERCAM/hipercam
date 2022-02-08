@@ -1433,7 +1433,7 @@ class Tseries:
 
         # secz, then apply the Young & Irvine equation
         seczs = points.secz
-        airms = seczs*(1-0.0012*(seczs**2-1))
+        airms = np.array(seczs*(1-0.0012*(seczs**2-1)))
 
         if inplace:
             self.t = airms
