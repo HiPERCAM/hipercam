@@ -35,7 +35,7 @@ import copy
 from astropy.io import fits
 from astropy.stats import sigma_clip
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 import astropy.units as u
 
 from .core import *
@@ -1187,7 +1187,8 @@ class Tseries:
         n_bins = len(self) // binsize
         n_used = n_bins*binsize
 
-        # Turn into numpy masked arrays, reshape to allow operations over x axis
+        # Turn into numpy masked arrays, reshape to allow operations
+        # over x axis
         mask = self.get_mask(bitmask)[:n_used].reshape(n_bins, binsize)
 
         # compute number of points per bin
@@ -1200,16 +1201,19 @@ class Tseries:
         bmask = self.bmask[:n_used].reshape(n_bins, binsize)
         bmask[mask] = 0
 
-        # Define minimum and maximum times to cope with the exposure times
+        # Define minimum and maximum times to cope with the exposure
+        # times
         if self.te is None:
             tmin = t
             tmax = t
         else:
-            te = np.ma.masked_array(self.te[:n_used].reshape(n_bins, binsize), mask)/2
+            te = np.ma.masked_array(
+                self.te[:n_used].reshape(n_bins, binsize), mask)/2
             tmin = t - te
             tmax = t + te
 
-        # take mean / sum along x-axis of 2D reshaped arrays, convert back to ordinary arrays
+        # take mean / sum along x-axis of 2D reshaped arrays, convert
+        # back to ordinary arrays
         t = np.ma.getdata(np.mean(t,1))
         y = np.ma.getdata(np.mean(y, 1))
         ye = np.ma.getdata(np.sqrt(np.sum(ye*ye,1)))
@@ -1338,22 +1342,27 @@ class Tseries:
             return new_ts
 
     def mjd2tdb(self, position, telescope, inplace=True):
-        """Convert times in MJD to BMJD(TDB), i.e. barycentrically
-        corrected the time into phase.
+        """Convert times in MJD to BMJD(TDB), i.e. barycentrically corrected
+        the time into phase.
 
         Arguments::
 
           position : str | SkyCoord
-            RA/Dec string (sexagesimal form e.g. 20:23:04,5 -00:02:56.3")
-            suitable for creating an astropy.coordinates.SkyCoord object,
-            or a pre-built SkyCoord
+
+            RA/Dec string (sexagesimal form e.g. 20:23:04,5
+            -00:02:56.3") suitable for creating an
+            astropy.coordinates.SkyCoord object, or a pre-built
+            SkyCoord
 
           telescope : str | EarthLocation
-            string recognised for creating an astropy.coordinates.EarthLocation
-            object, or a pre-built EarthLocation. Examples: 'lapalma', 'paranal'.
+            string recognised for creating an
+            astropy.coordinates.EarthLocation object, or a pre-built
+            EarthLocation. Examples: 'lapalma', 'paranal'.
 
           inplace : bool
-            whether to transform the times in the object or create a new object
+            whether to transform the times in the object or create a
+            new object
+
         """
         if not isinstance(position, SkyCoord):
             position = SkyCoord(position, unit=(u.hourangle, u.deg))
@@ -1373,6 +1382,65 @@ class Tseries:
         else:
             return Tseries(
                 times.mjd, self.y, self.ye, self.bmask, self.te
+            )
+
+    def to_airmass(self, position, telescope, inplace=True):
+        """Converts times in MJD to airmass. This is a first step when
+        measuring extinction. The airmass computation uses Eq (1) from
+        Young & Irvine (1967) which is OK up to 4 and better than plain
+        secz. Any error array on the times is set to None.
+
+        Arguments::
+
+          position : str | SkyCoord
+
+            RA/Dec string (sexagesimal form e.g. 20:23:04,5
+            -00:02:56.3") suitable for creating an
+            astropy.coordinates.SkyCoord object, or a pre-built
+            SkyCoord
+
+          telescope : str | EarthLocation
+            string recognised for creating an
+            astropy.coordinates.EarthLocation object, or a pre-built
+            EarthLocation. Examples: 'lapalma', 'paranal'.
+
+          pressure: float
+            Atmospheric pressure in terms of standard atmospheres. Used
+            to compute refraction. Set = 0 if you get problems as it becomes
+            inaccurate near the horizon.
+
+          inplace : bool
+            whether to transform the times in the object or create a
+            new object
+
+        """
+        if not isinstance(position, SkyCoord):
+            position = SkyCoord(position, unit=(u.hourangle, u.deg))
+
+        if not isinstance(telescope, EarthLocation):
+            telescope = EarthLocation.of_site(telescope)
+
+        # assuming MJDs at this point
+        times = Time(self.t, format='mjd', scale='utc', location=telescope)
+
+        # Calculate the Alt, Az for all times. No pressure included, i.e.
+        # this does not account for refraction which is what the formula
+        # from Young & Irvine
+        frames = AltAz(
+            obstime=times, location=telescope,
+        )
+        points = position.transform_to(frames)
+
+        # secz, then apply the Young & Irvine equation
+        seczs = points.secz
+        airms = seczs*(1-0.0012*(secz**2-1))
+
+        if inplace:
+            self.t = airms
+            self.te = None
+        else:
+            return Tseries(
+                airms, self.y, self.ye, self.bmask
             )
 
     def phase(self, t0, period, fold=False, inplace=True):
