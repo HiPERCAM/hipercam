@@ -37,13 +37,15 @@ def rejfit(airms, ms, mes, thresh):
     indices = np.arange(len(ok),dtype=int)
     nrej = 0
     while True:
-        results = least_squares(res,x,args=(airms[ok],ms[ok],mes[ok]),method='lm')
+        results = least_squares(
+            res,x,args=(airms[ok],ms[ok],mes[ok]),method='lm'
+        )
         x = results.x
         fit = model(x,airms)
-        dev = (ms-fit)/mes
+        dev = np.abs((ms-fit)/mes)
         chisq = (dev[ok]**2).sum()
         ndof = len(dev[ok])-2
-        imax = np.abs(dev[ok]).argmax()
+        imax = dev[ok].argmax()
         dmax = dev[ok][imax]
         if dmax > thresh*np.sqrt(chisq/ndof):
             ok[indices[ok][imax]] = False
@@ -55,31 +57,30 @@ def rejfit(airms, ms, mes, thresh):
 if __name__ == '__main__':
 
     # Target position, ICRS
-    position = '16:21:17.36 +44:12:54.1'
+    position = '16:21:07.15 +31:34:36.8'
 
     # site / telescope [astropy]
     telescope = 'lapalma'
 
     # The log file to analyse
-    hlog = 'run0014-extinct.log'
+    hlog = 'run0017-extinct.log'
 
     # The apertures containing comparison stars to show,
     # along with colours to plot them, and offsets for residual
     # plots in mags
-    comps = (('1','b',0.05),('2','g',-0.05))
+    comps = (('2','g',-0.05),)
 
     # CCDs to analyse
     ccds = ('1','2','3','4','5')
 
     # Amount to bin by to clean data and speed up computations
-    nbin = 20
+    nbin = 10
 
     # Threshold to use to attempt to clean data
     thresh = 3.0
 
     # Load data
     hlg = hcam.hlog.Hlog.rascii(hlog)
-
 
     # Should be mostly fixed from here
 
@@ -108,7 +109,10 @@ if __name__ == '__main__':
             axs[n,0].plot(airm,fit,'r--',zorder=10)
 
             # Report results
-            print(f'CCD {ccd}, aperture {aper}: constant,gradient = {x}, nrej = {nrej}')
+            print(
+                f'CCD {ccd}, aperture {aper}: ' +
+                f'constant,gradient = {x}, nrej = {nrej}'
+            )
 
             # Plot residuals
             lc -= fit
