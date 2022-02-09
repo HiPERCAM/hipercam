@@ -191,6 +191,7 @@ def logsearch(args=None):
             elif prompted:
                 # successful, will store password in the keyring
                 keyring.set_password("Data logs", dbase, pword)
+                print(f'Downloaded {dbase}.db')
                 print(f' stored password for {dbase} in keyring')
 
             # check return from curl
