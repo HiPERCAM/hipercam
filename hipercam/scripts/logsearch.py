@@ -163,42 +163,45 @@ def logsearch(args=None):
         prompted = False
         if pword is None:
             pword = getpass.getpass(f'{dbase} logs password: ')
-            prompted = False
-
-        # use 'curl' to download
-        fname = os.path.join(dbases_dir, f'{dbase}.db')
-        args = [
-            'curl','-u', f'{dbase}:{pword}','-o',fname,
-            '-z',fname,f'{server}/{dbase}/logs/{dbase}.db'
-        ]
-        result = subprocess.run(
-            args, capture_output=True, universal_newlines=True
-        )
-        if result.returncode and not os.path.exists(fname):
-            raise hcam.HipercamError(
-                f'Failed to download {dbase}.db. Return from curl:'
-                + 'stdout={result.stdout}, stderr={result.stderr}'
-            )
-        elif result.returncode:
-            print(
-                f'Failed to download {dbase}.db. Will use old'
-                'local copy although it may be out of date'
-            )
-        elif prompted:
-            # successful, will store password in the keyring
-            keyring.set_password("Data logs", dbase, pword)
-            print(f' stored password for {dbase} in keyring')
-
-        # check return from curl
-        res = result.stderr.split('\n')
-        diff = set(res[3].split())
-        if '0' in diff and len(diff) == 2:
-            print(f' {dbase}.db unchanged on server')
-        else:
-            print(f' {dbase}.db updated from server')
+            prompted = True
 
         # accumulate list of files and equivalent table names
+        fname = os.path.join(dbases_dir, f'{dbase}.db')
         dbases.append((fname, dbase))
+
+        if pword != "":
+            # use 'curl' to download
+            args = [
+                'curl','-u', f'{dbase}:{pword}','-o',fname,
+                '-z',fname,f'{server}/{dbase}/logs/{dbase}.db'
+            ]
+            result = subprocess.run(
+                args, capture_output=True, universal_newlines=True
+            )
+            if result.returncode and not os.path.exists(fname):
+                raise hcam.HipercamError(
+                    f'Failed to download {dbase}.db. Return from curl:'
+                    + 'stdout={result.stdout}, stderr={result.stderr}'
+                )
+            elif result.returncode:
+                print(
+                    f'Failed to download {dbase}.db. Will use old'
+                    'local copy although it may be out of date'
+                )
+            elif prompted:
+                # successful, will store password in the keyring
+                keyring.set_password("Data logs", dbase, pword)
+                print(f' stored password for {dbase} in keyring')
+
+            # check return from curl
+            res = result.stderr.split('\n')
+            diff = set(res[3].split())
+            if '0' in diff and len(diff) == 2:
+                print(f' {dbase}.db unchanged on server')
+            else:
+                print(f' {dbase}.db updated from server')
+        else:
+            print(f'No attempt to update {fname}')
 
     print()
     if target is not None:
