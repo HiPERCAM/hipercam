@@ -1640,7 +1640,10 @@ def make_positions(
     and contains the following 19 items:
 
     ra dec autoid alt1 alt2 alt3 az1 az2 az3 seczmin seczmax seczdelta
-    sund moond salt1 salt2 malt1 malt2 sm
+    sund moond salt1 salt2 malt1 malt2 sm.
+
+    Corresponding data files start with the run number so have 20 items per line.
+
     """
 
     pdata = {}
@@ -1650,9 +1653,9 @@ def make_positions(
         with open(posdata) as pin:
             for line in pin:
                 arr = line.split()
-                if len(arr) != 19:
+                if len(arr) != 20:
                     raise ValueError(
-                        f'Line = "{line.strip()}" from {posdata} had {len(arr)}!=19 items'
+                        f'Line = "{line.strip()}" from {posdata} had {len(arr)}!=20 items'
                     )
                 arr[3] = arr[3].replace('~',' ')
                 pdata[arr[0]] = [
