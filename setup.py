@@ -84,20 +84,19 @@ setup(
     # this:
     #   py_modules=["my_module"],
 
-    # List run-time dependencies here.  These will be installed by pip when
-    # your project is installed. For an analysis of "install_requires" vs pip's
-    # requirements files see:
+    # List run-time dependencies here.  These will be installed by pip
+    # when your project is installed. For an analysis of
+    # "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
+    # urllib3 requirement to get over a security warning
     install_requires=[
         'sep', 'numpy', 'astropy', 'matplotlib', 'requests',
         'numba', 'websocket-client', 'fitsio', 'pandas', 'Cython',
         'urllib3>=1.26.5', 'keyring'
     ],
 
-    # Makes significant use of f-strings which came in 3.6
+    # Makes significant use of f-strings which came in python v3.6
     python_requires='>=3.6',
-
-    # need numpy version 1.12
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
