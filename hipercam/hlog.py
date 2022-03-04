@@ -1443,7 +1443,7 @@ class Tseries:
                 airms, self.y, self.ye, self.bmask
             )
 
-    def phase(self, t0, period, fold=False, inplace=True):
+    def phase(self, t0, period, fold=False, inplace=True, sort=True):
         """Convert the time into phase.
 
         This method returns a new ``Tseries`` object in which the time
@@ -1461,10 +1461,13 @@ class Tseries:
             The period
 
         fold : bool
-            If True, map the phases to -0.5 to 0.5, and sort them.
+            If True, map the phases to -0.5 to 0.5.
 
         inplace : bool
             Operation in place, else return a new Tseries
+
+        sort : bool
+            Sort into ascending phase order
 
         Returns
         -------
@@ -1478,8 +1481,10 @@ class Tseries:
         if fold:
             phase = np.mod(phase, 1)
             phase[phase > 0.5] -= 1
-            isort = np.argsort(phase)
-
+            if sort:
+                isort = np.argsort(phase)
+            else:
+                isort = np.arange(len(phase))
             if inplace:
                 self.t = phase[isort]
                 self.te = pexpose[isort] if pexpose is not None else None
