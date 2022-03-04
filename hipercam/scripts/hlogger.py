@@ -7,6 +7,7 @@ import warnings
 import argparse
 import sqlite3
 import json
+import datetime
 
 import numpy as np
 import pandas as pd
@@ -39,18 +40,16 @@ def hlogger(args=None):
 
     Generates html logs for |hiper|, ULTRACAM and ULTRASPEC runs, a
     searchable spreadsheet and an sqlite3 database for programmatic
-    SQL enquiries.
+    SQL enquiries. The latter are used by the pipeline command |logsearch|.
 
     hlogger expects to work in a directory containing the runs for
     each night. I call this 'raw_data' for each camera and this will
-    be checked a a guard against problems. It extracts information
-    from each run file. It usually runs without any parameters,
-    although there are some optional unix-style command-line
-    switches.
+    be checked as a guard against problems. It extracts information
+    from each run file.
 
     hlogger tries to read target data from three files: TARGETS,
     FAILED_TARGETS and SKIP_TARGETS. TARGETS contains details of
-    targets, particularly if not available on simbad; FAILED_TARGETS
+    targets, particularly if not available on SIMBAD; FAILED_TARGETS
     are those of interest for tracking down; SKIP_TARGETS are ones of
     no interest.
 
@@ -90,11 +89,6 @@ def hlogger(args=None):
         help="carry out full re-computation of times, positional data, html logs, spreadsheet and SQL database",
     )
     parser.add_argument(
-        "-m",
-        dest="missing", default=None,
-        help="lists all targets without positional info but creates no files.",
-    )
-    parser.add_argument(
         "-n",
         dest="night", default=None,
         help="use this with a YYYY-MM-DD date to update times and positions for a specific night (lots of diagnostic ouput; no html created)",
@@ -117,16 +111,18 @@ def hlogger(args=None):
         action="store_true",
         help="re-try any missing positions loaded from a file as UNDEF",
     )
+    parser.add_argument(
+        "--nowrite",
+        dest="nowrite",
+        action="store_true",
+        help="write nothing to disk (for speed)",
+    )
 
     # Get command line options
     args = parser.parse_args()
 
     if (args.full or args.positions) and args.night is not None:
         print('-n switch is not compatible with either -f or -p; please check help')
-        return
-
-    if args.missing and (args.night or args.positions or args.full or args.quick or args.retry):
-        print('-m switch is not compatible with any other; please check help')
         return
 
     # start with defining a few regular expressions to match run directories, nights,
@@ -176,6 +172,9 @@ def hlogger(args=None):
         return
     linstrument = instrument.lower()
     print(f'Identified instrument as "{instrument}"')
+
+    # create date-time string to use when writing files
+    iso_time = datetime.datetime.utcnow().isoformat(timespec='seconds')
 
     # buffers of messages on target lookups to print at the end
     smessages, fmessages = [], []
@@ -292,7 +291,7 @@ def hlogger(args=None):
     os.umask(0o022)
 
     # shortcut
-    okwrite = not args.missing
+    okwrite = not args.nowrite
 
     # Ensure the root directory exists.
     if okwrite:
@@ -398,23 +397,22 @@ def hlogger(args=None):
 
             # scan through the nights to work out which to re-do (time saving)
             redo = {}
-            if not args.missing:
-                one_before_is_new = False
-                for nn, night in enumerate(nnames):
-                    if args.full or args.positions or not args.quick:
+            one_before_is_new = False
+            for nn, night in enumerate(nnames):
+                if args.full or args.positions or not args.quick :
+                    redo[night] = True
+                else:
+                    already_there = os.path.exists(os.path.join(root, night, 'index.html'))
+                    if one_before_is_new:
+                        # Has to be re-done under any circumstances
+                        # because of the previous/next links
                         redo[night] = True
+                        one_before_is_new = not already_there
                     else:
-                        already_there = os.path.exists(os.path.join(root, night, 'index.html'))
-                        if one_before_is_new:
-                            # Has to be re-done under any circumstances
-                            # because of the previous/next links
-                            redo[night] = True
-                            one_before_is_new = not already_there
-                        else:
-                            redo[night] = one_before_is_new = not already_there
-                            if one_before_is_new and nn > 0:
-                                # Need to re-do one before because of previous/next links
-                                redo[nnames[nn-1]] = True
+                        redo[night] = one_before_is_new = not already_there
+                        if one_before_is_new and nn > 0:
+                            # Need to re-do one before because of previous/next links
+                            redo[nnames[nn-1]] = True
 
             for nn, night in enumerate(nnames):
 
@@ -988,7 +986,7 @@ def hlogger(args=None):
 
                         # Finally tack on extra positional stuff for the spreadsheet only
                         brow += [noval(v) for v in pdat[3:]]
-                        
+
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
 
@@ -1047,9 +1045,11 @@ designed to allow SQL queries to be applied using Python's sqlite3 module.
 The database contains a single table called "{linstrument}". The columns of
 the database are defined below. Note although some are naturally integers,
 they are converted to floats to allow null values due to details of pandas.
+The pipeline command "logsearch" searches the database files and is a good
+place to look to see how it is done.
 
 <p>
-Here is a simple example of carrying out a search for ULTRACAM. The position
+Here is a simple example of carrying out a search for ULTRACAM runs. The position
 selected matches AR Sco and in this case only runs longer than 200 seconds are
 returned (37 runs in the ULTRACAM database as of Feb 2021).
 <pre>
@@ -1182,9 +1182,21 @@ see other switches for even slower and more in-depth options.""")
         print('\nYou may want to add the following to TARGETS to short-circuit SIMBAD lookups:\n')
         print('\n'.join(smessages))
 
+        # also save to disk
+        ofile = f'lookup_success_{iso_time}'
+        with open(ofile,'w') as fsim:
+            fsim.write('\n'.join(smessages))
+        print(f'\nList of successful lookups written to {ofile}')
+
     if len(fmessages):
         print('\nYou may want to check these or add them to either SKIP_TARGETS or FAILED_TARGETS to short-circuit SIMBAD lookups:\n')
         print('\n'.join(fmessages))
+
+        # also save to disk
+        ofile = f'lookup_failure_{iso_time}'
+        with open(ofile,'w') as fsim:
+            fsim.write('\n'.join(fmessages))
+        print(f'\nList of failed lookups written to {ofile}')
 
     # End of main section
 
@@ -1610,7 +1622,7 @@ def make_positions(
     make_times.
 
     smessages and fmessages are lists that should be initialised to []
-    that are used to accumulates successfule and failed target lookup
+    that are used to accumulate successful and failed target lookup
     messages.
 
     Arguments::
@@ -1673,22 +1685,20 @@ def make_positions(
                 # means its a power on/off
                 continue
 
-            if run in pdata:
-                if pdata[run][0] != '':
-                    # Already have positional data which we will
-                    # not re-do, so just write out to disk
-                    arr = ['UNDEF' if val == '' else val for val in pdata[run]]
-                    arr[2] = arr[2].replace(' ','~')
-                    pout.write(
-                        f"{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} {arr[4]} " +
-                        f"{arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} {arr[10]} " +
-                        f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]} " +
-                        f"{arr[16]} {arr[17]} {arr[18]}\n"
-                    )
-                    continue
-                recomp = False
-            else:
-                recomp = True
+            if run in pdata and pdata[run][0] != '':
+                # Already have positional data which we will
+                # not re-do, so just write out to disk
+                arr = ['UNDEF' if val == '' else val for val in pdata[run]]
+                arr[2] = arr[2].replace(' ','~')
+                pout.write(
+                    f"{run} {arr[0]} {arr[1]} {arr[2]} {arr[3]} {arr[4]} " +
+                    f"{arr[5]} {arr[6]} {arr[7]} {arr[8]} {arr[9]} {arr[10]} " +
+                    f"{arr[11]} {arr[12]} {arr[13]} {arr[14]} {arr[15]} " +
+                    f"{arr[16]} {arr[17]} {arr[18]}\n"
+                )
+                continue
+
+            recomp = True
 
             # Now going to try to work stuff out
 
@@ -1723,11 +1733,11 @@ def make_positions(
             if target == '' or target in skip_targets:
                 # don't even try
                 autoid, ra, dec = 'UNDEF', 'UNDEF', 'UNDEF'
+                recomp = False
             else:
                 try:
                     # See if we already have the info stored
                     autoid, ra, dec = targets(target)
-                    recomp = True
                 except:
                     # apparently we don't ...
                     try:
@@ -1743,7 +1753,6 @@ def make_positions(
                             f"{pos.to_string('hmsdms',sep=':',precision=2)} " +
                             f"{target.replace(' ','~')}"
                         )
-                        recomp = True
 
                     except:
                         if target in p2positions:
@@ -1760,7 +1769,7 @@ def make_positions(
                                 f"{pos.to_string('hmsdms',sep=':',precision=2)} " +
                                 f"{target.replace(' ','~')}"
                             )
-                            recomp = True
+
                         else:
                             # nothing worked
                             print(
@@ -1773,8 +1782,9 @@ def make_positions(
                             fmessages.append(
                                 f"{target.replace(' ','~'):32s} {rname} {night} {run}"
                             )
+                            recomp = False
 
-            if not recomp:
+            if not recomp and run in pdata:
                 # can save a stack of time by not recomputing any Sun / Moon stuff
                 arr = ['UNDEF' if val == '' else val for val in pdata[run]]
                 arr[2] = arr[2].replace(' ','~')
@@ -1806,6 +1816,7 @@ def make_positions(
             # time-dependent info
             ut_start, mjd_start, ut_end, mjd_end, cadence, \
                 expose, nok, ntotal = tdata[run]
+
             try:
 
                 mjd_start = float(mjd_start)
@@ -1831,7 +1842,7 @@ def make_positions(
                     arr += alts + azs
 
                     # Calculate range of airmasses
-                    seczs = np.array([secz for secz in points.secz])
+                    seczs = np.array([float(secz) for secz in points.secz])
                     secz_min, secz_max = seczs.min(), seczs.max()
 
                     # Need to check for meridian crossing, and if it happens
@@ -1857,11 +1868,11 @@ def make_positions(
                             else:
                                 s2 = sina
                                 t2 = tguess
-                        secz_min = point.secz
+                        secz_min = float(point.secz)
 
                     dsecz = round(secz_max-secz_min,2)
                     arr += [round(secz_min,2), round(secz_max,2), dsecz]
-                    
+
                     # Now calculate the angular distance from the Sun
                     # and Moon at the mid-time
                     sun_mid_trans = sun_mid.transform_to(frames[1])
@@ -1891,6 +1902,14 @@ def make_positions(
                 ]
 
             except:
+                if full:
+                    print(f"Problem on run = {run}")
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    traceback.print_tb(
+                        exc_traceback, limit=1, file=sys.stdout
+                    )
+                    traceback.print_exc(file=sys.stdout)
+
                 # write out info
                 arr = arr[:3] + 16*['UNDEF']
 
