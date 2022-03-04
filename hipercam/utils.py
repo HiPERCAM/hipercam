@@ -384,8 +384,7 @@ def what_flags(bitmask):
         print(f"{bitmask} means no flags have been set")
 
 def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simbad.u-strasbg.fr'):
-    """
-    Tries to determine coordinates of a target in
+    """Tries to determine coordinates of a target in
     one of three ways:
 
       1) First it attempts to find coordinates in simbad by running
@@ -394,7 +393,12 @@ def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simba
          stripped off first.
 
       2) If (1) fails, try to find coordinates within the name in the
-         form JHHMMSS.S[+/-]DDMMSS [can be more precise, but not less]
+         form (pseudo-regular expression syntax):
+
+              [jJ]HHMMSS.S(S*)[+/-]DDMMSS(.S*)
+
+         You can specify it more precisely, but not less, i.e. the parts in
+         () are optional. You must include decimal points if you go that far.
 
       4) If (1) and (2) fail or target == '' or None, then attempt a coordinate
          search in simbad within a limit of dist arcmin (default equals half
@@ -404,6 +408,7 @@ def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simba
     If successful, it comes back with (name, ra, dec), the matched name and position.
     ra, dec are in decimal form (hours, degrees). If it fails, it returns ('UNDEF','UNDEF','UNDEF').
     This is for use by the logging scripts.
+
     """
 
     err_msgs = []
@@ -417,7 +422,7 @@ def target_lookup(target, ra_tel=None, dec_tel=None, dist=5.5, url='http://simba
     if target is not None and target != '':
         if target.startswith('STD_'):
             target = target[4:]
-            
+
         # simbad query script
         query = f"""set limit 2
 format object form1 "Target: %IDLIST(1) | %COO(A D;ICRS)"
@@ -470,7 +475,7 @@ query id {target}"""
 
         # simbad ID lookup failed, so now try to read position from
         # coordinates
-        REPOS = re.compile(r'J(\d\d)(\d\d)(\d\d\.\d(?:\d*)?)([+-])(\d\d)(\d\d)(\d\d(?:\.\d*)?)$')
+        REPOS = re.compile(r'[jJ](\d\d)(\d\d)(\d\d\.\d(?:\d*)?)([+-])(\d\d)(\d\d)(\d\d(?:\.\d*)?)$')
 
         m = REPOS.search(target)
         if m:
