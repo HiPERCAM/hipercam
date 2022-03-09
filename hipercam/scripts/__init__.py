@@ -8,6 +8,7 @@ from .arith import add, div, mul, sub
 from .atbytes import atbytes
 from .atanalysis import atanalysis
 from .averun import averun
+from .calsearch import calsearch
 from .carith import cadd, cdiv, cmul, csub
 from .combine import combine
 from .filtid import filtid

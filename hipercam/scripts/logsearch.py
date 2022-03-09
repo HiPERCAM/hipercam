@@ -74,7 +74,7 @@ def logsearch(args=None):
           into a pandas Dataframe using pd.read_csv('results.csv').
           Column names from all instruments are concatenated which for
           instance means that a column appropriate for hipercam, might
-          be blank for ULTRACAM and vice versa. An extra "Instrument"
+          be blank for ULTRACAM and vice versa. An extra "instrument"
           column is added to make the origin clear. If reading into
           oocalc, make sure to switch off semi-colons as delimiters
           and use UTF-8
@@ -271,7 +271,7 @@ def logsearch(args=None):
         res = pd.read_sql_query(query, conn)
         if len(res):
             print(res)
-            res['Instrument'] = dtable
+            res['instrument'] = dtable
             results.append(res)
         else:
             print('   no runs found')

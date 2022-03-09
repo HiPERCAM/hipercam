@@ -131,6 +131,7 @@ setup(
             'atbytes=hipercam.scripts.atbytes:atbytes',
             'averun=hipercam.scripts.averun:averun',
             'cadd=hipercam.scripts.carith:cadd',
+            'calsearch=hipercam.scripts.calsearch:calsearch',
             'cdiv=hipercam.scripts.carith:cdiv',
             'cmul=hipercam.scripts.carith:cmul',
             'combine=hipercam.scripts.combine:combine',
