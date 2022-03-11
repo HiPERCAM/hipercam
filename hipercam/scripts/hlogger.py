@@ -152,6 +152,11 @@ def hlogger(args=None):
         if 'ULTRACAM_PHASEII' in os.environ:
             with open(os.environ['ULTRACAM_PHASEII']) as fp:
                 POSITIONS = json.load(fp)
+            print(
+                f'Loaded Phase II data from {os.environ["ULTRACAM_PHASEII"]}'
+            )
+        else:
+            print('No phase II environment variable set')
 
     elif cwd.find("ultraspec") > -1:
         instrument = "ULTRASPEC"
@@ -159,6 +164,11 @@ def hlogger(args=None):
         if 'ULTRASPEC_PHASEII' in os.environ:
             with open(os.environ['ULTRASPEC_PHASEII']) as fp:
                 POSITIONS = json.load(fp)
+            print(
+                f'Loaded Phase II data from {os.environ["ULTRASPEC_PHASEII"]}'
+            )
+        else:
+            print('No phase II environment variable set')
 
     elif cwd.find("hipercam") > -1:
         instrument = "HiPERCAM"
@@ -166,6 +176,11 @@ def hlogger(args=None):
         if 'HIPERCAM_PHASEII' in os.environ:
             with open(os.environ['HIPERCAM_PHASEII']) as fp:
                 POSITIONS = json.load(fp)
+            print(
+                f'Loaded Phase II data from {os.environ["HIPERCAM_PHASEII"]}'
+            )
+        else:
+            print('No phase II environment variable set')
     else:
         print("** hlogger: cannot find hipercam, ultracam or ultraspec in path")
         print("hlogger aborted")
@@ -2450,7 +2465,8 @@ TRANSLATE_MODE = {
 
 
 # Run name correctors for picking up positions
-
 CORRECTORS = {
-    '2021-P107' : 'P107'
+    '2021-P107' : 'P107',
+    '2021-P108' : 'P108',
+    '2022-P109' : 'P109'
 }
