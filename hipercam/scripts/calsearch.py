@@ -5,6 +5,7 @@ import os
 import keyring
 import getpass
 import subprocess
+import tempfile
 
 import numpy as np
 import pandas as pd
@@ -63,6 +64,7 @@ def calsearch(args=None):
             cline.Fname('results', '.csv', cline.Fname.NEW), ignore="none"
         )
 
+    # Read the runs into pandas
     runs_df = pd.read_csv(runs)
     
     # Get database files.
@@ -99,7 +101,10 @@ def calsearch(args=None):
         if pword != "":
             # use 'curl' to download. Check timestamp to see if
             # file is updated.
-            start_time = os.path.getmtime(fname)
+            if os.path.exists(fname):
+                start_time = os.path.getmtime(fname)
+            else:
+                start_time =''
             args = [
                 'curl','-u', f'{dbase}:{pword}','-o',fname,
                 '-z',fname,f'{server}/{dbase}/logs/{dbase}.db'
@@ -133,34 +138,64 @@ def calsearch(args=None):
 
     print()
 
+    # write runs to be checked to junk file. this is because
+    # i can't get in memory option to work
+    dbname = 'zzz_junk.db'
+    cnx = sqlite3.connect(dbname)
+    runs_df.to_sql(name='tab', con=cnx, if_exists='replace')
+    cnx.commit()
+    cnx.close()
+
     results = []
     for dbase, dtable in dbases:
 
-        # identify runs for the instrument
-        tab = runs_df[runs_df['instrument'] == dtable]
+        # connect to big database
+        conn = sqlite3.connect(f"file:{dbase}?mode=ro", uri=True)
 
-        # connect to database
-        conn = sqlite3.connect(dbase)
-        
-        for index, row in tab.iterrows():
-            print(f"Searching for runs matching: run {row['obs_run']}, night {row['night']}, run {row['run_no']}")
-        
-            # build query string
-            query = f'SELECT * FROM {dtable}\n'
-            query += f'WHERE (obs_run == "{row["obs_run"]}")'
-            
-            #conn.create_function("REGEXP", 2, regexp)
-            #query += f'WHERE (REGEXP("{regex}",target) AND total > {tmin})'
+        # Add database / table runs.tab representing the runs we wish
+        # to search over
+        cursor = conn.cursor()
+        cursor.execute(f'ATTACH "{dbname}" as runs')
 
-            res = pd.read_sql_query(query, conn)
-            if len(res):
-                print(res)
-            else:
-                print('   no runs found')
+        # Build query string to locate matching bias frames.
+        #
+        # Designed to:
+        # 1) only return entries from big table
+        # 2) only from matching observing runs
+        # 3) should not be the same run
+        # 4) should match read speed and binning
+        # 5) have more than 10 frames
+        # 6) have some indication by name, type or comment that it is a bias.
+
+        query = f'SELECT DISTINCT m.* FROM main.{dtable} AS m\n'
+        query += """INNER JOIN runs.tab AS t
+ON (m.obs_run = t.obs_run AND m.instrument = t.instrument)
+WHERE (m.night != t.night OR m.run_no != t.run_no)
+AND m.read_speed = t.read_speed AND m.binning = t.binning AND m.nframe > 10
+AND (m.target LIKE '%bias%' OR m.run_type = 'bias' OR m.comment LIKE '%bias%')"""
+
+        #        query += 'WHERE obs_run = temp.t.obs_run AND (night != temp.t.night OR run_no != temp.t.run_no)\n'
+
+        res = pd.read_sql_query(query, conn)
+        if len(res):
+            print(res)
+            #        query = f'SELECT * FROM main.{dtable}\n'
+            #        query += (
+            #            f"WHERE (obs_run = '{obs_run}') AND (night != '{night}' OR run_no != '{run_no}')\n"
+            #                f"AND (read_speed = '{read_speed}' AND binning = '{binning}' AND nframe > 5\n"
+            #                f"AND (target LIKE '%bias%' OR run_type = 'bias' OR comment LIKE '%bias%') )\n"
+            #            )
+            #        query += (
+            #            f"WHERE (obs_run = '{obs_run}') AND (night != '{night}' OR run_no != '{run_no}')\n"
+            #                f"AND (read_speed = '{read_speed}' AND binning = '{binning}' AND nframe > 5\n"
+            #                f"AND (target LIKE '%bias%' OR run_type = 'bias' OR comment LIKE '%bias%') )\n"
+            #            )
+
+        #conn.create_function("REGEXP", 2, regexp)
+        #query += f'WHERE (REGEXP("{regex}",target) AND total > {tmin})'
 
         # close connection
         conn.close()
 
-    total = pd.concat(results,sort=False)
-    total.to_csv(output)
-
+    #total = pd.concat(results,sort=False)
+    #total.to_csv(output)
