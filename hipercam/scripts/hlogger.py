@@ -595,11 +595,11 @@ def hlogger(args=None):
                             nhtml.write(f'<td class="lalert">{run}</td>')
                             nhtml.write("</tr>\n")
                             if instrument == 'ULTRACAM':
-                                brow = [rname, night, run[3:]] + 50*[None]
+                                brow = [rname, night, run[3:]] + 50*[None] + [linstrument,]
                             elif instrument == 'ULTRASPEC':
-                                brow = [rname, night, run[3:]] + 57*[None]
+                                brow = [rname, night, run[3:]] + 57*[None] + [linstrument,]
                             elif instrument == 'HiPERCAM':
-                                brow = [rname, night, run[3:]] + 62*[None]
+                                brow = [rname, night, run[3:]] + 62*[None] + [linstrument,]
                             continue
 
                         hd = rthead.header
@@ -1004,6 +1004,9 @@ def hlogger(args=None):
 
                         # at last: end the row
                         nhtml.write("\n</tr>\n")
+
+                        # instrument name at end
+                        brow.append(linstrument)
 
                         if len(brow) != len(COLNAMES):
                             print(
@@ -2012,6 +2015,7 @@ HIPERCAM_COLNAMES = (
     ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
     ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
     ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
+    ('instrument', 'str', 'The instrument (ultracam, etc) used')
 )
 
 ULTRACAM_COLNAMES = (
@@ -2068,6 +2072,7 @@ ULTRACAM_COLNAMES = (
     ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
     ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
     ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
+    ('instrument', 'str', 'The instrument (ultracam, etc) used')
 )
 
 ULTRASPEC_COLNAMES = (
@@ -2131,6 +2136,7 @@ ULTRASPEC_COLNAMES = (
     ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
     ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
     ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
+    ('instrument', 'str', 'The instrument (ultracam, etc) used')
 )
 
 
