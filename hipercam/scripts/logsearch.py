@@ -26,7 +26,7 @@ __all__ = [
 
 def logsearch(args=None):
     description = \
-    """``logsearch target (dmax) regex (nocase) tmin output``
+    """``logsearch target (dmax) regex (nocase) tmin [noothers] output``
 
     Searches for targets in the |hiper| and |ucam| logs (using the
     database files ending '.db'). It can carry out a coordinate lookup
@@ -51,9 +51,6 @@ def logsearch(args=None):
           coordinates from a final strength of the form JHHMMSS.S[+/-]DDMMSS
           Enter "none" to ignore.
 
-       tmin : float
-          Minimum exposure duration (in seconds) to cut out short runs.
-
        dmax : float
           Maximum distance from lookup position, arcminutes
 
@@ -64,6 +61,12 @@ def logsearch(args=None):
        nocase : bool [if regex is not "none"]
           True for case-insensitive matching, else case-sensitive used
           with regex
+
+       tmin : float
+          Minimum exposure duration (in seconds) to cut out short runs.
+
+       noothers : bool [hidden, defaults to False]
+          True to ignore any runs called "Others" (non-GTO ULTRASPEC)
 
        output : str
           Name of CSV file to store the results. 'none' to
@@ -110,6 +113,7 @@ def logsearch(args=None):
         cl.register("regex", Cline.LOCAL, Cline.PROMPT)
         cl.register("nocase", Cline.LOCAL, Cline.PROMPT)
         cl.register("tmin", Cline.LOCAL, Cline.PROMPT)
+        cl.register("noothers", Cline.LOCAL, Cline.HIDE)
         cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
@@ -143,7 +147,10 @@ def logsearch(args=None):
         tmin = cl.get_value(
             "tmin", "minimum exposure duration for a run to be included [seconds]", -1.
         )
-
+        cl.set_default('noothers',False)
+        noothers = cl.get_value(
+            "noothers", "ignore runs called 'Others'", False
+        )
         output = cl.get_value(
             "output", "name of spreadsheet of results ['none' to ignore]",
             cline.Fname('results', '.csv', cline.Fname.NEW), ignore="none"
@@ -183,7 +190,10 @@ def logsearch(args=None):
         if pword != "":
             # use 'curl' to download. Check timestamp to see if
             # file is updated.
-            start_time = os.path.getmtime(fname)
+            if os.path.exists(fname):
+                start_time = os.path.getmtime(fname)
+            else:
+                start_time = ''
             args = [
                 'curl','-u', f'{dbase}:{pword}','-o',fname,
                 '-z',fname,f'{server}/{dbase}/logs/{dbase}.db'
@@ -238,7 +248,7 @@ def logsearch(args=None):
     for dbase, dtable in dbases:
 
         # connect to database
-        conn = sqlite3.connect(dbase)
+        conn = sqlite3.connect(f"file:{dbase}?mode=ro",uri=True)
 
         # build query string
         query = f'SELECT * FROM {dtable}\n'
@@ -261,11 +271,14 @@ def logsearch(args=None):
 
             if regex is not None:
                 conn.create_function("REGEXP", 2, regexp)
-                query += f'OR (REGEXP("{regex}",target) AND total > {tmin})'
+                query += f'OR (REGEXP("{regex}",target) AND total > {tmin})\n'
 
         else:
             conn.create_function("REGEXP", 2, regexp)
-            query += f'WHERE (REGEXP("{regex}",target) AND total > {tmin})'
+            query += f"WHERE (REGEXP('{regex}',target) AND total > {tmin})\n"
+
+        if noothers:
+            query += f"AND obs_run != 'Others'\n"
 
         print(f'\nQuerying {dbase}\n')
         res = pd.read_sql_query(query, conn)
@@ -282,7 +295,7 @@ def logsearch(args=None):
     if output is not None:
         total = pd.concat(results,sort=False)
         total.to_csv(output)
-
+        
 def regexp(expr, item):
     """Function to use in sqlite3 regex search"""
     reg = re.compile(expr,re.IGNORECASE)
