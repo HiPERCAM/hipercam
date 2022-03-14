@@ -26,7 +26,7 @@ __all__ = [
 
 def logsearch(args=None):
     description = \
-    """``logsearch target (dmax) regex (nocase) tmin [noothers] output``
+    """``logsearch target (dmax) regex (nocase) tmin noothers output``
 
     Searches for targets in the |hiper| and |ucam| logs (using the
     database files ending '.db'). It can carry out a coordinate lookup
@@ -65,7 +65,7 @@ def logsearch(args=None):
        tmin : float
           Minimum exposure duration (in seconds) to cut out short runs.
 
-       noothers : bool [hidden, defaults to False]
+       noothers : bool
           True to ignore any runs called "Others" (non-GTO ULTRASPEC)
 
        output : str
@@ -77,10 +77,9 @@ def logsearch(args=None):
           into a pandas Dataframe using pd.read_csv('results.csv').
           Column names from all instruments are concatenated which for
           instance means that a column appropriate for hipercam, might
-          be blank for ULTRACAM and vice versa. An extra "instrument"
-          column is added to make the origin clear. If reading into
+          be blank for ULTRACAM and vice versa. If reading into
           oocalc, make sure to switch off semi-colons as delimiters
-          and use UTF-8
+          and use UTF-8.
 
     .. Note::
 
@@ -113,7 +112,7 @@ def logsearch(args=None):
         cl.register("regex", Cline.LOCAL, Cline.PROMPT)
         cl.register("nocase", Cline.LOCAL, Cline.PROMPT)
         cl.register("tmin", Cline.LOCAL, Cline.PROMPT)
-        cl.register("noothers", Cline.LOCAL, Cline.HIDE)
+        cl.register("noothers", Cline.LOCAL, Cline.PROMPT)
         cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
@@ -147,9 +146,8 @@ def logsearch(args=None):
         tmin = cl.get_value(
             "tmin", "minimum exposure duration for a run to be included [seconds]", -1.
         )
-        cl.set_default('noothers',False)
         noothers = cl.get_value(
-            "noothers", "ignore runs called 'Others'", False
+            "noothers", "ignore runs called 'Others'", True
         )
         output = cl.get_value(
             "output", "name of spreadsheet of results ['none' to ignore]",
@@ -284,7 +282,6 @@ def logsearch(args=None):
         res = pd.read_sql_query(query, conn)
         if len(res):
             print(res)
-            res['instrument'] = dtable
             results.append(res)
         else:
             print('   no runs found')
@@ -295,7 +292,7 @@ def logsearch(args=None):
     if output is not None:
         total = pd.concat(results,sort=False)
         total.to_csv(output)
-        
+
 def regexp(expr, item):
     """Function to use in sqlite3 regex search"""
     reg = re.compile(expr,re.IGNORECASE)

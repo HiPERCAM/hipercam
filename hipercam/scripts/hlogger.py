@@ -2014,7 +2014,7 @@ HIPERCAM_COLNAMES = (
     ('sun_alt_end', 'float32', 'Altitude of Sun at end of run'),
     ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
     ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
-    ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
+    ('moon_phase', 'float32', 'Angle between Sun and Moon / 180'),
     ('instrument', 'str', 'The instrument (ultracam, etc) used')
 )
 
@@ -2071,7 +2071,7 @@ ULTRACAM_COLNAMES = (
     ('sun_alt_end', 'float32', 'Altitude of Sun at end of run'),
     ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
     ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
-    ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
+    ('moon_phase', 'float32', 'Angle between Sun and Moon / 180'),
     ('instrument', 'str', 'The instrument (ultracam, etc) used')
 )
 
@@ -2135,7 +2135,7 @@ ULTRASPEC_COLNAMES = (
     ('sun_alt_end', 'float32', 'Altitude of Sun at end of run'),
     ('moon_alt_start', 'float32', 'Altitude of Moon at start of run'),
     ('moon_alt_end', 'float32', 'Altitude of Moon at end of run'),
-    ('moon_phase', 'float32', 'Angle between Sun and Moon / 180')
+    ('moon_phase', 'float32', 'Angle between Sun and Moon / 180'),
     ('instrument', 'str', 'The instrument (ultracam, etc) used')
 )
 
