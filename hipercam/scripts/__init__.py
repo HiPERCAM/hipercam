@@ -11,6 +11,7 @@ from .averun import averun
 from .calsearch import calsearch
 from .carith import cadd, cdiv, cmul, csub
 from .combine import combine
+from .exploss import exploss
 from .filtid import filtid
 from .fits2hcm import fits2hcm
 from .flagcloud import flagcloud

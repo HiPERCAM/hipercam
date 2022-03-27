@@ -137,6 +137,7 @@ setup(
             'combine=hipercam.scripts.combine:combine',
             'csub=hipercam.scripts.carith:csub',
             'div=hipercam.scripts.arith:div',
+            'exploss=hipercam.scripts.exploss:exploss',
             'filtid=hipercam.scripts.filtid:filtid',
             'fits2hcm=hipercam.scripts.fits2hcm:fits2hcm',
             'flagcloud=hipercam.scripts.flagcloud:flagcloud',
