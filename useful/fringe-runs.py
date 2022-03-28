@@ -30,6 +30,7 @@ Written by T.R.Marsh
 
 """
 
+import os
 import sqlite3
 import pandas as pd
 import numpy as np
@@ -40,7 +41,14 @@ from hipercam.utils import format_hlogger_table
 if __name__ == '__main__':
 
     # connect to database
-    conn = sqlite3.connect('hipercam.db')
+    dbase = os.path.join(
+        os.environ.get(
+            'HIPERCAM_ENV',
+            os.path.join(os.environ["HOME"],'.hipercam')
+        ),
+        'dbases','hipercam.db'
+    )
+    conn = sqlite3.connect(dbase)
 
     # Query string where all the criteria are specified. NB
     # "hipercam" is the name of the table within hipercam.db
