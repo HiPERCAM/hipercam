@@ -24,11 +24,27 @@ def exploss(args=None):
     of the actual exposure time, assuming zero readout noise. The
     purpose of the routine is to help in judging how readout noise
     limited a given run is. The result is a loss factor between 0 and
-    1. If close to 1, readout noise is not significant. As well as the
-    loss factor for the supplied run (plotted in blue), the case for
-    double the exposure time is plotted (in red). If this is
-    sinificantly larger than the blue values, it may be advisable to
-    increase the exposure time or add to NBLUE / NSKIP.
+    1. If close to 1, readout noise is not significant. A value of 0.5
+    means that in the absence of readout noise, you could have achieved
+    the same signal-to-noise ratio in half the time you actually used.
+
+    As well as the loss factor for the supplied run (plotted in blue),
+    the case for double the exposure time is plotted (in red). If this
+    is significantly larger than the blue values, it may be advisable
+    to increase the exposure time or add to NBLUE / NSKIP. Basically
+    you want all curves to be close to the upper level of 1, or you
+    are effectively throwing away time by reading out too often. Of
+    course you may have little choice, and so it is important to
+    consider what exposure time you really need.
+
+    The key determinant in the whether readout noise matters is how
+    the quantity n*gain*readout**2, where n = number of pixels in
+    target aperture, compares with obj+n*sky, where obj is the total
+    number of object counts in the aperture and sky in the sky
+    background per pixel, both ADU. Thus readout noise tends to be of
+    less significance during bright time, and seeing is important,
+    particularly during dark time, since that is what determines n.
+    Always remember, in very bad seeing, binning might be an option.
 
     Parameters:
 
@@ -91,17 +107,25 @@ def exploss(args=None):
         sky = hlog[ccd][f'sky_{aper}']
 
         objsky = obj + nsky*sky
-        lfac = objsky/(nsky*readout**2 + objsky)
-        lfac2 = 2*objsky/(nsky*readout**2 + 2*objsky)
+        lfac = objsky/(nsky*gain*readout**2 + objsky)
+        lfac2 = 2*objsky/(nsky*gain*readout**2 + 2*objsky)
         ax.plot(tims,lfac,'.b')
         ax.plot(tims,lfac2,'.r')
         ax.set_title(f'CCD {ccd}')
         ax.set_ylabel('Loss factor')
         ax.axhline(1,ls='--',color='k')
         ax.set_ylim(0,1.1)
-        
+        print(f'Median loss factor of CCD {ccd} = {np.median(lfac):.3f}')
+
     ax.set_xlabel('Time [MJD]')
- 
+
+    print("""
+The three strategies to combat read noise are:
+ (1) increase the exposure time,
+ (2) use of on-chip binning 2x2 etc,
+ (2) increase NBLUE (ultracam) or NSKIP (hipercam).
+    """)
+
     if device == "term":
         plt.show()
     else:
