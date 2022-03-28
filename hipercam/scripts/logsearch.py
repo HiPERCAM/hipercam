@@ -251,34 +251,37 @@ def logsearch(args=None):
         # build query string
         query = f'SELECT * FROM {dtable}\n'
 
+        if noothers:
+            query += f'WHERE (obs_run != "Others") AND\n'
+        else:
+            query += f'WHERE\n'
+
         if target is not None:
             if dtable == 'ultracam':
                 query += (
-                    f"WHERE (ra_deg > {ralo} AND ra_deg < {rahi}\n"
+                    f"( (ra_deg > {ralo} AND ra_deg < {rahi}\n"
                     f"AND dec_deg > {declo} AND dec_deg < {dechi}\n"
-                    f"AND total > {tmin})\n"
+                    f"AND total > {tmin})"
                 )
             else:
                 query += (
-                    f"WHERE (((ra_deg > {ralo} AND ra_deg < {rahi}\n"
+                    f"( (((ra_deg > {ralo} AND ra_deg < {rahi}\n"
                     f"AND dec_deg > {declo} AND dec_deg < {dechi}) OR\n"
                     f"(ra_tel_deg > {ralo} AND ra_tel_deg < {rahi}\n"
                     f"AND dec_tel_deg > {declo} AND dec_tel_deg < {dechi}))\n"
-                    f"AND total > {tmin})\n"
+                    f"AND total > {tmin})"
                 )
 
             if regex is not None:
                 conn.create_function("REGEXP", 2, regexp)
-                query += f'OR (REGEXP("{regex}",target) AND total > {tmin})\n'
+                query += f'\nOR (REGEXP("{regex}",target) AND total > {tmin})'
 
         else:
             conn.create_function("REGEXP", 2, regexp)
-            query += f"WHERE (REGEXP('{regex}',target) AND total > {tmin})\n"
+            query += f"(REGEXP('{regex}',target) AND total > {tmin})"
+        query += ')\n'
 
-        if noothers:
-            query += f"AND obs_run != 'Others'\n"
-
-        print(f'\nQuerying {dbase}\n')
+        print(f'\nQuerying database {dbase} with SQL string:\n\n{query}')
         res = pd.read_sql_query(query, conn)
         if len(res):
             print(res)
