@@ -21,12 +21,15 @@ def exploss(args=None):
 
     Computes the equivalent exposure time needed to match the
     signal-to-noise ratio of the current input log file as a fraction
-    of the actual exposure time, assuming zero readout noise. The
-    purpose of the routine is to help in judging how readout noise
-    limited a given run is. The result is a loss factor between 0 and
-    1. If close to 1, readout noise is not significant. A value of 0.5
-    means that in the absence of readout noise, you could have achieved
-    the same signal-to-noise ratio in half the time you actually used.
+    of the actual exposure time, assuming one had an identical
+    detector except it had zero readout noise. The purpose of the
+    routine is to help in judging how readout noise limited a given
+    run is. The result is a loss factor between 0 and 1. If close to
+    1, readout noise is not significant. A value of 0.5 means that, in
+    the absence of readout noise, you could have achieved the same
+    signal-to-noise ratio in half the time you actually used. The
+    point is one can tilt towards effectively zero readnoise case by
+    exposing longer / reading out less often.
 
     As well as the loss factor for the supplied run (plotted in blue),
     the case for double the exposure time is plotted (in red). If this
@@ -37,16 +40,16 @@ def exploss(args=None):
     course you may have little choice, and so it is important to
     consider what exposure time you really need.
 
-    The key determinant in the whether readout noise matters is how
+    The key determinant as to whether readout noise matters is how
     the quantity n*gain*readout**2, where n = number of pixels in
     target aperture, compares with obj+n*sky, where obj is the total
     number of object counts in the aperture and sky in the sky
-    background per pixel, both ADU. Thus readout noise tends to be of
+    background per pixel (both ADU). Thus readout noise tends to be of
     less significance during bright time, and seeing is important,
-    particularly during dark time, since that is what determines n.
+    particularly during dark time, since that is what determines "n".
     Always remember, in very bad seeing, binning might be an option.
 
-    Parameters:
+    Arguments::
 
       log : string
           name of |reduce| ASCII log file (text file with loads of columns)
@@ -63,6 +66,11 @@ def exploss(args=None):
 
       gain : float
          Gain,  electrons/ADU.
+
+    .. Note::
+
+       The results from this script are *meaningless* if the data
+       were not bias-subtracted during |reduce|! You have been warned.
 
     """
 
@@ -100,6 +108,7 @@ def exploss(args=None):
 
     bitmask = hcam.BAD_TIME|hcam.JUNK
 
+    print()
     for ccd,ax in zip(ccds,axs):
         tims = hlog[ccd][f'MJD']
         obj = hlog[ccd][f'counts_{aper}']
