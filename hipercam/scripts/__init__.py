@@ -42,6 +42,7 @@ from .makemovie import makemovie
 from .makestuff import makemccd, makefield
 from .mstats import mstats
 from .ncal import ncal
+from .pbands import pbands
 from .pfolder import pfolder
 from .plog import plog
 from .redplt import redplt

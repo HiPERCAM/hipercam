@@ -170,6 +170,7 @@ setup(
             'mstats=hipercam.scripts.mstats:mstats',
             'mul=hipercam.scripts.arith:mul',
             'ncal=hipercam.scripts.ncal:ncal',
+            'pbands=hipercam.scripts.pbands:pbands',
             'pfolder=hipercam.scripts.pfolder:pfolder',
             'plog=hipercam.scripts.plog:plog',
             'psf_reduce=hipercam.scripts.psf_reduce:psf_reduce',
