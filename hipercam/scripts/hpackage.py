@@ -41,8 +41,11 @@ def hpackage(args=None):
 
       run123.hcm -- typically the result from a run of |averun|. This *must*
                     exist for each run included.
+
       run123.ape -- file of photometric apertures. Also must exist.
+
       run123*.red -- reduce file as made by |genred| (* == any string)
+
       run123*.log -- result from |reduce| (* == any string)
 
     Note the '*' means that multiple .red / .log pairs are possible to

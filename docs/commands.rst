@@ -91,8 +91,6 @@ useful.
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |cadd|       | |ol-cadd|      |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
-   | |calsearch|  | |ol-calsearch| |          | Yes      |         |           | Yes        |
-   +--------------+----------------+----------+----------+---------+-----------+------------+
    | |cdiv|       | |ol-cdiv|      |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |cmul|       | |ol-cmul|      |          |          |         |   Yes     |            |
@@ -103,7 +101,7 @@ useful.
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |div|        | |ol-div|       |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
-   | |exploss|    | |ol-exploass|  | Yes      |          |         |   Yes     | Yes        |
+   | |exploss|    | |ol-exploss|   | Yes      |          |         |   Yes     | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |fits2hcm|   | |ol-fits2hcm|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -456,6 +454,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.combine
 .. autofunction:: hipercam.scripts.csub
 .. autofunction:: hipercam.scripts.div
+.. autofunction:: hipercam.scripts.exploss
 .. autofunction:: hipercam.scripts.fits2hcm
 .. autofunction:: hipercam.scripts.flagcloud
 .. autofunction:: hipercam.scripts.ftargets
@@ -481,6 +480,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.mul
 .. autofunction:: hipercam.scripts.ncal
 .. autofunction:: hipercam.scripts.nrtplot
+.. autofunction:: hipercam.scripts.pbands
 .. autofunction:: hipercam.scripts.plog
 .. autofunction:: hipercam.scripts.redanal
 .. autofunction:: hipercam.scripts.reduce
@@ -495,9 +495,9 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.uls
 
 .. [#f1] Several other commands (``aligntool``, ``atanalysis``, ``atbytes``,
-         ``harchive``, ``hlogger``, ``hmeta``, ``makefield``, ``makedata``, ``pfolder``,
-         ``redplt``, ``tanalysis``, ``tbytes``) are not documented here
-         as they are of specialist usage.  Information on these is however available via
-         ``pydoc``.
+         ``calsearch``, ``harchive``, ``hlogger``, ``hmeta``, ``logsearch``,
+         ``makefield``, ``makedata``, ``pfolder``, ``redplt``, ``tanalysis``, ``tbytes``)
+         are not documented here as they are of specialist usage.  Information
+         on these is however available via ``pydoc``.
 
 

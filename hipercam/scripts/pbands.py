@@ -15,7 +15,7 @@ from astropy.timeseries import LombScargle
 
 def pbands(args=None):
     """``pbands log [device width height] norm zero [plo phi increment]
-    pgram (flo fhi over) title
+    pgram (flo fhi over) title``
 
     Plots a HiPERCAM |reduce| log as a single light curve in one panel
     per CCD. Can optionally be normalised and the y-axis origin set to
