@@ -7,11 +7,13 @@
 .. |ol-add|      replace:: add two frames
 .. |ol-averun|   replace:: average a series of frames in a run
 .. |ol-cadd|     replace:: add a constant to a frame
+.. |ol-calsearch| replace:: find matching calibration runs
 .. |ol-cdiv|     replace:: divide a frame by a constant
 .. |ol-cmul|     replace:: multiply a frame by a constant
 .. |ol-combine|  replace:: combine a list of frames
 .. |ol-csub|     replace:: subtract a constant from a frame
 .. |ol-div|      replace:: divide one frame by another
+.. |ol-exploss|  replace:: plot reduce log readout noise loss factor
 .. |ol-fits2hcm| replace:: convert foreign FITs files to hcm format
 .. |ol-flagcloud| replace:: flag cloudy and junk data in a reduce log
 .. |ol-ftargets| replace:: automatically find targets using "sep"
@@ -37,7 +39,8 @@
 .. |ol-mul|      replace:: multiply two frames
 .. |ol-ncal|     replace:: noise calibration
 .. |ol-nrtplot|  replace:: plot frames as they come in [matplotlib]
-.. |ol-plog|     replace:: plot output log from |reduce|
+.. |ol-pbands|   replace:: plot |reduce| log as a lightcurve per CCD
+.. |ol-plog|     replace:: flexible plot of a |reduce| log
 .. |ol-redanal|  replace:: analyse a reduction log file
 .. |ol-reduce|   replace:: carry out photometric reduction
 .. |ol-rupdate|  replace:: updates old reduce files
@@ -88,6 +91,8 @@ useful.
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |cadd|       | |ol-cadd|      |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |calsearch|  | |ol-calsearch| |          | Yes      |         |           | Yes        |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
    | |cdiv|       | |ol-cdiv|      |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |cmul|       | |ol-cmul|      |          |          |         |   Yes     |            |
@@ -97,6 +102,8 @@ useful.
    | |csub|       | |ol-csub|      |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |div|        | |ol-div|       |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |exploss|    | |ol-exploass|  | Yes      |          |         |   Yes     | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |fits2hcm|   | |ol-fits2hcm|  |          | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -145,6 +152,8 @@ useful.
    | |ncal|       | |ol-ncal|      | Yes      | Yes      |  Yes    |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |nrtplot|    | |ol-nrtplot|   | Yes      | Yes      |  Yes    |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |pbands|     | |ol-pbands|    | Yes      |          |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |plog|       | |ol-plog|      | Yes      |          |  Yes    |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+

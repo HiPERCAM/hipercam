@@ -15,11 +15,13 @@
 .. |atbytes| replace:: :func:`atbytes <hipercam.scripts.atbytes>`
 .. |averun| replace:: :func:`averun <hipercam.scripts.averun>`
 .. |cadd| replace:: :func:`cadd <hipercam.scripts.cadd>`
+.. |calsearch| replace:: :func:`calsearch <hipercam.scripts.calsearch>`
 .. |cdiv| replace:: :func:`cdiv <hipercam.scripts.cdiv>`
 .. |cmul| replace:: :func:`cmul <hipercam.scripts.cmul>`
 .. |combine| replace:: :func:`combine <hipercam.scripts.combine>`
 .. |csub| replace:: :func:`csub <hipercam.scripts.csub>`
 .. |div| replace:: :func:`div <hipercam.scripts.div>`
+.. |exploss| replace:: :func:`exploss <hipercam.scripts.exploss>`
 .. |fits2hcm| replace:: :func:`fits2hcm <hipercam.scripts.fits2hcm>`
 .. |flagcloud| replace:: :func:`flagcloud <hipercam.scripts.flagcloud>`
 .. |ftargets| replace:: :func:`ftargets <hipercam.scripts.ftargets>`
@@ -48,6 +50,7 @@
 .. |mul| replace:: :func:`mul <hipercam.scripts.mul>`
 .. |ncal| replace:: :func:`ncal <hipercam.scripts.ncal>`
 .. |nrtplot| replace:: :func:`nrtplot <hipercam.scripts.nrtplot>`
+.. |pbands| replace:: :func:`pbands <hipercam.scripts.pbands>`
 .. |plog| replace:: :func:`plog <hipercam.scripts.plog>`
 .. |psf_reduce| replace:: :func:`psf_reduce <hipercam.scripts.psf_reduce>`
 .. |redanal| replace:: :func:`redanal <hipercam.scripts.redanal>`
