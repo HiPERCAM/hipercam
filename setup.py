@@ -92,7 +92,7 @@ setup(
     install_requires=[
         'sep', 'numpy', 'astropy', 'matplotlib', 'requests',
         'numba', 'websocket-client', 'fitsio', 'pandas', 'Cython',
-        'urllib3>=1.26.5', 'keyring'
+        'urllib3>=1.26.5', 'keyring', 'lacosmic'
     ],
 
     # Makes significant use of f-strings which came in python v3.6

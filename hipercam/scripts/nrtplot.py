@@ -11,6 +11,7 @@ import matplotlib.pylab as plt
 from matplotlib.patches import Circle
 
 from astropy.time import Time
+import lacosmic
 
 import hipercam as hcam
 from hipercam import cline, utils, spooler, defect, fringe, mpl
@@ -37,7 +38,8 @@ def nrtplot(args=None):
     highlevel] dark flat fmap (fpair [nhalf rmin rmax]) defect setup
     [drurl cmap imwidth imheight memory] msub iset (ilo ihi | plo phi)
     xlo xhi ylo yhi profit [method beta fwhm fwhm_min shbox smooth
-    fhbox hmin read gain thresh (fwnmax fwymax fwwidth fwheight)]``
+    fhbox hmin read gain thresh (fwnmax fwymax fwwidth fwheight)]
+    [fcosmic] (contrast crthresh nbthresh sathresh readout gain)``
 
     This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
     the current PGPLOT one. Under development.
@@ -72,6 +74,9 @@ def nrtplot(args=None):
     When you first run it, try to get the initial fit parameters about
     right; it doesn't like to be miles out at the start for some reason
     and will refuse to fit.
+
+    Experimental: I have added options to apply L.A.cosmic just to see what
+    it returns at the moment.
 
     Parameters:
 
@@ -365,6 +370,27 @@ def nrtplot(args=None):
            FWHM display plot height in inches (0 for default, which will
            also cause the width to go to its default value)
 
+        fcosmic : bool [hidden, defaults to False]
+           True to identify cosmic rays using L.A.cosmic. Experimental
+           at the moment. Just returns the number of cosmic rays found.
+
+        crthresh : float
+           Threshold signal-to-noise ratio of cosmic rays
+
+        nbthresh : float
+           Threshold signal-to-noise ratio of pixels neighbouring
+           cosmic rays
+
+        sathresh : float
+           Threshold to flag saturated pixels
+ 
+        readout : float
+           Readout noise, RMS ADU. Used to build a noise model.
+
+         gain : float
+           Gain, e-/ADU. Used to build a noise model.
+
+
     .. Note::
 
         To help with *dithered* long exposures especially, for which
@@ -447,6 +473,12 @@ def nrtplot(args=None):
         cl.register("fwymax", Cline.LOCAL, Cline.HIDE)
         cl.register("fwwidth", Cline.LOCAL, Cline.HIDE)
         cl.register("fwheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("fcosmic", Cline.LOCAL, Cline.HIDE)
+        cl.register("crthresh", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nrthresh", Cline.LOCAL, Cline.PROMPT)
+        cl.register("sathresh", Cline.LOCAL, Cline.PROMPT)
+        cl.register("readout", Cline.LOCAL, Cline.PROMPT)
+        cl.register("gain", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
@@ -743,7 +775,28 @@ def nrtplot(args=None):
         )
 
 
-    ###############################################################################
+        cl.set_default("fcosmic", False)
+        fcosmic = cl.get_value(
+            "fcosmic", "find cosmic rays", False
+        )
+        if fcosmic:
+            crthresh = cl.get_value(
+                "crthresh", "threshold S-to-N for cosmic ray detection", 5., 0.
+            )
+            nbthresh = cl.get_value(
+                "nbthresh", "threshold S-to-N for neighbour pixels", 3., 0.
+            )
+            sathresh = cl.get_value(
+                "sathresh", "saturation threshold", 65535.
+            )
+            readout = cl.get_value(
+                "readout", "readout noise, RMS ADU", 2.5, 0.
+            )
+            gain = cl.get_value(
+                "gain", "gain, e-/ADU", 1.1, 0.
+            )
+        
+    ##########################################################################
 
     # Phew. We finally have all the inputs and now can now display stuff.
 
@@ -793,19 +846,12 @@ def nrtplot(args=None):
                 hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
             # indicate progress
-            #            try:
             tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
             nfrm = mccd.head.get("NFRAME",nframe+1)
             print(
                 f'{nfrm}, utc= {tstamp.iso} ({"ok" if mccd.head.get("GOODTIME", True) else "nok"}), ',
                 end="",
             )
-            #            except:
-            #   # sometimes times are junk.
-            #   print(
-            #      '{:d}, utc = {:s}, '.format(
-            #           mccd.head['NFRAME'], '2000-01-01 00:00:00.000'), end=''
-            #   )
 
             # accumulate errors
             emessages = []
@@ -919,6 +965,11 @@ def nrtplot(args=None):
                     # that results from nskip > 0.
                     plotted[nc] = True
 
+                    if fcosmic:
+                        # save a copy for later in order to mask
+                        # saturated stars.
+                        raw = ccd.copy()
+
                     # subtract the bias
                     if bias is not None:
                         ccd -= bias[cnam]
@@ -937,6 +988,18 @@ def nrtplot(args=None):
                     if fmap is not None and cnam in fmap and cnam in fpair:
                         fscale = fpair[cnam].scale(ccd, fmap[cnam], nhalf, rmin, rmax)
                         ccd -= fscale*fmap[cnam]
+
+                    # cosmic ray detection
+                    if fcosmic:
+                        ncosmic = 0
+                        for wind,rwind in zip(ccd.values(),raw.valued()):
+                            data = wind.data
+                            smask = rwind.data >= sathresh
+                            cleaned,crmask = lacosmic.lacosmic(
+                                wind.data,crthresh,nbthresh,mask=smask,
+                                effective_gain=gain,readnoise=readout*gain
+                            )
+                            ncosmic += len(crmask[crmask])
 
                     if msub:
                         # subtract median from each window
@@ -984,13 +1047,11 @@ def nrtplot(args=None):
 
                     # accumulate string of image scalings
                     if nc:
-                        message += ", ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
-                            cnam, vmin, vmax, mccd.head["EXPTIME"]
-                        )
-                    else:
-                        message += "ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
-                            cnam, vmin, vmax, mccd.head["EXPTIME"]
-                        )
+                        message += ", "
+                    message += \
+                            f"ccd {cnam}: {vmin:.1f}, {vmax:.1f}, exp: {mccd.head["EXPTIME"]:.4f}"
+                    if fcosmic:
+                        message += f", nc: {ncosmic}"
                     skipped = False
 
             # Print messages
