@@ -275,11 +275,11 @@ def logsearch(args=None):
             if regex is not None:
                 conn.create_function("REGEXP", 2, regexp)
                 query += f'\nOR (REGEXP("{regex}",target) AND total > {tmin})'
+            query += ')\n'
 
         else:
             conn.create_function("REGEXP", 2, regexp)
             query += f"(REGEXP('{regex}',target) AND total > {tmin})"
-        query += ')\n'
 
         print(f'\nQuerying database {dbase} with SQL string:\n\n{query}')
         res = pd.read_sql_query(query, conn)

@@ -371,8 +371,10 @@ def nrtplot(args=None):
            also cause the width to go to its default value)
 
         fcosmic : bool [hidden, defaults to False]
-           True to identify cosmic rays using L.A.cosmic. Experimental
-           at the moment. Just returns the number of cosmic rays found.
+           True to identify cosmic rays using L.A.cosmic (van Dokkum 2001,
+           PASP, 113, 1420) as implemented in Python package "lascosmic".
+           Experimental at the moment. Just returns the number of cosmic
+           rays found.
 
         crthresh : float
            Threshold signal-to-noise ratio of cosmic rays
@@ -1049,7 +1051,7 @@ def nrtplot(args=None):
                     if nc:
                         message += ", "
                     message += \
-                            f"ccd {cnam}: {vmin:.1f}, {vmax:.1f}, exp: {mccd.head["EXPTIME"]:.4f}"
+                            f"ccd {cnam}: {vmin:.1f}, {vmax:.1f}, exp: {mccd.head['EXPTIME']:.4f}"
                     if fcosmic:
                         message += f", nc: {ncosmic}"
                     skipped = False
