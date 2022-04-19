@@ -14,7 +14,7 @@ from hipercam.cline import Cline
 from astropy.timeseries import LombScargle
 
 def pbands(args=None):
-    """``pbands log [device width height] norm zero [plo phi increment]
+    """``pbands log [device (dpi) width height] norm zero [plo phi increment]
     pgram (flo fhi over) title``
 
     Plots a HiPERCAM |reduce| log as a single light curve in one panel
@@ -31,6 +31,9 @@ def pbands(args=None):
       device : string [hidden, defaults to 'term']
          'term' for interactive plot, file name such as 'plot.pdf'
          or 'object.png' for a hardcopy.
+
+      dpi : int [hidden, if device ends .png]
+         dots per inch for png output
 
       width : float [hidden]
          plot width (inches). Set = 0 to let the program choose.
@@ -97,6 +100,7 @@ def pbands(args=None):
         # register parameters
         cl.register("log", Cline.LOCAL, Cline.PROMPT)
         cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("dpi", Cline.LOCAL, Cline.HIDE)
         cl.register("width", Cline.LOCAL, Cline.HIDE)
         cl.register("height", Cline.LOCAL, Cline.HIDE)
         cl.register("aper1", Cline.LOCAL, Cline.PROMPT)
@@ -122,6 +126,9 @@ def pbands(args=None):
 
         cl.set_default("device","term")
         device = cl.get_value("device", "plot device name", "term")
+        if device.endswith(".png"):
+            dpi = cl.get_value("dpi", "dots per inch", 240, 10)
+
         width = cl.get_value("width", "plot width (inches)", 0.0)
         height = cl.get_value("height", "plot height (inches)", 0.0)
         aper1 = cl.get_value("aper1", "target aperture", "1")
@@ -252,4 +259,7 @@ def pbands(args=None):
     if device == "term":
         plt.show()
     else:
-        plt.savefig(device)
+        if device.endswith(".png"):
+            plt.savefig(device,dpi=dpi)
+        else:
+            plt.savefig(device)
