@@ -13,11 +13,9 @@ from codecs import open
 import numpy as np
 from Cython.Build import cythonize
 
-here = os.path.abspath(os.path.dirname(__file__))
-
-# Get the long description from the README file
-with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
+# read the README file for the long description
+with open('README.rst') as f:
+    readme = f.read()
 
 # cython support routine
 extension = [
@@ -31,16 +29,16 @@ extension = [
 setup(
     name='hipercam',
 
-    # Versions should comply with PEP440. Here we use a version generated
-    # automatically from git.
+    # Versions should comply with PEP440. Here we use a version
+    # generated automatically from git.
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
 
-    description='hipercam',
-    long_description=long_description,
+    description='multi-CCD astronomical reduction suite',
+    long_description=readme,
 
     # The project's main homepage.
-    url='http://www.astro.warwick.ac.uk',
+    url='https://github.com/HiPERCAM/hipercam',
 
     # Author details
     author='Tom Marsh',
@@ -55,7 +53,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
 
         # Indicate who your project is intended for
         'Intended Audience :: Astronomers',
@@ -90,9 +88,9 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     # urllib3 requirement to get over a security warning
     install_requires=[
-        'sep', 'numpy', 'astropy', 'matplotlib', 'requests',
-        'numba', 'websocket-client', 'fitsio', 'pandas', 'Cython',
-        'urllib3>=1.26.5', 'keyring', 'lacosmic'
+        'astropy', 'Cython', 'fitsio', 'keyring', 'lacosmic',
+        'matplotlib', 'numba', 'numpy', 'pandas', 'requests',
+        'sep', 'trm.cline', 'urllib3>=1.26.5', 'websocket-client',
     ],
 
     # Makes significant use of f-strings which came in python v3.6
