@@ -11,8 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
+from hipercam import utils
 
 __all__ = [
     "redplt",

@@ -30,9 +30,10 @@ if curs is not None:
 
 import matplotlib.pyplot as plt
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
 
 __all__ = [
     "setaper",
@@ -273,7 +274,7 @@ def setaper(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

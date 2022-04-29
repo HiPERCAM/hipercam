@@ -8,9 +8,10 @@ import signal
 
 import numpy as np
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
 
 __all__ = [
     "makedark",
@@ -94,7 +95,7 @@ def makedark(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -235,8 +236,8 @@ def makedark(args=None):
 
         # correct exposure time of dark frame by the exposure time of
         # the bias frame used
-        dark = hcam.MCCD.read(utils.add_extension(output, hcam.HCAM))
-        bias = hcam.MCCD.read(utils.add_extension(bias, hcam.HCAM))
+        dark = hcam.MCCD.read(cline.add_extension(output, hcam.HCAM))
+        bias = hcam.MCCD.read(cline.add_extension(bias, hcam.HCAM))
         if "EXPTIME" in dark.head and "EXPTIME" in bias.head:
             dexpose = dark.head["EXPTIME"]
             bexpose = bias.head["EXPTIME"]
@@ -246,7 +247,7 @@ def makedark(args=None):
                     dexpose, dexpose - bexpose
                 )
             )
-            dark.write(utils.add_extension(output, hcam.HCAM), True)
+            dark.write(cline.add_extension(output, hcam.HCAM), True)
         else:
             warnings.warn(
                 "Could not find exposure time (EXPTIME) in the dark and/or"

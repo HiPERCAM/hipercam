@@ -12,9 +12,12 @@ from astropy.modeling import Fittable2DModel, Parameter
 from astropy.stats import SigmaClip, gaussian_fwhm_to_sigma
 from astropy.table import Table
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, spooler
-from hipercam.cline import Cline
+from hipercam import spooler
+
 from hipercam.reduction import (
     Rfile,
     initial_checks,
@@ -177,7 +180,7 @@ def psf_reduce(args=None):
            upper percentile level
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 

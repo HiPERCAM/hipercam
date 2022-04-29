@@ -9,10 +9,11 @@ from matplotlib.gridspec import GridSpec
 
 from astropy.time import Time
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, spooler, defect, fringe
-from hipercam.cline import Cline
-from hipercam import mpl, hlog
+from hipercam import defect, fringe, hlog, mpl, spooler
 
 import requests
 import socket
@@ -239,7 +240,7 @@ def makemovie(args=None):
            line width
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
