@@ -3,9 +3,10 @@ import os
 
 import numpy as np
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
 
 __all__ = ["add", "div", "mul", "sub"]
 
@@ -52,7 +53,7 @@ def arith(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -168,11 +169,11 @@ def arith(args=None):
     mccd1.head.add_history(
         "{:s} {:s} {:s} {:s} {:s} {:s}".format(
             command,
-            utils.sub_extension(infile1, hcam.HCAM),
-            utils.sub_extension(infile2, hcam.HCAM),
+            cline.sub_extension(infile1, hcam.HCAM),
+            cline.sub_extension(infile2, hcam.HCAM),
             ccd,
             win,
-            utils.sub_extension(outfile, hcam.HCAM),
+            cline.sub_extension(outfile, hcam.HCAM),
         )
     )
 

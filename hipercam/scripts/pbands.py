@@ -8,8 +8,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
+
+from trm import cline
+from trm.cline import Cline
 
 from astropy.timeseries import LombScargle
 
@@ -90,7 +91,7 @@ def pbands(args=None):
 
     """
 
-    command, args = utils.script_args(sys.argv)
+    command, args = cline.script_args(sys.argv)
     if command.endswith('.py'):
         command = command[:-3]
 

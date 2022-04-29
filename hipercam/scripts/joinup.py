@@ -8,9 +8,11 @@ from astropy import wcs
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, spooler, defect, fringe
-from hipercam.cline import Cline
+from hipercam import spooler, defect, fringe
 
 __all__ = [
     "joinup",
@@ -215,7 +217,7 @@ def joinup(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -291,7 +293,7 @@ def joinup(args=None):
             root,ext = os.path.splitext(resource)
             if (ext == hcam.HCAM and os.path.exists(resource)) or \
                (ext != hcam.LIST and \
-                os.path.exists(utils.add_extension(resource,hcam.HCAM))):
+                os.path.exists(cline.add_extension(resource,hcam.HCAM))):
                 # single file
                 resource = [resource]
                 ask_aper = True

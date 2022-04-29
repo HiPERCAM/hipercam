@@ -3,9 +3,11 @@ import os
 import warnings
 from time import gmtime, strftime
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, reduction
-from hipercam.cline import Cline
+from hipercam import reduction
 
 # get hipercam version to write into the reduce file
 from pkg_resources import get_distribution, DistributionNotFound
@@ -156,7 +158,7 @@ def genred(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 

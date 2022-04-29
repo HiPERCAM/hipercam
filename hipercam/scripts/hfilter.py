@@ -4,9 +4,10 @@ import os
 import numpy as np
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
 
 #######################################
 #
@@ -45,7 +46,7 @@ def hfilter(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

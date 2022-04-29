@@ -11,9 +11,11 @@ from astropy.time import Time
 import sep
 
 from trm.pgplot import *
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import core, cline, utils, spooler, defect
-from hipercam.cline import Cline
+from hipercam import core, spooler, defect
 from hipercam.extraction import findStars
 
 __all__ = [
@@ -208,7 +210,7 @@ def ftargets(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

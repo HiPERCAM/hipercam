@@ -4,9 +4,11 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, support, spooler
-from hipercam.cline import Cline
+from hipercam import support, spooler
 
 __all__ = [
     "combine",
@@ -88,7 +90,7 @@ def combine(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -202,7 +204,7 @@ def combine(args=None):
         else:
             raise hcam.HipercamError("List = {:s} is empty".format(flist))
 
-    template = hcam.MCCD.read(utils.add_extension(template_name, hcam.HCAM))
+    template = hcam.MCCD.read(cline.add_extension(template_name, hcam.HCAM))
 
     if bias is not None:
         # crop the bias

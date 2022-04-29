@@ -10,9 +10,10 @@ import tempfile
 import numpy as np
 import pandas as pd
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
 from hipercam.utils import target_lookup
 
 __all__ = [
@@ -60,7 +61,7 @@ def calsearch(args=None):
           biases for the flats as well. This is readable by oocalc for
           instance (UTF-8, semi-colon separators disabled).  """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
 
