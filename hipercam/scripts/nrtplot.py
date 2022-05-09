@@ -41,7 +41,7 @@ def nrtplot(args=None):
     [drurl cmap imwidth imheight memory] msub iset (ilo ihi | plo phi)
     xlo xhi ylo yhi profit [method beta fwhm fwhm_min shbox smooth
     fhbox hmin read gain thresh (fwnmax fwymax fwwidth fwheight)]
-    [fcosmic] (contrast crthresh nbthresh sathresh readout gain)``
+    [fcosmic] (contrast crthresh nbthresh sathresh readout)``
 
     This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
     the current PGPLOT one. Under development.
@@ -387,13 +387,11 @@ def nrtplot(args=None):
 
         sathresh : float
            Threshold to flag saturated pixels
- 
+
         readout : float
-           Readout noise, RMS ADU. Used to build a noise model.
-
-         gain : float
-           Gain, e-/ADU. Used to build a noise model.
-
+           readout noise, RMS ADU, for assigning uncertainties. (NB
+           at the moment this is separate from "read", but they may
+           be merged at some point)
 
     .. Note::
 
@@ -482,7 +480,6 @@ def nrtplot(args=None):
         cl.register("nrthresh", Cline.LOCAL, Cline.PROMPT)
         cl.register("sathresh", Cline.LOCAL, Cline.PROMPT)
         cl.register("readout", Cline.LOCAL, Cline.PROMPT)
-        cl.register("gain", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
@@ -796,10 +793,7 @@ def nrtplot(args=None):
             readout = cl.get_value(
                 "readout", "readout noise, RMS ADU", 2.5, 0.
             )
-            gain = cl.get_value(
-                "gain", "gain, e-/ADU", 1.1, 0.
-            )
-        
+
     ##########################################################################
 
     # Phew. We finally have all the inputs and now can now display stuff.
