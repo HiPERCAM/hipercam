@@ -670,7 +670,8 @@ class Tseries:
         is true. 'mask' should match the Tseries length.  Arguments::
 
            bitmask : int
-             a bitmask value which will be OR-ed with elements of the current bitmask array
+             a bitmask value which will be OR-ed with elements of the current
+             bitmask array
 
            mask: np.ndarray
              the bitmask will be applied to every element for which mask is True.
