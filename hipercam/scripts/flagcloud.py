@@ -161,7 +161,7 @@ def flagcloud(args=None):
                 ccds = cnams
             else:
                 ccds = ccd.split()
-                if set(ccds) <= set(cnams):
+                if not (set(ccds) <= set(cnams)):
                     print(f'   selected CCDs ({ccds}) not amongst those in the reduce log ({cnams})')
                     return
         else:
