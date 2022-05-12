@@ -456,6 +456,10 @@ def joinup(args=None):
     dtotal = 0
     GB = 1024**3
     nfile = 0
+
+    # keep track of CCDs we have written region files for
+    written_regions = set()
+
     with spooler.data_source(source, resource, first) as spool:
 
         # 'spool' is an iterable source of MCCDs
@@ -735,37 +739,41 @@ def joinup(args=None):
                     print(f'   CCD {cnam}: written {oname}')
                     nfile += 1
 
-                if nframe == first and aper is not None and cnam in aper:
-                    # ds9 region files
+                    if aper is not None and cnam in aper and cnam not in written_regions:
 
-                    if server_or_local:
-                        abase = os.path.basename(resource)
-                    else:
-                        abase = os.path.basename(resource[0])
-                    abase = os.path.join(odir, abase)
-                    oname = f'{abase}_ccd{cnam}.reg'
+                        # ds9 region files. written once only
 
-                    caper = aper[cnam]
+                        if server_or_local:
+                            abase = os.path.basename(resource)
+                        else:
+                            abase = os.path.basename(resource[0])
+                        abase = os.path.join(odir, abase)
+                        oname = f'{abase}_ccd{cnam}.reg'
 
-                    with open(oname,'w') as fp:
-                        fp.write(DS9_REG_HEADER)
-                        for apnam, ap in caper.items():
-                            if expand:
-                                x = ap.x - llxmin + 1
-                                y = ap.y - llymin + 1
-                                rad = ap.rsky2
-                            else:
-                                x = (ap.x - (llxmin + (xbin-1)/2)) / xbin + 1
-                                y = (ap.y - (llymin + (ybin-1)/2)) / ybin + 1
-                                rad = ap.rsky2/xbin
+                        caper = aper[cnam]
 
-                            fp.write(f'circle({x},{y},{rad})\n')
-                            fp.write(f'# text({x-rad},{y-rad}) text={{{apnam}}}\n')
+                        with open(oname,'w') as fp:
+                            fp.write(DS9_REG_HEADER)
+                            for apnam, ap in caper.items():
+                                if expand:
+                                    x = ap.x - llxmin + 1
+                                    y = ap.y - llymin + 1
+                                    rad = ap.rsky2
+                                else:
+                                    x = (ap.x - (llxmin + (xbin-1)/2)) / xbin + 1
+                                    y = (ap.y - (llymin + (ybin-1)/2)) / ybin + 1
+                                    rad = ap.rsky2/xbin
 
-                    print(f'   CCD {cnam}: written ds9 region file {oname}')
+                                fp.write(f'circle({x},{y},{rad})\n')
+                                fp.write(f'# text({x-rad},{y-rad}) text={{{apnam}}}\n')
 
-                else:
-                    print(f'   CCD {cnam}: no ds9 region file')
+                        print(f'   CCD {cnam}: written ds9 region file {oname}')
+
+                    elif cnam not in written_regions:
+                        print(f'   CCD {cnam}: no ds9 region file')
+
+                    # record CCD = cnam as done as far as region files are concerned
+                    written_region.add(cnam)
 
             # update the frame number
             nframe += 1
