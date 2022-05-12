@@ -81,7 +81,7 @@ def redanal(args=None):
                 ye = log[cnam]["ye_{:s}".format(apnam)]
                 ok = (xe > 0) & (ye > 0)
                 xdiffs = x[ok][1:] - x[ok][:-1]
-                ydiffs = x[ok][1:] - x[ok][:-1]
+                ydiffs = y[ok][1:] - y[ok][:-1]
                 jitt = np.sqrt(xdiffs ** 2 + ydiffs ** 2)
                 print(
                     "CCD {:s}, ap {:s} has {:d}/{:d}/{:d} OK/NOK/total points. Min/mean/median/max jitter = {:.2f}/{:.2f}/{:.2f}/{:.2f} pixels {:s}".format(
