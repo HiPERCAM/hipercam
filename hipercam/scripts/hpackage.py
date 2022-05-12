@@ -227,7 +227,7 @@ def hpackage(args=None):
                         csec['bias'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'bias = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -242,7 +242,7 @@ def hpackage(args=None):
                         csec['dark'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'dark = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -257,7 +257,7 @@ def hpackage(args=None):
                         csec['flat'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'flat = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -272,7 +272,7 @@ def hpackage(args=None):
                         csec['fmap'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'fringe map = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -287,7 +287,7 @@ def hpackage(args=None):
                             csec['fpair'], hcam.FRNG
                         )
                         if os.path.dirname(source) != '':
-                            raise HipercamError(
+                            raise hcam.HipercamError(
                                 f'fringe peak/trough pair file = {source}'
                                 ' is not in the present working directory'
                             )
