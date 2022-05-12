@@ -38,18 +38,26 @@ def joinup(args=None):
     like run0002_0001_ccd1.fits, run0002_001_ccd2.fits, etc and the
     same for any of the other CCDs for frame 1, then
     run0002_0002_ccd1.fits. '_ccd1' etc will be tacked onto the names
-    froma list of files. The generated files will be written to the
+    from a list of files. The generated files will be written to the
     present working directory. If the windows have gaps, then they
     will be filled with zeroes.
 
     When binning has been used it is possible for sub-windows to be
-    out of sync with each other so they cannot be simply added into
-    to a single image. In this case the routine will instead try to
-    place them within an unbinned image with each binned pixel
-    repeated within this image xbin by ybin times. This and the zero
-    filling can mean that the resulting images are much larger than the
-    originals. There are safety parameters to guard against disaster in
-    such cases.
+    out of sync with each other so they cannot be simply added into a
+    single image. In this case the routine will instead place them
+    within an "unbinned" image with each binned pixel repeated within
+    this image xbin by ybin times. This and the zero filling can mean
+    that the resulting images are much larger than the
+    originals. There are safety parameters to guard against disaster
+    in such cases.
+
+    `joinup` gives you the option of creating ds9 "region" files
+    corresponding to a |hiper| aperture file. These can be used in
+    a command such as::
+
+      ds9 run123_ccd2.fits -regions run123_ccd2.reg -zscale
+
+    or loaded from within ds9 instead.
 
     Parameters:
 
@@ -176,7 +184,7 @@ def joinup(args=None):
            with vast numbers of files.
 
         overwrite : bool [hidden]
-           overwrite any pre-existing files. Always defaults to 'False'
+           overwrite any pre-existing files. Defaults to 'False'
            for safety.
 
         compress : str
@@ -213,7 +221,7 @@ def joinup(args=None):
 
        A HipercamError will be raised if an attempt is made to write out
        data outside the range 0 to 65535 into unit16 format and nothing
-       will be written
+       will be written.
 
     """
 
@@ -773,7 +781,7 @@ def joinup(args=None):
                         print(f'   CCD {cnam}: no ds9 region file')
 
                     # record CCD = cnam as done as far as region files are concerned
-                    written_region.add(cnam)
+                    written_regions.add(cnam)
 
             # update the frame number
             nframe += 1
