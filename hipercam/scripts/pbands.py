@@ -15,7 +15,7 @@ from trm.cline import Cline
 from astropy.timeseries import LombScargle
 
 def pbands(args=None):
-    """``pbands log [device (dpi) width height] norm zero [plo phi increment]
+    """``pbands log [device (dpi) width height ms line] norm zero [plo phi increment]
     pgram (flo fhi over) title``
 
     Plots a HiPERCAM |reduce| log as a single light curve in one panel
@@ -43,6 +43,12 @@ def pbands(args=None):
          plot height (inches). Set = 0 to let the program choose. BOTH
          width AND height must be non-zero to have any effect
 
+      ms : float [hidden]
+         marker size
+
+      line : bool [hidden]
+         connect points with a line or not
+
       norm : bool
          normalise each light curve to a unit median (or not)
 
@@ -58,9 +64,9 @@ def pbands(args=None):
          (e.g. 95). Must be > plo. Takes account of error bars.
 
       increment : float [hidden]
-         multiplier to increment the raw numbers derived via plo and phi.
-         If they are y1 and y2, then each is corrected up and down by
-         increment*(y2-y1).
+         fraction of plot range that comes from plo, phi to add on top and bottom.
+         If the initial numbers are y1 and y2, then each is corrected up and down by
+         increment*(y2-y1), but if "zero" then y1 is set = 0.
 
       pgram : bool
          plot periodogram panels (or not). They appear on the right-hand
@@ -104,6 +110,8 @@ def pbands(args=None):
         cl.register("dpi", Cline.LOCAL, Cline.HIDE)
         cl.register("width", Cline.LOCAL, Cline.HIDE)
         cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("ms", Cline.LOCAL, Cline.HIDE)
+        cl.register("line", Cline.LOCAL, Cline.HIDE)
         cl.register("aper1", Cline.LOCAL, Cline.PROMPT)
         cl.register("aper2", Cline.LOCAL, Cline.PROMPT)
         cl.register("norm", Cline.LOCAL, Cline.PROMPT)
@@ -132,6 +140,8 @@ def pbands(args=None):
 
         width = cl.get_value("width", "plot width (inches)", 0.0)
         height = cl.get_value("height", "plot height (inches)", 0.0)
+        ms = cl.get_value("ms", "marker size", 3., 0.)
+        line = cl.get_value("line", "connect points with a line", False)
         aper1 = cl.get_value("aper1", "target aperture", "1")
         aper2 = cl.get_value("aper2", "comparison aperture ('!' to ignore)", "2")
 
@@ -197,8 +207,12 @@ def pbands(args=None):
             targ /= comp
         if norm:
             targ.normalise()
+        if line:
+            targ.mplot(
+                ax, col, '-', bitmask=hcam.BAD_TIME|hcam.JUNK,
+            )
         targ.mplot(
-            ax, col, bitmask=hcam.BAD_TIME|hcam.JUNK,
+            ax, col, bitmask=hcam.BAD_TIME|hcam.JUNK, ms=ms
         )
 
         # plot limits
