@@ -55,7 +55,11 @@ def hpackage(args=None):
     'run123' and end '.red' and '.log' to be included. There has to be
     at least one such pair. It also looks for calibration files inside
     the reduce file and copies them. It requires them to be within the
-    same directory and will fail if they are not.
+    same directory and will fail if they are not. The reason for this
+    is that they get copied over to the same directory and the
+    directory structure required to store them elsewhere is not
+    created. I often use soft-links to point to calibration files for
+    this reason.
 
     It produces several extra files which are:
 
@@ -227,7 +231,7 @@ def hpackage(args=None):
                         csec['bias'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'bias = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -242,7 +246,7 @@ def hpackage(args=None):
                         csec['dark'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'dark = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -257,7 +261,7 @@ def hpackage(args=None):
                         csec['flat'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'flat = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -272,7 +276,7 @@ def hpackage(args=None):
                         csec['fmap'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'fringe map = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -287,7 +291,7 @@ def hpackage(args=None):
                             csec['fpair'], hcam.FRNG
                         )
                         if os.path.dirname(source) != '':
-                            raise HipercamError(
+                            raise hcam.HipercamError(
                                 f'fringe peak/trough pair file = {source}'
                                 ' is not in the present working directory'
                             )
