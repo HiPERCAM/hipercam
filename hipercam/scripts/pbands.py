@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 import hipercam as hcam
 
-from trm import cline
+from trm import cline, utils
 from trm.cline import Cline
 
 from astropy.timeseries import LombScargle
@@ -209,6 +209,7 @@ def pbands(args=None):
 
     # light curves
     for ccd,ax,col in zip(ccds,axs[:,0],colours):
+        utils.style_mpl_axes(ax)
         targ = hlog.tseries(ccd, aper1, 'counts')
         if aper2 != "!":
             comp = hlog.tseries(ccd, aper2, 'counts')
@@ -244,6 +245,7 @@ def pbands(args=None):
     if pgram:
         # periodograms
         for ccd,ax,col in zip(ccds,axs[:,1],colours):
+            utils.style_mpl_axes(ax)
             targ = hlog.tseries(ccd, aper1, 'counts')
             if aper2 != "!":
                 comp = hlog.tseries(ccd, aper2, 'counts')
@@ -258,24 +260,14 @@ def pbands(args=None):
             )
             ax.plot(f,p,col)
             ax.set_ylabel('Power')
-
-        # plot limits
-        _d,_d,y1 = targ.percentile(plo,hcam.BAD_TIME|hcam.JUNK)
-        _d,_d,y2 = targ.percentile(phi,hcam.BAD_TIME|hcam.JUNK)
-        yrange = y2-y1
-        y1 -= increment*yrange
-        y2 += increment*yrange
-
-        if zero:
+            y1,y2 = ax.set_ylim()
             ax.set_ylim(0,y2)
-        else:
-            ax.set_ylim(y1,y2)
-
-    if pgram:
+    
         axs[0,0].set_title(f'{title} [light curves]')
         axs[0,1].set_title(f'{title} [periodograms]')
         axs[-1,0].set_xlabel('Time [MJD]')
         axs[-1,1].set_xlabel('Frequency [cycles/day]')
+        
     else:
         axs[0,0].set_title(f'{title}')
         axs[-1,0].set_xlabel('Time [MJD]')
