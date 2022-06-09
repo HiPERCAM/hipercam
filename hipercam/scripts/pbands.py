@@ -15,7 +15,7 @@ from trm.cline import Cline
 from astropy.timeseries import LombScargle
 
 def pbands(args=None):
-    """``pbands log [device (dpi) width height ms line] norm zero [plo phi increment]
+    """``pbands log [device (dpi) width height ms line error] norm zero [plo phi increment]
     pgram (flo fhi over) title``
 
     Plots a HiPERCAM |reduce| log as a single light curve in one panel
@@ -48,6 +48,9 @@ def pbands(args=None):
 
       line : bool [hidden]
          connect points with a line or not
+
+      error : bool [hidden]
+         plot error bars or not
 
       norm : bool
          normalise each light curve to a unit median (or not)
@@ -112,6 +115,7 @@ def pbands(args=None):
         cl.register("height", Cline.LOCAL, Cline.HIDE)
         cl.register("ms", Cline.LOCAL, Cline.HIDE)
         cl.register("line", Cline.LOCAL, Cline.HIDE)
+        cl.register("error", Cline.LOCAL, Cline.HIDE)
         cl.register("aper1", Cline.LOCAL, Cline.PROMPT)
         cl.register("aper2", Cline.LOCAL, Cline.PROMPT)
         cl.register("norm", Cline.LOCAL, Cline.PROMPT)
@@ -142,8 +146,11 @@ def pbands(args=None):
         height = cl.get_value("height", "plot height (inches)", 0.0)
         ms = cl.get_value("ms", "marker size", 3., 0.)
         line = cl.get_value("line", "connect points with a line", False)
+        error = cl.get_value("error", "plot errorbars", True)
         aper1 = cl.get_value("aper1", "target aperture", "1")
-        aper2 = cl.get_value("aper2", "comparison aperture ('!' to ignore)", "2")
+        aper2 = cl.get_value(
+            "aper2", "comparison aperture ('!' to ignore)", "2"
+        )
 
         ccds = []
         for ccd in hlog.apnames:
@@ -155,6 +162,7 @@ def pbands(args=None):
             raise hcam.HipercamError(
                 f'Failed to find any CCDs with apertures {aper1} and {aper2}'
             )
+        ccds.sort()
 
         norm = cl.get_value("norm", "normalise to median", True)
         zero = cl.get_value("zero", "set y-axis origin to zero", True)
@@ -209,23 +217,25 @@ def pbands(args=None):
             targ.normalise()
         if line:
             targ.mplot(
-                ax, col, '-', bitmask=hcam.BAD_TIME|hcam.JUNK,
+                ax, col, '-', bitmask=hcam.BAD_TIME|hcam.JUNK, erry=error
             )
         targ.mplot(
-            ax, col, bitmask=hcam.BAD_TIME|hcam.JUNK, ms=ms
+            ax, col, bitmask=hcam.BAD_TIME|hcam.JUNK, ms=ms, erry=error
         )
 
         # plot limits
         _d,y1,_d = targ.percentile(plo,hcam.BAD_TIME|hcam.JUNK)
         _d,_d,y2 = targ.percentile(phi,hcam.BAD_TIME|hcam.JUNK)
-        yrange = y2-y1
-        y1 -= increment*yrange
-        y2 += increment*yrange
-
         if zero:
-            ax.set_ylim(0,y2)
+            y1 = 0.
+            y2 *= 1+increment
         else:
-            ax.set_ylim(y1,y2)
+            yrange = y2-y1
+            y1 -= increment*yrange
+            y2 += increment*yrange
+
+        ax.set_ylim(y1,y2)
+
         if aper2 == "!":
             ax.set_ylabel('Targ')
         else:
