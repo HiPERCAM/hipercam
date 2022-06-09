@@ -91,6 +91,7 @@ setup(
         'astropy', 'Cython', 'fitsio', 'keyring', 'lacosmic',
         'matplotlib', 'numba', 'numpy', 'pandas', 'requests',
         'sep', 'trm.cline', 'urllib3>=1.26.5', 'websocket-client',
+        'trm.utils'
     ],
 
     # Makes significant use of f-strings which came in python v3.6

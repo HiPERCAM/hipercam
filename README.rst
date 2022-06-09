@@ -114,6 +114,13 @@ your O/S package manager. e.g. under fedora, Cython appears as
          "true" or "false" first, according to whether you installed
          the PNG drivers with PGPLOT.
 
+  trm.cline :
+         handles command line parameters. Available on PyPi.
+
+  trm.utils :
+         generally useful routines used at a few places. Available
+	 from PyPi.
+	 
   websocket-client :
          for talking to the hipercam server.
 
