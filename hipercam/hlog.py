@@ -1258,7 +1258,10 @@ class Tseries:
                 # mid time is the mean of all points, but what else can we do?
                 te.append(np.fabs(t_in[bin_mask].max() - t_in[bin_mask].min()))
                 # RMS for errors
-                ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
+                if len(y_in[bin_mask]) == 1:
+                    ye.append(ye_in[bin_mask][0])
+                else:
+                    ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
                 # bitwise OR all mask entries
                 bmask.append(np.bitwise_or.reduce(bmask_in[bin_mask]))
             else:
@@ -1269,7 +1272,10 @@ class Tseries:
                 # mid time is the mean of all points, but what else can we do?
                 te.append(np.fabs(t_in[bin_mask].max() - t_in[bin_mask].min()))
                 # RMS for errors
-                ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
+                if len(y_in[bin_mask]) == 1:
+                    ye.append(ye_in[bin_mask][0])
+                else:
+                    ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
                 # bitwise OR all mask entries
                 bmask.append(np.bitwise_or.reduce(bmask_in[bin_mask]))
 
