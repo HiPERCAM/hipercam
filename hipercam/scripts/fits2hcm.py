@@ -5,9 +5,10 @@ import numpy as np
 from astropy.io import fits
 from astropy.time import Time
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
 from hipercam.core import *
 
 ############################################
@@ -69,7 +70,7 @@ def fits2hcm(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     FORMATS = ["HICKS", "INTWFC", "LTRISE", "LTIO", "PT5M", "ROSA", "LCOGT", "WHTCAM"]
 

@@ -2,9 +2,11 @@ import sys
 import os
 import re
 import time
+
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import utils, cline
-from hipercam.cline import Cline
 
 __all__ = [
     "atanalysis",
@@ -42,7 +44,7 @@ def atanalysis(args=None):
 
         warnings.simplefilter("ignore")
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

@@ -4,9 +4,10 @@ import struct
 import numpy as np
 from astropy.time import Time
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
 
 __all__ = [
     "hlog2col",
@@ -57,7 +58,7 @@ def hlog2col(args=None):
     CCD 2, aperture 3 divided by 4 of run014 from the night starting 2021-01-12.
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

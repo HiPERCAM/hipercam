@@ -38,6 +38,7 @@ from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 import astropy.units as u
 
+from trm.utils import timcorr
 from .core import *
 from . import utils
 
@@ -668,7 +669,8 @@ class Tseries:
         is true. 'mask' should match the Tseries length.  Arguments::
 
            bitmask : int
-             a bitmask value which will be OR-ed with elements of the current bitmask array
+             a bitmask value which will be OR-ed with elements of the current
+             bitmask array
 
            mask: np.ndarray
              the bitmask will be applied to every element for which mask is True.
@@ -1514,23 +1516,16 @@ class Tseries:
             new object
 
         """
-        if not isinstance(position, SkyCoord):
-            position = SkyCoord(position, unit=(u.hourangle, u.deg))
-
-        if not isinstance(telescope, EarthLocation):
-            telescope = EarthLocation.of_site(telescope)
 
         # assuming MJDs at this point
-        times = Time(self.t, format="mjd", scale="utc", location=telescope)
-
-        # Barycentric correction: add to get to barycentre
-        ltt_bary = times.light_travel_time(position)
-        times = times.tdb + ltt_bary
+        ts = timcorr(self.t, position, telescope)
 
         if inplace:
-            self.t = times.mjd
+            self.t = ts
         else:
-            return Tseries(times.mjd, self.y, self.ye, self.bmask, self.te)
+            return Tseries(
+                ts, self.y, self.ye, self.bmask, self.te
+            )
 
     def to_airmass(self, position, telescope, inplace=True):
         """Converts times in MJD to airmass. This is a first step when

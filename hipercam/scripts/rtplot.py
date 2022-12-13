@@ -6,9 +6,12 @@ import numpy as np
 from astropy.time import Time
 
 from trm.pgplot import *
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, spooler, defect
-from hipercam.cline import Cline
+from hipercam import spooler, defect
+
 import requests
 import socket
 
@@ -271,7 +274,7 @@ def rtplot(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

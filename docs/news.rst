@@ -13,8 +13,17 @@ lists of past changes can be seen on github in any case). NB the
 version of these docs may reflect a development version subsequent to
 the most recent release and hence will appear to be one click on.
 
-#. :doc:`Updates since 1.1.0 <change_log_1.1.0_to_now>`: patches released
+#. :doc:`Updates since 1.2.0 <change_log_1.2.0_to_now>`: patches released
    since the most recent minor version update.
+
+#. **29 March 2022, Version 1.2.0**: many minor upgrades and fixes
+
+     * |pbands| introduced to help make summary plots during observing
+     * |exploss| to help judge the importance of readnoise on a run
+     * |ncal| routine for noise calibration
+     * |logsearch| database search routine working OK.
+
+   :doc:`Full list of changes, 1.1.0 to 1.2.0 <change_log_1.1.0_1.2.0>`
 
 #. **04 June 2021, Version 1.1.0**: over-haul of genred, hpackage, WCS in joinup
 

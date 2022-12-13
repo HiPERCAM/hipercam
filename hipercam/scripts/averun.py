@@ -4,9 +4,11 @@ import signal
 
 import numpy as np
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, fringe
-from hipercam.cline import Cline
+from hipercam import fringe
 
 __all__ = [
     "averun",
@@ -138,7 +140,7 @@ def averun(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

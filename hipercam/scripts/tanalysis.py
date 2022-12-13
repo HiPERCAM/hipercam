@@ -7,9 +7,11 @@ import numpy as np
 import matplotlib.pylab as plt
 from scipy import stats
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, spooler, ucam
-from hipercam.cline import Cline
+from hipercam import spooler, ucam
 
 __all__ = [
     "tanalysis",
@@ -111,7 +113,7 @@ def tanalysis(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

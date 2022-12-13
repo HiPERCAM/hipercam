@@ -39,6 +39,7 @@
 .. |hpackage| replace:: :func:`hpackage <hipercam.scripts.hpackage>`
 .. |hplot| replace:: :func:`hplot <hipercam.scripts.hplot>`
 .. |joinup| replace:: :func:`joinup <hipercam.scripts.joinup>`
+.. |logsearch| replace:: :func:`logsearch <hipercam.scripts.logsearch>`
 .. |ltimes| replace:: :func:`ltimes <hipercam.scripts.ltimes>`
 .. |ltrans| replace:: :func:`ltrans <hipercam.scripts.ltrans>`
 .. |makebias| replace:: :func:`makebias <hipercam.scripts.makebias>`

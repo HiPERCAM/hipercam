@@ -6,9 +6,11 @@ import signal
 import numpy as np
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, spooler, fringe
-from hipercam.cline import Cline
+from hipercam import utils, spooler, fringe
 
 __all__ = [
     "makefringe",
@@ -135,7 +137,7 @@ def makefringe(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

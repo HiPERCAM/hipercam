@@ -8,9 +8,11 @@ import numpy as np
 from astropy.io import fits
 from astropy.time import Time, TimeDelta
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
+
 
 __all__ = ["makemccd", "makefield"]
 
@@ -62,7 +64,7 @@ def makemccd(args=None):
 
     global _gframe, _gfield
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -219,7 +221,7 @@ def makemccd(args=None):
                     wind.add_fxy(specks)
 
         flat.head["DATATYPE"] = ("Flat field", "Artificially generated")
-        fname = utils.add_extension(conf["flat"]["flat"], hcam.HCAM)
+        fname = cline.add_extension(conf["flat"]["flat"], hcam.HCAM)
 
         flat.write(fname, overwrite)
         print("Saved flat field to ", fname)
@@ -238,7 +240,7 @@ def makemccd(args=None):
                 wind.data = np.random.normal(mean, rms, (wind.ny, wind.nx))
 
         bias.head["DATATYPE"] = ("Bias frame", "Artificially generated")
-        fname = utils.add_extension(conf["bias"]["bias"], hcam.HCAM)
+        fname = cline.add_extension(conf["bias"]["bias"], hcam.HCAM)
         bias.write(fname, overwrite)
         print("Saved bias frame to ", fname)
     else:
@@ -250,7 +252,7 @@ def makemccd(args=None):
     nfiles = int(conf["files"]["nfiles"])
     if nfiles == 0:
         out = mccd * flat + bias
-        fname = utils.add_extension(conf["files"]["root"], hcam.HCAM)
+        fname = cline.add_extension(conf["files"]["root"], hcam.HCAM)
         out.write(fname, overwrite)
         print("Written data to", fname)
     else:
@@ -410,7 +412,7 @@ def makefield(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # create Cline object
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
