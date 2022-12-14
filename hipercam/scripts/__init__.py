@@ -118,11 +118,3 @@ try:
     __all__.append("aligntool")
 except:
     pass
-
-try:
-    # optional dependency on photutils, so allow failure
-    from .psf_reduce import psf_reduce
-
-    __all__.append("psf_reduce")
-except:
-    pass

@@ -1,11 +1,10 @@
 """
-This contains code used in common by the scripts reduce.py and psf_reduce.py
+This contains code used in common by the script reduce.py
 """
 from collections import OrderedDict
 import sys
 import warnings
 import numpy as np
-from astropy.time import Time
 import hipercam as hcam
 from hipercam import utils, fitting
 
@@ -32,10 +31,9 @@ from trm.pgplot import (
     pgpt1,
 )
 
-import matplotlib.pyplot as plt
-from hipercam import mpl
 
-NaN = float('NaN')
+NaN = float("NaN")
+
 
 class Rfile(OrderedDict):
     """Class to read and interpret reduce setup files. Similar to
@@ -104,8 +102,10 @@ class Rfile(OrderedDict):
         sect = rfile["general"]
         if sect["version"] != hcam.REDUCE_FILE_VERSION:
             # check the version
+            v = sect["version"]
+            rfv = hcam.REDUCE_FILE_VERSION
             raise hcam.HipercamError(
-                f"Version mismatch: reduce file = {sect['version']}, reduce = {hcam.REDUCE_FILE_VERSION}"
+                f"Version mismatch: reduce file = {v}, reduce = {rfv}"
                 "If your reduce file date is earlier than the reduce version, you may want to try"
                 f"updating it using the pipeline command 'rupdate {filename}'"
             )
@@ -138,7 +138,7 @@ class Rfile(OrderedDict):
         warns = sect.get("warn", [])
         if isinstance(warns, str):
             warns = [warns]
-        sect['warns'] = warns
+        sect["warns"] = warns
 
         # store a dictionary of warning levels. If
         # any CCD does not have any warning levels,
@@ -308,14 +308,10 @@ class Rfile(OrderedDict):
                     "sky.error == variance requires sky.method == clipped"
                 )
         elif skysec["error"] != "photon":
-            raise hcam.HipercamError(
-                "sky.error must be either 'variance' or 'photon'"
-            )
+            raise hcam.HipercamError("sky.error must be either 'variance' or 'photon'")
 
         if skysec["method"] != "clipped" and skysec["method"] != "median":
-            raise hcam.HipercamError(
-                "sky.method must be either 'clipped' or 'median'"
-            )
+            raise hcam.HipercamError("sky.method must be either 'clipped' or 'median'")
 
         skysec["thresh"] = float(skysec["thresh"])
 
@@ -622,7 +618,7 @@ class Rfile(OrderedDict):
 
         if self.fmap is not None:
             self.fmap = self.fmap.crop(mccd)
-            nhalf = self['calibration']['nhalf']
+            nhalf = self["calibration"]["nhalf"]
             self.fpair = self.fpair.crop(mccd, nhalf)
 
         if isinstance(self.readout, hcam.MCCD):
@@ -1317,23 +1313,23 @@ class ProcessCCDs:
     def __init__(self, rfile, read, gain, ccdproc, pool):
         """Arguments::
 
-           rfile : Rfile
-              reduce file settings
+        rfile : Rfile
+           reduce file settings
 
-           read : MCCD
-              CCD representing readout noise divided by the flat field
+        read : MCCD
+           CCD representing readout noise divided by the flat field
 
-           gain : MCCD
-              CCD representing the gain multiplied by the flat field
+        gain : MCCD
+           CCD representing the gain multiplied by the flat field
 
-           ccdproc : function
-              function that carries out the per-CCD processing needed for the
-              parallelisation step.  See 'scripts/reduce.py' for its calling
-              signature.
+        ccdproc : function
+           function that carries out the per-CCD processing needed for the
+           parallelisation step.  See 'scripts/reduce.py' for its calling
+           signature.
 
-           pool : multiprocessing.Pool | None
-              for parallel processing. If 'None', it will be done in serial
-              mode.
+        pool : multiprocessing.Pool | None
+           for parallel processing. If 'None', it will be done in serial
+           mode.
 
         """
 
@@ -1423,7 +1419,7 @@ class ProcessCCDs:
 
             if cnam not in self.store:
                 # initialisation
-                self.store[cnam] = {"mfwhm": -1., "mbeta": -1.}
+                self.store[cnam] = {"mfwhm": -1.0, "mbeta": -1.0}
 
             if self.pool is None:
                 # carry out processing serially, store results
@@ -1467,12 +1463,22 @@ class ProcessCCDs:
             # these made within the routine are otherwise lost
             for cnam, res in allres:
                 if len(res):
-                    (nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose) = res[-1]
+                    (
+                        nframe,
+                        store,
+                        ccdaper,
+                        results,
+                        mjdint,
+                        mjdfrac,
+                        mjdok,
+                        expose,
+                    ) = res[-1]
                     self.store[cnam] = store
                     self.rfile.aper[cnam] = ccdaper
 
         # pass back the results
         return allres
+
 
 def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
     """Encapsulates aperture re-positioning. 'store' is a dictionary of results
@@ -1536,8 +1542,8 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 "fwhme": NaN,
                 "beta": NaN,
                 "betae": NaN,
-                "dx": 0.,
-                "dy": 0.,
+                "dx": 0.0,
+                "dy": 0.0,
             }
         return True
 
@@ -1557,8 +1563,8 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
     shifts = []
 
     # next is a shift that will be updated after the first fit. This allows
-    # the later reference stars to be not so good as the first. 
-    xshift, yshift = 0., 0.
+    # the later reference stars to be not so good as the first.
+    xshift, yshift = 0.0, 0.0
 
     try:
         for apnam, aper in ccdaper.items():
@@ -1577,8 +1583,10 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
 
                 # get sub-window around start position
                 swdata = wdata.window(
-                    aper.x + xshift - shbox, aper.x + xshift + shbox,
-                    aper.y + yshift - shbox, aper.y + yshift + shbox
+                    aper.x + xshift - shbox,
+                    aper.x + xshift + shbox,
+                    aper.y + yshift - shbox,
+                    aper.y + yshift + shbox,
                 )
 
                 # carry out initial search
@@ -1609,7 +1617,9 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 fit_beta = min(fit_beta, apsec["fit_beta_max"])
 
                 # This is where the pure-debiassed data are used
-                sigma = np.sqrt(fwread.data**2+np.maximum(0,fwbias.data)/fwgain.data)
+                sigma = np.sqrt(
+                    fwread.data**2 + np.maximum(0, fwbias.data) / fwgain.data
+                )
 
                 # refine the Aperture position by fitting the profile
                 (
@@ -1617,7 +1627,8 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                     (esky, eheight, ex, ey, efwhm, ebeta),
                     extras,
                 ) = hcam.fitting.combFit(
-                    fwdata, sigma,
+                    fwdata,
+                    sigma,
                     rfile.method,
                     sky,
                     peak - sky,
@@ -1659,12 +1670,12 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                     # point since the search routine applies it more
                     # stringently but I have left it in for safety.
                     dx = x - aper.x
-                    wx = 1.0 / ex ** 2
+                    wx = 1.0 / ex**2
                     wxsum += wx
                     xsum += wx * dx
 
                     dy = y - aper.y
-                    wy = 1.0 / ey ** 2
+                    wy = 1.0 / ey**2
                     wysum += wy
                     ysum += wy * dy
 
@@ -1673,7 +1684,6 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                         xshift, yshift = dx, dy
 
                     shifts.append((apnam, dx, dy))
-
 
                     # store stuff
                     store[apnam] = {
@@ -1689,13 +1699,13 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
 
                     if efwhm > 0.0:
                         # average FWHM computation
-                        wf = 1.0 / efwhm ** 2
+                        wf = 1.0 / efwhm**2
                         fsum += wf * fwhm
                         wfsum += wf
 
                     if ebeta > 0.0:
                         # average beta computation
-                        wb = 1.0 / ebeta ** 2
+                        wb = 1.0 / ebeta**2
                         bsum += wb * beta
                         wbsum += wb
 
@@ -1724,8 +1734,8 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 "fwhme": NaN,
                 "beta": NaN,
                 "betae": NaN,
-                "dx": 0.,
-                "dy": 0.,
+                "dx": 0.0,
+                "dy": 0.0,
             }
 
         store["mfwhm"] = NaN
@@ -1757,8 +1767,8 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                                 "fwhme": NaN,
                                 "beta": NaN,
                                 "betae": NaN,
-                                "dx": 0.,
-                                "dy": 0.,
+                                "dx": 0.0,
+                                "dy": 0.0,
                             }
 
                         store["mfwhm"] = NaN
@@ -1807,8 +1817,8 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                         "fwhme": NaN,
                         "beta": NaN,
                         "betae": NaN,
-                        "dx": 0.,
-                        "dy": 0.,
+                        "dx": 0.0,
+                        "dy": 0.0,
                     }
             store["mfwhm"] = NaN
             store["mbeta"] = NaN
@@ -1902,7 +1912,9 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 fit_beta = min(fit_beta, apsec["fit_beta_max"])
 
                 # This is where the pure-debiassed data are used
-                sigma = np.sqrt(fwread.data**2+np.maximum(0,fwbias.data)/fwgain.data)
+                sigma = np.sqrt(
+                    fwread.data**2 + np.maximum(0, fwbias.data) / fwgain.data
+                )
 
                 # finally, attempt to fit the target profile
                 (
@@ -1910,7 +1922,8 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                     (esky, eheight, ex, ey, efwhm, ebeta),
                     extras,
                 ) = hcam.fitting.combFit(
-                    fwdata, sigma,
+                    fwdata,
+                    sigma,
                     rfile.method,
                     sky,
                     peak - sky,
@@ -1971,7 +1984,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                         "beta": beta,
                         "betae": ebeta,
                         "dx": x - aper.x,
-                        "dy": y - aper.y
+                        "dy": y - aper.y,
                     }
 
                     if ref:
@@ -1986,13 +1999,13 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
 
                     if efwhm > 0.0:
                         # average FWHM computation
-                        wf = 1.0 / efwhm ** 2
+                        wf = 1.0 / efwhm**2
                         fsum += wf * fwhm
                         wfsum += wf
 
                     if ebeta > 0.0:
                         # average beta computation
-                        wb = 1.0 / ebeta ** 2
+                        wb = 1.0 / ebeta**2
                         bsum += wb * beta
                         wbsum += wb
 
@@ -2000,7 +2013,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
 
                     error_message = (
                         "Non-reference aperture peak = {:.1f} < {:.1f}"
-                        ).format(height, apsec["fit_height_min_nrf"])
+                    ).format(height, apsec["fit_height_min_nrf"])
 
                     raise hcam.HipercamError(error_message)
 
@@ -2060,6 +2073,571 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
         store["mbeta"] = -1
 
     return True
+
+
+def ccdproc(cnam, ccds, bccds, rccds, nframes, read, gain, ccdwin, rfile, store):
+    """Processing steps for a sequential set of images from the same
+    CCD. This is designed for parallelising the processing across CCDs
+    of multi-arm cameras like ULTRACAM and HiPERCAM using
+    multiprocessing. To be called *after* checking that any processing
+    is needed.
+
+    Arguments::
+
+       cnam : string
+          name of CCD, for information purposes (e.g. 'red', '3', etc)
+
+       ccds : List of CCDs
+          the CCDs for processing which should have been debiassed, flat
+          fielded and multiplied by the gain to get into electrons.
+
+       bccds : List of CCDs
+          the CCDs for processing which should just have been debiassed
+
+       rccds : List of CCDs
+          unprocessed CCDs, one-to-one correspondence with 'ccds', used
+          to measure saturation
+
+       nframes : List of ints
+          frame numbers for each CCD
+
+       read : CCD
+          readnoise frame divided by the flatfield
+
+       gain : CCD
+          gain frame dmultiplied by the flatfield
+
+       ccdwin : dict
+          label of the Window enclosing each aperture
+
+       rfile : Rfile object
+          reduction control parameters. rfile.aper used to store the aperture
+          parameters.
+
+       store : dict
+          dictionary of results
+
+    Returns: (cnam, list[res]) where 'res' represents a tuple
+    of results for each input CCD and contains the following:
+
+    (nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose)
+
+    """
+
+    # At this point 'ccds' contains a list of CCD each of which
+    # contains all the Windows of a CCD, 'ccdaper' all of its
+    # apertures, 'ccdwin' the label of the Window enclosing each
+    # aperture, 'rfile' contains control parameters, 'rflat' contains
+    # the readout noise in electrons and divided by the flat as a CCD,
+    # 'store' is a dictionary initially with jus 'mfwhm' and 'mbeta'
+    # set = -1, but will pick up extra stuff from moveApers for use by
+    # extractFlux along with revised values of mfwhm and mbeta which
+    # are used to initialise profile fits next time.
+
+    res = []
+    for ccd, bccd, rccd, nframe in zip(ccds, bccds, rccds, nframes):
+        # Loop through the CCDs supplied
+
+        # move the apertures
+        moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store)
+
+        # extract flux from all apertures of each CCD. Return with the CCD
+        # name, the store dictionary, ccdaper and then the results from
+        # extractFlux for compatibility with multiprocessing.
+        results = extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store)
+
+        # Save the essentials
+        res.append(
+            (
+                nframe,
+                store,
+                rfile.aper[cnam],
+                results,
+                ccd.head["MJDINT"],
+                ccd.head["MJDFRAC"],
+                ccd.head.get("GOODTIME", True),
+                ccd.head.get("EXPTIME", 1.0),
+            )
+        )
+
+    return (cnam, res)
+
+
+def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
+    """This extracts the flux of all apertures of a given CCD.
+
+    The steps are (1) aperture resizing, (2) sky background estimation, (3)
+    flux extraction. The apertures are assumed to be correctly positioned.
+
+    It returns the results as a dictionary keyed on the aperture label. Each
+    entry returns a list:
+
+    [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, countse, sky, esky,
+    nsky, nrej, flag]
+
+    flag = bitmask. See hipercam.core to see all the options which are
+    referred to by name in the code e.g. ALL_OK. The various flags can
+    signal that there no sky pixels (NO_SKY), the sky aperture was off
+    the edge of the window (SKY_AT_EDGE), etc.
+
+    This code::
+
+       >> bset = flag & TARGET_SATURATED
+
+    determines whether the data saturation flag is set for example.
+
+    Arguments::
+
+       cnam : string
+          CCD identifier label
+
+       ccd : CCD
+           the fully processed CCD (debiassed, dark-corrected, flat-fielded, fringe-corrected)
+
+       bccd : CCD
+           debiassed-only CCD. Used in variance computation.
+
+       rccd : CCD
+          corresponding raw CCD, used to work out whether data are
+          saturated in target aperture.
+
+       read : CCD
+           readnoise divided by the flat-field
+
+       gain : CCD
+           gain multiplied by the flat field
+
+       ccdwin : dictionary of strings
+           the Window label corresponding to each Aperture
+
+       rfile : Rfile
+           reduce file configuration parameters
+
+       store : dict of dicts
+           see moveApers for what this contains.
+
+    """
+
+    # initialise flag
+    flag = hcam.ALL_OK
+
+    ccdaper = rfile.aper[cnam]
+
+    # get the control parameters
+    (
+        resize,
+        extype,
+        r1fac,
+        r1min,
+        r1max,
+        r2fac,
+        r2min,
+        r2max,
+        r3fac,
+        r3min,
+        r3max,
+    ) = rfile["extraction"][cnam]
+
+    results = {}
+    mfwhm = store["mfwhm"]
+
+    if resize == "variable" or extype == "optimal":
+
+        if mfwhm <= 0:
+            # return early here as there is nothing we can do.
+            print(
+                (
+                    " *** WARNING: CCD {:s}: no measured FWHM to re-size"
+                    " apertures or carry out optimal extraction; no"
+                    " extraction possible"
+                ).format(cnam)
+            )
+            # set flag to indicate no FWHM
+            flag = hcam.NO_FWHM
+
+            for apnam, aper in ccdaper.items():
+                info = store[apnam]
+                results[apnam] = {
+                    "x": aper.x,
+                    "xe": info["xe"],
+                    "y": aper.y,
+                    "ye": info["ye"],
+                    "fwhm": info["fwhm"],
+                    "fwhme": info["fwhme"],
+                    "beta": info["beta"],
+                    "betae": info["betae"],
+                    "counts": NaN,
+                    "countse": NaN,
+                    "sky": NaN,
+                    "skye": NaN,
+                    "nsky": 0,
+                    "nrej": 0,
+                    "flag": flag,
+                    "cmax": 0,
+                }
+            return results
+
+        else:
+
+            # Re-size the apertures
+            for aper in ccdaper.values():
+                aper.rtarg = max(r1min, min(r1max, r1fac * mfwhm))
+                aper.rsky1 = max(r2min, min(r2max, r2fac * mfwhm))
+                aper.rsky2 = max(r3min, min(r3max, r3fac * mfwhm))
+
+    elif resize == "fixed":
+
+        # just apply the max and min limits
+        for aper in ccdaper.values():
+            aper.rtarg = max(r1min, min(r1max, aper.rtarg))
+            aper.rsky1 = max(r2min, min(r2max, aper.rsky1))
+            aper.rsky2 = max(r3min, min(r3max, aper.rsky2))
+
+    else:
+        raise hcam.HipercamError(
+            "CCD {:s}: 'variable' and 'fixed' are the only"
+            " aperture resizing options".format(cnam)
+        )
+
+    # apertures have been positioned in moveApers and now re-sized. Finally
+    # we can extract something.
+    for apnam, aper in ccdaper.items():
+
+        # initialise flag
+        flag = hcam.ALL_OK
+
+        # extract Windows relevant for this aperture
+        wnam = ccdwin[apnam]
+
+        wdata = ccd[wnam]
+        wbias = bccd[wnam]
+        wread = read[wnam]
+        wgain = gain[wnam]
+        wraw = rccd[wnam]
+
+        # extract sub-windows that include all of the pixels that could
+        # conceivably affect the aperture. We have to check that 'extra'
+        # apertures do not go beyond rsky2 which would normally be expected to
+        # be the default outer radius
+        rmax = aper.rsky2
+        for xoff, yoff in aper.extra:
+            rmax = max(rmax, np.sqrt(xoff**2 + yoff**2) + aper.rtarg)
+
+        # this is the region of interest
+        x1, x2, y1, y2 = (
+            aper.x - aper.rsky2 - wdata.xbin,
+            aper.x + aper.rsky2 + wdata.xbin,
+            aper.y - aper.rsky2 - wdata.ybin,
+            aper.y + aper.rsky2 + wdata.ybin,
+        )
+
+        try:
+
+            # extract sub-Windows
+            swdata = wdata.window(x1, x2, y1, y2)
+            swbias = wbias.window(x1, x2, y1, y2)
+            swread = wread.window(x1, x2, y1, y2)
+            swgain = wgain.window(x1, x2, y1, y2)
+            swraw = wraw.window(x1, x2, y1, y2)
+
+            # some checks for possible problems. bitmask flags will be set if
+            # they are encountered.
+            xlo, xhi, ylo, yhi = swdata.extent()
+            if (
+                xlo > aper.x - aper.rsky2
+                or xhi < aper.x + aper.rsky2
+                or ylo > aper.y - aper.rsky2
+                or yhi < aper.y + aper.rsky2
+            ):
+                # the sky aperture overlaps the edge of the window
+                flag |= hcam.SKY_AT_EDGE
+
+            if (
+                xlo > aper.x - aper.rtarg
+                or xhi < aper.x + aper.rtarg
+                or ylo > aper.y - aper.rtarg
+                or yhi < aper.y + aper.rtarg
+            ):
+                # the target aperture overlaps the edge of the window
+                flag |= hcam.TARGET_AT_EDGE
+
+            for xoff, yoff in aper.extra:
+                rout = np.sqrt(xoff**2 + yoff**2) + aper.rtarg
+                if (
+                    xlo > aper.x - rout
+                    or xhi < aper.x + rout
+                    or ylo > aper.y - rout
+                    or yhi < aper.y + rout
+                ):
+                    # an extra target aperture overlaps the edge of the window
+                    flag |= hcam.TARGET_AT_EDGE
+
+            # compute X, Y arrays over the sub-window relative to the centre
+            # of the aperture and the distance squared from the centre (Rsq)
+            # to save a little effort.
+            x = swdata.x(np.arange(swdata.nx)) - aper.x
+            y = swdata.y(np.arange(swdata.ny)) - aper.y
+            X, Y = np.meshgrid(x, y)
+            Rsq = X**2 + Y**2
+
+            # squared aperture radii for comparison
+            R1sq, R2sq, R3sq = aper.rtarg**2, aper.rsky1**2, aper.rsky2**2
+
+            # sky selection, accounting for masks and extra (which we assume
+            # acts like a sky mask as well)
+            sok = (Rsq > R2sq) & (Rsq < R3sq)
+            for xoff, yoff, radius in aper.mask:
+                sok &= (X - xoff) ** 2 + (Y - yoff) ** 2 > radius**2
+            for xoff, yoff in aper.extra:
+                sok &= (X - xoff) ** 2 + (Y - yoff) ** 2 > R1sq
+
+            # sky data
+            dsky = swdata.data[sok]
+
+            if len(dsky):
+
+                # we have some sky!
+
+                if rfile["sky"]["method"] == "clipped":
+
+                    # clipped mean. Take average, compute RMS,
+                    # reject pixels > thresh*rms from the mean.
+                    # repeat until no new pixels are rejected.
+
+                    thresh = rfile["sky"]["thresh"]
+                    ok = np.ones_like(dsky, dtype=bool)
+                    nrej = 1
+                    while nrej:
+                        slevel = dsky[ok].mean()
+                        srms = dsky[ok].std()
+                        nold = len(dsky[ok])
+                        ok = ok & (np.abs(dsky - slevel) < thresh * srms)
+                        nrej = nold - len(dsky[ok])
+                        if len(dsky[ok]) == 0:
+                            # no sky. will still return the flux in
+                            # the aperture but set flag and the sky
+                            # uncertainty to -1
+                            flag |= hcam.NO_SKY
+                            slevel = 0
+                            serror = -1
+                            nrej = 0
+                            break
+
+                    nsky = len(dsky[ok])
+                    if nsky:
+                        # serror -- error in the sky estimate.
+                        serror = srms / np.sqrt(nsky)
+
+                else:
+
+                    # 'median' goes with 'photon'
+                    slevel = dsky.median()
+                    nsky = len(dsky)
+                    nrej = 0
+
+                    # read*gain/flat and flat over sky region
+                    dread = swread.data[sok]
+                    dgain = swgain.data[sok]
+
+                    serror = np.sqrt(
+                        (dread**2 + np.max(0, dsky) / dgain).sum() / nsky**2
+                    )
+
+            else:
+                # no sky. will still return the flux in the aperture but set
+                # flag and the sky uncertainty to -1
+                flag |= hcam.NO_SKY
+                slevel = NaN
+                serror = NaN
+                nsky = 0
+                nrej = 0
+
+            # size of a pixel which is used to taper pixels as they approach
+            # the edge of the aperture to reduce pixellation noise
+            size = np.sqrt(wdata.xbin * wdata.ybin)
+
+            # target selection, accounting for extra apertures and allowing
+            # pixels to contribute if their centres are as far as size/2 beyond
+            # the edge of the circle (but with a tapered weight)
+            dok = Rsq < (aper.rtarg + size / 2.0) ** 2
+
+            if not dok.any():
+                # check there are some valid pixels
+                flag |= hcam.NO_DATA
+                raise hcam.HipercamError("no valid pixels in aperture")
+
+            # check for saturation and nonlinearity
+            cmax = int(swraw.data[dok].max())
+            if cnam in rfile.warn:
+                if cmax >= rfile.warn[cnam]["saturation"]:
+                    flag |= hcam.TARGET_SATURATED
+
+                if cmax >= rfile.warn[cnam]["nonlinear"]:
+                    flag |= hcam.TARGET_NONLINEAR
+
+            else:
+                warnings.warn(
+                    "CCD {:s} has no nonlinearity or saturation levels set".format(cnam)
+                )
+
+            # Pixellation amelioration:
+            #
+            # The weight of a pixel is set to 1 at the most and then linearly
+            # declines as it approaches the edge of the aperture. The scale over
+            # which it declines is set by 'size', the geometric mean of the
+            # binning factors. A pixel with its centre exactly on the edge
+            # gets a weight of 0.5.
+            wgt = np.minimum(
+                1, np.maximum(0, (aper.rtarg + size / 2.0 - np.sqrt(Rsq)) / size)
+            )
+            for xoff, yoff in aper.extra:
+                rsq = (X - xoff) ** 2 + (Y - yoff) ** 2
+                dok |= rsq < (aper.rtarg + size / 2.0) ** 2
+                wg = np.minimum(
+                    1, np.maximum(0, (aper.rtarg + size / 2.0 - np.sqrt(rsq)) / size)
+                )
+                wgt = np.maximum(wgt, wg)
+
+            # the values needed to extract the flux.
+            dtarg = swdata.data[dok]
+            dbtarg = swbias.data[dok]
+            dread = swread.data[dok]
+            dgain = swgain.data[dok]
+            wtarg = wgt[dok]
+
+            # 'override' to indicate we want to override the readout noise.
+            if nsky and rfile["sky"]["error"] == "variance":
+                # from sky variance
+                rd = srms
+                override = True
+            else:
+                rd = dread
+                override = False
+
+            # count above sky
+            diff = dtarg - slevel
+
+            if extype == "normal" or extype == "optimal":
+
+                if extype == "optimal":
+                    # optimal extraction. Need the profile
+                    warnings.warn(
+                        "Transmission plot is not reliable" " with optimal extraction"
+                    )
+
+                    mbeta = store["mbeta"]
+                    if mbeta > 0.0:
+                        prof = fitting.moffat(
+                            X[dok],
+                            Y[dok],
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            mfwhm,
+                            mbeta,
+                            wdata.xbin,
+                            wdata.ybin,
+                            rfile["apertures"]["fit_ndiv"],
+                        )
+                    else:
+                        prof = fitting.gaussian(
+                            X[dok],
+                            Y[dok],
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            mfwhm,
+                            wdata.xbin,
+                            wdata.ybin,
+                            rfile["apertures"]["fit_ndiv"],
+                        )
+
+                    # multiply weights by the profile
+                    wtarg *= prof
+
+                # now extract
+                counts = (wtarg * diff).sum()
+
+                if override:
+                    # in this case, the "readout noise" includes the component
+                    # due to the sky background so we use the sky-subtracted
+                    # counts above sky for the object contribution.
+                    var = (wtarg**2 * (rd**2 + np.maximum(0, diff) / dgain)).sum()
+                else:
+                    # in this case we are using the true readout noise and we
+                    # just use the data (which should be debiassed) without
+                    # removal of the sky.
+                    var = (wtarg**2 * (rd**2 + np.maximum(0, dbtarg) / dgain)).sum()
+
+                if serror > 0:
+                    # add in factor due to uncertainty in sky estimate
+                    var += (wtarg.sum() * serror) ** 2
+
+                countse = np.sqrt(var)
+
+            else:
+                raise hcam.HipercamError(
+                    "extraction type = {:s} not recognised".format(extype)
+                )
+
+            info = store[apnam]
+
+            results[apnam] = {
+                "x": aper.x,
+                "xe": info["xe"],
+                "y": aper.y,
+                "ye": info["ye"],
+                "fwhm": info["fwhm"],
+                "fwhme": info["fwhme"],
+                "beta": info["beta"],
+                "betae": info["betae"],
+                "counts": counts,
+                "countse": countse,
+                "sky": slevel,
+                "skye": serror,
+                "nsky": nsky,
+                "nrej": nrej,
+                "flag": flag,
+                "cmax": cmax,
+            }
+
+        except hcam.HipercamError as err:
+            print(
+                f"CCD {cnam}, reference aperture {apnam},"
+                f" fit failed; extraction aborted. Error = {err}",
+                file=sys.stderr,
+            )
+            info = store[apnam]
+            flag |= hcam.NO_EXTRACTION
+
+            results[apnam] = {
+                "x": aper.x,
+                "xe": info["xe"],
+                "y": aper.y,
+                "ye": info["ye"],
+                "fwhm": info["fwhm"],
+                "fwhme": info["fwhme"],
+                "beta": info["beta"],
+                "betae": info["betae"],
+                "counts": NaN,
+                "countse": NaN,
+                "sky": NaN,
+                "skye": NaN,
+                "nsky": 0,
+                "nrej": 0,
+                "flag": flag,
+                "cmax": 0,
+            }
+
+    # finally, we are done
+    return results
+
+
+##
+# Now for display stuff
+##
 
 
 class Panel:
@@ -2490,9 +3068,7 @@ class LightCurve(BaseBuffer):
 
                         if fc == fc and fce == fce:
                             f = ft / fc
-                            fe = np.sqrt(
-                                (fte / fc) ** 2 + (ft * fce / fc ** 2) ** 2
-                            )
+                            fe = np.sqrt((fte / fc) ** 2 + (ft * fce / fc**2) ** 2)
                         else:
                             continue
                     else:
@@ -2986,9 +3562,9 @@ class LogWriter:
             the special value sval then also convert to NaN.
             """
             if value == sval or np.isnan(value):
-                return 'nan'
+                return "nan"
             else:
-                return f'{value:{form}}'
+                return f"{value:{form}}"
 
         alerts = []
         for cnam, res in results:
@@ -3011,9 +3587,13 @@ class LogWriter:
                 # write generic data. have to take a little care because of NaN values
                 self.log.write(
                     "{:s} {:d} {:.14f} {:b} {:.8g} {} {} ".format(
-                        cnam, nframe, mjd, mjdok, expose,
-                        float2str(mfwhm,'.2f',-1.),
-                        float2str(mbeta,'.2f',-1.),
+                        cnam,
+                        nframe,
+                        mjd,
+                        mjdok,
+                        expose,
+                        float2str(mfwhm, ".2f", -1.0),
+                        float2str(mbeta, ".2f", -1.0),
                     )
                 )
 
@@ -3023,18 +3603,18 @@ class LogWriter:
                     self.log.write(
                         "{} {} {} {} {} {} {} {} {} {} {} {} "
                         "{:d} {:d} {:d} {:d} ".format(
-                            float2str(r["x"],'.4f'),
-                            float2str(r["xe"],'.4f'),
-                            float2str(r["y"],'.4f'),
-                            float2str(r["ye"],'.4f'),
-                            float2str(r["fwhm"],'.3f'),
-                            float2str(r["fwhme"],'.3f',-1.),
-                            float2str(r["beta"],'.3f'),
-                            float2str(r["betae"],'.3f'),
-                            float2str(r["counts"],'.1f'),
-                            float2str(r["countse"],'.1f'),
-                            float2str(r["sky"],'.2f'),
-                            float2str(r["skye"],'.2f'),
+                            float2str(r["x"], ".4f"),
+                            float2str(r["xe"], ".4f"),
+                            float2str(r["y"], ".4f"),
+                            float2str(r["ye"], ".4f"),
+                            float2str(r["fwhm"], ".3f"),
+                            float2str(r["fwhme"], ".3f", -1.0),
+                            float2str(r["beta"], ".3f"),
+                            float2str(r["betae"], ".3f"),
+                            float2str(r["counts"], ".1f"),
+                            float2str(r["countse"], ".1f"),
+                            float2str(r["sky"], ".2f"),
+                            float2str(r["skye"], ".2f"),
                             r["nsky"],
                             r["nrej"],
                             r["cmax"],
@@ -3191,8 +3771,10 @@ class LogWriter:
                     cnam
                 )
             else:
-                cnames = "# {:s} = CCD nframe MJD-{:d} MJDok Exptim mfwhm mbeta ".format(
-                    cnam, toffset
+                cnames = (
+                    "# {:s} = CCD nframe MJD-{:d} MJDok Exptim mfwhm mbeta ".format(
+                        cnam, toffset
+                    )
                 )
 
             for apnam in ccdaper:

@@ -15,6 +15,7 @@ from Cython.Build import cythonize
 
 # read the README file for the long description
 with open("README.rst") as f:
+with open("README.rst") as f:
     readme = f.read()
 
 # cython support routine
@@ -26,22 +27,36 @@ extension = [
         include_dirs=[np.get_include()],
         extra_compile_args=["-fno-strict-aliasing"],
     ),
+    Extension(
+        "hipercam.support",
+        [os.path.join("hipercam", "support.pyx")],
+        libraries=["m"],
+        include_dirs=[np.get_include()],
+        extra_compile_args=["-fno-strict-aliasing"],
+    ),
 ]
 
 setup(
+    name="hipercam",
     name="hipercam",
     # Versions should comply with PEP440. Here we use a version
     # generated automatically from git.
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
     description="multi-CCD astronomical reduction suite",
+    setup_requires=["setuptools_scm"],
+    description="multi-CCD astronomical reduction suite",
     long_description=readme,
     # The project's main homepage.
+    url="https://github.com/HiPERCAM/hipercam",
     url="https://github.com/HiPERCAM/hipercam",
     # Author details
     author="Tom Marsh",
     author_email="t.r.marsh@warwick.ac.uk",
+    author="Tom Marsh",
+    author_email="t.r.marsh@warwick.ac.uk",
     # Choose your license
+    license="BSD",
     license="BSD",
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -50,22 +65,31 @@ setup(
         #   4 - Beta
         #   5 - Production/Stable
         "Development Status :: 5 - Production/Stable",
+        "Development Status :: 5 - Production/Stable",
         # Indicate who your project is intended for
         "Intended Audience :: Astronomers",
         "Topic :: Astronomy :: Photometric reduction",
+        "Intended Audience :: Astronomers",
+        "Topic :: Astronomy :: Photometric reduction",
         # Pick your license as you wish (should match "license" above)
+        "License :: OSI Approved :: BSD License",
         "License :: OSI Approved :: BSD License",
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
     ],
     # What does your project relate to?
+    keywords="astronomy photometry reduction",
     keywords="astronomy photometry reduction",
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     packages=find_packages(exclude=["contrib", "docs", "tests"]),
+    packages=find_packages(exclude=["contrib", "docs", "tests"]),
     # extension modules
+    ext_modules=cythonize(extension),
     ext_modules=cythonize(extension),
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
@@ -93,6 +117,7 @@ setup(
     ],
     # Makes significant use of f-strings which came in python v3.6
     python_requires=">=3.6",
+    python_requires=">=3.6",
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
@@ -100,17 +125,22 @@ setup(
     extras_require={
         "dev": ["check-manifest"],
         "test": ["coverage"],
+        "dev": ["check-manifest"],
+        "test": ["coverage"],
     },
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
     # package_data={
+    # package_data={
     #    'sample': ['package_data.dat'],
+    # },
     # },
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
     # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
+    # data_files=[('my_data', ['data/data_file'])],
     # data_files=[('my_data', ['data/data_file'])],
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
@@ -165,7 +195,6 @@ setup(
             "pbands=hipercam.scripts.pbands:pbands",
             "pfolder=hipercam.scripts.pfolder:pfolder",
             "plog=hipercam.scripts.plog:plog",
-            "psf_reduce=hipercam.scripts.psf_reduce:psf_reduce",
             "redanal=hipercam.scripts.redanal:redanal",
             "redplt=hipercam.scripts.redplt:redplt",
             "reduce=hipercam.scripts.reduce:reduce",
@@ -184,6 +213,8 @@ setup(
         ],
     },
     # tests
+    test_suite="nose.collector",
+    tests_require=["nose", "numpy", "astropy"],
     test_suite="nose.collector",
     tests_require=["nose", "numpy", "astropy"],
 )
