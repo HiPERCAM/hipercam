@@ -1,3 +1,4 @@
+from functools import partial
 import os
 import sys
 import multiprocessing
@@ -18,6 +19,7 @@ from hipercam.reduction import (
     setup_plot_buffers,
     LogWriter,
     ccdproc,
+    extractFlux,
 )
 
 
@@ -31,7 +33,7 @@ except DistributionNotFound:
 
 has_psf_option = True
 try:
-    from hipercam.psf_reduction import ccdproc_psf
+    from hipercam.psf_reduction import extractFluxPSF
 except ModuleNotFoundError:
     has_psf_option = False
 
@@ -595,9 +597,13 @@ def reduce(args=None):
                             raise ValueError(
                                 "'psf_photom' is set to 'yes', but photutils not installed"
                             )
-                        process_func = ccdproc_psf
+                        # create a process function by wrapping ccdproc
+                        # in a partial whose first argument is the PSF extraction
+                        # function
+                        process_func = partial(ccdproc, extractFluxPSF)
                     else:
-                        process_func = ccdproc
+                        # use a partial to encapsulate the normal extraction
+                        process_func = partial(ccdproc, extractFlux)
 
                     # Define the CCD processor function object
                     processor = ProcessCCDs(rfile, read, gain, process_func, pool)

@@ -2075,7 +2075,9 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
     return True
 
 
-def ccdproc(cnam, ccds, bccds, rccds, nframes, read, gain, ccdwin, rfile, store):
+def ccdproc(
+    extraction_fn, cnam, ccds, bccds, rccds, nframes, read, gain, ccdwin, rfile, store
+):
     """Processing steps for a sequential set of images from the same
     CCD. This is designed for parallelising the processing across CCDs
     of multi-arm cameras like ULTRACAM and HiPERCAM using
@@ -2083,6 +2085,10 @@ def ccdproc(cnam, ccds, bccds, rccds, nframes, read, gain, ccdwin, rfile, store)
     is needed.
 
     Arguments::
+
+       extraction_fn : function
+          callable to process a single CCD. For the signature of this function
+          see the docstring to extractFlux below.
 
        cnam : string
           name of CCD, for information purposes (e.g. 'red', '3', etc)
@@ -2138,13 +2144,13 @@ def ccdproc(cnam, ccds, bccds, rccds, nframes, read, gain, ccdwin, rfile, store)
     for ccd, bccd, rccd, nframe in zip(ccds, bccds, rccds, nframes):
         # Loop through the CCDs supplied
 
-        # move the apertures
+        # move the apertures. Also fits the profile to the reference stars
         moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store)
 
         # extract flux from all apertures of each CCD. Return with the CCD
         # name, the store dictionary, ccdaper and then the results from
         # extractFlux for compatibility with multiprocessing.
-        results = extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store)
+        results = extraction_fn(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store)
 
         # Save the essentials
         res.append(
