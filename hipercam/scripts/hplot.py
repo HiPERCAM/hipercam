@@ -6,10 +6,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from trm.pgplot import *
+from trm import cline
+from trm.cline import Cline
 
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
+from hipercam import utils
 
 ###################################
 #
@@ -112,7 +113,7 @@ def hplot(args=None):
 
     global fig, mccd, caxes, hsbox
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

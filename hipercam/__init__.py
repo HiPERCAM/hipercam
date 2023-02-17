@@ -20,9 +20,8 @@ top-level docs covers a large part of the API. However, it is rather long and
 if you want to specialise to a restricted part of the documentation, then a
 command like 'pydoc hipercam.ccd' can prove useful to find a more focussed
 view of related software. There are some exceptions though where you will need
-to drill deeper, namely the sub-packages like 'ucam' and 'hcam', the
-sub-module :mod:`hipercam.cline`, and the plotting modules :mod:`mpl` and 
-:mod:`pgp`.
+to drill deeper, namely the sub-packages like 'ucam' and 'hcam', and the 
+plotting modules :mod:`mpl` and :mod:`pgp`.
 
 Perhaps the most important class of all is :class:`MCCD` which is the first
 place to go if you have a HiPERCAM '.hcm' file you want to do something with
@@ -64,7 +63,6 @@ from .aperture import *
 from .target import *
 from .header import *
 from . import spooler
-from . import cline
 from . import mpl
 from . import pgp
 from . import ucam

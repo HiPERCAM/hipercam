@@ -8,9 +8,11 @@ import signal
 
 import numpy as np
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, spooler, fringe
-from hipercam.cline import Cline
+from hipercam import fringe, spooler, utils
 
 __all__ = [
     "grab",
@@ -163,7 +165,7 @@ def grab(args=None):
        the accumulation of such frames.
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -445,7 +447,7 @@ def grab(args=None):
                     mccd.write(fname, True)
 
                 else:
-                    fname = utils.add_extension(
+                    fname = cline.add_extension(
                         f"{prefix}{mccd.head['FILENAME']}"
                     )
                     mccd.write(fname, True)

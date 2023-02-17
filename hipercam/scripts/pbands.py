@@ -8,14 +8,15 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
+
+from trm import cline, utils
+from trm.cline import Cline
 
 from astropy.timeseries import LombScargle
 
 def pbands(args=None):
-    """``pbands log [device width height] norm zero [plo phi increment]
-    pgram (flo fhi over) title
+    """``pbands log [device (dpi) width height ms line error] norm zero [plo phi increment]
+    pgram (flo fhi over) title``
 
     Plots a HiPERCAM |reduce| log as a single light curve in one panel
     per CCD. Can optionally be normalised and the y-axis origin set to
@@ -32,12 +33,24 @@ def pbands(args=None):
          'term' for interactive plot, file name such as 'plot.pdf'
          or 'object.png' for a hardcopy.
 
+      dpi : int [hidden, if device ends .png]
+         dots per inch for png output
+
       width : float [hidden]
          plot width (inches). Set = 0 to let the program choose.
 
       height : float [hidden]
          plot height (inches). Set = 0 to let the program choose. BOTH
          width AND height must be non-zero to have any effect
+
+      ms : float [hidden]
+         marker size
+
+      line : bool [hidden]
+         connect points with a line or not
+
+      error : bool [hidden]
+         plot error bars or not
 
       norm : bool
          normalise each light curve to a unit median (or not)
@@ -54,9 +67,9 @@ def pbands(args=None):
          (e.g. 95). Must be > plo. Takes account of error bars.
 
       increment : float [hidden]
-         multiplier to increment the raw numbers derived via plo and phi.
-         If they are y1 and y2, then each is corrected up and down by
-         increment*(y2-y1).
+         fraction of plot range that comes from plo, phi to add on top and bottom.
+         If the initial numbers are y1 and y2, then each is corrected up and down by
+         increment*(y2-y1), but if "zero" then y1 is set = 0.
 
       pgram : bool
          plot periodogram panels (or not). They appear on the right-hand
@@ -87,7 +100,7 @@ def pbands(args=None):
 
     """
 
-    command, args = utils.script_args(sys.argv)
+    command, args = cline.script_args(sys.argv)
     if command.endswith('.py'):
         command = command[:-3]
 
@@ -97,8 +110,12 @@ def pbands(args=None):
         # register parameters
         cl.register("log", Cline.LOCAL, Cline.PROMPT)
         cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("dpi", Cline.LOCAL, Cline.HIDE)
         cl.register("width", Cline.LOCAL, Cline.HIDE)
         cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("ms", Cline.LOCAL, Cline.HIDE)
+        cl.register("line", Cline.LOCAL, Cline.HIDE)
+        cl.register("error", Cline.LOCAL, Cline.HIDE)
         cl.register("aper1", Cline.LOCAL, Cline.PROMPT)
         cl.register("aper2", Cline.LOCAL, Cline.PROMPT)
         cl.register("norm", Cline.LOCAL, Cline.PROMPT)
@@ -122,10 +139,18 @@ def pbands(args=None):
 
         cl.set_default("device","term")
         device = cl.get_value("device", "plot device name", "term")
+        if device.endswith(".png"):
+            dpi = cl.get_value("dpi", "dots per inch", 240, 10)
+
         width = cl.get_value("width", "plot width (inches)", 0.0)
         height = cl.get_value("height", "plot height (inches)", 0.0)
+        ms = cl.get_value("ms", "marker size", 3., 0.)
+        line = cl.get_value("line", "connect points with a line", False)
+        error = cl.get_value("error", "plot errorbars", True)
         aper1 = cl.get_value("aper1", "target aperture", "1")
-        aper2 = cl.get_value("aper2", "comparison aperture ('!' to ignore)", "2")
+        aper2 = cl.get_value(
+            "aper2", "comparison aperture ('!' to ignore)", "2"
+        )
 
         ccds = []
         for ccd in hlog.apnames:
@@ -137,6 +162,7 @@ def pbands(args=None):
             raise hcam.HipercamError(
                 f'Failed to find any CCDs with apertures {aper1} and {aper2}'
             )
+        ccds.sort()
 
         norm = cl.get_value("norm", "normalise to median", True)
         zero = cl.get_value("zero", "set y-axis origin to zero", True)
@@ -183,27 +209,34 @@ def pbands(args=None):
 
     # light curves
     for ccd,ax,col in zip(ccds,axs[:,0],colours):
+        utils.style_mpl_axes(ax)
         targ = hlog.tseries(ccd, aper1, 'counts')
         if aper2 != "!":
             comp = hlog.tseries(ccd, aper2, 'counts')
             targ /= comp
         if norm:
             targ.normalise()
+        if line:
+            targ.mplot(
+                ax, col, '-', bitmask=hcam.BAD_TIME|hcam.JUNK, erry=error
+            )
         targ.mplot(
-            ax, col, bitmask=hcam.BAD_TIME|hcam.JUNK,
+            ax, col, bitmask=hcam.BAD_TIME|hcam.JUNK, ms=ms, erry=error
         )
 
         # plot limits
         _d,y1,_d = targ.percentile(plo,hcam.BAD_TIME|hcam.JUNK)
         _d,_d,y2 = targ.percentile(phi,hcam.BAD_TIME|hcam.JUNK)
-        yrange = y2-y1
-        y1 -= increment*yrange
-        y2 += increment*yrange
-
         if zero:
-            ax.set_ylim(0,y2)
+            y1 = 0.
+            y2 *= 1+increment
         else:
-            ax.set_ylim(y1,y2)
+            yrange = y2-y1
+            y1 -= increment*yrange
+            y2 += increment*yrange
+
+        ax.set_ylim(y1,y2)
+
         if aper2 == "!":
             ax.set_ylabel('Targ')
         else:
@@ -212,6 +245,7 @@ def pbands(args=None):
     if pgram:
         # periodograms
         for ccd,ax,col in zip(ccds,axs[:,1],colours):
+            utils.style_mpl_axes(ax)
             targ = hlog.tseries(ccd, aper1, 'counts')
             if aper2 != "!":
                 comp = hlog.tseries(ccd, aper2, 'counts')
@@ -226,24 +260,14 @@ def pbands(args=None):
             )
             ax.plot(f,p,col)
             ax.set_ylabel('Power')
-
-        # plot limits
-        _d,_d,y1 = targ.percentile(plo,hcam.BAD_TIME|hcam.JUNK)
-        _d,_d,y2 = targ.percentile(phi,hcam.BAD_TIME|hcam.JUNK)
-        yrange = y2-y1
-        y1 -= increment*yrange
-        y2 += increment*yrange
-
-        if zero:
+            y1,y2 = ax.set_ylim()
             ax.set_ylim(0,y2)
-        else:
-            ax.set_ylim(y1,y2)
-
-    if pgram:
+    
         axs[0,0].set_title(f'{title} [light curves]')
         axs[0,1].set_title(f'{title} [periodograms]')
         axs[-1,0].set_xlabel('Time [MJD]')
         axs[-1,1].set_xlabel('Frequency [cycles/day]')
+        
     else:
         axs[0,0].set_title(f'{title}')
         axs[-1,0].set_xlabel('Time [MJD]')
@@ -252,4 +276,7 @@ def pbands(args=None):
     if device == "term":
         plt.show()
     else:
-        plt.savefig(device)
+        if device.endswith(".png"):
+            plt.savefig(device,dpi=dpi)
+        else:
+            plt.savefig(device)

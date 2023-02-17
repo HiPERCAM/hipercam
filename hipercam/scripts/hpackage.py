@@ -12,9 +12,11 @@ from astropy import wcs
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils, spooler, defect, fringe
-from hipercam.cline import Cline
+from hipercam import spooler, defect, fringe
 
 __all__ = [
     "hpackage",
@@ -41,8 +43,11 @@ def hpackage(args=None):
 
       run123.hcm -- typically the result from a run of |averun|. This *must*
                     exist for each run included.
+
       run123.ape -- file of photometric apertures. Also must exist.
+
       run123*.red -- reduce file as made by |genred| (* == any string)
+
       run123*.log -- result from |reduce| (* == any string)
 
     Note the '*' means that multiple .red / .log pairs are possible to
@@ -50,7 +55,11 @@ def hpackage(args=None):
     'run123' and end '.red' and '.log' to be included. There has to be
     at least one such pair. It also looks for calibration files inside
     the reduce file and copies them. It requires them to be within the
-    same directory and will fail if they are not.
+    same directory and will fail if they are not. The reason for this
+    is that they get copied over to the same directory and the
+    directory structure required to store them elsewhere is not
+    created. I often use soft-links to point to calibration files for
+    this reason.
 
     It produces several extra files which are:
 
@@ -84,7 +93,7 @@ def hpackage(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
     FEXTS = (hcam.HCAM, hcam.APER)
 
     # get the inputs
@@ -164,10 +173,10 @@ def hpackage(args=None):
             # need to read the file to determine
             # the number of CCDs
             print(
-                run,root,utils.add_extension(run,hcam.HCAM)
+                run,root,cline.add_extension(run,hcam.HCAM)
             )
             mccd = hcam.MCCD.read(
-                utils.add_extension(run,hcam.HCAM)
+                cline.add_extension(run,hcam.HCAM)
             )
 
             try:
@@ -189,7 +198,7 @@ def hpackage(args=None):
 
             # copy standard files over
             for fext in FEXTS:
-                source = utils.add_extension(root,fext)
+                source = cline.add_extension(root,fext)
                 target = os.path.join(tmpdir,source)
                 shutil.copyfile(source, target)
                 print(f'copied {source} to {target}')
@@ -198,12 +207,12 @@ def hpackage(args=None):
             for logred in logreds[run]:
 
                 # copy .red and .log over
-                source = utils.add_extension(logred,hcam.RED)
+                source = cline.add_extension(logred,hcam.RED)
                 target = os.path.join(tmpdir,source)
                 shutil.copyfile(source, target)
                 print(f'copied {source} to {target}')
 
-                source = utils.add_extension(logred,hcam.LOG)
+                source = cline.add_extension(logred,hcam.LOG)
                 target = os.path.join(tmpdir,source)
                 shutil.copyfile(source, target)
                 print(f'copied {source} to {target}')
@@ -218,11 +227,11 @@ def hpackage(args=None):
                 rfile = hcam.reduction.Rfile.read(logred + hcam.RED)
                 csec = rfile['calibration']
                 if rfile.bias is not None:
-                    source = utils.add_extension(
+                    source = cline.add_extension(
                         csec['bias'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'bias = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -233,11 +242,11 @@ def hpackage(args=None):
                         print(f'copied {source} to {target}')
 
                 if rfile.dark is not None:
-                    source = utils.add_extension(
+                    source = cline.add_extension(
                         csec['dark'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'dark = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -248,11 +257,11 @@ def hpackage(args=None):
                         print(f'copied {source} to {target}')
 
                 if rfile.flat is not None:
-                    source = utils.add_extension(
+                    source = cline.add_extension(
                         csec['flat'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'flat = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -263,11 +272,11 @@ def hpackage(args=None):
                         print(f'copied {source} to {target}')
 
                 if rfile.fmap is not None:
-                    source = utils.add_extension(
+                    source = cline.add_extension(
                         csec['fmap'], hcam.HCAM
                     )
                     if os.path.dirname(source) != '':
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             f'fringe map = {source} is not in the present working directory'
                         )
                     target = os.path.join(tmpdir,source)
@@ -278,11 +287,11 @@ def hpackage(args=None):
                         print(f'copied {source} to {target}')
 
                     if rfile.fpair is not None:
-                        source = utils.add_extension(
+                        source = cline.add_extension(
                             csec['fpair'], hcam.FRNG
                         )
                         if os.path.dirname(source) != '':
-                            raise HipercamError(
+                            raise hcam.HipercamError(
                                 f'fringe peak/trough pair file = {source}'
                                 ' is not in the present working directory'
                             )

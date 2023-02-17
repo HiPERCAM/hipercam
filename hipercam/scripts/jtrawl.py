@@ -11,10 +11,6 @@ import argparse
 import numpy as np
 import pandas as pd
 
-import hipercam as hcam
-from hipercam import cline, utils, spooler
-from hipercam.cline import Cline
-
 __all__ = [
     "jtrawl",
 ]

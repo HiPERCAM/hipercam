@@ -38,12 +38,13 @@ from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 import astropy.units as u
 
+from trm.utils import timcorr
 from .core import *
 from . import utils
 
 __all__ = ("Hlog", "Tseries")
 
-NaN = float('NaN')
+NaN = float("NaN")
 
 # maps numpy dtype code into struct flagd
 NUMPY_TO_STRUCT = {
@@ -279,19 +280,14 @@ class Hlog(dict):
         # negative errors indicated bad data rather than NaNs. 'fixes' indicate the items
         # to look for and then the items to correct as a result
         fixes = {
-
-            'perccd' : {
-                'mfwhm' : ('mfwhm',),
-                'mbeta' : ('mbeta',),
-            },
-
-            'peraper' : {
-                'xe' : ('x', 'xe'),
-                'ye' : ('y', 'ye'),
-                'fwhme' : ('fwhm', 'fwhme'),
-                'betae' : ('beta', 'beta'),
-                'countse' : ('counts','countse'),
-                'skye' : ('sky','skye'),
+            "perccd": {"mfwhm": ("mfwhm",), "mbeta": ("mbeta",),},
+            "peraper": {
+                "xe": ("x", "xe"),
+                "ye": ("y", "ye"),
+                "fwhme": ("fwhm", "fwhme"),
+                "betae": ("beta", "beta"),
+                "countse": ("counts", "countse"),
+                "skye": ("sky", "skye"),
             },
         }
 
@@ -299,19 +295,19 @@ class Hlog(dict):
             ccd = hlog[cnam]
 
             # per CCD corrections
-            for key, corrs in fixes['perccd'].items():
+            for key, corrs in fixes["perccd"].items():
                 if key in ccd.dtype.fields:
                     ok = ~np.isnan(ccd[key])
-                    bad = ccd[key][ok] <= 0.
+                    bad = ccd[key][ok] <= 0.0
                     for corr in corrs:
                         ccd[corr][ok][bad] = NaN
 
             # per aperture corrections
-            for key, corrs in fixes['peraper'].items():
+            for key, corrs in fixes["peraper"].items():
                 for apnam in hlog.apnames[cnam]:
                     if f"{key}_{apnam}" in ccd.dtype.fields:
                         ok = ~np.isnan(ccd[f"{key}_{apnam}"])
-                        bad = ccd[f"{key}_{apnam}"][ok] <= 0.
+                        bad = ccd[f"{key}_{apnam}"][ok] <= 0.0
                         for corr in corrs:
                             ccd[f"{corr}_{apnam}"][ok][bad] = NaN
 
@@ -547,7 +543,7 @@ class Hlog(dict):
         tmask[~mjdok] = BAD_TIME
 
         times = ccd["MJD"].copy()
-        texps = ccd["Exptim"].copy()/86400
+        texps = ccd["Exptim"].copy() / 86400
 
         if apnam is None:
             data = ccd[f"{name}"].copy()
@@ -638,27 +634,30 @@ class Tseries:
         ye=None and bmask=None means their arrays will be set=0
         """
         if isinstance(t, np.ndarray) and (
-                len(t) != len(y) or \
-                (ye is not None and len(t)!= len(ye)) or \
-                (bmask is not None and len(t) != len(bmask)) or \
-                (te is not None and len(t) != len(te))):
+            len(t) != len(y)
+            or (ye is not None and len(t) != len(ye))
+            or (bmask is not None and len(t) != len(bmask))
+            or (te is not None and len(t) != len(te))
+        ):
             raise ValueError("problem with one or more of t,y, ye, bmask, te")
 
         if cpy:
             self.t = copy.copy(t)
             self.y = copy.copy(y)
-            self.ye = copy.copy(ye) if ye is not None else \
-                np.zeros_like(t)
-            self.bmask = copy.copy(bmask) if bmask is not None else \
-                np.zeros_like(t,dtype=np.uint32)
+            self.ye = copy.copy(ye) if ye is not None else np.zeros_like(t)
+            self.bmask = (
+                copy.copy(bmask)
+                if bmask is not None
+                else np.zeros_like(t, dtype=np.uint32)
+            )
             self.te = copy.copy(te)
         else:
             self.t = t
             self.y = y
-            self.ye = ye if ye is not None else \
-                np.zeros_like(t)
-            self.bmask = bmask if bmask is not None else \
-                np.zeros_like(t,dtype=np.uint32)
+            self.ye = ye if ye is not None else np.zeros_like(t)
+            self.bmask = (
+                bmask if bmask is not None else np.zeros_like(t, dtype=np.uint32)
+            )
             self.te = te
 
     def __len__(self):
@@ -670,7 +669,8 @@ class Tseries:
         is true. 'mask' should match the Tseries length.  Arguments::
 
            bitmask : int
-             a bitmask value which will be OR-ed with elements of the current bitmask array
+             a bitmask value which will be OR-ed with elements of the current
+             bitmask array
 
            mask: np.ndarray
              the bitmask will be applied to every element for which mask is True.
@@ -699,8 +699,12 @@ class Tseries:
         where any one of t, y, ye has been set to NaN or Inf
         """
         return (
-            np.isnan(self.t) | np.isnan(self.y) | np.isnan(self.ye) |
-            np.isinf(self.t) | np.isinf(self.y) | np.isinf(self.ye)
+            np.isnan(self.t)
+            | np.isnan(self.y)
+            | np.isnan(self.ye)
+            | np.isinf(self.t)
+            | np.isinf(self.y)
+            | np.isinf(self.ye)
         )
 
     def get_mask(self, bitmask=None, flag_bad=True):
@@ -748,9 +752,7 @@ class Tseries:
         """
 
         if bitmask == ALL_OK:
-            raise ValueError(
-                'bitmask=ALL_OK is invalid; ANY_FLAG may be what you want'
-            )
+            raise ValueError("bitmask=ALL_OK is invalid; ANY_FLAG may be what you want")
 
         if flag_bad:
             # Flag bad data
@@ -782,15 +784,25 @@ class Tseries:
 
         Returns::
            data : tuple
-             times, exposures times [or None if they are not defined], y values and their 
+             times, exposures times [or None if they are not defined], y values and their
              uncertainties
         """
         if flagged:
-            bad = self.get_mask(bitmask,False)
-            return (self.t[bad], self.te if self.te is None else self.te[bad], self.y[bad], self.ye[bad])
+            bad = self.get_mask(bitmask, False)
+            return (
+                self.t[bad],
+                self.te if self.te is None else self.te[bad],
+                self.y[bad],
+                self.ye[bad],
+            )
         else:
             good = ~self.get_mask(bitmask)
-            return (self.t[good], self.te if self.te is None else self.te[good], self.y[good], self.ye[good])
+            return (
+                self.t[good],
+                self.te if self.te is None else self.te[good],
+                self.y[good],
+                self.ye[good],
+            )
 
     def percentile(self, q, bitmask=None):
         """Returns percentiles of the y-array and their -/+ 1 sigma to allow
@@ -811,24 +823,24 @@ class Tseries:
            Three lists containing percentiles for y, y-ye and y+ye
         """
         good = ~self.get_mask(bitmask)
-        y = np.percentile(self.y[good],q)
-        ym = np.percentile(self.y[good]-self.ye[good],q)
-        yp = np.percentile(self.y[good]+self.ye[good],q)
-        return (y,ym,yp)
+        y = np.percentile(self.y[good], q)
+        ym = np.percentile(self.y[good] - self.ye[good], q)
+        yp = np.percentile(self.y[good] + self.ye[good], q)
+        return (y, ym, yp)
 
     def mplot(
-            self,
-            axes,
-            color="b",
-            fmt=".",
-            bitmask=None,
-            flagged=False,
-            capsize=0,
-            errx=False,
-            erry=True,
-            trange=None,
-            mask=None,
-            **kwargs
+        self,
+        axes,
+        color="b",
+        fmt=".",
+        bitmask=None,
+        flagged=False,
+        capsize=0,
+        errx=False,
+        erry=True,
+        trange=None,
+        mask=None,
+        **kwargs,
     ):
         """Plots a Tseries to a matplotlib Axes instance, only plotting points
         that match the bitmask `mask` and have positive errors.
@@ -900,14 +912,14 @@ class Tseries:
         kwargs["color"] = color
 
         if errx and erry:
-            te = self.te[plot]/2.
+            te = self.te[plot] / 2.0
             ye = self.ye[plot]
             kwargs["fmt"] = fmt
             kwargs["capsize"] = capsize
             axes.errorbar(t, y, ye, te, **kwargs)
 
         elif errx:
-            te = self.te[plot]/2.
+            te = self.te[plot] / 2.0
             kwargs["fmt"] = fmt
             kwargs["capsize"] = capsize
             axes.errorbar(t, y, xerr=te, **kwargs)
@@ -933,15 +945,20 @@ class Tseries:
         """
         if isinstance(other, Tseries):
 
-            with np.errstate(divide='ignore', invalid='ignore'):
+            with np.errstate(divide="ignore", invalid="ignore"):
                 y = self.y / other.y
                 ye = np.sqrt(
-                    self.ye**2 + (self.y*other.ye/other.y)**2
+                    self.ye ** 2 + (self.y * other.ye / other.y) ** 2
                 ) / np.abs(other.y)
 
             bmask = self.bmask | other.bmask
-            te = self.te.copy() if self.te is not None else \
-                other.te.copy() if other.te is not None else None
+            te = (
+                self.te.copy()
+                if self.te is not None
+                else other.te.copy()
+                if other.te is not None
+                else None
+            )
 
         else:
 
@@ -959,9 +976,9 @@ class Tseries:
         """
         if isinstance(other, Tseries):
 
-            with np.errstate(divide='ignore', invalid='ignore'):
+            with np.errstate(divide="ignore", invalid="ignore"):
                 self.ye = np.sqrt(
-                    self.ye**2 + (self.y*other.ye/other.y)**2
+                    self.ye ** 2 + (self.y * other.ye / other.y) ** 2
                 ) / np.abs(other.y)
 
                 self.y /= other.y
@@ -988,12 +1005,15 @@ class Tseries:
         if isinstance(other, Tseries):
 
             y = self.y * other.y
-            ye = np.sqrt(
-                (other.y*self.ye)**2 + (self.y*other.ye)**2
-            )
+            ye = np.sqrt((other.y * self.ye) ** 2 + (self.y * other.ye) ** 2)
             bmask = self.bmask | other.bmask
-            te = self.te.copy() if self.te is not None else \
-                other.te.copy() if other.te is not None else None
+            te = (
+                self.te.copy()
+                if self.te is not None
+                else other.te.copy()
+                if other.te is not None
+                else None
+            )
 
         else:
             # multiplication by a constant or an array of constants
@@ -1009,9 +1029,7 @@ class Tseries:
         """
         if isinstance(other, Tseries):
 
-            self.ye = np.sqrt(
-                (other.y*self.ye)**2 + (self.y*other.ye)**2
-            )
+            self.ye = np.sqrt((other.y * self.ye) ** 2 + (self.y * other.ye) ** 2)
             self.y *= other.y
             self.bmask |= other.bmask
             if self.te is None and other.te is not None:
@@ -1033,10 +1051,15 @@ class Tseries:
         if isinstance(other, Tseries):
 
             y = self.y + other.y
-            ye = np.sqrt(self.ye**2+ other.ye**2)
+            ye = np.sqrt(self.ye ** 2 + other.ye ** 2)
             bmask = self.bmask | other.bmask
-            te = self.te.copy() if self.te is not None else \
-                other.te.copy() if other.te is not None else None
+            te = (
+                self.te.copy()
+                if self.te is not None
+                else other.te.copy()
+                if other.te is not None
+                else None
+            )
 
         else:
             # addition of a constant or an array of constants
@@ -1054,7 +1077,7 @@ class Tseries:
         if isinstance(other, Tseries):
 
             self.y += other.y
-            self.ye = np.sqrt(self.ye**2+ other.ye**2)
+            self.ye = np.sqrt(self.ye ** 2 + other.ye ** 2)
             self.bmask |= other.bmask
             if self.te is None and other.te is not None:
                 self.te = other.te.copy()
@@ -1074,10 +1097,15 @@ class Tseries:
         if isinstance(other, Tseries):
 
             y = self.y - other.y
-            ye = np.sqrt(self.ye**2 + other.ye**2)
+            ye = np.sqrt(self.ye ** 2 + other.ye ** 2)
             bmask = self.bmask | other.bmask
-            te = self.te.copy() if self.te is not None else \
-                other.te.copy() if other.te is not None else None
+            te = (
+                self.te.copy()
+                if self.te is not None
+                else other.te.copy()
+                if other.te is not None
+                else None
+            )
 
         else:
             # subtraction of a constant or an array of constants
@@ -1095,7 +1123,7 @@ class Tseries:
         if isinstance(other, Tseries):
 
             self.y -= other.y
-            self.ye = np.sqrt(self.ye**2 + other.ye**2)
+            self.ye = np.sqrt(self.ye ** 2 + other.ye ** 2)
             self.bmask |= other.bmask
             if self.te is None and other.te is not None:
                 self.te = other.te.copy()
@@ -1143,6 +1171,131 @@ class Tseries:
         if self.te is not None:
             self.te /= np.abs(other)
 
+    def resample(self, bin_edges, weighted=True, bitmask=None, inplace=True):
+        """
+        Resamples the Timeseries onto a uniform grid.
+
+        Parameters
+        -----------
+        bin_edges : `~np.ndarray`
+            The left-hand edges of the grid.
+
+        weighted : bool | True
+            If true, points will be combined using a weighted mean.
+
+        bitmask : int | None
+            Bitmask that selects elements to ignore before binning, in addition to
+            bad points. e.g. bitmask=hcam.TARGET_SATURATED will skip points
+            flagged as saturated.
+
+        inplace : bool
+            If True, self is modified, else a new Tseries is created
+            and self is untouched. A reference to a Tseries is always returned
+
+        Returns
+        -------
+        TSeries : Tseries object
+            Binned Timeseries. If any output bin has no allowed input points (all
+            bad or flagged by bitmask) it will be flagged as bad.
+
+        .. Note::
+
+           1. The binned TSeries will report the root-mean-square error.
+
+           2. The bitwise OR of the quality flags will be returned per bin.
+
+           3. Any bins with no points will have their data set bad to mask them
+
+           4. The exposure time will be set to span the first to last time
+              contributing to the bin.
+        """
+        if inplace:
+            # doesn't matter if we re-order ourself in this case
+            tmp_ts = self
+        else:
+            # need to preserve myself here
+            tmp_ts = copy.deepcopy(self)
+
+        # first, sort in increasing time
+        idx = np.argsort(self.t)
+        tmp_ts = tmp_ts[idx]
+
+        # Turn into numpy masked arrays
+        mask = self.get_mask(bitmask)
+        t_in = np.ma.masked_array(tmp_ts.t, mask)
+        y_in = np.ma.masked_array(tmp_ts.y, mask)
+        ye_in = np.ma.masked_array(tmp_ts.ye, mask)
+        bmask_in = tmp_ts.bmask
+        bmask_in[mask] = 0
+
+        # digitized is an array of "bin number" for each point
+        # digitized == 0 denotes t < bin_edges[0]
+        # digitized == len(bin_edges) denotes t > bin_edges[1]
+        digitized = np.digitize(tmp_ts.t, bin_edges)
+
+        # loop over bins
+        t = []
+        te = []
+        y = []
+        ye = []
+        bmask = []
+        # loop over all bins we wish to include (not first or last)
+        for i in range(1, len(bin_edges)):
+            bin_mask = digitized == i
+
+            # special case empy bin
+            if not np.any(bin_mask):
+                t.append(0.5 * (bin_edges[i] + bin_edges[i + 1]))
+                te.append(np.fabs(bin_edges[i + 1] - bin_edges[i]))
+                y.append(NaN)
+                ye.append(NaN)
+                bmask.append(NO_DATA)
+                continue
+
+            if weighted:
+                weights = 1.0 / ye_in[bin_mask] ** 2
+                t.append(np.sum(weights * t_in[bin_mask] / np.sum(weights)))
+                y.append(np.sum(weights * y_in[bin_mask] / np.sum(weights)))
+                # set exp time to bin range. Not quite right, since the
+                # mid time is the mean of all points, but what else can we do?
+                te.append(np.fabs(t_in[bin_mask].max() - t_in[bin_mask].min()))
+                # RMS for errors
+                if len(y_in[bin_mask]) == 1:
+                    ye.append(ye_in[bin_mask][0])
+                else:
+                    ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
+                # bitwise OR all mask entries
+                bmask.append(np.bitwise_or.reduce(bmask_in[bin_mask]))
+            else:
+                weights = 1.0 / ye_in[bin_mask] ** 2
+                t.append(np.mean(t_in[bin_mask]))
+                y.append(np.mean(y_in[bin_mask]))
+                # set exp time to bin range. Not quite right, since the
+                # mid time is the mean of all points, but what else can we do?
+                te.append(np.fabs(t_in[bin_mask].max() - t_in[bin_mask].min()))
+                # RMS for errors
+                if len(y_in[bin_mask]) == 1:
+                    ye.append(ye_in[bin_mask][0])
+                else:
+                    ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
+                # bitwise OR all mask entries
+                bmask.append(np.bitwise_or.reduce(bmask_in[bin_mask]))
+
+        if inplace:
+            self.t = np.array(t)
+            self.te = np.array(te)
+            self.y = np.array(y)
+            self.ye = np.array(ye)
+            self.bmask = np.array(bmask)
+            return
+        else:
+            tmp_ts.t = np.array(t)
+            tmp_ts.te = np.array(te)
+            tmp_ts.y = np.array(y)
+            tmp_ts.ye = np.array(ye)
+            tmp_ts.bmask = np.array(bmask)
+            return tmp_ts
+
     def bin(self, binsize, bitmask=None, inplace=True):
         """
         Bins the Timeseries into blocks of binsize; bitmask mvalue
@@ -1185,7 +1338,7 @@ class Tseries:
         """
 
         n_bins = len(self) // binsize
-        n_used = n_bins*binsize
+        n_used = n_bins * binsize
 
         # Turn into numpy masked arrays, reshape to allow operations
         # over x axis
@@ -1207,22 +1360,21 @@ class Tseries:
             tmin = t
             tmax = t
         else:
-            te = np.ma.masked_array(
-                self.te[:n_used].reshape(n_bins, binsize), mask)/2
+            te = np.ma.masked_array(self.te[:n_used].reshape(n_bins, binsize), mask) / 2
             tmin = t - te
             tmax = t + te
 
         # take mean / sum along x-axis of 2D reshaped arrays, convert
         # back to ordinary arrays
-        t = np.ma.getdata(np.mean(t,1))
+        t = np.ma.getdata(np.mean(t, 1))
         y = np.ma.getdata(np.mean(y, 1))
-        ye = np.ma.getdata(np.sqrt(np.sum(ye*ye,1)))
+        ye = np.ma.getdata(np.sqrt(np.sum(ye * ye, 1)))
 
         # note this next bit is not quite right since the time had
         # been set to the mean, but it will do
-        tmin = np.ma.getdata(np.min(tmin,1))
-        tmax = np.ma.getdata(np.max(tmax,1))
-        te = tmax-tmin
+        tmin = np.ma.getdata(np.min(tmin, 1))
+        tmax = np.ma.getdata(np.max(tmax, 1))
+        te = tmax - tmin
         y[nbin == 0] = NaN
         ye[nbin == 0] = NaN
         ye[nbin > 0] /= nbin[nbin > 0]
@@ -1364,24 +1516,15 @@ class Tseries:
             new object
 
         """
-        if not isinstance(position, SkyCoord):
-            position = SkyCoord(position, unit=(u.hourangle, u.deg))
-
-        if not isinstance(telescope, EarthLocation):
-            telescope = EarthLocation.of_site(telescope)
 
         # assuming MJDs at this point
-        times = Time(self.t, format='mjd', scale='utc', location=telescope)
-
-        # Barycentric correction: add to get to barycentre
-        ltt_bary = times.light_travel_time(position)
-        times = times.tdb + ltt_bary
+        ts = timcorr(self.t, position, telescope)
 
         if inplace:
-            self.t = times.mjd
+            self.t = ts
         else:
             return Tseries(
-                times.mjd, self.y, self.ye, self.bmask, self.te
+                ts, self.y, self.ye, self.bmask, self.te
             )
 
     def to_airmass(self, position, telescope, inplace=True):
@@ -1421,27 +1564,23 @@ class Tseries:
             telescope = EarthLocation.of_site(telescope)
 
         # assuming MJDs at this point
-        times = Time(self.t, format='mjd', scale='utc', location=telescope)
+        times = Time(self.t, format="mjd", scale="utc", location=telescope)
 
         # Calculate the Alt, Az for all times. No pressure included, i.e.
         # this does not account for refraction which is what the formula
         # from Young & Irvine
-        frames = AltAz(
-            obstime=times, location=telescope,
-        )
+        frames = AltAz(obstime=times, location=telescope,)
         points = position.transform_to(frames)
 
         # secz, then apply the Young & Irvine equation
         seczs = points.secz
-        airms = np.array(seczs*(1-0.0012*(seczs**2-1)))
+        airms = np.array(seczs * (1 - 0.0012 * (seczs ** 2 - 1)))
 
         if inplace:
             self.t = airms
             self.te = None
         else:
-            return Tseries(
-                airms, self.y, self.ye, self.bmask
-            )
+            return Tseries(airms, self.y, self.ye, self.bmask)
 
     def phase(self, t0, period, fold=False, inplace=True, sort=True):
         """Convert the time into phase.
@@ -1476,7 +1615,7 @@ class Tseries:
             (if inplace=False)
         """
         phase = (self.t - t0) / period
-        pexpose = self.te/np.abs(period) if self.te is not None else None
+        pexpose = self.te / np.abs(period) if self.te is not None else None
 
         if fold:
             phase = np.mod(phase, 1)
@@ -1494,9 +1633,11 @@ class Tseries:
             else:
                 return Tseries(
                     phase[isort],
-                    self.y[isort], self.ye[isort], self.bmask[isort],
+                    self.y[isort],
+                    self.ye[isort],
+                    self.bmask[isort],
                     pexpose[isort] if pexpose is not None else None,
-                    True
+                    True,
                 )
 
         else:
@@ -1504,11 +1645,9 @@ class Tseries:
                 self.t = phase
                 self.te = pexpose
             else:
-                return Tseries(
-                    phase, self.y, self.ye, self.bmask, pexpose, True
-                )
+                return Tseries(phase, self.y, self.ye, self.bmask, pexpose, True)
 
-    def normalise(self, bitmask=None, method='median', weighted=False, inplace=True):
+    def normalise(self, bitmask=None, method="median", weighted=False, inplace=True):
         """Returns a normalized version of the time series.
 
         The normalized timeseries is obtained by dividing `y` and `ye`
@@ -1539,12 +1678,12 @@ class Tseries:
             lc = copy.deepcopy(self)
         mask = lc.get_mask(bitmask)
         ymask = np.ma.masked_array(lc.y, mask)
-        if method == 'median':
+        if method == "median":
             norm_factor = np.ma.median(ymask)
-        elif method == 'mean':
+        elif method == "mean":
             if weighted:
-                wgt = 1/np.ma.masked_array(lc.ye, mask)**2
-                norm_factor = np.sum(wgt*ymask)/np.sum(wgt)
+                wgt = 1 / np.ma.masked_array(lc.ye, mask) ** 2
+                norm_factor = np.sum(wgt * ymask) / np.sum(wgt)
             else:
                 norm_factor = np.mean(ymask)
         lc.y /= norm_factor
@@ -1595,10 +1734,10 @@ class Tseries:
         weighting.
         """
         mask = self.get_mask(bitmask)
-        ymask = np.ma.masked_array(self.y,mask)
+        ymask = np.ma.masked_array(self.y, mask)
         if weighted:
-            wgt = 1/np.ma.masked_array(self.ye, mask)**2
-            return np.sum(wgt*ymask)/np.sum(wgt)
+            wgt = 1 / np.ma.masked_array(self.ye, mask) ** 2
+            return np.sum(wgt * ymask) / np.sum(wgt)
         else:
             return np.mean(ymask)
 
@@ -1624,13 +1763,16 @@ class Tseries:
                 self.y[nstart:-nend],
                 self.ye[nstart:-nend],
                 self.bmask[nstart:-nend],
-                te
+                te,
             )
         elif nstart:
             te = self.te[nstart:] if self.te is not None else None
             return Tseries(
-                self.t[nstart:], self.y[nstart:], self.ye[nstart:],
-                self.bmask[nstart:], te
+                self.t[nstart:],
+                self.y[nstart:],
+                self.ye[nstart:],
+                self.bmask[nstart:],
+                te,
             )
         else:
             return copy.deepcopy(self)
@@ -1648,16 +1790,18 @@ class Tseries:
         print(f"There were {nflag} flagged data points out of {ntot}")
 
         if nflag:
-            print('\nFlags raised:\n')
+            print("\nFlags raised:\n")
             for fname, flag in FLAGS:
                 if flag != ALL_OK and flag != ANY_FLAG:
                     match = np.bitwise_and(self.bmask, flag) > 0
                     nfl = len(match[match])
                     if nfl:
-                        print(f"   Flag = {fname} was raised for {nfl} points out of {ntot}")
+                        print(
+                            f"   Flag = {fname} was raised for {nfl} points out of {ntot}"
+                        )
 
         if nbad or nflag:
-            print('\nPoint-by-point (bad and/or flagged):\n')
+            print("\nPoint-by-point (bad and/or flagged):\n")
 
             for i in range(len(self.t)):
                 if bad[i] or flagged[i]:
@@ -1665,26 +1809,28 @@ class Tseries:
                     if flagged[i]:
                         flags_raised = []
                         for fname, flag in FLAGS:
-                            if flag != ANY_FLAG: 
+                            if flag != ANY_FLAG:
                                 if self.bmask[i] & flag:
                                     flags_raised.append(fname)
-                        flags_raised = ', '.join(flags_raised)
+                        flags_raised = ", ".join(flags_raised)
                     else:
                         flags_raised = "none"
 
-                    print(f"   Index {i}: (t,y,ye) = ({self.t[i]},{self.y[i]},{self.ye[i]}), bad = {bad[i]}, flags raised = {flags_raised}")
+                    print(
+                        f"   Index {i}: (t,y,ye) = ({self.t[i]},{self.y[i]},{self.ye[i]}), bad = {bad[i]}, flags raised = {flags_raised}"
+                    )
 
     def to_mag(self, inplace=True):
         """
         Convert to magnitudes, i.e. take -2.5*log10(y) (inverse of from_mag)
         """
         if inplace:
-            self.ye *= (2.5 / np.log(10.)) / self.y
+            self.ye *= (2.5 / np.log(10.0)) / self.y
             self.y = -2.5 * np.log10(self.y)
         else:
             new_ts = copy.deepcopy(self)
             new_ts.y = -2.5 * np.log10(self.y)
-            new_ts.ye = (2.5 / np.log(10.)) * self.ye / self.y
+            new_ts.ye = (2.5 / np.log(10.0)) * self.ye / self.y
             return new_ts
 
     def from_mag(self, inplace=True):
@@ -1692,13 +1838,13 @@ class Tseries:
         Convert from magnitudes to a linear scale (inverse of to_mag)
         """
         if inplace:
-            self.y = 10**(-self.y/2.5)
-            self.ye *= (np.log(10.) / 2.5) * self.y
+            self.y = 10 ** (-self.y / 2.5)
+            self.ye *= (np.log(10.0) / 2.5) * self.y
 
         else:
             new_ts = copy.deepcopy(self)
-            new_ts.y = 10**(-self.y/2.5)
-            new_ts.ye = (np.log(10.) / 2.5) * new_ts.y * self.ye
+            new_ts.y = 10 ** (-self.y / 2.5)
+            new_ts.ye = (np.log(10.0) / 2.5) * new_ts.y * self.ye
             return new_ts
 
     def write(self, fname, lcurve=False, bitmask=None, skip=False, **kwargs):
@@ -1748,8 +1894,9 @@ class Tseries:
                 wgt[mask[good]] = 0.0
 
             # we don't supply bitmask flags in this case
-            header = kwargs.get("header", "") + \
-                """
+            header = (
+                kwargs.get("header", "")
+                + """
 The data are written in a format suitable for using in the lcurve
 light-curve modelling program and include two final columns of weights
 and integer sub-division factors. The weights might be zero for data
@@ -1760,18 +1907,22 @@ Data written by hipercam.hlog.Tseries.write.
 
 Six columns: times exposures fluxes flux-errors weights sub-div-facs
                 """
+            )
             fmt = kwargs.get("fmt", "%.16g %.3e %.6e %.3e %.1f 1")
-            data = np.column_stack([self.t[good], self.te[good], self.y[good], self.ye[good], wgt])
+            data = np.column_stack(
+                [self.t[good], self.te[good], self.y[good], self.ye[good], wgt]
+            )
 
         else:
 
             flags = []
             for flag, message in FLAG_MESSAGES.items():
                 flags.append(f"   Flag = {flag:6d}: {message}")
-            flags = '\n'.join(flags)
+            flags = "\n".join(flags)
 
-            header = kwargs.get("header", "") + \
-                f"""
+            header = (
+                kwargs.get("header", "")
+                + f"""
 Unrecoverably bad data are indicated by "nan" (not-a-number)
 values. There are also a series of flags which are combined into a
 single integer "bitmask". The values & meanings of these bitmask flags
@@ -1791,6 +1942,7 @@ all bad data to be indicated as such.
 Data written by hipercam.hlog.Tseries.write.
 
 """
+            )
 
             if self.te is None:
                 header += "Four columns: times y-values y-errors bitmask"
@@ -1822,9 +1974,18 @@ Data written by hipercam.hlog.Tseries.write.
 
 
 def scatter(
-        axes, xts, yts, color="b", fmt=".", bitmask=None,
-        flagged=False, capsize=0, errx=True, erry=True,
-        **kwargs):
+    axes,
+    xts,
+    yts,
+    color="b",
+    fmt=".",
+    bitmask=None,
+    flagged=False,
+    capsize=0,
+    errx=True,
+    erry=True,
+    **kwargs,
+):
     """
     Plots data in one Tseries versus another.
 

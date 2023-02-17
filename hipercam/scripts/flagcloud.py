@@ -30,9 +30,10 @@ if curs is not None:
 
 import matplotlib.pyplot as plt
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
 
 __all__ = [
     "flagcloud",
@@ -123,7 +124,7 @@ def flagcloud(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -160,7 +161,7 @@ def flagcloud(args=None):
                 ccds = cnams
             else:
                 ccds = ccd.split()
-                if set(ccds) <= set(cnams):
+                if not (set(ccds) <= set(cnams)):
                     print(f'   selected CCDs ({ccds}) not amongst those in the reduce log ({cnams})')
                     return
         else:

@@ -36,9 +36,10 @@ from photutils.psf import DAOPhotPSFPhotometry, IntegratedGaussianPRF
 from photutils.background import MADStdBackgroundRMS, MMMBackground
 from astropy.stats import gaussian_fwhm_to_sigma, SigmaClip
 
+from trm import cline
+from trm.cline import Cline
+
 import hipercam as hcam
-from hipercam import cline, utils
-from hipercam.cline import Cline
 from hipercam.scripts.psf_reduce import MoffatPSF
 
 __all__ = [
@@ -211,7 +212,7 @@ def psfaper(args=None):
 
     """
 
-    command, args = utils.script_args(args)
+    command, args = cline.script_args(args)
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
