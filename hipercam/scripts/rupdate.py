@@ -188,7 +188,7 @@ def rupdate(args=None):
 
             elif line.startswith("[psf_photom]") and nversion <= 6:
                 lines.append(line)
-                lines.append('\n# Next 2 lines were automatically added by rupdate\n"')
+                lines.append("\n# Next 2 lines were automatically added by rupdate\n")
                 lines.append("use_psf = no # use PSF photometry\n")
                 lines.append(
                     "psf_model = 'moffat' # must be one of 'gaussian', 'moffat'\n"
