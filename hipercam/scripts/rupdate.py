@@ -201,7 +201,7 @@ def rupdate(args=None):
     # Write out modified file
     with open(rfile, "w") as fout:
         for line in lines:
-            if line.startswith("scale =") and scale != "UNKNOWN" and nversion <= 5:
+            if line.startswith("scale =") and nversion <= 5 and scale != "UNKNOWN":
                 fout.write(f"scale = {scale:.3f} # scale, arcsec per unbinned pixel\n")
             else:
                 fout.write(line)
