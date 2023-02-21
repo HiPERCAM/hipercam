@@ -76,8 +76,8 @@ class IntegratedGaussianPRF2(Fittable2DModel):
     flux = Parameter(default=1)
     x_0 = Parameter(default=0)
     y_0 = Parameter(default=0)
-    sigma_x = Parameter(default=1, fixed=True)
-    sigma_y = Parameter(default=1, fixed=True)
+    sigma_x = Parameter(default=1, fixed=False)
+    sigma_y = Parameter(default=1, fixed=False)
 
     _erf = None
 
@@ -147,9 +147,9 @@ class MoffatPSF(Fittable2DModel):
     flux = Parameter(default=1)
     x_0 = Parameter(default=0)
     y_0 = Parameter(default=0)
-    beta = Parameter(default=2.5, fixed=True)
-    fwhm_x = Parameter(default=12, fixed=True)
-    fwhm_y = Parameter(default=12, fixed=True)
+    beta = Parameter(default=2.5, fixed=False)
+    fwhm_x = Parameter(default=12, fixed=False)
+    fwhm_y = Parameter(default=12, fixed=False)
 
     fit_deriv = None
 
@@ -243,7 +243,6 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     # get profile params from aperture store
     mfwhm = store["mfwhm"]
     mbeta = store["mbeta"]
-    method = "m" if mbeta > 0.0 else "g"
 
     if mfwhm <= 0:
         # die hard, die soon as there's nothing we can do.
@@ -320,22 +319,24 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     bin_fac = ccd[wnam].xbin
 
     # create PSF model
-    if method == "m":
-        psf_model = MoffatPSF(
-            beta=mbeta, fwhm_x=mfwhm / bin_fac, fwhm_y=mfwhm / bin_fac
-        )
-        psf_model.fwhm_x.min = 0.5 * mfwhm / bin_fac
-        psf_model.fwhm_x.max = 1.5 * mfwhm / bin_fac
-        psf_model.fwhm_y.min = 0.5 * mfwhm / bin_fac
-        psf_model.fwhm_y.max = 1.5 * mfwhm / bin_fac
+    method = rfile["psf_photom"]["psf_model"]
+    if method == "moffat":
+        # fix beta if initial aperture tweak used Gaussian profiles
+        beta = mbeta if mbeta > 0.0 else 2.5
+        psf_model = MoffatPSF(beta=beta, fwhm_x=mfwhm / bin_fac, fwhm_y=mfwhm / bin_fac)
+        # TODO: adjust psf_model based on reference stars
         psf_model.fwhm_x.fixed = True
         psf_model.fwhm_y.fixed = True
+        psf_model.beta.fixed = True
         extra_output_cols = ["fwhm_x", "fwhm_y"]
     else:
         psf_model = IntegratedGaussianPRF2(
             sigma_x=mfwhm * gaussian_fwhm_to_sigma / bin_fac,
             sigma_y=mfwhm * gaussian_fwhm_to_sigma / bin_fac,
         )
+        # TODO: adjust psf model based on reference stars
+        psf_model.sigma_x.fixed = True
+        psf_model.sigma_y.fixed = True
         extra_output_cols = ["sigma_x", "sigma_y"]
 
     # force photometry only at aperture positions
