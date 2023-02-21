@@ -191,7 +191,7 @@ def rupdate(args=None):
                 lines.append("\n# Next 2 lines were automatically added by rupdate\n")
                 lines.append("use_psf = no # use PSF photometry\n")
                 lines.append(
-                    "psf_model = 'moffat' # must be one of 'gaussian', 'moffat'\n"
+                    "psf_model = moffat # must be one of 'gaussian', 'moffat'\n"
                 )
 
             else:
