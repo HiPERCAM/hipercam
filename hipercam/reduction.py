@@ -1127,7 +1127,7 @@ def update_plots(
                 t = np.array(lc.t, dtype=np.float32)
                 f = np.array(lc.f, dtype=np.float32)
                 fe = np.array(lc.fe, dtype=np.float32)
-                symbs = np.array(lc.symb, dtype=np.int)
+                symbs = np.array(lc.symb, dtype=np.int32)
                 asymbs = set(symbs)
 
                 # Plot the error bars
@@ -1151,7 +1151,7 @@ def update_plots(
                     t = np.array(xpos.t, dtype=np.float32)
                     f = np.array(xpos.f, dtype=np.float32)
                     fe = np.array(xpos.fe, dtype=np.float32)
-                    symbs = np.array(xpos.symb, dtype=np.int)
+                    symbs = np.array(xpos.symb, dtype=np.int32)
                     asymbs = set(symbs)
 
                     # Plot the error bars
@@ -1172,7 +1172,7 @@ def update_plots(
                     t = np.array(ypos.t, dtype=np.float32)
                     f = np.array(ypos.f, dtype=np.float32)
                     fe = np.array(ypos.fe, dtype=np.float32)
-                    symbs = np.array(ypos.symb, dtype=np.int)
+                    symbs = np.array(ypos.symb, dtype=np.int32)
                     asymbs = set(symbs)
 
                     # Plot the error bars
@@ -1201,7 +1201,7 @@ def update_plots(
                         scale = np.float32(100.0 / trans.fmax)
                         f *= scale
                         fe *= scale
-                        symbs = np.array(trans.symb, dtype=np.int)
+                        symbs = np.array(trans.symb, dtype=np.int32)
                         asymbs = set(symbs)
 
                         # Plot the error bars
@@ -1225,7 +1225,7 @@ def update_plots(
                     t = np.array(see.t, dtype=np.float32)
                     f = np.array(see.f, dtype=np.float32)
                     fe = np.array(see.fe, dtype=np.float32)
-                    symbs = np.array(see.symb, dtype=np.int)
+                    symbs = np.array(see.symb, dtype=np.int32)
                     asymbs = set(symbs)
 
                     # Plot the error bars
