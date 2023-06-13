@@ -169,9 +169,7 @@ class Hlog(dict):
         for fnam in fnames:
             with open(fnam) as fin:
                 for line in fin:
-
                     if line.startswith("#"):
-
                         if first:
                             if start:
                                 hlog.comments.append(line)
@@ -244,7 +242,6 @@ class Hlog(dict):
                                     hlog[cnam] = bytearray()
 
                     elif read_data:
-
                         # No more storage of comment lines
                         start = False
 
@@ -280,7 +277,10 @@ class Hlog(dict):
         # negative errors indicated bad data rather than NaNs. 'fixes' indicate the items
         # to look for and then the items to correct as a result
         fixes = {
-            "perccd": {"mfwhm": ("mfwhm",), "mbeta": ("mbeta",),},
+            "perccd": {
+                "mfwhm": ("mfwhm",),
+                "mbeta": ("mbeta",),
+            },
             "peraper": {
                 "xe": ("x", "xe"),
                 "ye": ("y", "ye"),
@@ -944,11 +944,10 @@ class Tseries:
         the bit masks are bitwise_or-ed together.
         """
         if isinstance(other, Tseries):
-
             with np.errstate(divide="ignore", invalid="ignore"):
                 y = self.y / other.y
                 ye = np.sqrt(
-                    self.ye ** 2 + (self.y * other.ye / other.y) ** 2
+                    self.ye**2 + (self.y * other.ye / other.y) ** 2
                 ) / np.abs(other.y)
 
             bmask = self.bmask | other.bmask
@@ -961,7 +960,6 @@ class Tseries:
             )
 
         else:
-
             # division by a constant or an array of constants
             y = self.y / other
             ye = self.ye / np.abs(other)
@@ -975,10 +973,9 @@ class Tseries:
         Divides the Tseries by 'other' in place. See __truediv__ for more details.
         """
         if isinstance(other, Tseries):
-
             with np.errstate(divide="ignore", invalid="ignore"):
                 self.ye = np.sqrt(
-                    self.ye ** 2 + (self.y * other.ye / other.y) ** 2
+                    self.ye**2 + (self.y * other.ye / other.y) ** 2
                 ) / np.abs(other.y)
 
                 self.y /= other.y
@@ -988,7 +985,6 @@ class Tseries:
                 self.te = other.te.copy()
 
         else:
-
             # division by a constant or an array of constants
             self.y /= other
             self.ye /= np.abs(other)
@@ -1003,7 +999,6 @@ class Tseries:
         i.e. if either input on a given pixel is bad, then so too is the output
         """
         if isinstance(other, Tseries):
-
             y = self.y * other.y
             ye = np.sqrt((other.y * self.ye) ** 2 + (self.y * other.ye) ** 2)
             bmask = self.bmask | other.bmask
@@ -1025,10 +1020,8 @@ class Tseries:
         return Tseries(self.t.copy(), y, ye, bmask, te)
 
     def __imul__(self, other):
-        """Multiplies the Tseries by 'other' in place. See __mul__ for more.
-        """
+        """Multiplies the Tseries by 'other' in place. See __mul__ for more."""
         if isinstance(other, Tseries):
-
             self.ye = np.sqrt((other.y * self.ye) ** 2 + (self.y * other.ye) ** 2)
             self.y *= other.y
             self.bmask |= other.bmask
@@ -1049,9 +1042,8 @@ class Tseries:
         the bit masks are bitwise_or-ed together.
         """
         if isinstance(other, Tseries):
-
             y = self.y + other.y
-            ye = np.sqrt(self.ye ** 2 + other.ye ** 2)
+            ye = np.sqrt(self.ye**2 + other.ye**2)
             bmask = self.bmask | other.bmask
             te = (
                 self.te.copy()
@@ -1075,9 +1067,8 @@ class Tseries:
         Add 'other' to the Tseries in place. See __add_ for more details.
         """
         if isinstance(other, Tseries):
-
             self.y += other.y
-            self.ye = np.sqrt(self.ye ** 2 + other.ye ** 2)
+            self.ye = np.sqrt(self.ye**2 + other.ye**2)
             self.bmask |= other.bmask
             if self.te is None and other.te is not None:
                 self.te = other.te.copy()
@@ -1095,9 +1086,8 @@ class Tseries:
         the bit masks are bitwise_or-ed together.
         """
         if isinstance(other, Tseries):
-
             y = self.y - other.y
-            ye = np.sqrt(self.ye ** 2 + other.ye ** 2)
+            ye = np.sqrt(self.ye**2 + other.ye**2)
             bmask = self.bmask | other.bmask
             te = (
                 self.te.copy()
@@ -1121,9 +1111,8 @@ class Tseries:
         Subtracts 'other' from the Tseries in place. See __sub__ for more.
         """
         if isinstance(other, Tseries):
-
             self.y -= other.y
-            self.ye = np.sqrt(self.ye ** 2 + other.ye ** 2)
+            self.ye = np.sqrt(self.ye**2 + other.ye**2)
             self.bmask |= other.bmask
             if self.te is None and other.te is not None:
                 self.te = other.te.copy()
@@ -1523,9 +1512,7 @@ class Tseries:
         if inplace:
             self.t = ts
         else:
-            return Tseries(
-                ts, self.y, self.ye, self.bmask, self.te
-            )
+            return Tseries(ts, self.y, self.ye, self.bmask, self.te)
 
     def to_airmass(self, position, telescope, inplace=True):
         """Converts times in MJD to airmass. This is a first step when
@@ -1569,12 +1556,15 @@ class Tseries:
         # Calculate the Alt, Az for all times. No pressure included, i.e.
         # this does not account for refraction which is what the formula
         # from Young & Irvine
-        frames = AltAz(obstime=times, location=telescope,)
+        frames = AltAz(
+            obstime=times,
+            location=telescope,
+        )
         points = position.transform_to(frames)
 
         # secz, then apply the Young & Irvine equation
         seczs = points.secz
-        airms = np.array(seczs * (1 - 0.0012 * (seczs ** 2 - 1)))
+        airms = np.array(seczs * (1 - 0.0012 * (seczs**2 - 1)))
 
         if inplace:
             self.t = airms
@@ -1805,7 +1795,6 @@ class Tseries:
 
             for i in range(len(self.t)):
                 if bad[i] or flagged[i]:
-
                     if flagged[i]:
                         flags_raised = []
                         for fname, flag in FLAGS:
@@ -1914,7 +1903,6 @@ Six columns: times exposures fluxes flux-errors weights sub-div-facs
             )
 
         else:
-
             flags = []
             for flag, message in FLAG_MESSAGES.items():
                 flags.append(f"   Flag = {flag:6d}: {message}")
@@ -1967,10 +1955,11 @@ Data written by hipercam.hlog.Tseries.write.
         """
         if has_exposures:
             t, te, y, ye, bmask = np.loadtxt(fname, unpack=True)
-            return Tseries(t, y, ye, bmask, te)
+            # bitmask should be an integer, but gets read as float
+            return Tseries(t, y, ye, bmask.astype("int"), te)
         else:
             t, y, ye, bmask = np.loadtxt(fname, unpack=True)
-            return Tseries(t, y, ye, bmask, None)
+            return Tseries(t, y, ye, bmask.astype("int"), None)
 
 
 def scatter(
