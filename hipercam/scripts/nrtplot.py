@@ -12,6 +12,8 @@ import matplotlib.pylab as plt
 from matplotlib.patches import Circle
 
 from astropy.time import Time
+from astropy.coordinates import Angle
+from astropy import units as u
 
 from trm import cline
 from trm.cline import Cline
@@ -1135,6 +1137,14 @@ def nrtplot(args=None):
                     gain,
                     thresh,
                 )
+
+                # if we have two (and only two) valid fits, then find the angle between them
+                if len(pfits) == 2 and pfits[0] is not None and pfits[1] is not None:
+                    dx = pfits[1][0].x - pfits[0][0].x
+                    dy = pfits[1][0].y - pfits[0][0].y
+                    theta = Angle(np.arctan2(dy, dx), unit=u.rad).to(u.deg)
+                    theta = theta.wrap_at(360*u.deg).to_value()
+                    print(f"  From target 1 to 2: \u03F4 = {theta:.2f}\u00B0 (anti-clockwise from horizontal)")
 
                 if first_fwhm:
                     # set up the accumulator object now because we didn't know
