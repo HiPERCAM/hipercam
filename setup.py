@@ -15,7 +15,6 @@ from Cython.Build import cythonize
 
 # read the README file for the long description
 with open("README.rst") as f:
-with open("README.rst") as f:
     readme = f.read()
 
 # cython support routine
@@ -27,36 +26,22 @@ extension = [
         include_dirs=[np.get_include()],
         extra_compile_args=["-fno-strict-aliasing"],
     ),
-    Extension(
-        "hipercam.support",
-        [os.path.join("hipercam", "support.pyx")],
-        libraries=["m"],
-        include_dirs=[np.get_include()],
-        extra_compile_args=["-fno-strict-aliasing"],
-    ),
 ]
 
 setup(
-    name="hipercam",
     name="hipercam",
     # Versions should comply with PEP440. Here we use a version
     # generated automatically from git.
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
     description="multi-CCD astronomical reduction suite",
-    setup_requires=["setuptools_scm"],
-    description="multi-CCD astronomical reduction suite",
     long_description=readme,
     # The project's main homepage.
-    url="https://github.com/HiPERCAM/hipercam",
     url="https://github.com/HiPERCAM/hipercam",
     # Author details
     author="Tom Marsh",
     author_email="t.r.marsh@warwick.ac.uk",
-    author="Tom Marsh",
-    author_email="t.r.marsh@warwick.ac.uk",
     # Choose your license
-    license="BSD",
     license="BSD",
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -83,13 +68,10 @@ setup(
     ],
     # What does your project relate to?
     keywords="astronomy photometry reduction",
-    keywords="astronomy photometry reduction",
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     packages=find_packages(exclude=["contrib", "docs", "tests"]),
-    packages=find_packages(exclude=["contrib", "docs", "tests"]),
     # extension modules
-    ext_modules=cythonize(extension),
     ext_modules=cythonize(extension),
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
@@ -116,7 +98,6 @@ setup(
         "websocket-client",
     ],
     # Makes significant use of f-strings which came in python v3.6
-    python_requires=">=3.6",
     python_requires=">=3.6",
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -213,8 +194,6 @@ setup(
         ],
     },
     # tests
-    test_suite="nose.collector",
-    tests_require=["nose", "numpy", "astropy"],
     test_suite="nose.collector",
     tests_require=["nose", "numpy", "astropy"],
 )
