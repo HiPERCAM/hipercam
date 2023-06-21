@@ -262,6 +262,11 @@ def setaper(args=None):
       |              stars to provide a first cut at the position shift of the
       |              rest.
       |
+      | i(njected) : toggle whether an aperture is a COMPO aperture and has
+      |              been injected. These apertures move differently on the
+      |              CCD from non-injected apertures and need to be labelled
+      |              so that aperture positioning can be done correctly.
+      |
       | C(opy)     : copy apertures of the CCD the cursor is in to all others.
       |              This basically clones apertures across the CCDs. You will
       |              need to re-centre each on afterwards.
@@ -278,7 +283,6 @@ def setaper(args=None):
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("mccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("aper", Cline.LOCAL, Cline.PROMPT)
@@ -400,7 +404,9 @@ def setaper(args=None):
 
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)
-        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+        cmap = cl.get_value(
+            "cmap", "colour map to use ['none' for mpl default]", "Greys"
+        )
         cmap = None if cmap == "none" else cmap
 
         iset = cl.get_value(
@@ -442,12 +448,12 @@ def setaper(args=None):
                 beta_max = beta
             else:
                 beta_max = cl.get_value(
-                    "betamax", "maximum beta to allow", max(beta,20) 
+                    "betamax", "maximum beta to allow", max(beta, 20)
                 )
         else:
-            beta = 0.
+            beta = 0.0
             beta_fix = True
-            beta_max = 0.
+            beta_max = 0.0
 
         fwhm = cl.get_value(
             "fwhm", "initial FWHM [unbinned pixels] for profile fits", 6.0, 1.0
@@ -457,7 +463,11 @@ def setaper(args=None):
             fwhm_min = fwhm
         else:
             fwhm_min = cl.get_value(
-                "fwmin", "minimum FWHM to allow [unbinned pixels]", min(1.5,fwhm), 0.01, fwhm
+                "fwmin",
+                "minimum FWHM to allow [unbinned pixels]",
+                min(1.5, fwhm),
+                0.01,
+                fwhm,
             )
 
         shbox = cl.get_value(
@@ -543,10 +553,19 @@ def setaper(args=None):
                 wind -= wind.median()
 
         hcam.mpl.pCcd(
-            axes, mccd[cnam],
-            iset, plo, phi, ilo, ihi,
-            f"CCD {cnam}", xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi,
-            cmap=cmap
+            axes,
+            mccd[cnam],
+            iset,
+            plo,
+            phi,
+            ilo,
+            ihi,
+            f"CCD {cnam}",
+            xlo=xlo,
+            xhi=xhi,
+            ylo=ylo,
+            yhi=yhi,
+            cmap=cmap,
         )
 
         # keep track of the CCDs associated with each Axes
@@ -569,16 +588,33 @@ def setaper(args=None):
 
     # create the aperture picker (see below for class def)
     picker = PickStar(
-        mccd, cnams, anams,
-        toolbar, fig,
-        mccdaper, linput,
-        rtarg, rsky1, rsky2,
-        profit, method,
-        beta, beta_max, beta_fix,
-        fwhm, fwhm_min, fwhm_fix,
-        shbox, smooth, fhbox,
-        read, gain, thresh,
-        ndiv, aper, pobjs,
+        mccd,
+        cnams,
+        anams,
+        toolbar,
+        fig,
+        mccdaper,
+        linput,
+        rtarg,
+        rsky1,
+        rsky2,
+        profit,
+        method,
+        beta,
+        beta_max,
+        beta_fix,
+        fwhm,
+        fwhm_min,
+        fwhm_fix,
+        shbox,
+        smooth,
+        fhbox,
+        read,
+        gain,
+        thresh,
+        ndiv,
+        aper,
+        pobjs,
     )
 
     try:
@@ -602,8 +638,7 @@ def setaper(args=None):
 
 
 class PickStar:
-    """Class to pick targets for apertures.
-    """
+    """Class to pick targets for apertures."""
 
     ADD_PROMPT = "enter a label for the aperture, '!' to abort: "
 
@@ -637,7 +672,6 @@ class PickStar:
         apernam,
         pobjs,
     ):
-
         # save the inputs, tack on event handlers.
         self.fig = fig
         self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
@@ -690,7 +724,7 @@ class PickStar:
         print(
             "a(dd), b(reak), c(entre), d(elete), e(xtra) h(elp), "
             "l(ink), m(ask), p(rofit), q(uit), r(eference), "
-            "C(opy): ",
+            "i(njected), C(opy): ",
             end="",
             flush=True,
         )
@@ -733,7 +767,6 @@ class PickStar:
                 PickStar.action_prompt(True)
 
             elif event.key == "e":
-
                 # extra mode. store essential data
                 self._cnam = self.cnams[event.inaxes]
                 self._axes = event.inaxes
@@ -747,7 +780,6 @@ class PickStar:
                 PickStar.action_prompt(True)
 
             elif event.key == "m":
-
                 # mask mode. store essential data
                 self._cnam = self.cnams[event.inaxes]
                 self._axes = event.inaxes
@@ -767,7 +799,6 @@ class PickStar:
         """
 
         if axes is not None:
-
             # store information in attributes accessible to all methods, for
             # later access: name, the key hit, the axes instance, x, y
             self._cnam = self.cnams[axes]
@@ -794,6 +825,7 @@ Help on the actions available in 'setaper':
   m(ask)     : add a mask to an aperture to ignore regions of sky
   p(rofit)   : toggle between fitting+position correction and no fits
   r(eference): toggle whether an aperture is a reference aperture
+  i(njected) : toggle whether an aperture is an injected (COMPO) aperture
   C(opy)     : copy apertures of the CCD the cursor is in to all others (overwrites)
   q(uit)     : quit 'setaper' and save the apertures to disk
 
@@ -804,12 +836,10 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 )
 
             elif key == "a":
-
                 # add an aperture
                 print(key)
 
                 if self.linput == "n":
-
                     # numerical sequence input. Try to calculate
                     # the largest number, label the new aperture
                     # with one more
@@ -902,15 +932,17 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 print(key)
                 self._reference()
 
+            elif key == "i":
+                print(key)
+                self._compo()
+
             elif key == "C":
                 print(key)
 
                 # clone the apertures from this CCD
                 if len(self.mccdaper[self._cnam]):
-
                     # only if there are some to clone ...
                     for cnam in self.mccdaper:
-
                         if cnam != self._cnam and cnam in self.anams:
                             # ... it is not the CCD to be cloned and it
                             # is being displayed.
@@ -964,7 +996,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         """
 
         if self.profit:
-
             print("  fitting ...")
 
             # extract the CCD
@@ -991,23 +1022,35 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
             try:
                 if wind.nx <= 3 and wind.ny <= 3:
-                    print("  search window dimensions are only {}x{} binned pixels".format(wind.nx,wind.ny))
+                    print(
+                        "  search window dimensions are only {}x{} binned pixels".format(
+                            wind.nx, wind.ny
+                        )
+                    )
 
                 # carry out initial search
                 x, y, peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
-                print("  initial search returned x, y, peak = {}, {}, {}".format(x,y,peak))
+                print(
+                    "  initial search returned x, y, peak = {}, {}, {}".format(
+                        x, y, peak
+                    )
+                )
 
                 # now for a more refined fit. First extract fit Window
                 fwind = ccd[wnam].window(
                     x - self.fhbox, x + self.fhbox, y - self.fhbox, y + self.fhbox
                 )
                 if fwind.nx <= 3 and fwind.ny <= 3:
-                    print("  fit window dimensions are only {}x{} binned pixels".format(fwind.nx,fwind.ny))
+                    print(
+                        "  fit window dimensions are only {}x{} binned pixels".format(
+                            fwind.nx, fwind.ny
+                        )
+                    )
 
                 sky = np.percentile(fwind.data, 25)
 
                 # uncertainties
-                sigma = np.sqrt(self.read**2 + np.maximum(0,fwind.data)/self.gain)
+                sigma = np.sqrt(self.read**2 + np.maximum(0, fwind.data) / self.gain)
 
                 # refine the Aperture position by fitting the profile
                 (
@@ -1015,7 +1058,8 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     epars,
                     (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
                 ) = hcam.fitting.combFit(
-                    fwind, sigma,
+                    fwind,
+                    sigma,
                     self.method,
                     sky,
                     peak - sky,
@@ -1028,10 +1072,14 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     self.beta_max,
                     self.beta_fix,
                     self.thresh,
-                    self.ndiv
+                    self.ndiv,
                 )
 
-                print("  CCD {}, aperture {}: {}".format(self._cnam, self._buffer, message))
+                print(
+                    "  CCD {}, aperture {}: {}".format(
+                        self._cnam, self._buffer, message
+                    )
+                )
                 self._x = x
                 self._y = y
 
@@ -1077,7 +1125,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             print("  *** there is no link on aperture {:s}".format(apnam))
 
         else:
-
             # cancel the link on the aperture
             self.mccdaper[self._cnam][apnam].break_link()
 
@@ -1132,23 +1179,37 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 )
                 try:
                     if wind.nx <= 3 and wind.ny <= 3:
-                        print("  search window dimensions are only {}x{} binned pixels".format(wind.nx,wind.ny))
+                        print(
+                            "  search window dimensions are only {}x{} binned pixels".format(
+                                wind.nx, wind.ny
+                            )
+                        )
 
                     # carry out initial search
                     x, y, peak = wind.search(self.smooth, 0, 0, 0, False, True, 0)
-                    print("  initial search returned x, y, peak = {}, {}, {}".format(x,y,peak))
+                    print(
+                        "  initial search returned x, y, peak = {}, {}, {}".format(
+                            x, y, peak
+                        )
+                    )
 
                     # now for a more refined fit. First extract fit Window
                     fwind = ccd[wnam].window(
                         x - self.fhbox, x + self.fhbox, y - self.fhbox, y + self.fhbox
                     )
                     if fwind.nx <= 3 and fwind.ny <= 3:
-                        print("  fit window dimensions are only {}x{} binned pixels".format(fwind.nx,fwind.ny))
+                        print(
+                            "  fit window dimensions are only {}x{} binned pixels".format(
+                                fwind.nx, fwind.ny
+                            )
+                        )
 
                     sky = np.percentile(fwind.data, 25)
 
                     # uncertainties
-                    sigma = np.sqrt(self.read**2 + np.maximum(0,fwind.data)/self.gain)
+                    sigma = np.sqrt(
+                        self.read**2 + np.maximum(0, fwind.data) / self.gain
+                    )
 
                     # refine the Aperture position by fitting the profile
                     (
@@ -1156,7 +1217,8 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         epars,
                         (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
                     ) = hcam.fitting.combFit(
-                        fwind, sigma,
+                        fwind,
+                        sigma,
                         self.method,
                         sky,
                         peak - sky,
@@ -1169,10 +1231,12 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         self.beta_max,
                         self.beta_fix,
                         self.thresh,
-                        self.ndiv
+                        self.ndiv,
                     )
 
-                    print("  CCD {}, aperture {}: {}".format(self._cnam, apnam, message))
+                    print(
+                        "  CCD {}, aperture {}: {}".format(self._cnam, apnam, message)
+                    )
                     dx = x - aper.x
                     dy = y - aper.y
                     aper.x = x
@@ -1294,7 +1358,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 PickStar.action_prompt(True)
 
             else:
-
                 # ok, we have an aperture. store the CCD, aperture label and
                 # aperture for future ref.
                 self._extra_cnam = self._cnam
@@ -1308,7 +1371,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 )
 
         elif self._extra_stage == 2:
-
             self._extra_mode = False
 
             if self._cnam != self._extra_cnam:
@@ -1354,7 +1416,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         aper, apnam, dmin = self._find_aper()
 
         if dmin is None or dmin > max(self.rtarg, min(100, max(20.0, 2 * self.rsky2))):
-
             print("  *** found no aperture near to the cursor position to link")
             if self._link_stage == 1:
                 print(
@@ -1366,12 +1427,10 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 PickStar.action_prompt(True)
 
         else:
-
             # ok, we have an aperture
             self._link_stage += 1
 
             if self._link_stage == 1:
-
                 if aper.ref:
                     print("  *** cannot link a reference aperture")
                     self._link_mode = False
@@ -1450,7 +1509,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 PickStar.action_prompt(True)
 
             else:
-
                 # ok, we have an aperture. store the CCD, aperture label and
                 # aperture for future ref.
                 self._mask_cnam = self._cnam
@@ -1461,7 +1519,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 print(" 'm' at the centre of the region to mask ['q' to quit]")
 
         elif self._mask_stage == 2:
-
             if self._cnam != self._mask_cnam:
                 print("  *** cannot add sky mask across CCDs; no mask added")
                 self._mask_mode = False
@@ -1474,7 +1531,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 print(" 'm' at the edge of the region to mask ['q' to quit]")
 
         elif self._mask_stage == 3:
-
             # final stage of mask mode
             self._mask_mode = False
 
@@ -1513,6 +1569,32 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 )
                 PickStar.action_prompt(True)
 
+    def _compo(self):
+        """
+        Toggle the compo attribute of an aperture
+        """
+        # first see if there is an aperture near enough the selected position
+        aper, apnam, dmin = self._find_aper()
+
+        if dmin is None or dmin > max(self.rtarg, min(100, max(20.0, 2 * self.rsky2))):
+            print("  *** found no aperture near to the cursor position")
+        else:
+            aper.compo = not aper.compo
+            if aper.compo:
+                print("  aperture {:s} is now a " "COMPO aperture".format(apnam))
+            else:
+                print("  aperture {:s} is no longer a " "COMPO aperture".format(apnam))
+
+            # remove aperture from plot
+            for obj in self.pobjs[self._cnam][apnam]:
+                obj.remove()
+
+            # re-plot new version, over-writing plot objects
+            self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+
+        plt.draw()
+        PickStar.action_prompt(True)
+
     def _reference(self):
         """
         Toggles the reference status of an aperture
@@ -1524,7 +1606,6 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         if dmin is None or dmin > max(self.rtarg, min(100, max(20.0, 2 * self.rsky2))):
             print("  *** found no aperture near to the cursor position")
         else:
-
             if aper.linked:
                 print("  *** a linked aperture cannot become a " "reference aperture")
             else:
@@ -1571,8 +1652,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         return (apmin, anmin, dmin)
 
     def _add_input(self, key):
-        """Accumulates input to label an aperture
-        """
+        """Accumulates input to label an aperture"""
 
         if key == "enter":
             # trap 'enter'
