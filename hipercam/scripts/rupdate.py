@@ -141,6 +141,16 @@ def rupdate(args=None):
                     # record version in case we need other actions later
                     nversion = 5
 
+                elif version == "20210602":
+                    # update version number
+                    lines.append(
+                        f"version = {hcam.REDUCE_FILE_VERSION} # must be"
+                        " compatible with the version in reduce\n"
+                    )
+
+                    # record version in case we need other actions later
+                    nversion = 6
+
                 else:
                     print("Version = {:s} not recognised".format(version))
                     print("Aborting update; nothing changed.")
@@ -174,7 +184,15 @@ def rupdate(args=None):
                 try:
                     scale = float(arr[2])
                 except:
-                    scale = 'UNKNOWN'
+                    scale = "UNKNOWN"
+
+            elif line.startswith("[psf_photom]") and nversion <= 6:
+                lines.append(line)
+                lines.append("\n# Next 2 lines were automatically added by rupdate\n")
+                lines.append("use_psf = no # use PSF photometry\n")
+                lines.append(
+                    "psf_model = moffat # must be one of 'gaussian', 'moffat'\n"
+                )
 
             else:
                 # Default action is just to store save the line
@@ -183,8 +201,8 @@ def rupdate(args=None):
     # Write out modified file
     with open(rfile, "w") as fout:
         for line in lines:
-            if line.startswith('scale =') and scale != 'UNKNOWN':
-                fout.write(f'scale = {scale:.3f} # scale, arcsec per unbinned pixel\n')
+            if line.startswith("scale =") and nversion <= 5 and scale != "UNKNOWN":
+                fout.write(f"scale = {scale:.3f} # scale, arcsec per unbinned pixel\n")
             else:
                 fout.write(line)
 

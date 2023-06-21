@@ -27,12 +27,13 @@ __all__ = [
 #
 ################################################
 
+
 def genred(args=None):
     """``genred apfile rfile bias dark flat fmap fpair seeing (sworst
     binfac) template (inst (nccd (ccd) nonlin sat scale readout
     gain))``
 
-    Generates a reduce file as needed by |reduce| or |psf_reduce|. You
+    Generates a reduce file as needed by |reduce|. You
     give it the name of an aperture file, calibration frames and a few
     other parameters and it will write out a reduce file which you can
     then refine by hand. The aim is to try to get a reduce file that
@@ -197,7 +198,8 @@ def genred(args=None):
         root = os.path.splitext(os.path.basename(apfile))[0]
         cl.set_default("rfile", cline.Fname(root, hcam.RED, cline.Fname.NEW))
         rfile = cl.get_value(
-            "rfile", "reduce output file",
+            "rfile",
+            "reduce output file",
             cline.Fname("reduce.red", hcam.RED, cline.Fname.NEW),
         )
 
@@ -236,27 +238,24 @@ def genred(args=None):
         )
         if fmap is not None:
             fpair = cl.get_value(
-                "fpair", "fringe pair file",
+                "fpair",
+                "fringe pair file",
                 cline.Fname("fpair", hcam.FRNG),
             )
         else:
             fpair = None
 
         seeing = cl.get_value(
-            "seeing",
-            "approximate seeing [arcsec, 0 to ignore]",
-            1.0, 0.
+            "seeing", "approximate seeing [arcsec, 0 to ignore]", 1.0, 0.0
         )
-        if seeing > 0.:
+        if seeing > 0.0:
             sworst = cl.get_value(
                 "sworst",
                 "worst expected seeing [arcsec]",
-                max(3., 2.5*seeing), 2.*seeing
+                max(3.0, 2.5 * seeing),
+                2.0 * seeing,
             )
-            binfac = cl.get_value(
-                "binfac", "binning factor",
-                1, 1
-            )
+            binfac = cl.get_value("binfac", "binning factor", 1, 1)
 
         # template
         template = cl.get_value(
@@ -266,7 +265,6 @@ def genred(args=None):
             ignore="none",
         )
 
-
         if template is None:
 
             instrument = cl.get_value(
@@ -274,9 +272,12 @@ def genred(args=None):
                 "the instrument-telescope",
                 "hipercam-gtc",
                 lvals=[
-                    "hipercam-gtc", "ultracam-ntt",
-                    "ultracam-wht", "ultracam-vlt",
-                    "ultraspec-tnt", "other"
+                    "hipercam-gtc",
+                    "ultracam-ntt",
+                    "ultracam-wht",
+                    "ultracam-vlt",
+                    "ultraspec-tnt",
+                    "other",
                 ],
             )
 
@@ -291,10 +292,10 @@ warn = 5 50000 64000
                 maxcpu = 5
                 skipbadt = False
                 scale = 0.081
-                readout = '4.2'
-                gain = '1.1'
+                readout = "4.2"
+                gain = "1.1"
                 nccd = 5
-                ccd = '2'
+                ccd = "2"
 
             elif instrument.startswith("ultracam"):
                 warn_levels = """
@@ -304,10 +305,10 @@ warn = 3 50000 64000
             """
                 maxcpu = 3
                 skipbadt = True
-                readout = '2.8'
-                gain = '1.1'
+                readout = "2.8"
+                gain = "1.1"
                 nccd = 3
-                ccd = '2'
+                ccd = "2"
                 if instrument.endswith("ntt"):
                     scale = 0.35
                 elif instrument.endswith("wht"):
@@ -322,50 +323,48 @@ warn = 1 60000 64000
                 maxcpu = 1
                 skipbadt = True
                 scale = 0.45
-                readout = '5.0'
-                gain = '0.8'
+                readout = "5.0"
+                gain = "0.8"
                 nccd = 1
-                ccd = '1'
+                ccd = "1"
 
             elif instrument == "other":
 
                 # unrecognised instrument need extra stuff
                 nccd = cl.get_value("nccd", "how many CCDs?", 3, 1)
                 if nccd > 1:
-                    ccd = cl.get_value("ccd", "which CCD for the position plot?", 1, 1, nccd)
+                    ccd = cl.get_value(
+                        "ccd", "which CCD for the position plot?", 1, 1, nccd
+                    )
                     ccd = str(ccd)
                 else:
-                    ccd = '1'
+                    ccd = "1"
 
                 # non-linearity warning levels
                 nonlin = cl.get_default("nonlin")
                 if nonlin is not None and len(nonlin) != nccd:
-                    cl.set_default("nonlin", nccd * (50000.,))
+                    cl.set_default("nonlin", nccd * (50000.0,))
                 nonlins = cl.get_value(
                     "nonlin",
                     "levels to indicate non-linear behaviour, 1 per CCD",
-                    nccd*(50000.,)
+                    nccd * (50000.0,),
                 )
 
                 # saturation warning levels
                 sat = cl.get_default("sat")
                 if sat is not None and len(sat) != nccd:
-                    cl.set_default("sat", nccd * (62000.,))
+                    cl.set_default("sat", nccd * (62000.0,))
                 sats = cl.get_value(
-                    "sat",
-                    "levels to indicate saturation, 1 per CCD",
-                    nccd*(62000.,)
+                    "sat", "levels to indicate saturation, 1 per CCD", nccd * (62000.0,)
                 )
 
                 warn_levels = ""
-                for n, (nonlin,sat) in enumerate(zip(nonlins,sats)):
-                    warn_levels += \
-                        f"warn = {n+1} {nonlin} {sat}\n"
+                for n, (nonlin, sat) in enumerate(zip(nonlins, sats)):
+                    warn_levels += f"warn = {n+1} {nonlin} {sat}\n"
                 maxcpu = nccd
 
                 scale = cl.get_value(
-                    "scale", "image scale [arcsec/unbinned pixel]",
-                    0.3, 0.001
+                    "scale", "image scale [arcsec/unbinned pixel]", 0.3, 0.001
                 )
 
                 readout = cl.get_value(
@@ -377,10 +376,7 @@ warn = 1 60000 64000
                 )
 
             else:
-                raise hcam.HipercamError(
-                    "Programming error: instrument unrecognised"
-                )
-
+                raise hcam.HipercamError("Programming error: instrument unrecognised")
 
             if ccd not in aper:
                 # make sure 'ccd' is in aper, even if our
@@ -393,34 +389,33 @@ warn = 1 60000 64000
     #
     # all the inputs have now been obtained. Get on with doing stuff
 
-
     if template is not None:
 
         # read the template to define many unprompted values
         # shortcut names define.
         tvals = reduction.Rfile.read(template, False)
-        gsec = tvals['general']
-        instrument = gsec.get('instrument')
-        scale = gsec.get('scale')
+        gsec = tvals["general"]
+        instrument = gsec.get("instrument")
+        scale = gsec.get("scale")
         warn_levels = ""
-        for value in gsec['warn']:
-            warn_levels += f'warn = {value}\n'
+        for value in gsec["warn"]:
+            warn_levels += f"warn = {value}\n"
 
-        asec = tvals['apertures']
-        psfsec = tvals['psf_photom']
-        sksec = tvals['sky']
-        csec = tvals['calibration']
-        lcsec = tvals['lcplot']
-        lsec = tvals['light']
-        psec = tvals.get('position',None)
-        tsec = tvals.get('transmission',None)
-        ssec = tvals.get('seeing',None)
-        fsec = tvals.get('focal_mask',None)
+        asec = tvals["apertures"]
+        psfsec = tvals["psf_photom"]
+        sksec = tvals["sky"]
+        csec = tvals["calibration"]
+        lcsec = tvals["lcplot"]
+        lsec = tvals["light"]
+        psec = tvals.get("position", None)
+        tsec = tvals.get("transmission", None)
+        ssec = tvals.get("seeing", None)
+        fsec = tvals.get("focal_mask", None)
 
     else:
 
         # define default values for unprompted params.
-        if seeing == 0.:
+        if seeing == 0.0:
             seeing = 1.5
             sworst = 4.0
             binfac = 1
@@ -429,112 +424,114 @@ warn = 1 60000 64000
         tvals = {}
 
         # general section
-        gsec = tvals['general'] = {}
-        gsec['instrument'] = instrument
-        gsec['scale'] = scale
-        gsec['ldevice'] = '1/xs'
-        gsec['lwidth'] = 0.
-        gsec['lheight'] = 0.
-        gsec['idevice'] = '2/xs'
-        gsec['iwidth'] = 0.
-        gsec['iheight'] = 0.
-        gsec['toffset'] = 0
-        gsec['skipbadt'] = 'yes'
-        gsec['ncpu'] = 1
-        gsec['ngroup'] = 1
+        gsec = tvals["general"] = {}
+        gsec["instrument"] = instrument
+        gsec["scale"] = scale
+        gsec["ldevice"] = "1/xs"
+        gsec["lwidth"] = 0.0
+        gsec["lheight"] = 0.0
+        gsec["idevice"] = "2/xs"
+        gsec["iwidth"] = 0.0
+        gsec["iheight"] = 0.0
+        gsec["toffset"] = 0
+        gsec["skipbadt"] = "yes"
+        gsec["ncpu"] = 1
+        gsec["ngroup"] = 1
 
         # aperture section
-        asec = tvals['apertures'] = {}
-        asec['location'] = 'variable'
-        asec['search_smooth_fft'] = 'no'
-        asec['fit_method'] = 'moffat'
-        asec['fit_beta'] = 5.0
-        asec['fit_beta_max'] = 20.0
-        asec['fit_ndiv'] = 0
-        asec['fit_fwhm_fixed'] = 'no'
-        asec['fit_thresh'] = 8.
-        asec['fit_height_min_ref'] = 40.
-        asec['fit_height_min_nrf'] = 10.
-        asec['fit_alpha'] = 0.1
+        asec = tvals["apertures"] = {}
+        asec["location"] = "variable"
+        asec["search_smooth_fft"] = "no"
+        asec["fit_method"] = "moffat"
+        asec["fit_beta"] = 5.0
+        asec["fit_beta_max"] = 20.0
+        asec["fit_ndiv"] = 0
+        asec["fit_fwhm_fixed"] = "no"
+        asec["fit_thresh"] = 8.0
+        asec["fit_height_min_ref"] = 40.0
+        asec["fit_height_min_nrf"] = 10.0
+        asec["fit_alpha"] = 0.1
 
         # sky
-        sksec = tvals['sky'] = {}
-        sksec['error'] = 'variance'
-        sksec['method'] = 'clipped'
-        sksec['thresh'] = 3.0
+        sksec = tvals["sky"] = {}
+        sksec["error"] = "variance"
+        sksec["method"] = "clipped"
+        sksec["thresh"] = 3.0
 
         # calibration
-        csec = tvals['calibration'] = {}
-        csec['crop'] = 'yes'
-        csec['nhalf'] = 3
-        csec['rmin'] = -1.
-        csec['rmax'] = 2.
-        csec['readout'] = readout
-        csec['gain'] = gain
+        csec = tvals["calibration"] = {}
+        csec["crop"] = "yes"
+        csec["nhalf"] = 3
+        csec["rmin"] = -1.0
+        csec["rmax"] = 2.0
+        csec["readout"] = readout
+        csec["gain"] = gain
 
         # PSF photom
-        psfsec = tvals['psf_photom'] = {}
-        psfsec['gfac'] = 3.0
-        psfsec['fit_half_width'] = 15.0
-        psfsec['positions'] = 'fixed'
+        psfsec = tvals["psf_photom"] = {}
+        psfsec["use_psf"] = "no"
+        psfsec["psf_model"] = "moffat"
+        psfsec["gfac"] = 3.0
+        psfsec["fit_half_width"] = 15.0
+        psfsec["positions"] = "fixed"
 
         # light curve
-        lcsec = tvals['lcplot'] = {}
-        lcsec['xrange'] = 0
-        lcsec['extend_x'] = 10.0
+        lcsec = tvals["lcplot"] = {}
+        lcsec["xrange"] = 0
+        lcsec["extend_x"] = 10.0
 
         # light
-        lsec = tvals['light'] = {}
-        lsec['linear'] = 'no'
-        lsec['y_fixed'] = 'no'
-        lsec['y1'] = 0
-        lsec['y2'] = 0
-        lsec['extend_y'] = 0.1
+        lsec = tvals["light"] = {}
+        lsec["linear"] = "no"
+        lsec["y_fixed"] = "no"
+        lsec["y1"] = 0
+        lsec["y2"] = 0
+        lsec["extend_y"] = 0.1
 
         # position
-        psec = tvals['position'] = {}
-        psec['height'] = 0.5
-        psec['x_fixed'] = 'no'
-        psec['x_min'] = -5.0
-        psec['x_max'] = +5.0
-        psec['y_fixed'] = 'no'
-        psec['y_min'] = -5.0
-        psec['y_max'] = +5.0
-        psec['extend_y'] = 0.2
+        psec = tvals["position"] = {}
+        psec["height"] = 0.5
+        psec["x_fixed"] = "no"
+        psec["x_min"] = -5.0
+        psec["x_max"] = +5.0
+        psec["y_fixed"] = "no"
+        psec["y_min"] = -5.0
+        psec["y_max"] = +5.0
+        psec["extend_y"] = 0.2
 
         # transmission
-        tsec = tvals['transmission'] = {}
-        tsec['height'] = 0.5
-        tsec['ymax'] = 110.
+        tsec = tvals["transmission"] = {}
+        tsec["height"] = 0.5
+        tsec["ymax"] = 110.0
 
         # seeing
-        ssec = tvals['seeing'] = {}
-        ssec['height'] = 0.5
-        ssec['ymax'] = 2.999
-        ssec['y_fixed'] = 'no'
-        ssec['extend_y'] = 0.2
+        ssec = tvals["seeing"] = {}
+        ssec["height"] = 0.5
+        ssec["ymax"] = 2.999
+        ssec["y_fixed"] = "no"
+        ssec["extend_y"] = 0.2
 
-        fsec = tvals['focal_mask'] = {}
-        fsec['demask'] = 'no'
-        fsec['dthresh'] = 3.0
+        fsec = tvals["focal_mask"] = {}
+        fsec["demask"] = "no"
+        fsec["dthresh"] = 3.0
 
     # apply seeing/instrument-related fixes...
     # *always* gets run in the no template case
-    if seeing > 0.:
-        asec['search_half_width'] = max(5., sworst/scale)
-        asec['search_smooth_fwhm'] = max(2., seeing/scale/binfac)
-        asec['fwhm_min'] = 1.5*binfac
-        asec['fwhm'] = max(1.5*binfac, seeing/scale)
-        asec['fwhm_max'] = 3.*sworst/scale
-        asec['fit_max_shift'] = max(1., sworst/scale/4.)
-        asec['fit_half_width'] = max(5., 2*sworst/scale)
-        asec['fit_diff'] = max(1., sworst/scale/6.)
+    if seeing > 0.0:
+        asec["search_half_width"] = max(5.0, sworst / scale)
+        asec["search_smooth_fwhm"] = max(2.0, seeing / scale / binfac)
+        asec["fwhm_min"] = 1.5 * binfac
+        asec["fwhm"] = max(1.5 * binfac, seeing / scale)
+        asec["fwhm_max"] = 3.0 * sworst / scale
+        asec["fit_max_shift"] = max(1.0, sworst / scale / 4.0)
+        asec["fit_half_width"] = max(5.0, 2 * sworst / scale)
+        asec["fit_diff"] = max(1.0, sworst / scale / 6.0)
 
         rfac = 1.8
-        ramin = 3*binfac
-        ramax = max(ramin,rfac*sworst/scale)
+        ramin = 3 * binfac
+        ramax = max(ramin, rfac * sworst / scale)
         sinner = ramax
-        souter = 1.5*sinner
+        souter = 1.5 * sinner
 
     # standard colours for CCDs
     if instrument.startswith("hipercam"):
@@ -568,9 +565,7 @@ warn = 1 60000 64000
             "5": "purple",
         }
     else:
-        raise hcam.HipercamError(
-            "Programming error: instrument unrecognised"
-        )
+        raise hcam.HipercamError("Programming error: instrument unrecognised")
 
     # Extraction lines
     extraction = ""
@@ -586,11 +581,23 @@ warn = 1 60000 64000
     else:
         # pass through unchanged where possible if
         # a template being used but check for consistency
-        esec = tvals['extraction']
+        esec = tvals["extraction"]
         for cnam, lst in esec.items():
             if cnam in aper:
                 # unpack items
-                ltype,etype,rfac,ramin,ramax,sifac,simin,simax,sofac,somin,somax = lst
+                (
+                    ltype,
+                    etype,
+                    rfac,
+                    ramin,
+                    ramax,
+                    sifac,
+                    simin,
+                    simax,
+                    sofac,
+                    somin,
+                    somax,
+                ) = lst
                 extraction += (
                     f"{cnam} = variable normal"
                     f" {rfac:.2f} {ramin:.1f} {ramax:.1f}"
@@ -599,14 +606,14 @@ warn = 1 60000 64000
                 )
             else:
                 warnings.warn(
-                    f'CCD {cnam} has an extraction line in {template} but no apertures in {apfile} and will be skipped'
+                    f"CCD {cnam} has an extraction line in {template} but no apertures in {apfile} and will be skipped"
                 )
 
         # warn if there are apertures for a CCD but no extraction line
         for cnam in aper:
             if cnam not in esec:
                 warnings.warn(
-                    f'CCD {cnam} has apertures defined in {apfile} but no extraction line in {template}'
+                    f"CCD {cnam} has apertures defined in {apfile} but no extraction line in {template}"
                 )
 
     # Generate the light curve plot lines
@@ -645,12 +652,16 @@ warn = 1 60000 64000
 
         # template case: pass as many of the lines as we can but
         # run checks of apertures
-        plots = tvals['light']['plot']
+        plots = tvals["light"]["plot"]
         for pl in plots:
-            cnam, targ, comp = pl['ccd'], pl['targ'], pl['comp']
-            off, fac, dcol, ecol = pl['off'], pl['fac'], ct(pl['dcol']), ct(pl['ecol'])
+            cnam, targ, comp = pl["ccd"], pl["targ"], pl["comp"]
+            off, fac, dcol, ecol = pl["off"], pl["fac"], ct(pl["dcol"]), ct(pl["ecol"])
 
-            if cnam in aper and targ in aper[cnam] and (comp == '!' or comp in aper[cnam]):
+            if (
+                cnam in aper
+                and targ in aper[cnam]
+                and (comp == "!" or comp in aper[cnam])
+            ):
                 light_plot += (
                     f"plot = {cnam} {targ} {comp} {off} {fac} {dcol} {ecol}"
                     " # ccd, targ, comp, off, fac, dcol, ecol\n"
@@ -675,28 +686,31 @@ warn = 1 60000 64000
     no_position = True
     if template is None:
         ccdaper = aper[ccd]
-        for targ in ('2','3','1'):
+        for targ in ("2", "3", "1"):
             if targ in ccdaper:
                 position_plot += (
-                    f'plot = {ccd} {targ} '
+                    f"plot = {ccd} {targ} "
                     f'{CCD_COLS.get(cnam,"black")} ! '
-                    '# ccd, targ, dcol, ecol\n'
+                    "# ccd, targ, dcol, ecol\n"
                 )
                 no_position = False
                 break
 
         if no_position:
-            warnings.warn(
-                f"Targets 2, 1, or 3 not found in CCD = {ccd} in {apfile}"
-            )
+            warnings.warn(f"Targets 2, 1, or 3 not found in CCD = {ccd} in {apfile}")
 
     elif psec is not None:
-        plots = psec['plot']
+        plots = psec["plot"]
         for pl in plots:
-            cnam, targ, dcol, ecol = pl['ccd'], pl['targ'], ct(pl['dcol']), ct(pl['ecol'])
+            cnam, targ, dcol, ecol = (
+                pl["ccd"],
+                pl["targ"],
+                ct(pl["dcol"]),
+                ct(pl["ecol"]),
+            )
             if cnam in aper and targ in aper[cnam]:
                 position_plot += (
-                    f'plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
+                    f"plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n"
                 )
                 no_position = False
             else:
@@ -714,10 +728,10 @@ warn = 1 60000 64000
     if template is None:
         for cnam in aper:
             ccdaper = aper[cnam]
-            for targ in ('2','3','1'):
+            for targ in ("2", "3", "1"):
                 if targ in ccdaper:
                     transmission_plot += (
-                        f'plot = {cnam} {targ} '
+                        f"plot = {cnam} {targ} "
                         f'{CCD_COLS.get(cnam,"black")} ! '
                         f"# ccd, targ, dcol, ecol\n"
                     )
@@ -730,12 +744,17 @@ warn = 1 60000 64000
             )
 
     elif tsec is not None:
-        plots = tsec['plot']
+        plots = tsec["plot"]
         for pl in plots:
-            cnam, targ, dcol, ecol = pl['ccd'], pl['targ'], ct(pl['dcol']), ct(pl['ecol'])
+            cnam, targ, dcol, ecol = (
+                pl["ccd"],
+                pl["targ"],
+                ct(pl["dcol"]),
+                ct(pl["ecol"]),
+            )
             if cnam in aper and targ in aper[cnam]:
                 transmission_plot += (
-                    f'plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
+                    f"plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n"
                 )
                 no_transmission = False
             else:
@@ -752,7 +771,7 @@ warn = 1 60000 64000
     if template is None:
         for cnam in aper:
             ccdaper = aper[cnam]
-            for targ in ('1','2','3'):
+            for targ in ("1", "2", "3"):
                 if targ in ccdaper and not ccdaper[targ].linked:
                     seeing_plot += (
                         f"plot = {cnam} {targ}"
@@ -769,12 +788,17 @@ warn = 1 60000 64000
             )
 
     elif ssec is not None:
-        plots = tsec['plot']
+        plots = tsec["plot"]
         for pl in plots:
-            cnam, targ, dcol, ecol = pl['ccd'], pl['targ'], ct(pl['dcol']), ct(pl['ecol'])
+            cnam, targ, dcol, ecol = (
+                pl["ccd"],
+                pl["targ"],
+                ct(pl["dcol"]),
+                ct(pl["ecol"]),
+            )
             if cnam in aper and targ in aper[cnam] and not aper[cnam][targ].linked:
                 seeing_plot += (
-                    f'plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n'
+                    f"plot = {cnam} {targ} {dcol} {ecol} # ccd, targ, dcol, ecol\n"
                 )
                 no_seeing = False
             else:
@@ -800,11 +824,11 @@ warn = 1 60000 64000
             )
     else:
         monitor = ""
-        msec = tvals['monitor']
-        rlook = dict([(k,v) for v,k in hcam.FLAGS])
+        msec = tvals["monitor"]
+        rlook = dict([(k, v) for v, k in hcam.FLAGS])
         for targ, masks in msec.items():
-            smasks = ' '.join([rlook[mask] for mask in masks])
-            monitor += f'{targ} = {smasks}\n'
+            smasks = " ".join([rlook[mask] for mask in masks])
+            monitor += f"{targ} = {smasks}\n"
 
     # time stamp
     tstamp = strftime("%d %b %Y %H:%M:%S (UTC)", gmtime())
@@ -1049,6 +1073,8 @@ fit_diff = {asec['fit_diff']:.2f} # Maximum differential shift of multiple refer
 # sources.
 
 [psf_photom]
+use_psf = {psfsec['use_psf']} # 'yes' or 'no'
+psf_model = {psfsec['psf_model']} # 'gaussian' or 'moffat'
 gfac = {psfsec['gfac']}  # multiple of the FWHM to use in grouping objects
 fit_half_width = {psfsec['fit_half_width']}  # size of window used to collect the data to do the fitting
 positions = {psfsec['positions']}   # 'fixed' or 'variable'
@@ -1281,9 +1307,11 @@ dthresh = {fsec['dthresh']}
 
     print("Reduce file written to {:s}".format(rfile))
 
+
 # swap keys and values in colour name dict from core.py
 # used in 'ct' below
-ITOCNAM = {v:k for k,v in hcam.CNAMS.items()}
+ITOCNAM = {v: k for k, v in hcam.CNAMS.items()}
+
 
 def ct(col):
     """
@@ -1291,6 +1319,6 @@ def ct(col):
     for output to a reduce file
     """
     if col is None:
-        return '!'
+        return "!"
     else:
         return ITOCNAM[col]

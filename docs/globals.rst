@@ -53,7 +53,6 @@
 .. |nrtplot| replace:: :func:`nrtplot <hipercam.scripts.nrtplot>`
 .. |pbands| replace:: :func:`pbands <hipercam.scripts.pbands>`
 .. |plog| replace:: :func:`plog <hipercam.scripts.plog>`
-.. |psf_reduce| replace:: :func:`psf_reduce <hipercam.scripts.psf_reduce>`
 .. |redanal| replace:: :func:`redanal <hipercam.scripts.redanal>`
 .. |redplt| replace:: :func:`redplt <hipercam.scripts.redplt>`
 .. |reduce| replace:: :func:`reduce <hipercam.scripts.reduce>`

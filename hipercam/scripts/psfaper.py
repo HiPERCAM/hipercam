@@ -6,6 +6,16 @@ from copy import deepcopy
 import numpy as np
 import matplotlib as mpl
 
+from photutils.psf import DAOPhotPSFPhotometry, IntegratedGaussianPRF
+from photutils.background import MADStdBackgroundRMS, MMMBackground
+from astropy.stats import gaussian_fwhm_to_sigma, SigmaClip
+
+from trm import cline
+from trm.cline import Cline
+
+import hipercam as hcam
+from hipercam.psf_reduction import MoffatPSF
+
 # re-configure the cursors: backend specific.
 # aim to get rid of irritating 'hand' icon in
 # favour of something pointier.
@@ -31,16 +41,6 @@ if curs is not None:
         pass
 
 import matplotlib.pyplot as plt
-
-from photutils.psf import DAOPhotPSFPhotometry, IntegratedGaussianPRF
-from photutils.background import MADStdBackgroundRMS, MMMBackground
-from astropy.stats import gaussian_fwhm_to_sigma, SigmaClip
-
-from trm import cline
-from trm.cline import Cline
-
-import hipercam as hcam
-from hipercam.scripts.psf_reduce import MoffatPSF
 
 __all__ = [
     "psfaper",
@@ -235,7 +235,6 @@ def psfaper(args=None):
         cl.register("ihi", Cline.GLOBAL, Cline.PROMPT)
         cl.register("plo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("phi", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("method", Cline.LOCAL, Cline.HIDE)
         cl.register("beta", Cline.LOCAL, Cline.HIDE)
         cl.register("betafix", Cline.LOCAL, Cline.HIDE)
         cl.register("betamax", Cline.LOCAL, Cline.HIDE)
@@ -303,13 +302,13 @@ def psfaper(args=None):
                 beta_max = beta
             else:
                 beta_max = cl.get_value(
-                    "betamax", "maximum beta to allow", max(beta,20) 
+                    "betamax", "maximum beta to allow", max(beta, 20)
                 )
             beta = cl.get_value("beta", "initial exponent for Moffat fits", 5.0, 0.5)
         else:
-            beta = 0.
+            beta = 0.0
             beta_fix = True
-            beta_max = 0.
+            beta_max = 0.0
 
         fwhm = cl.get_value(
             "fwhm", "initial FWHM [unbinned pixels] for profile fits", 6.0, 1.0
@@ -319,7 +318,11 @@ def psfaper(args=None):
             fwhm_min = fwhm
         else:
             fwhm_min = cl.get_value(
-                "fwmin", "minimum FWHM to allow [unbinned pixels]", min(1.5,fwhm), 0.01, fwhm
+                "fwmin",
+                "minimum FWHM to allow [unbinned pixels]",
+                min(1.5, fwhm),
+                0.01,
+                fwhm,
             )
 
         gfac = cl.get_value(
@@ -495,7 +498,7 @@ close enough.
 
     try:
         plt.tight_layout()
-    except:
+    except Exception:
         pass
 
     # create a class for picking reference star and zooming in
@@ -509,6 +512,7 @@ close enough.
         method,
         beta,
         beta_max,
+        beta_fix,
         fwhm,
         fwhm_min,
         fwhm_fix,
@@ -676,7 +680,7 @@ class PickRef:
             sky = np.percentile(fwind.data, 25)
 
             # uncertainties
-            sigma = np.sqrt(self.read**2 + np.maximum(0,fwind.data)/self.gain)
+            sigma = np.sqrt(self.read**2 + np.maximum(0, fwind.data) / self.gain)
 
             # refine the Aperture position by fitting the profile
             (
@@ -714,8 +718,8 @@ class PickRef:
         self.mccdaper[self._cnam][self._buffer] = aper
 
         # add fit params to object
-        wf = 1.0 / efwhm ** 2 if efwhm > 0 else 0
-        wb = 1.0 / ebeta ** 2 if ebeta > 0 else 0
+        wf = 1.0 / efwhm**2 if efwhm > 0 else 0
+        wb = 1.0 / ebeta**2 if ebeta > 0 else 0
         if self._cnam not in self.psf_data:
             self.psf_data[self._cnam] = dict(
                 fsum=wf * fwhm, wfsum=wf, bsum=wb * beta, wbsum=wb
@@ -901,7 +905,7 @@ def daophot(
         psf_model = IntegratedGaussianPRF(sigma=fwhm * gaussian_fwhm_to_sigma)
         print("  FWHM = {:.1f}".format(fwhm))
 
-    # region to extract around positions for fits
+    # define region to extract around positions for fits
     fitshape = int(5 * fwhm)
     # ensure odd
     if fitshape % 2 == 0:

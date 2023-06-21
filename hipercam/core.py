@@ -54,7 +54,7 @@ __all__ = (
 # Version of the reduce file in operation (used by 'reduce' and 'genred')
 # Format: YYYYMMDD(.#) where the optional .# part is an integer to allow for
 # multiple versions in a day, although that should be rare I hope.
-REDUCE_FILE_VERSION = "20210602"
+REDUCE_FILE_VERSION = "20230222"
 
 # Standard file extensions
 FIELD = ".fld"
@@ -155,22 +155,25 @@ FLAGS = (
 )
 
 # messages if various bitflags are set
-FLAG_MESSAGES = Odict((
-    (NO_FWHM, "no FWHM could be measured"),
-    (NO_SKY, "zero sky pixels"),
-    (SKY_AT_EDGE, "sky aperture overlapped the edge of the data window"),
-    (TARGET_AT_EDGE, "target aperture overlapped the edge of the data window"),
-    (TARGET_SATURATED, "target aperture had saturated pixels"),
-    (TARGET_NONLINEAR, "target aperture had non-linear pixels"),
-    (NO_EXTRACTION, "no extraction was possible"),
-    (NO_DATA, "there were no valid pixels in the target aperture"),
-    (CLOUDS, "marked as affected by clouds"),
-    (JUNK, "junk data of unspecified nature"),
-    (BAD_FLAT, "bad flat field feature in target aperture"),
-    (BAD_COLUMN, "bad column in in target aperture"),
-    (BAD_TIME, "the time was flagged as bad"),
-    (OUTLIER, "identified as an outlier")
-))
+FLAG_MESSAGES = Odict(
+    (
+        (NO_FWHM, "no FWHM could be measured"),
+        (NO_SKY, "zero sky pixels"),
+        (SKY_AT_EDGE, "sky aperture overlapped the edge of the data window"),
+        (TARGET_AT_EDGE, "target aperture overlapped the edge of the data window"),
+        (TARGET_SATURATED, "target aperture had saturated pixels"),
+        (TARGET_NONLINEAR, "target aperture had non-linear pixels"),
+        (NO_EXTRACTION, "no extraction was possible"),
+        (NO_DATA, "there were no valid pixels in the target aperture"),
+        (CLOUDS, "marked as affected by clouds"),
+        (JUNK, "junk data of unspecified nature"),
+        (BAD_FLAT, "bad flat field feature in target aperture"),
+        (BAD_COLUMN, "bad column in in target aperture"),
+        (BAD_TIME, "the time was flagged as bad"),
+        (OUTLIER, "identified as an outlier"),
+    )
+)
+
 
 def version():
     """Returns version number of installed HiPERCAM pipeline"""
