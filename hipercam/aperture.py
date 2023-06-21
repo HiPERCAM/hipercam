@@ -358,6 +358,8 @@ class _Decoder(json.JSONDecoder):
     def object_hook(self, obj):
         # looks out for Aperture objects. Everything else done by default
         if "rtarg" in obj and "rsky1" in obj and "rsky2" in obj and "link" in obj:
+            if "compo" not in obj:
+                obj["compo"] = False
             return Aperture(
                 obj["x"],
                 obj["y"],
