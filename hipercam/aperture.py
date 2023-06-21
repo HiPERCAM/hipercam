@@ -34,6 +34,12 @@ class Aperture:
     fade so much that they cannot be detected. Such targets can be "linked" to
     others in the sense that they are offset from them.
 
+    COMPO apertures: comparison stars injected onto the science image by
+    COMPO have a difference world coordinate system to the main science image.
+    Their motion on the CCD is flipped, so that an (x, y) shift in the stars
+    on the science CCD produces a (-x, -y) shift in the COMPO stars. This
+    status is indicated with a logical flag.
+
     Sky masks: ('mask) these are fixed circles offset from the aperture in
     question indicating pixels to ignore when estimating the sky background.
 
@@ -56,10 +62,14 @@ class Aperture:
         Inner radius (unbinned pixels) of sky annulus
     rsky2 : float
         Outer radius (unbinned pixels) of sky annulus
-    ref : bool)
+    ref : bool
         True/False to indicate whether this is a reference
         aperture meaning that its position will be re-determined
         before non-reference apertures to provide a shift.
+    compo : bool
+        True/False to indicate whether this is a compo
+        aperture meaning that its shifts are inverted w.r.t non-compo
+        apertures.
     mask : list of 3 element tuples
         Each tuple in the list consists of an x,y offset and a radius in
         unbinned pixels. These are used to mask nearby areas when
@@ -84,25 +94,29 @@ class Aperture:
 
     """
 
-    def __init__(self, x, y, rtarg, rsky1, rsky2, ref, mask=[], extra=[], link=""):
+    def __init__(
+        self, x, y, rtarg, rsky1, rsky2, ref, compo=False, mask=[], extra=[], link=""
+    ):
         self.x = x
         self.y = y
         self.rtarg = rtarg
         self.rsky1 = rsky1
         self.rsky2 = rsky2
         self.ref = ref
+        self.compo = compo
         self.mask = mask.copy()
         self.extra = extra.copy()
         self.link = link
 
     def __repr__(self):
-        return "Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, mask={!r}, extra={!r}, link={!r})".format(
+        return "Aperture(x={!r}, y={!r}, rtarg={!r}, rsky1={!r}, rsky2={!r}, ref={!r}, compo={!r}, mask={!r}, extra={!r}, link={!r})".format(
             self.x,
             self.y,
             self.rtarg,
             self.rsky1,
             self.rsky2,
             self.ref,
+            self.compo,
             self.mask,
             self.extra,
             self.link,
@@ -117,6 +131,7 @@ class Aperture:
             self.rsky1,
             self.rsky2,
             self.ref,
+            self.compo,
             self.mask.copy(),
             self.extra.copy(),
             self.link,
@@ -148,7 +163,6 @@ class Aperture:
         problems.
 
         """
-
         if self.rtarg <= 0:
             raise ValueError(
                 "Aperture = {!r}\nTarget aperture radius = "
@@ -167,9 +181,10 @@ class Aperture:
             not isinstance(self.link, str)
             or not isinstance(self.mask, list)
             or not isinstance(self.ref, bool)
+            or not isinstance(self.compo, bool)
         ):
             raise ValueError(
-                "Aperture = {!r}\nOne or more of link, mask, extra "
+                "Aperture = {!r}\nOne or more of link, mask, ref or compo "
                 "has the wrong type".format(self)
             )
 
@@ -180,7 +195,7 @@ class Aperture:
 
     def toString(self):
         """Returns Aperture as a JSON-type string"""
-        return json.dumps(self, fp, cls=_Encoder, indent=2)
+        return json.dumps(self, cls=_Encoder, indent=2)
 
     @classmethod
     def read(cls, fname):
@@ -316,7 +331,6 @@ class MccdAper(Group):
 # classes to support JSON serialisation of Aperture objects
 class _Encoder(json.JSONEncoder):
     def default(self, obj):
-
         if isinstance(obj, Aperture):
             return OrderedDict(
                 (
@@ -327,6 +341,7 @@ class _Encoder(json.JSONEncoder):
                     ("rsky1", obj.rsky1),
                     ("rsky2", obj.rsky2),
                     ("ref", obj.ref),
+                    ("compo", obj.compo),
                     ("mask", obj.mask),
                     ("extra", obj.extra),
                     ("link", obj.link),
@@ -350,6 +365,7 @@ class _Decoder(json.JSONDecoder):
                 obj["rsky1"],
                 obj["rsky2"],
                 obj["ref"],
+                obj["compo"],
                 obj["mask"],
                 obj["extra"],
                 obj["link"],
