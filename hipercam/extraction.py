@@ -94,7 +94,7 @@ def findStars(wind, thresh, kernel_fwhm, return_bkg=False):
     bkg = sep.Background(data)
     bkg.subfrom(data)  # in-place background subtraction
 
-    sigma = 2.5 * gaussian_fwhm_to_sigma
+    sigma = kernel_fwhm * gaussian_fwhm_to_sigma
     kernel = Gaussian2DKernel(sigma, x_size=3, y_size=3)
     kernel.normalize()
 
