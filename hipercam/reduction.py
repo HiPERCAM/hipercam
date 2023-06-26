@@ -57,11 +57,8 @@ class Rfile(OrderedDict):
         rfile = cls()
         insection = False
         with open(filename) as fp:
-
             for line in fp:
-
                 if not line.startswith("#") and line != "" and not line.isspace():
-
                     # strip trailing comments
                     comm = line.find("#")
                     if comm != -1:
@@ -278,7 +275,6 @@ class Rfile(OrderedDict):
         extsec = rfile["extraction"]
 
         for cnam in extsec:
-
             extsec[cnam] = lst = extsec[cnam].split()
 
             if lst[0] != "variable" and lst[0] != "fixed":
@@ -592,7 +588,6 @@ class Rfile(OrderedDict):
         # Monitor section
         monsec = rfile["monitor"]
         for apnam in monsec:
-
             # interpret the bitmasks.
             monsec[apnam] = [eval("hcam." + entry) for entry in monsec[apnam].split()]
 
@@ -1005,11 +1000,9 @@ def update_plots(
         print(message)
 
     if lplot:
-
         # plot the light curve
 
         if update_plots.tzero is None:
-
             # first set the tzero if it is not set yet
 
             skipbadt = rfile["general"]["skipbadt"]
@@ -1090,7 +1083,6 @@ def update_plots(
                 spanel.x2 = x2
 
         if replot:
-
             # re-plot.
 
             if tkeep > 0:
@@ -1352,7 +1344,6 @@ class ProcessCCDs:
         self.store = {}
 
     def __call__(self, pccds, bccds, mccds, nframes):
-
         """Carries out the multi-processing reduction of a set of frames
 
         Arguments::
@@ -1380,7 +1371,6 @@ class ProcessCCDs:
         arglist, allres = [], []
 
         for cnam in pccds[0]:
-
             # get the apertures
             if (
                 cnam not in self.rfile.aper
@@ -1665,16 +1655,18 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                     )
 
                 if height >= apsec["fit_height_min_ref"]:
-
                     # The peak height check is probably not required at this
                     # point since the search routine applies it more
                     # stringently but I have left it in for safety.
-                    dx = x - aper.x
+
+                    # reminder: compo apertures shift in opposite sense
+                    # store dx, dy as the shift corrected for this flip
+                    dx = x - aper.x if not aper.compo else aper.x - x
                     wx = 1.0 / ex**2
                     wxsum += wx
                     xsum += wx * dx
 
-                    dy = y - aper.y
+                    dy = y - aper.y if not aper.compo else aper.y - y
                     wy = 1.0 / ey**2
                     wysum += wy
                     ysum += wy * dy
@@ -1748,13 +1740,12 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
     # is more than one reference star
 
     if ref:
-
         # if more than one reference aperture shift is measured, check all
         # shifts for consistency as a guard against cosmic rays and other
         # offsets
         if len(shifts) > 1:
             for n, (apn1, x1, y1) in enumerate(shifts[:-1]):
-                for (apn2, x2, y2) in shifts[n + 1 :]:
+                for apn2, x2, y2 in shifts[n + 1 :]:
                     diff = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
                     if np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) > apsec["fit_diff"]:
@@ -1801,11 +1792,14 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
             # test fails.
             for apnam, aper in ccdaper.items():
                 if aper.ref:
-                    aper.x += store[apnam]["dx"]
-                    aper.y += store[apnam]["dy"]
+                    if not aper.compo:
+                        aper.x += store[apnam]["dx"]
+                        aper.y += store[apnam]["dy"]
+                    else:
+                        aper.x -= store[apnam]["dx"]
+                        aper.y -= store[apnam]["dy"]
 
         else:
-
             # all reference fits have failed. Set all others to bad values
             # and return
             for apnam, aper in ccdaper.items():
@@ -1837,17 +1831,18 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
     # now go over non-reference, non-linked apertures. Failed reference
     # apertures are shifted by the mean shift just determined
     for apnam, aper in ccdaper.items():
-
         if aper.ref and store[apnam]["xe"] <= 0.0:
-
             # Move failed reference fit to the mean shift
-            aper.x += xshift
-            aper.y += yshift
+            if not aper.compo:
+                aper.x += xshift
+                aper.y += yshift
+            else:
+                aper.x -= xshift
+                aper.y -= yshift
             store[apnam]["dx"] = xshift
             store[apnam]["dy"] = yshift
 
         elif not aper.ref and not aper.linked:
-
             # extract Window for data, rflat and flat
             wnam = ccdwin[apnam]
             wdata = ccd[wnam]
@@ -1856,7 +1851,6 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
             wgain = gain[wnam]
 
             try:
-
                 # extract search sub-window around start position.
                 swdata = wdata.window(
                     aper.x + xshift - shbox,
@@ -1869,8 +1863,12 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                     # if we have reference stars, use the shift from the
                     # the reference stars rather than attempting a search
                     # around the target
-                    xold = x = aper.x + xshift
-                    yold = y = aper.y + yshift
+                    if not aper.compo:
+                        xold = x = aper.x + xshift
+                        yold = y = aper.y + yshift
+                    else:
+                        xold = x = aper.x - xshift
+                        yold = y = aper.y - yshift
                     peak = swdata.data[
                         int(round(swdata.y_pixel(y))), int(round(swdata.x_pixel(x)))
                     ]
@@ -1976,6 +1974,13 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                     # taken place if there are reference stars. If position has
                     # passed checks and the height is OK, then these are useful
                     # data to update parameters
+                    if aper.compo:
+                        dx = aper.x - x
+                        dy = aper.y - y
+                    else:
+                        dx = x - aper.x
+                        dy = y - aper.y
+
                     store[apnam] = {
                         "xe": ex,
                         "ye": ey,
@@ -1983,8 +1988,8 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                         "fwhme": efwhm,
                         "beta": beta,
                         "betae": ebeta,
-                        "dx": x - aper.x,
-                        "dy": y - aper.y,
+                        "dx": dx,
+                        "dy": dy,
                     }
 
                     if ref:
@@ -2010,7 +2015,6 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                         wbsum += wb
 
                 else:
-
                     error_message = (
                         "Non-reference aperture peak = {:.1f} < {:.1f}"
                     ).format(height, apsec["fit_height_min_nrf"])
@@ -2024,8 +2028,12 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                     ),
                     file=sys.stderr,
                 )
-                aper.x += xshift
-                aper.y += yshift
+                if not aper.compo:
+                    aper.x += xshift
+                    aper.y += yshift
+                else:
+                    aper.x -= xshift
+                    aper.y -= yshift
 
                 store[apnam] = {
                     "xe": NaN,
@@ -2040,10 +2048,16 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
 
     # finally the linked ones
     for apnam, aper in ccdaper.items():
-
         if aper.linked:
-            aper.x += store[aper.link]["dx"]
-            aper.y += store[aper.link]["dy"]
+            # dx, dy in store always saved in the sense of non-injected apertures
+            # even if linked aperture is injected, 'store[aper.link]["dx"]' needs
+            # inverting for injected apertures.
+            if not aper.compo:
+                aper.x += store[aper.link]["dx"]
+                aper.y += store[aper.link]["dy"]
+            else:
+                aper.x -= store[aper.link]["dx"]
+                aper.y -= store[aper.link]["dy"]
 
             store[apnam] = {
                 "xe": NaN,
@@ -2248,7 +2262,6 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     mfwhm = store["mfwhm"]
 
     if resize == "variable" or extype == "optimal":
-
         if mfwhm <= 0:
             # return early here as there is nothing we can do.
             print(
@@ -2284,7 +2297,6 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
             return results
 
         else:
-
             # Re-size the apertures
             for aper in ccdaper.values():
                 aper.rtarg = max(r1min, min(r1max, r1fac * mfwhm))
@@ -2292,7 +2304,6 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                 aper.rsky2 = max(r3min, min(r3max, r3fac * mfwhm))
 
     elif resize == "fixed":
-
         # just apply the max and min limits
         for aper in ccdaper.values():
             aper.rtarg = max(r1min, min(r1max, aper.rtarg))
@@ -2308,7 +2319,6 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     # apertures have been positioned in moveApers and now re-sized. Finally
     # we can extract something.
     for apnam, aper in ccdaper.items():
-
         # initialise flag
         flag = hcam.ALL_OK
 
@@ -2338,7 +2348,6 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
         )
 
         try:
-
             # extract sub-Windows
             swdata = wdata.window(x1, x2, y1, y2)
             swbias = wbias.window(x1, x2, y1, y2)
@@ -2401,11 +2410,9 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
             dsky = swdata.data[sok]
 
             if len(dsky):
-
                 # we have some sky!
 
                 if rfile["sky"]["method"] == "clipped":
-
                     # clipped mean. Take average, compute RMS,
                     # reject pixels > thresh*rms from the mean.
                     # repeat until no new pixels are rejected.
@@ -2435,7 +2442,6 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                         serror = srms / np.sqrt(nsky)
 
                 else:
-
                     # 'median' goes with 'photon'
                     slevel = dsky.median()
                     nsky = len(dsky)
@@ -2524,7 +2530,6 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
             diff = dtarg - slevel
 
             if extype == "normal" or extype == "optimal":
-
                 if extype == "optimal":
                     # optimal extraction. Need the profile
                     warnings.warn(
@@ -2791,7 +2796,6 @@ def plotLight(panel, tzero, results, rfile, tkeep, lbuffer):
         and fmin is not None
         and ((ymin == ymax) or (fmin < ymin or fmax > ymax))
     ):
-
         # we are going to have to replot because we have moved
         # outside the y-limits of the panel. We extend a little bit
         # more than necessary according to extend_y in order to
@@ -3054,18 +3058,15 @@ class LightCurve(BaseBuffer):
             return (tmax, fmin, fmax)
 
         for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
-
             # loop over each frame of the group
 
             if mjdok or not skipbadt:
-
                 targ = reses[self.targ]
                 ft = targ["counts"]
                 fte = targ["countse"]
                 saturated = targ["flag"] & hcam.TARGET_SATURATED
 
                 if fte == fte:
-
                     if self.comp != "!":
                         comp = reses[self.comp]
                         fc = comp["counts"]
@@ -3171,9 +3172,7 @@ class Xposition(BaseBuffer):
             return (tmax, xmin, xmax)
 
         for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
-
             if mjdok or not skipbadt:
-
                 # loop over each frame of the group
 
                 targ = reses[self.targ]
@@ -3265,9 +3264,7 @@ class Yposition(BaseBuffer):
             return (tmax, ymin, ymax)
 
         for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
-
             if mjdok or not skipbadt:
-
                 # loop over each frame of the group
 
                 targ = reses[self.targ]
@@ -3344,9 +3341,7 @@ class Transmission(BaseBuffer):
             return (tmax, fmax)
 
         for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
-
             if mjdok or not skipbadt:
-
                 # loop over each frame of the group
                 targ = reses[self.targ]
                 f = targ["counts"]
@@ -3421,9 +3416,7 @@ class Seeing(BaseBuffer):
             return (tmax, fmax)
 
         for nframe, store, ccdaper, reses, mjdint, mjdfrac, mjdok, expose in res:
-
             if mjdok or not skipbadt:
-
                 # loop over each frame of the group
                 targ = reses[self.targ]
                 f = targ["fwhm"]
@@ -3654,7 +3647,6 @@ class LogWriter:
         return alerts
 
     def write_header(self):
-
         # first, a general description
         self.log.write(
             """#

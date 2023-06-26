@@ -15,7 +15,7 @@ from . import defect
 
 
 # Font scale factor
-SCALE_FACTOR = float(os.environ.get("HIPERCAM_MPL_FSCALE",1.))
+SCALE_FACTOR = float(os.environ.get("HIPERCAM_MPL_FSCALE", 1.0))
 
 # some look-and-feel globals.
 Params = {
@@ -95,21 +95,22 @@ def pWin(axes, win, label="", animated=False, artists=None):
                 [left, right, right, left, left],
                 [bottom, bottom, top, top, bottom],
                 color=Params["win.box.col"],
-                animated=animated
+                animated=animated,
             )[0]
         )
 
         if label != "":
             artists.append(
                 axes.text(
-                    left - 3, bottom - 3,
+                    left - 3,
+                    bottom - 3,
                     label,
                     fontsize=Params["win.label.fs"],
                     color=Params["win.label.col"],
                     ha="right",
                     va="top",
                     clip_on=True,
-                    animated=animated
+                    animated=animated,
                 )
             )
     else:
@@ -121,11 +122,10 @@ def pWin(axes, win, label="", animated=False, artists=None):
 
         if label != "":
             text = artists[1]
-            text.set_position(
-                (left - 3, bottom - 3)
-            )
+            text.set_position((left - 3, bottom - 3))
 
     return artists
+
 
 def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artists=None):
     """Plots :class:`Window` as an image with a line border.
@@ -164,7 +164,6 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
     left, right, bottom, top = wind.extent()
 
     if artists is None:
-
         artists = []
 
         # plot image
@@ -178,7 +177,7 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
                 interpolation="nearest",
                 vmin=vmin,
                 vmax=vmax,
-                animated=animated
+                animated=animated,
             )
         )
 
@@ -191,17 +190,29 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
 
         img = artists[0]
         img.set_data(wind.data)
-        img.set_clim(vmin,vmax)
+        img.set_clim(vmin, vmax)
 
     return artists
 
+
 def pCcd(
-        axes, ccd,
-        iset="p", plo=5.0, phi=95.0, dlo=0.0, dhi=1000.0,
-        tlabel="", xlabel="X", ylabel="Y",
-        xlo=None, xhi=None, ylo=None, yhi=None,
-        cmap="Greys",
-        animated=False, artists=None
+    axes,
+    ccd,
+    iset="p",
+    plo=5.0,
+    phi=95.0,
+    dlo=0.0,
+    dhi=1000.0,
+    tlabel="",
+    xlabel="X",
+    ylabel="Y",
+    xlo=None,
+    xhi=None,
+    ylo=None,
+    yhi=None,
+    cmap="Greys",
+    animated=False,
+    artists=None,
 ):
     """Plots :class:`CCD` as a set of :class:`Window` objects correctly
     positioned with respect to each other.
@@ -274,9 +285,7 @@ def pCcd(
         if ylo is not None and yhi is not None:
             ylo = min(ylo, yhi)
             yhi = max(ylo, yhi)
-        vmin, vmax = ccd.percentile(
-            (plo, phi), xlo, xhi, ylo, yhi
-        )
+        vmin, vmax = ccd.percentile((plo, phi), xlo, xhi, ylo, yhi)
 
     elif iset == "a":
         # Set intensities from min/max range
@@ -295,44 +304,53 @@ def pCcd(
             artists[key] = pWind(axes, wind, vmin, vmax, key, cmap, animated)
 
         # plot outermost border of CCD
-        artists['border'] = \
-            axes.plot(
-                [0.5, ccd.nxtot + 0.5, ccd.nxtot + 0.5, 0.5, 0.5],
-                [0.5, 0.5, ccd.nytot + 0.5, ccd.nytot + 0.5, 0.5],
-                color=Params["ccd.box.col"], animated=animated
-            )
+        artists["border"] = axes.plot(
+            [0.5, ccd.nxtot + 0.5, ccd.nxtot + 0.5, 0.5, 0.5],
+            [0.5, 0.5, ccd.nytot + 0.5, ccd.nytot + 0.5, 0.5],
+            color=Params["ccd.box.col"],
+            animated=animated,
+        )
 
-        artists['labels'] = []
+        artists["labels"] = []
         if tlabel != "":
-            artists['labels'].append(
+            artists["labels"].append(
                 axes.set_title(
-                    tlabel, color=Params["axis.label.col"],
-                    fontsize=Params["axis.label.fs"], animated=animated
+                    tlabel,
+                    color=Params["axis.label.col"],
+                    fontsize=Params["axis.label.fs"],
+                    animated=animated,
                 )
             )
 
         if xlabel != "":
-            artists['labels'].append(
+            artists["labels"].append(
                 axes.set_xlabel(
-                    xlabel, color=Params["axis.label.col"],
-                    fontsize=Params["axis.label.fs"], animated=animated
+                    xlabel,
+                    color=Params["axis.label.col"],
+                    fontsize=Params["axis.label.fs"],
+                    animated=animated,
                 )
             )
 
         if ylabel != "":
-            artists['labels'].append(
+            artists["labels"].append(
                 axes.set_ylabel(
-                    ylabel, color=Params["axis.label.col"],
-                    fontsize=Params["axis.label.fs"], animated=animated
+                    ylabel,
+                    color=Params["axis.label.col"],
+                    fontsize=Params["axis.label.fs"],
+                    animated=animated,
                 )
             )
 
     else:
         # only need to update the images
         for key, wind in ccd.items():
-            artists[key] = pWind(axes, wind, vmin, vmax, key, cmap, animated, artists[key])
+            artists[key] = pWind(
+                axes, wind, vmin, vmax, key, cmap, animated, artists[key]
+            )
 
     return (vmin, vmax, artists)
+
 
 def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
     """Plots an :class:`Aperture` object, returning a list of the artists
@@ -380,10 +398,14 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
         artists.append(
             axes.add_patch(
                 Circle(
-                    (aper.x, aper.y), aper.rtarg, fill=False,
+                    (aper.x, aper.y),
+                    aper.rtarg,
+                    fill=False,
                     color=Params["aper.reference.col"]
-                    if aper.ref else Params["aper.target.col"],
-                    animated=animated
+                    if aper.ref
+                    else Params["aper.target.col"],
+                    ls="dashdot" if aper.compo else "solid",
+                    animated=animated,
                 )
             )
         )
@@ -392,10 +414,14 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
         artists.append(
             axes.add_patch(
                 Circle(
-                    (aper.x, aper.y), aper.rsky1, fill=False,
+                    (aper.x, aper.y),
+                    aper.rsky1,
+                    fill=False,
                     color=Params["aper.reference.col"]
-                    if aper.ref else Params["aper.sky.col"],
-                    animated=animated
+                    if aper.ref
+                    else Params["aper.sky.col"],
+                    ls="dashdot" if aper.compo else "solid",
+                    animated=animated,
                 )
             )
         )
@@ -403,10 +429,14 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
         artists.append(
             axes.add_patch(
                 Circle(
-                    (aper.x, aper.y), aper.rsky2, fill=False,
+                    (aper.x, aper.y),
+                    aper.rsky2,
+                    fill=False,
                     color=Params["aper.reference.col"]
-                    if aper.ref else Params["aper.sky.col"],
-                    animated=animated
+                    if aper.ref
+                    else Params["aper.sky.col"],
+                    ls="dashdot" if aper.compo else "solid",
+                    animated=animated,
                 )
             )
         )
@@ -432,12 +462,18 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                 p1 += r1
                 artists.append(
                     axes.arrow(
-                        p1.x, p1.y, v.x, v.y,
-                        width=3.0, length_includes_head=True,
-                        overhang=0.5, head_width=18,
-                        head_length=30, lw=2,
+                        p1.x,
+                        p1.y,
+                        v.x,
+                        v.y,
+                        width=3.0,
+                        length_includes_head=True,
+                        overhang=0.5,
+                        head_width=18,
+                        head_length=30,
+                        lw=2,
                         color=Params["aper.link.col"],
-                        animated=animated
+                        animated=animated,
                     )
                 )
 
@@ -452,7 +488,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                     [aper.y, aper.y + yoff],
                     "--",
                     color=Params["aper.mask.col"],
-                    animated=animated
+                    animated=animated,
                 )[0]
             )
 
@@ -460,10 +496,12 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
             artists.append(
                 axes.add_patch(
                     Circle(
-                        (aper.x + xoff, aper.y + yoff), r,
-                        fill=False, ls="dashed",
+                        (aper.x + xoff, aper.y + yoff),
+                        r,
+                        fill=False,
+                        ls="dashed",
                         color=Params["aper.mask.col"],
-                        animated=animated
+                        animated=animated,
                     )
                 )
             )
@@ -479,7 +517,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                     [aper.y, aper.y + yoff],
                     "--",
                     color=Params["aper.extra.col"],
-                    animated=animated
+                    animated=animated,
                 )[0]
             )
 
@@ -487,10 +525,12 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
             artists.append(
                 axes.add_patch(
                     Circle(
-                        (aper.x + xoff, aper.y + yoff), aper.rtarg,
-                        fill=False, ls="dashed",
+                        (aper.x + xoff, aper.y + yoff),
+                        aper.rtarg,
+                        fill=False,
+                        ls="dashed",
                         color=Params["aper.extra.col"],
-                        animated=animated
+                        animated=animated,
                     )
                 )
             )
@@ -504,13 +544,12 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                     color=Params["aper.label.col"],
                     ha="right",
                     va="top",
-                    bbox=dict(ec="0.8", fc="0.8", alpha=0.7, boxstyle='round, pad=0'),
+                    bbox=dict(ec="0.8", fc="0.8", alpha=0.7, boxstyle="round, pad=0"),
                     clip_on=True,
-                    animated=animated
+                    animated=animated,
                 )
             )
     else:
-
         # Update rather than create the artists. The update assumes
         # only that positions and sizes change. One exception is the
         # arrow used for links which is first removed then re-created.
@@ -559,12 +598,18 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                 # just remove then recreate. Hope it works.
                 artists[n].remove()
                 artists[n] = axes.arrow(
-                    p1.x, p1.y, v.x, v.y,
-                    width=3.0, length_includes_head=True,
-                    overhang=0.5, head_width=18,
-                    head_length=30, lw=2,
+                    p1.x,
+                    p1.y,
+                    v.x,
+                    v.y,
+                    width=3.0,
+                    length_includes_head=True,
+                    overhang=0.5,
+                    head_width=18,
+                    head_length=30,
+                    lw=2,
                     color=Params["aper.link.col"],
-                    animated=animated
+                    animated=animated,
                 )
                 n += 1
 
@@ -574,17 +619,12 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
         for xoff, yoff, r in aper.mask:
             # draw the line
             line = artists[n]
-            line.set_data(
-                [aper.x, aper.x + xoff],
-                [aper.y, aper.y + yoff]
-            )
+            line.set_data([aper.x, aper.x + xoff], [aper.y, aper.y + yoff])
             n += 1
 
             # and now the circle
             circ = artists[n]
-            circ.set_center(
-                (aper.x + xoff, aper.y + yoff)
-            )
+            circ.set_center((aper.x + xoff, aper.y + yoff))
             circ.set_radius(r)
             n += 1
 
@@ -594,27 +634,22 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
         for xoff, yoff in aper.extra:
             # draw the line
             line = artists[n]
-            line.set_data(
-                [aper.x, aper.x + xoff], [aper.y, aper.y + yoff]
-            )
+            line.set_data([aper.x, aper.x + xoff], [aper.y, aper.y + yoff])
             n += 1
 
             # and now the circle
             circ = artists[n]
-            circ.set_center(
-                (aper.x + xoff, aper.y + yoff)
-            )
+            circ.set_center((aper.x + xoff, aper.y + yoff))
             circ.set_radius(aper.rtarg)
             n += 1
 
         if label != "":
             text = artists[n]
-            text.set_position(
-                (aper.x - aper.rsky2, aper.y - aper.rsky2)
-            )
+            text.set_position((aper.x - aper.rsky2, aper.y - aper.rsky2))
             n += 1
 
     return artists
+
 
 def pCcdAper(axes, ccdAper, animated=False, artists=None):
     """Plots a :class:`CcdAper` object, returning references to the plot
@@ -653,6 +688,7 @@ def pCcdAper(axes, ccdAper, animated=False, artists=None):
 
     return pobjs
 
+
 def pDefect(axes, dfct, animated=False, artists=None):
     """Plots a :class:`Defect` object, returning a list of
     the artists created.
@@ -685,13 +721,21 @@ def pDefect(axes, dfct, animated=False, artists=None):
         if isinstance(dfct, defect.Point):
             if dfct.severity == defect.Severity.MODERATE:
                 artists = axes.plot(
-                    dfct.x, dfct.y, "o", color=Params["defect.moderate.col"], ms=3,
-                    animated=animated
+                    dfct.x,
+                    dfct.y,
+                    "o",
+                    color=Params["defect.moderate.col"],
+                    ms=3,
+                    animated=animated,
                 )
             elif dfct.severity == defect.Severity.SEVERE:
                 artists = axes.plot(
-                    dfct.x, dfct.y, "o", color=Params["defect.severe.col"], ms=3,
-                    animated=animated
+                    dfct.x,
+                    dfct.y,
+                    "o",
+                    color=Params["defect.severe.col"],
+                    ms=3,
+                    animated=animated,
                 )
 
         elif isinstance(dfct, defect.Line):
@@ -701,14 +745,14 @@ def pDefect(axes, dfct, animated=False, artists=None):
                     [dfct.y1, dfct.y2],
                     "--",
                     color=Params["defect.moderate.col"],
-                    animated=animated
+                    animated=animated,
                 )
             elif dfct.severity == defect.Severity.SEVERE:
                 artists = axes.plot(
                     [dfct.x1, dfct.x2],
                     [dfct.y1, dfct.y2],
                     color=Params["defect.severe.col"],
-                    animated=animated
+                    animated=animated,
                 )
 
         elif isinstance(dfct, defect.Hot):
@@ -719,11 +763,15 @@ def pDefect(axes, dfct, animated=False, artists=None):
 
             artists = [
                 axes.text(
-                    dfct.x, dfct.y,
-                    f'{int(round(dfct.rate))}',
-                    color=col, ha="center", va="center",
-                    bbox=dict(ec="0.8", fc="0.8", alpha=0.5, boxstyle='round, pad=0'),
-                    clip_on=True, animated=animated
+                    dfct.x,
+                    dfct.y,
+                    f"{int(round(dfct.rate))}",
+                    color=col,
+                    ha="center",
+                    va="center",
+                    bbox=dict(ec="0.8", fc="0.8", alpha=0.5, boxstyle="round, pad=0"),
+                    clip_on=True,
+                    animated=animated,
                 )
             ]
 
@@ -745,6 +793,7 @@ def pDefect(axes, dfct, animated=False, artists=None):
             raise HipercamError("Did not recognise Defect")
 
     return artists
+
 
 def pCcdDefect(axes, ccdDefect, animated=False, artists=None):
     """Plots a :class:`CcdDefect` object, returning references to the
@@ -783,6 +832,7 @@ def pCcdDefect(axes, ccdDefect, animated=False, artists=None):
 
     return pobjs
 
+
 def pFringePair(axes, fpair):
     """Plots a :class:`FringePair` object, returning
     a list of artists created.
@@ -798,9 +848,15 @@ def pFringePair(axes, fpair):
     """
 
     return axes.plot(
-        [fpair.x1,fpair.x2], [fpair.y1,fpair.y2],
-        mfc='b', mec='b', color='r', marker='o', lw=4
+        [fpair.x1, fpair.x2],
+        [fpair.y1, fpair.y2],
+        mfc="b",
+        mec="b",
+        color="r",
+        marker="o",
+        lw=4,
     )
+
 
 def pCcdFringePair(axes, ccdFringePair):
     """Plots a :class:`CcdFringePair` object, returning references to the plot
