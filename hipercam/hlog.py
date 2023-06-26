@@ -1234,8 +1234,8 @@ class Tseries:
 
             # special case empy bin
             if not np.any(bin_mask):
-                t.append(0.5 * (bin_edges[i] + bin_edges[i + 1]))
-                te.append(np.fabs(bin_edges[i + 1] - bin_edges[i]))
+                t.append(0.5 * (bin_edges[i - 1] + bin_edges[i]))
+                te.append(np.fabs(bin_edges[i] - bin_edges[i - 1]))
                 y.append(NaN)
                 ye.append(NaN)
                 bmask.append(NO_DATA)
