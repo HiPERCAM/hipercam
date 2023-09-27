@@ -102,8 +102,8 @@ class Rfile(OrderedDict):
             v = sect["version"]
             rfv = hcam.REDUCE_FILE_VERSION
             raise hcam.HipercamError(
-                f"Version mismatch: reduce file = {v}, reduce = {rfv}"
-                "If your reduce file date is earlier than the reduce version, you may want to try"
+                f"Version mismatch: reduce file = {v}, reduce = {rfv}. "
+                "If your reduce file date is earlier than the reduce version, you may want to try "
                 f"updating it using the pipeline command 'rupdate {filename}'"
             )
 
