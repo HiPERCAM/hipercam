@@ -65,11 +65,9 @@ def fits2hcm(args=None):
            WHTCAM :
              Camera used by Richard Ashley in Feb 2021.
 
-           OSIRIS :
-             Imager and spectrograph on the GTC. I've only tested this with
-             data taken with the new detector known as OSIRIS+ and even then,
-             only with what I believe is the standard setup
-             (2x2 binning and full frame).
+           OSIRIS+ : 
+             Imager and spectrograph on the GTC. Added by Alex Brown in Nov 2023. 
+             Only tested with 2x2 binning and full frame
 
       overwrite : bool
          overwrite files on output
@@ -78,7 +76,7 @@ def fits2hcm(args=None):
 
     command, args = cline.script_args(args)
 
-    FORMATS = ["HICKS", "INTWFC", "LTRISE", "LTIO", "PT5M", "ROSA", "LCOGT", "WHTCAM", "OSIRIS"]
+    FORMATS = ["HICKS", "INTWFC", "LTRISE", "LTIO", "PT5M", "ROSA", "LCOGT", "WHTCAM", "OSIRIS+"]
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
@@ -168,7 +166,7 @@ def fits2hcm(args=None):
                     ophdu.header["NUMCCD"] = (1, "CCD number; fits2hcm")
                     exptime = ihead["EXPTIME"]
                     mjd = ihead["MJD-OBS"] + exptime / 2 / 86400
-                    time = Time(mjd + exptime / 2 / 86400, format="mjd")
+                    time = Time(mjd, format="mjd")
                     ophdu.header["TIMSTAMP"] = (time.isot, "Time stamp; fits2hcm")
 
                     # Copy data into first HDU
@@ -346,7 +344,7 @@ def fits2hcm(args=None):
                     ofhdu.header["YBIN"] = (ihead["YBINNING"], "Y-binning factor")
                     ofhdu.header["MJDUTC"] = (mjd, "MJD at centre of exposure")
                     ophdu.header["MJDUTC"] = (
-                        mjd + exptime / 2 / 86400,
+                        mjd,
                         "MJD at centre of exposure; fits2hcm",
                     )
                     ofhdu.header["MJDINT"] = (
@@ -419,7 +417,7 @@ def fits2hcm(args=None):
                     ophdu.header["NUMCCD"] = (1, "CCD number; fits2hcm")
                     exptime = ihead["EXPTIME"]
                     mjd = ihead["MJD-OBS"] + exptime / 2 / 86400
-                    time = Time(mjd + exptime / 2 / 86400, format="mjd")
+                    time = Time(mjd, format="mjd")
                     ophdu.header["TIMSTAMP"] = (time.isot, "Time stamp; fits2hcm")
 
                     # Copy data into first HDU
@@ -463,7 +461,7 @@ def fits2hcm(args=None):
                     ophdu.header["NUMCCD"] = (1, "CCD number; fits2hcm")
                     exptime = ihead["EXPTIME"]
                     mjd = ihead["MJD-OBS"] + exptime / 2 / 86400
-                    time = Time(mjd + exptime / 2 / 86400, format="mjd")
+                    time = Time(mjd, format="mjd")
                     ophdu.header["TIMSTAMP"] = (time.isot, "Time stamp; fits2hcm")
 
                     # Copy data into first HDU
@@ -505,14 +503,14 @@ def fits2hcm(args=None):
                     ohdul = fits.HDUList([ophdu, ofhdu])
                     ohdul.writeto(oname, overwrite=overwrite)
 
-                elif origin == "OSIRIS":
+                elif origin == "OSIRIS+":
                     # Copy main header into primary data-less HDU
                     ihead = hdul[0].header
                     ophdu = fits.PrimaryHDU(header=ihead)
                     ophdu.header["NUMCCD"] = (1, "CCD number; fits2hcm")
                     exptime = ihead["EXPTIME"]
                     mjd = ihead["MJD-OBS"] + exptime / 2 / 86400
-                    time = Time(mjd + exptime / 2 / 86400, format="mjd")
+                    time = Time(mjd, format="mjd")
                     ophdu.header["TIMSTAMP"] = (time.isot, "Time stamp; fits2hcm")
 
                     ofhdu = fits.ImageHDU(hdul[0].data)
