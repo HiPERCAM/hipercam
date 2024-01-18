@@ -1,5 +1,6 @@
 import sys
 import os
+from functools import partial
 
 import numpy as np
 import matplotlib as mpl
@@ -11,6 +12,7 @@ from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import utils
+from hipercam.scripts.nrtplot import Fpar
 
 ###################################
 #
@@ -109,6 +111,71 @@ def hplot(args=None):
          plot height (inches). Set = 0 to let the program choose. BOTH width
          AND height must be non-zero to have any effect
 
+      method : str [hidden]
+          if the device is set to '/mpl' (matplotlib), then pressing the
+          space bar will initiate a profile fit at the position of the cursor.
+          This defines the profile fitting method, either a gaussian or a
+          moffat profile. The latter is usually best.
+
+      beta : float [method == 'm'; hidden]
+          default Moffat exponent
+
+      fwhm : float [hidden]
+          default FWHM, unbinned pixels. Do try to get this about right as
+          it affects whether the profile can be fitted at all.
+
+      fwhm_min : float [hidden]
+          minimum FWHM to allow, unbinned pixels.
+
+      shbox : float [hidden]
+          half width of box for searching for a star, unbinned
+          pixels. The above-threshold target closest to the centre of
+          the box in a region +/- shbox around an intial position
+          will be selected. It may not be the brightest, depending
+          upon your threshold settings, so use those to filter faint
+          objects. If profit=True, 'shbox' should be large enough to
+          allow for likely changes in position from frame to frame,
+          but not too large to avoid jumping to brighter targets or
+          possibly cosmic rays.
+
+      smooth : float [hidden]
+          FWHM for gaussian smoothing, binned pixels. The initial position
+          for fitting is determined by finding the maximum flux in a smoothed
+          version of the image in a box of width +/- shbox around the starter
+          position. Typically should be comparable to the stellar width. Its
+          main purpose is to combat cosmic rays which tend only to occupy a
+          single pixel.
+
+      fhbox : float [hidden]
+          half width of box for profile fit, unbinned pixels. The fit box is
+          centred on the position located by the initial search. It should
+          normally be > ~2x the expected FWHM, and usually smaller than shbox
+
+      hmin : float [hidden]
+          height threshold to accept a fit. If the height is below this
+          value, the position will not be updated. This is to help in cloudy
+          conditions. The limit is applied to the image after it has been
+          smoothed to make less vulnerable to seeing fluctuations. This
+          can mean it can be quite small.
+
+      read : float [hidden]
+          readout noise, RMS ADU, for assigning uncertainties. Set to a -ve
+          value to try to ascertain on the fly; this is advisable either if
+          you don't have a bias or you apply 'msub', and it will default to
+          this if not specified in this case. The value returned in this case
+          includes sky noise, i.e it should be roughly sqrt(R**2+S/G) where
+          R is the true read noise, S are the sky counts per pixel, and G the
+          gain. If read is set -ve, two fits are carried out per target. The
+          second of these should usually be pretty fast. The first is carried
+          out with an assumed large read noise of 20 in order to soften the
+          weights. The results reported apply to the second fit.
+
+      gain : float [hidden]
+          gain, ADU/count, for assigning uncertainties.
+
+      thresh : float [hidden]
+          sigma rejection threshold for fits
+
     """
 
     global fig, mccd, caxes, hsbox
@@ -117,7 +184,6 @@ def hplot(args=None):
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("input", Cline.LOCAL, Cline.PROMPT)
         cl.register("device", Cline.LOCAL, Cline.HIDE)
@@ -137,6 +203,17 @@ def hplot(args=None):
         cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
         cl.register("width", Cline.LOCAL, Cline.HIDE)
         cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("method", Cline.LOCAL, Cline.HIDE)
+        cl.register("beta", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwhm", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwhm_min", Cline.LOCAL, Cline.HIDE)
+        cl.register("shbox", Cline.LOCAL, Cline.HIDE)
+        cl.register("smooth", Cline.LOCAL, Cline.HIDE)
+        cl.register("fhbox", Cline.LOCAL, Cline.HIDE)
+        cl.register("hmin", Cline.LOCAL, Cline.HIDE)
+        cl.register("read", Cline.LOCAL, Cline.HIDE)
+        cl.register("gain", Cline.LOCAL, Cline.HIDE)
+        cl.register("thresh", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         frame = cl.get_value("input", "frame to plot", cline.Fname("hcam", hcam.HCAM))
@@ -183,7 +260,9 @@ def hplot(args=None):
         msub = cl.get_value("msub", "subtract median from each window?", True)
 
         if ptype == "MPL":
-            cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+            cmap = cl.get_value(
+                "cmap", "colour map to use ['none' for mpl default]", "Greys"
+            )
             cmap = None if cmap == "none" else cmap
 
         if ptype == "MPL" and hard == "":
@@ -232,6 +311,49 @@ def hplot(args=None):
         width = cl.get_value("width", "plot width (inches)", 0.0)
         height = cl.get_value("height", "plot height (inches)", 0.0)
 
+        # many parameters for profile fits, although none are
+        # requested by default
+        method = cl.get_value(
+            "method", "fit method g(aussian) or m(offat)", "m", lvals=["g", "m"]
+        )
+        if method == "m":
+            beta = cl.get_value(
+                "beta", "initial exponent for Moffat fits", 5.0, 0.5, 20.0
+            )
+        else:
+            beta = 0.0
+
+        fwhm_min = cl.get_value(
+            "fwhm_min", "minimum FWHM to allow [unbinned pixels]", 1.5, 0.01
+        )
+        fwhm = cl.get_value(
+            "fwhm",
+            "initial FWHM [unbinned pixels] for profile fits",
+            6.0,
+            fwhm_min,
+        )
+        shbox = cl.get_value(
+            "shbox",
+            "half width of box for initial location" " of target [unbinned pixels]",
+            11.0,
+            2.0,
+        )
+        smooth = cl.get_value(
+            "smooth",
+            "FWHM for smoothing for initial object" " detection [binned pixels]",
+            6.0,
+        )
+        fhbox = cl.get_value(
+            "fhbox",
+            "half width of box for profile fit" " [unbinned pixels]",
+            21.0,
+            3.0,
+        )
+        hmin = cl.get_value("hmin", "minimum peak height to accept the fit", 20.0)
+        read = cl.get_value("read", "readout noise, RMS ADU", -1.0)
+        gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
+        thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
+
     # all inputs obtained, plot
     if ptype == "MPL":
         if width > 0 and height > 0:
@@ -267,12 +389,19 @@ def hplot(args=None):
                     wind -= wind.median()
 
             vmin, vmax, _ = hcam.mpl.pCcd(
-                axes, mccd[cnam],
-                iset, plo, phi,
-                ilo, ihi,
+                axes,
+                mccd[cnam],
+                iset,
+                plo,
+                phi,
+                ilo,
+                ihi,
                 "CCD {:s}".format(cnam),
-                xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi,
-                cmap=cmap
+                xlo=xlo,
+                xhi=xhi,
+                ylo=ylo,
+                yhi=yhi,
+                cmap=cmap,
             )
             print("CCD =", cnam, "plot range =", vmin, "to", vmax)
 
@@ -282,7 +411,6 @@ def hplot(args=None):
             pass
 
         if hard == "":
-
             # add in the callback
             fig.canvas.mpl_connect("button_press_event", buttonPressEvent)
             print(
@@ -290,8 +418,29 @@ def hplot(args=None):
                     2 * hsbox + 1, 2 * hsbox + 1
                 )
             )
+
+            # add the keypress callback
+            fitter = OnDemandFit(
+                fig,
+                mccd,
+                caxes,
+                shbox,
+                fwhm,
+                beta,
+                method,
+                smooth,
+                fhbox,
+                hmin,
+                fwhm_min,
+                read,
+                gain,
+                thresh,
+            )
+            fig.canvas.mpl_connect("key_press_event", fitter._keyPressEvent)
+
             plt.subplots_adjust(wspace=0.1, hspace=0.1)
             plt.show()
+
         else:
             plt.savefig(hard, bbox_inches="tight", pad_inches=0)
 
@@ -318,9 +467,89 @@ def hplot(args=None):
             print("CCD =", cnam, "plot range =", vmin, "to", vmax)
 
 
+class OnDemandFit(object):
+    """
+    Callback
+    """
+
+    def __init__(
+        self,
+        fig,
+        mccd,
+        caxes,
+        shbox=31,
+        fwhm=6,
+        beta=5,
+        method="g",
+        smooth=6,
+        fhbox=21,
+        hmin=50,
+        fwhm_min=1.5,
+        read=-1.0,
+        gain=1.0,
+        thresh=4.0,
+    ):
+        self.fig = fig
+        self.mccd = mccd
+        self.caxes = caxes
+        self.shbox = shbox
+        self.fwhm = fwhm
+        self.beta = beta
+        self.method = method
+        self.smooth = smooth
+        self.fhbox = fhbox
+        self.hmin = hmin
+        self.fwhm_min = fwhm_min
+        self.read = read
+        self.gain = gain
+        self.thresh = thresh
+
+    def _keyPressEvent(self, event):
+        pzoom = self.fig.canvas.manager.toolbar.mode == "pan/zoom"
+        # only when not in pan/zoom mode
+        if not pzoom and event.key == " " and event.inaxes is not None:
+            cnam = self.caxes[event.inaxes]
+            ccd = self.mccd[cnam]
+            x, y = event.xdata, event.ydata
+            # check that the position is inside a window
+            wnam = ccd.inside(x, y, 2)
+            if wnam is not None:
+                # store the position, Window label, target number,
+                # box size fwhm, beta
+                fpar = Fpar(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
+                results, message = fpar.fit(
+                    ccd,
+                    self.method,
+                    self.smooth,
+                    self.fhbox,
+                    self.hmin,
+                    self.fwhm_min,
+                    self.read,
+                    self.gain,
+                    self.thresh,
+                )
+                if results is not None:
+                    # fitted OK
+                    print(
+                        f"   profile fit with initial x,y = "
+                        f"{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}, [applies to previous frame]:"
+                    )
+                    print(f"   {message}\n")
+                else:
+                    print(
+                        f"\n   ** fit failed at position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}"
+                    )
+                    print(f"   ** fit message = {message}\n")
+
+
+def junk(event):
+    print("BOOM!")
+    print(event.key)
+
+
 def buttonPressEvent(event):
     """
-    callback 
+    callback
     """
     global fig, mccd, caxes, hsbox
 
