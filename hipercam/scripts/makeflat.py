@@ -349,9 +349,6 @@ def makeflat(args=None):
                 os.close(fd)
 
                 # a bit of progress info
-                nframe = mccd.head["NFRAME"]
-                cvalues = [(means[cnam][fname], medians[cnam][fname]) for cnam in ccds]
-                print(f"Frame {nframe}: {cvalues}")
                 print(f"Saved processed flat to {fname}")
 
         # now we go through CCD by CCD, using the first as a template
