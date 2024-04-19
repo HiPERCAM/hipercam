@@ -314,10 +314,8 @@ def makeflat(args=None):
         # subtraction) save the bias-subtracted, mean-level normalised
         # results to temporary files
         print("Reading all files in to determine their mean levels")
-        bframe, dframe = None, None
-        means = {}
-        for cnam in ccds:
-            means[cnam] = {}
+        means = {cnam: {} for cnam in ccds}
+        medians = {cnam: {} for cnam in ccds}
 
         # We might have a load of temporaries from grab, but we are about to
         # make some more to save the normalised versions.
@@ -327,8 +325,8 @@ def makeflat(args=None):
 
             for mccd in spool:
 
-                # here we determine the mean levels, store them
-                # then normalise the CCDs by them and save the files
+                # here we determine the mean and median levels, store them
+                # then normalise the CCDs by the mean and save the files
                 # to disk
 
                 # generate the name to save to automatically
@@ -339,8 +337,10 @@ def makeflat(args=None):
                     # you never know. Eliminate them from consideration now.
                     ccd = mccd[cnam]
                     if ccd.is_data():
-                        cmean = mccd[cnam].mean()
+                        cmean = ccd.mean()
                         means[cnam][fname] = cmean
+                        cmedian = ccd.median()
+                        medians[cnam][fname] = cmedian
                         mccd[cnam] /= cmean
 
                 # write the disk, save the name, close the filehandle
@@ -349,6 +349,9 @@ def makeflat(args=None):
                 os.close(fd)
 
                 # a bit of progress info
+                nframe = mccd.head["NFRAME"]
+                cvalues = [(means[cnam][fname], medians[cnam][fname]) for cnam in ccds]
+                print(f"Frame {nframe}: {cvalues}")
                 print(f"Saved processed flat to {fname}")
 
         # now we go through CCD by CCD, using the first as a template
@@ -360,10 +363,11 @@ def makeflat(args=None):
 
             # get the keys (filenames) and corresponding mean values
             mkeys = np.array(list(means[cnam].keys()))
-            mvals = np.array(list(means[cnam].values()))
+            mvals = np.array([means[cnam][fname] for fname in mkeys])
+            meds = np.array([medians[cnam][fname] for fname in mkeys])
 
             # chop down to acceptable ones
-            ok = (mvals > lower) & (mvals < upper)
+            ok = (mvals > lower) & (mvals < upper) & (meds > lower) & (meds < upper)
 
             mkeys = mkeys[ok]
             mvals = mvals[ok]
