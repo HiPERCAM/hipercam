@@ -43,6 +43,7 @@ __all__ = [
 
 NaN = float("NaN")
 
+
 ################################################
 #
 # reduce -- reduces multi-CCD imaging photometry
@@ -258,7 +259,12 @@ def reduce(args=None):
 
         if server_or_local:
             resource = cl.get_value("run", "run name", "run005")
-            first = cl.get_value("first", "first frame to reduce", 1, 0)
+            if source == "hs":
+                # HiPERCAM doesn't like first=0, so allow -ve values
+                first = cl.get_value("first", "first frame to plot", 1)
+            else:
+                first = cl.get_value("first", "first frame to plot", 1, 0)
+
             cl.set_default("last", 0)
             last = cl.get_value("last", "last frame to reduce", 0, 0)
             if last and last < first:
