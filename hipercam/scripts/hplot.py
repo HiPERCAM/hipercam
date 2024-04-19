@@ -31,6 +31,12 @@ def hplot(args=None):
     (device='/mpl') allows one to pan and zoom and to compare the same part of
     multiple CCDs easily.
 
+    If the interactive plot is used (device='/mpl'), then pressing the space
+    bar will initiate a profile fit at the position of the cursor. The
+    parameters of a successfull fit will be printed to the screen.
+    A radial profile plot centered on the fit position can be plotted
+    by pressing the 'r' key. This will open a new matplotlib window.
+
     Parameters:
 
       input : string
@@ -361,8 +367,11 @@ def hplot(args=None):
         else:
             fig = plt.figure()
 
+        # set plot label sizes
         mpl.rcParams["xtick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
         mpl.rcParams["ytick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
+        # disable 'r' key as shortcut for reset zoom
+        mpl.rcParams["keymap.home"].remove("r")
 
         nccd = len(ccds)
         ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
@@ -507,7 +516,7 @@ class OnDemandFit(object):
     def _keyPressEvent(self, event):
         pzoom = self.fig.canvas.manager.toolbar.mode == "pan/zoom"
         # only when not in pan/zoom mode
-        if not pzoom and event.key == " " and event.inaxes is not None:
+        if not pzoom and event.key in [" ", "r"] and event.inaxes is not None:
             cnam = self.caxes[event.inaxes]
             ccd = self.mccd[cnam]
             x, y = event.xdata, event.ydata
@@ -531,20 +540,44 @@ class OnDemandFit(object):
                 if results is not None:
                     # fitted OK
                     print(
-                        f"   profile fit with initial x,y = "
+                        f"profile fit with initial x,y = "
                         f"{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}, [applies to previous frame]:"
                     )
                     print(f"   {message}\n")
+                    if event.key == "r":
+                        # plot the radial fit
+                        (
+                            _,
+                            radius,
+                            pixel_value,
+                            _,
+                            vmin,
+                            vmax,
+                            radius_fit,
+                            fit,
+                        ) = results
+
+                        # needed to avoid error messages about event loop
+                        plt.ion()
+
+                        # open new figure (if not already open)
+                        radial_fig = plt.figure("radial profile")
+                        # clear in case already open
+                        radial_fig.clf()
+
+                        # make plot
+                        ax = radial_fig.add_subplot(111)
+                        ax.plot(radius, pixel_value, "k.")
+                        ax.plot(radius_fit, fit, "k-")
+                        ax.set_ylim(vmin, vmax)
+                        ax.set_xlabel("Radius (pixels)")
+                        ax.set_ylabel("Pixel value")
+
                 else:
                     print(
                         f"\n   ** fit failed at position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}"
                     )
                     print(f"   ** fit message = {message}\n")
-
-
-def junk(event):
-    print("BOOM!")
-    print(event.key)
 
 
 def buttonPressEvent(event):
