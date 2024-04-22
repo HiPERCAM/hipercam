@@ -1,9 +1,9 @@
-.. changelog created on Mon 22 Apr 2024 09:46:11 BST
+.. changelog created on Mon 22 Apr 2024 09:46:26 BST
 
 .. include:: globals.rst
 
-|hiper| pipeline changes since v1.3.2
-**************************************
+|hiper| pipeline changes from v1.3.2 to v1.5.0
+**************************************************
 
 List of changes from git, newest first, with the commit keys linked to github:
 
