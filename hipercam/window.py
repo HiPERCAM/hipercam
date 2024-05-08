@@ -19,8 +19,7 @@ from numpy.lib.stride_tricks import as_strided
 
 from astropy.io import fits
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
-from scipy.ndimage.filters import maximum_filter
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, maximum_filter
 
 import matplotlib.pyplot as plt
 from .core import *
