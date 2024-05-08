@@ -988,7 +988,8 @@ def update_plots(
                 else:
                     message += "ccd {:s}: {:.2f} to {:.2f}".format(cnam, vmin, vmax)
 
-                if cnam in rfile.aper:
+                # plot apertures
+                if cnam in rfile.aper and len(rfile.aper[cnam]) > 0:
                     # find the result for this ccd name
                     res = next(res for (this_cnam, res) in results if this_cnam == cnam)
                     # we always use the last result in the parallel group
