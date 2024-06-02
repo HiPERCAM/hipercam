@@ -401,9 +401,11 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                     (aper.x, aper.y),
                     aper.rtarg,
                     fill=False,
-                    color=Params["aper.reference.col"]
-                    if aper.ref
-                    else Params["aper.target.col"],
+                    color=(
+                        Params["aper.reference.col"]
+                        if aper.ref
+                        else Params["aper.target.col"]
+                    ),
                     ls="dashdot" if aper.compo else "solid",
                     animated=animated,
                 )
@@ -417,9 +419,11 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                     (aper.x, aper.y),
                     aper.rsky1,
                     fill=False,
-                    color=Params["aper.reference.col"]
-                    if aper.ref
-                    else Params["aper.sky.col"],
+                    color=(
+                        Params["aper.reference.col"]
+                        if aper.ref
+                        else Params["aper.sky.col"]
+                    ),
                     ls="dashdot" if aper.compo else "solid",
                     animated=animated,
                 )
@@ -432,9 +436,11 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                     (aper.x, aper.y),
                     aper.rsky2,
                     fill=False,
-                    color=Params["aper.reference.col"]
-                    if aper.ref
-                    else Params["aper.sky.col"],
+                    color=(
+                        Params["aper.reference.col"]
+                        if aper.ref
+                        else Params["aper.sky.col"]
+                    ),
                     ls="dashdot" if aper.compo else "solid",
                     animated=animated,
                 )
@@ -781,13 +787,13 @@ def pDefect(axes, dfct, animated=False, artists=None):
     else:
         # update previously created artists
         if isinstance(dfct, defect.Point):
-            artists[0].set_data(dfct.x, dfct.y)
+            artists[0].set_data((dfct.x,), (dfct.y,))
 
         elif isinstance(dfct, defect.Line):
             artists[0].set_data([dfct.x1, dfct.x2], [dfct.y1, dfct.y2])
 
         elif isinstance(dfct, defect.Hot):
-            artists[0].set_position(dfct.x, dfct.y)
+            artists[0].set_position((dfct.x, dfct.y))
 
         else:
             raise HipercamError("Did not recognise Defect")

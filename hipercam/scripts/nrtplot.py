@@ -1143,8 +1143,10 @@ def nrtplot(args=None):
                     dx = pfits[1][0].x - pfits[0][0].x
                     dy = pfits[1][0].y - pfits[0][0].y
                     theta = Angle(np.arctan2(dy, dx), unit=u.rad).to(u.deg)
-                    theta = theta.wrap_at(360*u.deg).to_value()
-                    print(f"  From target 1 to 2: \u03F4 = {theta:.2f}\u00B0 (anti-clockwise from horizontal)")
+                    theta = theta.wrap_at(360 * u.deg).to_value()
+                    print(
+                        f"  From target 1 to 2: \u03F4 = {theta:.2f}\u00B0 (anti-clockwise from horizontal)"
+                    )
 
                 if first_fwhm:
                     # set up the accumulator object now because we didn't know
@@ -1688,7 +1690,8 @@ class ImageManager:
                     else:
                         # they exist already and need updating
                         dot, circ, sbox = artists[3 * ntarg : 3 * ntarg + 3]
-                        dot.set_data(fpar.x, fpar.y)
+                        # set_data must take a sequence from MPL 3.9
+                        dot.set_data((fpar.x,), (fpar.y,))
                         circ.set_center((fpar.x, fpar.y))
                         circ.set_radius(fpar.fwhm)
                         xlo, xhi, ylo, yhi = fpar.region()
@@ -2107,7 +2110,6 @@ class OntheflyCursorSelect:
 
 
 class Fpar:
-
     """Class for representing a target for profile fits. Stores
     the CCD name and window name where it is located."""
 
