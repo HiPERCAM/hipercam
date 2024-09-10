@@ -954,9 +954,7 @@ class Tseries:
             te = (
                 self.te.copy()
                 if self.te is not None
-                else other.te.copy()
-                if other.te is not None
-                else None
+                else other.te.copy() if other.te is not None else None
             )
 
         else:
@@ -1005,9 +1003,7 @@ class Tseries:
             te = (
                 self.te.copy()
                 if self.te is not None
-                else other.te.copy()
-                if other.te is not None
-                else None
+                else other.te.copy() if other.te is not None else None
             )
 
         else:
@@ -1048,9 +1044,7 @@ class Tseries:
             te = (
                 self.te.copy()
                 if self.te is not None
-                else other.te.copy()
-                if other.te is not None
-                else None
+                else other.te.copy() if other.te is not None else None
             )
 
         else:
@@ -1092,9 +1086,7 @@ class Tseries:
             te = (
                 self.te.copy()
                 if self.te is not None
-                else other.te.copy()
-                if other.te is not None
-                else None
+                else other.te.copy() if other.te is not None else None
             )
 
         else:
@@ -1160,7 +1152,9 @@ class Tseries:
         if self.te is not None:
             self.te /= np.abs(other)
 
-    def resample(self, bin_edges, weighted=True, bitmask=None, inplace=True):
+    def resample(
+        self, bin_edges, weighted=True, errors_from_rms=True, bitmask=None, inplace=True
+    ):
         """
         Resamples the Timeseries onto a uniform grid.
 
@@ -1171,6 +1165,11 @@ class Tseries:
 
         weighted : bool | True
             If true, points will be combined using a weighted mean.
+
+        errors_from_rms : bool | True
+            If True, the errors in each bin will be calculated from the RMS of the
+            points contributing to the bin. Otherwise, the measured errors on each
+            point will be used.
 
         bitmask : int | None
             Bitmask that selects elements to ignore before binning, in addition to
@@ -1248,25 +1247,39 @@ class Tseries:
                 # set exp time to bin range. Not quite right, since the
                 # mid time is the mean of all points, but what else can we do?
                 te.append(np.fabs(t_in[bin_mask].max() - t_in[bin_mask].min()))
-                # RMS for errors
+                # errorbars
                 if len(y_in[bin_mask]) == 1:
+                    # only only point in bin
                     ye.append(ye_in[bin_mask][0])
                 else:
-                    ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
+                    if errors_from_rms:
+                        # use RMS of points in bin
+                        ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
+                    else:
+                        # formula for error on weighted mean
+                        variance = 1 / np.sum(1 / ye_in[bin_mask] ** 2)
+                        ye.append(np.sqrt(variance))
                 # bitwise OR all mask entries
                 bmask.append(np.bitwise_or.reduce(bmask_in[bin_mask]))
+            # straight mean
             else:
-                weights = 1.0 / ye_in[bin_mask] ** 2
                 t.append(np.mean(t_in[bin_mask]))
                 y.append(np.mean(y_in[bin_mask]))
                 # set exp time to bin range. Not quite right, since the
                 # mid time is the mean of all points, but what else can we do?
                 te.append(np.fabs(t_in[bin_mask].max() - t_in[bin_mask].min()))
-                # RMS for errors
+                # errorbars
                 if len(y_in[bin_mask]) == 1:
+                    # only only point in bin
                     ye.append(ye_in[bin_mask][0])
                 else:
-                    ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
+                    if errors_from_rms:
+                        # use RMS of points in bin
+                        ye.append(np.std(y_in[bin_mask]) / np.sqrt(len(y_in[bin_mask])))
+                    else:
+                        # formula for error on weighted mean
+                        variance = 1 / np.sum(1 / ye_in[bin_mask] ** 2)
+                        ye.append(np.sqrt(variance))
                 # bitwise OR all mask entries
                 bmask.append(np.bitwise_or.reduce(bmask_in[bin_mask]))
 
