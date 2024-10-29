@@ -1,18 +1,17 @@
-import sys
 import os
+import sys
 
-import numpy as np
-from astropy.time import Time
-from astropy.io import fits
-from astropy import wcs
-from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
-
+import numpy as np
+from astropy import wcs
+from astropy.coordinates import Angle, SkyCoord
+from astropy.io import fits
+from astropy.time import Time
 from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
-from hipercam import spooler, defect, fringe
+from hipercam import defect, fringe, spooler
 
 __all__ = [
     "joinup",
@@ -229,7 +228,6 @@ def joinup(args=None):
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
@@ -261,7 +259,7 @@ def joinup(args=None):
         cl.register("odir", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
-        default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
+        default_source = os.environ.get("HIPERCAM_DEFAULT_SOURCE", "hl")
         source = cl.get_value(
             "source",
             "data source [hs, hl, us, ul, hf]",
@@ -294,34 +292,26 @@ def joinup(args=None):
 
         else:
             # file or file list
-            resource = cl.get_value(
-                "flist", "file name or file list",
-                "run005.hcm"
-            )
-            root,ext = os.path.splitext(resource)
-            if (ext == hcam.HCAM and os.path.exists(resource)) or \
-               (ext != hcam.LIST and \
-                os.path.exists(cline.add_extension(resource,hcam.HCAM))):
+            resource = cl.get_value("flist", "file name or file list", "run005.hcm")
+            root, ext = os.path.splitext(resource)
+            if (ext == hcam.HCAM and os.path.exists(resource)) or (
+                ext != hcam.LIST
+                and os.path.exists(cline.add_extension(resource, hcam.HCAM))
+            ):
                 # single file
                 resource = [resource]
                 ask_aper = True
 
             elif ext != hcam.LIST or not os.path.exists(resource):
                 raise hcam.HipercamError(
-                    f'Cannot interpret {resource} as either a single file or a list'
+                    f"Cannot interpret {resource} as either a single file or a list"
                 )
             first = 1
 
-        trim = cl.get_value(
-            "trim", "do you want to trim edges of windows?", True
-        )
+        trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
         if trim:
-            ncol = cl.get_value(
-                "ncol", "number of columns to trim from windows", 0
-            )
-            nrow = cl.get_value(
-                "nrow", "number of rows to trim from windows", 0
-            )
+            ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
+            nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
 
         # define the panel grid. first get the labels and maximum dimensions
         ccdinf = spooler.get_ccd_pars(source, resource)
@@ -334,9 +324,7 @@ def joinup(args=None):
                 ccds = ccd.split()
                 check = set(ccdinf.keys())
                 if not set(ccds) <= check:
-                    raise hcam.HipercamError(
-                        "At least one invalid CCD label supplied"
-                    )
+                    raise hcam.HipercamError("At least one invalid CCD label supplied")
 
         else:
             ccds = list(ccdinf.keys())
@@ -371,8 +359,10 @@ def joinup(args=None):
 
         # dark
         dark = cl.get_value(
-            "dark", "dark frame ['none' to ignore]",
-            cline.Fname("dark", hcam.HCAM), ignore="none"
+            "dark",
+            "dark frame ['none' to ignore]",
+            cline.Fname("dark", hcam.HCAM),
+            ignore="none",
         )
         if dark is not None:
             # read the dark frame
@@ -397,21 +387,15 @@ def joinup(args=None):
             # read the fringe map
             fmap = hcam.MCCD.read(fmap)
             fpair = cl.get_value(
-                "fpair", "fringe pair file",
-                cline.Fname("fpair", hcam.FRNG)
+                "fpair", "fringe pair file", cline.Fname("fpair", hcam.FRNG)
             )
             fpair = fringe.MccdFringePair.read(fpair)
 
             nhalf = cl.get_value(
-                "nhalf", "half-size of fringe measurement regions",
-                2, 0
+                "nhalf", "half-size of fringe measurement regions", 2, 0
             )
-            rmin = cl.get_value(
-                "rmin", "minimum fringe pair ratio", -0.2
-            )
-            rmax = cl.get_value(
-                "rmax", "maximum fringe pair ratio", 1.0
-            )
+            rmin = cl.get_value("rmin", "minimum fringe pair ratio", -0.2)
+            rmax = cl.get_value("rmax", "maximum fringe pair ratio", 1.0)
 
         msub = cl.get_value("msub", "subtract median from each window?", True)
 
@@ -419,44 +403,43 @@ def joinup(args=None):
             ndigit = cl.get_value(
                 "ndigit",
                 "number of digits to use for frame numbers in output names",
-                4, 1
+                4,
+                1,
             )
 
         dtype = cl.get_value(
             "dtype",
-            "output data type", 'float32',
-            lvals=['uint16','float32','float64']
+            "output data type",
+            "float32",
+            lvals=["uint16", "float32", "float64"],
         )
         dmax = cl.get_value(
-            "dmax",
-            "maximum allowable amount of data to write out [GB]", 10., 0.
+            "dmax", "maximum allowable amount of data to write out [GB]", 10.0, 0.0
         )
         nmax = cl.get_value(
-            "nmax",
-            "maximum allowable number of frames to write out", 10000, 0
+            "nmax", "maximum allowable number of frames to write out", 10000, 0
         )
-        cl.set_default('overwrite',False)
+        cl.set_default("overwrite", False)
         overwrite = cl.get_value(
-            "overwrite", "overwrite pre-existing files on output?",
-            False
+            "overwrite", "overwrite pre-existing files on output?", False
         )
         compress = cl.get_value(
             "compress",
-            "internal HDU compression to apply", 'none',
-            lvals=[
-                'none', 'rice', 'gzip1', 'gzip2'
-            ]
+            "internal HDU compression to apply",
+            "none",
+            lvals=["none", "rice", "gzip1", "gzip2"],
         )
         odir = cl.get_value(
             "odir",
-            "directory for the output files", '.',
+            "directory for the output files",
+            ".",
         )
 
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
 
-    ctrans = {'rice' : 'RICE_1', 'gzip1' : 'GZIP_1', 'gzip2' : 'GZIP_2'}
+    ctrans = {"rice": "RICE_1", "gzip1": "GZIP_1", "gzip2": "GZIP_2"}
 
     total_time = 0  # time waiting for new frame
 
@@ -469,11 +452,9 @@ def joinup(args=None):
     written_regions = set()
 
     with spooler.data_source(source, resource, first) as spool:
-
         # 'spool' is an iterable source of MCCDs
         nframe = first
         for mccd in spool:
-
             if server_or_local:
                 # Handle the waiting game ...
                 give_up, try_again, total_time = spooler.hang_about(
@@ -495,7 +476,7 @@ def joinup(args=None):
 
             # indicate progress
             tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
-            nf = mccd.head.get("NFRAME",nframe)
+            nf = mccd.head.get("NFRAME", nframe)
             tok = "ok" if mccd.head.get("GOODTIME", True) else "nok"
             print(f"{nf}, utc= {tstamp.iso} ({tok})")
 
@@ -505,7 +486,7 @@ def joinup(args=None):
                     bias = bias.crop(mccd)
                     bexpose = bias.head.get("EXPTIME", 0.0)
                 else:
-                    bexpose = 0.
+                    bexpose = 0.0
                 if dark is not None:
                     dark = dark.crop(mccd)
                 if flat is not None:
@@ -544,7 +525,7 @@ def joinup(args=None):
                             fscale = fpair[cnam].scale(
                                 ccd, fmap[cnam], nhalf, rmin, rmax
                             )
-                            ccd -= fscale*fmap[cnam]
+                            ccd -= fscale * fmap[cnam]
 
                     if msub:
                         # subtract median from each window
@@ -572,19 +553,21 @@ def joinup(args=None):
                             urymax = max(urymax, wind.ury)
                             if xbin != wind.xbin or ybin != wind.ybin:
                                 expand = True
-                            if (wind.llx - llx) % xbin != 0 or (wind.lly - lly) % ybin != 0:
+                            if (wind.llx - llx) % xbin != 0 or (
+                                wind.lly - lly
+                            ) % ybin != 0:
                                 expand = True
 
                     # create huge array of nothing
                     if expand:
                         # going to have to expand everything
-                        ny = urymax-llymin+1
-                        nx = urxmax-llxmin+1
+                        ny = urymax - llymin + 1
+                        nx = urxmax - llxmin + 1
                     else:
                         # using native binning
-                        ny = (urymax-llymin+1) // ybin
-                        nx = (urxmax-llxmin+1) // xbin
-                    data = np.zeros((ny,nx))
+                        ny = (urymax - llymin + 1) // ybin
+                        nx = (urxmax - llxmin + 1) // xbin
+                    data = np.zeros((ny, nx))
 
                     # fill it with data
                     for n, wind in enumerate(ccd.values()):
@@ -592,17 +575,22 @@ def joinup(args=None):
                             # this is the expansion stage
                             xstart = wind.llx - llxmin
                             ystart = wind.lly - llymin
-                            dexp = np.repeat(np.repeat(wind.data,xbin,1),ybin,0)
-                            data[ystart:ystart+wind.ny*ybin,xstart:xstart+wind.nx*xbin] = dexp
+                            dexp = np.repeat(np.repeat(wind.data, xbin, 1), ybin, 0)
+                            data[
+                                ystart : ystart + wind.ny * ybin,
+                                xstart : xstart + wind.nx * xbin,
+                            ] = dexp
                         else:
                             xstart = (wind.llx - llxmin) // xbin
                             ystart = (wind.lly - llymin) // ybin
-                            data[ystart:ystart+wind.ny,xstart:xstart+wind.nx] = wind.data
+                            data[
+                                ystart : ystart + wind.ny, xstart : xstart + wind.nx
+                            ] = wind.data
 
-                    if dtype == 'uint16' and (data.min() < 0 or data.max() > 65535):
+                    if dtype == "uint16" and (data.min() < 0 or data.max() > 65535):
                         raise hcam.HipercamError(
-                            f'CCD {cnam}, frame {nf}, data range '
-                            f'{data.min()} to {data.max()}, is incompatible with uint16'
+                            f"CCD {cnam}, frame {nf}, data range "
+                            f"{data.min()} to {data.max()}, is incompatible with uint16"
                         )
 
                     # Header
@@ -611,36 +599,44 @@ def joinup(args=None):
                     # Add some extra stuff
                     phead["CCDLABEL"] = (cnam, "CCD label")
                     phead["NFRAME"] = (nf, "Frame number")
-                    phead["LLX"] = (llxmin, "X of lower-left unbinned pixel (starts at 1)")
-                    phead["LLY"] = (llymin, "Y of lower-left unbinned pixel (starts at 1)")
+                    phead["LLX"] = (
+                        llxmin,
+                        "X of lower-left unbinned pixel (starts at 1)",
+                    )
+                    phead["LLY"] = (
+                        llymin,
+                        "Y of lower-left unbinned pixel (starts at 1)",
+                    )
                     phead["NXTOT"] = (ccd.nxtot, "Total unbinned X dimension")
                     phead["NYTOT"] = (ccd.nytot, "Total unbinned Y dimension")
                     phead.add_comment('Written by HiPERCAM script "joinup"')
 
-                    if dtype == 'uint16':
+                    if dtype == "uint16":
                         data = data.astype(np.uint16)
-                        dtotal += 2*nx*ny/GB
-                    elif dtype == 'float32':
+                        dtotal += 2 * nx * ny / GB
+                    elif dtype == "float32":
                         data = data.astype(np.float32)
-                        dtotal += 4*nx*ny/GB
-                    elif dtype == 'float64':
+                        dtotal += 4 * nx * ny / GB
+                    elif dtype == "float64":
                         data = data.astype(np.float64)
-                        dtotal += 8*nx*ny/GB
+                        dtotal += 8 * nx * ny / GB
 
                     if dtotal >= dmax:
-                        print(f'Reached maximum allowable amount of data = {dmax} GB; stopping.')
-                        print(f'Written {nfile} FITS files to disk.')
+                        print(
+                            f"Reached maximum allowable amount of data = {dmax} GB; stopping."
+                        )
+                        print(f"Written {nfile} FITS files to disk.")
                         return
 
                     if nfile >= nmax:
                         print(
-                            f'Reached maximum allowable number of frames = {nmax}; stopping.'
+                            f"Reached maximum allowable number of frames = {nmax}; stopping."
                         )
-                        print(f'Written {nfile} FITS files to disk.')
+                        print(f"Written {nfile} FITS files to disk.")
                         return
 
                     # Make header
-                    header=fits.Header(phead.cards)
+                    header = fits.Header(phead.cards)
 
                     # Now a set of parameters to facilitate ds9 display
                     if expand:
@@ -648,17 +644,20 @@ def joinup(args=None):
                     else:
                         header["CCDSUM"] = "{:d} {:d}".format(xbin, ybin)
 
-
                     # sections
                     header["CCDSEC"] = f"[1:{nx},1:{ny}]"
                     header["AMPSEC"] = f"[1:{nx},1:{ny}]"
                     if expand:
-                        header["DATASEC"] = f"[{llxmin}:{llxmin+nx-1},{llymin}:{llymin+ny-1}]"
+                        header["DATASEC"] = (
+                            f"[{llxmin}:{llxmin+nx-1},{llymin}:{llymin+ny-1}]"
+                        )
                     else:
-                        header["DATASEC"] = f"[{llxmin}:{llxmin+xbin*nx-1},{llymin}:{llymin+ybin*ny-1}]"
-                    #header["DETSEC"] = "[{:d}:{:d},{:d}:{:d}]".format(
+                        header["DATASEC"] = (
+                            f"[{llxmin}:{llxmin+xbin*nx-1},{llymin}:{llymin+ybin*ny-1}]"
+                        )
+                    # header["DETSEC"] = "[{:d}:{:d},{:d}:{:d}]".format(
                     #    xoff + self.llx, xoff + self.urx, yoff + self.lly, yoff + self.ury
-                    #)
+                    # )
 
                     # transforms
 
@@ -681,50 +680,60 @@ def joinup(args=None):
                         header["LTV2"] = 1 - (llymin + (ybin - 1) / 2) / ybin
 
                     # attempt to generate a WCS
-                    instrume = header.get('INSTRUME','UNKNOWN')
-                    if instrume == 'HIPERCAM' and 'RADEG' in header and \
-                       'DECDEG' in header and 'INSTRPA' in header:
-
-                        ZEROPOINT = 69.3 # rotator zeropoint
-                        SCALE = 0.081 # pixel scale, "/unbinned pixel
+                    instrume = header.get("INSTRUME", "UNKNOWN")
+                    if (
+                        instrume == "HIPERCAM"
+                        and "RADEG" in header
+                        and "DECDEG" in header
+                        and "INSTRPA" in header
+                    ):
+                        ZEROPOINT = 209.7  # rotator zeropoint
+                        SCALE = 0.081  # pixel scale, "/unbinned pixel
 
                         # ra, dec in degrees at rotator centre
-                        ra = header['RADEG']
-                        dec = header['DECDEG']
+                        ra = header["RADEG"]
+                        dec = header["DECDEG"]
 
                         # position angle, degrees
-                        pa = header['INSTRPA'] - ZEROPOINT
+                        pa = header["INSTRPA"] - ZEROPOINT
 
                         # position within binned array of rotator centre
                         if expand:
-                            x0, y0 = 1020.-llxmin+1, 524.-llymin+1
+                            x0, y0 = 1020.0 - llxmin + 1, 524.0 - llymin + 1
                         else:
-                            x0, y0 = (1020.-llxmin+1)/xbin, (524.-llymin+1)/ybin
+                            x0, y0 = (
+                                (1020.0 - llxmin + 1) / xbin,
+                                (524.0 - llymin + 1) / ybin,
+                            )
 
                         # Build the WCS
                         w = wcs.WCS(naxis=2)
                         w.wcs.crpix = [x0, y0]
-                        w.wcs.crval = [ra,dec]
+                        w.wcs.crval = [ra, dec]
                         cpa = np.cos(np.radians(pa))
                         spa = np.sin(np.radians(pa))
                         if expand:
-                            cd = np.array([[cpa,-spa],[spa,cpa]])
-                            cd = np.array([[cpa,spa],[-spa,cpa]])
+                            cd = np.array([[cpa, -spa], [spa, cpa]])
+                            cd = np.array([[cpa, spa], [-spa, cpa]])
                         else:
-                            cd = np.array([[xbin*cpa,-ybin*spa],[xbin*spa,ybin*cpa]])
-                            cd = np.array([[xbin*cpa,ybin*spa],[-xbin*spa,ybin*cpa]])
-                        cd *= SCALE/3600
+                            cd = np.array(
+                                [[xbin * cpa, -ybin * spa], [xbin * spa, ybin * cpa]]
+                            )
+                            cd = np.array(
+                                [[xbin * cpa, ybin * spa], [-xbin * spa, ybin * cpa]]
+                            )
+                        cd *= SCALE / 3600
                         w.wcs.cd = cd
-                        w.wcs.ctype = ['RA---TAN','DEC--TAN']
+                        w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
                         w.wcs.cunit = ["deg", "deg"]
                         header.update(w.to_header())
-                        print(f'   CCD {cnam}: added WCS')
+                        print(f"   CCD {cnam}: added WCS")
                     else:
-                        print(f'   CCD {cnam}: missing positional data; no WCS added')
+                        print(f"   CCD {cnam}: missing positional data; no WCS added")
 
                     # make the first & only HDU
                     hdul = fits.HDUList()
-                    if compress == 'none':
+                    if compress == "none":
                         hdul.append(fits.PrimaryHDU(data, header=header))
                     else:
                         hdul.append(fits.PrimaryHDU(header=header))
@@ -734,21 +743,25 @@ def joinup(args=None):
                         hdul.append(compressed_hdu)
 
                     if server_or_local:
-                        oname = \
-                            f'{os.path.basename(resource)}' + \
-                            f'_ccd{cnam}_{nf:0{ndigit}d}.fits'
+                        oname = (
+                            f"{os.path.basename(resource)}"
+                            + f"_ccd{cnam}_{nf:0{ndigit}d}.fits"
+                        )
                     else:
                         root = os.path.basename(
-                            os.path.splitext(mccd.head['FILENAME'])[0]
+                            os.path.splitext(mccd.head["FILENAME"])[0]
                         )
-                        oname = f'{root}_ccd{cnam}.fits'
+                        oname = f"{root}_ccd{cnam}.fits"
                     oname = os.path.join(odir, oname)
                     hdul.writeto(oname, overwrite=overwrite)
-                    print(f'   CCD {cnam}: written {oname}')
+                    print(f"   CCD {cnam}: written {oname}")
                     nfile += 1
 
-                    if aper is not None and cnam in aper and cnam not in written_regions:
-
+                    if (
+                        aper is not None
+                        and cnam in aper
+                        and cnam not in written_regions
+                    ):
                         # ds9 region files. written once only
 
                         if server_or_local:
@@ -756,11 +769,11 @@ def joinup(args=None):
                         else:
                             abase = os.path.basename(resource[0])
                         abase = os.path.join(odir, abase)
-                        oname = f'{abase}_ccd{cnam}.reg'
+                        oname = f"{abase}_ccd{cnam}.reg"
 
                         caper = aper[cnam]
 
-                        with open(oname,'w') as fp:
+                        with open(oname, "w") as fp:
                             fp.write(DS9_REG_HEADER)
                             for apnam, ap in caper.items():
                                 if expand:
@@ -768,17 +781,17 @@ def joinup(args=None):
                                     y = ap.y - llymin + 1
                                     rad = ap.rsky2
                                 else:
-                                    x = (ap.x - (llxmin + (xbin-1)/2)) / xbin + 1
-                                    y = (ap.y - (llymin + (ybin-1)/2)) / ybin + 1
-                                    rad = ap.rsky2/xbin
+                                    x = (ap.x - (llxmin + (xbin - 1) / 2)) / xbin + 1
+                                    y = (ap.y - (llymin + (ybin - 1) / 2)) / ybin + 1
+                                    rad = ap.rsky2 / xbin
 
-                                fp.write(f'circle({x},{y},{rad})\n')
-                                fp.write(f'# text({x-rad},{y-rad}) text={{{apnam}}}\n')
+                                fp.write(f"circle({x},{y},{rad})\n")
+                                fp.write(f"# text({x-rad},{y-rad}) text={{{apnam}}}\n")
 
-                        print(f'   CCD {cnam}: written ds9 region file {oname}')
+                        print(f"   CCD {cnam}: written ds9 region file {oname}")
 
                     elif cnam not in written_regions:
-                        print(f'   CCD {cnam}: no ds9 region file')
+                        print(f"   CCD {cnam}: no ds9 region file")
 
                     # record CCD = cnam as done as far as region files are concerned
                     written_regions.add(cnam)
@@ -788,7 +801,8 @@ def joinup(args=None):
             if server_or_local and last and nframe > last:
                 break
 
-    print(f'Written {nfile} FITS files to disk.')
+    print(f"Written {nfile} FITS files to disk.")
+
 
 DS9_REG_HEADER = """
 # Region file format: DS9 version 4.1
