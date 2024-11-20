@@ -8,8 +8,50 @@ hipercam pipeline can also be used to reduce data from the ULTRACAM
 and ULTRASPEC high-speed cameras, and other instruments too
 after a little data format wrangling.
 
-Installation
-============
+Docker Installation
+===================
+
+The easiest way to install hipercam is to create a Docker image. This
+is simple and cross-platform, but the image is large (around 2.5GB). To 
+install via this route, please download the 
+`dockerfile <https://github.com/HiPERCAM/hipercam/data/hipercam.dockerfile>`_
+
++++++
+Linux
++++++
+
+To build the docker image from the docker file, run::
+
+  docker build -t hipercam:latest -f hipercam.dockerfile .
+
+And, to run the image, use::
+
+  docker run -it --rm -v <local-path-to-some-data>:/home/hiperuser/data hipercam:latest
+
+This will mount `<local-path-to-some-data>` in the virtual machine at
+`/home/hiperuser/data`. You can then run the pipeline as normal.
+
++++++
+MacOS
++++++
+
+Installation in MacOS is a little more complicated. The instructions below assume you have a modern
+MacOS/Apple Silicon system with Docker Desktop installed. 
+
+To build the docker image from the docker file, run::
+
+  docker build -t hipercam:latest --platform linux/amd64 -f hipercam.dockerfile .
+
+And, to run the image, use::
+       
+  xhost +
+  docker run -it -e DISPLAY=host.docker.internal:0 --rm -v <local-path-to-some-data>:/home/hiperuser/data hipercam:latest
+
+This will mount `<local-path-to-some-data>` in the virtual machine at
+`/home/hiperuser/data`. You can then run the pipeline as normal.
+
+Manual Installation
+===================
 
 hipercam is written in Python3; it does not support Python2.x It
 relies on multiple third-party packages, as described in the next
