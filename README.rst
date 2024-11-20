@@ -12,7 +12,7 @@ Docker Installation
 ===================
 
 The easiest way to install hipercam is to create a Docker image. This
-is simple and cross-platform, but the image is large (around 2.5GB). To 
+is simple and cross-platform, but the image is large (around 2.8GB). To 
 install via this route, please download the 
 `dockerfile <https://github.com/HiPERCAM/hipercam/raw/docker/data/hipercam.dockerfile>`_
 
@@ -35,7 +35,7 @@ This will mount `<local-path-to-some-data>` in the virtual machine at
 MacOS
 +++++
 
-Installation in MacOS is a little more complicated. The instructions below assume you have a modern
+Installation on Apple Silicon Macs is a little more complicated. The instructions below assume you have a modern
 MacOS/Apple Silicon system with Docker Desktop installed. 
 
 To build the docker image from the docker file, run::
@@ -45,7 +45,7 @@ To build the docker image from the docker file, run::
 And, to run the image, use::
        
   xhost +
-  docker run -it -e DISPLAY=host.docker.internal:0 --rm -v <local-path-to-some-data>:/home/hiperuser/data hipercam:latest
+  docker run -it -e DISPLAY=host.docker.internal:0 --platform linux/amd64 --rm -v <local-path-to-some-data>:/home/hiperuser/data hipercam:latest
 
 This will mount `<local-path-to-some-data>` in the virtual machine at
 `/home/hiperuser/data`. You can then run the pipeline as normal.

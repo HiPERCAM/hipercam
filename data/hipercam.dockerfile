@@ -13,7 +13,10 @@ RUN ln -s /usr/include/cpgplot.h /usr/lib/
 
 # Upgrade pip and install some basic dependencies
 RUN pip install --upgrade pip
-RUN pip install numpy Cython ipython
+RUN pip install Cython ipython
+# pin numpy to <2.0 because of issues with sep 
+RUN pip install numpy==1.26.0 
+
 # Installing PyQt5 
 RUN pip install PyQt5
 ENV MPLBACKEND=Qt5Agg
