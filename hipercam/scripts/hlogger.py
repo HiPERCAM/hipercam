@@ -1,23 +1,29 @@
+import argparse
+import datetime
+import json
+import os
+import re
+import shutil
+import sqlite3
 import sys
 import traceback
-import os
-import shutil
-import re
 import warnings
-import argparse
-import sqlite3
-import json
-import datetime
 
+import astropy.units as u
 import numpy as np
 import pandas as pd
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord, get_body
 from astropy.time import Time, TimeDelta, TimeISO
-from astropy.coordinates import get_sun, get_moon, EarthLocation, SkyCoord, AltAz
-import astropy.units as u
 
 import hipercam as hcam
-from hipercam.utils import format_hlogger_table, target_lookup, dec2sexg, str2radec, \
-    LOG_CSS, LOG_MONTHS
+from hipercam.utils import (
+    LOG_CSS,
+    LOG_MONTHS,
+    dec2sexg,
+    format_hlogger_table,
+    str2radec,
+    target_lookup,
+)
 
 __all__ = [
     "hlogger",
@@ -1845,8 +1851,8 @@ def make_positions(
 
                 # Scale Sun-Moon angle at mid time (0 = New Moon, 1 =
                 # Full)
-                sun_mid = get_sun(tmid)
-                moon_mid = get_moon(tmid)
+                sun_mid = get_body('sun', tmid)
+                moon_mid = get_body('moon', tmid)
                 sun_moon = sun_mid.separation(moon_mid).degree / 180
 
                 if ra != 'UNDEF' and dec != 'UNDEF':
@@ -1905,13 +1911,13 @@ def make_positions(
 
                 # Now some data on the altitude of the Sun & Moon
                 frame = AltAz(obstime=tstart, location=observatory)
-                sun_start = get_sun(tstart).transform_to(frame)
-                moon_start = get_moon(tstart).transform_to(frame)
+                sun_start = get_body('sun', tstart).transform_to(frame)
+                moon_start = get_body('moon', tstart).transform_to(frame)
 
                 # end
                 frame = AltAz(obstime=tend, location=observatory)
-                sun_end = get_sun(tend).transform_to(frame)
-                moon_end = get_moon(tend).transform_to(frame)
+                sun_end = get_body('sun', tend).transform_to(frame)
+                moon_end = get_body('moon', tend).transform_to(frame)
 
                 arr += [
                     round(sun_start.alt.degree,1), round(sun_end.alt.degree,1),
