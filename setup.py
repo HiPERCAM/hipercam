@@ -3,8 +3,6 @@ hipercam setup file
 """
 
 import os
-from setuptools import setup, find_packages
-from setuptools.extension import Extension
 
 # To use a consistent encoding
 from codecs import open
@@ -12,6 +10,8 @@ from codecs import open
 # need for Cython
 import numpy as np
 from Cython.Build import cythonize
+from setuptools import find_packages, setup
+from setuptools.extension import Extension
 
 # read the README file for the long description
 with open("README.rst") as f:
@@ -185,6 +185,7 @@ setup(
             "setaper=hipercam.scripts.setaper:setaper",
             "setdefect=hipercam.scripts.setdefect:setdefect",
             "setfringe=hipercam.scripts.setfringe:setfringe",
+            "shiftadd=hipercam.scripts.shiftadd:shiftadd",
             "splice=hipercam.scripts.splice:splice",
             "stats=hipercam.scripts.stats:stats",
             "sub=hipercam.scripts.arith:sub",
