@@ -326,7 +326,9 @@ def shiftadd(args=None):
                     4,
                     0.0,
                 )
-
+        else:
+            raise ValueError("exact reproject method not yet implemented")
+        
         trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
         if trim:
             ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
