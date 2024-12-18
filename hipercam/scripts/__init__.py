@@ -5,8 +5,8 @@ inclusion in the documentation and for portability
 """
 
 from .arith import add, div, mul, sub
-from .atbytes import atbytes
 from .atanalysis import atanalysis
+from .atbytes import atbytes
 from .averun import averun
 from .calsearch import calsearch
 from .carith import cadd, cdiv, cmul, csub
@@ -16,48 +16,49 @@ from .filtid import filtid
 from .fits2hcm import fits2hcm
 from .flagcloud import flagcloud
 from .ftargets import ftargets
-from .grab import grab
 from .genred import genred
+from .grab import grab
 from .harchive import harchive
-from .hist import hist
-from .hinfo import hinfo
 from .hfilter import hfilter
-from .hlogger import hlogger
-from .hlog2fits import hlog2fits
+from .hinfo import hinfo
+from .hist import hist
 from .hlog2col import hlog2col
+from .hlog2fits import hlog2fits
+from .hlogger import hlogger
 from .hls import hls
 from .hmeta import hmeta
 from .hpackage import hpackage
 from .hplot import hplot
 from .joinup import joinup
 from .jtrawl import jtrawl
-from .ltimes import ltimes
 from .logsearch import logsearch
+from .ltimes import ltimes
 from .ltrans import ltrans
 from .makebias import makebias
 from .makedark import makedark
 from .makeflat import makeflat
 from .makefringe import makefringe
 from .makemovie import makemovie
-from .makestuff import makemccd, makefield
+from .makestuff import makefield, makemccd
 from .mstats import mstats
 from .ncal import ncal
+from .nrtplot import nrtplot
 from .pbands import pbands
 from .pfolder import pfolder
 from .plog import plog
+from .redanal import redanal
 from .redplt import redplt
 from .reduce import reduce
 from .rtplot import rtplot
-from .nrtplot import nrtplot
 from .rupdate import rupdate
 from .setaper import setaper
 from .setdefect import setdefect
 from .setfringe import setfringe
-from .stats import stats
-from .redanal import redanal
+from .shiftadd import shiftadd
 from .splice import splice
-from .tbytes import tbytes
+from .stats import stats
 from .tanalysis import tanalysis
+from .tbytes import tbytes
 from .uls import uls
 
 __all__ = [
@@ -103,6 +104,7 @@ __all__ = [
     "setaper",
     "setdefect",
     "setfringe",
+    "shiftadd",
     "splice",
     "stats",
     "sub",
