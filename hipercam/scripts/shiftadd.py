@@ -1,6 +1,7 @@
 import copy
 import os
 import signal
+import sys
 
 import numpy as np
 from astropy.stats import sigma_clip
@@ -13,6 +14,7 @@ import hipercam as hcam
 
 try:
     import bottleneck as bn
+
     meanfunc = bn.nanmean
     medianfunc = bn.nanmedian
 except ImportError:
@@ -22,6 +24,7 @@ except ImportError:
 __all__ = [
     "shiftadd",
 ]
+
 
 class CleanUp:
     """
@@ -55,6 +58,59 @@ def new_wcs(wbase, dx, dy):
     wnew = copy.deepcopy(wbase)
     wnew.wcs.crpix = [-dx, -dy]
     return wnew
+
+
+def wcs_from_header(mccd):
+    """
+    Try and make a WCS obect from the header of an MCCD
+
+    If this routine fails it will return a non-celestial WCS
+    that still allows stacking of images, but not using the
+    exact reprojection method.
+    """
+    header = mccd.head
+
+    # find pixel limits of all windows
+    for cnam, ccd in mccd.items():
+        for n, wind in enumerate(ccd.values()):
+            if n == 0:
+                llxmin = wind.llx
+                llymin = wind.lly
+                urxmax = wind.urx
+                urymax = wind.ury
+                xbin = wind.xbin
+                ybin = wind.ybin
+            else:
+                # Track overall dimensions
+                llxmin = min(llxmin, wind.llx)
+                llymin = min(llymin, wind.lly)
+                urxmax = max(urxmax, wind.urx)
+                urymax = max(urymax, wind.ury)
+
+    ZEROPOINT = 209.7  # rotator zeropoint
+    SCALE = 0.081  # pixel scale, "/unbinned pixel
+
+    # ra, dec in degrees at rotator centre
+    ra = header["RADEG"]
+    dec = header["DECDEG"]
+
+    # position angle, degrees
+    pa = header["INSTRPA"] - ZEROPOINT
+    x0, y0 = (
+        (1020.0 - llxmin + 1) / xbin,
+        (524.0 - llymin + 1) / ybin,
+    )
+    w = wcs.WCS(naxis=2)
+    w.wcs.crpix = [x0, y0]
+    w.wcs.crval = [ra, dec]
+    cpa = np.cos(np.radians(pa))
+    spa = np.sin(np.radians(pa))
+    cd = np.array([[xbin * cpa, ybin * spa], [-xbin * spa, ybin * cpa]])
+    cd *= SCALE / 3600
+    w.wcs.cd = cd
+    w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    w.wcs.cunit = ["deg", "deg"]
+    return w
 
 
 def shiftadd(args=None):
@@ -122,29 +178,29 @@ def shiftadd(args=None):
             conserve flux when reprojecting. True is the default.
 
         reprkernel : str [if reprmethod is 'adaptive'; hidden]
-            The averaging kernel to use. Allowed values are 'Hann' and 'Gaussian'. 
-            The Gaussian kernel produces better photometric accuracy and stronger 
-            anti-aliasing at the cost of some blurring (on the scale of a few 
+            The averaging kernel to use. Allowed values are 'Hann' and 'Gaussian'.
+            The Gaussian kernel produces better photometric accuracy and stronger
+            anti-aliasing at the cost of some blurring (on the scale of a few
             pixels). If not specified, the Gaussain kernel is used by default.
 
         kwidth : float [if reprmethod is 'adaptive'; hidden]
             The width of the kernel in pixels, expressed as the standard
             deviation of the Gaussian kernel. Is not used for the Hann kernel.
-            Reducing this width may introduce photometric errors or leave input 
-            pixels under-sampled, while increasing it may improve the degree of 
-            anti-aliasing but will increase blurring of the output image. 
-            If this width is changed from the default, a proportional change 
-            should be made to the value of regwidth to maintain an 
+            Reducing this width may introduce photometric errors or leave input
+            pixels under-sampled, while increasing it may improve the degree of
+            anti-aliasing but will increase blurring of the output image.
+            If this width is changed from the default, a proportional change
+            should be made to the value of regwidth to maintain an
             equivalent degree of photometric accuracy. Default is 1.3.
 
         regwidth : float [if reprmethod is 'adaptive'; hidden]
-            The width in pixels of the output-image region which, when 
-            transformed to the input plane, defines the region to be sampled 
-            for each output pixel.  Used only for the Gaussian kernel, which 
-            otherwise has infinite extent. This value sets a trade-off between 
-            accuracy and computation time, with better accuracy at higher values. 
-            The default value of 4, with the default kernel width, 
-            should limit the most extreme errors to less than one percent. 
+            The width in pixels of the output-image region which, when
+            transformed to the input plane, defines the region to be sampled
+            for each output pixel.  Used only for the Gaussian kernel, which
+            otherwise has infinite extent. This value sets a trade-off between
+            accuracy and computation time, with better accuracy at higher values.
+            The default value of 4, with the default kernel width,
+            should limit the most extreme errors to less than one percent.
             Higher values will offer even more photometric accuracy.
 
         twait : float [if source ends 's' or 'l'; hidden]
@@ -211,6 +267,9 @@ def shiftadd(args=None):
 
         overwrite : bool [hidden]
            overwrite any pre-existing output files
+
+        output  : string
+           output file
     """
     command, args = cline.script_args(args)
     # get the inputs
@@ -230,7 +289,7 @@ def shiftadd(args=None):
         cl.register("reprkernel", Cline.LOCAL, Cline.HIDE)
         cl.register("kwidth", Cline.LOCAL, Cline.HIDE)
         cl.register("regwidth", Cline.LOCAL, Cline.HIDE)
-        
+
         cl.register("twait", Cline.LOCAL, Cline.HIDE)
         cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
@@ -249,6 +308,7 @@ def shiftadd(args=None):
         cl.register("sigma", Cline.LOCAL, Cline.HIDE)
         cl.register("maxiters", Cline.LOCAL, Cline.HIDE)
         cl.register("overwrite", Cline.LOCAL, Cline.HIDE)
+        cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
         default_source = os.environ.get("HIPERCAM_DEFAULT_SOURCE", "hl")
@@ -287,7 +347,9 @@ def shiftadd(args=None):
         REF_CCD = cl.get_value("refccd", "reference CCD to use to measure offsets", "3")
 
         fthresh = cl.get_value(
-            "fthresh", "maximum FWHM to allow, -ve to accept all", -1.0,
+            "fthresh",
+            "maximum FWHM to allow, -ve to accept all",
+            -1.0,
         )
 
         reprmethod = cl.get_value(
@@ -304,9 +366,7 @@ def shiftadd(args=None):
                 0,
             )
         elif reprmethod == "adaptive":
-            consflux = cl.get_value(
-                "consflux", "conserve flux when reprojecting", True
-            )
+            consflux = cl.get_value("consflux", "conserve flux when reprojecting", True)
             reprkernel = cl.get_value(
                 "reprkernel",
                 "The averaging kernel to use",
@@ -326,9 +386,7 @@ def shiftadd(args=None):
                     4,
                     0.0,
                 )
-        else:
-            raise ValueError("exact reproject method not yet implemented")
-        
+
         trim = cl.get_value("trim", "do you want to trim edges of windows?", True)
         if trim:
             ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
@@ -383,10 +441,21 @@ def shiftadd(args=None):
 
         if method == "c":
             sigma = cl.get_value("sigma", "number of RMS deviations to clip", 3.0)
-            maxiters = cl.get_value("maxiters", "maximum number of clipping iterations", 3)
+            maxiters = cl.get_value(
+                "maxiters", "maximum number of clipping iterations", 3
+            )
 
         overwrite = cl.get_value(
             "overwrite", "overwrite any pre-existing files on output", False
+        )
+        outfile = cl.get_value(
+            "output",
+            "output file",
+            cline.Fname(
+                "hcam",
+                hcam.HCAM,
+                cline.Fname.NEW if overwrite else cline.Fname.NOCLOBBER,
+            ),
         )
 
     # inputs done with. Now do the work with 'grab' and 'combine'
@@ -435,7 +504,7 @@ def shiftadd(args=None):
         print("calculating pixel shifts")
         for iframe, fname in enumerate(files):
             fname = str(fname.strip())
-            print("Fitting apertures to frame", iframe+1)
+            print("Fitting apertures to frame", iframe + 1)
             mccd = hcam.MCCD.read(fname)
 
             if read is None:
@@ -463,7 +532,7 @@ def shiftadd(args=None):
                             break
                         else:
                             ccdwin[cnam][apnam] = None
-                               
+
             hcam.reduction.moveApers(
                 cnam,
                 mccd[cnam],
@@ -474,7 +543,7 @@ def shiftadd(args=None):
                 rfile,
                 store[cnam],
             )
-            
+
             # store the mean FWHM
             fwhm_values.append(store[cnam]["mfwhm"])
 
@@ -499,34 +568,47 @@ def shiftadd(args=None):
 
         # offsets are now defined w.r.t to the positions in the
         # aperture file for first image, and then w.r.t to
-        # previous file for subsequent images. For each CCD, 
+        # previous file for subsequent images. For each CCD,
         # we should center the offsets on 0,0. This minimises the
         # risks of having unsampled pixels in the full frame data
         offsets = np.array(offsets)
         offsets -= offsets.mean(axis=0)
 
         output_mccd = hcam.MCCD.read(str(files[0].strip()))
-        cnames = set(sorted(output_mccd.keys()))
+        cnames = sorted(list(output_mccd.keys()))
+
         for cnam in cnames:
             print(f"stacking CCD {cnam}")
 
-            # start with basic WCS, CRDELT1, no offsets
-            orig_wcs = wcs.WCS(naxis=2)
+            try:
+                # make real celestial WCS from header
+                orig_wcs = wcs_from_header(output_mccd)
+            except:
+                # fallback to basic WCS which can be used
+                # for any method except 'exact'
+                # start with basic WCS, CRDELT1, no offsets
+                orig_wcs = wcs.WCS(naxis=2)
 
             arrs = []
+            nframes_used = 0
+            header_string = "nframes="
             for ifile, fname in enumerate(files):
                 fname = str(fname.strip())
-                print("resampling frame", ifile+1)
                 mccd = hcam.MCCD.read(fname)
                 ccd = mccd[cnam]
                 if not ccd.is_data():
                     continue
 
                 # skip if FWHM is above threshold
-                if fthresh >0 and fwhm_values[ifile] > fthresh:
-                    print(f"skipping frame {ifile+1} (FWHM too large ({fwhm_values[ifile]:.1f} > {fthresh:.1f}))")
+                if fthresh > 0 and fwhm_values[ifile] > fthresh:
+                    print(
+                        f"skipping frame {ifile+1} (FWHM too large ({fwhm_values[ifile]:.1f} > {fthresh:.1f}))"
+                    )
                     continue
-                
+
+                print("resampling frame", ifile + 1)
+                nframes_used += 1
+
                 # find offset from previous frame
                 cumulative_offset_x, cumulative_offset_y = offsets[ifile]
 
@@ -583,40 +665,36 @@ def shiftadd(args=None):
                     arrs.append(reprojected_data)
 
             # average over the stack
-            nframes = len(arrs)
-            print(f"combining {nframes} frames for CCD {cnam}")
+            print(f"combining {nframes_used} frames for CCD {cnam}")
+            header_string += f",CCD{cnam}({nframes_used:d})"
             arr3d = np.stack(arrs)
+
+            # set exposure time in header
+            output_mccd[cnam].head["EXPTIME"] *= nframes_used
 
             if method == "m":
                 stack = medianfunc(arr3d, axis=0)
-                output_mccd[cnam].head.add_history(
-                    f"Median of {nframes:d} images"
-                )
             elif method == "c" and sigma > 0:
                 # clipped mean
                 mask = sigma_clip(
-                    arr3d, 
+                    arr3d,
                     sigma_lower=sigma,
-                    sigma_upper=sigma, 
-                    axis=0, 
-                    copy=False, 
-                    maxiters=maxiters, 
-                    cenfunc='mean', 
-                    stdfunc='std',
-                    masked=True
+                    sigma_upper=sigma,
+                    axis=0,
+                    copy=False,
+                    maxiters=maxiters,
+                    cenfunc="mean",
+                    stdfunc="std",
+                    masked=True,
                 )
                 # fill masked with nans
-                nmasked = mask.mask.sum()
                 arr3d[mask.mask] = np.nan
                 stack = meanfunc(arr3d, axis=0)
-                output_mccd[cnam].head.add_history(
-                    f"Clipped mean ({sigma:.1f} sigma) of {nframes:d} images, {nmasked:d} pixels clipped"
-                )
             else:
                 # simple mean
                 stack = meanfunc(arr3d, axis=0)
-            
-            # resample the FF image back into the individual windows 
+
+            # resample the FF image back into the individual windows
             # of the CCD.
             for wnam, wind in output_mccd[cnam].items():
                 xstart = (wind.llx - 1) // wind.xbin
@@ -625,6 +703,13 @@ def shiftadd(args=None):
                 yend = ystart + wind.ny
                 crop = stack[ystart:yend, xstart:xend]
                 output_mccd[cnam][wnam].data = crop
-        
+
         # TODO: setting reproject options
-        output_mccd.write("stack.hcm", overwrite=overwrite)
+        if method == "m":
+            output_mccd.head.add_history("Median stack: " + header_string)
+        else:
+            output_mccd.head.add_history(
+                f"Clipped mean stack ({sigma:.1f} sigma): " + header_string
+            )
+        output_mccd.write(outfile, overwrite=overwrite)
+        print(f"Written {outfile}")
