@@ -9,33 +9,32 @@ main work of the code is in disentangling them to produce :class:MCCD objects.
 
 """
 
-import os
-import sys
-import struct
-import warnings
 import json
-import websocket
-
-import numpy as np
-from numpy.lib.stride_tricks import as_strided
-from astropy.io import fits
-from astropy.time import Time, TimeDelta
+import os
+import struct
+import sys
+import warnings
 
 # temporary
 import matplotlib.pyplot as plt
+import numpy as np
+import websocket
+from astropy.io import fits
+from astropy.time import Time, TimeDelta
+from numpy.lib.stride_tricks import as_strided
 
 from hipercam import (
     CCD,
-    Group,
+    HRAW,
     MCCD,
+    Group,
+    Header,
+    HipercamError,
     Window,
     Winhead,
-    HRAW,
-    HipercamError,
-    Header,
+    fday_to_hms,
     gregorian_to_mjd,
     mjd_to_gregorian,
-    fday_to_hms,
 )
 from hipercam.utils import add_extension
 
@@ -626,7 +625,6 @@ class Rhead:
 
             # Nice-if-you-can-get-them items
             if self.full:
-
                 # whether this CCD has gone through a reflection
                 hnam = "ESO DET REFLECT{:d}".format(n + 1)
                 if hnam in hd:
@@ -655,9 +653,8 @@ class Rhead:
             self._ws.send(data)
             raw_bytes = self._ws.recv()
             if len(raw_bytes) == 0:
-                raise hcam.HipercamError(
-                    "failed to get total number of frames"
-                    " from server; 0 bytes returned"
+                raise HipercamError(
+                    "failed to get total number of frames from server; 0 bytes returned"
                 )
             d = eval(raw_bytes)
             ntot = d["nframes"]
@@ -818,7 +815,8 @@ class Rdata(Rhead):
         self.first = True
 
         if server:
-            self.nframe = nframe
+            # get the specified frame, or - if last is True - the frame after the current last
+            self.nframe = nframe if not self.last else self.ntotal() + 1
         else:
             # local file: go to correct location
             if self.last:
@@ -833,7 +831,7 @@ class Rdata(Rhead):
     def __next__(self):
         try:
             return self.__call__()
-        except (HendError):
+        except HendError:
             raise StopIteration
 
     def __call__(self, nframe=None):
@@ -869,15 +867,17 @@ class Rdata(Rhead):
         """
 
         if self.server:
-
             # access frames via the server
 
             # build the request
             if nframe == 0 or self.last:
-                # just want the last complete frame. Note that further
-                # down we check the frame counter against what we were
-                # hoping for (at least 1 further on) and if it isn't
-                # we actually return with None to indicate no progress.
+                # just want the last complete frame.
+                # If this is not at least one further on than the latest
+                # frame we have, we return with None to indicate no progress.
+                if self.ntotal() <= self.nframe:
+                    return None
+                # Note that further down we check the frame counter against what we were
+                # hoping for (at least 1 further on) to check for issues.
                 request = json.dumps(dict(action="get_last"))
 
             elif self.ffirst < 0:
@@ -931,11 +931,9 @@ class Rdata(Rhead):
             tbytes = raw_bytes[-self.ntbytes :]
 
         else:
-
             # access frames in local file
 
             if nframe == 0 or self.last:
-
                 # get the number of frames
                 nold = self.nframe
                 ntot = self.seek_last()
@@ -1007,6 +1005,13 @@ class Rdata(Rhead):
             # to indicate that no progress is taking place. The calling
             # routine then needs to wait for a new frame to come in. See
             # rtplot for an example of this.
+
+            # note that this should never be reached, since we should have returned
+            # None above if the file was not ready yet.
+            print(
+                "  >>> WARNING: no progress in frame number, this should not happen, contact SL",
+                file=sys.stderr,
+            )
             return None
 
         elif not self.server and frameCount != self.nframe:
@@ -1070,7 +1075,6 @@ class Rdata(Rhead):
         cheads = {}
         ccds = Group(CCD)
         for nccd, (cnam, chead) in enumerate(zip(CNAMS, self.cheads)):
-
             # Explicitly copy each header to avoid propagation of references
             ch = chead.copy()
 
@@ -1111,7 +1115,6 @@ class Rdata(Rhead):
         # consideration
         npixel = 0
         for nwin in self.nwins:
-
             # get an example window for this set
             win = self.windows[nwin][0][0][0]
             nchunk = 20 * win.nx * win.ny
@@ -1245,7 +1248,6 @@ class Rdata(Rhead):
                             )
 
                     else:
-
                         # No prescan: just store the Window
                         if nwin == 0 and nquad == 0:
                             # store CCD header in the first Winhead
@@ -1410,7 +1412,7 @@ class Rtbytes(Rhead):
     def __next__(self):
         try:
             return self.__call__()
-        except (HendError):
+        except HendError:
             raise StopIteration
 
     def __call__(self, nframe=None):
@@ -1496,7 +1498,6 @@ class Rtbytes(Rhead):
         old_frame = self.nframe
 
         if nframe is not None:
-
             if nframe == 0:
                 # go for the last one
                 nframe = self.ntotal()
@@ -1507,6 +1508,7 @@ class Rtbytes(Rhead):
             self.nframe = nframe
 
         return old_frame
+
 
 class Rtime(Rtbytes):
     """Callable, iterable object to generate timing data only from HiPERCAM raw data files.
@@ -1621,7 +1623,7 @@ def htimer(tbytes):
     # The -36 is to try to cope with cases where more than 36 bytes come through.
     buf = struct.pack(
         "<HHHHHHHHHHHHHHHHH",
-        *(val + BZERO for val in struct.unpack(">hhhhhhhhhhhhhhhhh", tbytes[-36:-2]))
+        *(val + BZERO for val in struct.unpack(">hhhhhhhhhhhhhhhhh", tbytes[-36:-2])),
     )
     return struct.unpack("<IIIIIIIIbb", buf)
 
