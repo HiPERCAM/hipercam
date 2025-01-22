@@ -889,6 +889,9 @@ class Rdata(Rhead):
 
                 if nget == self.nframe:
                     request = json.dumps(dict(action="get_next"))
+                elif nget < self.nframe:
+                    # we have already read frame nget, so return None for now
+                    return None
                 else:
                     request = json.dumps(dict(action="get_frame", frame_number=nget))
                     self.nframe = nget
