@@ -874,7 +874,7 @@ class Rdata(Rhead):
                 # just want the last complete frame.
                 # If this is not at least one further on than the latest
                 # frame we have, we return with None to indicate no progress.
-                if self.ntotal() <= self.nframe:
+                if self.ntotal() < self.nframe:
                     return None
                 # Note that further down we check the frame counter against what we were
                 # hoping for (at least 1 further on) to check for issues.
