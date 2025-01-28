@@ -592,6 +592,7 @@ def shiftadd(args=None):
             arrs = []
             nframes_used = 0
             header_string = "nframes="
+            mjds = []
             for ifile, fname in enumerate(files):
                 fname = str(fname.strip())
                 mccd = hcam.MCCD.read(fname)
@@ -602,12 +603,13 @@ def shiftadd(args=None):
                 # skip if FWHM is above threshold
                 if fthresh > 0 and fwhm_values[ifile] > fthresh:
                     print(
-                        f"skipping frame {ifile+1} (FWHM too large ({fwhm_values[ifile]:.1f} > {fthresh:.1f}))"
+                        f"skipping frame {ifile + 1} (FWHM too large ({fwhm_values[ifile]:.1f} > {fthresh:.1f}))"
                     )
                     continue
 
                 print("resampling frame", ifile + 1)
                 nframes_used += 1
+                mjds.append(ccd.head["MJDUTC"])
 
                 # find offset from previous frame
                 cumulative_offset_x, cumulative_offset_y = offsets[ifile]
@@ -669,9 +671,6 @@ def shiftadd(args=None):
             header_string += f",CCD{cnam}({nframes_used:d})"
             arr3d = np.stack(arrs)
 
-            # set exposure time in header
-            output_mccd[cnam].head["EXPTIME"] *= nframes_used
-
             if method == "m":
                 stack = medianfunc(arr3d, axis=0)
             elif method == "c" and sigma > 0:
@@ -711,5 +710,11 @@ def shiftadd(args=None):
             output_mccd.head.add_history(
                 f"Clipped mean stack ({sigma:.1f} sigma): " + header_string
             )
+
+        # headers, use first as template
+        phead = output_mccd.head
+        mid_time = np.min(mjds) + 0.5 * (np.max(mjds) - np.min(mjds))
+        phead["MJDUTC"] = mid_time
+
         output_mccd.write(outfile, overwrite=overwrite)
         print(f"Written {outfile}")
