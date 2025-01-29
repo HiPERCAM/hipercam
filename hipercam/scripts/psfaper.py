@@ -1,15 +1,13 @@
-import sys
 import os
+import sys
 import warnings
 from copy import deepcopy
 
-import numpy as np
 import matplotlib as mpl
-
-from photutils.psf import DAOPhotPSFPhotometry, IntegratedGaussianPRF
+import numpy as np
+from astropy.stats import SigmaClip, gaussian_fwhm_to_sigma
 from photutils.background import MADStdBackgroundRMS, MMMBackground
-from astropy.stats import gaussian_fwhm_to_sigma, SigmaClip
-
+from photutils.psf import IntegratedGaussianPRF, PSFPhotometry
 from trm import cline
 from trm.cline import Cline
 
@@ -216,7 +214,6 @@ def psfaper(args=None):
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("mccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("aper", Cline.LOCAL, Cline.PROMPT)
@@ -263,9 +260,7 @@ def psfaper(args=None):
         else:
             # create empty container
             mccdaper = hcam.MccdAper()
-            print(
-                "No file called {:s} exists; " "will create from scratch".format(aper)
-            )
+            print("No file called {:s} exists; will create from scratch".format(aper))
 
         # define the panel grid
         nxdef = cl.get_default("nx", 3)
@@ -342,7 +337,7 @@ def psfaper(args=None):
 
         iset = cl.get_value(
             "iset",
-            "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+            "set intensity a(utomatically), d(irectly) or with p(ercentiles)?",
             "a",
             lvals=["a", "A", "d", "D", "p", "P"],
         )
@@ -371,18 +366,18 @@ def psfaper(args=None):
 
         shbox = cl.get_value(
             "shbox",
-            "half width of box for initial" " location of target [unbinned pixels]",
+            "half width of box for initial location of target [unbinned pixels]",
             11.0,
             2.0,
         )
         smooth = cl.get_value(
             "smooth",
-            "FWHM for smoothing for initial object" " detection [binned pixels]",
+            "FWHM for smoothing for initial object detection [binned pixels]",
             6.0,
         )
 
         fhbox = cl.get_value(
-            "fhbox", "half width of box for profile fit" " [unbinned pixels]", 21.0, 3.0
+            "fhbox", "half width of box for profile fit [unbinned pixels]", 21.0, 3.0
         )
         read = cl.get_value("read", "readout noise, RMS ADU", 3.0)
         gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
@@ -572,7 +567,6 @@ class PickRef:
         pobjs,
         apernam,
     ):
-
         # save the inputs, tack on event handlers.
         self.fig = fig
         self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
@@ -771,7 +765,7 @@ class PickRef:
             print('  deleted aperture "{:s}"'.format(apnam))
 
         else:
-            print("  found no aperture near enough " "the cursor position for deletion")
+            print("  found no aperture near enough the cursor position for deletion")
 
     def _find_aper(self):
         """Finds the nearest aperture to the currently selected position,
@@ -871,7 +865,7 @@ def daophot(
     cnam, ccd, xlo, xhi, ylo, yhi, niters, method, fwhm, beta, gfac, thresh, rejthresh
 ):
     """
-    Perform iterative PSF photometry and star finding on region of CCD
+    Perform PSF photometry on region of CCD
     """
     print(xlo, ylo, xhi, yhi)
     # first check we are within a single window
@@ -882,7 +876,7 @@ def daophot(
             "PSF photometry cannot currently be run across seperate windows"
         )
     wnam = wnam1
-    print(wnam)
+
     # background stats from whole windpw
     # estimate background RMS
     wind = ccd[wnam]
