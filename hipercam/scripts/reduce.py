@@ -1,30 +1,28 @@
-from functools import partial
+import multiprocessing
 import os
 import sys
-import multiprocessing
+from functools import partial
+
 import numpy as np
 
+# get hipercam version to write into the reduce log file
+from pkg_resources import DistributionNotFound, get_distribution
 from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler
-
 from hipercam.reduction import (
-    Rfile,
-    initial_checks,
-    update_plots,
-    ProcessCCDs,
-    setup_plots,
-    setup_plot_buffers,
     LogWriter,
+    ProcessCCDs,
+    Rfile,
     ccdproc,
     extractFlux,
+    initial_checks,
+    setup_plot_buffers,
+    setup_plots,
+    update_plots,
 )
-
-
-# get hipercam version to write into the reduce log file
-from pkg_resources import get_distribution, DistributionNotFound
 
 try:
     hipercam_version = get_distribution("hipercam").version
@@ -34,7 +32,7 @@ except DistributionNotFound:
 has_psf_option = True
 try:
     from hipercam.psf_reduction import extractFluxPSF
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     has_psf_option = False
 
 __all__ = [
@@ -215,7 +213,6 @@ def reduce(args=None):
     command, args = cline.script_args(args)
 
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
@@ -317,7 +314,7 @@ def reduce(args=None):
 
         tkeep = cl.get_value(
             "tkeep",
-            "number of minute of data to" " keep in internal buffers (0 for all)",
+            "number of minute of data to keep in internal buffers (0 for all)",
             0.0,
             0.0,
         )
@@ -327,7 +324,6 @@ def reduce(args=None):
         implot = cl.get_value("implot", "do you want to plot images?", True)
 
         if implot:
-
             # define the panel grid. first get the labels and maximum
             # dimensions
             ccdinf = spooler.get_ccd_pars(source, resource)
@@ -356,7 +352,7 @@ def reduce(args=None):
 
             iset = cl.get_value(
                 "iset",
-                "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+                "set intensity a(utomatically), d(irectly) or with p(ercentiles)?",
                 "a",
                 lvals=["a", "d", "p"],
             )
@@ -428,7 +424,6 @@ def reduce(args=None):
     # open the log file and write headers
     #
     with LogWriter(log, rfile, hipercam_version, plist) as logfile:
-
         ncpu = rfile["general"]["ncpu"]
         if ncpu > 1:
             pool = multiprocessing.Pool(processes=ncpu)
@@ -448,12 +443,9 @@ def reduce(args=None):
         #
 
         with spooler.data_source(source, resource, first, full=False) as spool:
-
             # 'spool' is an iterable source of MCCDs
             for nf, mccd in enumerate(spool):
-
                 if server_or_local:
-
                     # Handle the waiting game ...
                     give_up, try_again, total_time = spooler.hang_about(
                         mccd, twait, tmx, total_time
@@ -656,7 +648,6 @@ def reduce(args=None):
 
                     for cnam, ccd in pccd.items():
                         for wnam, wind in ccd.items():
-
                             # form mean in Y direction, then try to
                             # mask out high pixels
                             ymean = np.mean(wind.data, 0)
