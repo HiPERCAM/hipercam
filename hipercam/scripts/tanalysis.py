@@ -1,12 +1,11 @@
-import sys
 import os
 import shutil
 import struct
+import sys
 
-import numpy as np
 import matplotlib.pylab as plt
+import numpy as np
 from scipy import stats
-
 from trm import cline
 from trm.cline import Cline
 
@@ -117,7 +116,6 @@ def tanalysis(args=None):
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("source", Cline.LOCAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
@@ -146,21 +144,17 @@ def tanalysis(args=None):
         )
         plot = cl.get_value("plot", "make diagnostic plots", True)
 
-        if plot:
-            cl.set_default("check", True)
-            check = cl.get_value("check", "check for, but do not fix, any problems", True)
-            if not check:
-                output = cl.get_value(
-                    "output", "output file for data with modified times",
-                    cline.Fname("modified",ftype=cline.Fname.NOCLOBBER)
-                )
-        else:
-            check = True
+        cl.set_default("check", True)
+        check = cl.get_value("check", "check for, but do not fix, any problems", True)
+        if not check:
+            output = cl.get_value(
+                "output",
+                "output file for data with modified times",
+                cline.Fname("modified", ftype=cline.Fname.NOCLOBBER),
+            )
 
     # create name of timing file
     tfile = os.path.join("tbytes", os.path.basename(run) + hcam.TBTS)
-    if not os.path.isfile(tfile):
-        raise hcam.HipercamError("Could not find timing file = {}".format(tfile))
 
     # create name of run file and the copy which will only get made
     # later if problems are picked up
@@ -171,30 +165,41 @@ def tanalysis(args=None):
 
     # first load all old time stamps, and compute MJDs
     if source == "ul":
-
         # Load up the time stamps from the timing data file. Need also
         # the header of the original run to know how many bytes to
         # read and how to interpret them.
         rhead = hcam.ucam.Rhead(run)
-        with open(tfile, "rb") as fin:
-            atbytes, mjds, tflags, gflags = [], [], [], []
-            nframe = 0
-            while 1:
-                tbytes = fin.read(rhead.ntbytes)
-                if len(tbytes) != rhead.ntbytes:
-                    break
-                nframe += 1
-                atbytes.append(tbytes)
+        if not os.path.isfile(tfile):
+            with spooler.UcamTbytesSpool(run) as rtbytes:
+                atbytes, mjds, tflags, gflags = [], [], [], []
+                nframe = 0
+                for tbytes in rtbytes:
+                    nframe += 1
+                    atbytes.append(tbytes)
+                    # interpret times
+                    mjd, tflag, gflag, uformat = u_tbytes_to_mjd(tbytes, rhead, nframe)
+                    mjds.append(mjd)
+                    tflags.append(tflag)
+                    gflags.append(gflag)
+        else:
+            with open(tfile, "rb") as fin:
+                atbytes, mjds, tflags, gflags = [], [], [], []
+                nframe = 0
+                while 1:
+                    tbytes = fin.read(rhead.ntbytes)
+                    if len(tbytes) != rhead.ntbytes:
+                        break
+                    nframe += 1
+                    atbytes.append(tbytes)
 
-                # interpret times
-                mjd, tflag, gflag, uformat = u_tbytes_to_mjd(tbytes, rhead, nframe)
-                mjds.append(mjd)
-                tflags.append(tflag)
-                gflags.append(gflag)
+                    # interpret times
+                    mjd, tflag, gflag, uformat = u_tbytes_to_mjd(tbytes, rhead, nframe)
+                    mjds.append(mjd)
+                    tflags.append(tflag)
+                    gflags.append(gflag)
 
     else:
         raise NotImplementedError("source = {} not yet implemented".format(source))
-
 
     if len(mjds) < mintim:
         # Must have specified minimum of times to work with. This is
@@ -401,7 +406,6 @@ def tanalysis(args=None):
         )
 
         if details:
-
             # Some details
             fcadiffs = iacycles[1:] - iacycles[:-1]
             back = fcadiffs <= 0
@@ -421,11 +425,11 @@ def tanalysis(args=None):
 
             if nfail:
                 print("\nFailed times:")
-                inds = inds_ok[fails]
+                failed_inds = inds_ok[fails]
                 cycs = iacycles[fails]
                 cydiffs = cadiffs[fails]
                 tims = mjds_ok[fails]
-                for ind, cyc, cdiff, mjd in zip(inds, cycs, cydiffs, tims):
+                for ind, cyc, cdiff, mjd in zip(failed_inds, cycs, cydiffs, tims):
                     print(
                         "  Index = {}, cycle = {}, cycle diff. = {:.2g}, time = {}".format(
                             ind, cyc, cdiff, mjd
@@ -445,7 +449,7 @@ def tanalysis(args=None):
         ax.plot(iacycles[~fails], cadiffs[~fails], ".b")
         ax.plot(iacycles[fails], cadiffs[fails], ".r")
         ax.set_xlabel("Cycle number")
-        ax.set_ylabel('Cycle - nint(Cycle) [cycles]')
+        ax.set_ylabel("Cycle - nint(Cycle) [cycles]")
 
         secxax = ax.secondary_xaxis("top", functions=(c2t, t2c))
         secxax.set_xlabel("Time [MJD - {}] (seconds)".format(intercept))
@@ -455,22 +459,22 @@ def tanalysis(args=None):
         secyax.set_xlabel("$\Delta t$ (msec)".format(intercept))
         plt.show()
 
-    if not plot or run_ok or check:
-        # go no further if run is OK, no plot has been made, or we are in check mode
+    if run_ok or check:
+        # go no further if run is OK, or we are in check mode
         return
 
     # very specific code at this point for the post-2010 problem runs: remove duplicate
     # time stamps.
 
-    if ginds[0] != 0 or nfail == 0  or (source == 'ul' and uformat != 2):
+    if ginds[0] != 0 or nfail == 0 or (source == "ul" and uformat != 2):
         # this case needs checking
         raise hcam.HipercamError(
-            'Cannot yet handle cases where the first timestamp is no good, nfail == 0, or format==2 ultracam data'
+            "Cannot yet handle cases where the first timestamp is no good, nfail == 0, or format==2 ultracam data"
         )
 
     # these frames have been ID-ed as junk
     skip_inds = inds_ok[fails]
-    inds_keep = inds == inds
+    inds_keep = np.full(inds.shape, True)
     inds_keep[skip_inds] = False
 
     # inds_keep : False for any Frame we want to forget
@@ -481,22 +485,28 @@ def tanalysis(args=None):
         if keep:
             nframe += 1
             new_mjds.append(mjd)
-            new_atbytes.append(tbytes[:4] + struct.pack("<I",nframe) + tbytes[8:])
+            new_atbytes.append(tbytes[:4] + struct.pack("<I", nframe) + tbytes[8:])
 
-    nskip = len(mjds)-len(new_mjds)
+    nskip = len(mjds) - len(new_mjds)
 
     # modify the last few times to make up for the skips,
     # extrapolating the times using the fitted time step per cycle
     # from before. We don't simply add "slope" to the last MJD one by
     # one because of subtle round-off issues.
-    mjds_nskip = mjd + slope*np.linspace(1,nskip,nskip)
+    mjds_nskip = mjd + slope * np.linspace(1, nskip, nskip)
     for tbytes, mjd in zip(atbytes[-nskip:], mjds_nskip):
-        unix_sec = ucam.DSEC*(mjd - ucam.UNIX)
+        unix_sec = ucam.DSEC * (mjd - ucam.UNIX)
         nsec = int(np.floor(unix_sec))
-        nnsec = int(round(1.e7*(unix_sec-nsec)))
-        new_mjds.append(ucam.UNIX+float(nsec+nnsec/1.0e7)/ucam.DSEC)
+        nnsec = int(round(1.0e7 * (unix_sec - nsec)))
+        new_mjds.append(ucam.UNIX + float(nsec + nnsec / 1.0e7) / ucam.DSEC)
         nframe += 1
-        tbytes = tbytes[:4] + struct.pack("<I",nframe) + tbytes[8:12] + struct.pack("<II", nsec, nnsec) + tbytes[20:]
+        tbytes = (
+            tbytes[:4]
+            + struct.pack("<I", nframe)
+            + tbytes[8:12]
+            + struct.pack("<II", nsec, nnsec)
+            + tbytes[20:]
+        )
         new_atbytes.append(tbytes)
 
     # transfer byte 0 over as this contains a flag indicating the status of the blue data for the NBLUE option
@@ -508,40 +518,44 @@ def tanalysis(args=None):
     new_mjds_ok = new_mjds_ok[tflags & gflags]
     acycles = (new_mjds_ok - intercept) / slope
     iacycles = np.round(acycles).astype(int)
-    diffs = acycles-iacycles
+    diffs = acycles - iacycles
 
     # search for duplicates
     u, c = np.unique(iacycles, return_counts=True)
     ndupes = len(u[c > 1])
 
     # search for gaps
-    csteps = iacycles[1:]-iacycles[:-1]
+    csteps = iacycles[1:] - iacycles[:-1]
     ngaps = len(iacycles[1:][csteps > 1])
 
-    print('\nFound {} spurious time stamps; new times have {} duplications and {} gaps > 1'.format(nskip,ndupes,ngaps))
-    print('Ideally, the last two numbers should be 0 and 0.')
+    print(
+        "\nFound {} spurious time stamps; new times have {} duplications and {} gaps > 1".format(
+            nskip, ndupes, ngaps
+        )
+    )
+    print("Ideally, the last two numbers should be 0 and 0.")
 
-    plt.plot(iacycles[:-nskip], diffs[:-nskip], '.g')
-    plt.plot(iacycles[-nskip:], diffs[-nskip:], '.b')
-    plt.xlabel('Cycle number')
-    plt.ylabel('Cycle - int(Cycle) [cycles]')
+    plt.plot(iacycles[:-nskip], diffs[:-nskip], ".g")
+    plt.plot(iacycles[-nskip:], diffs[-nskip:], ".b")
+    plt.xlabel("Cycle number")
+    plt.ylabel("Cycle - int(Cycle) [cycles]")
     plt.show()
 
-    tdiffs = 86400*(mjds_ok - new_mjds_ok)
-    plt.plot(iacycles[:-nskip], tdiffs[:-nskip], '.g')
-    plt.plot(iacycles[-nskip:], tdiffs[-nskip:], '.b')
-    plt.xlabel('Cycle number')
-    plt.ylabel('Old time - new [seconds]')
+    tdiffs = 86400 * (mjds_ok - new_mjds_ok)
+    plt.plot(iacycles[:-nskip], tdiffs[:-nskip], ".g")
+    plt.plot(iacycles[-nskip:], tdiffs[-nskip:], ".b")
+    plt.xlabel("Cycle number")
+    plt.ylabel("Old time - new [seconds]")
     plt.show()
-    reply = input('Generate data with corrected time stamps? [no] ')
-    if reply != 'yes':
-        print('time correction aborted')
+    reply = input("Generate data with corrected time stamps? [no] ")
+    if reply != "yes":
+        print("time correction aborted")
         return
 
     # OK, finally, let's go for it!
     if source == "ul":
-        with open(output,"wb") as fout:
-            with open(rfile,"rb") as fin:
+        with open(output, "wb") as fout:
+            with open(rfile, "rb") as fin:
                 nframe = 0
                 while 1:
                     # Read a whole frame
@@ -552,13 +566,12 @@ def tanalysis(args=None):
                     # write to output, writing modified timing bytes
                     # in place of old ones
                     fout.write(new_atbytes[nframe])
-                    fout.write(buff[rhead.ntbytes:])
+                    fout.write(buff[rhead.ntbytes :])
                     nframe += 1
-                    print('Processed frame {} / {}'.format(nframe,len(atbytes)))
+                    print("Processed frame {} / {}".format(nframe, len(atbytes)))
 
     else:
         raise NotImplementedError("source = {} not yet implemented".format(source))
-
 
 
 def u_tbytes_to_mjd(tbytes, rtbytes, nframe):
