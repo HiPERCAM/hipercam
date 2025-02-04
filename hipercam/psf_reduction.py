@@ -105,7 +105,7 @@ class MoffatPSF(Fittable2DModel):
         y_fwhm=y_fwhm.default,
         beta=beta.default,
         theta=theta.default,
-        bbox_factor=5.5,
+        bbox_factor=15.5,
         **kwargs,
     ):
         super().__init__(
@@ -235,6 +235,132 @@ class MoffatPSF(Fittable2DModel):
         normalisation = (beta - 1) / np.pi / np.sqrt(alpha_sq_x * alpha_sq_y)
         return normalisation * flux * profile
 
+    @staticmethod
+    def fit_deriv(x, y, flux, x_0, y_0, x_fwhm, y_fwhm, beta, theta):
+        """
+        Calculate the partial derivatives of the 2D Moffat function
+        with respect to the parameters.
+
+        Parameters
+        ----------
+        x, y : float or array_like
+            The x and y coordinates at which to evaluate the model.
+
+        flux : float
+            Total integrated flux over the entire PSF.
+
+        x_0, y_0 : float
+            Position of the peak along the x and y axes.
+
+        x_fwhm, y_fwhm : float
+            FWHM of the Gaussian along the x and y axes.
+
+        beta : float, optional
+            Beta parameter of Moffat profile
+
+        theta : float
+            The counterclockwise rotation angle either as a float (in
+            degrees) or a `~astropy.units.Quantity` angle (optional).
+
+        Returns
+        -------
+        result : list of `~numpy.ndarray`
+            The list of partial derivatives with respect to each
+            parameter.
+        """
+        if not isinstance(theta, u.Quantity):
+            theta = np.deg2rad(theta)
+        else:
+            theta = theta.to_value(u.rad)
+
+        alpha_sq_x = x_fwhm**2 / 4 / (2 ** (1 / beta) - 1)
+        alpha_sq_y = y_fwhm**2 / 4 / (2 ** (1 / beta) - 1)
+        alpha_x = np.sqrt(alpha_sq_x)
+        alpha_y = np.sqrt(alpha_sq_y)
+
+        x1 = beta - 1
+        x2 = 1 / np.pi
+        x3 = 1 / alpha_x
+        x4 = 1 / alpha_y
+        x5 = x - x_0
+        x6 = x5**2
+        x7 = alpha_x ** (-2)
+        x8 = np.cos(theta)
+        x9 = x8**2
+        x10 = alpha_y ** (-2)
+        x11 = np.sin(theta)
+        x12 = x11**2
+        x13 = x10 * x12 + x7 * x9
+        x14 = y - y_0
+        x15 = x14**2
+        x16 = x10 * x9 + x12 * x7
+        x17 = 2 * theta
+        x18 = np.sin(x17)
+        x19 = -x10 * x18 + x18 * x7
+        x20 = x14 * x19
+        x21 = x13 * x6 + x15 * x16 + x20 * x5 + 1
+        x22 = x21 ** (-beta)
+        x23 = x1 * x2 * x22 * x3 * x4
+        x24 = 1 / x21
+        x25 = 2 / alpha_x**3
+        x26 = x14 * x5
+        x27 = alpha_y ** (-3)
+        x28 = 2 * x27
+        x29 = 2 * x11 * x8
+        x30 = x10 * x29 - x29 * x7
+        x31 = np.cos(x17)
+
+        dg_dflux = x23
+        dg_dx_0 = -flux * beta * x23 * x24 * (x13 * (-2 * x + 2 * x_0) - x20)
+        dg_dy_0 = -flux * beta * x23 * x24 * (x16 * (-2 * y + 2 * y_0) - x19 * x5)
+        dg_dalpha_x = (
+            -flux
+            * beta
+            * x23
+            * x24
+            * (-x12 * x15 * x25 - x18 * x25 * x26 - x25 * x6 * x9)
+            - flux * x1 * x2 * x22 * x4 * x7
+        )
+        dg_dalpha_y = (
+            -flux
+            * beta
+            * x23
+            * x24
+            * (-x12 * x28 * x6 + 2 * x14 * x18 * x27 * x5 - x15 * x28 * x9)
+            - flux * x1 * x10 * x2 * x22 * x3
+        )
+        partial_dg_dbeta = flux * x2 * x22 * x3 * x4 - flux * x23 * np.log(x21)
+        dg_dtheta = (
+            (
+                -flux
+                * beta
+                * x23
+                * x24
+                * (-x15 * x30 + x26 * (-2 * x10 * x31 + 2 * x31 * x7) + x30 * x6)
+            )
+            * np.pi
+            / 180
+        )
+
+        # jacobians
+        dg_dx_fwhm = alpha_x * dg_dalpha_x / x_fwhm
+        dg_dy_fwhm = alpha_y * dg_dalpha_y / y_fwhm
+        dalpha_x_dbeta = (
+            2 ** (1 / beta) * np.sqrt(x_fwhm**2 / (2 ** (1 / beta) - 1)) * np.log(2)
+        )
+        dalpha_x_dbeta /= 4 * beta**2 * (2 ** (1 / beta) - 1)
+        dalpha_y_dbeta = (
+            2 ** (1 / beta) * np.sqrt(y_fwhm**2 / (2 ** (1 / beta) - 1)) * np.log(2)
+        )
+        dalpha_y_dbeta /= 4 * beta**2 * (2 ** (1 / beta) - 1)
+        dg_dbeta = (
+            partial_dg_dbeta
+            + dg_dalpha_x * dalpha_x_dbeta
+            + dg_dalpha_y * dalpha_y_dbeta
+        )
+
+        return dg_dflux, dg_dx_0, dg_dy_0, dg_dx_fwhm, dg_dy_fwhm, dg_dbeta, dg_dtheta
+
 
 def create_psf_model(photom_results, method, fixed_positions=False):
     if method == "moffat":
@@ -280,7 +406,6 @@ def display(data, phot, psfphot):
         "cfit",
         "flags",
     ]
-    fig.clear()
 
     display_colnames = []
     for colname in colnames:
@@ -292,11 +417,11 @@ def display(data, phot, psfphot):
     print(phot[display_colnames])
     resid = psfphot.make_residual_image(data)
     norm = simple_norm(data, "sqrt", percent=95)
-
+    bkg = np.median(phot["local_bkg"])
     fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     plt.tight_layout()
     ax[0].imshow(data, origin="lower", norm=norm)
-    ax[1].imshow(data - resid, origin="lower", norm=norm)
+    ax[1].imshow(data - resid + bkg, origin="lower", norm=norm)
     ax[2].imshow(resid, origin="lower", norm=norm)
     ax[0].set_title("Data")
     ax[1].set_title("Model")
@@ -599,8 +724,8 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     photom_results = photometry_task(swdata.data, error=sigma, init_params=positions)
 
     #
-    if cnam == "4":
-        display(swdata.data, photom_results, photometry_task)
+    # if cnam == "4":
+    #    display(swdata.data, photom_results, photometry_task)
 
     # unpack the results and check apertures
     for apnam, aper in ccdaper.items():
