@@ -3,8 +3,6 @@ hipercam setup file
 """
 
 import os
-from setuptools import setup, find_packages
-from setuptools.extension import Extension
 
 # To use a consistent encoding
 from codecs import open
@@ -12,6 +10,8 @@ from codecs import open
 # need for Cython
 import numpy as np
 from Cython.Build import cythonize
+from setuptools import find_packages, setup
+from setuptools.extension import Extension
 
 # read the README file for the long description
 with open("README.rst") as f:
@@ -91,7 +91,7 @@ setup(
         "numpy",
         "pandas",
         "requests",
-        "sep",
+        "sep>=1.4",
         "trm.cline",
         "trm.utils",
         "urllib3>=1.26.5",
