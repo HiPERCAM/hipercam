@@ -15,7 +15,7 @@ RUN ln -s /usr/include/cpgplot.h /usr/lib/
 RUN pip install --upgrade pip
 RUN pip install Cython ipython
 # pin numpy to >2.0 because of changes in the API
-RUN pip install numpy>2
+RUN pip install numpy>=2
 
 # Installing PyQt5 
 RUN pip install PyQt5
