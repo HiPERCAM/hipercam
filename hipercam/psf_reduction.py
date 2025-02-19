@@ -7,7 +7,6 @@ from astropy.modeling import Fittable2DModel, Parameter
 from astropy.modeling.utils import ellipse_extent
 from astropy.stats import SigmaClip
 from astropy.table import Table
-from matplotlib import pyplot as plt
 from photutils.background import LocalBackground, MedianBackground
 from photutils.psf import GaussianPRF, PSFPhotometry
 from photutils.psf.functional_models import FLOAT_EPSILON, GAUSSIAN_FWHM_TO_SIGMA
@@ -383,53 +382,6 @@ def create_psf_model(photom_results, method, fixed_positions=False):
     return psf_model
 
 
-def display(data, phot, psfphot):
-    from astropy.visualization import simple_norm
-
-    colnames = [
-        "id",
-        "group_id",
-        "group_size",
-        "local_bkg",
-        "x_fit",
-        "y_fit",
-        "flux_fit",
-        "x_err",
-        "y_err",
-        "flux_err",
-        "x_fwhm_fit",
-        "y_fwhm_fit",
-        "theta_fit",
-        "beta_fit",
-        "npixfit",
-        "qfit",
-        "cfit",
-        "flags",
-    ]
-
-    display_colnames = []
-    for colname in colnames:
-        if colname in phot.colnames:
-            if colname not in ["id", "group_id", "group_size", "flags"]:
-                phot[colname].info.format = ".4f"
-            display_colnames.append(colname)
-
-    print(phot[display_colnames])
-    resid = psfphot.make_residual_image(data)
-    norm = simple_norm(data, "sqrt", percent=95)
-    bkg = np.median(phot["local_bkg"])
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-    plt.tight_layout()
-    ax[0].imshow(data, origin="lower", norm=norm)
-    ax[1].imshow(data - resid + bkg, origin="lower", norm=norm)
-    ax[2].imshow(resid, origin="lower", norm=norm)
-    ax[0].set_title("Data")
-    ax[1].set_title("Model")
-    ax[2].set_title("Residual Image")
-
-    plt.show()
-
-
 def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     """This extracts the flux of all apertures of a given CCD.
 
@@ -659,11 +611,13 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     y2 = max([ap.y + ap.rsky2 + wdata.ybin for ap in ccdaper.values()])
 
     # extract sub-Windows
-    swdata = wdata.window(x1, x2, y1, y2)
-    swraw = wraw.window(x1, x2, y1, y2)
-    swbias = wbias.window(x1, x2, y1, y2)
-    swread = wread.window(x1, x2, y1, y2)
-    swgain = wgain.window(x1, x2, y1, y2)
+    box_limits = (x1, x2, y1, y2)
+    swdata = wdata.window(*box_limits)
+    swraw = wraw.window(*box_limits)
+    swbias = wbias.window(*box_limits)
+    swread = wread.window(*box_limits)
+    swgain = wgain.window(*box_limits)
+
     # This is where the pure-debiassed data are used
     sigma = np.sqrt(swread.data**2 + np.maximum(0, swbias.data) / swgain.data)
 
@@ -723,9 +677,8 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     )
     photom_results = photometry_task(swdata.data, error=sigma, init_params=positions)
 
-    #
-    # if cnam == "4":
-    #    display(swdata.data, photom_results, photometry_task)
+    # store PSF task and settings for display by external routines
+    store[f"psf_model_{cnam}"] = (photometry_task, wnam, box_limits)
 
     # unpack the results and check apertures
     for apnam, aper in ccdaper.items():
