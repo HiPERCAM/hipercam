@@ -155,6 +155,10 @@ def reduce(args=None):
         implot : bool
            flag to indicate you want to plot images.
 
+        psfplot : bool
+           flag to indicate you want to plot images after subtraction of PSF model.
+           inherits all other parameters from the image plot
+
         ccd : string [if implot]
            CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
 
@@ -225,6 +229,7 @@ def reduce(args=None):
         cl.register("tkeep", Cline.GLOBAL, Cline.PROMPT)
         cl.register("lplot", Cline.LOCAL, Cline.PROMPT)
         cl.register("implot", Cline.LOCAL, Cline.PROMPT)
+        cl.register("psfplot", Cline.LOCAL, Cline.HIDE)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
@@ -318,8 +323,11 @@ def reduce(args=None):
         lplot = cl.get_value("lplot", "do you want to plot light curves?", True)
 
         implot = cl.get_value("implot", "do you want to plot images?", True)
+        psfplot = cl.get_value(
+            "psfplot", "do you want to plot residual of PSF model?", False
+        )
 
-        if implot:
+        if implot or psfplot:
             # define the panel grid. first get the labels and maximum
             # dimensions
             ccdinf = spooler.get_ccd_pars(source, resource)
@@ -403,8 +411,8 @@ def reduce(args=None):
     else:
         plot_lims = None
 
-    imdev, lcdev, spanel, tpanel, xpanel, ypanel, lpanel = setup_plots(
-        rfile, ccds, nx, plot_lims, implot, lplot
+    imdev, lcdev, psfdev, spanel, tpanel, xpanel, ypanel, lpanel = setup_plots(
+        rfile, ccds, nx, plot_lims, implot, lplot, psfplot
     )
 
     # a couple of initialisations
@@ -468,10 +476,13 @@ def reduce(args=None):
                             update_plots(
                                 results,
                                 rfile,
+                                processor.store,
                                 implot,
                                 lplot,
+                                psfplot,
                                 imdev,
                                 lcdev,
+                                psfdev,
                                 pccd,
                                 ccds,
                                 msub,
@@ -535,10 +546,13 @@ def reduce(args=None):
                         update_plots(
                             results,
                             rfile,
+                            processor.store,
                             implot,
                             lplot,
+                            psfplot,
                             imdev,
                             lcdev,
+                            psfdev,
                             pccd,
                             ccds,
                             msub,
@@ -711,10 +725,13 @@ def reduce(args=None):
                     update_plots(
                         results,
                         rfile,
+                        processor.store,
                         implot,
                         lplot,
+                        psfplot,
                         imdev,
                         lcdev,
+                        psfdev,
                         pccds[-1],
                         ccds,
                         msub,
@@ -759,10 +776,13 @@ def reduce(args=None):
             update_plots(
                 results,
                 rfile,
+                processor.store,
                 implot,
                 lplot,
+                psfplot,
                 imdev,
                 lcdev,
+                psfdev,
                 pccd,
                 ccds,
                 msub,
