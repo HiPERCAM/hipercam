@@ -359,30 +359,57 @@ class Hlog(dict):
         dtypes = {}
         stypes = {}
 
+        # There are two possible formats, pre- and post-March 2010 when the
+        # ULTRACAM GPS system was changed. Before then the number of satellites
+        # was included in each log line. This should be automatically detected
+        # based on the header line.
+        log_format = None
+
         n = 0
         with open(fname) as fin:
             for line in fin:
                 n += 1
-                if not line.startswith("#"):
+                if line.startswith('# name/number mjd flag nsat'):
+                    # old-style log files with number of satellites
+                    log_format = 1
+                elif line.startswith('# name/number mjd flag expose'):
+                    # post March 2010 log files
+                    log_format = 2
+                elif not line.startswith("#"):
+                    if log_format is None:
+                        raise HipercamError(
+                            'Could not identify the format of the log file.'
+                        )
+
                     arr = line.split()
-                    nframe, mjd, tflag, expose, cnam, fwhm, beta = arr[:7]
-
-                    mjd = float(mjd)
-                    tflag = bool(tflag)
-                    expose = float(expose)
-                    fwhm = float(fwhm)
-                    beta = float(beta)
-
-                    values = [mjd, tflag, expose, fwhm, beta]
+                    if log_format == 1:
+                        head_cols = 8
+                        nframe, mjd, tflag, nsat, expose, cnam, fwhm, beta = arr[:8]
+                        mjd = float(mjd)
+                        tflag = bool(tflag)
+                        nsat = int(nsat)
+                        expose = float(expose)
+                        fwhm = float(fwhm)
+                        beta = float(beta)
+                        values = [mjd, tflag, nsat, expose, fwhm, beta]
+                    else:
+                        head_cols = 7
+                        nframe, mjd, tflag, expose, cnam, fwhm, beta = arr[:7]
+                        mjd = float(mjd)
+                        tflag = bool(tflag)
+                        expose = float(expose)
+                        fwhm = float(fwhm)
+                        beta = float(beta)
+                        values = [mjd, tflag, expose, fwhm, beta]
 
                     if cnam in hlog:
                         # at least one line for this CCD has been read already
-                        if len(arr[7:]) // 14 != naps[cnam]:
+                        if len(arr[head_cols:]) // 14 != naps[cnam]:
                             raise hcam.HipercamError(
                                 (
                                     "First line of CCD {:s} had {:d} apertures,"
                                     " whereas line {:d} of file has {:d}"
-                                ).format(cnam, naps[cnam], len(arr[7:]) // 14)
+                                ).format(cnam, naps[cnam], n, len(arr[head_cols:]) // 14) #####
                             )
 
                         for nap in range(naps[cnam]):
@@ -401,7 +428,7 @@ class Hlog(dict):
                                 nrej,
                                 worst,
                                 error_flag,
-                            ) = arr[7 + 14 * nap : 7 + 14 * (nap + 1)]
+                            ) = arr[head_cols + 14 * nap : head_cols + 14 * (nap + 1)]
 
                             values += [
                                 float(x),
@@ -422,9 +449,13 @@ class Hlog(dict):
                     else:
                         # first time for this CCD
                         hlog[cnam] = bytearray()
-                        names = ["MJD", "MJDok", "Exptim", "FWHM", "beta"]
-                        dts = ["f8", "?", "f4", "f4", "f4"]
-                        naps[cnam] = len(arr[7:]) // 14
+                        if log_format == 1:
+                            names = ["MJD", "MJDok", "nsat", "Exptim", "FWHM", "beta"]
+                            dts = ["f8", "?", "i4", "f4", "f4", "f4"]
+                        else:
+                            names = ["MJD", "MJDok", "Exptim", "FWHM", "beta"]
+                            dts = ["f8", "?", "f4", "f4", "f4"]
+                        naps[cnam] = len(arr[head_cols:]) // 14
                         hlog.apnames[cnam] = [str(i) for i in range(1, naps[cnam] + 1)]
                         for nap in range(naps[cnam]):
                             (
@@ -442,7 +473,7 @@ class Hlog(dict):
                                 nrej,
                                 worst,
                                 error_flag,
-                            ) = arr[7 + 14 * nap : 7 + 14 * (nap + 1)]
+                            ) = arr[head_cols + 14 * nap : head_cols + 14 * (nap + 1)]
                             names += [
                                 "x_{:s}".format(naper),
                                 "y_{:s}".format(naper),
