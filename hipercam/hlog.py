@@ -29,7 +29,6 @@ bitmask array of the objects `targ` and `comp` used to create it.
 """
 
 import struct
-import warnings
 import numpy as np
 import copy
 from astropy.io import fits
@@ -39,8 +38,7 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 import astropy.units as u
 
 from trm.utils import timcorr
-from .core import *
-from . import utils
+import hipercam as hcam
 
 __all__ = ("Hlog", "Tseries")
 
@@ -377,7 +375,7 @@ class Hlog(dict):
                     log_format = 2
                 elif not line.startswith("#"):
                     if log_format is None:
-                        raise HipercamError(
+                        raise hcam.HipercamError(
                             'Could not identify the format of the log file.'
                         )
 
@@ -571,7 +569,7 @@ class Hlog(dict):
         # aperture-specific bitmask array
         mjdok = ccd["MJDok"]
         tmask = np.zeros_like(mjdok, dtype=np.uint)
-        tmask[~mjdok] = BAD_TIME
+        tmask[~mjdok] = hcam.BAD_TIME
 
         times = ccd["MJD"].copy()
         texps = ccd["Exptim"].copy() / 86400
@@ -620,7 +618,7 @@ class Hlog(dict):
                     for row in data:
                         fout.write(fmt.format(cnam, *row))
         else:
-            raise Hipercam_Error("Hlog not writable")
+            raise hcam.HipercamError("Hlog not writable")
 
 
 class Tseries:
@@ -782,7 +780,7 @@ class Tseries:
 
         """
 
-        if bitmask == ALL_OK:
+        if bitmask == hcam.ALL_OK:
             raise ValueError("bitmask=ALL_OK is invalid; ANY_FLAG may be what you want")
 
         if flag_bad:
@@ -1268,7 +1266,7 @@ class Tseries:
                 te.append(np.fabs(bin_edges[i] - bin_edges[i - 1]))
                 y.append(NaN)
                 ye.append(NaN)
-                bmask.append(NO_DATA)
+                bmask.append(hcam.NO_DATA)
                 continue
 
             if weighted:
@@ -1457,10 +1455,10 @@ class Tseries:
         mask &= ~bad
 
         if inplace:
-            self.set_bitmask(OUTLIER, mask)
+            self.set_bitmask(hcam.OUTLIER, mask)
         else:
             new_ts = copy.deepcopy(self)
-            new_ts.set_bitmask(OUTLIER, mask)
+            new_ts.set_bitmask(hcam.OUTLIER, mask)
             return new_ts
 
     def append(self, others):
@@ -1817,7 +1815,7 @@ class Tseries:
         ntot = len(self)
         bad = self.get_mask()
         nbad = len(bad[bad])
-        flagged = np.bitwise_and(self.bmask, ANY_FLAG) > 0
+        flagged = np.bitwise_and(self.bmask, hcam.ANY_FLAG) > 0
         nflag = len(flagged[flagged])
 
         print(f"There were {nbad} bad data points out of {ntot}")
@@ -1825,8 +1823,8 @@ class Tseries:
 
         if nflag:
             print("\nFlags raised:\n")
-            for fname, flag in FLAGS:
-                if flag != ALL_OK and flag != ANY_FLAG:
+            for fname, flag in hcam.FLAGS:
+                if flag != hcam.ALL_OK and flag != hcam.ANY_FLAG:
                     match = np.bitwise_and(self.bmask, flag) > 0
                     nfl = len(match[match])
                     if nfl:
@@ -1841,8 +1839,8 @@ class Tseries:
                 if bad[i] or flagged[i]:
                     if flagged[i]:
                         flags_raised = []
-                        for fname, flag in FLAGS:
-                            if flag != ANY_FLAG:
+                        for fname, flag in hcam.FLAGS:
+                            if flag != hcam.ANY_FLAG:
                                 if self.bmask[i] & flag:
                                     flags_raised.append(fname)
                         flags_raised = ", ".join(flags_raised)
@@ -1948,7 +1946,7 @@ Six columns: times exposures fluxes flux-errors weights sub-div-facs
 
         else:
             flags = []
-            for flag, message in FLAG_MESSAGES.items():
+            for flag, message in hcam.FLAG_MESSAGES.items():
                 flags.append(f"   Flag = {flag:6d}: {message}")
             flags = "\n".join(flags)
 
@@ -2089,10 +2087,10 @@ def scatter(
         xe = xts.ye[plot]
         kwargs["fmt"] = fmt
         kwargs["capsize"] = capsize
-        axes.errorbar(x, y, xerr=te, **kwargs)
+        axes.errorbar(x, y, xerr=xe, **kwargs)
 
     elif erry:
-        ye = self.ye[plot]
+        ye = yts.ye[plot]
         kwargs["fmt"] = fmt
         kwargs["capsize"] = capsize
         axes.errorbar(x, y, ye, **kwargs)
