@@ -322,11 +322,13 @@ class Hlog(dict):
 
         hlog = cls()
         hlog.apnames = {}
+        hlog.cnames = {}
 
         with fits.open(fname) as hdul:
             for hdu in hdul[1:]:
                 cnam = hdu.header["CCDNAME"]
                 hlog[cnam] = hdu.data
+                hlog.cnames[cnam] = list(hdu.data.names)
                 hlog.apnames[cnam] = list(
                     set(
                         [
@@ -350,9 +352,9 @@ class Hlog(dict):
 
         hlog = cls()
         hlog.apnames = {}
+        hlog.cnames = {}
 
         # CCD labels, number of apertures, numpy dtypes, struct types
-        cnames = {}
         naps = {}
         dtypes = {}
         stypes = {}
@@ -519,6 +521,7 @@ class Hlog(dict):
                                 int(error_flag),
                             ]
 
+                        hlog.cnames[cnam] = names
                         dtypes[cnam] = np.dtype(list(zip(names, dts)))
                         stypes[cnam] = "=" + "".join(
                             [NUMPY_TO_STRUCT[dt] for dt in dts]
