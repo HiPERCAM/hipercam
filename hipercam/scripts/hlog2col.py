@@ -103,7 +103,7 @@ def hlog2col(args=None):
     if origin == "h":
         hlg = hcam.hlog.Hlog.rascii(log)
     elif origin == "u":
-        hlg = hcam.hlog.Hlog.fulog(log)
+        hlg = hcam.hlog.Hlog.rulog(log)
 
     print(f"Loaded ASCII log = {log}")
 

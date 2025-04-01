@@ -29,7 +29,6 @@ bitmask array of the objects `targ` and `comp` used to create it.
 """
 
 import struct
-import warnings
 import numpy as np
 import copy
 from astropy.io import fits
@@ -39,8 +38,7 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 import astropy.units as u
 
 from trm.utils import timcorr
-from .core import *
-from . import utils
+import hipercam as hcam
 
 __all__ = ("Hlog", "Tseries")
 
@@ -324,11 +322,13 @@ class Hlog(dict):
 
         hlog = cls()
         hlog.apnames = {}
+        hlog.cnames = {}
 
         with fits.open(fname) as hdul:
             for hdu in hdul[1:]:
                 cnam = hdu.header["CCDNAME"]
                 hlog[cnam] = hdu.data
+                hlog.cnames[cnam] = list(hdu.data.names)
                 hlog.apnames[cnam] = list(
                     set(
                         [
@@ -352,37 +352,64 @@ class Hlog(dict):
 
         hlog = cls()
         hlog.apnames = {}
+        hlog.cnames = {}
 
         # CCD labels, number of apertures, numpy dtypes, struct types
-        cnames = {}
         naps = {}
         dtypes = {}
         stypes = {}
+
+        # There are two possible formats, pre- and post-March 2010 when the
+        # ULTRACAM GPS system was changed. Before then the number of satellites
+        # was included in each log line. This should be automatically detected
+        # based on the header line.
+        log_format = None
 
         n = 0
         with open(fname) as fin:
             for line in fin:
                 n += 1
-                if not line.startswith("#"):
+                if line.startswith('# name/number mjd flag nsat'):
+                    # old-style log files with number of satellites
+                    log_format = 1
+                elif line.startswith('# name/number mjd flag expose'):
+                    # post March 2010 log files
+                    log_format = 2
+                elif not line.startswith("#"):
+                    if log_format is None:
+                        raise hcam.HipercamError(
+                            'Could not identify the format of the log file.'
+                        )
+
                     arr = line.split()
-                    nframe, mjd, tflag, expose, cnam, fwhm, beta = arr[:7]
-
-                    mjd = float(mjd)
-                    tflag = bool(tflag)
-                    expose = float(expose)
-                    fwhm = float(fwhm)
-                    beta = float(beta)
-
-                    values = [mjd, tflag, expose, fwhm, beta]
+                    if log_format == 1:
+                        head_cols = 8
+                        nframe, mjd, tflag, nsat, expose, cnam, fwhm, beta = arr[:8]
+                        mjd = float(mjd)
+                        tflag = bool(tflag)
+                        nsat = int(nsat)
+                        expose = float(expose)
+                        fwhm = float(fwhm)
+                        beta = float(beta)
+                        values = [mjd, tflag, nsat, expose, fwhm, beta]
+                    else:
+                        head_cols = 7
+                        nframe, mjd, tflag, expose, cnam, fwhm, beta = arr[:7]
+                        mjd = float(mjd)
+                        tflag = bool(tflag)
+                        expose = float(expose)
+                        fwhm = float(fwhm)
+                        beta = float(beta)
+                        values = [mjd, tflag, expose, fwhm, beta]
 
                     if cnam in hlog:
                         # at least one line for this CCD has been read already
-                        if len(arr[7:]) // 14 != naps[cnam]:
+                        if len(arr[head_cols:]) // 14 != naps[cnam]:
                             raise hcam.HipercamError(
                                 (
                                     "First line of CCD {:s} had {:d} apertures,"
                                     " whereas line {:d} of file has {:d}"
-                                ).format(cnam, naps[cnam], len(arr[7:]) // 14)
+                                ).format(cnam, naps[cnam], n, len(arr[head_cols:]) // 14) #####
                             )
 
                         for nap in range(naps[cnam]):
@@ -401,7 +428,7 @@ class Hlog(dict):
                                 nrej,
                                 worst,
                                 error_flag,
-                            ) = arr[7 + 14 * nap : 7 + 14 * (nap + 1)]
+                            ) = arr[head_cols + 14 * nap : head_cols + 14 * (nap + 1)]
 
                             values += [
                                 float(x),
@@ -422,9 +449,13 @@ class Hlog(dict):
                     else:
                         # first time for this CCD
                         hlog[cnam] = bytearray()
-                        names = ["MJD", "MJDok", "Exptim", "FWHM", "beta"]
-                        dts = ["f8", "?", "f4", "f4", "f4"]
-                        naps[cnam] = len(arr[7:]) // 14
+                        if log_format == 1:
+                            names = ["MJD", "MJDok", "nsat", "Exptim", "FWHM", "beta"]
+                            dts = ["f8", "?", "i4", "f4", "f4", "f4"]
+                        else:
+                            names = ["MJD", "MJDok", "Exptim", "FWHM", "beta"]
+                            dts = ["f8", "?", "f4", "f4", "f4"]
+                        naps[cnam] = len(arr[head_cols:]) // 14
                         hlog.apnames[cnam] = [str(i) for i in range(1, naps[cnam] + 1)]
                         for nap in range(naps[cnam]):
                             (
@@ -442,7 +473,7 @@ class Hlog(dict):
                                 nrej,
                                 worst,
                                 error_flag,
-                            ) = arr[7 + 14 * nap : 7 + 14 * (nap + 1)]
+                            ) = arr[head_cols + 14 * nap : head_cols + 14 * (nap + 1)]
                             names += [
                                 "x_{:s}".format(naper),
                                 "y_{:s}".format(naper),
@@ -490,6 +521,7 @@ class Hlog(dict):
                                 int(error_flag),
                             ]
 
+                        hlog.cnames[cnam] = names
                         dtypes[cnam] = np.dtype(list(zip(names, dts)))
                         stypes[cnam] = "=" + "".join(
                             [NUMPY_TO_STRUCT[dt] for dt in dts]
@@ -540,7 +572,7 @@ class Hlog(dict):
         # aperture-specific bitmask array
         mjdok = ccd["MJDok"]
         tmask = np.zeros_like(mjdok, dtype=np.uint)
-        tmask[~mjdok] = BAD_TIME
+        tmask[~mjdok] = hcam.BAD_TIME
 
         times = ccd["MJD"].copy()
         texps = ccd["Exptim"].copy() / 86400
@@ -589,7 +621,7 @@ class Hlog(dict):
                     for row in data:
                         fout.write(fmt.format(cnam, *row))
         else:
-            raise Hipercam_Error("Hlog not writable")
+            raise hcam.HipercamError("Hlog not writable")
 
 
 class Tseries:
@@ -751,7 +783,7 @@ class Tseries:
 
         """
 
-        if bitmask == ALL_OK:
+        if bitmask == hcam.ALL_OK:
             raise ValueError("bitmask=ALL_OK is invalid; ANY_FLAG may be what you want")
 
         if flag_bad:
@@ -1237,7 +1269,7 @@ class Tseries:
                 te.append(np.fabs(bin_edges[i] - bin_edges[i - 1]))
                 y.append(NaN)
                 ye.append(NaN)
-                bmask.append(NO_DATA)
+                bmask.append(hcam.NO_DATA)
                 continue
 
             if weighted:
@@ -1426,10 +1458,10 @@ class Tseries:
         mask &= ~bad
 
         if inplace:
-            self.set_bitmask(OUTLIER, mask)
+            self.set_bitmask(hcam.OUTLIER, mask)
         else:
             new_ts = copy.deepcopy(self)
-            new_ts.set_bitmask(OUTLIER, mask)
+            new_ts.set_bitmask(hcam.OUTLIER, mask)
             return new_ts
 
     def append(self, others):
@@ -1786,7 +1818,7 @@ class Tseries:
         ntot = len(self)
         bad = self.get_mask()
         nbad = len(bad[bad])
-        flagged = np.bitwise_and(self.bmask, ANY_FLAG) > 0
+        flagged = np.bitwise_and(self.bmask, hcam.ANY_FLAG) > 0
         nflag = len(flagged[flagged])
 
         print(f"There were {nbad} bad data points out of {ntot}")
@@ -1794,8 +1826,8 @@ class Tseries:
 
         if nflag:
             print("\nFlags raised:\n")
-            for fname, flag in FLAGS:
-                if flag != ALL_OK and flag != ANY_FLAG:
+            for fname, flag in hcam.FLAGS:
+                if flag != hcam.ALL_OK and flag != hcam.ANY_FLAG:
                     match = np.bitwise_and(self.bmask, flag) > 0
                     nfl = len(match[match])
                     if nfl:
@@ -1810,8 +1842,8 @@ class Tseries:
                 if bad[i] or flagged[i]:
                     if flagged[i]:
                         flags_raised = []
-                        for fname, flag in FLAGS:
-                            if flag != ANY_FLAG:
+                        for fname, flag in hcam.FLAGS:
+                            if flag != hcam.ANY_FLAG:
                                 if self.bmask[i] & flag:
                                     flags_raised.append(fname)
                         flags_raised = ", ".join(flags_raised)
@@ -1917,7 +1949,7 @@ Six columns: times exposures fluxes flux-errors weights sub-div-facs
 
         else:
             flags = []
-            for flag, message in FLAG_MESSAGES.items():
+            for flag, message in hcam.FLAG_MESSAGES.items():
                 flags.append(f"   Flag = {flag:6d}: {message}")
             flags = "\n".join(flags)
 
@@ -2058,10 +2090,10 @@ def scatter(
         xe = xts.ye[plot]
         kwargs["fmt"] = fmt
         kwargs["capsize"] = capsize
-        axes.errorbar(x, y, xerr=te, **kwargs)
+        axes.errorbar(x, y, xerr=xe, **kwargs)
 
     elif erry:
-        ye = self.ye[plot]
+        ye = yts.ye[plot]
         kwargs["fmt"] = fmt
         kwargs["capsize"] = capsize
         axes.errorbar(x, y, ye, **kwargs)
