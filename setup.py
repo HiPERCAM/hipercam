@@ -185,6 +185,7 @@ setup(
             "setaper=hipercam.scripts.setaper:setaper",
             "setdefect=hipercam.scripts.setdefect:setdefect",
             "setfringe=hipercam.scripts.setfringe:setfringe",
+            "shiftadd=hipercam.scripts.shiftadd:shiftadd",
             "splice=hipercam.scripts.splice:splice",
             "stats=hipercam.scripts.stats:stats",
             "sub=hipercam.scripts.arith:sub",
