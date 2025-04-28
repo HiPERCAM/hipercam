@@ -62,11 +62,7 @@ def new_wcs(wbase, dx, dy):
 
 def wcs_from_header(mccd):
     """
-    Try and make a WCS obect from the header of an MCCD
-
-    If this routine fails it will return a non-celestial WCS
-    that still allows stacking of images, but not using the
-    exact reprojection method.
+    Try and make a WCS object from the header of an MCCD.
     """
     header = mccd.head
 
@@ -115,8 +111,10 @@ def wcs_from_header(mccd):
 
 def shiftadd(args=None):
     """
-    ``shiftadd [source]  (run first last twait tmax | flist) trim ([ncol
-    nrow]) bias dark flat fmap (fpair [nhalf rmin rmax]) [overwrite]
+    ``shiftadd [source]  (run first last twait tmax | flist) rfilen refccd
+    fthresh reprmethod [(reprorder | consflux reprkernel kwidth regwidth)]
+    trim ([ncol nrow]) bias dark flat fmap (fpair [nhalf rmin rmax])
+    method [(sigma maxiters)] [overwrite] output``
 
     Averages images from a run using mean combination, but shifting each
     image based on the positions of stars.
@@ -254,7 +252,7 @@ def shiftadd(args=None):
            < 1 if fringe map was created from longer exposure data.
 
         method : str [hidden, defaults to 'm']
-           'm' for median, 'c' for clipped mean. See below for pros and cons.
+           'm' for median, 'c' for clipped mean.
 
         sigma : float [hidden; if method == 'c']
            With clipped mean combination, pixels that deviate by more than
@@ -344,7 +342,7 @@ def shiftadd(args=None):
             "rfilen", "reduce file", cline.Fname("reduce.red", hcam.RED)
         )
 
-        REF_CCD = cl.get_value("refccd", "reference CCD to use to measure offsets", "3")
+        ref_ccd = cl.get_value("refccd", "reference CCD to use to measure offsets", "3")
 
         fthresh = cl.get_value(
             "fthresh",
@@ -458,7 +456,7 @@ def shiftadd(args=None):
             ),
         )
 
-    # inputs done with. Now do the work with 'grab' and 'combine'
+    # inputs done with.
     use_grab = (
         server_or_local
         or bias is not None
@@ -496,6 +494,7 @@ def shiftadd(args=None):
     ccdwin = {}  # holds the window name for each Aperture/CCD combo
     offsets = []
     fwhm_values = []
+    mjds = []
     store = {}
     xoff, yoff = 0.0, 0.0
     with CleanUp(resource, use_grab):
@@ -506,17 +505,24 @@ def shiftadd(args=None):
             fname = str(fname.strip())
             print("Fitting apertures to frame", iframe + 1)
             mccd = hcam.MCCD.read(fname)
+            mjds.append(mccd.head["MJDUTC"])
 
             if read is None:
                 read, gain, ok = hcam.reduction.initial_checks(mccd, rfile)
 
             # loop over CCDs
-            cnam = REF_CCD
+            cnam = ref_ccd
             ccd = mccd[cnam]
 
-            # skip frames with no data
+            # if the ref CCD has no data then we can't use it as a reference,
+            # since we won't have offsets for this frame
             if not ccd.is_data():
-                continue
+                if not any([mccd[cnam].is_data() for cnam in mccd]):
+                    # apparently this frame just has no data in any CCD, so we can safely skip it
+                    continue
+                raise hcam.HipercamError(
+                    f"frame {iframe + 1} has no data in CCD {cnam}, so cannot be used as refccd"
+                )
 
             # initialise store of shifts for this CCD
             if cnam not in store:
@@ -576,6 +582,7 @@ def shiftadd(args=None):
 
         output_mccd = hcam.MCCD.read(str(files[0].strip()))
         cnames = sorted(list(output_mccd.keys()))
+        header_string = "nframes="
 
         for cnam in cnames:
             print(f"stacking CCD {cnam}")
@@ -583,16 +590,17 @@ def shiftadd(args=None):
             try:
                 # make real celestial WCS from header
                 orig_wcs = wcs_from_header(output_mccd)
-            except:
-                # fallback to basic WCS which can be used
-                # for any method except 'exact'
+            except Exception as err:
+                # fallback to basic WCS which can be used for any method except 'exact'
+                if reprmethod == "exact":
+                    raise hcam.HipercamError(
+                        "failed to create WCS from header, cannot use 'exact' reprojection method"
+                    ) from err
                 # start with basic WCS, CRDELT1, no offsets
                 orig_wcs = wcs.WCS(naxis=2)
 
             arrs = []
             nframes_used = 0
-            header_string = "nframes="
-            mjds = []
             for ifile, fname in enumerate(files):
                 fname = str(fname.strip())
                 mccd = hcam.MCCD.read(fname)
@@ -609,7 +617,6 @@ def shiftadd(args=None):
 
                 print("resampling frame", ifile + 1)
                 nframes_used += 1
-                mjds.append(ccd.head["MJDUTC"])
 
                 # find offset from previous frame
                 cumulative_offset_x, cumulative_offset_y = offsets[ifile]
@@ -668,7 +675,11 @@ def shiftadd(args=None):
 
             # average over the stack
             print(f"combining {nframes_used} frames for CCD {cnam}")
-            header_string += f",CCD{cnam}({nframes_used:d})"
+            if len(arrs) == 0 or nframes_used == 0:
+                raise hcam.HipercamError(
+                    f"found no data for CCD {cnam} in the selected frames"
+                )
+            header_string += f"CCD{cnam}({nframes_used:d}),"
             arr3d = np.stack(arrs)
 
             if method == "m":
@@ -703,12 +714,23 @@ def shiftadd(args=None):
                 crop = stack[ystart:yend, xstart:xend]
                 output_mccd[cnam][wnam].data = crop
 
-        # TODO: setting reproject options
+        # Add history
+        output_mccd.head.add_history("Result of shiftadd")
+
+        reprmethod_string = reprmethod
+        if reprmethod == "interp":
+            reprmethod_string += f" ({reprorder})"
+        elif reprmethod == "adaptive":
+            reprmethod_string += (
+                f" ({reprkernel},{kwidth:.1f},{regwidth:.1f},{consflux})"
+            )
+        output_mccd.head.add_history("Reproject method: " + reprmethod_string)
+
         if method == "m":
-            output_mccd.head.add_history("Median stack: " + header_string)
+            output_mccd.head.add_history("Median stack: " + header_string[:-1])
         else:
             output_mccd.head.add_history(
-                f"Clipped mean stack ({sigma:.1f} sigma): " + header_string
+                f"Clipped mean stack ({sigma:.1f} sigma): " + header_string[:-1]
             )
 
         # headers, use first as template
