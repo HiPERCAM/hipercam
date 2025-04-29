@@ -113,8 +113,7 @@ def shiftadd(args=None):
     """
     ``shiftadd [source]  (run first last twait tmax | flist) rfilen refccd
     fthresh reprmethod [(reprorder | consflux reprkernel kwidth regwidth)]
-    trim ([ncol nrow]) bias dark flat fmap (fpair [nhalf rmin rmax])
-    method [(sigma maxiters)] [overwrite] output``
+    trim ([ncol nrow]) method [(sigma maxiters)] [overwrite] output``
 
     Averages images from a run using mean combination, but shifting each
     image based on the positions of stars.
@@ -150,6 +149,13 @@ def shiftadd(args=None):
 
         last : int [if source ends 's' or 'l']
            last exposure number must be >= first, or 0 for the lot
+
+        twait : float [if source ends 's' or 'l'; hidden]
+           time to wait between attempts to find a new exposure, seconds.
+
+        tmax : float [if source ends 's' or 'l'; hidden]
+           maximum time to wait between attempts to find a new exposure,
+           seconds.
 
         rfilen : str
             name of reduce file.
@@ -201,13 +207,6 @@ def shiftadd(args=None):
             should limit the most extreme errors to less than one percent.
             Higher values will offer even more photometric accuracy.
 
-        twait : float [if source ends 's' or 'l'; hidden]
-           time to wait between attempts to find a new exposure, seconds.
-
-        tmax : float [if source ends 's' or 'l'; hidden]
-           maximum time to wait between attempts to find a new exposure,
-           seconds.
-
         trim : bool
            True to trim columns and/or rows off the edges of windows nearest
            the readout. Useful for ULTRACAM particularly.
@@ -218,38 +217,6 @@ def shiftadd(args=None):
 
         nrow : int [if trim, hidden]
            Number of rows to remove (bottom of windows)
-
-        bias : str
-           Name of bias frame to subtract, 'none' to ignore.
-
-        dark : str
-           Name of dark frame to subtract, 'none' to ignore.
-
-        flat : str
-           Name of flat field to divide by, 'none' to ignore.
-
-        fmap : str
-           Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
-
-        fpair : str [if fmap is not 'none']
-           Name of fringe pair file (see e.g. `setfringe`). Required if
-           a fringe map has been specified.
-
-        nhalf : int [if fmap is not 'none', hidden]
-           When calculating the differences for fringe measurement,
-           a region extending +/-nhalf binned pixels will be used when
-           measuring the amplitudes. Basically helps the stats.
-
-        rmin : float [if fmap is not 'none', hidden]
-           Minimum individual ratio to accept prior to calculating the overall
-           median in order to reduce the effect of outliers. Although all ratios
-           should be positive, you might want to set this a little below zero
-           to allow for some statistical fluctuation.
-
-        rmax : float [if fmap is not 'none', hidden]
-           Maximum individual ratio to accept prior to calculating the overall
-           median in order to reduce the effect of outliers. Probably typically
-           < 1 if fringe map was created from longer exposure data.
 
         method : str [hidden, defaults to 'm']
            'm' for median, 'c' for clipped mean.
@@ -277,6 +244,10 @@ def shiftadd(args=None):
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
         cl.register("first", Cline.LOCAL, Cline.PROMPT)
         cl.register("last", Cline.LOCAL, Cline.PROMPT)
+        cl.register("twait", Cline.LOCAL, Cline.HIDE)
+        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
+        cl.register("flist", Cline.LOCAL, Cline.PROMPT)
+
         cl.register("rfilen", Cline.LOCAL, Cline.PROMPT)
         cl.register("refccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("fthresh", Cline.LOCAL, Cline.HIDE)
@@ -288,20 +259,10 @@ def shiftadd(args=None):
         cl.register("kwidth", Cline.LOCAL, Cline.HIDE)
         cl.register("regwidth", Cline.LOCAL, Cline.HIDE)
 
-        cl.register("twait", Cline.LOCAL, Cline.HIDE)
-        cl.register("tmax", Cline.LOCAL, Cline.HIDE)
         cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ncol", Cline.GLOBAL, Cline.HIDE)
         cl.register("nrow", Cline.GLOBAL, Cline.HIDE)
-        cl.register("flist", Cline.LOCAL, Cline.PROMPT)
-        cl.register("bias", Cline.LOCAL, Cline.PROMPT)
-        cl.register("dark", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("fmap", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("fpair", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
-        cl.register("rmin", Cline.GLOBAL, Cline.HIDE)
-        cl.register("rmax", Cline.GLOBAL, Cline.HIDE)
+
         cl.register("method", Cline.LOCAL, Cline.HIDE)
         cl.register("sigma", Cline.LOCAL, Cline.HIDE)
         cl.register("maxiters", Cline.LOCAL, Cline.HIDE)
@@ -390,48 +351,6 @@ def shiftadd(args=None):
             ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
             nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
 
-        # bias frame (if any)
-        bias = cl.get_value(
-            "bias",
-            "bias frame ['none' to ignore]",
-            cline.Fname("bias", hcam.HCAM),
-            ignore="none",
-        )
-
-        # dark frame (if any)
-        dark = cl.get_value(
-            "dark",
-            "dark frame ['none' to ignore]",
-            cline.Fname("dark", hcam.HCAM),
-            ignore="none",
-        )
-
-        # flat field frame (if any)
-        flat = cl.get_value(
-            "flat",
-            "flat field frame ['none' to ignore]",
-            cline.Fname("flat", hcam.HCAM),
-            ignore="none",
-        )
-
-        # fringe file (if any)
-        fmap = cl.get_value(
-            "fmap",
-            "fringe map ['none' to ignore]",
-            cline.Fname("fmap", hcam.HCAM),
-            ignore="none",
-        )
-
-        if fmap is not None:
-            fpair = cl.get_value(
-                "fpair", "fringe pair file", cline.Fname("fringe", hcam.FRNG)
-            )
-            nhalf = cl.get_value(
-                "nhalf", "half-size of fringe measurement regions", 2, 0
-            )
-            rmin = cl.get_value("rmin", "minimum fringe pair ratio", -0.2)
-            rmax = cl.get_value("rmax", "maximum fringe pair ratio", 1.0)
-
         cl.set_default("method", "m")
         method = cl.get_value(
             "method", "c(lipped mean), m(edian)", "c", lvals=("c", "m")
@@ -457,14 +376,8 @@ def shiftadd(args=None):
         )
 
     # inputs done with.
-    use_grab = (
-        server_or_local
-        or bias is not None
-        or dark is not None
-        or flat is not None
-        or fmap is not None
-    )
-    if use_grab:
+    rfile = hcam.reduction.Rfile.read(rfilen)
+    if server_or_local:
         print("\nCalling 'grab' ...")
 
         # Build argument list
@@ -476,20 +389,27 @@ def shiftadd(args=None):
         else:
             args += ["no"]
         args += [
-            "none" if bias is None else bias,
-            "none" if dark is None else dark,
-            "none" if flat is None else flat,
+            "none" if not rfile["calibration"].bias else rfile["calibration"].bias,
+            "none" if not rfile["calibration"].dark else rfile["calibration"].dark,
+            "none" if not rfile["calibration"].flat else rfile["calibration"].flat,
         ]
-        if fmap is None:
+        if not rfile["calibration"].fmap:
             args += ["none", "f32"]
         else:
-            args += [fmap, fpair, str(nhalf), str(rmin), str(rmax), "false", "f32"]
+            args += [
+                rfile["calibration"].fmap,
+                rfile["calibration"].fpair,
+                rfile["calibration"].nhalf,
+                rfile["calibration"].rmin,
+                rfile["calibration"].rmax,
+                "false",
+                "f32",
+            ]
 
         resource = hcam.scripts.grab(args)
 
     # at this point 'resource' is a list of files, no matter the input
     # method.
-    rfile = hcam.reduction.Rfile.read(rfilen)
     read = None
     ccdwin = {}  # holds the window name for each Aperture/CCD combo
     offsets = []
@@ -497,7 +417,7 @@ def shiftadd(args=None):
     mjds = []
     store = {}
     xoff, yoff = 0.0, 0.0
-    with CleanUp(resource, use_grab):
+    with CleanUp(resource, server_or_local):
         files = open(resource).readlines()
 
         print("calculating pixel shifts")
