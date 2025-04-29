@@ -388,20 +388,21 @@ def shiftadd(args=None):
             args += ["yes", str(ncol), str(nrow)]
         else:
             args += ["no"]
+        calsec = rfile["calibration"]
         args += [
-            "none" if not rfile["calibration"].bias else rfile["calibration"].bias,
-            "none" if not rfile["calibration"].dark else rfile["calibration"].dark,
-            "none" if not rfile["calibration"].flat else rfile["calibration"].flat,
+            "none" if not calsec["bias"] else calsec["bias"],
+            "none" if not calsec["dark"] else calsec["dark"],
+            "none" if not calsec["flat"] else calsec["flat"],
         ]
-        if not rfile["calibration"].fmap:
+        if not calsec["fmap"]:
             args += ["none", "f32"]
         else:
             args += [
-                rfile["calibration"].fmap,
-                rfile["calibration"].fpair,
-                rfile["calibration"].nhalf,
-                rfile["calibration"].rmin,
-                rfile["calibration"].rmax,
+                calsec["fmap"],
+                calsec["fpair"],
+                calsec["nhalf"],
+                calsec["rmin"],
+                calsec["rmax"],
                 "false",
                 "f32",
             ]
