@@ -8,7 +8,7 @@ hipercam pipeline can also be used to reduce data from the ULTRACAM
 and ULTRASPEC high-speed cameras, and other instruments too.
 
 More information about using the hipercam package can be found in
-`the documentation <https://vikdhillon.staff.shef.ac.uk/hipercam/pipeline/index.html/>`_.
+`the documentation <https://vikdhillon.staff.shef.ac.uk/hipercam/pipeline/index.html>`_.
 
 Docker Installation
 ===================
@@ -187,7 +187,7 @@ Further Information
 For more information see:
 
   * `The documentation
-    <https://vikdhillon.staff.shef.ac.uk/hipercam/pipeline/index.html/>`_
+    <https://vikdhillon.staff.shef.ac.uk/hipercam/pipeline/index.html>`_
 
   * `The HiPERCAM pipeline github repository <https://github.com/HiPERCAM/hipercam>`_
 
