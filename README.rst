@@ -5,8 +5,10 @@ hipercam is the reduction package for the multi-CCD camera HiPERCAM
 built through an ERC Advanced Grant awarded to Vik Dhillon. HiPERCAM
 is a multi-CCD high-speed camera for astrophysical research. The
 hipercam pipeline can also be used to reduce data from the ULTRACAM
-and ULTRASPEC high-speed cameras, and other instruments too
-after a little data format wrangling.
+and ULTRASPEC high-speed cameras, and other instruments too.
+
+More information about using the hipercam package can be found in
+`the documentation <https://vikdhillon.staff.shef.ac.uk/hipercam/pipeline/index.html/>`_.
 
 Docker Installation
 ===================
@@ -172,13 +174,20 @@ your O/S package manager. e.g. under fedora, Cython appears as
          output xlsx files. Since these are unusual, the software is
          designed to build without insisting on this module.
 
+Contributing
+===================
+The hipercam pipeline is made for its users, and we welcome contributions of many kinds.
+If you notice a bug, or want to request new functionality, please 
+`raise an issue <https://github.com/HiPERCAM/hipercam/issues>`_ or consider submitting
+a `pull request <https://github.com/HiPERCAM/hipercam/pulls>`_.
+
 Further Information
 ===================
 
 For more information see:
 
   * `The documentation
-    <http://deneb.astro.warwick.ac.uk/phsaap/hipercam/docs/html/>`_
+    <https://vikdhillon.staff.shef.ac.uk/hipercam/pipeline/index.html/>`_
 
   * `The HiPERCAM pipeline github repository <https://github.com/HiPERCAM/hipercam>`_
 
