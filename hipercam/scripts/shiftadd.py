@@ -497,9 +497,18 @@ def shiftadd(args=None):
         # aperture file for first image, and then w.r.t to
         # previous file for subsequent images. For each CCD,
         # we should center the offsets on 0,0. This minimises the
-        # risks of having unsampled pixels in the full frame data
+        # risks of having unsampled pixels in the full frame data.
         offsets = np.array(offsets)
+
+        # First subtract the mean offset from each frame,
+        # then find the CCD with the smallest offset from
+        # the mean and subtract its offset from all frames
+        # so we guarantee one frame is centred on (0, 0)
         offsets -= offsets.mean(axis=0)
+        total_offsets = np.sum(np.abs(offsets), axis=1)
+        min_offset_index = np.argmin(total_offsets)
+        min_offset = offsets[min_offset_index]
+        offsets -= min_offset
 
         output_mccd = hcam.MCCD.read(str(files[0].strip()))
         cnames = sorted(list(output_mccd.keys()))
