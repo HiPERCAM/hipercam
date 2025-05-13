@@ -552,8 +552,8 @@ def shiftadd(args=None):
                     # (binned) array
                     pixel_wcs = copy.deepcopy(orig_wcs)
                     crval1, crval2 = pixel_wcs.wcs.crpix
-                    window_offset_x = (wind.llx - 1) / wind.xbin
-                    window_offset_y = (wind.lly - 1) / wind.ybin
+                    window_offset_x = wind.llx / wind.xbin
+                    window_offset_y = wind.lly / wind.ybin
                     pixel_wcs.wcs.crpix = (
                         crval1 + cumulative_offset_x - window_offset_x,
                         crval2 + cumulative_offset_y - window_offset_y,
@@ -574,6 +574,8 @@ def shiftadd(args=None):
                             output_shape,
                         )
                     # OK - we are using adaptive then
+                    # note we force boundary_mode to 'nearest'
+                    # to avoid NaNs around the edge of the output
                     elif reprkernel == "Hann":
                         reprojected_data, _ = reproject_adaptive(
                             (wind.data, pixel_wcs),
@@ -581,6 +583,7 @@ def shiftadd(args=None):
                             output_shape,
                             conserve_flux=consflux,
                             kernel="Hann",
+                            boundary_mode="nearest",
                         )
                     else:
                         reprojected_data, _ = reproject_adaptive(
@@ -591,48 +594,73 @@ def shiftadd(args=None):
                             kernel_width=kwidth,
                             sample_region_width=regwidth,
                             kernel="Gaussian",
+                            boundary_mode="nearest",
                         )
+
+                    # we need to mask the area outside the window with NaNs,
+                    # so there's no bleedover into other windows when stacking
+                    # when using 'nearest' interpolation for adaptive
+                    mask = np.zeros_like(reprojected_data, dtype=bool)
+                    mask[wind.lly:wind.lly+wind.ny, wind.llx:wind.llx+wind.nx] = True
+                    reprojected_data[~mask] = np.nan
+
                     arrs.append(reprojected_data)
 
-            # average over the stack
+            # average over the stack of FF images
             print(f"combining {nframes_used} frames for CCD {cnam}")
+            header_string += f"CCD{cnam}({nframes_used:d}),"
+
             if len(arrs) == 0 or nframes_used == 0:
                 raise hcam.HipercamError(
                     f"found no data for CCD {cnam} in the selected frames"
                 )
-            header_string += f"CCD{cnam}({nframes_used:d}),"
+
             arr3d = np.stack(arrs)
-
-            if method == "m":
-                stack = medianfunc(arr3d, axis=0)
-            elif method == "c" and sigma > 0:
-                # clipped mean
-                mask = sigma_clip(
-                    arr3d,
-                    sigma_lower=sigma,
-                    sigma_upper=sigma,
-                    axis=0,
-                    copy=False,
-                    maxiters=maxiters,
-                    cenfunc="mean",
-                    stdfunc="std",
-                    masked=True,
+            with warnings.catch_warnings():
+                # ignore warnings about all-nan slices
+                # (we set NaNs outside of the windows)
+                warnings.filterwarnings(
+                    "ignore",
+                    category=RuntimeWarning,
+                    message="All-NaN slice encountered",
                 )
-                # fill masked with nans
-                arr3d[mask.mask] = np.nan
-                stack = meanfunc(arr3d, axis=0)
-            else:
-                # simple mean
-                stack = meanfunc(arr3d, axis=0)
+                if method == "m":
+                    stack = medianfunc(arr3d, axis=0)
+                elif method == "c" and sigma > 0:
+                    # clipped mean
+                    mask = sigma_clip(
+                        arr3d,
+                        sigma_lower=sigma,
+                        sigma_upper=sigma,
+                        axis=0,
+                        copy=False,
+                        maxiters=maxiters,
+                        cenfunc="mean",
+                        stdfunc="std",
+                        masked=True,
+                    )
+                    # fill masked with nans
+                    arr3d[mask.mask] = np.nan
+                    stack = meanfunc(arr3d, axis=0)
+                else:
+                    # simple mean
+                    stack = meanfunc(arr3d, axis=0)
 
-            # resample the FF image back into the individual windows
-            # of the CCD.
+            # crop the FF images back into the individual windows
             for wnam, wind in output_mccd[cnam].items():
-                xstart = (wind.llx - 1) // wind.xbin
+                xstart = wind.llx // wind.xbin
                 xend = xstart + wind.nx
-                ystart = (wind.lly - 1) // wind.ybin
+                ystart = wind.lly // wind.ybin
                 yend = ystart + wind.ny
                 crop = stack[ystart:yend, xstart:xend]
+
+                # check for NaNs in the cropped data
+                if np.isnan(crop).any():
+                    # The pipeline can't really handle NaNs, so we raise an error
+                    raise hcam.HipercamError(
+                        f"NaN values detected in combined data for CCD {cnam}, window {wnam}"
+                    )
+
                 output_mccd[cnam][wnam].data = crop
 
         # Add history
