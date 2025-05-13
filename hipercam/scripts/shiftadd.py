@@ -561,8 +561,8 @@ def shiftadd(args=None):
                     # (binned) array
                     pixel_wcs = copy.deepcopy(orig_wcs)
                     crval1, crval2 = pixel_wcs.wcs.crpix
-                    window_offset_x = wind.llx / wind.xbin
-                    window_offset_y = wind.lly / wind.ybin
+                    window_offset_x = wind.llx // wind.xbin
+                    window_offset_y = wind.lly // wind.ybin
                     pixel_wcs.wcs.crpix = (
                         crval1 + cumulative_offset_x - window_offset_x,
                         crval2 + cumulative_offset_y - window_offset_y,
@@ -610,7 +610,11 @@ def shiftadd(args=None):
                     # so there's no bleedover into other windows when stacking
                     # when using 'nearest' interpolation for adaptive
                     mask = np.zeros_like(reprojected_data, dtype=bool)
-                    mask[wind.lly:wind.lly+wind.ny, wind.llx:wind.llx+wind.nx] = True
+                    xstart = wind.llx // wind.xbin
+                    xend = xstart + wind.nx
+                    ystart = wind.lly // wind.ybin
+                    yend = ystart + wind.ny
+                    mask[ystart:yend, xstart:xend] = True
                     reprojected_data[~mask] = np.nan
 
                     arrs.append(reprojected_data)
