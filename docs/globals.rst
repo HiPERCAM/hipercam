@@ -61,6 +61,7 @@
 .. |setaper| replace:: :func:`setaper <hipercam.scripts.setaper>`
 .. |setdefect| replace:: :func:`setdefect <hipercam.scripts.setdefect>`
 .. |setfringe| replace:: :func:`setfringe <hipercam.scripts.setfringe>`
+.. |shiftadd| replace:: :func:`shiftadd <hipercam.scripts.shiftadd>`
 .. |splice| replace:: :func:`splice <hipercam.scripts.splice>`
 .. |stats| replace:: :func:`stats <hipercam.scripts.stats>`
 .. |sub| replace:: :func:`sub <hipercam.scripts.sub>`

@@ -169,10 +169,14 @@ def shiftadd(args=None):
             frames with FWHM > fthresh will be ignored.
 
         reprmethod : str
-            Method to use for reprojecting the data. Options are 'interp',
-            'adaptive' and 'exact'. 'interp' is the fastest but does not
-            conserve flux. 'adaptive' is slower but conserves flux. 'exact'
-            is the slowest but most accurate. 'adaptive' is the default.
+            Method to use for reprojecting the data, three options:
+
+                | 'interp': the fastest, but does not conserve flux
+                | 'adaptive': slower, but conserves flux
+                | 'exact': the slowest but most accurate, only available
+                  if the input data contains WCS info (currently HiPERCAM only)
+
+            The default is 'adaptive'.
             See https://reproject.readthedocs.io for details.
 
         reprorder : int [if reprmethod is 'interp'; hidden]
