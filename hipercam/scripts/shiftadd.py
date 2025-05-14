@@ -308,7 +308,9 @@ def shiftadd(args=None):
             "rfilen", "reduce file", cline.Fname("reduce.red", hcam.RED)
         )
 
-        ref_ccd = cl.get_value("refccd", "reference CCD to use to measure offsets", "3")
+        ref_cnam = cl.get_value(
+            "refccd", "reference CCD to use to measure offsets", "3"
+        )
 
         fthresh = cl.get_value(
             "fthresh",
@@ -416,123 +418,111 @@ def shiftadd(args=None):
 
     # at this point 'resource' is a list of files, no matter the input
     # method.
-    read = None
-    ccdwin = {}  # holds the window name for each Aperture/CCD combo
-    offsets = []
-    fwhm_values = []
-    mjds = []
-    store = {}
-    xoff, yoff = 0.0, 0.0
     with CleanUp(resource, server_or_local):
         files = open(resource).readlines()
 
-        print("calculating pixel shifts")
+        # First we want to calculate how offset each frame is relative to the apertures
+        print("calculating pixel shifts using CCD {ref_cnam}")
+        offsets = []
+        fwhm_values = []
+        mjds = []
+        xoff, yoff = 0.0, 0.0
         for ifile, fname in enumerate(files):
-            fname = str(fname.strip())
             print("fitting apertures to frame", ifile + first)
+            fname = str(fname.strip())
             mccd = hcam.MCCD.read(fname)
-            mjds.append(mccd.head["MJDUTC"])
+            ccd = mccd[ref_cnam]
 
-            if read is None:
-                read, gain, ok = hcam.reduction.initial_checks(mccd, rfile)
-
-            # loop over CCDs
-            cnam = ref_ccd
-            ccd = mccd[cnam]
-
-            # if the ref CCD has no data then we can't use it as a reference,
-            # since we won't have offsets for this frame
+            # If the ref CCD has no data in this frame (e.g. due to nskip>1) then we can't calculate
+            # an offset, so you need to use a different CCD as a reference
             if not ccd.is_data():
                 if not any([mccd[cnam].is_data() for cnam in mccd]):
                     # apparently this frame just has no data in any CCD, so we can safely skip it
                     continue
                 raise hcam.HipercamError(
-                    f"frame {ifile + first} has no data in CCD {cnam}, so cannot be used as refccd"
+                    f"frame {ifile + first} has no data in CCD {ref_cnam}, so cannot be used as refccd"
                 )
 
-            # initialise store of shifts for this CCD
-            if cnam not in store:
-                store[cnam] = {"mfwhm": -1.0, "mbeta": -1.0}
+            # Find which window contains each aperture
+            ccdwin = {}
+            for apnam, aper in rfile.aper[ref_cnam].items():
+                for wnam, wind in mccd[ref_cnam].items():
+                    if wind.distance(aper.x, aper.y) > 0:
+                        ccdwin[apnam] = wnam
+                        break
+                    else:
+                        ccdwin[apnam] = None
 
-            # first time around, find which window contains each aperture
-            if cnam not in ccdwin:
-                ccdwin[cnam] = {}
-                for apnam, aper in rfile.aper[cnam].items():
-                    for wnam, wind in mccd[cnam].items():
-                        if wind.distance(aper.x, aper.y) > 0:
-                            ccdwin[cnam][apnam] = wnam
-                            break
-                        else:
-                            ccdwin[cnam][apnam] = None
-
+            # Reposition the apertures on the reference CCD
+            store = {"mfwhm": -1.0, "mbeta": -1.0}
+            read, gain, ok = hcam.reduction.initial_checks(mccd, rfile)
             hcam.reduction.moveApers(
-                cnam,
-                mccd[cnam],
-                mccd[cnam],
-                read[cnam],
-                gain[cnam],
-                ccdwin[cnam],
+                ref_cnam,
+                mccd[ref_cnam],
+                mccd[ref_cnam],
+                read[ref_cnam],
+                gain[ref_cnam],
+                ccdwin,
                 rfile,
-                store[cnam],
+                store,
             )
 
-            # store the mean FWHM
-            fwhm_values.append(store[cnam]["mfwhm"])
+            # Store the mean FWHM, as well as the image date
+            fwhm_values.append(store["mfwhm"])
+            mjds.append(mccd.head["MJDUTC"])
 
-            # calculate the shifts only using reference stars
+            # Find the mean shifts (only using reference stars)
             dx = np.mean(
                 [
-                    store[cnam][apnam]["dx"]
-                    for apnam in rfile.aper[cnam]
-                    if rfile.aper[cnam][apnam].ref
+                    store[apnam]["dx"]
+                    for apnam in rfile.aper[ref_cnam]
+                    if rfile.aper[ref_cnam][apnam].ref
                 ]
             )
             dy = np.mean(
                 [
-                    store[cnam][apnam]["dy"]
-                    for apnam in rfile.aper[cnam]
-                    if rfile.aper[cnam][apnam].ref
+                    store[apnam]["dy"]
+                    for apnam in rfile.aper[ref_cnam]
+                    if rfile.aper[ref_cnam][apnam].ref
                 ]
             )
+
+            # Store the offsets relative to the previous frame
             xoff += dx
             yoff += dy
             offsets.append((xoff, yoff))
 
-        # offsets are now defined w.r.t to the positions in the
+        # Offsets are now defined w.r.t to the positions in the
         # aperture file for first image, and then w.r.t to
         # previous file for subsequent images. For each CCD,
         # we should center the offsets on 0,0. This minimises the
         # risks of having unsampled pixels in the full frame data.
         offsets = np.array(offsets)
-
-        # First subtract the mean offset from each frame,
-        # then find the CCD with the smallest offset from
-        # the mean and subtract its offset from all frames
-        # so we guarantee one frame is centred on (0, 0)
         offsets -= offsets.mean(axis=0)
+
+        # Now find the CCD with the smallest offset from
+        # the mean and subtract its offset from all frames,
+        # so we guarantee one frame is centred on exactly (0, 0)
         total_offsets = np.sum(np.abs(offsets), axis=1)
-        min_offset_index = np.argmin(total_offsets)
-        min_offset = offsets[min_offset_index]
-        offsets -= min_offset
+        offsets -= offsets[np.argmin(total_offsets)]
 
-        output_mccd = hcam.MCCD.read(str(files[0].strip()))
-        cnames = sorted(list(output_mccd.keys()))
+        # Use the first file as a template
+        output_mccd = hcam.MCCD.read(files[0].strip())
+        try:
+            # make real celestial WCS from header
+            orig_wcs = wcs_from_header(output_mccd)
+        except Exception as err:
+            # fallback to basic WCS which can be used for any method except 'exact'
+            if reprmethod == "exact":
+                raise hcam.HipercamError(
+                    "failed to create WCS from header, cannot use 'exact' reprojection method"
+                ) from err
+            # start with basic WCS, CRDELT1, no offsets
+            orig_wcs = wcs.WCS(naxis=2)
+
         header_string = "nframes="
-
-        for cnam in cnames:
+        for cnam in output_mccd:
             print(f"stacking CCD {cnam}")
-
-            try:
-                # make real celestial WCS from header
-                orig_wcs = wcs_from_header(output_mccd)
-            except Exception as err:
-                # fallback to basic WCS which can be used for any method except 'exact'
-                if reprmethod == "exact":
-                    raise hcam.HipercamError(
-                        "failed to create WCS from header, cannot use 'exact' reprojection method"
-                    ) from err
-                # start with basic WCS, CRDELT1, no offsets
-                orig_wcs = wcs.WCS(naxis=2)
 
             arrs = []
             nframes_used = 0
@@ -681,9 +671,8 @@ def shiftadd(args=None):
 
                 output_mccd[cnam][wnam].data = crop
 
-        # Add history
+        # Add history and other keywords to the header
         output_mccd.head.add_history("Result of shiftadd")
-
         reprmethod_string = reprmethod
         if reprmethod == "interp":
             reprmethod_string += f" ({reprorder})"
@@ -695,18 +684,15 @@ def shiftadd(args=None):
             else:
                 reprmethod_string += f" ({reprkernel},{consflux})"
         output_mccd.head.add_history("Reproject method: " + reprmethod_string)
-
         if method == "m":
             output_mccd.head.add_history("Median stack: " + header_string[:-1])
         else:
             output_mccd.head.add_history(
                 f"Clipped mean stack ({sigma:.1f} sigma): " + header_string[:-1]
             )
-
-        # headers, use first as template
-        phead = output_mccd.head
         mid_time = np.min(mjds) + 0.5 * (np.max(mjds) - np.min(mjds))
-        phead["MJDUTC"] = mid_time
+        output_mccd.head["MJDUTC"] = mid_time
 
+        # Write out
         output_mccd.write(outfile, overwrite=overwrite)
         print(f"Written {outfile}")
