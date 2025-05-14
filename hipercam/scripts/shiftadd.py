@@ -2,6 +2,7 @@ import copy
 import os
 import signal
 import sys
+import warnings
 
 import numpy as np
 from astropy.stats import sigma_clip
@@ -36,7 +37,7 @@ class CleanUp:
         self.temp = temp
 
     def _sigint_handler(self, signal_received, frame):
-        print("\naverun aborted")
+        print("\nshiftadd aborted")
         sys.exit(1)
 
     def __enter__(self):
@@ -422,9 +423,9 @@ def shiftadd(args=None):
         files = open(resource).readlines()
 
         print("calculating pixel shifts")
-        for iframe, fname in enumerate(files):
+        for ifile, fname in enumerate(files):
             fname = str(fname.strip())
-            print("Fitting apertures to frame", iframe + 1)
+            print("fitting apertures to frame", ifile + first)
             mccd = hcam.MCCD.read(fname)
             mjds.append(mccd.head["MJDUTC"])
 
@@ -442,7 +443,7 @@ def shiftadd(args=None):
                     # apparently this frame just has no data in any CCD, so we can safely skip it
                     continue
                 raise hcam.HipercamError(
-                    f"frame {iframe + 1} has no data in CCD {cnam}, so cannot be used as refccd"
+                    f"frame {ifile + first} has no data in CCD {cnam}, so cannot be used as refccd"
                 )
 
             # initialise store of shifts for this CCD
@@ -541,15 +542,15 @@ def shiftadd(args=None):
                 # skip if FWHM is above threshold
                 if fthresh > 0 and fwhm_values[ifile] > fthresh:
                     print(
-                        f"skipping frame {ifile + 1} (FWHM too large ({fwhm_values[ifile]:.1f} > {fthresh:.1f}))"
+                        f"skipping frame {ifile + first} (FWHM too large ({fwhm_values[ifile]:.1f} > {fthresh:.1f}))"
                     )
                     continue
 
-                print("resampling frame", ifile + 1)
+                print("resampling frame", ifile + first)
                 nframes_used += 1
 
-                # find offset from previous frame
-                cumulative_offset_x, cumulative_offset_y = offsets[ifile]
+                # find calculated offset
+                frame_offset_x, frame_offset_y = offsets[ifile]
 
                 # find output shape to resample each window onto (binned)
                 # full frame array
@@ -564,8 +565,8 @@ def shiftadd(args=None):
                     window_offset_x = wind.llx // wind.xbin
                     window_offset_y = wind.lly // wind.ybin
                     pixel_wcs.wcs.crpix = (
-                        crval1 + cumulative_offset_x - window_offset_x,
-                        crval2 + cumulative_offset_y - window_offset_y,
+                        crval1 + frame_offset_x - window_offset_x,
+                        crval2 + frame_offset_y - window_offset_y,
                     )
 
                     # carry out the re-projection
@@ -683,9 +684,12 @@ def shiftadd(args=None):
         if reprmethod == "interp":
             reprmethod_string += f" ({reprorder})"
         elif reprmethod == "adaptive":
-            reprmethod_string += (
-                f" ({reprkernel},{kwidth:.1f},{regwidth:.1f},{consflux})"
-            )
+            if reprkernel == "Gaussian":
+                reprmethod_string += (
+                    f" ({reprkernel},{kwidth:.1f},{regwidth:.1f},{consflux})"
+                )
+            else:
+                reprmethod_string += f" ({reprkernel},{consflux})"
         output_mccd.head.add_history("Reproject method: " + reprmethod_string)
 
         if method == "m":
