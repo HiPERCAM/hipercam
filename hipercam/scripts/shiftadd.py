@@ -419,78 +419,78 @@ def shiftadd(args=None):
     # at this point 'resource' is a list of files, no matter the input
     # method.
     with CleanUp(resource, server_or_local):
-        files = open(resource).readlines()
-
         # First we want to calculate how offset each frame is relative to the apertures
-        print("calculating pixel shifts using CCD {ref_cnam}")
+        print(f"calculating pixel shifts using CCD {ref_cnam}")
         offsets = []
         fwhm_values = []
         mjds = []
         xoff, yoff = 0.0, 0.0
-        for ifile, fname in enumerate(files):
-            print("fitting apertures to frame", ifile + first)
-            fname = str(fname.strip())
-            mccd = hcam.MCCD.read(fname)
-            ccd = mccd[ref_cnam]
+        with hcam.spooler.HcamListSpool(resource) as spool:
+            # Note we don't just open the ref_ccd, we need the full mccd for `initial_checks`
+            for nf, mccd in enumerate(spool):
+                print("fitting apertures to frame", nf + first)
+                ccd = mccd[ref_cnam]
 
-            # If the ref CCD has no data in this frame (e.g. due to nskip>1) then we can't calculate
-            # an offset, so you need to use a different CCD as a reference
-            if not ccd.is_data():
-                if not any([mccd[cnam].is_data() for cnam in mccd]):
-                    # apparently this frame just has no data in any CCD, so we can safely skip it
-                    continue
-                raise hcam.HipercamError(
-                    f"frame {ifile + first} has no data in CCD {ref_cnam}, so cannot be used as refccd"
+                # If the ref CCD has no data in this frame (e.g. due to nskip>1)
+                # then we can't calculate an offset, so you need to use
+                # a different CCD as a reference
+                if not ccd.is_data():
+                    if not any([mccd[cnam].is_data() for cnam in mccd]):
+                        # this frame has no data in any CCD (?), so we can safely skip it
+                        continue
+                    raise hcam.HipercamError(
+                        f"frame {nf + first} has no data in CCD {ref_cnam},"
+                        f"so cannot be used as refccd"
+                    )
+
+                # Find which window contains each aperture
+                ccdwin = {}
+                for apnam, aper in rfile.aper[ref_cnam].items():
+                    for wnam, wind in ccd.items():
+                        if wind.distance(aper.x, aper.y) > 0:
+                            ccdwin[apnam] = wnam
+                            break
+                        else:
+                            ccdwin[apnam] = None
+
+                # Reposition the apertures on the reference CCD
+                store = {"mfwhm": -1.0, "mbeta": -1.0}
+                read, gain, ok = hcam.reduction.initial_checks(mccd, rfile)
+                hcam.reduction.moveApers(
+                    ref_cnam,
+                    ccd,
+                    ccd,
+                    read[ref_cnam],
+                    gain[ref_cnam],
+                    ccdwin,
+                    rfile,
+                    store,
                 )
 
-            # Find which window contains each aperture
-            ccdwin = {}
-            for apnam, aper in rfile.aper[ref_cnam].items():
-                for wnam, wind in mccd[ref_cnam].items():
-                    if wind.distance(aper.x, aper.y) > 0:
-                        ccdwin[apnam] = wnam
-                        break
-                    else:
-                        ccdwin[apnam] = None
+                # Store the mean FWHM, as well as the image date
+                fwhm_values.append(store["mfwhm"])
+                mjds.append(mccd.head["MJDUTC"])
 
-            # Reposition the apertures on the reference CCD
-            store = {"mfwhm": -1.0, "mbeta": -1.0}
-            read, gain, ok = hcam.reduction.initial_checks(mccd, rfile)
-            hcam.reduction.moveApers(
-                ref_cnam,
-                mccd[ref_cnam],
-                mccd[ref_cnam],
-                read[ref_cnam],
-                gain[ref_cnam],
-                ccdwin,
-                rfile,
-                store,
-            )
+                # Find the mean shifts (only using reference stars)
+                dx = np.mean(
+                    [
+                        store[apnam]["dx"]
+                        for apnam in rfile.aper[ref_cnam]
+                        if rfile.aper[ref_cnam][apnam].ref
+                    ]
+                )
+                dy = np.mean(
+                    [
+                        store[apnam]["dy"]
+                        for apnam in rfile.aper[ref_cnam]
+                        if rfile.aper[ref_cnam][apnam].ref
+                    ]
+                )
 
-            # Store the mean FWHM, as well as the image date
-            fwhm_values.append(store["mfwhm"])
-            mjds.append(mccd.head["MJDUTC"])
-
-            # Find the mean shifts (only using reference stars)
-            dx = np.mean(
-                [
-                    store[apnam]["dx"]
-                    for apnam in rfile.aper[ref_cnam]
-                    if rfile.aper[ref_cnam][apnam].ref
-                ]
-            )
-            dy = np.mean(
-                [
-                    store[apnam]["dy"]
-                    for apnam in rfile.aper[ref_cnam]
-                    if rfile.aper[ref_cnam][apnam].ref
-                ]
-            )
-
-            # Store the offsets relative to the previous frame
-            xoff += dx
-            yoff += dy
-            offsets.append((xoff, yoff))
+                # Store the offsets relative to the previous frame
+                xoff += dx
+                yoff += dy
+                offsets.append((xoff, yoff))
 
         # Offsets are now defined w.r.t to the positions in the
         # aperture file for first image, and then w.r.t to
@@ -507,7 +507,9 @@ def shiftadd(args=None):
         offsets -= offsets[np.argmin(total_offsets)]
 
         # Use the first file as a template
-        output_mccd = hcam.MCCD.read(files[0].strip())
+        with open(resource) as f:
+            first_frame = f.readline().strip()
+            output_mccd = hcam.MCCD.read(first_frame)
         try:
             # make real celestial WCS from header
             orig_wcs = wcs_from_header(output_mccd)
@@ -520,101 +522,106 @@ def shiftadd(args=None):
             # start with basic WCS, CRDELT1, no offsets
             orig_wcs = wcs.WCS(naxis=2)
 
+        # Now process each file CCD by CCD to reduce the memory footprint
         header_string = "nframes="
         for cnam in output_mccd:
             print(f"stacking CCD {cnam}")
 
             arrs = []
             nframes_used = 0
-            for ifile, fname in enumerate(files):
-                fname = str(fname.strip())
-                mccd = hcam.MCCD.read(fname)
-                ccd = mccd[cnam]
-                if not ccd.is_data():
-                    continue
+            with hcam.spooler.HcamListSpool(resource, cnam) as spool:
+                # Here we only open the CCD we're interested in
+                for nf, ccd in enumerate(spool):
+                    if not ccd.is_data():
+                        continue
 
-                # skip if FWHM is above threshold
-                if fthresh > 0 and fwhm_values[ifile] > fthresh:
-                    print(
-                        f"skipping frame {ifile + first} (FWHM too large ({fwhm_values[ifile]:.1f} > {fthresh:.1f}))"
-                    )
-                    continue
+                    # Skip if FWHM is above threshold
+                    if fthresh > 0 and fwhm_values[nf] > fthresh:
+                        print(
+                            f"skipping frame {nf + first}",
+                            f"(FWHM too large ({fwhm_values[nf]:.1f} > {fthresh:.1f}))",
+                        )
+                        continue
 
-                print("resampling frame", ifile + first)
-                nframes_used += 1
+                    print("resampling frame", nf + first)
+                    nframes_used += 1
 
-                # find calculated offset
-                frame_offset_x, frame_offset_y = offsets[ifile]
+                    # Find calculated offset
+                    frame_offset_x, frame_offset_y = offsets[nf]
+                    print(frame_offset_x, frame_offset_y)
 
-                # find output shape to resample each window onto (binned)
-                # full frame array
-                output_shape = (ccd.nytot // ccd.head.ybin, ccd.nxtot // ccd.head.xbin)
-
-                # add this CCD to the list of arrays
-                for wnam, wind in ccd.items():
-                    # make WCS to reproject data onto full frame
-                    # (binned) array
-                    pixel_wcs = copy.deepcopy(orig_wcs)
-                    crval1, crval2 = pixel_wcs.wcs.crpix
-                    window_offset_x = wind.llx // wind.xbin
-                    window_offset_y = wind.lly // wind.ybin
-                    pixel_wcs.wcs.crpix = (
-                        crval1 + frame_offset_x - window_offset_x,
-                        crval2 + frame_offset_y - window_offset_y,
+                    # Find output shape to resample each window onto (binned)
+                    # full frame array
+                    output_shape = (
+                        ccd.nytot // ccd.head.ybin,
+                        ccd.nxtot // ccd.head.xbin,
                     )
 
-                    # carry out the re-projection
-                    if reprmethod == "interp":
-                        reprojected_data, _ = reproject_interp(
-                            (wind.data, pixel_wcs),
-                            orig_wcs,
-                            output_shape,
-                            order=reprorder,
-                        )
-                    elif reprmethod == "exact":
-                        reprojected_data, _ = reproject_exact(
-                            (wind.data, pixel_wcs),
-                            orig_wcs,
-                            output_shape,
-                        )
-                    # OK - we are using adaptive then
-                    # note we force boundary_mode to 'nearest'
-                    # to avoid NaNs around the edge of the output
-                    elif reprkernel == "Hann":
-                        reprojected_data, _ = reproject_adaptive(
-                            (wind.data, pixel_wcs),
-                            orig_wcs,
-                            output_shape,
-                            conserve_flux=consflux,
-                            kernel="Hann",
-                            boundary_mode="nearest",
-                        )
-                    else:
-                        reprojected_data, _ = reproject_adaptive(
-                            (wind.data, pixel_wcs),
-                            orig_wcs,
-                            output_shape,
-                            conserve_flux=consflux,
-                            kernel_width=kwidth,
-                            sample_region_width=regwidth,
-                            kernel="Gaussian",
-                            boundary_mode="nearest",
+                    # Add this CCD to the list of arrays
+                    for wnam, wind in ccd.items():
+                        # Make WCS to reproject data onto full frame
+                        # (binned) array
+                        pixel_wcs = copy.deepcopy(orig_wcs)
+                        crval1, crval2 = pixel_wcs.wcs.crpix
+                        window_offset_x = wind.llx // wind.xbin
+                        window_offset_y = wind.lly // wind.ybin
+                        pixel_wcs.wcs.crpix = (
+                            crval1 + frame_offset_x - window_offset_x,
+                            crval2 + frame_offset_y - window_offset_y,
                         )
 
-                    # we need to mask the area outside the window with NaNs,
-                    # so there's no bleedover into other windows when stacking
-                    # when using 'nearest' interpolation for adaptive
-                    mask = np.zeros_like(reprojected_data, dtype=bool)
-                    xstart = wind.llx // wind.xbin
-                    xend = xstart + wind.nx
-                    ystart = wind.lly // wind.ybin
-                    yend = ystart + wind.ny
-                    mask[ystart:yend, xstart:xend] = True
-                    reprojected_data[~mask] = np.nan
+                        # Carry out the re-projection
+                        if reprmethod == "interp":
+                            reprojected_data, _ = reproject_interp(
+                                (wind.data, pixel_wcs),
+                                orig_wcs,
+                                output_shape,
+                                order=reprorder,
+                            )
+                        elif reprmethod == "exact":
+                            reprojected_data, _ = reproject_exact(
+                                (wind.data, pixel_wcs),
+                                orig_wcs,
+                                output_shape,
+                            )
+                        # OK - we are using adaptive then
+                        # note we force boundary_mode to 'nearest'
+                        # to avoid NaNs around the edge of the output
+                        elif reprkernel == "Hann":
+                            reprojected_data, _ = reproject_adaptive(
+                                (wind.data, pixel_wcs),
+                                orig_wcs,
+                                output_shape,
+                                conserve_flux=consflux,
+                                kernel="Hann",
+                                boundary_mode="nearest",
+                            )
+                        else:
+                            reprojected_data, _ = reproject_adaptive(
+                                (wind.data, pixel_wcs),
+                                orig_wcs,
+                                output_shape,
+                                conserve_flux=consflux,
+                                kernel_width=kwidth,
+                                sample_region_width=regwidth,
+                                kernel="Gaussian",
+                                boundary_mode="nearest",
+                            )
 
-                    arrs.append(reprojected_data)
+                        # We need to mask the area outside the window with NaNs,
+                        # so there's no bleedover into other windows when stacking
+                        # when using 'nearest' interpolation for adaptive
+                        mask = np.zeros_like(reprojected_data, dtype=bool)
+                        xstart = wind.llx // wind.xbin
+                        xend = xstart + wind.nx
+                        ystart = wind.lly // wind.ybin
+                        yend = ystart + wind.ny
+                        mask[ystart:yend, xstart:xend] = True
+                        reprojected_data[~mask] = np.nan
 
-            # average over the stack of FF images
+                        arrs.append(reprojected_data)
+
+            # Average over the stack of FF images
             print(f"combining {nframes_used} frames for CCD {cnam}")
             header_string += f"CCD{cnam}({nframes_used:d}),"
 
@@ -654,7 +661,7 @@ def shiftadd(args=None):
                     # simple mean
                     stack = meanfunc(arr3d, axis=0)
 
-            # crop the FF images back into the individual windows
+            # Crop the FF images back into the individual windows
             for wnam, wind in output_mccd[cnam].items():
                 xstart = wind.llx // wind.xbin
                 xend = xstart + wind.nx
