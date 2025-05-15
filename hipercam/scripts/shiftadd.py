@@ -439,7 +439,7 @@ def shiftadd(args=None):
                         # this frame has no data in any CCD (?), so we can safely skip it
                         continue
                     raise hcam.HipercamError(
-                        f"frame {nf + first} has no data in CCD {ref_cnam},"
+                        f"frame {nf + first} has no data in CCD {ref_cnam}, "
                         f"so cannot be used as refccd"
                     )
 
@@ -548,7 +548,6 @@ def shiftadd(args=None):
 
                     # Find calculated offset
                     frame_offset_x, frame_offset_y = offsets[nf]
-                    print(frame_offset_x, frame_offset_y)
 
                     # Find output shape to resample each window onto (binned)
                     # full frame array
@@ -557,7 +556,7 @@ def shiftadd(args=None):
                         ccd.nxtot // ccd.head.xbin,
                     )
 
-                    # Add this CCD to the list of arrays
+                    # Go through each window in the CCD
                     for wnam, wind in ccd.items():
                         # Make WCS to reproject data onto full frame
                         # (binned) array
@@ -608,7 +607,7 @@ def shiftadd(args=None):
                                 boundary_mode="nearest",
                             )
 
-                        # We need to mask the area outside the window with NaNs,
+                        # We need to mask the area outside of the offset window with NaNs,
                         # so there's no bleedover into other windows when stacking
                         # when using 'nearest' interpolation for adaptive
                         mask = np.zeros_like(reprojected_data, dtype=bool)
@@ -616,9 +615,13 @@ def shiftadd(args=None):
                         xend = xstart + wind.nx
                         ystart = wind.lly // wind.ybin
                         yend = ystart + wind.ny
-                        mask[ystart:yend, xstart:xend] = True
+                        mask[
+                            ystart - int(frame_offset_y) : yend - int(frame_offset_y),
+                            xstart - int(frame_offset_x) : xend - int(frame_offset_x),
+                        ] = True
                         reprojected_data[~mask] = np.nan
 
+                        # Save the FF reprojected data
                         arrs.append(reprojected_data)
 
             # Average over the stack of FF images
@@ -654,7 +657,7 @@ def shiftadd(args=None):
                         stdfunc="std",
                         masked=True,
                     )
-                    # fill masked with nans
+                    # fill mask with nans
                     arr3d[mask.mask] = np.nan
                     stack = meanfunc(arr3d, axis=0)
                 else:
