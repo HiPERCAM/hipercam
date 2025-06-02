@@ -48,6 +48,7 @@
 .. |ol-setaper|  replace:: define the photometric apertures
 .. |ol-setdefect| replace:: define a file of CCD defects
 .. |ol-setfringe| replace:: define peak/trough pairs for fringe measurement
+.. |ol-shiftadd| replace:: combine frames after aligning based on reduced positions
 .. |ol-splice|   replace:: splice two frames together
 .. |ol-stats|    replace:: report statistics of a frame
 .. |ol-sub|      replace:: subtract two frames
@@ -169,6 +170,8 @@ useful.
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |setfringe|  | |ol-setfringe| | Yes      | Yes      |         |           |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |shiftadd|   | |ol-shiftadd|  | Yes      | Yes      |         |           |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
    | |splice|     | |ol-splice|    |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |stats|      | |ol-stats|     |          |          |         |           | Yes        |
@@ -235,8 +238,8 @@ might get::
   run - run name [run0076]:
   first - first frame to plot [1]:
   ccd - CCD(s) to plot [0 for all] [3]: 3 4
-  nx - number of panels in X [2]: 
-  bias - bias frame ['none' to ignore] [none]: 
+  nx - number of panels in X [2]:
+  bias - bias frame ['none' to ignore] [none]:
   msub - subtract median from each window? [False]: True
 
 You will see that the defaults for ``run`` and ``first`` have been updated by
@@ -489,6 +492,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autofunction:: hipercam.scripts.setaper
 .. autofunction:: hipercam.scripts.setdefect
 .. autofunction:: hipercam.scripts.setfringe
+.. autofunction:: hipercam.scripts.shiftadd
 .. autofunction:: hipercam.scripts.splice
 .. autofunction:: hipercam.scripts.stats
 .. autofunction:: hipercam.scripts.sub
@@ -499,5 +503,3 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
          ``makefield``, ``makedata``, ``pfolder``, ``redplt``, ``tanalysis``, ``tbytes``)
          are not documented here as they are of specialist usage.  Information
          on these is however available via ``pydoc``.
-
-
