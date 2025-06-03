@@ -16,7 +16,7 @@ Docker Installation
 The easiest way to install hipercam is to create a Docker image. This
 is simple and cross-platform, but the image is large (around 2.8GB). To 
 install via this route, please download the 
-`dockerfile <https://github.com/HiPERCAM/hipercam/raw/docker/data/hipercam.dockerfile>`_
+`dockerfile <https://github.com/HiPERCAM/hipercam/blob/master/data/hipercam.dockerfile>`_
 
 +++++
 Linux
