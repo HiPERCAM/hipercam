@@ -7,11 +7,17 @@ import warnings
 import numpy as np
 from astropy.stats import sigma_clip
 from astropy.wcs import wcs
-from reproject import reproject_adaptive, reproject_exact, reproject_interp
 from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
+
+HAS_REPROJECT = True
+try:
+    from reproject import reproject_adaptive, reproject_exact, reproject_interp
+except (ImportError, ModuleNotFoundError):
+    HAS_REPROJECT = False
+
 
 try:
     import bottleneck as bn
@@ -241,6 +247,10 @@ def shiftadd(args=None):
         output  : string
            output file
     """
+    # can we run at all (need reproject)?
+    if not HAS_REPROJECT:
+        raise hcam.HipercamError("reproject module not available, cannot run shiftadd")
+
     command, args = cline.script_args(args)
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:

@@ -136,6 +136,11 @@ your O/S package manager. e.g. under fedora, Cython appears as
   sep :
          astronomical source extractor based on Bertin's source extractor.
 
+  reproject:
+         The reproject package implements image reprojection methods 
+         for astronomical images. This is an optional dependency,
+         but you will need it for `shiftadd` to work.
+
   setuptools_scm :
          package to manage version numbers from the git repository
 
