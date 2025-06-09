@@ -5,8 +5,6 @@ from functools import partial
 
 import numpy as np
 
-# get hipercam version to write into the reduce log file
-from pkg_resources import DistributionNotFound, get_distribution
 from trm import cline
 from trm.cline import Cline
 
@@ -24,10 +22,8 @@ from hipercam.reduction import (
     update_plots,
 )
 
-try:
-    hipercam_version = get_distribution("hipercam").version
-except DistributionNotFound:
-    hipercam_version = "not found"
+# get hipercam version to write into the reduce log file
+hipercam_version = hcam.version()
 
 has_psf_option = True
 try:

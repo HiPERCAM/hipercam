@@ -8,12 +8,7 @@ from trm.cline import Cline
 import hipercam as hcam
 
 # get hipercam version to write into the reduce file
-from pkg_resources import get_distribution, DistributionNotFound
-
-try:
-    hipercam_version = get_distribution("hipercam").version
-except DistributionNotFound:
-    hipercam_version = "not found"
+hipercam_version = hcam.version()
 
 __all__ = [
     "rupdate",
