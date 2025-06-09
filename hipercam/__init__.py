@@ -20,7 +20,7 @@ top-level docs covers a large part of the API. However, it is rather long and
 if you want to specialise to a restricted part of the documentation, then a
 command like 'pydoc hipercam.ccd' can prove useful to find a more focussed
 view of related software. There are some exceptions though where you will need
-to drill deeper, namely the sub-packages like 'ucam' and 'hcam', and the 
+to drill deeper, namely the sub-packages like 'ucam' and 'hcam', and the
 plotting modules :mod:`mpl` and :mod:`pgp`.
 
 Perhaps the most important class of all is :class:`MCCD` which is the first
@@ -47,14 +47,6 @@ container class :class:`Group`). It then sets this pixel to zero and writes
 out the result to a new file.
 """
 
-from pkg_resources import get_distribution, DistributionNotFound
-
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    # package is not installed
-    pass
-
 from .core import *
 from .group import *
 from .window import *
@@ -73,6 +65,8 @@ from . import support
 from . import fitting
 from . import defect
 from . import scripts
+
+__version__ = version()
 
 __all__ = (
     core.__all__
