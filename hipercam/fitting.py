@@ -405,7 +405,7 @@ def fitMoffat(
                 # first fit carried out with higher threshold for safety
                 sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
             else:
-                sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > sfac*thresh)] *= -1
 
             # check whether any have been rejected
             ok = mfit.mask & (sigma > 0)
@@ -878,7 +878,7 @@ class Mfit:
         elif self.mode == "fb":
             return (height, xcen, ycen, fwhm, beta)
         elif self.mode == "b":
-            reurn(height, xcen, ycen, beta)
+            return (height, xcen, ycen, beta)
         elif self.mode == "f":
             return (height, xcen, ycen, fwhm)
         elif self.mode == "":
@@ -1167,7 +1167,7 @@ def fitGaussian(
         )
         if not res.success:
             raise HipercamError(res.message)
-        nfev += nfev
+        nfev += res.nfev
 
         # get Jacobian
         J = np.matrix(res.jac)
@@ -1668,4 +1668,3 @@ class Gfit:
             self.ybin,
             self.ndiv,
         )
-
