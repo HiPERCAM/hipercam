@@ -6,6 +6,7 @@ Core data, functions and classes for the hipercam package
 from collections import OrderedDict as Odict
 from astropy.utils.exceptions import AstropyUserWarning
 import numpy as np
+from importlib.metadata import version as _version, PackageNotFoundError
 
 __all__ = (
     "FIELD",
@@ -177,9 +178,10 @@ FLAG_MESSAGES = Odict(
 
 def version():
     """Returns version number of installed HiPERCAM pipeline"""
-    import pkg_resources
-
-    return pkg_resources.require("hipercam")[0].version
+    try:
+        return _version("hipercam")
+    except PackageNotFoundError:
+        return "not found"
 
 
 def gregorian_to_mjd(year, month, day):
