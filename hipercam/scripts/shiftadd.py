@@ -417,13 +417,12 @@ def shiftadd(args=None):
             args += [
                 calsec["fmap"],
                 calsec["fpair"],
-                calsec["nhalf"],
-                calsec["rmin"],
-                calsec["rmax"],
+                str(calsec["nhalf"]),
+                str(calsec["rmin"]),
+                str(calsec["rmax"]),
                 "false",
                 "f32",
             ]
-
         resource = hcam.scripts.grab(args)
 
     # at this point 'resource' is a list of files, no matter the input
