@@ -535,7 +535,6 @@ def shiftadd(args=None):
         header_string = "nframes="
         for cnam in output_mccd:
             print(f"stacking CCD {cnam}")
-
             arrs = []
             nframes_used = 0
             with hcam.spooler.HcamListSpool(resource, cnam) as spool:
@@ -574,8 +573,8 @@ def shiftadd(args=None):
                         window_offset_x = wind.llx // wind.xbin
                         window_offset_y = wind.lly // wind.ybin
                         pixel_wcs.wcs.crpix = (
-                            crval1 + frame_offset_x - window_offset_x,
-                            crval2 + frame_offset_y - window_offset_y,
+                            crval1 + frame_offset_x / wind.xbin - window_offset_x,
+                            crval2 + frame_offset_y / wind.ybin - window_offset_y,
                         )
 
                         # Carry out the re-projection
@@ -643,6 +642,7 @@ def shiftadd(args=None):
                 )
 
             arr3d = np.stack(arrs)
+
             with warnings.catch_warnings():
                 # ignore warnings about all-nan slices
                 # (we set NaNs outside of the windows)
