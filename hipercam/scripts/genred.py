@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 import warnings
 from time import gmtime, strftime
 
@@ -157,7 +157,6 @@ def genred(args=None):
     command, args = cline.script_args(args)
 
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("apfile", Cline.LOCAL, Cline.PROMPT)
         cl.register("rfile", Cline.GLOBAL, Cline.PROMPT)
@@ -261,7 +260,6 @@ def genred(args=None):
         )
 
         if template is None:
-
             instrument = cl.get_value(
                 "inst",
                 "the instrument-telescope",
@@ -294,9 +292,9 @@ warn = 5 50000 64000
 
             elif instrument.startswith("ultracam"):
                 warn_levels = """
-warn = 1 28000 64000
+warn = 1 50000 64000
 warn = 2 28000 64000
-warn = 3 50000 64000
+warn = 3 28000 64000
             """
                 maxcpu = 3
                 skipbadt = True
@@ -324,7 +322,6 @@ warn = 1 60000 64000
                 ccd = "1"
 
             elif instrument == "other":
-
                 # unrecognised instrument need extra stuff
                 nccd = cl.get_value("nccd", "how many CCDs?", 3, 1)
                 if nccd > 1:
@@ -355,7 +352,7 @@ warn = 1 60000 64000
 
                 warn_levels = ""
                 for n, (nonlin, sat) in enumerate(zip(nonlins, sats)):
-                    warn_levels += f"warn = {n+1} {nonlin} {sat}\n"
+                    warn_levels += f"warn = {n + 1} {nonlin} {sat}\n"
                 maxcpu = nccd
 
                 scale = cl.get_value(
@@ -385,7 +382,6 @@ warn = 1 60000 64000
     # all the inputs have now been obtained. Get on with doing stuff
 
     if template is not None:
-
         # read the template to define many unprompted values
         # shortcut names define.
         tvals = reduction.Rfile.read(template, False)
@@ -408,7 +404,6 @@ warn = 1 60000 64000
         fsec = tvals.get("focal_mask", None)
 
     else:
-
         # define default values for unprompted params.
         if seeing == 0.0:
             seeing = 1.5
@@ -622,7 +617,7 @@ warn = 1 60000 64000
             if "1" in ccdaper and "2" in ccdaper:
                 # favour 2 as the comparison
                 light_plot += (
-                    f'plot = {cnam} 1 2 0 1 {CCD_COLS.get(cnam,"black")} !  '
+                    f"plot = {cnam} 1 2 0 1 {CCD_COLS.get(cnam, 'black')} !  "
                     " # ccd, targ, comp, off, fac, dcol, ecol\n"
                 )
                 no_light = False
@@ -630,7 +625,7 @@ warn = 1 60000 64000
             elif "1" in ccdaper and "3" in ccdaper:
                 # but try 3 if need be
                 light_plot += (
-                    f'plot = {cnam} 1 3 0 1 {CCD_COLS.get(cnam,"black")} !  '
+                    f"plot = {cnam} 1 3 0 1 {CCD_COLS.get(cnam, 'black')} !  "
                     " # ccd, targ, comp, off, fac, dcol, ecol\n"
                 )
                 no_light = False
@@ -638,13 +633,12 @@ warn = 1 60000 64000
             elif "1":
                 # just plot 1 as last resort
                 light_plot += (
-                    f'plot = {cnam} 1 ! 0 1 {CCD_COLS.get(cnam,"black")} !  '
+                    f"plot = {cnam} 1 ! 0 1 {CCD_COLS.get(cnam, 'black')} !  "
                     " # ccd, targ, comp, off, fac, dcol, ecol\n"
                 )
                 no_light = False
 
     else:
-
         # template case: pass as many of the lines as we can but
         # run checks of apertures
         plots = tvals["light"]["plot"]
@@ -685,7 +679,7 @@ warn = 1 60000 64000
             if targ in ccdaper:
                 position_plot += (
                     f"plot = {ccd} {targ} "
-                    f'{CCD_COLS.get(cnam,"black")} ! '
+                    f"{CCD_COLS.get(cnam, 'black')} ! "
                     "# ccd, targ, dcol, ecol\n"
                 )
                 no_position = False
@@ -727,7 +721,7 @@ warn = 1 60000 64000
                 if targ in ccdaper:
                     transmission_plot += (
                         f"plot = {cnam} {targ} "
-                        f'{CCD_COLS.get(cnam,"black")} ! '
+                        f"{CCD_COLS.get(cnam, 'black')} ! "
                         f"# ccd, targ, dcol, ecol\n"
                     )
                     no_transmission = False
@@ -770,7 +764,7 @@ warn = 1 60000 64000
                 if targ in ccdaper and not ccdaper[targ].linked:
                     seeing_plot += (
                         f"plot = {cnam} {targ}"
-                        f' {CCD_COLS.get(cnam,"black")} ! '
+                        f" {CCD_COLS.get(cnam, 'black')} ! "
                         "# ccd, targ, dcol, ecol\n"
                     )
                     no_seeing = False
@@ -862,23 +856,23 @@ warn = 1 60000 64000
 [general]
 version = {hcam.REDUCE_FILE_VERSION} # must be compatible with the version in reduce
 
-instrument = {gsec['instrument']} # instrument
-scale = {gsec['scale']} # pixel scale, arcsec/pixel
+instrument = {gsec["instrument"]} # instrument
+scale = {gsec["scale"]} # pixel scale, arcsec/pixel
 
-ldevice = {gsec['ldevice']} # PGPLOT plot device for light curve plots
-lwidth = {gsec['lwidth']} # light curve plot width, inches, 0 to let program choose
-lheight = {gsec['lheight']} # light curve plot height, inches
+ldevice = {gsec["ldevice"]} # PGPLOT plot device for light curve plots
+lwidth = {gsec["lwidth"]} # light curve plot width, inches, 0 to let program choose
+lheight = {gsec["lheight"]} # light curve plot height, inches
 
-idevice = {gsec['idevice']} # PGPLOT plot device for image plots [if implot True]
-iwidth = {gsec['iwidth']} # image curve plot width, inches, 0 to let program choose
-iheight = {gsec['iheight']} # image curve plot height, inches
+idevice = {gsec["idevice"]} # PGPLOT plot device for image plots [if implot True]
+iwidth = {gsec["iwidth"]} # image curve plot width, inches, 0 to let program choose
+iheight = {gsec["iheight"]} # image curve plot height, inches
 
-toffset = {gsec['toffset']} # integer offset to subtract from the MJD
+toffset = {gsec["toffset"]} # integer offset to subtract from the MJD
 
 # skip points with bad times in plots. HiPERCAM has a problem in not
 # correctly indicating bad times so one does not usually want to
 # skip "bad time" points, whereas one should for ULTRACAM and ULTRASPEC.
-skipbadt = {gsec['skipbadt']}
+skipbadt = {gsec["skipbadt"]}
 
 # series of count levels at which warnings will be triggered for (a)
 # non linearity and (b) saturation. Each line starts 'warn =', and is
@@ -905,8 +899,8 @@ skipbadt = {gsec['skipbadt']}
 # it already seems to parallelise and it only gets worse if I split things
 # up. But no harm trying.
 
-ncpu = {gsec['ncpu']}
-ngroup = {gsec['ngroup']}
+ncpu = {gsec["ncpu"]}
+ngroup = {gsec["ngroup"]}
 
 # The next section '[apertures]' defines how the apertures are
 # re-positioned from frame to frame. Apertures are re-positioned
@@ -999,27 +993,27 @@ ngroup = {gsec['ngroup']}
 
 [apertures]
 aperfile = {apfile} # file of software apertures for each CCD
-location = {asec['location']} # aperture locations: 'fixed' or 'variable'
+location = {asec["location"]} # aperture locations: 'fixed' or 'variable'
 
-search_half_width = {asec['search_half_width']:.1f} # for initial search for objects around previous position, unbinned pixels
-search_smooth_fwhm = {asec['search_smooth_fwhm']:.1f} # smoothing FWHM, binned pixels
-search_smooth_fft = {asec['search_smooth_fft']} # use FFTs for smoothing, 'yes' or 'no'.
+search_half_width = {asec["search_half_width"]:.1f} # for initial search for objects around previous position, unbinned pixels
+search_smooth_fwhm = {asec["search_smooth_fwhm"]:.1f} # smoothing FWHM, binned pixels
+search_smooth_fft = {asec["search_smooth_fft"]} # use FFTs for smoothing, 'yes' or 'no'.
 
-fit_method = {asec['fit_method']} # gaussian or moffat
-fit_beta = {asec['fit_beta']:.1f} # Moffat exponent
-fit_beta_max = {asec['fit_beta_max']:.1f} # max Moffat expt
-fit_fwhm = {asec['fwhm']:.1f} # FWHM, unbinned pixels
-fit_fwhm_min = {asec['fwhm_min']:.1f} # Minimum FWHM, unbinned pixels [MUST be < fit_fwhm!]
-fit_fwhm_max = {asec['fwhm_max']:.1f} # Maximum FWHM, unbinned pixels
-fit_ndiv = {asec['fit_ndiv']} # sub-pixellation factor
-fit_fwhm_fixed = {asec['fit_fwhm_fixed']} # Might want to set = 'yes' for defocussed images
-fit_half_width = {asec['fit_half_width']:.1f} # for fit, unbinned pixels
-fit_thresh = {asec['fit_thresh']:.2f} # RMS rejection threshold for fits
-fit_height_min_ref = {asec['fit_height_min_ref']:.1f} # minimum height to accept a fit, reference aperture
-fit_height_min_nrf = {asec['fit_height_min_nrf']:.1f} # minimum height to accept a fit, non-reference aperture
-fit_max_shift = {asec['fit_max_shift']:.1f} # max. non-ref. shift, unbinned pixels.
-fit_alpha = {asec['fit_alpha']:.2f} # Fraction of non-reference aperture shift to apply
-fit_diff = {asec['fit_diff']:.2f} # Maximum differential shift of multiple reference apertures, unbinned
+fit_method = {asec["fit_method"]} # gaussian or moffat
+fit_beta = {asec["fit_beta"]:.1f} # Moffat exponent
+fit_beta_max = {asec["fit_beta_max"]:.1f} # max Moffat expt
+fit_fwhm = {asec["fwhm"]:.1f} # FWHM, unbinned pixels
+fit_fwhm_min = {asec["fwhm_min"]:.1f} # Minimum FWHM, unbinned pixels [MUST be < fit_fwhm!]
+fit_fwhm_max = {asec["fwhm_max"]:.1f} # Maximum FWHM, unbinned pixels
+fit_ndiv = {asec["fit_ndiv"]} # sub-pixellation factor
+fit_fwhm_fixed = {asec["fit_fwhm_fixed"]} # Might want to set = 'yes' for defocussed images
+fit_half_width = {asec["fit_half_width"]:.1f} # for fit, unbinned pixels
+fit_thresh = {asec["fit_thresh"]:.2f} # RMS rejection threshold for fits
+fit_height_min_ref = {asec["fit_height_min_ref"]:.1f} # minimum height to accept a fit, reference aperture
+fit_height_min_nrf = {asec["fit_height_min_nrf"]:.1f} # minimum height to accept a fit, non-reference aperture
+fit_max_shift = {asec["fit_max_shift"]:.1f} # max. non-ref. shift, unbinned pixels.
+fit_alpha = {asec["fit_alpha"]:.2f} # Fraction of non-reference aperture shift to apply
+fit_diff = {asec["fit_diff"]:.2f} # Maximum differential shift of multiple reference apertures, unbinned
 
 # The next lines define how the apertures will be re-sized and how the
 # flux will be extracted from the aperture. There is one line per CCD
@@ -1068,11 +1062,11 @@ fit_diff = {asec['fit_diff']:.2f} # Maximum differential shift of multiple refer
 # sources.
 
 [psf_photom]
-use_psf = {psfsec['use_psf']} # 'yes' or 'no'
-psf_model = {psfsec['psf_model']} # 'gaussian' or 'moffat'
-gfac = {psfsec['gfac']}  # multiple of the FWHM to use in grouping objects
-fit_half_width = {psfsec['fit_half_width']}  # size of window used to collect the data to do the fitting
-positions = {psfsec['positions']}   # 'fixed' or 'variable'
+use_psf = {psfsec["use_psf"]} # 'yes' or 'no'
+psf_model = {psfsec["psf_model"]} # 'gaussian' or 'moffat'
+gfac = {psfsec["gfac"]}  # multiple of the FWHM to use in grouping objects
+fit_half_width = {psfsec["fit_half_width"]}  # size of window used to collect the data to do the fitting
+positions = {psfsec["positions"]}   # 'fixed' or 'variable'
 
 # Next lines determine how the sky background level is
 # calculated. Note you can only set error = variance if method =
@@ -1080,9 +1074,9 @@ positions = {psfsec['positions']}   # 'fixed' or 'variable'
 # noticable steps in light curves. It's here as a comparator.
 
 [sky]
-method = {sksec['method']} # 'clipped' | 'median'
-error  = {sksec['error']} # 'variance' | 'photon': first uses actual variance of sky
-thresh = {sksec['thresh']:.1f} # threshold in terms of RMS for 'clipped'
+method = {sksec["method"]} # 'clipped' | 'median'
+error  = {sksec["error"]} # 'variance' | 'photon': first uses actual variance of sky
+thresh = {sksec["thresh"]:.1f} # threshold in terms of RMS for 'clipped'
 
 # Calibration frames and constants
 
@@ -1108,18 +1102,18 @@ thresh = {sksec['thresh']:.1f} # threshold in terms of RMS for 'clipped'
 # a long exposure compared to the data.
 
 [calibration]
-crop = {csec['crop']} # Crop calibrations to match the data
-bias = {'' if bias is None else bias} # Bias frame, blank to ignore
-flat = {'' if flat is None else flat} # Flat field frame, blank to ignore
-dark = {'' if dark is None else dark} # Dark frame, blank to ignore
-fmap = {'' if fmap is None else fmap} # Fringe map frame, blank to ignore
-fpair = {'' if fpair is None else fpair} # File of fringe pairs, ignored if fmap blank
+crop = {csec["crop"]} # Crop calibrations to match the data
+bias = {"" if bias is None else bias} # Bias frame, blank to ignore
+flat = {"" if flat is None else flat} # Flat field frame, blank to ignore
+dark = {"" if dark is None else dark} # Dark frame, blank to ignore
+fmap = {"" if fmap is None else fmap} # Fringe map frame, blank to ignore
+fpair = {"" if fpair is None else fpair} # File of fringe pairs, ignored if fmap blank
 
-nhalf = {csec['nhalf']} # Half-size of region used for fringe ratios, binned pix, ignored if fmap blank=""
-rmin = {csec['rmin']} # Mininum acceptable individual fmap ratio, ignored if fmap blank
-rmax = {csec['rmax']} # Maximum acceptable individual fmap ratio, ignored if fmap blank
-readout = {csec['readout']} # RMS ADU. Float or string name of a file or "!" to estimate on the fly
-gain = {csec['gain']} # Gain, electrons/ADU. Float or string name of a file
+nhalf = {csec["nhalf"]} # Half-size of region used for fringe ratios, binned pix, ignored if fmap blank=""
+rmin = {csec["rmin"]} # Mininum acceptable individual fmap ratio, ignored if fmap blank
+rmax = {csec["rmax"]} # Maximum acceptable individual fmap ratio, ignored if fmap blank
+readout = {csec["readout"]} # RMS ADU. Float or string name of a file or "!" to estimate on the fly
+gain = {csec["gain"]} # Gain, electrons/ADU. Float or string name of a file
 
 # The light curve plot which consists of light curves, X & Y
 # poistions, the transmission and seeing. All but the light curves can
@@ -1127,8 +1121,8 @@ gain = {csec['gain']} # Gain, electrons/ADU. Float or string name of a file
 # general parameters.
 
 [lcplot]
-xrange  = {lcsec['xrange']} # maximum range in X to plot (minutes), <= 0 for everything
-extend_x = {lcsec['extend_x']} # amount by which to extend xrange, minutes.
+xrange  = {lcsec["xrange"]} # maximum range in X to plot (minutes), <= 0 for everything
+extend_x = {lcsec["extend_x"]} # amount by which to extend xrange, minutes.
 
 # The light curve panel (must be present). Mostly obvious, then a
 # series of lines, each starting 'plot' which specify one light curve
@@ -1140,11 +1134,11 @@ extend_x = {lcsec['extend_x']} # amount by which to extend xrange, minutes.
 # height and all others are scaled relative to this.
 
 [light]
-linear  = {lsec['linear']} # linear vertical scale (else magnitudes): 'yes' or 'no'
-y_fixed = {lsec['y_fixed']} # keep a fixed vertical range or not: 'yes' or 'no'
-y1 = {lsec['y1']} # initial lower y value
-y2 = {lsec['y2']} # initial upper y value. y1=y2 for auto scaling
-extend_y = {lsec['extend_y']} # fraction of plot height to extend when rescaling
+linear  = {lsec["linear"]} # linear vertical scale (else magnitudes): 'yes' or 'no'
+y_fixed = {lsec["y_fixed"]} # keep a fixed vertical range or not: 'yes' or 'no'
+y1 = {lsec["y1"]} # initial lower y value
+y2 = {lsec["y2"]} # initial upper y value. y1=y2 for auto scaling
+extend_y = {lsec["extend_y"]} # fraction of plot height to extend when rescaling
 
 # line or lines defining the targets to plot
 {light_plot}
@@ -1177,14 +1171,14 @@ extend_y = {lsec['extend_y']} # fraction of plot height to extend when rescaling
 # if you don't want it.
 
 [position]
-height = {psec['height']} # height relative to light curve plot
-x_fixed = {psec['x_fixed']} # keep X-position vertical range fixed
-x_min = {psec['x_min']} # lower limit for X-position
-x_max = {psec['x_max']} # upper limit for X-position
-y_fixed = {psec['y_fixed']} # keep Y-position vertical range fixed
-y_min = {psec['y_min']} # lower limit for Y-position
-y_max = {psec['y_max']} # upper limit for Y-position
-extend_y = {psec['extend_y']} # Vertical extension fraction if limits exceeded
+height = {psec["height"]} # height relative to light curve plot
+x_fixed = {psec["x_fixed"]} # keep X-position vertical range fixed
+x_min = {psec["x_min"]} # lower limit for X-position
+x_max = {psec["x_max"]} # upper limit for X-position
+y_fixed = {psec["y_fixed"]} # keep Y-position vertical range fixed
+y_min = {psec["y_min"]} # lower limit for Y-position
+y_max = {psec["y_max"]} # upper limit for Y-position
+extend_y = {psec["extend_y"]} # Vertical extension fraction if limits exceeded
 
 # line or lines defining the targets to plot
 {position_plot}
@@ -1218,8 +1212,8 @@ extend_y = {psec['extend_y']} # Vertical extension fraction if limits exceeded
 # actually only 50% revealed as the cloud clears).
 
 [transmission]
-height = {tsec['height']} # height relative to the light curve plot
-ymax = {tsec['ymax']} # Maximum transmission to plot (>= 100 to slow replotting)
+height = {tsec["height"]} # height relative to the light curve plot
+ymax = {tsec["ymax"]} # Maximum transmission to plot (>= 100 to slow replotting)
 
 # line or lines defining the targets to plot
 {transmission_plot}
@@ -1251,10 +1245,10 @@ ymax = {tsec['ymax']} # Maximum transmission to plot (>= 100 to slow replotting)
 # targets as their FWHMs are not measured.
 
 [seeing]
-height = {ssec['height']} # height relative to the light curve plot
-ymax = {ssec['ymax']} # Initial maximum seeing
-y_fixed = {ssec['y_fixed']} # fix the seeing scale (or not)
-extend_y = {ssec['extend_y']} # Y extension fraction if out of range and not fixed
+height = {ssec["height"]} # height relative to the light curve plot
+ymax = {ssec["ymax"]} # Initial maximum seeing
+y_fixed = {ssec["y_fixed"]} # fix the seeing scale (or not)
+extend_y = {ssec["extend_y"]} # Y extension fraction if out of range and not fixed
 
 # line or lines defining the targets to plot
 {seeing_plot}
@@ -1272,8 +1266,8 @@ extend_y = {ssec['extend_y']} # Y extension fraction if out of range and not fix
 # from distorting the median. Take care with this option which is experimental.
 
 [focal_mask]
-demask = {fsec['demask']}
-dthresh = {fsec['dthresh']}
+demask = {fsec["demask"]}
+dthresh = {fsec["dthresh"]}
 
 # Monitor section. This section allows you to monitor particular
 # targets for problems. If they occur, then messages will be printed
