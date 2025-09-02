@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 
-import sys
 import os
+import sys
 
-import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
-import hipercam as hcam
-
+import numpy as np
+from astropy.timeseries import LombScargle
 from trm import cline, utils
 from trm.cline import Cline
 
-from astropy.timeseries import LombScargle
+import hipercam as hcam
 
 
 def pbands(args=None):
