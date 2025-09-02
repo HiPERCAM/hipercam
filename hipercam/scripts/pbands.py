@@ -99,7 +99,7 @@ def pbands(args=None):
 
     """
 
-    command, args = cline.script_args(sys.argv)
+    command, args = cline.script_args(args)
     if command.endswith(".py"):
         command = command[:-3]
 
