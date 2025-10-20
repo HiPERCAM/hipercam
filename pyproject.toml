@@ -1,0 +1,118 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm", "wheel", "Cython", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hipercam"
+dynamic = ["version"]
+description = "multi-CCD astronomical reduction suite"
+readme = "README.rst"
+license = "BSD-3-Clause"
+authors = [
+    {name = "Tom Marsh", email = "t.r.marsh@warwick.ac.uk"}
+]
+keywords = ["astronomy", "photometry", "reduction"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+]
+requires-python = ">=3.6"
+dependencies = [
+    "astropy",
+    "Cython",
+    "fitsio",
+    "keyring",
+    "matplotlib",
+    "numba",
+    "numpy",
+    "pandas",
+    "requests",
+    "sep>=1.4",
+    "trm.cline",
+    "trm.utils",
+    "urllib3>=1.26.5",
+    "websocket-client",
+]
+
+[project.optional-dependencies]
+dev = ["check-manifest"]
+test = ["coverage", "nose"]
+
+[project.urls]
+Homepage = "https://github.com/HiPERCAM/hipercam"
+Repository = "https://github.com/HiPERCAM/hipercam"
+
+[project.scripts]
+add = "hipercam.scripts.arith:add"
+aligntool = "hipercam.scripts.aligntool:aligntool"
+atanalysis = "hipercam.scripts.atanalysis:atanalysis"
+atbytes = "hipercam.scripts.atbytes:atbytes"
+averun = "hipercam.scripts.averun:averun"
+cadd = "hipercam.scripts.carith:cadd"
+calsearch = "hipercam.scripts.calsearch:calsearch"
+cdiv = "hipercam.scripts.carith:cdiv"
+cmul = "hipercam.scripts.carith:cmul"
+combine = "hipercam.scripts.combine:combine"
+csub = "hipercam.scripts.carith:csub"
+div = "hipercam.scripts.arith:div"
+exploss = "hipercam.scripts.exploss:exploss"
+filtid = "hipercam.scripts.filtid:filtid"
+fits2hcm = "hipercam.scripts.fits2hcm:fits2hcm"
+flagcloud = "hipercam.scripts.flagcloud:flagcloud"
+ftargets = "hipercam.scripts.ftargets:ftargets"
+genred = "hipercam.scripts.genred:genred"
+grab = "hipercam.scripts.grab:grab"
+harchive = "hipercam.scripts.harchive:harchive"
+hfilter = "hipercam.scripts.hfilter:hfilter"
+hinfo = "hipercam.scripts.hinfo:hinfo"
+hist = "hipercam.scripts.hist:hist"
+hlogger = "hipercam.scripts.hlogger:hlogger"
+hlog2col = "hipercam.scripts.hlog2col:hlog2col"
+hlog2fits = "hipercam.scripts.hlog2fits:hlog2fits"
+hls = "hipercam.scripts.hls:hls"
+hmeta = "hipercam.scripts.hmeta:hmeta"
+hpackage = "hipercam.scripts.hpackage:hpackage"
+hplot = "hipercam.scripts.hplot:hplot"
+joinup = "hipercam.scripts.joinup:joinup"
+jtrawl = "hipercam.scripts.jtrawl:jtrawl"
+logsearch = "hipercam.scripts.logsearch:logsearch"
+ltimes = "hipercam.scripts.ltimes:ltimes"
+ltrans = "hipercam.scripts.ltrans:ltrans"
+makebias = "hipercam.scripts.makebias:makebias"
+makedark = "hipercam.scripts.makedark:makedark"
+makefield = "hipercam.scripts.makestuff:makefield"
+makeflat = "hipercam.scripts.makeflat:makeflat"
+makefringe = "hipercam.scripts.makefringe:makefringe"
+makemccd = "hipercam.scripts.makestuff:makemccd"
+makemovie = "hipercam.scripts.makemovie:makemovie"
+mstats = "hipercam.scripts.mstats:mstats"
+mul = "hipercam.scripts.arith:mul"
+ncal = "hipercam.scripts.ncal:ncal"
+pbands = "hipercam.scripts.pbands:pbands"
+pfolder = "hipercam.scripts.pfolder:pfolder"
+plog = "hipercam.scripts.plog:plog"
+redanal = "hipercam.scripts.redanal:redanal"
+redplt = "hipercam.scripts.redplt:redplt"
+reduce = "hipercam.scripts.reduce:reduce"
+rtplot = "hipercam.scripts.rtplot:rtplot"
+nrtplot = "hipercam.scripts.nrtplot:nrtplot"
+rupdate = "hipercam.scripts.rupdate:rupdate"
+setaper = "hipercam.scripts.setaper:setaper"
+setdefect = "hipercam.scripts.setdefect:setdefect"
+setfringe = "hipercam.scripts.setfringe:setfringe"
+shiftadd = "hipercam.scripts.shiftadd:shiftadd"
+splice = "hipercam.scripts.splice:splice"
+stats = "hipercam.scripts.stats:stats"
+sub = "hipercam.scripts.arith:sub"
+tanalysis = "hipercam.scripts.tanalysis:tanalysis"
+tbytes = "hipercam.scripts.tbytes:tbytes"
+uls = "hipercam.scripts.uls:uls"
+
+[tool.setuptools]
+packages = {find = {exclude = ["contrib", "docs", "tests"]}}
+
+[tool.setuptools_scm]
+# This enables setuptools to automatically set the full version based on the git history

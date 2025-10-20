@@ -14,7 +14,7 @@ Docker Installation
 ===================
 
 The easiest way to install hipercam is to create a Docker image. This
-is simple and cross-platform, but the image is large (around 2.8GB). To 
+is simple and cross-platform, but the image is large (around 2.8GB). To
 install via this route, please download the
 `dockerfile <https://raw.githubusercontent.com/HiPERCAM/hipercam/refs/heads/master/data/hipercam.dockerfile>`_
 
@@ -38,14 +38,14 @@ MacOS
 +++++
 
 Installation on Apple Silicon Macs is a little more complicated. The instructions below assume you have a modern
-MacOS/Apple Silicon system with Docker Desktop installed. 
+MacOS/Apple Silicon system with Docker Desktop installed.
 
 To build the docker image from the docker file, run::
 
   docker build -t hipercam:latest --platform linux/amd64 -f hipercam.dockerfile .
 
 And, to run the image, use::
-       
+
   xhost +
   docker run -it -e DISPLAY=host.docker.internal:0 --platform linux/amd64 --rm -v <local-path-to-some-data>:/home/hiperuser/data hipercam:latest
 
@@ -77,6 +77,44 @@ I use the Qt5Agg backend to ensure that the important command
 |setaper| works. Others may work too of course. I have this set as the
 default in my .config/matplotlib/matplotlibrc configuartion file with
 the line `backend: Qt5Agg`
+
+Building from Source
+====================
+
+You can build the package from source using the standard Python build tools.
+
+Prerequisites
++++++++++++++
+
+Make sure you have the required build tools installed::
+
+  pip install build
+
+Basic Build Commands
+++++++++++++++++++++
+
+To build a source distribution (tarball)::
+
+  python -m build --sdist
+
+To build a wheel (binary distribution)::
+
+  python -m build --wheel
+
+To build both source and wheel distributions::
+
+  python -m build
+
+For development, you can install the package in editable mode::
+
+  pip install -e .
+
+This will install the package in development mode, so changes to the
+source code are immediately reflected without needing to reinstall.
+
+Note: The package includes Cython extensions that need to be compiled,
+so you'll need a C compiler and the build dependencies (Cython, numpy)
+available during the build process.
 
 Third-Party Modules
 ===================
@@ -137,7 +175,7 @@ your O/S package manager. e.g. under fedora, Cython appears as
          astronomical source extractor based on Bertin's source extractor.
 
   reproject:
-         The reproject package implements image reprojection methods 
+         The reproject package implements image reprojection methods
          for astronomical images. This is an optional dependency,
          but you will need it for `shiftadd` to work.
 
@@ -169,7 +207,7 @@ your O/S package manager. e.g. under fedora, Cython appears as
   trm.utils :
          generally useful routines used at a few places. Available
 	 from PyPi.
-	 
+
   websocket-client :
          for talking to the hipercam server.
 
@@ -182,7 +220,7 @@ your O/S package manager. e.g. under fedora, Cython appears as
 Contributing
 ===================
 The hipercam pipeline is made for its users, and we welcome contributions of many kinds.
-If you notice a bug, or want to request new functionality, please 
+If you notice a bug, or want to request new functionality, please
 `raise an issue <https://github.com/HiPERCAM/hipercam/issues>`_ or consider submitting
 a `pull request <https://github.com/HiPERCAM/hipercam/pulls>`_.
 
