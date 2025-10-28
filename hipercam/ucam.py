@@ -25,7 +25,7 @@ from hipercam import (
     gregorian_to_mjd,
     mjd_to_gregorian,
     fday_to_hms,
-    HipercamError
+    HipercamError,
 )
 
 __all__ = ["Rhead", "Rdata", "Rtime", "Rtbytes"]
@@ -84,7 +84,6 @@ PCPS_IO_BLOCKED = 0x8000  # access to microprocessor blocked
 
 
 class Rhead:
-
     """Stores the essential header info of an ULTRACAM/SPEC run as read
     from a run###.xml file. Most of the items are stored in the header
     attribute, but a number of them and some extras are put into
@@ -560,9 +559,7 @@ class Rhead:
             else (
                 int(param["REVISION"])
                 if "REVISION" in param
-                else int(param["VERSION"])
-                if "VERSION" in param
-                else -1
+                else int(param["VERSION"]) if "VERSION" in param else -1
             )
         )
         head["VERSION"] = (version, "Software version code")
@@ -605,13 +602,12 @@ class Rhead:
         head["EXPDELAY"] = (exposeTime, "Exposure delay (seconds)")
         self.exposeTime = exposeTime
 
-
         # set strings for logging purposes giving the window formats used in udriver / usdriver
         self.wforms = []
 
         if instrument == "ULTRACAM":
 
-            for wl, wr in zip(self.win[::2],self.win[1::2]):
+            for wl, wr in zip(self.win[::2], self.win[1::2]):
                 xsl = wl.llx
                 xsr = wr.llx
                 ys = wl.lly
@@ -951,7 +947,7 @@ class Rdata(Rhead):
                 # Re-format into the timing bytes and unsigned 2
                 # byte int data buffer
                 tbytes = buff[: self.ntbytes]
-                buff = np.fromstring(buff[self.ntbytes :], dtype="uint16")
+                buff = np.frombuffer(buff[self.ntbytes :], dtype=np.uint16)
 
             except urllib.error.HTTPError:
                 # when there is nothing there to read the request
@@ -977,8 +973,8 @@ class Rdata(Rhead):
                 self.fp.seek(0)
                 self.nframe = 1
                 raise UltracamError(
-                        f"failed to read frame {self.nframe}. Buffer length vs "
-                        f"attempted = {len(buff)} vs {self.framesize // 2 - self.headerwords}"
+                    f"failed to read frame {self.nframe}. Buffer length vs "
+                    f"attempted = {len(buff)} vs {self.framesize // 2 - self.headerwords}"
                 )
 
         # From this point, both server and local disk methods are the same
@@ -2510,7 +2506,7 @@ def utimer(tbytes, rhead, fnum):
         "frameError": frameError,
         "midnightCorr": midnightCorr,
         "ntmin": ntmin,
-        "fnum": fnum
+        "fnum": fnum,
     }
 
     if rhead.instrument == "ULTRACAM":
