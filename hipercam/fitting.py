@@ -757,7 +757,7 @@ def _mask(wind, x, y):
 
 class Mfit:
     """Object providing 'fun' and 'jac' methods for least_squares for
-    Mofffat models. Eight operating modes each of which allows the
+    Moffat models. Eight operating modes each of which allows the
     following to be free [else not]. Sky assumed = 0 when not free.
 
        mode == 'sfb' : sky, FWHM, beta
@@ -788,7 +788,6 @@ class Mfit:
           ndiv  : int
              pixel sub-division factor. See comments in fitMoffat
         """
-        self.sigma = sigma
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.x, self.y = np.meshgrid(x, y)
@@ -796,21 +795,39 @@ class Mfit:
         self.xbin = wind.xbin
         self.ybin = wind.ybin
         self.ndiv = ndiv
+        self.sigma = sigma
         self.mask = _mask(wind, self.x, self.y)
+        self.ok = self.mask & (self.sigma > 0)
         self.set_mode(mode, fwhm, beta)
 
     def set_mode(self, mode, fwhm, beta):
         """Set the operation mode with some light checks"""
         if mode not in ("sfb", "sb", "sf", "s", "fb", "b", "f", ""):
             raise HipercamError("invalid mode = {:s}".format(mode))
-
-        if (mode.find("f") == -1 and fwhm is None) or (
-            mode.find("b") == -1 and beta is None
-        ):
-            raise HipercamError("invalid mode / fwhm / beta combination")
         self.mode = mode
+
         self.fwhm = fwhm
         self.beta = beta
+        self.comp_fwhm = mode.find("f") > -1
+        self.comp_beta = mode.find("b") > -1
+        if (self.fwhm is None and not self.comp_fwhm) or (
+            self.beta is None and not self.comp_beta
+        ):
+            raise HipercamError("invalid mode / fwhm / beta combination")
+
+        # Precompute derivative indices (moved out of jac() for performance)
+        if mode == "sfb":
+            self.inds = (0, 1, 2, 3, 4, 5)
+        elif mode == "sb" or mode == "sf":
+            self.inds = (0, 1, 2, 3, 4)
+        elif mode == "s":
+            self.inds = (0, 1, 2, 3)
+        elif mode == "fb":
+            self.inds = (1, 2, 3, 4, 5)
+        elif mode == "b" or mode == "f":
+            self.inds = (1, 2, 3, 4)
+        elif mode == "":
+            self.inds = (1, 2, 3)
 
     def get_par(self, param):
         """Gets parameters (sky, height, xcen, ycen, fwhm, beta) according to
@@ -858,13 +875,13 @@ class Mfit:
 
         Argument::
 
-           param : 1D array
-              unpacks to (sky, height, xcen, ycen, fwhm, beta) where:
-              'sky' is the background per pixel; 'height' is the
-              central height of the Moffat function; 'xcen' and 'ycen'
-              are the ordinates of its centre in unbinned CCD pixels
-              with (1,1) at the left corner of the physical imagine
-              area; 'fwhm' is the FWHM in unbinned
+            param : 1D array
+                unpacks to (sky, height, xcen, ycen, fwhm, beta) where:
+                'sky' is the background per pixel; 'height' is the
+                central height of the Moffat function; 'xcen' and 'ycen'
+                are the ordinates of its centre in unbinned CCD pixels
+                with (1,1) at the left corner of the physical imagine
+                area; 'fwhm' is the FWHM in unbinned
 
         """
         if self.mode == "sfb":
@@ -924,77 +941,21 @@ class Mfit:
 
         return (skye, heighte, xcene, ycene, fwhme, betae)
 
-    def fun(self, param):
-        """
-        Returns 1D array of normalised residuals. See the model
-        method for a description of the argument 'param'
-        """
-        mod = self.model(param)
-        diff = (self.data - mod) / self.sigma
-        ok = self.mask & (self.sigma > 0)
-        return diff[ok].ravel()
-
-    def jac(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
-
-        comp_fwhm = self.mode.find("f") > -1
-        comp_beta = self.mode.find("b") > -1
-
-        # work out which derivatives to bother with
-        if self.mode == "sfb":
-            inds = (0, 1, 2, 3, 4, 5)
-        elif self.mode == "sb" or self.mode == "sf":
-            inds = (0, 1, 2, 3, 4)
-        elif self.mode == "s":
-            inds = (0, 1, 2, 3)
-        elif self.mode == "fb":
-            inds = (1, 2, 3, 4, 5)
-        elif self.mode == "b" or self.mode == "f":
-            inds = (1, 2, 3, 4)
-        elif self.mode == "":
-            inds = (1, 2, 3)
-
-        derivs = dmoffat(
-            self.x,
-            self.y,
-            sky,
-            height,
-            xcen,
-            ycen,
-            fwhm,
-            beta,
-            self.xbin,
-            self.ybin,
-            self.ndiv,
-            comp_fwhm,
-            comp_beta,
-        )
-
-        ok = self.mask & (self.sigma > 0)
-        return np.column_stack(
-            [(-derivs[ind][ok] / self.sigma[ok]).ravel() for ind in inds]
-        )
-
     def model(self, param):
         """
         Returns 2D array with model given a parameter vector.
 
         Argument::
 
-           param : 1D array
-              parameter vector, with values that depend upon the mode,
-              but could include some or all of (sky, height, xcen, ycen,
-              fwhm, beta) where 'sky' is the background per pixel;
-              'height' is the central height of the Moffat function;
-              'xcen' and 'ycen' are the ordinates of its centre in
-              unbinned CCD pixels with (1,1) at the left corner of the
-              physical imaging area; 'fwhm' is the FWHM in unbinned
-              pixels; 'beta' is the Moffat exponent.
+            param : 1D array
+                parameter vector, with values that depend upon the mode,
+                but could include some or all of (sky, height, xcen, ycen,
+                fwhm, beta) where 'sky' is the background per pixel;
+                'height' is the central height of the Moffat function;
+                'xcen' and 'ycen' are the ordinates of its centre in
+                unbinned CCD pixels with (1,1) at the left corner of the
+                physical imaging area; 'fwhm' is the FWHM in unbinned
+                pixels; 'beta' is the Moffat exponent.
         """
         sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
         return moffat(
@@ -1010,6 +971,54 @@ class Mfit:
             self.ybin,
             self.ndiv,
         )
+
+    def dmodel(self, param):
+        """
+        Returns list of 2D arrays of the partial derivatives of
+        the model with respect to the variable parameters.
+
+        See the model method for a description of the argument 'param'.
+        """
+        sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
+        return dmoffat(
+            self.x,
+            self.y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            beta,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
+            self.comp_fwhm,
+            self.comp_beta,
+        )
+
+    def fun(self, param):
+        """
+        Returns 1D array of normalised residuals.
+        See the model method for a description of the argument 'param'.
+
+        Used by scipy.optimize.least_squares.
+        """
+        mod = self.model(param)
+        diff = (self.data - mod) / self.sigma
+        return diff[self.ok].ravel()
+
+    def jac(self, param):
+        """
+        Returns list of 1D arrays of the partial derivatives of
+        the normalised residuals with respect to the variable
+        parameters.
+
+        Used by scipy.optimize.least_squares.
+        """
+        derivs = self.dmodel(param)
+        arr = np.stack([derivs[ind][self.ok] for ind in self.inds], axis=-1)
+        return -arr / self.sigma[self.ok, None]
+
 
 
 ##########################################
@@ -1468,6 +1477,7 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
         else:
             return (dsky, dheight, dxcen, dycen, dycen)
 
+
 class Gfit:
     """Object providing 'fun' and 'jac' methods for least_squares for
     Gaussian models. Four operating modes each of which allows the
@@ -1503,7 +1513,6 @@ class Gfit:
              FWHM in unbinned pixels
 
         """
-        self.sigma = sigma
         x = wind.x(np.arange(wind.nx))
         y = wind.y(np.arange(wind.ny))
         self.x, self.y = np.meshgrid(x, y)
@@ -1511,18 +1520,31 @@ class Gfit:
         self.xbin = wind.xbin
         self.ybin = wind.ybin
         self.ndiv = ndiv
+        self.sigma = sigma
         self.mask = _mask(wind, self.x, self.y)
+        self.ok = self.mask & (self.sigma > 0)
         self.set_mode(mode, fwhm)
 
     def set_mode(self, mode, fwhm):
         """Set the operation mode with some light checks"""
         if mode not in ("sf", "s", "f", ""):
             raise HipercamError("invalid mode = {}".format(mode))
-
-        if mode.find("f") == -1 and fwhm is None:
-            raise HipercamError("invalid mode / fwhm combination")
         self.mode = mode
+
         self.fwhm = fwhm
+        self.comp_fwhm = mode.find("f") > -1
+        if fwhm is None and not self.comp_fwhm:
+            raise HipercamError("invalid mode / fwhm combination")
+
+        # Precompute derivative indices (moved out of jac() for performance)
+        if mode == "sf":
+            self.inds = (0, 1, 2, 3, 4)
+        elif mode == "s":
+            self.inds = (0, 1, 2, 3)
+        elif mode == "f":
+            self.inds = (1, 2, 3, 4)
+        elif mode == "":
+            self.inds = (1, 2, 3)
 
     def get_par(self, param):
         """Gets parameters (sky, height, xcen, ycen, fwhm) according to
@@ -1588,72 +1610,21 @@ class Gfit:
 
         return (skye, heighte, xcene, ycene, fwhme)
 
-    def fun(self, param):
-        """
-        Returns 1D array of normalised residuals. See the model
-        method for a description of the argument 'param'
-        """
-        mod = self.model(param)
-        diff = (self.data - mod) / self.sigma
-        ok = self.mask & (self.sigma > 0)
-        return diff[ok].ravel()
-
-    def jac(self, param):
-        """
-        Returns list of 1D arrays of the partial derivatives of
-        the normalised residuals with respect to the variable
-        parameters.
-        """
-        sky, height, xcen, ycen, fwhm = self.get_par(param)
-
-        comp_fwhm = self.mode.find("f") > -1
-
-        # work out which derivatives to bother with
-        if self.mode == "sf":
-            inds = (0, 1, 2, 3, 4)
-        elif self.mode == "s":
-            inds = (0, 1, 2, 3)
-        elif self.mode == "f":
-            inds = (1, 2, 3, 4)
-        elif self.mode == "":
-            inds = (1, 2, 3)
-        else:
-            raise HipercamError("invalid mode")
-
-        derivs = dgaussian(
-            self.x,
-            self.y,
-            sky,
-            height,
-            xcen,
-            ycen,
-            fwhm,
-            self.xbin,
-            self.ybin,
-            self.ndiv,
-            comp_fwhm,
-        )
-
-        ok = self.mask & (self.sigma > 0)
-        return np.column_stack(
-            [(-derivs[ind][ok] / self.sigma[ok]).ravel() for ind in inds]
-        )
-
     def model(self, param):
         """
         Returns 2D array with model given a parameter vector.
 
         Argument::
 
-           param : 1D array
-              parameter vector, with values that depend upon the mode,
-              but could include some or all of (sky, height, xcen, ycen,
-              fwhm) where 'sky' is the background per pixel;
-              'height' is the central height of the gaussian function;
-              'xcen' and 'ycen' are the ordinates of its centre in
-              unbinned CCD pixels with (1,1) at the left corner of the
-              physical imaging area; 'fwhm' is the FWHM in unbinned
-              pixels.
+            param : 1D array
+                parameter vector, with values that depend upon the mode,
+                but could include some or all of (sky, height, xcen, ycen,
+                fwhm) where 'sky' is the background per pixel;
+                'height' is the central height of the gaussian function;
+                'xcen' and 'ycen' are the ordinates of its centre in
+                unbinned CCD pixels with (1,1) at the left corner of the
+                physical imaging area; 'fwhm' is the FWHM in unbinned
+                pixels.
         """
         sky, height, xcen, ycen, fwhm = self.get_par(param)
         return gaussian(
@@ -1668,3 +1639,48 @@ class Gfit:
             self.ybin,
             self.ndiv,
         )
+
+    def dmodel(self, param):
+        """
+        Returns list of 2D arrays of the partial derivatives of
+        the model with respect to the variable parameters.
+
+        See the model method for a description of the argument 'param'.
+        """
+        sky, height, xcen, ycen, fwhm = self.get_par(param)
+        return dgaussian(
+            self.x,
+            self.y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
+            self.comp_fwhm,
+        )
+
+    def fun(self, param):
+        """
+        Returns 1D array of normalised residuals.
+        See the model method for a description of the argument 'param'.
+
+        Used by scipy.optimize.least_squares.
+        """
+        mod = self.model(param)
+        diff = (self.data - mod) / self.sigma
+        return diff[self.ok].ravel()
+
+    def jac(self, param):
+        """
+        Returns list of 1D arrays of the partial derivatives of
+        the normalised residuals with respect to the variable
+        parameters.
+
+        Used by scipy.optimize.least_squares.
+        """
+        derivs = self.dmodel(param)
+        arr = np.stack([derivs[ind][self.ok] for ind in self.inds], axis=-1)
+        return -arr / self.sigma[self.ok, None]
