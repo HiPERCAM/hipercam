@@ -930,6 +930,8 @@ class Rdata(Rhead):
             # separate into the frame and timing data, correcting the frame
             # bytes for the FITS BZERO offset
             frame = np.frombuffer(raw_bytes[: -self.ntbytes], ">u2")
+            # frombuffer returns a read-only array, so make a copy
+            frame = frame.copy()
             frame += BZERO
             tbytes = raw_bytes[-self.ntbytes :]
 
