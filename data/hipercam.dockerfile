@@ -38,7 +38,7 @@ RUN git clone https://github.com/HiPERCAM/trm-pgplot.git && git clone https://gi
 
 # Installing Tom's pgplot
 WORKDIR /home/hiperuser/software/trm-pgplot
-RUN pip install .
+RUN pip install --no-build-isolation .
 
 # Installing hipercam dependencies
 WORKDIR /home/hiperuser/software/hipercam
