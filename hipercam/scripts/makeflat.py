@@ -1,15 +1,14 @@
-import sys
 import os
-import tempfile
 import signal
+import sys
+import tempfile
 
 import numpy as np
-
 from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
-from hipercam import utils, spooler
+from hipercam import spooler, utils
 
 __all__ = [
     "makeflat",
@@ -44,10 +43,10 @@ def makeflat(args=None):
     normalises by the mean and writes out the results to temporary
     files. For each CCD it then sorts the files by their (original)
     mean level, and for those that lie between defined limits it takes
-    the median of the mean-mormalised frames in groups of defined
+    the median of the mean-normalised frames in groups of defined
     size. Thus, say one had 75 OK images, then these would be divided
     into 10 groups, the first 9 having 7 frames, the last having
-    16. The median average of each of these would be taken. In each
+    12. The median average of each of these would be taken. In each
     case the mean levels would be adjusted to be the same before
     taking the average to overcome the problem of taking a median of a
     time-variable sky. The assumption is that while the level may
@@ -167,7 +166,6 @@ def makeflat(args=None):
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
@@ -186,7 +184,7 @@ def makeflat(args=None):
         cl.register("output", Cline.LOCAL, Cline.PROMPT)
 
         # get inputs
-        default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
+        default_source = os.environ.get("HIPERCAM_DEFAULT_SOURCE", "hl")
         source = cl.get_value(
             "source",
             "data source [hs, hl, us, ul, hf]",
@@ -200,7 +198,7 @@ def makeflat(args=None):
         if server_or_local:
             resource = cl.get_value("run", "run name", "run005")
             root = os.path.basename(resource)
-            cl.set_default('output', cline.Fname(root, hcam.HCAM))
+            cl.set_default("output", cline.Fname(root, hcam.HCAM))
             first = cl.get_value("first", "first frame to average", 1, 1)
             last = cl.get_value("last", "last frame to average (0 for all)", first, 0)
             if last < first and last != 0:
@@ -259,7 +257,7 @@ def makeflat(args=None):
         lowers = cl.get_value(
             "lower",
             "lower limits on mean count level for included flats, 1 per CCD",
-            len(ccds) * (5000,)
+            len(ccds) * (5000,),
         )
 
         uppers = cl.get_default("upper")
@@ -269,7 +267,7 @@ def makeflat(args=None):
         uppers = cl.get_value(
             "upper",
             "lower limits on mean count level for included flats, 1 per CCD",
-            len(ccds) * (50000,)
+            len(ccds) * (50000,),
         )
 
         clobber = cl.get_value(
@@ -281,23 +279,24 @@ def makeflat(args=None):
             "output average",
             cline.Fname(
                 "hcam", hcam.HCAM, cline.Fname.NEW if clobber else cline.Fname.NOCLOBBER
-            )
+            ),
         )
 
     # inputs done with.
 
     if server_or_local or bias is not None or dark is not None:
-
         print("\nCalling 'grab' ...")
 
         args = [None, "prompt", source, "yes", resource]
         if server_or_local:
-            args += [str(first), str(last),str(twait), str(tmax)]
+            args += [str(first), str(last), str(twait), str(tmax)]
         args += [
             "no",
             "none" if bias is None else bias,
             "none" if dark is None else dark,
-            "none", "none", "f32",
+            "none",
+            "none",
+            "f32",
         ]
         resource = hcam.scripts.grab(args)
 
@@ -306,10 +305,8 @@ def makeflat(args=None):
 
     fnames = []
     with CleanUp(
-            resource, fnames,
-            server_or_local or bias is not None or dark is not None
+        resource, fnames, server_or_local or bias is not None or dark is not None
     ) as cleanup:
-
         # Read all the files to determine mean levels (after bias
         # subtraction) save the bias-subtracted, mean-level normalised
         # results to temporary files
@@ -322,9 +319,7 @@ def makeflat(args=None):
         tdir = utils.temp_dir()
 
         with spooler.HcamListSpool(resource) as spool:
-
             for mccd in spool:
-
                 # here we determine the mean and median levels, store them
                 # then normalise the CCDs by the mean and save the files
                 # to disk
@@ -372,9 +367,7 @@ def makeflat(args=None):
             # some more progress info
             print("Found {:d} frames for CCD {:s}".format(len(mkeys), cnam))
             if len(mkeys) == 0:
-                print(
-                    (".. cannot average 0 frames;" " will skip CCD {:s}").format(cnam)
-                )
+                print((".. cannot average 0 frames; will skip CCD {:s}").format(cnam))
                 continue
 
             elif len(mkeys) < ngroup:
@@ -441,7 +434,7 @@ def makeflat(args=None):
 
             # Add some history
             tccd.head.add_history(
-                ("result of makeflat on {:d}" " frames, ngroup = {:d}").format(
+                ("result of makeflat on {:d} frames, ngroup = {:d}").format(
                     len(mkeys), ngroup
                 )
             )
@@ -458,12 +451,14 @@ def makeflat(args=None):
         # write out
         template.write(output, clobber)
         print("\nFinal result written to {:s}".format(output))
-        print('makeflat finished')
+        print("makeflat finished")
+
 
 class CleanUp:
     """
     Context manager to handle temporary files
     """
+
     def __init__(self, flist, fnames, temp):
         self.flist = flist
         self.fnames = fnames
@@ -487,5 +482,4 @@ class CleanUp:
             if os.path.exists(fname):
                 os.remove(fname)
 
-        print('temporary files removed')
-
+        print("temporary files removed")
