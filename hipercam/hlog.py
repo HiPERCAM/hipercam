@@ -791,7 +791,7 @@ class Tseries:
             bad = self.get_bad()
         else:
             # Do not flag bad data
-            bad = np.zeros_like(self.t, dtype=np.bool)
+            bad = np.zeros_like(self.t, dtype=bool)
 
         if bitmask is not None:
             # Flag data matching the bitmask

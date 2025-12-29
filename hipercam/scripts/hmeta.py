@@ -228,29 +228,29 @@ def hmeta(args=None):
                 {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
             for cnam, ncframe in ncframes.items():
                 if linstrument == 'ultraspec':
-                    medians[cnam] = np.empty_like(ncframe,dtype=np.float)
+                    medians[cnam] = np.empty_like(ncframe,dtype=float)
                 elif linstrument == 'ultracam':
                     medians[cnam] = {
-                        'L' : np.empty_like(ncframe,dtype=np.float),
-                        'R' : np.empty_like(ncframe,dtype=np.float)
+                        'L' : np.empty_like(ncframe,dtype=float),
+                        'R' : np.empty_like(ncframe,dtype=float)
                     }
                 elif linstrument == 'hipercam':
                     medians[cnam] = {
-                        'E' : np.empty_like(ncframe,dtype=np.float),
-                        'F' : np.empty_like(ncframe,dtype=np.float),
-                        'G' : np.empty_like(ncframe,dtype=np.float),
-                        'H' : np.empty_like(ncframe,dtype=np.float)
+                        'E' : np.empty_like(ncframe,dtype=float),
+                        'F' : np.empty_like(ncframe,dtype=float),
+                        'G' : np.empty_like(ncframe,dtype=float),
+                        'H' : np.empty_like(ncframe,dtype=float)
                     }
 
-                means[cnam] = np.empty_like(ncframe,dtype=np.float)
-                mins[cnam] = np.empty_like(ncframe,dtype=np.float)
-                p1s[cnam] = np.empty_like(ncframe,dtype=np.float)
-                p5s[cnam] = np.empty_like(ncframe,dtype=np.float)
-                p16s[cnam] = np.empty_like(ncframe,dtype=np.float)
-                p84s[cnam] = np.empty_like(ncframe,dtype=np.float)
-                p95s[cnam] = np.empty_like(ncframe,dtype=np.float)
-                p99s[cnam] = np.empty_like(ncframe,dtype=np.float)
-                maxs[cnam] = np.empty_like(ncframe,dtype=np.float)
+                means[cnam] = np.empty_like(ncframe,dtype=float)
+                mins[cnam] = np.empty_like(ncframe,dtype=float)
+                p1s[cnam] = np.empty_like(ncframe,dtype=float)
+                p5s[cnam] = np.empty_like(ncframe,dtype=float)
+                p16s[cnam] = np.empty_like(ncframe,dtype=float)
+                p84s[cnam] = np.empty_like(ncframe,dtype=float)
+                p95s[cnam] = np.empty_like(ncframe,dtype=float)
+                p99s[cnam] = np.empty_like(ncframe,dtype=float)
+                maxs[cnam] = np.empty_like(ncframe,dtype=float)
 
             # now access the data and calculate stats. we have to
             # remember that ultracam and hipercam have different
