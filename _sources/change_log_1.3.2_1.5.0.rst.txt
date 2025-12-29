@@ -1,0 +1,47 @@
+.. changelog created on Mon 22 Apr 2024 09:46:26 BST
+
+.. include:: globals.rst
+
+|hiper| pipeline changes from v1.3.2 to v1.5.0
+**************************************************
+
+List of changes from git, newest first, with the commit keys linked to github:
+
+  * `a0920f338cf7f3da0a8bbbd7e7ec759ca4e4d0f0 <https://github.com/HiPERCAM/hipercam/commit/a0920f338cf7f3da0a8bbbd7e7ec759ca4e4d0f0>`_ Merge pull request #119 from HiPERCAM/flat_medians
+  * `ec924ef84eb53a97330c4b89c60a4b3d46f7b060 <https://github.com/HiPERCAM/hipercam/commit/ec924ef84eb53a97330c4b89c60a4b3d46f7b060>`_ Remove print lines
+  * `bdb4d1e91608676bc913710e9df698d6d64596c5 <https://github.com/HiPERCAM/hipercam/commit/bdb4d1e91608676bc913710e9df698d6d64596c5>`_ Select flats on median values as well as mean
+  * `8a569208778f0f18d69a5744bae5a9122172ece0 <https://github.com/HiPERCAM/hipercam/commit/8a569208778f0f18d69a5744bae5a9122172ece0>`_ Merge pull request #118 from HiPERCAM/first_fix
+  * `1bac556bb537df0650de8c307689211d3de38cea <https://github.com/HiPERCAM/hipercam/commit/1bac556bb537df0650de8c307689211d3de38cea>`_ allow first=-100 in reduce
+  * `f9afb84016d517a44f878bfebe7b6c2761ec1b6d <https://github.com/HiPERCAM/hipercam/commit/f9afb84016d517a44f878bfebe7b6c2761ec1b6d>`_ Merge pull request #117 from HiPERCAM/hplot_fit
+  * `55b60a6e2476d734ab40d7696ecc12cfbc7f8e14 <https://github.com/HiPERCAM/hipercam/commit/55b60a6e2476d734ab40d7696ecc12cfbc7f8e14>`_ hplot improvements
+  * `81f363d79ba5df2ee1eb6af426f8edf8d883f9de <https://github.com/HiPERCAM/hipercam/commit/81f363d79ba5df2ee1eb6af426f8edf8d883f9de>`_ Merge pull request #114 from HiPERCAM/hplot_fit
+  * `1246a5225ef8302cd5431f6067b5af392d73bd6e <https://github.com/HiPERCAM/hipercam/commit/1246a5225ef8302cd5431f6067b5af392d73bd6e>`_ added profile fitting to hplot
+  * `9c81a0b95c0e97fa8d4c466405c768063c18a844 <https://github.com/HiPERCAM/hipercam/commit/9c81a0b95c0e97fa8d4c466405c768063c18a844>`_ Merge pull request #112 from Alex-J-Brown/master
+  * `ac19726cf0aae83a9c980d1fbb72ba6c8c90d326 <https://github.com/HiPERCAM/hipercam/commit/ac19726cf0aae83a9c980d1fbb72ba6c8c90d326>`_ Requested changes adding OSIRIS+ to fits2hcm
+  * `2a4952ec3801cf2962b92cd4cf5300393644c860 <https://github.com/HiPERCAM/hipercam/commit/2a4952ec3801cf2962b92cd4cf5300393644c860>`_ Added GTC-OSIRIS+ to fits2hcm
+  * `75fa2298b0a7553868749b053db6a62890bac278 <https://github.com/HiPERCAM/hipercam/commit/75fa2298b0a7553868749b053db6a62890bac278>`_ makebias can use hf datasource
+  * `5f668d6e471c862162422c12acd7c2df4e6e0dba <https://github.com/HiPERCAM/hipercam/commit/5f668d6e471c862162422c12acd7c2df4e6e0dba>`_ fix pbands to work with more than 3 CCDs
+  * `7521a22f91351d0e721d373443cbfdc237e980db <https://github.com/HiPERCAM/hipercam/commit/7521a22f91351d0e721d373443cbfdc237e980db>`_ typo in string formatting for rupdate msg
+  * `5bfb022c786ec25dd0d3dd1687229580a6306d5d <https://github.com/HiPERCAM/hipercam/commit/5bfb022c786ec25dd0d3dd1687229580a6306d5d>`_ changelog
+  * `46ff411bbd4d4a6847060e024491fa9afb766a3e <https://github.com/HiPERCAM/hipercam/commit/46ff411bbd4d4a6847060e024491fa9afb766a3e>`_ bugfix to use supplied kernel FWHM
+  * `6d496c702540e3ce04fc53a98101d5243ebca8bf <https://github.com/HiPERCAM/hipercam/commit/6d496c702540e3ce04fc53a98101d5243ebca8bf>`_ bugfix in resampling tseries when no data points
+  * `da0d43728b7ada695021ce7174466c34614da730 <https://github.com/HiPERCAM/hipercam/commit/da0d43728b7ada695021ce7174466c34614da730>`_ Merge pull request #110 from HiPERCAM/compo
+  * `177cc5ca147d098f60e7eb81d0e943f0d6548e91 <https://github.com/HiPERCAM/hipercam/commit/177cc5ca147d098f60e7eb81d0e943f0d6548e91>`_ aperture moves are COMPO aware
+  * `bdf1892f8ea45e400112bbb1e9ae1ec212afe118 <https://github.com/HiPERCAM/hipercam/commit/bdf1892f8ea45e400112bbb1e9ae1ec212afe118>`_ setaper is COMPO-aware
+  * `f4c919435bd8cd7cf7d16564c7000997632dc455 <https://github.com/HiPERCAM/hipercam/commit/f4c919435bd8cd7cf7d16564c7000997632dc455>`_ compat with old ape files
+  * `ac5126585cf17bf4a79509c6adca4397e219c9c6 <https://github.com/HiPERCAM/hipercam/commit/ac5126585cf17bf4a79509c6adca4397e219c9c6>`_ apertures now have compo boolean flag
+  * `dda2ad5f43ea24e168595dfe1716d42fa4bc1b57 <https://github.com/HiPERCAM/hipercam/commit/dda2ad5f43ea24e168595dfe1716d42fa4bc1b57>`_ fixed odd duplication in setup.py
+  * `8c4c827608e931442d9286b50c11890da03333f9 <https://github.com/HiPERCAM/hipercam/commit/8c4c827608e931442d9286b50c11890da03333f9>`_ Merge pull request #105 from HiPERCAM/new_psf_reduce
+  * `2421f5db643edb3973b78330610de7423e796d14 <https://github.com/HiPERCAM/hipercam/commit/2421f5db643edb3973b78330610de7423e796d14>`_ tseries bitmask should be integer
+  * `9d49830c9896e1b2a7a3960353783290b26e02e5 <https://github.com/HiPERCAM/hipercam/commit/9d49830c9896e1b2a7a3960353783290b26e02e5>`_ Merge pull request #108 from HiPERCAM/nrtplot_angles
+  * `002b4d3b3041814a1c9e89a1ecd361d5664d44c9 <https://github.com/HiPERCAM/hipercam/commit/002b4d3b3041814a1c9e89a1ecd361d5664d44c9>`_ add reporting of angles to nrtplot for 2 stars
+  * `5067e5874729ba598f80a9ebbd6f4b8f7d4e1fb2 <https://github.com/HiPERCAM/hipercam/commit/5067e5874729ba598f80a9ebbd6f4b8f7d4e1fb2>`_ add changelog
+  * `04751797673a11ffe50678dfc502a95aca0d789d <https://github.com/HiPERCAM/hipercam/commit/04751797673a11ffe50678dfc502a95aca0d789d>`_ removed extra quotation mark
+  * `6f5ef4240fa1f5ce5d8e3132fbbd586c7bb818d2 <https://github.com/HiPERCAM/hipercam/commit/6f5ef4240fa1f5ce5d8e3132fbbd586c7bb818d2>`_ removed extra quotation mark
+  * `f6163e3b76a7f2494477eb67229b9f0ddc4c8759 <https://github.com/HiPERCAM/hipercam/commit/f6163e3b76a7f2494477eb67229b9f0ddc4c8759>`_ bug in applying scale option
+  * `22ba9ededbff9ac806ef8f9d80484a9df354ed4f <https://github.com/HiPERCAM/hipercam/commit/22ba9ededbff9ac806ef8f9d80484a9df354ed4f>`_ bug in applying scale option
+  * `bec4cf7a4aef0e39cd89ad8c6999cb94ae1c18d3 <https://github.com/HiPERCAM/hipercam/commit/bec4cf7a4aef0e39cd89ad8c6999cb94ae1c18d3>`_ new reduce file for psf option & black formatting
+  * `ffd475feedb7ae3657183837d27455fe79f99756 <https://github.com/HiPERCAM/hipercam/commit/ffd475feedb7ae3657183837d27455fe79f99756>`_ fix correct params and use reduce file settings
+  * `20c9539c08ed59e7473e46bf062ba86df22438ad <https://github.com/HiPERCAM/hipercam/commit/20c9539c08ed59e7473e46bf062ba86df22438ad>`_ refactor to avoid duplicated code
+  * `ef45e2fb668ba73b3b8a66d4ed6a38582fa94c55 <https://github.com/HiPERCAM/hipercam/commit/ef45e2fb668ba73b3b8a66d4ed6a38582fa94c55>`_ get old style PSF photometry working
+  * `aeefaa02d347217cc40ad5dd21b82ec56eeec988 <https://github.com/HiPERCAM/hipercam/commit/aeefaa02d347217cc40ad5dd21b82ec56eeec988>`_ hlog.py, changed to generic time correction routine

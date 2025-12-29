@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HiPERCAM commands &#8212; HiPERCAM pipeline 0.1.dev1+gcf270badf documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    
+    <script src="_static/documentation_options.js?v=2eba5be0"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The API" href="api/api.html" />
+    <link rel="prev" title="ULTRACAM observing checklist" href="ultracam_checklist.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="api/api.html" title="The API">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="ultracam_checklist.html" title="ULTRACAM observing checklist">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 0.1.dev1+gcf270badf documentation</a>
+	 &#187;
+      </li>
+      
+      <li>HiPERCAM commands</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="hiper-commands">
+<h1>HiPERCAM commands<a class="headerlink" href="#hiper-commands" title="Link to this heading">¶</a></h1>
+<p>This page documents the pipeline commands which are all part of
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">hipercam.scripts</span></code>. Help on any given command can be obtained at the
+terminal using e.g. <code class="docutils literal notranslate"><span class="pre">pydoc</span> <span class="pre">hipercam.scripts</span></code> or <code class="docutils literal notranslate"><span class="pre">pydoc</span>
+<span class="pre">hipercam.scripts.rtplot</span></code>. This is often the most useful way to get
+information quickly. If you are new to the pipeline, it would be worth reading
+the <a class="reference internal" href="#command-calling"><span class="std std-ref">Parameter specification</span></a> section on how to call the pipeline commands and
+specify parameters.</p>
+<nav class="contents local" id="contents">
+<p class="topic-title">Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#main-commands" id="id3">Main commands</a></p></li>
+<li><p><a class="reference internal" href="#parameter-specification" id="id4">Parameter specification</a></p>
+<ul>
+<li><p><a class="reference internal" href="#basic-parameter-input" id="id5">Basic parameter input</a></p></li>
+<li><p><a class="reference internal" href="#hidden-parameters-and-special-keywords" id="id6">Hidden parameters and special keywords</a></p></li>
+<li><p><a class="reference internal" href="#strings-with-spaces" id="id7">Strings with spaces</a></p></li>
+<li><p><a class="reference internal" href="#setting-a-string-to-be-blank" id="id8">Setting a string to be blank</a></p></li>
+<li><p><a class="reference internal" href="#parameter-ranges" id="id9">Parameter ranges</a></p></li>
+<li><p><a class="reference internal" href="#tab-completion" id="id10">Tab completion</a></p></li>
+<li><p><a class="reference internal" href="#global-vs-local-parameters" id="id11">Global vs local parameters</a></p></li>
+<li><p><a class="reference internal" href="#trouble-shooting-parameter-input" id="id12">Trouble-shooting parameter input</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#errors-reported-by-scripts" id="id13">Errors reported by scripts</a></p></li>
+<li><p><a class="reference internal" href="#command-definitions" id="id14">Command definitions</a></p></li>
+</ul>
+</nav>
+<section id="main-commands">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Main commands</a><a class="headerlink" href="#main-commands" title="Link to this heading">¶</a></h2>
+<p>This section lists the main HiPERCAM commands <a class="footnote-reference brackets" href="#f1" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> ; see also the bottom of the page
+for all the documentation on the commands in one long list. Clicking on a
+command name in the table below will take you to the relevant section of this long
+list. The table also indicates contexts in which each command is particularly
+useful.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 12.5%" />
+<col style="width: 37.5%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Purpose</p></th>
+<th class="head"><p>Observing</p></th>
+<th class="head"><p>Reduction</p></th>
+<th class="head"><p>Plots &amp;
+analysis</p></th>
+<th class="head"><p>Arithematic</p></th>
+<th class="head"><p>Information</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">add</span></code></p></td>
+<td><p>add two frames</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">averun</span></code></p></td>
+<td><p>average a series of frames in a run</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">cadd</span></code></p></td>
+<td><p>add a constant to a frame</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">cdiv</span></code></p></td>
+<td><p>divide a frame by a constant</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">cmul</span></code></p></td>
+<td><p>multiply a frame by a constant</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">combine</span></code></p></td>
+<td><p>combine a list of frames</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">csub</span></code></p></td>
+<td><p>subtract a constant from a frame</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">div</span></code></p></td>
+<td><p>divide one frame by another</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">exploss</span></code></p></td>
+<td><p>plot reduce log readout noise loss factor</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">fits2hcm</span></code></p></td>
+<td><p>convert foreign FITs files to hcm format</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">flagcloud</span></code></p></td>
+<td><p>flag cloudy and junk data in a reduce log</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">ftargets</span></code></p></td>
+<td><p>automatically find targets using “sep”</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">genred</span></code></p></td>
+<td><p>create a reduce file</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code></p></td>
+<td><p>split frames out of a run</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">hfilter</span></code></p></td>
+<td><p>filter a HiPERCAM image</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">hinfo</span></code></p></td>
+<td><p>lists information on a HiPERCAM image</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">hist</span></code></p></td>
+<td><p>plot a histogram of a frame</p></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">hlog2col</span></code></p></td>
+<td><p>produce ASCII column data from a reduce log</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">hlog2fits</span></code></p></td>
+<td><p>convert a reduction log file to FITS</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">hls</span></code></p></td>
+<td><p>list the runs on the HiPERCAM server</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">hpackage</span></code></p></td>
+<td><p>bundles up reduce data files</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">hplot</span></code></p></td>
+<td><p>plot a frame</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">joinup</span></code></p></td>
+<td><p>joins windows into a single image per CCD</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">ltimes</span></code></p></td>
+<td><p>list times of a run</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">makebias</span></code></p></td>
+<td><p>combine a run to make a bias frame</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">makedark</span></code></p></td>
+<td><p>combine a run to make a dark frame</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">makeflat</span></code></p></td>
+<td><p>combine a set of frames into a flat</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">makefringe</span></code></p></td>
+<td><p>combine a set frames into a fringe map</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">makemovie</span></code></p></td>
+<td><p>makes stills for movies from a run</p></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">mstats</span></code></p></td>
+<td><p>list stats of multiple frames from a run</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">mul</span></code></p></td>
+<td><p>multiply two frames</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">ncal</span></code></p></td>
+<td><p>noise calibration</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">nrtplot</span></code></p></td>
+<td><p>plot frames as they come in [matplotlib]</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">pbands</span></code></p></td>
+<td><p>plot <code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code> log as a lightcurve per CCD</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">plog</span></code></p></td>
+<td><p>flexible plot of a <code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code> log</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">redanal</span></code></p></td>
+<td><p>analyse a reduction log file</p></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></p></td>
+<td><p>carry out photometric reduction</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code></p></td>
+<td><p>plot frames as they come in [pgplot]</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">rupdate</span></code></p></td>
+<td><p>updates old reduce files</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></p></td>
+<td><p>define the photometric apertures</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">setdefect</span></code></p></td>
+<td><p>define a file of CCD defects</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">setfringe</span></code></p></td>
+<td><p>define peak/trough pairs for fringe measurement</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">shiftadd</span></code></p></td>
+<td><p>combine frames after aligning based on reduced positions</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">splice</span></code></p></td>
+<td><p>splice two frames together</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">stats</span></code></p></td>
+<td><p>report statistics of a frame</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">sub</span></code></p></td>
+<td><p>subtract two frames</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Yes</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-func docutils literal notranslate"><span class="pre">uls</span></code></p></td>
+<td><p>list the runs on the ULTRACAM server</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="parameter-specification">
+<span id="command-calling"></span><h2><a class="toc-backref" href="#id4" role="doc-backlink">Parameter specification</a><a class="headerlink" href="#parameter-specification" title="Link to this heading">¶</a></h2>
+<p>The pipeline commands are distinct from standard unix commands in having a
+‘memory’, which is implemented through storage of inputs in disk files for
+each command, and also in prompting you if you don’t specify a parameter on
+the command line. Parameters can be ‘global’ or ‘local’ depending upon whether
+they are reset across multiple commands or just the command of interest. The
+parameter memory, along with the use of backslashes ‘\\’ to accept default
+values can save a huge amount of typing making for efficient operation once
+you get up to speed.</p>
+<section id="basic-parameter-input">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">Basic parameter input</a><a class="headerlink" href="#basic-parameter-input" title="Link to this heading">¶</a></h3>
+<p>The command <code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code> has more parameters than most others and is a
+good one to start with (see also its replacement <code class="xref py py-func docutils literal notranslate"><span class="pre">nrtplot</span></code>). Suppose
+then that we have a raw HiPERCAM file, <code class="file docutils literal notranslate"><span class="pre">run0076.fits</span></code>, that we
+want to plot. If we type ‘rtplot’ and follow the prompts, the first
+few lines might be:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rtplot</span>
+<span class="n">run</span> <span class="o">-</span> <span class="n">run</span> <span class="n">name</span> <span class="p">[</span><span class="n">run0064</span><span class="p">]:</span> <span class="n">run0076</span>
+<span class="n">first</span> <span class="o">-</span> <span class="n">first</span> <span class="n">frame</span> <span class="n">to</span> <span class="n">plot</span> <span class="p">[</span><span class="mi">10</span><span class="p">]:</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>This shows that the last time <code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code> was invoked, it was used to look
+as <code class="file docutils literal notranslate"><span class="pre">run0064.fits</span></code> starting with frame 10. Note that the extension
+‘.fits’ is not needed: HiPERCAM makes significant use of extensions to
+differentiate between different forms of file, all of which could be
+associated with the same run and therefore start with the ‘run0064’ or whatever.
+Alternatively we could have typed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rtplot</span> <span class="n">run0076</span>
+<span class="n">first</span> <span class="o">-</span> <span class="n">first</span> <span class="n">frame</span> <span class="n">to</span> <span class="n">plot</span> <span class="p">[</span><span class="mi">10</span><span class="p">]:</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>which would accomplish the same, setting the run name according to its
+position in the command-line arguments. For this to work, you need to be
+certain of the ordering. If you are not sure of the order, but you are sure
+that the parameter is called <code class="docutils literal notranslate"><span class="pre">run</span></code>, then:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rtplot</span> <span class="n">run</span><span class="o">=</span><span class="n">run0076</span>
+<span class="n">first</span> <span class="o">-</span> <span class="n">first</span> <span class="n">frame</span> <span class="n">to</span> <span class="n">plot</span> <span class="p">[</span><span class="mi">10</span><span class="p">]:</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>will do, and the first two parameters could be similarly specified:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rtplot</span> <span class="n">first</span><span class="o">=</span><span class="mi">1</span> <span class="n">run</span><span class="o">=</span><span class="n">run0076</span>
+</pre></div>
+</div>
+<p>Note that by naming the parameters, the order becomes immaterial. Now,
+assuming that the command was completed, if you run <code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code> again you
+might get:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>rtplot
+run - run name [run0076]:
+first - first frame to plot [1]:
+ccd - CCD(s) to plot [0 for all] [3]: 3 4
+nx - number of panels in X [2]:
+bias - bias frame [&#39;none&#39; to ignore] [none]:
+msub - subtract median from each window? [False]: True
+</pre></div>
+</div>
+<p>You will see that the defaults for <code class="docutils literal notranslate"><span class="pre">run</span></code> and <code class="docutils literal notranslate"><span class="pre">first</span></code> have been updated by
+the previous invocations of the command. This the parameter “memory” referred
+to earlier.  Now suppose that we wish to repeat the command without changing
+any parameter.  Then a simple:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rtplot</span> \\
+</pre></div>
+</div>
+<p>will do. The double backslash ‘\\\\’ indicates “take the default value for
+all remaining parameters”. Two are needed because the shell will strip one of
+them. If you let at least one prompting line be output then a single backslash
+will accomplish the same thing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rtplot</span>
+<span class="n">run</span> <span class="o">-</span> <span class="n">run</span> <span class="n">name</span> <span class="p">[</span><span class="n">run0076</span><span class="p">]:</span> \
+</pre></div>
+</div>
+<p>If you wish to change just one parameter, say <code class="docutils literal notranslate"><span class="pre">msub</span></code>, then much typing can
+be saved with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rtplot</span> <span class="n">msub</span><span class="o">=</span><span class="n">no</span> \\
+</pre></div>
+</div>
+<p>(NB: Boolean True/False parameters like <code class="docutils literal notranslate"><span class="pre">msub</span></code> can be reset False with either
+‘no’, ‘false’ or even just ‘n’.) Combined with up and down arrow keys, and
+commands can be quickly repeated or modified.</p>
+</section>
+<section id="hidden-parameters-and-special-keywords">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink">Hidden parameters and special keywords</a><a class="headerlink" href="#hidden-parameters-and-special-keywords" title="Link to this heading">¶</a></h3>
+<p>A look through the <a class="reference internal" href="#command-definitions"><span class="std std-ref">Command definitions</span></a> will reveal that many commands
+have “hidden” parameters that are not usually prompted for. The idea behind
+this is to reduce the level of prompting, particularly for those parameters
+that hardly ever change. The values of all parameters can be revealed through
+the use of a special keyword <code class="docutils literal notranslate"><span class="pre">list`</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rtplot</span> <span class="nb">list</span> \\
+<span class="n">rtplot</span>
+<span class="n">source</span> <span class="o">=</span> <span class="n">hl</span>
+<span class="n">device</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">xs</span>
+<span class="n">width</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">height</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">run</span> <span class="o">=</span> <span class="n">run0076</span>
+<span class="n">first</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">twait</span> <span class="o">=</span> <span class="mf">10.0</span>
+<span class="n">tmax</span> <span class="o">=</span> <span class="mf">20.0</span>
+<span class="n">ccd</span> <span class="o">=</span> <span class="mi">3</span> <span class="mi">4</span>
+<span class="n">nx</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">pause</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">plotall</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">bias</span> <span class="o">=</span> <span class="n">none</span>
+<span class="n">msub</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">iset</span> <span class="o">=</span> <span class="n">p</span>
+<span class="n">plo</span> <span class="o">=</span> <span class="mf">10.0</span>
+<span class="n">phi</span> <span class="o">=</span> <span class="mf">99.7</span>
+<span class="n">xlo</span> <span class="o">=</span> <span class="mf">600.0</span>
+<span class="n">xhi</span> <span class="o">=</span> <span class="mf">950.0</span>
+<span class="n">ylo</span> <span class="o">=</span> <span class="mf">100.0</span>
+<span class="n">yhi</span> <span class="o">=</span> <span class="mf">400.0</span>
+</pre></div>
+</div>
+<p>This reveals parameters <code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">device</span></code>, <code class="docutils literal notranslate"><span class="pre">width</span></code> and <code class="docutils literal notranslate"><span class="pre">height</span></code> that
+were never prompted for in the commands of the previous section. Their values
+can be changed by giving another special keyword <code class="docutils literal notranslate"><span class="pre">prompt</span></code>:</p>
+<blockquote>
+<div><p>rtplot prompt
+source - data source [hs, hl, us, ul, hf] [hl]:
+device - plot device [1/xs]:
+width - plot width (inches) [0.0]: 10
+height - plot height (inches) [0.0]: 8
+run - run name [run0076]:</p>
+</div></blockquote>
+<p>etc. Usually once changed in this way, the hidden parameters will keep the
+new values, although there are some which will return to a standard default
+on the basis that it is almost always what is wanted and it would be dangerous
+to default to a different value.</p>
+<p>In addition to <code class="docutils literal notranslate"><span class="pre">list</span></code> and <code class="docutils literal notranslate"><span class="pre">prompt</span></code>, there is a third special keyword
+<code class="docutils literal notranslate"><span class="pre">nodefs</span></code> which means do not read or write any default parameter values from
+files. If <code class="docutils literal notranslate"><span class="pre">nodefs</span></code> is specified, then all parameters values need to be spelt
+out; it’s use is inside scripts in circumstances where multiple instances are
+being used, or when there is interactive work going on too, to avoid causing
+problems by over-writing the default files. Avoid using these keywords in any other
+context. e.g. you would be asking for trouble if you named your files <code class="docutils literal notranslate"><span class="pre">list.hcm</span></code>
+or <code class="docutils literal notranslate"><span class="pre">prompt.hcm</span></code>.</p>
+</section>
+<section id="strings-with-spaces">
+<h3><a class="toc-backref" href="#id7" role="doc-backlink">Strings with spaces</a><a class="headerlink" href="#strings-with-spaces" title="Link to this heading">¶</a></h3>
+<p>If you need to specify a string with a space in it, either let a command
+prompt you and type as normal, or quote it on the command line, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rtplot</span> <span class="n">run</span><span class="o">=</span><span class="s2">&quot;silly file name&quot;</span> \\
+</pre></div>
+</div>
+</section>
+<section id="setting-a-string-to-be-blank">
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">Setting a string to be blank</a><a class="headerlink" href="#setting-a-string-to-be-blank" title="Link to this heading">¶</a></h3>
+<p>If you want to set a string to a blank, then a carriage return won’t work
+when prompted for it since this will just keep whatever default is
+set. Instead type ‘’ (two single quotes) which will be interpreted as
+implying an empty string.</p>
+</section>
+<section id="parameter-ranges">
+<h3><a class="toc-backref" href="#id9" role="doc-backlink">Parameter ranges</a><a class="headerlink" href="#parameter-ranges" title="Link to this heading">¶</a></h3>
+<p>Many numerical parameters have mimimum and/or maximum values set. Typing
+‘?’ at the prompt should tell you what the values are. Typing ‘min’ or ‘max’
+will set the parameter to have the appropriate value.</p>
+</section>
+<section id="tab-completion">
+<h3><a class="toc-backref" href="#id10" role="doc-backlink">Tab completion</a><a class="headerlink" href="#tab-completion" title="Link to this heading">¶</a></h3>
+<p>File name input is helped by tab completion: start typing, hit &lt;tab&gt;
+and if the file exists, the name might be completed.</p>
+</section>
+<section id="global-vs-local-parameters">
+<h3><a class="toc-backref" href="#id11" role="doc-backlink">Global vs local parameters</a><a class="headerlink" href="#global-vs-local-parameters" title="Link to this heading">¶</a></h3>
+<p>All HiPERCAM pipeline parameters fall into one of two classes, either being
+‘local’ to a command or ‘global’ to multiple commands. The <code class="docutils literal notranslate"><span class="pre">run</span></code> parameter
+of <code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code> for instance also appears in <code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code> and if you change it in
+<code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code>, it will be changed in <code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code>. This is very useful when running
+a series of commands on the same file as the commands almost ‘know’ what you want,
+saving much typing.</p>
+</section>
+<section id="trouble-shooting-parameter-input">
+<h3><a class="toc-backref" href="#id12" role="doc-backlink">Trouble-shooting parameter input</a><a class="headerlink" href="#trouble-shooting-parameter-input" title="Link to this heading">¶</a></h3>
+<p>It very rarely happens that the file I/O needed to read the default values
+can get confused. This can happen e.g. if the data type of a parameter has
+changed. If very odd things seems to happen when you try to start a command,
+then you might want to track down where the default files are located. Usually
+this will be in <cite>.hipercam</cite> in your home directory, unless the environment
+variable <cite>HIPERCAM_ENV</cite> has been defined to re-direct where the default files
+are stored. Once you have located them it is always safe to delete one or more
+or all of the default files (end with .def). The worst that happens is that
+the commands have lost the default values.</p>
+</section>
+</section>
+<section id="errors-reported-by-scripts">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">Errors reported by scripts</a><a class="headerlink" href="#errors-reported-by-scripts" title="Link to this heading">¶</a></h2>
+<p>If you use the pipeline for any significant time, you will at some point
+get a rather forbidding-looking error traceback such as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">reduce</span> <span class="n">run</span><span class="o">=</span><span class="n">run013</span> \\
+<span class="n">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
+  <span class="n">File</span> <span class="s2">&quot;/storage/astro1/phsaap/software/python/bin/reduce&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">11</span><span class="p">,</span> <span class="ow">in</span> <span class="o">&lt;</span><span class="n">module</span><span class="o">&gt;</span>
+    <span class="n">load_entry_point</span><span class="p">(</span><span class="s1">&#39;hipercam==0.19.9.dev22+g758df9d.d20200303&#39;</span><span class="p">,</span> <span class="s1">&#39;console_scripts&#39;</span><span class="p">,</span> <span class="s1">&#39;reduce&#39;</span><span class="p">)()</span>
+  <span class="n">File</span> <span class="s2">&quot;/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/scripts/reduce.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">405</span><span class="p">,</span> <span class="ow">in</span> <span class="n">reduce</span>
+    <span class="k">with</span> <span class="n">spooler</span><span class="o">.</span><span class="n">data_source</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">full</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+  <span class="n">File</span> <span class="s2">&quot;/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/spooler.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">323</span><span class="p">,</span> <span class="ow">in</span> <span class="n">data_source</span>
+    <span class="k">return</span> <span class="n">UcamDiskSpool</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">first</span><span class="p">)</span>
+  <span class="n">File</span> <span class="s2">&quot;/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/spooler.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">108</span><span class="p">,</span> <span class="ow">in</span> <span class="fm">__init__</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_iter</span> <span class="o">=</span> <span class="n">ucam</span><span class="o">.</span><span class="n">Rdata</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+  <span class="n">File</span> <span class="s2">&quot;/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/ucam.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">637</span><span class="p">,</span> <span class="ow">in</span> <span class="fm">__init__</span>
+    <span class="n">Rhead</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">,</span> <span class="n">server</span><span class="p">)</span>
+  <span class="n">File</span> <span class="s2">&quot;/storage/astro1/phsaap/software/python/lib/python3.6/site-packages/hipercam/ucam.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">152</span><span class="p">,</span> <span class="ow">in</span> <span class="fm">__init__</span>
+    <span class="n">udom</span> <span class="o">=</span> <span class="n">xml</span><span class="o">.</span><span class="n">dom</span><span class="o">.</span><span class="n">minidom</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">run</span> <span class="o">+</span> <span class="s1">&#39;.xml&#39;</span><span class="p">)</span>
+  <span class="n">File</span> <span class="s2">&quot;/warwick/desktop/2018/software/MPI/GCC/7.3.0-2.30/OpenMPI/3.1.1/Python/3.6.6/lib/python3.6/xml/dom/minidom.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">1958</span><span class="p">,</span> <span class="ow">in</span> <span class="n">parse</span>
+    <span class="k">return</span> <span class="n">expatbuilder</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+  <span class="n">File</span> <span class="s2">&quot;/warwick/desktop/2018/software/MPI/GCC/7.3.0-2.30/OpenMPI/3.1.1/Python/3.6.6/lib/python3.6/xml/dom/expatbuilder.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">910</span><span class="p">,</span> <span class="ow">in</span> <span class="n">parse</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+<span class="ne">FileNotFoundError</span><span class="p">:</span> <span class="p">[</span><span class="n">Errno</span> <span class="mi">2</span><span class="p">]</span> <span class="n">No</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span><span class="p">:</span> <span class="s1">&#39;run013.xml&#39;</span>
+</pre></div>
+</div>
+<p>Yikes! Although it looks awful, it simply reflects
+the chain of function calls that led to the problem, an extremely
+useful diagnostic of problems in Python code. Such tracebacks look a
+bit ugly, but almost certainly, in most cases, including this one,
+they are caused by incorrect parameter inputs. The one to look at is
+probably the last line or two, which reveals in this case that an expected
+file ‘run013.xml’ was not found; a directory listing would confirm this.</p>
+<p>Such errors follow from a standard Python approach of not trying to
+add endless checking code, but to let the code tell you what happened
+when errors are encountered. This has the merit of being very
+informative (and de-clutters code), but it can make it hard to
+distinguish between an essentially trivial issue, such as a missing
+file, and a genuine problem with the code. If however you find you
+can’t get round a problem and the error reported does not look
+innocent, then it might be a time to <a class="reference internal" href="api/bugs.html#reporting-problems"><span class="std std-ref">report the
+problem</span></a>. We will do our best to provide fast
+solutions to critical issues.</p>
+</section>
+<section id="command-definitions">
+<span id="id2"></span><h2><a class="toc-backref" href="#id14" role="doc-backlink">Command definitions</a><a class="headerlink" href="#command-definitions" title="Link to this heading">¶</a></h2>
+<p>This section contains documentation auto-generated from the code. This
+is the same as is returned from clicking command names in the lists at
+the top of this page or from using <code class="docutils literal notranslate"><span class="pre">pydoc</span></code> in a terminal (e.g. try
+<code class="docutils literal notranslate"><span class="pre">pydoc</span> <span class="pre">hipercam.scripts.reduce</span></code>). Each command appears as a function
+(an implementation detail), followed by a highlighted line showing the
+parameters one can use on the command-line. Inputs in square brackets
+such as <code class="docutils literal notranslate"><span class="pre">[source]</span></code> are hidden by default; those in round brackets
+e.g. <code class="docutils literal notranslate"><span class="pre">(plot)</span></code> may or may not be prompted depending upon earlier
+inputs. It is always safest when first running a command simply to
+type its name and hit enter and let the command itself prompt you for
+input. Many commands have hidden parameters that can only be revealed
+by typing e.g. <code class="docutils literal notranslate"><span class="pre">rtplot</span> <span class="pre">prompt</span></code>. These are usually parameters that
+rarely need changing, but you are sure sometimes to need to alter
+them.  See the <a class="reference internal" href="#command-calling"><span class="std std-ref">Parameter specification</span></a> section for details on how to
+specify command parameters.</p>
+<p>In the one-line descriptions below, <code class="docutils literal notranslate"><span class="pre">run</span></code> refers to a complete run,
+containing multiple images, stored in a .fits file. <code class="docutils literal notranslate"><span class="pre">frame</span></code> refers to a
+single image from a run as might be extracted using <code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code>. These have file
+extension ‘.hcm’ to distinguish them, although they are also FITS-format files.</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="f1" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>Several other commands (<code class="docutils literal notranslate"><span class="pre">aligntool</span></code>, <code class="docutils literal notranslate"><span class="pre">atanalysis</span></code>, <code class="docutils literal notranslate"><span class="pre">atbytes</span></code>,
+<code class="docutils literal notranslate"><span class="pre">calsearch</span></code>, <code class="docutils literal notranslate"><span class="pre">harchive</span></code>, <code class="docutils literal notranslate"><span class="pre">hlogger</span></code>, <code class="docutils literal notranslate"><span class="pre">hmeta</span></code>, <code class="docutils literal notranslate"><span class="pre">logsearch</span></code>,
+<code class="docutils literal notranslate"><span class="pre">makefield</span></code>, <code class="docutils literal notranslate"><span class="pre">makedata</span></code>, <code class="docutils literal notranslate"><span class="pre">pfolder</span></code>, <code class="docutils literal notranslate"><span class="pre">redplt</span></code>, <code class="docutils literal notranslate"><span class="pre">tanalysis</span></code>, <code class="docutils literal notranslate"><span class="pre">tbytes</span></code>)
+are not documented here as they are of specialist usage.  Information
+on these is however available via <code class="docutils literal notranslate"><span class="pre">pydoc</span></code>.</p>
+</aside>
+</aside>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observers.html">Observer’s guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="ultracam_checklist.html"
+                          title="previous chapter">ULTRACAM observing checklist</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="api/api.html"
+                          title="next chapter">The API</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/commands.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/commands.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>
