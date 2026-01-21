@@ -31,13 +31,22 @@
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
-              'sphinx.ext.imgmath', 'numpydoc']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.imgmath',
+    'numpydoc',
+    'autoapi.extension',
+]
 
 # this needed for numpydoc I think
 autosummary_generate = True
 numpydoc_show_class_members = False
 numpydoc_show_inherited_class_members = False
+
+autoapi_dirs = ['../hipercam']
+autoapi_generate_api_docs = False  # Don't auto-generate, we'll write e.g. scripts in commands.rst
+
 
 # number figures
 numfig = True
