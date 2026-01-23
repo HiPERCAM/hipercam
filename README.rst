@@ -227,8 +227,7 @@ Further Information
 
 For more information see:
 
-  * `The documentation
-    <https://vikdhillon.staff.shef.ac.uk/hipercam/pipeline/index.html>`_
+  * `The documentation <https://hipercam.github.io/hipercam>`_
 
   * `The HiPERCAM pipeline github repository <https://github.com/HiPERCAM/hipercam>`_
 
