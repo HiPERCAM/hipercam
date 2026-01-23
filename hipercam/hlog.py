@@ -1191,7 +1191,7 @@ class Tseries:
         Resamples the Timeseries onto a uniform grid.
 
         Parameters
-        -----------
+        ----------
         bin_edges : `~np.ndarray`
             The left-hand edges of the grid.
 
@@ -1336,7 +1336,7 @@ class Tseries:
         can be used to skip points.
 
         Parameters
-        -----------
+        ----------
         binsize : int
             Number of observations to incude in every bin
 

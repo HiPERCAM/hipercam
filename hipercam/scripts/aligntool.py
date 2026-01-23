@@ -221,8 +221,8 @@ def separateBigSmallSpots(xpos, ypos, fwhm, flux):
     Use K-Means clustering to seperate large and small starfield tube spots based on
     FWHM and flux.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     xpos, ypos : np.ndarray
         spot locations
     fwhm : np.ndarray

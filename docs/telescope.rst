@@ -2,7 +2,7 @@
 
 .. include:: globals.rst
 
-.. highlightlang:: rest
+.. highlight:: rest
 
 At the telescope
 ****************

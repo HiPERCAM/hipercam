@@ -2,7 +2,7 @@
 
 .. include:: globals.rst
 
-.. highlightlang:: rest
+.. highlight:: rest
 
 |hiper| Phase II
 ****************
@@ -363,4 +363,3 @@ of efficiency, then windows plus "clear" might be what you want. This is
 because you can expose for just the exposure delay by clearing the CCD
 immediately before starting the exposure. With clear enabled, the exposure time
 just equals the exposure delay, with no added extra for the readout of the masked data. e.g.
-

@@ -66,7 +66,7 @@ List of changes from git, newest first, with the commit keys linked to github:
   * `e881e9bd98f65f9c1dcfacb3ae7fed85a104179b <https://github.com/HiPERCAM/hipercam/commit/e881e9bd98f65f9c1dcfacb3ae7fed85a104179b>`_ added plotting of the max counts in plog
   * `db1706632c88449e541a8f077f3454149d68802c <https://github.com/HiPERCAM/hipercam/commit/db1706632c88449e541a8f077f3454149d68802c>`_ cline now sets the default for the ignore value
   * `781022e2430bd0cda4a286b134b340afe8b04030 <https://github.com/HiPERCAM/hipercam/commit/781022e2430bd0cda4a286b134b340afe8b04030>`_ further adjustment to docs
-  * `bc713d7b9f6d1e8ca3ee10e5a9a49e504a02c032 <https://github.com/HiPERCAM/hipercam/commit/bc713d7b9f6d1e8ca3ee10e5a9a49e504a02c032>`_ utils.py strips STD_ from start of target names
+  * `bc713d7b9f6d1e8ca3ee10e5a9a49e504a02c032 <https://github.com/HiPERCAM/hipercam/commit/bc713d7b9f6d1e8ca3ee10e5a9a49e504a02c032>`_ utils.py strips `STD_` from start of target names
   * `f6f2d350386d489cbd8c88d6cd04c589cd9bd97a <https://github.com/HiPERCAM/hipercam/commit/f6f2d350386d489cbd8c88d6cd04c589cd9bd97a>`_ doc updates to describe phase II process in the main
   * `bb76ebc1d62cdc41b28d0dcb168acec252e95255 <https://github.com/HiPERCAM/hipercam/commit/bb76ebc1d62cdc41b28d0dcb168acec252e95255>`_ further tweak following change to defect file
   * `721e56070fb4a03bf5dfb511a349828c5f6f4806 <https://github.com/HiPERCAM/hipercam/commit/721e56070fb4a03bf5dfb511a349828c5f6f4806>`_ new hipercam defects file following Vik's cleaning of CCD 2

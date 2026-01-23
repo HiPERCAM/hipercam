@@ -8,7 +8,7 @@ hipercam pipeline can also be used to reduce data from the ULTRACAM
 and ULTRASPEC high-speed cameras, and other instruments too.
 
 More information about using the hipercam package can be found in
-`the documentation <https://vikdhillon.staff.shef.ac.uk/hipercam/pipeline/index.html>`_.
+`the documentation <https://hipercam.github.io/hipercam>`_.
 
 Docker Installation
 ===================
@@ -18,9 +18,8 @@ is simple and cross-platform, but the image is large (around 2.8GB). To
 install via this route, please download the
 `dockerfile <https://raw.githubusercontent.com/HiPERCAM/hipercam/refs/heads/master/data/hipercam.dockerfile>`_
 
-+++++
 Linux
-+++++
+-----
 
 To build the docker image from the docker file, run::
 
@@ -33,9 +32,8 @@ And, to run the image, use::
 This will mount `<local-path-to-some-data>` in the virtual machine at
 `/home/hiperuser/data`. You can then run the pipeline as normal.
 
-+++++
 MacOS
-+++++
+-----
 
 Installation on Apple Silicon Macs is a little more complicated. The instructions below assume you have a modern
 MacOS/Apple Silicon system with Docker Desktop installed.
@@ -84,14 +82,14 @@ Building from Source
 You can build the package from source using the standard Python build tools.
 
 Prerequisites
-+++++++++++++
+-------------
 
 Make sure you have the required build tools installed::
 
   pip install build
 
 Basic Build Commands
-++++++++++++++++++++
+--------------------
 
 To build a source distribution (tarball)::
 
@@ -206,7 +204,7 @@ your O/S package manager. e.g. under fedora, Cython appears as
 
   trm.utils :
          generally useful routines used at a few places. Available
-	 from PyPi.
+         from PyPi.
 
   websocket-client :
          for talking to the hipercam server.
@@ -229,8 +227,7 @@ Further Information
 
 For more information see:
 
-  * `The documentation
-    <https://vikdhillon.staff.shef.ac.uk/hipercam/pipeline/index.html>`_
+  * `The documentation <https://hipercam.github.io/hipercam>`_
 
   * `The HiPERCAM pipeline github repository <https://github.com/HiPERCAM/hipercam>`_
 

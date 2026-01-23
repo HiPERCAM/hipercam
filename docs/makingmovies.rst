@@ -2,7 +2,7 @@
 
 .. include:: globals.rst
 
-.. highlightlang:: rest
+.. highlight:: rest
 
 Making |hiper| movies
 *********************
@@ -91,4 +91,3 @@ You can loop the movie with something like:
   ``ffmpeg -start_number 3 -i run0011_%04d.png -filter_complex loop=5:362 -c:v libx264 -pix_fmt yuv420p movie.mp4 -y``
 
 which would add 6 loops.
-

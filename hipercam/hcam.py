@@ -1614,7 +1614,7 @@ def htimer(tbytes):
            in the FITS file
 
     Returns
-    --------
+    -------
 
       timestamp : (tuple)
           a tuple containing (frameCount, timeStampCount, years, day_of_year,
