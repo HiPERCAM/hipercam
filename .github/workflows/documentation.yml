@@ -15,12 +15,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+      - name: Install build tools
+        run: |
+          pip install --upgrade pip setuptools wheel setuptools_scm
       - name: Install hipercam package
         run: |
           pip install .
       - name: Install documentation dependencies
         run: |
-          pip install --upgrade pip setuptools wheel setuptools_scm
           pip install sphinx sphinx_rtd_theme sphinx-autoapi myst_parser numpydoc sphinx-astropy
       - name: Sphinx build
         run: |

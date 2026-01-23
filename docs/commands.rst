@@ -54,7 +54,7 @@
 .. |ol-sub|      replace:: subtract two frames
 .. |ol-uls|      replace:: list the runs on the ULTRACAM server
 
-.. highlightlang:: rest
+.. highlight:: rest
 
 |hiper| commands
 ****************

@@ -47,8 +47,8 @@ class Winhead(Header):
         >>> win = Winhead(12, 6, 100, 150, 2, 3)
         >>> print(win)
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
       llx : int
          X position of lower-left pixel of window (unbinned pixels)

@@ -18,7 +18,7 @@ Updating
 
 You should keep the directory 'hipercam' created by the first ``git clone``
 command because then it makes updating simple. It becomes a matter of going
-to the hipercam directory, pulling the changes from github, and 
+to the hipercam directory, pulling the changes from github, and
 re-installing::
 
   cd XXX/YYY/hipercam
@@ -85,4 +85,3 @@ HIPERCAM_ENV             Directory for storage of default parameter files
                          that it does not contain too much junk.
 ULTRACAM_DEFAULT_URL     URL of the ULTRACAM FileServer on the rack PC to access data
 =======================  ==============================================================
-
