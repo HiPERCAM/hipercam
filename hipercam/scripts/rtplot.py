@@ -10,6 +10,7 @@ from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.ccd import crop_calib_frame_to
 from hipercam import spooler, defect
 
 import requests
@@ -658,11 +659,11 @@ def rtplot(args=None):
             if nframe == 0:
                 if bias is not None:
                     # crop the bias on the first frame only
-                    bias = bias.crop(mccd)
+                    bias = crop_calib_frame_to(mccd, bias, 'bias')
 
                 if flat is not None:
                     # crop the flat on the first frame only
-                    flat = flat.crop(mccd)
+                    flat = crop_calib_frame_to(mccd, flat, 'flat')
 
             if setup:
                 # Get windows from driver. Fair bit of error checking

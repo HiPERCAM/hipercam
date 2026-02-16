@@ -10,6 +10,7 @@ from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.ccd import crop_calib_frame_to
 from hipercam import spooler, defect
 
 __all__ = [
@@ -256,7 +257,7 @@ def filtid(args=None):
 
             if nframe == 0:
                 # crop the bias on the first frame only
-                bias = bias.crop(mccd)
+                bias = crop_calib_frame_to(mccd, bias, "bias")
 
             # bias subtraction
             mccd -= bias

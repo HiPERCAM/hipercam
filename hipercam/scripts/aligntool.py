@@ -22,6 +22,7 @@ from trm.cline import Cline
 import hipercam as hcam
 from hipercam import spooler
 from hipercam.extraction import findStars
+from hipercam.ccd import crop_calib_frame_to
 
 __all__ = [
     "aligntool",
@@ -532,7 +533,7 @@ def aligntool(args=None):
 
             if n == 0 and bias is not None:
                 # crop the bias on the first frame only
-                bias = bias.crop(mccd)
+                bias = crop_calib_frame_to(mccd, bias, "bias")
 
             ccd = mccd[ccdnam]
             ref_ccd = ref_mccd[rccdnam]

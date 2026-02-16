@@ -11,6 +11,7 @@ from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.ccd import crop_calib_frame_to
 from hipercam import defect, fringe, spooler
 
 __all__ = [
@@ -483,17 +484,17 @@ def joinup(args=None):
             if nframe == first:
                 if bias is not None:
                     # crop the bias on the first frame only
-                    bias = bias.crop(mccd)
+                    bias = crop_calib_frame_to(mccd, bias, "bias")
                     bexpose = bias.head.get("EXPTIME", 0.0)
                 else:
                     bexpose = 0.0
                 if dark is not None:
-                    dark = dark.crop(mccd)
+                    dark = crop_calib_frame_to(mccd, dark, "dark")
                 if flat is not None:
                     # crop the flat on the first frame only
-                    flat = flat.crop(mccd)
+                    flat = crop_calib_frame_to(mccd, flat, "flat")
                 if fmap is not None:
-                    fmap = fmap.crop(mccd)
+                    fmap = crop_calib_frame_to(mccd, fmap, "fmap")
                     fpair = fpair.crop(mccd, nhalf)
 
             for nc, cnam in enumerate(ccds):
