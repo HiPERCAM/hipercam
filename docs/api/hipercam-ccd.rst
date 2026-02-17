@@ -1,23 +1,23 @@
-.. The API of hipercam.window
+.. The API of hipercam.ccd
 
 .. include:: ../globals.rst
 
 hipercam.ccd
 ************
 
-.. automodule:: hipercam.ccd
+.. autoapimodule:: hipercam.ccd
 
-   .. rubric:: Classes summary
+Classes
+-------
 
-   .. autosummary::
+.. autoapisummary::
+   hipercam.ccd.CCD
+   hipercam.ccd.MCCD
 
-      CCD
-      MCCD
+.. autoapiclass:: hipercam.ccd.CCD
+   :show-inheritance:
+   :members:
 
-   .. autoclass:: CCD
-      :show-inheritance:
-      :members:
-
-   .. autoclass:: MCCD
-      :show-inheritance:
-      :members:
+.. autoapiclass:: hipercam.ccd.MCCD
+   :show-inheritance:
+   :members:

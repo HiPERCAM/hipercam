@@ -16,9 +16,9 @@ sub-module.
 hipercam.aperture
 -----------------
 
-.. automodule:: hipercam.aperture
+.. autoapimodule:: hipercam.aperture
 
-.. autosummary::
+.. autoapisummary::
    :toctree: stubs/aperture
 
    hipercam.aperture.Aperture
@@ -28,9 +28,9 @@ hipercam.aperture
 hipercam.ccd
 ------------
 
-.. automodule:: hipercam.ccd
+.. autoapimodule:: hipercam.ccd
 
-.. autosummary::
+.. autoapisummary::
    :toctree: stubs/ccd
 
    hipercam.ccd.CCD
@@ -41,9 +41,9 @@ hipercam.ccd
 hipercam.defect
 ---------------
 
-.. automodule:: hipercam.defect
+.. autoapimodule:: hipercam.defect
 
-.. autosummary::
+.. autoapisummary::
    :toctree: stubs/defect
 
    CcdDefect
@@ -57,32 +57,19 @@ hipercam.defect
 hipercam.group
 --------------
 
-.. automodule:: hipercam.group
+.. autoapimodule:: hipercam.group
    :members:
 
 hipercam.core
 -------------
 
-.. automodule:: hipercam.core
+.. autoapimodule:: hipercam.core
    :members:
 
 hipercam.ucam
 -------------
 
-.. autosummary::
+.. autoapisummary::
    :toctree: stubs/ucam
 
    hipercam.ucam
-
-
-
-
-
-
-
-
-
-
-
-
-

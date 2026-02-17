@@ -18,9 +18,6 @@ jobs:
       - name: Install build tools
         run: |
           pip install --upgrade pip setuptools wheel setuptools_scm
-      - name: Install hipercam package
-        run: |
-          pip install .
       - name: Install documentation dependencies
         run: |
           pip install sphinx sphinx_rtd_theme sphinx-autoapi myst_parser numpydoc sphinx-astropy
