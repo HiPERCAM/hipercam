@@ -1,39 +1,23 @@
-.. The API of hipercam.window
+.. The API of hipercam.hlog
 
 .. include:: ../globals.rst
 
 hipercam.hlog
 *************
 
-.. automodule:: hipercam.hlog
+.. autoapimodule:: hipercam.hlog
 
-   .. rubric:: Classes summary
+Classes
+-------
 
-   .. autosummary::
+.. autoapisummary::
+   hipercam.hlog.Hlog
+   hipercam.hlog.Tseries
 
-      Hlog
-      Tseries
+.. autoapiclass:: hipercam.hlog.Hlog
+   :show-inheritance:
+   :members:
 
-   .. autoclass:: Hlog
-      :show-inheritance:
-      :members:
-
-   .. autoclass:: Tseries
-      :show-inheritance:
-      :members:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+.. autoapiclass:: hipercam.hlog.Tseries
+   :show-inheritance:
+   :members:

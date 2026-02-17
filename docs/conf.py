@@ -33,21 +33,20 @@
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
     'sphinx.ext.imgmath',
     'numpydoc',
     'autoapi.extension',
 ]
 
 # this needed for numpydoc I think
-autosummary_generate = True
 numpydoc_show_class_members = False
 numpydoc_show_inherited_class_members = False
 
-
 # Autoapi settings
+# Note we don't actually create the auto-generated API pages for now,
+# instead we write our own pages (e.g. api/hipercam-ccd.rst, scripts in commands.rst)
 autoapi_dirs = ['../hipercam']
-autoapi_generate_api_docs = False  # Don't auto-generate, we'll write e.g. scripts in commands.rst
+autoapi_generate_api_docs = False
 
 # number figures
 numfig = True

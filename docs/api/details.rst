@@ -19,24 +19,9 @@ apertures, fringe ampltude pairs etc.
    There is much more to be added here. TBD.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    hipercam-ccd
    hipercam-hlog
    hipercam-window
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
