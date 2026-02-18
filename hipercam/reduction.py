@@ -1,7 +1,7 @@
 """
 This contains code used in common by the script reduce.py
 """
-
+from collections import OrderedDict
 import sys
 import warnings
 
