@@ -467,7 +467,9 @@ def psfaper(args=None):
         if cnam in mccdaper:
             # plot any pre-existing apertures, keeping track of
             # the plot objects
-            pobjs[cnam] = hcam.mpl.pCcdAper(axes, mccdaper[cnam])
+            pobjs[cnam] = hcam.Group(list)
+            for key, value in hcam.mpl.pCcdAper(axes, mccdaper[cnam]):
+                pobjs[cnam][key] = value
 
         else:
             # add in an empty CcdApers for any CCD not already present
@@ -803,7 +805,7 @@ class PickRef:
             ylo, yhi = self.anams[cnam].get_ylim()
 
             if cnam not in self.psf_data:
-                warnings.warn("no reference stars for CCD{} - skipping".format(cnam))
+                warnings.warn("no (new) reference stars for CCD{} - skipping".format(cnam))
                 continue
 
             fwhm = -1
