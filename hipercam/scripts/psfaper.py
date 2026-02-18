@@ -798,7 +798,13 @@ class PickRef:
 
     def _find_stars_and_quit(self):
         """
-        Runs the PSF photometry on each ROI, and writes the aperture file
+        Runs PSF photometry on the region of interest, finds the stars, adds them as apertures.
+
+        For each CCD the PSF shape parameters are estimated from the reference stars, 
+        at which point the PSF shape parameters are held fixed and multiple iterations 
+        of the FIND-FIT-SUBTRACT loop are run to find more stars. 
+        
+        The final apertures are then saved to the aperture file and the program exits.
         """
         for cnam, ccdaper in self.mccdaper.items():
             xlo, xhi = self.anams[cnam].get_xlim()
@@ -877,7 +883,41 @@ def daophot(
     cnam, ccd, ccdaper, xlo, xhi, ylo, yhi, niters, method, fwhm, beta, gfac, thresh, rejthresh, read, gain
 ):
     """
-    Perform PSF photometry on region of CCD
+    Perform PSF photometry on region of CCD.
+
+    The PSF shape parameters are determined from the reference stars, at which point 
+    the PSF shape parameters are held fixed and multiple iterations of the FIND-FIT-SUBTRACT 
+    loop are run to find more stars.
+
+    Parameters
+    ----------
+    cnam : str
+        name of CCD
+    ccd : hcam.Ccd
+        CCD to perform photometry on
+    ccdaper : hcam.CcdAper
+        reference apertures to use for determining PSF shape parameters
+    xlo, xhi, ylo, yhi : float
+        limits of region to perform photometry on, in device coordinates
+    niters : int
+        number of iterations of FIND-FIT-SUBTRACT to perform
+    method : str
+        PSF model to use, either 'm' for Moffat, 'g' for Gaussian
+    fwhm : float
+        initial FWHM to use for PSF model, in unbinned pixels
+    beta : float
+        initial beta to use for Moffat PSF model, ignored if method is 'g'
+    gfac : float
+        multiple of FWHM used to group stars for fitting. 
+        Stars within gfac*FWHM of each other are fitted simultaneously in the FIND-FIT-SUBTRACT loop.
+    thresh : float
+        threshold for object detection in FIND-FIT-SUBTRACT, in multiples of the background RMS
+    rejthresh : float
+        RMS rejection threshold for sky fitting, in multiples of the background RMS.
+    read : float
+        readout noise, RMS ADU, for assigning uncertainties
+    gain : float
+        gain, ADU/count, for assigning uncertainties
     """
     # first check we are within a single window
     wnam1 = ccd.inside(xlo, ylo, 2)
