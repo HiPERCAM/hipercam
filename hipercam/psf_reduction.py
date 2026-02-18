@@ -371,6 +371,10 @@ def create_psf_model(photom_results, method, fixed_positions=False):
         psf_model.beta.fixed = True
     else:
         psf_model = GaussianPRF(flux=1)
+        for param in ["x_fwhm", "y_fwhm", "theta"]:
+            colname = param + "_fit"
+            if colname in photom_results.colnames:
+                setattr(psf_model, param, np.median(photom_results[colname]))
 
     if fixed_positions:
         psf_model.x_0.fixed = True
