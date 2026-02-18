@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 import hipercam as hcam
 from hipercam import utils, fitting
+from hipercam.ccd import crop_calib_frame_to
 
 from trm.pgplot import (
     pgpap,
@@ -603,24 +604,24 @@ class Rfile(OrderedDict):
 
         """
         if self.bias is not None:
-            self.bias = self.bias.crop(mccd)
+            self.bias = crop_calib_frame_to(mccd, self.bias, "bias")
 
         if self.dark is not None:
-            self.dark = self.dark.crop(mccd)
+            self.dark = crop_calib_frame_to(mccd, self.dark, "dark")
 
         if self.flat is not None:
-            self.flat = self.flat.crop(mccd)
+            self.flat = crop_calib_frame_to(mccd, self.flat, "flat")
 
         if self.fmap is not None:
-            self.fmap = self.fmap.crop(mccd)
+            self.fmap = crop_calib_frame_to(mccd, self.fmap, "fmap")
             nhalf = self["calibration"]["nhalf"]
             self.fpair = self.fpair.crop(mccd, nhalf)
 
         if isinstance(self.readout, hcam.MCCD):
-            self.readout = self.readout.crop(mccd)
+            self.readout = crop_calib_frame_to(mccd, self.readout, "readout")
 
         if isinstance(self.gain, hcam.MCCD):
-            self.gain = self.gain.crop(mccd)
+            self.gain = crop_calib_frame_to(mccd, self.gain, "gain")
 
 
 def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):

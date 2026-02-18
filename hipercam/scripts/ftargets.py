@@ -16,6 +16,7 @@ from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import core, spooler, defect
+from hipercam.ccd import crop_calib_frame_to
 from hipercam.extraction import findStars
 
 __all__ = [
@@ -503,11 +504,11 @@ def ftargets(args=None):
                 if n == 0:
                     if bias is not None:
                         # crop the bias on the first frame only
-                        bias = bias.crop(mccd)
+                        bias = crop_calib_frame_to(mccd, bias, "bias")
 
                     if flat is not None:
                         # crop the flat on the first frame only
-                        flat = flat.crop(mccd)
+                        flat = crop_calib_frame_to(mccd, flat, "flat")
 
                     # compute maximum length of window name strings
                     lsmax = 0

@@ -19,6 +19,7 @@ from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.ccd import crop_calib_frame_to
 from hipercam import defect, fringe, mpl, spooler
 from hipercam.mpl import Params
 
@@ -882,22 +883,22 @@ def nrtplot(args=None):
 
                 if bias is not None:
                     # crop the bias on the first frame only
-                    bias = bias.crop(mccd)
+                    bias = crop_calib_frame_to(mccd, bias, 'bias')
                     bexpose = bias.head.get("EXPTIME", 0.0)
                 else:
                     bexpose = 0.0
 
                 if dark is not None:
                     # crop the dark on the first frame only
-                    dark = dark.crop(mccd)
+                    dark = crop_calib_frame_to(mccd, dark, 'dark')
 
                 if flat is not None:
                     # crop the flat on the first frame only
-                    flat = flat.crop(mccd)
+                    flat = crop_calib_frame_to(mccd, flat, 'flat')
 
                 if fmap is not None:
                     # crop the fringe map and pair file
-                    fmap = fmap.crop(mccd)
+                    fmap = crop_calib_frame_to(mccd, fmap, 'fmap')
                     fpair = fpair.crop(mccd, nhalf)
 
             if setup:

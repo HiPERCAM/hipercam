@@ -8,6 +8,7 @@ from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.ccd import crop_calib_frame_to
 from hipercam import support, spooler
 
 __all__ = [
@@ -208,15 +209,15 @@ def combine(args=None):
 
     if bias is not None:
         # crop the bias
-        bias = bias.crop(template)
+        bias = crop_calib_frame_to(template, bias, "bias")
 
     if dark is not None:
         # crop the dark
-        dark = dark.crop(template)
+        dark = crop_calib_frame_to(template, dark, "dark")
 
     if flat is not None:
         # crop the flat
-        flat = flat.crop(template)
+        flat = crop_calib_frame_to(template, flat, "flat")
 
     # Now process each file CCD by CCD to reduce the memory
     # footprint

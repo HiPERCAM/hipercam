@@ -12,6 +12,7 @@ from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.ccd import crop_calib_frame_to
 from hipercam import fringe, spooler, utils
 
 __all__ = [
@@ -379,16 +380,16 @@ def grab(args=None):
                 if nframe == first:
                     # First time through, need to manipulate calibration data
                     if bias is not None:
-                        bias = bias.crop(mccd)
+                        bias = crop_calib_frame_to(mccd, bias, "bias")
                         bexpose = bias.head.get("EXPTIME", 0.0)
                     else:
                         bexpose = 0.
                     if flat is not None:
-                        flat = flat.crop(mccd)
+                        flat = crop_calib_frame_to(mccd, flat, "flat")
                     if dark is not None:
-                        dark = dark.crop(mccd)
+                        dark = crop_calib_frame_to(mccd, dark, "dark")
                     if fmap is not None:
-                        fmap = fmap.crop(mccd)
+                        fmap = crop_calib_frame_to(mccd, fmap, "fmap")
                         fpair = fpair.crop(mccd, nhalf)
 
                 # now any time through, apply calibrations

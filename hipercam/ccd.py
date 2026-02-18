@@ -9,14 +9,15 @@ handling of CCD data.
 """
 
 import warnings
-import numpy as np
 from collections import OrderedDict
 
+import numpy as np
 from astropy.io import fits
+
 from .core import *
 from .group import *
-from .window import *
 from .header import *
+from .window import *
 
 __all__ = ("CCD", "MCCD", "get_ccd_info", "trim_ultracam")
 
@@ -209,7 +210,6 @@ class CCD(Agroup):
 
         # Now 1 HDU per Window
         for n, (wnam, wind) in enumerate(self.items()):
-
             if cnam is None:
                 extnam = "W:{:s}".format(wnam)
             else:
@@ -271,7 +271,6 @@ class CCD(Agroup):
         first = True
 
         for hdu in hdul:
-
             # The header of the HDU
             head = hdu.header
 
@@ -346,7 +345,6 @@ class CCD(Agroup):
         first = True
 
         for hdu in hdul:
-
             # The header of the HDU
             head = hdu.header
 
@@ -539,7 +537,6 @@ class CCD(Agroup):
 
         # wind through the Windows of the template CCD
         for twnam, twind in ccd.items():
-
             # for each one, search for a surrounding Window in
             # the CCD we are chopping down to. if it succeeds,
             # we break out of the loop to avoid the exception
@@ -581,13 +578,15 @@ class CCD(Agroup):
         return len(self) and (self.head["DSTATUS"] if "DSTATUS" in self.head else True)
 
     def __repr__(self):
-        return "{:s}(winds={:s}, nxtot={!r}, nytot={!r}, nxpad={!r}, nypad={!r})".format(
-            self.__class__.__name__,
-            super().__repr__(),
-            self.nxtot,
-            self.nytot,
-            self.nxpad,
-            self.nypad,
+        return (
+            "{:s}(winds={:s}, nxtot={!r}, nytot={!r}, nxpad={!r}, nypad={!r})".format(
+                self.__class__.__name__,
+                super().__repr__(),
+                self.nxtot,
+                self.nytot,
+                self.nxpad,
+                self.nypad,
+            )
         )
 
 
@@ -712,7 +711,7 @@ class MCCD(Agroup):
         """
         with fits.open(fname) as hdul:
             mccd = cls.rhdul(hdul)
-        mccd.head['FILENAME'] = fname
+        mccd.head["FILENAME"] = fname
         return mccd
 
     @classmethod
@@ -823,6 +822,34 @@ class MCCD(Agroup):
             ccd.set_const(val)
 
 
+def crop_calib_frame_to(mccd: MCCD, calib_frame: MCCD, calib_type: str) -> MCCD:
+    """Applies a calibration frame to an MCCD, returning the result as a new MCCD.
+
+    Exists purely to provide a nice error message to the end user
+    if the calibration frame is not compatible with the MCCD.
+
+    Arguments::
+
+      mccd : MCCD
+        the MCCD to which the calibration frame is to be applied. This is not
+        modified in place.
+
+      calib_frame : MCCD
+        the calibration frame to be applied. This is not modified in place.
+
+      calib_type : str
+        the type of calibration frame, e.g. 'bias', 'dark' or
+        'flat'.
+    """
+    try:
+        calib_frame = calib_frame.crop(mccd)
+    except HipercamError as err:
+        raise HipercamError(
+            f"failed to crop {calib_type} frame to match data format. Check format of {calib_type} frame."
+        ) from err
+    return calib_frame
+
+
 def get_ccd_info(fname):
     """Routine to return some useful basic information from an MCCD file without
     reading the whole thing in. It returns an OrderedDict keyed on the CCD
@@ -920,6 +947,5 @@ def trim_ultracam(mccd, ncol, nrow):
 
             else:
                 warnings.warn(
-                    "encountered a CCD window with no output"
-                    " amplifier location defined"
+                    "encountered a CCD window with no output amplifier location defined"
                 )
