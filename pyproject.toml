@@ -40,6 +40,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["check-manifest"]
 test = ["coverage", "nose"]
+psf = ["photutils>=2.1"]
 
 [project.urls]
 Homepage = "https://github.com/HiPERCAM/hipercam"
