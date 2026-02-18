@@ -698,7 +698,10 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                     "ambiguous lookup for this aperture in PSF photometry"
                 )
             else:
+                # USE PSF PHOTOMETRY FLAGS TO SET EXTRACTION FLAG
                 result_row = result_row[0]
+                if result_row['flags'] > 0:
+                    flag |= hcam.NO_EXTRACTION
 
             # compute X, Y arrays over the sub-window relative to the centre
             # of the aperture and the distance squared from the centre (Rsq)
