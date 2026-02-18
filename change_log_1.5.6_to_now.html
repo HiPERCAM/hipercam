@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HiPERCAM pipeline changes since v1.5.6 &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="hiper-pipeline-changes-since-v1-5-6">
+<h1>HiPERCAM pipeline changes since v1.5.6<a class="headerlink" href="#hiper-pipeline-changes-since-v1-5-6" title="Link to this heading">¶</a></h1>
+<p>List of changes from git, newest first, with the commit keys linked to github:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/0ac354f7ccc9f2f3c193b4d7a4c5895c1b709260">0ac354f7ccc9f2f3c193b4d7a4c5895c1b709260</a> Merge pull request #135 from HiPERCAM/shiftadd</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/31c5ef93198b502b7080a8cac88b96a62694db65">31c5ef93198b502b7080a8cac88b96a62694db65</a> Mask also has to be offset</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/8f1b67496efe057d5f7093011719e8e71eac72cc">8f1b67496efe057d5f7093011719e8e71eac72cc</a> Use spools for memory</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/a5becbd61bb2948616e979f6bce7ed962d20dd37">a5becbd61bb2948616e979f6bce7ed962d20dd37</a> Clean offset code</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/d2c2f6629a706a6152511b0eb8434bd4f06762e9">d2c2f6629a706a6152511b0eb8434bd4f06762e9</a> Add shiftadd to docs</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/a0782961f238c0aa7d5f5fcfed404964eff50c2f">a0782961f238c0aa7d5f5fcfed404964eff50c2f</a> Small fixes</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/fed50c1692d1c5f4b19e7b1ee607891e9978d9f1">fed50c1692d1c5f4b19e7b1ee607891e9978d9f1</a> Include binning</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/5aeb66d72128976205700f209f041dfbc1250a3a">5aeb66d72128976205700f209f041dfbc1250a3a</a> Ensure offsets are centred on 0,0</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/4c415cb78b69ae5d1bb44dec3c1a9757ecaee5aa">4c415cb78b69ae5d1bb44dec3c1a9757ecaee5aa</a> Detect NaNs, fix adaptive and positions</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/547bf7951b8eef4792951e7490a7e2a8bf7d8d76">547bf7951b8eef4792951e7490a7e2a8bf7d8d76</a> fix URLs in README</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/aa7bf9cf6bb53cf572c54887c94767e8cd8caed8">aa7bf9cf6bb53cf572c54887c94767e8cd8caed8</a> Update README.rst</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/1e69a48513f027773bd2705b182c64e2b36e4962">1e69a48513f027773bd2705b182c64e2b36e4962</a> Bugfix</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/3afbf9602d10f56d2894988eca35aee855ffc4ef">3afbf9602d10f56d2894988eca35aee855ffc4ef</a> Use calib params from red file</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/d318e0aadda1b6f919c7ea2eeed25de7c8b5d689">d318e0aadda1b6f919c7ea2eeed25de7c8b5d689</a> Various fixes &amp; extra errors</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/582da0fff57c7680c25a05f6d2306e2aa3da656a">582da0fff57c7680c25a05f6d2306e2aa3da656a</a> header cleanup</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/2f60cbcc40340b5b4b2254e3c236bdae41b8a388">2f60cbcc40340b5b4b2254e3c236bdae41b8a388</a> enable exact method and tweak headers</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f00e7f2a59cdf91a5550acff72a67d5c525f7175">f00e7f2a59cdf91a5550acff72a67d5c525f7175</a> need to fix WCS before exact works</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/126aafc480152165fbcfc9c84266c098f5d58e9c">126aafc480152165fbcfc9c84266c098f5d58e9c</a> first pass at shiftadd script</p></li>
+</ul>
+</div></blockquote>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/change_log_1.5.6_to_now.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/change_log_1.5.6_to_now.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

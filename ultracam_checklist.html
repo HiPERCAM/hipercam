@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ULTRACAM observing checklist &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="HiPERCAM commands" href="commands.html" />
+    <link rel="prev" title="Observing checklists" href="checklists.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="commands.html" title="HiPERCAM commands">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="checklists.html" title="Observing checklists">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="observers.html" >Observer’s guide</a> &#187;</li>
+      <li><a href="checklists.html" accesskey="U">Observing checklists</a> &#187;</li>
+      
+      <li>ULTRACAM observing checklist</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="ultracam-observing-checklist">
+<h1>ULTRACAM observing checklist<a class="headerlink" href="#ultracam-observing-checklist" title="Link to this heading">¶</a></h1>
+<p>This checklist is designed with the NTT in mind; some only need doing at the
+start of a run. If you are new to ULTRACAM or even experienced, please read
+through this list from start to finish at least once, early in the run, if
+only as a reminder. It contains a mix of statndard procedure and tips for
+better observing practice. It’s long because it is meant to be fairly
+comprehensive. Ask me (TRM) if you don’t follow any of the points.</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Make sure you have access to the phase II pages. Check the
+finding charts and verbal summaries for problems. Contact the PI if you
+find any. Watch out for finders made for the wrong telescope. They should
+say NTT on them if made with Stuart Littlefair’s software.</p></li>
+<li><p>Download the NTT-compatible catalogue from the phase II. Get it copied
+across to where the TO can see it.</p></li>
+<li><p>Check when sunset is so that you know when to be ready. The time for
+skyflats is ~10 to 30 minutes post sunset. Check that that
+the TO knows about the telescope spiral script.</p></li>
+<li><p>Check which filters are in place.</p></li>
+<li><p>Always take some biases in day time to check things are OK. Take science
+biases with the NTT shutter closed, all lights off, the focal plane mask
+in, with CLEAR enabled if possible, and NBLUE=1. When taking biases for
+specific targets and runs, the windows, readout speed and binning factors
+must all match. A good way to do this is simply to retrieve the setup, so
+it is always a good idea to save the configuration of every run. Remember
+however to set the exposure delay to zero and NBLUE=1 if you do
+this. Check your biases for problems by running <a class="reference internal" href="commands.html#hipercam.scripts.makebias" title="hipercam.scripts.makebias"><code class="xref py py-func docutils literal notranslate"><span class="pre">makebias</span></code></a> on each
+one. Take biases during daylight hours; don’t waste valuable observing
+time unless the dome is closed because of weather.</p></li>
+<li><p><strong>Always</strong> have the telescope spiralling when taking skyflats. Check that
+it is operating by looking at any stars in the field which should jump
+around. You can take flats in ‘fbb’ high-speed readout because you should
+have enough counts to rise above readout. However, don’t be tempted to
+take very short exposures (below 2 seconds), because the fram transfer
+time will impose a slight slope on the results that gets worse at short
+exposures.</p></li>
+<li><p>Download the most up-to-date defect file (see <a class="reference internal" href="files.html"><span class="doc">Useful files</span></a>). This is of
+great value when acquiring targets to avoid the main bad spots.</p></li>
+<li><p>When acquiring, use the defect file, but don’t rely on it alone. Look at
+your objects, especially the main target carefully in an averaged frame
+(see <a class="reference internal" href="commands.html#hipercam.scripts.averun" title="hipercam.scripts.averun"><code class="xref py py-func docutils literal notranslate"><span class="pre">averun</span></code></a>). Be prepared to move by a few pixels to steer clear of bad
+features and poor columns. <strong>Do this for every target</strong></p></li>
+<li><p>Always check your target names via SIMBAD if possible. Do so via a
+browser rather than the udriver GUI “Verify” button as the latter has
+a tendency to cause the GUI to hang. If your target is new and not in
+SIMBAD then please use a name ending in “JHHMMSS.SS[+-]DDMMSS.S”. These
+strictures are to help later archiving of the data. NB There is <em>no</em>
+other positional information in the ULTRACAM headers so correct object
+identification is essential.</p></li>
+<li><p>Make frequent comments on the weather, particularly clarity (or not) and
+seeing in the observing log. Also if a given run has an eclipse say, or
+something else that is notable about it, say so in the log. These sorts
+of remarks are valuable: you may be talking to your future self wondering
+“what on Earth?”. Notable events include big focus shifts, satellite /
+meteor trails, big position jumps, unexpected objects in the field,
+asteroids, clouds, highly variable seeing and the like.</p></li>
+<li><p>Check the count levels in your target and comparisons in all CCDs. Are
+they likely to saturate? Might they exceed the “perppering” levels?
+Rememeber, these questions are highly seeing-dependent so remember that
+the seeing could improve. The peppering levels are well below saturation,
+especially in the green and blue CCDs. It’s unclear whether peppering
+affects stars in the same way that it does flat field frames, but it is
+probably better to avoid exceeding these levels if possible.</p></li>
+<li><p>Once you start observing, you should try to get the reduction going asap.
+The main reason is to focus using the seeing plot. Make sure you are
+plotting the seeing measured in all CCDs and either use your main target
+or one nearby to it in case of CCD tilts. If using the hipercam pipeline
+(should do so), if you identify your target first with <a class="reference internal" href="commands.html#hipercam.scripts.setaper" title="hipercam.scripts.setaper"><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></a>, it will
+be assigned aperture label ‘1’ and be the one that <a class="reference internal" href="commands.html#hipercam.scripts.genred" title="hipercam.scripts.genred"><code class="xref py py-func docutils literal notranslate"><span class="pre">genred</span></code></a> selects for
+the seeing plot by default. Your aim should be to get the seeing values
+of all CCDs overlapping each other. On the NTT, the focus tends to drift
+and you should monitor it all the time, and correct it at the start
+normally.</p></li>
+<li><p>Once you have seen to the focus, double-check your main target for poor
+columns or pixels. Move it if need be. If you have to make a large move,
+then it is often best to stop and re-start the run.</p></li>
+<li><p>Keep an eye on the target positions. I know of a run taken in 2017 which
+drifted in position by more than 50 pixels with no apparent attempt to
+correct the drift or comment in the log. This was bad enough to lose one
+of the comparisons altogether. If you have to move the targets, but don’t
+want to break the run, try to move by relatively small amounts in
+possible a few steps as this will make the reduction simpler. The main
+requirement is not to move in a huge jump between consecutive frames.</p></li>
+<li><p>If you see different symbols appear in the light curve plot from
+<a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a>, the count levels in one or more of your targets may be too
+high. Check with <a class="reference internal" href="commands.html#hipercam.scripts.rtplot" title="hipercam.scripts.rtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code></a> which you can run at the same time as <a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a>.</p></li>
+<li><p>You should also check for overly low counts. Essentially it is a matter
+of the number of counts per pixel at the peak of each target compared to
+the gain*readout**2. You want the peak number of counts (sky plus target)
+to be significantly the larger to avoid being readout noise limited. For
+ULTRACAM this means &gt;&gt; 1.1*2.8**2 = 9 counts. I usually aim for at least
+50 to 100 counts at peak if possible.</p></li>
+<li><p>Make sure to write an entry <em>one line per target</em> in the standard ASCII
+log file for AutoLogger. Try to write stuff that is not otherwise easily
+seen. i.e. “Run on IP Peg” is not much extra use if the target name is
+“IP Peg”, but “Bad cloud after 20 minutes” is useful.</p></li>
+<li><p>At the start of the night, add a comment to say what the filters are. If
+you change them, say e.g. “changed from r to i”. This is a very helpful
+layer of redundancy on top of the filter names.</p></li>
+<li><p>If something goes badly wrong with a run, put “Junk!” somewhere in the
+comment, probably the start.</p></li>
+</ol>
+</div></blockquote>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="observers.html">Observer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="telescope.html">At the telescope</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html">Reduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html">Principles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="organisation.html">File organisation</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="checklists.html">Observing checklists</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ULTRACAM observing checklist</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="checklists.html"
+                          title="previous chapter">Observing checklists</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="commands.html"
+                          title="next chapter">HiPERCAM commands</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/ultracam_checklist.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/ultracam_checklist.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

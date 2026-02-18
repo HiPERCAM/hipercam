@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HiPERCAM’s hcm file format &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="HiPERCAM’s windows format" href="windows.html" />
+    <link rel="prev" title="API quick start" href="quickapi.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="windows.html" title="HiPERCAM’s windows format">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="quickapi.html" title="API quick start">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="api.html" accesskey="U">The API</a> &#187;</li>
+      
+      <li>HiPERCAM’s hcm file format</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="hiper-s-hcm-file-format">
+<h1>HiPERCAM’s hcm file format<a class="headerlink" href="#hiper-s-hcm-file-format" title="Link to this heading">¶</a></h1>
+<p>The HiPERCAM pipeline stores individual multi-CCD exposures in files with
+extension ‘.hcm’. These are in fact FITS files that can be examined with
+e.g. ‘fv’ or listed with ‘fitshead’, but the extension ‘.hcm’ is used to
+distinguish them clearly from the raw ‘.fits’ files and to reduce the chances
+of overwriting the latter. In order for these to be useful through the rest of
+the software, some assumptions about their internal structure are necessary,
+and they need to contain location information to show where sub-windows are
+placed within the CCDs.  The purpose of this document is to specify this in as
+much detail as possible.</p>
+<p>The basic structure of an ‘.hcm’ file is as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">General</span> <span class="n">Header</span><span class="p">]</span> <span class="p">[</span><span class="n">CCD</span> <span class="mi">1</span><span class="p">]</span> <span class="p">[</span><span class="n">CCD</span> <span class="mi">2</span><span class="p">]</span> <span class="p">[</span><span class="n">CCD</span> <span class="mi">3</span><span class="p">]</span> <span class="p">[</span><span class="n">CCD</span> <span class="mi">4</span><span class="p">]</span> <span class="p">[</span><span class="n">CCD</span> <span class="mi">5</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>‘General Header’ here is the first HDU [HDU0] which contains no data but has
+general header information pertaining to the entire multi-CCD frame. Each CCD
+in turn has the structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Window</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Window</span> <span class="mi">2</span><span class="p">,</span> <span class="n">Window</span> <span class="mi">3</span><span class="p">,</span> <span class="n">Window</span> <span class="mi">4</span><span class="p">,</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p>Each window has some header and data. The first has some extra headers general
+to the CCD as a whole. Each window comes with a label (header item ‘WINDOW’).
+For HiPERCAM data, these have values like ‘E1’, ‘G2’, ‘E’, ‘F’, ‘G’ and ‘H’
+denoting the quadrant of the CCD that the Window comes from. For a standard
+windowed mode, with 1 window per quadrant, there will be 4 HDUs per CCD, so a
+total of 5x4+1 = 25 HDUs. The Windows for a given CCD may come in any order,
+but they should come as a contiguous block.</p>
+<section id="hdu-structure-and-keywords">
+<h2>HDU structure and keywords<a class="headerlink" href="#hdu-structure-and-keywords" title="Link to this heading">¶</a></h2>
+<p>I now expand on this, detailing the header keywords expected. I concentrate on
+those essential for the operation of pipeline commands, <a class="reference internal" href="../commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a> above all.</p>
+<ol class="arabic">
+<li><p>HDU0. An hcm file starts with an HDU with no data but some header.</p>
+<p>Header items generated from HiPERACAM raw files:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>NUMCCD<span class="classifier">int</span></dt><dd><p>specifies the number of CCDs.</p>
+</dd>
+<dt>DATE<span class="classifier">string</span></dt><dd><p>date the run file was written if from HiPERCAM</p>
+</dd>
+<dt>GPS<span class="classifier">bool</span></dt><dd><p>GPS status</p>
+</dd>
+<dt>TIMSTAMP<span class="classifier">string</span></dt><dd><p>time stamp associated with the individual frame</p>
+</dd>
+<dt>NFRAME<span class="classifier">int</span></dt><dd><p>frame number</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Of these, ‘TIMSTAMP’ is essential.</p>
+</li>
+<li><p>Then each CCD comes as a block of HDUs, one per Window. The header in
+the first HDU <em>must</em> contain:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NXTOT</span>    <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">maximum</span> <span class="n">X</span><span class="o">-</span><span class="n">dimension</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span> <span class="n">to</span> <span class="n">give</span> <span class="n">a</span> <span class="n">reference</span>
+   <span class="n">size</span> <span class="k">for</span> <span class="n">plots</span> <span class="n">of</span> <span class="n">this</span> <span class="n">CCD</span><span class="o">.</span>
+
+<span class="n">NYTOT</span>    <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">maximum</span> <span class="n">Y</span><span class="o">-</span><span class="n">dimension</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="o">.</span>
+
+<span class="n">CCD</span>      <span class="p">:</span> <span class="n">string</span>
+   <span class="n">the</span> <span class="n">label</span> <span class="n">of</span> <span class="n">the</span> <span class="n">CCD</span>
+
+<span class="n">MJDUTC</span>   <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">the</span> <span class="n">MJD</span> <span class="n">at</span> <span class="n">mid</span><span class="o">-</span><span class="n">exposure</span> <span class="n">of</span> <span class="n">the</span> <span class="n">CCD</span><span class="o">.</span> <span class="n">This</span> <span class="n">might</span> <span class="n">be</span> <span class="n">the</span> <span class="n">same</span> <span class="k">as</span>
+   <span class="n">TIMSTAMP</span> <span class="n">of</span> <span class="n">the</span> <span class="n">general</span> <span class="n">header</span><span class="p">,</span> <span class="n">but</span> <span class="n">it</span> <span class="n">might</span> <span class="ow">not</span><span class="o">.</span>
+
+<span class="n">GOODTIME</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="n">flag</span> <span class="n">to</span> <span class="n">indicate</span> <span class="n">whether</span> <span class="n">the</span> <span class="n">time</span> <span class="ow">is</span> <span class="n">thought</span> <span class="n">to</span> <span class="n">be</span> <span class="n">reliable</span><span class="o">.</span> <span class="n">Defaults</span>
+   <span class="n">to</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">present</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>It can also contain a keyword ‘DSTATUS’ giving a boolean that indicates
+whether the frame contains data or not (True means yes). This is needed
+because ULTRACAM and HiPERCAM have options to suspend readout (‘NBLUE’ and
+‘NSKIP’) which lead to blank dummy frames in between the real data
+frames. If ‘DSTATUS’ is not found, the CCD will be assumed to be OK.</p>
+<p>All the HDUs in a CCD <em>must</em> contain:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="n">CCD</span>    <span class="p">:</span> <span class="n">string</span>
+     <span class="n">string</span> <span class="n">label</span> <span class="n">matching</span> <span class="n">the</span> <span class="n">label</span> <span class="n">of</span> <span class="n">the</span> <span class="n">first</span> <span class="n">HDU</span> <span class="n">of</span> <span class="n">the</span> <span class="n">CCD</span><span class="o">.</span>
+     <span class="n">This</span> <span class="ow">is</span> <span class="n">used</span> <span class="n">to</span> <span class="n">identify</span> <span class="n">which</span> <span class="n">HDUs</span> <span class="n">belong</span> <span class="n">to</span> <span class="n">a</span> <span class="n">given</span> <span class="n">CCD</span><span class="o">.</span>
+
+  <span class="n">LLX</span>    <span class="p">:</span> <span class="nb">int</span>
+     <span class="n">X</span><span class="o">-</span><span class="n">coordinate</span> <span class="n">of</span> <span class="n">lower</span><span class="o">-</span><span class="n">left</span><span class="o">-</span><span class="n">most</span> <span class="n">unbinned</span> <span class="n">pixel</span> <span class="n">that</span>
+     <span class="n">contributes</span> <span class="n">to</span> <span class="n">the</span> <span class="n">window</span><span class="p">,</span> <span class="n">starting</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">on</span> <span class="n">the</span> <span class="n">far</span>
+     <span class="n">left</span><span class="o">.</span>
+
+  <span class="n">LLY</span>    <span class="p">:</span> <span class="nb">int</span>
+     <span class="n">Y</span><span class="o">-</span><span class="n">coordinate</span> <span class="n">of</span> <span class="n">lower</span><span class="o">-</span><span class="n">left</span><span class="o">-</span><span class="n">most</span> <span class="n">unbinned</span> <span class="n">pixel</span> <span class="n">that</span>
+     <span class="n">contributes</span> <span class="n">to</span> <span class="n">the</span> <span class="n">window</span><span class="p">,</span> <span class="n">starting</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">on</span> <span class="n">the</span> <span class="n">bottom</span>
+
+  <span class="n">XBIN</span>   <span class="p">:</span> <span class="nb">int</span>
+     <span class="n">binning</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">X</span>
+
+  <span class="n">YBIN</span>   <span class="p">:</span> <span class="nb">int</span>
+     <span class="n">binning</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">Y</span>
+
+<span class="n">Finally</span> <span class="n">they</span> <span class="o">*</span><span class="n">should</span><span class="o">*</span> <span class="n">also</span> <span class="n">contain</span><span class="p">::</span>
+
+  <span class="n">WINDOW</span> <span class="p">:</span> <span class="n">string</span>
+     <span class="n">a</span> <span class="n">string</span> <span class="n">label</span> <span class="k">for</span> <span class="n">the</span> <span class="n">window</span><span class="o">.</span> <span class="n">If</span> <span class="n">it</span> <span class="n">doesn</span><span class="s1">&#39;t exist</span>
+     <span class="n">an</span> <span class="n">attempt</span> <span class="n">will</span> <span class="n">be</span> <span class="n">made</span> <span class="n">to</span> <span class="n">generate</span> <span class="n">labels</span> <span class="n">by</span> <span class="n">counting</span><span class="o">.</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="foreign-data">
+<h2>Foreign data<a class="headerlink" href="#foreign-data" title="Link to this heading">¶</a></h2>
+<p>The format of ‘.hcm’ files needs to be created if you want to apply the
+pipeline to data from other instruments. Since such data is typically
+FITS-format as are ‘.hcm’ files, this might simply be a matter of adding new
+keywords and re-arranging HDUs. The script for carrying this out is
+<a class="reference internal" href="../commands.html#hipercam.scripts.fits2hcm" title="hipercam.scripts.fits2hcm"><code class="xref py py-func docutils literal notranslate"><span class="pre">fits2hcm</span></code></a>. If you have some data, look at that script and submit new code
+through github.</p>
+</section>
+<section id="example-headers">
+<h2>Example headers<a class="headerlink" href="#example-headers" title="Link to this heading">¶</a></h2>
+<p>Here is the result of running ‘fitsheader’ on a ‘.hcm’ file which
+may make the above easier to understand. Bear in mind there are many
+extras associated with making it easier to display hcm files with ‘ds9’.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span># HDU 0 in flat.hcm:
+SIMPLE  =                    T / conforms to FITS standard                      
+BITPIX  =                    8 / array data type                                
+NAXIS   =                    0 / number of array dimensions                     
+EXTEND  =                    T                                                  
+MODE    = &#39;FullFrame&#39;          / HiPERCAM readout mode                          
+DATE    = &#39;2018-05-18T20:38:12.8127&#39; / Date the file was written                
+OBJECT  = &#39;Skyflat &#39;           / Object Name                                    
+FILTERS = &#39;us,gs,rs,is,zs&#39;     / Filters used                                   
+PI      = &#39;CALIB   &#39;           / Principal Investigator                         
+OBSERVER= &#39;vsd,trm &#39;           / Observer Name (SA = support astronomer)        
+RA      = &#39;12:35:37&#39;           / Telescope Right Ascension (HH:MM:SS.SSS)       
+DEC     = &#39;+30:15:50&#39;          / Telescope Declination (DD:MM:SS.SS)            
+INSTRPA =                150.5 / Position angle (E of N, degrees)               
+IMAGETYP= &#39;flat    &#39;           / Type of data                                   
+GPS     =                    T / GPS flag status                                
+EXPTIME =                  4.0 / Integration time                               
+XBIN    =                    1 / Bin factor in serial direction                 
+YBIN    =                    1 / Bin factor in parallel direction               
+SPEED   =                    0 / CCD Clock speed                                
+TIMSTAMP= &#39;2018-05-18T20:16:35.9330269&#39; / Raw frame timestamp, UTC              
+MJDUTC  =    58256.84486033596 / MJD(UTC) equivalent                            
+GOODTIME=                    T / Is TIMSTAMP thought to be OK?                  
+NFRAME  =                    1 / Frame number                                   
+FILENAME= &#39;/tmp/hipercam-phsaap/tmp14xr31we.hcm&#39;                                
+NUMCCD  =                    5 / Number of CCDs                                 
+HIPERCAM= &#39;MCCD    &#39;           / Type of HiPERCAM data (CCD | MCCD)             
+COMMENT Data representing multiple CCDs written by hipercam.MCCD.write.         
+COMMENT Each window of each CCD is written in a series of HDUs following an     
+COMMENT HDU containing only the header. These follow an overall header for the  
+COMMENT MCCD containing top-level information. The headers of the data window   
+COMMENT HDUs have keywords LLX, LLY giving the pixel location in unbinned       
+COMMENT pixels and XBIN and YBIN for their binning factors. The total unbinned  
+COMMENT dimensions of each CCD are stored under keywords NXTOT and NYTOT for    
+COMMENT each CCD. Each HDU associated with a given CCD is labelled with a       
+COMMENT header keyword CCD.                                                     
+
+# HDU 1 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;1       &#39;           / CCD label                                      
+NXTOT   =                 2048 / Total unbinned X dimension                     
+NYTOT   =                 1024 / Total unbinned Y dimension                     
+NXPAD   =                    0                                                  
+NYPAD   =                    0                                                  
+NUMWIN  =                    4 / Total number of windows                        
+WINDOW  = &#39;E1      &#39;           / Window label                                   
+NCYCLE  =                    1                                                  
+REFLECT =                    F                                                  
+RONOISE =                  0.0                                                  
+GAIN    =                  1.0                                                  
+DSTATUS =                    T                                                  
+MJDUTC  =     58256.8448834841                                                  
+GOODTIME=                    T                                                  
+EXPTIME =                  4.0                                                  
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,1:512]&#39;                                                      
+DETSEC  = &#39;[1:1024,1:512]&#39;                                                      
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =                  0.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =                  1.0                                                  
+CRVAL2  =                  1.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:1, W:E1&#39;          / name of this image extension                   
+HISTORY result of makeflat on 59 frames, ngroup = 5                             
+
+# HDU 2 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;1       &#39;           / CCD label                                      
+WINDOW  = &#39;F1      &#39;           / Window label                                   
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,1:512]&#39;                                                   
+DETSEC  = &#39;[1025:2048,1:512]&#39;                                                   
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =                  0.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               1025.0                                                  
+CRVAL2  =                  1.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:1, W:F1&#39;          / name of this image extension                   
+
+# HDU 3 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;1       &#39;           / CCD label                                      
+WINDOW  = &#39;G1      &#39;           / Window label                                   
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,513:1024]&#39;                                                
+DETSEC  = &#39;[1025:2048,513:1024]&#39;                                                
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =                  0.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               1025.0                                                  
+CRVAL2  =                513.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:1, W:G1&#39;          / name of this image extension                   
+
+# HDU 4 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;1       &#39;           / CCD label                                      
+WINDOW  = &#39;H1      &#39;           / Window label                                   
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,513:1024]&#39;                                                   
+DETSEC  = &#39;[1:1024,513:1024]&#39;                                                   
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =                  0.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =                  1.0                                                  
+CRVAL2  =                513.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:1, W:H1&#39;          / name of this image extension                   
+
+# HDU 5 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;2       &#39;           / CCD label                                      
+NXTOT   =                 2048 / Total unbinned X dimension                     
+NYTOT   =                 1024 / Total unbinned Y dimension                     
+NXPAD   =                    0                                                  
+NYPAD   =                    0                                                  
+NUMWIN  =                    4 / Total number of windows                        
+WINDOW  = &#39;E1      &#39;           / Window label                                   
+NCYCLE  =                    1                                                  
+REFLECT =                    T                                                  
+DSTATUS =                    T                                                  
+MJDUTC  =     58256.8448834841                                                  
+GOODTIME=                    T                                                  
+EXPTIME =                  4.0                                                  
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,1:512]&#39;                                                   
+DETSEC  = &#39;[3273:4296,1:512]&#39;                                                   
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               2248.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               3273.0                                                  
+CRVAL2  =                  1.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:2, W:E1&#39;          / name of this image extension                   
+HISTORY result of makeflat on 56 frames, ngroup = 5                             
+
+# HDU 6 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;2       &#39;           / CCD label                                      
+WINDOW  = &#39;F1      &#39;           / Window label                                   
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,1:512]&#39;                                                      
+DETSEC  = &#39;[2249:3272,1:512]&#39;                                                   
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               2248.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               2249.0                                                  
+CRVAL2  =                  1.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:2, W:F1&#39;          / name of this image extension                   
+
+# HDU 7 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;2       &#39;           / CCD label                                      
+WINDOW  = &#39;G1      &#39;           / Window label                                   
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,513:1024]&#39;                                                   
+DETSEC  = &#39;[2249:3272,513:1024]&#39;                                                
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               2248.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               2249.0                                                  
+CRVAL2  =                513.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:2, W:G1&#39;          / name of this image extension                   
+
+# HDU 8 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;2       &#39;           / CCD label                                      
+WINDOW  = &#39;H1      &#39;           / Window label                                   
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,513:1024]&#39;                                                
+DETSEC  = &#39;[3273:4296,513:1024]&#39;                                                
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               2248.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               3273.0                                                  
+CRVAL2  =                513.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:2, W:H1&#39;          / name of this image extension                   
+
+# HDU 9 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;3       &#39;           / CCD label                                      
+NXTOT   =                 2048 / Total unbinned X dimension                     
+NYTOT   =                 1024 / Total unbinned Y dimension                     
+NXPAD   =                    0                                                  
+NYPAD   =                    0                                                  
+NUMWIN  =                    4 / Total number of windows                        
+WINDOW  = &#39;E1      &#39;           / Window label                                   
+NCYCLE  =                    1                                                  
+REFLECT =                    F                                                  
+DSTATUS =                    T                                                  
+MJDUTC  =     58256.8448834841                                                  
+GOODTIME=                    T                                                  
+EXPTIME =                  4.0                                                  
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,1:512]&#39;                                                      
+DETSEC  = &#39;[4497:5520,1:512]&#39;                                                   
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               4496.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               4497.0                                                  
+CRVAL2  =                  1.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:3, W:E1&#39;          / name of this image extension                   
+HISTORY result of makeflat on 60 frames, ngroup = 5                             
+
+# HDU 10 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;3       &#39;           / CCD label                                      
+WINDOW  = &#39;F1      &#39;           / Window label                                   
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,1:512]&#39;                                                   
+DETSEC  = &#39;[5521:6544,1:512]&#39;                                                   
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               4496.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               5521.0                                                  
+CRVAL2  =                  1.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:3, W:F1&#39;          / name of this image extension                   
+
+# HDU 11 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;3       &#39;           / CCD label                                      
+WINDOW  = &#39;G1      &#39;           / Window label                                   
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,513:1024]&#39;                                                
+DETSEC  = &#39;[5521:6544,513:1024]&#39;                                                
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               4496.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               5521.0                                                  
+CRVAL2  =                513.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:3, W:G1&#39;          / name of this image extension                   
+
+# HDU 12 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;3       &#39;           / CCD label                                      
+WINDOW  = &#39;H1      &#39;           / Window label                                   
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,513:1024]&#39;                                                   
+DETSEC  = &#39;[4497:5520,513:1024]&#39;                                                
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               4496.0                                                  
+DTV2    =                  0.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               4497.0                                                  
+CRVAL2  =                513.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:3, W:H1&#39;          / name of this image extension                   
+
+# HDU 13 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;4       &#39;           / CCD label                                      
+NXTOT   =                 2048 / Total unbinned X dimension                     
+NYTOT   =                 1024 / Total unbinned Y dimension                     
+NXPAD   =                    0                                                  
+NYPAD   =                    0                                                  
+NUMWIN  =                    4 / Total number of windows                        
+WINDOW  = &#39;E1      &#39;           / Window label                                   
+NCYCLE  =                    1                                                  
+REFLECT =                    F                                                  
+DSTATUS =                    T                                                  
+MJDUTC  =     58256.8448834841                                                  
+GOODTIME=                    T                                                  
+EXPTIME =                  4.0                                                  
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,1:512]&#39;                                                      
+DETSEC  = &#39;[1:1024,-1223:-712]&#39;                                                 
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =                  0.0                                                  
+DTV2    =              -1224.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =                  1.0                                                  
+CRVAL2  =              -1223.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:4, W:E1&#39;          / name of this image extension                   
+HISTORY result of makeflat on 58 frames, ngroup = 5                             
+
+# HDU 14 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;4       &#39;           / CCD label                                      
+WINDOW  = &#39;F1      &#39;           / Window label                                   
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,1:512]&#39;                                                   
+DETSEC  = &#39;[1025:2048,-1223:-712]&#39;                                              
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =                  0.0                                                  
+DTV2    =              -1224.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               1025.0                                                  
+CRVAL2  =              -1223.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:4, W:F1&#39;          / name of this image extension                   
+
+# HDU 15 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;4       &#39;           / CCD label                                      
+WINDOW  = &#39;G1      &#39;           / Window label                                   
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,513:1024]&#39;                                                
+DETSEC  = &#39;[1025:2048,-711:-200]&#39;                                               
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =                  0.0                                                  
+DTV2    =              -1224.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               1025.0                                                  
+CRVAL2  =               -711.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:4, W:G1&#39;          / name of this image extension                   
+
+# HDU 16 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;4       &#39;           / CCD label                                      
+WINDOW  = &#39;H1      &#39;           / Window label                                   
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,513:1024]&#39;                                                   
+DETSEC  = &#39;[1:1024,-711:-200]&#39;                                                  
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =                  0.0                                                  
+DTV2    =              -1224.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =                  1.0                                                  
+CRVAL2  =               -711.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:4, W:H1&#39;          / name of this image extension                   
+
+# HDU 17 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;5       &#39;           / CCD label                                      
+NXTOT   =                 2048 / Total unbinned X dimension                     
+NYTOT   =                 1024 / Total unbinned Y dimension                     
+NXPAD   =                    0                                                  
+NYPAD   =                    0                                                  
+NUMWIN  =                    4 / Total number of windows                        
+WINDOW  = &#39;E1      &#39;           / Window label                                   
+NCYCLE  =                    1                                                  
+REFLECT =                    T                                                  
+DSTATUS =                    T                                                  
+MJDUTC  =     58256.8448834841                                                  
+GOODTIME=                    T                                                  
+EXPTIME =                  4.0                                                  
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,1:512]&#39;                                                   
+DETSEC  = &#39;[3273:4296,-1223:-712]&#39;                                              
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               2248.0                                                  
+DTV2    =              -1224.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               3273.0                                                  
+CRVAL2  =              -1223.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:5, W:E1&#39;          / name of this image extension                   
+HISTORY result of makeflat on 54 frames, ngroup = 5                             
+
+# HDU 18 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;5       &#39;           / CCD label                                      
+WINDOW  = &#39;F1      &#39;           / Window label                                   
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                    1 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,1:512]&#39;                                                      
+DETSEC  = &#39;[2249:3272,-1223:-712]&#39;                                              
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =                  0.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               2248.0                                                  
+DTV2    =              -1224.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               2249.0                                                  
+CRVAL2  =              -1223.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:5, W:F1&#39;          / name of this image extension                   
+
+# HDU 19 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;5       &#39;           / CCD label                                      
+WINDOW  = &#39;G1      &#39;           / Window label                                   
+LLX     =                    1 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1:1024,513:1024]&#39;                                                   
+DETSEC  = &#39;[2249:3272,-711:-200]&#39;                                               
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =                  0.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               2248.0                                                  
+DTV2    =              -1224.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               2249.0                                                  
+CRVAL2  =               -711.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:5, W:G1&#39;          / name of this image extension                   
+
+# HDU 20 in flat.hcm:
+XTENSION= &#39;IMAGE   &#39;           / Image extension                                
+BITPIX  =                  -32 / array data type                                
+NAXIS   =                    2 / number of array dimensions                     
+NAXIS1  =                 1024                                                  
+NAXIS2  =                  512                                                  
+PCOUNT  =                    0 / number of parameters                           
+GCOUNT  =                    1 / number of groups                               
+CCD     = &#39;5       &#39;           / CCD label                                      
+WINDOW  = &#39;H1      &#39;           / Window label                                   
+LLX     =                 1025 / X-ordinate of lower-left pixel                 
+LLY     =                  513 / Y-ordinate of lower-left pixel                 
+XBIN    =                    1 / X-binning factor                               
+YBIN    =                    1 / Y-binning factor                               
+CCDSUM  = &#39;1 1     &#39;                                                            
+CCDSEC  = &#39;[1:1024,1:512]&#39;                                                      
+AMPSEC  = &#39;[1:1024,1:512]&#39;                                                      
+DATASEC = &#39;[1025:2048,513:1024]&#39;                                                
+DETSEC  = &#39;[3273:4296,-711:-200]&#39;                                               
+ATM1_1  =                  1.0                                                  
+ATM2_2  =                  1.0                                                  
+ATV1    =                  0.0                                                  
+ATV2    =                  0.0                                                  
+LTM1_1  =                  1.0                                                  
+LTM2_2  =                  1.0                                                  
+LTV1    =              -1024.0                                                  
+LTV2    =               -512.0                                                  
+DTM1_1  =                  1.0                                                  
+DTM2_2  =                  1.0                                                  
+DTV1    =               2248.0                                                  
+DTV2    =              -1224.0                                                  
+WCSNAMEP= &#39;PHYSICAL&#39;                                                            
+CTYPE1  = &#39;PIXEL   &#39;                                                            
+CTYPE2  = &#39;PIXEL   &#39;                                                            
+CRPIX1  =                  1.0                                                  
+CRPIX2  =                  1.0                                                  
+CRVAL1  =               3273.0                                                  
+CRVAL2  =               -711.0                                                  
+CD1_1   =                  1.0                                                  
+CD2_2   =                  1.0                                                  
+EXTNAME = &#39;C:5, W:H1&#39;          / name of this image extension                   
+</pre></div>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickapi.html">API quick start</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">HiPERCAM’s hcm file format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows.html">HiPERCAM’s windows format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="details.html">Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html">Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing_tests.html">Timing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging.html">Data logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="quickapi.html"
+                          title="previous chapter">API quick start</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="windows.html"
+                          title="next chapter">HiPERCAM’s windows format</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/hcmformat.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/hcmformat.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HiPERCAM pipeline news &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Observer’s guide" href="observers.html" />
+    <link rel="prev" title="The HiPERCAM pipeline manual" href="index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="observers.html" title="Observer’s guide">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="index.html" title="The HiPERCAM pipeline manual">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      
+      <li>HiPERCAM pipeline news</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="hiper-pipeline-news">
+<h1>HiPERCAM pipeline news<a class="headerlink" href="#hiper-pipeline-news" title="Link to this heading">¶</a></h1>
+<p>This page documents important changes in the pipeline, as a help to
+whether you should update. I have revised how I list updates here and
+from now on intend just to add new items when the first or second
+number in the version changes, hence I have scrubbed old items (full
+lists of past changes can be seen on github in any case). NB the
+version of these docs may reflect a development version subsequent to
+the most recent release and hence will appear to be one click on.</p>
+<ol class="arabic">
+<li><p><span class="xref std std-doc">Updates since 1.2.0</span>: patches released
+since the most recent minor version update.</p></li>
+<li><p><strong>29 March 2022, Version 1.2.0</strong>: many minor upgrades and fixes</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.pbands" title="hipercam.scripts.pbands"><code class="xref py py-func docutils literal notranslate"><span class="pre">pbands</span></code></a> introduced to help make summary plots during observing</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.exploss" title="hipercam.scripts.exploss"><code class="xref py py-func docutils literal notranslate"><span class="pre">exploss</span></code></a> to help judge the importance of readnoise on a run</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.ncal" title="hipercam.scripts.ncal"><code class="xref py py-func docutils literal notranslate"><span class="pre">ncal</span></code></a> routine for noise calibration</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">logsearch</span></code> database search routine working OK.</p></li>
+</ul>
+</div></blockquote>
+<p><a class="reference internal" href="change_log_1.1.0_1.2.0.html"><span class="doc">Full list of changes, 1.1.0 to 1.2.0</span></a></p>
+</li>
+<li><p><strong>04 June 2021, Version 1.1.0</strong>: over-haul of genred, hpackage, WCS in joinup</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.genred" title="hipercam.scripts.genred"><code class="xref py py-func docutils literal notranslate"><span class="pre">genred</span></code></a> simplified but made more configurable by allowing one to define
+most parameters via a previously edited template reduce file</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.hpackage" title="hipercam.scripts.hpackage"><code class="xref py py-func docutils literal notranslate"><span class="pre">hpackage</span></code></a> new command for bundling up standard reduce products</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.joinup" title="hipercam.scripts.joinup"><code class="xref py py-func docutils literal notranslate"><span class="pre">joinup</span></code></a> use telescope pointing data for HiPERCAM+GTC to add a WCS.</p></li>
+<li><p>improved handling of cleanup of temporary files</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.nrtplot" title="hipercam.scripts.nrtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">nrtplot</span></code></a> and <a class="reference internal" href="commands.html#hipercam.scripts.joinup" title="hipercam.scripts.joinup"><code class="xref py py-func docutils literal notranslate"><span class="pre">joinup</span></code></a> both now include dark and fringe subtraction.</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.joinup" title="hipercam.scripts.joinup"><code class="xref py py-func docutils literal notranslate"><span class="pre">joinup</span></code></a> can generate ds9 “region” files from HiPERCAM aperture files</p></li>
+</ul>
+</div></blockquote>
+<p><a class="reference internal" href="change_log_1.0.0_1.1.0.html"><span class="doc">Full list of changes, 1.0.0 to 1.1.0</span></a>.</p>
+</li>
+<li><p><strong>25 May 2021, Version 1.0.0</strong>: fringe-correction added</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>fringe correction added to <a class="reference internal" href="commands.html#hipercam.scripts.nrtplot" title="hipercam.scripts.nrtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">nrtplot</span></code></a>, <a class="reference internal" href="commands.html#hipercam.scripts.grab" title="hipercam.scripts.grab"><code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code></a>, <a class="reference internal" href="commands.html#hipercam.scripts.averun" title="hipercam.scripts.averun"><code class="xref py py-func docutils literal notranslate"><span class="pre">averun</span></code></a>, <a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a>. Associated
+new commands <a class="reference internal" href="commands.html#hipercam.scripts.makefringe" title="hipercam.scripts.makefringe"><code class="xref py py-func docutils literal notranslate"><span class="pre">makefringe</span></code></a> and <a class="reference internal" href="commands.html#hipercam.scripts.setfringe" title="hipercam.scripts.setfringe"><code class="xref py py-func docutils literal notranslate"><span class="pre">setfringe</span></code></a> added. Initial z-band fringe map
+for HiPERCAM created (for more see <a class="reference internal" href="reduction.html#fringing"><span class="std std-ref">fringing</span></a>  and
+<a class="reference internal" href="files.html#fringing-files"><span class="std std-ref">fringing files</span></a>)</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.nrtplot" title="hipercam.scripts.nrtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">nrtplot</span></code></a> improved responsiveness by updating plots while-u-wait. This uses
+a hidden parameter <cite>tupdate</cite> that might require tuning a little according to
+the connection, although it may turn out not to matter.</p></li>
+<li><p>more synchronisation of default output names with inputs (<a class="reference internal" href="commands.html#hipercam.scripts.makeflat" title="hipercam.scripts.makeflat"><code class="xref py py-func docutils literal notranslate"><span class="pre">makeflat</span></code></a>, <a class="reference internal" href="commands.html#hipercam.scripts.makebias" title="hipercam.scripts.makebias"><code class="xref py py-func docutils literal notranslate"><span class="pre">makebias</span></code></a>,
+<a class="reference internal" href="commands.html#hipercam.scripts.setaper" title="hipercam.scripts.setaper"><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></a>)</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.makemovie" title="hipercam.scripts.makemovie"><code class="xref py py-func docutils literal notranslate"><span class="pre">makemovie</span></code></a> for movie stills added.</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.joinup" title="hipercam.scripts.joinup"><code class="xref py py-func docutils literal notranslate"><span class="pre">joinup</span></code></a> to export joined up frames added.</p></li>
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.rtplot" title="hipercam.scripts.rtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code></a> bug fix that was causing problem with percentile scalings with small
+windows.</p></li>
+</ul>
+</div></blockquote>
+<p><a class="reference internal" href="change_log_0.22.0_1.0.0.html"><span class="doc">Full list of changes, 0.22.0 to 1.0.0</span></a>.</p>
+</li>
+<li><p><strong>05 May 2021, Version 0.22.0</strong>: matplotlib-based real time image plotter
+introduced</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="commands.html#hipercam.scripts.nrtplot" title="hipercam.scripts.nrtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">nrtplot</span></code></a>, matplotlib-based version of rtplot. Allows panning
+and zooming during the plots, choice of colour map, and
+profile fits from multiple CCDs.</p></li>
+<li><p>setaper, hplot, setdefect also now support colour maps</p></li>
+<li><p>averun output name now synchronised with input</p></li>
+<li><p>new environment variable HIPERCAM_DEFAULT_SOURCE introduced</p></li>
+<li><p>makebias output name synchronised with input</p></li>
+<li><p>lots of minor improvements to logging scripts</p></li>
+</ul>
+</div></blockquote>
+<p><a class="reference internal" href="change_log_0.21.0_0.22.0.html"><span class="doc">Full list of changes, 0.21.0 to 0.22.0</span></a>.</p>
+</li>
+</ol>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="index.html"
+                          title="previous chapter">The HiPERCAM pipeline manual</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="observers.html"
+                          title="next chapter">Observer’s guide</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/news.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/news.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

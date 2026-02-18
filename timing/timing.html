@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Timing &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Timing tests" href="timing_tests.html" />
+    <link rel="prev" title="hipercam.window" href="../api/hipercam-window.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="timing_tests.html" title="Timing tests">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../api/hipercam-window.html" title="hipercam.window">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../api/api.html" accesskey="U">The API</a> &#187;</li>
+      
+      <li>Timing</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="timing">
+<h1>Timing<a class="headerlink" href="#timing" title="Link to this heading">¶</a></h1>
+<p>HiPERCAM frames each come with a timestamp, but this is taken at a particular
+part of the exposure cycle, and not at the mid exposure point. There is
+therefore a requirement to offset from this timestamp to deduce the
+mid-exposure time. The purpose of this document is to detail how this is
+achieved for each readout mode. It is technical in nature and unlikely to be
+of interest for most observers.</p>
+<section id="no-clear-mode">
+<h2>No clear mode<a class="headerlink" href="#no-clear-mode" title="Link to this heading">¶</a></h2>
+<p>This is the standard mode for observing with data accumulating during the
+readout of the previous frame. <a class="reference internal" href="#fig-no-clear"><span class="std std-numref">Fig. 6</span></a> illustrates the readout
+sequence in no clear mode.</p>
+<figure class="align-default" id="id1">
+<span id="fig-no-clear"></span><a class="reference internal image-reference" href="../_images/noclear.png"><img alt="the no clear mode read sequence" src="../_images/noclear.png" style="width: 800.0px; height: 200.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 6 </span><span class="caption-text">The no-clear mode read sequence. ‘C’ stands for ‘clear’, ‘E’
+for the exposure delay, ‘F’ for a frame transfer, ‘R’ for the readout. The
+dashed boxes show the section during which photons accumulate. The labels
+at the top show when the respective frames are read, while those along the
+bottom indicate when timestamps are taken. The timestamps in this case are
+takn just after the frames are read so that frame 3 carries time
+stamp 3. The figure assumes that NSKIP=2 applies to the CCD, i.e. 2 out of
+3 of the reads actually read junk data because the immediately preceding
+‘F’ is a dummy (marked as such by being in red). The first dashed box is
+marked in red as it is a special case since there is no previous frame
+readout; all subsequent frames are the same and marked in blue.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>In the case shown, NSKIP=2, so that useful data appears every third
+frame. Thus F3 and F6 are proper data and appear after a real frame transfer
+and read, whereas the 5th frame (F5) is junk data following a read of the
+masked off area when there was no frame transfer. F6, which is the first of
+the ‘regular’ exposures, unaffected by end-effects at the start. The exposure
+upon which it is based is marked by the blue box. It starts immediately after
+the (genuine) frame transfer that occurs after the third time stamp (TS3) is
+taken. The data moved into the masked area from this frame transfer appear as
+F3, but photons accumulate in the imaging area up to the frame transfer that
+occurs after TS6. Thus the fundamental cycle period is 3 = NSKIP + 1.</p>
+<p>The mid-exposure time we want in the average of the start and end times. We
+reference these with respect to TS6, since that is the time stamp that will be
+tacked on to F6 and is the “per-frame” timing data referred to earlier.
+Adopting an obvious notation, the time of the end of the exposure,
+<span class="math">t_2</span>, is given by</p>
+<div class="math">
+<p><span class="math">t_2 = t_S + \text{E},</span></p>
+</div><p>while the start time is</p>
+<div class="math">
+<p><span class="math">t_1 = t_S - (\text{F}+\text{R}+\text{E}) * \text{NSKIP} - \text{R}.</span></p>
+</div><p>The average of these is the mid-exposure time that we want, i.e.</p>
+<div class="math" id="equation-tmid-norm">
+<p><span class="eqno">(1)<a class="headerlink" href="#equation-tmid-norm" title="Link to this equation">¶</a></span><span class="math">t_{\text{mid}} = t_S + \left(\frac{\text{E}-\text{R}}{2}\right) -
+\left(\frac{\text{F} + \text{R} + \text{E}}{2}\right) * \text{NSKIP} ,</span></p>
+</div><p>Here <span class="math">t_S</span> is the timestamp of the frame in question, while F,
+R and E are the times taken to frame transfer, readout, and
+the exposure delay (user defined). Eq. <a class="reference internal" href="#equation-tmid-norm">(1)</a> applies to frame
+number <span class="math">(\text{NSKIP}+1) * m</span>, where <span class="math">m</span> is an integer,
+<span class="math">\forall m &gt; 1</span>. e.g. in the example, <span class="math">\text{NSKIP} = 2</span>,
+<span class="math">m = 2</span> gives the time for F6. Times are meaningless for any of the
+dummy frames (F2, F5 etc) since they don’t contain data, which leaves the
+<span class="math">m = 1</span> case, F3. The exposure for this is high-lighted in red in
+<a class="reference internal" href="#fig-no-clear"><span class="std std-numref">Fig. 6</span></a>. If it is compared to the blue box, it can be seen to lack
+the ‘R’ stage at the start relative to that, so we can take
+Eq. <a class="reference internal" href="#equation-tmid-norm">(1)</a> and add <span class="math">\text{R}/2</span> to get the special case for the first
+(non-junk) frame:</p>
+<div class="math">
+<p><span class="math">t_{\text{mid}} = t_S + \frac{\text{E}}{2} - \left(\frac{\text{F}
++ \text{R} + \text{E}}{2}\right)
+* \text{NSKIP} .</span></p>
+</div><p>The exposure times are given by</p>
+<div class="math">
+<p><span class="math">t_{\text{exp}} &amp;= (\text{F} + \text{R} + \text{E}) * \text{NSKIP}
++ \text{R} + \text{E},\\
+t_{\text{exp}} &amp;= (\text{F} + \text{R} + \text{E}) * \text{NSKIP}
++ \text{E},</span></p>
+</div><p>for the normal (<span class="math">m &gt; 1</span>) and special (<span class="math">m = 1</span>) cases respectively,
+while the dead time between exposures is</p>
+<div class="math">
+<p><span class="math">t_{\text{dead}} = \text{F}.</span></p>
+</div><p>In the code, <code class="xref py py-mod docutils literal notranslate"><span class="pre">hipercam.hcam</span></code>, these are implemented by computing
+two offsets plus two multipliers for NSKIP with names like <cite>toff1</cite> etc,
+representing the constant offset and the pre-factor that multiplies NSKIP
+(called <cite>tdelta</cite> in <code class="xref py py-mod docutils literal notranslate"><span class="pre">hipercam.hcam</span></code>).</p>
+</section>
+<section id="clear-mode">
+<h2>Clear mode<a class="headerlink" href="#clear-mode" title="Link to this heading">¶</a></h2>
+<p>Although clear mode is less useful than clear mode for timing work, I go
+through the same analysis here.</p>
+<figure class="align-default" id="id2">
+<span id="fig-clear"></span><a class="reference internal image-reference" href="../_images/clear.png"><img alt="the clear mode read sequence" src="../_images/clear.png" style="width: 800.0px; height: 200.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 7 </span><span class="caption-text">The clear mode read sequence. The keys are the same as before
+but with the addition of ‘W’ for wipe.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p><a class="reference internal" href="#fig-clear"><span class="std std-numref">Fig. 7</span></a> shows the clear mode case. The difference is that after each
+readout there is now a genuine wipe, although with nskip in operation, some of
+these are simply short delays to keep synchronisation. That means photons that
+accumulated in the imaging area during readout of the masked area are thrown
+away, and the exposure only starts once the wipe is completed. This allows
+shorter exposures which can be useful on bright objects, although at the cost
+of increased deadtime. It is however often useful for calibrations,
+e.g. bright flux standards. The start and end times in this case are</p>
+<div class="math">
+<p><span class="math">t_1 &amp;= t_S - (\text{F}+\text{R}+\text{W}+\text{E}) * \text{NSKIP},\\
+t_2 &amp;= t_S + \text{E}.</span></p>
+</div><p>One finds the mid-exposure, exposure and dead times to be</p>
+<div class="math">
+<p><span class="math">t_{\text{mid}} &amp;= t_S + \frac{\text{E}}{2} - \left(\frac{\text{F} +
+ \text{R} + \text{W} + \text{E}}{2}\right)
+ * \text{NSKIP} ,\\
+t_{\text{exp}} &amp;= (\text{F} + \text{R} + \text{W} + \text{E}) *
+\text{NSKIP} + \text{E},\\
+t_{\text{dead}} &amp;= \text{F} + \text{R} + \text{W},</span></p>
+</div><p>there being no distinction in this case between the first fram and all
+the others.</p>
+</section>
+<section id="drift-mode">
+<h2>Drift mode<a class="headerlink" href="#drift-mode" title="Link to this heading">¶</a></h2>
+<figure class="align-default" id="id3">
+<span id="fig-drift"></span><a class="reference internal image-reference" href="../_images/drift.png"><img alt="the drift mode read sequence" src="../_images/drift.png" style="width: 800.0px; height: 200.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">The drift mode read sequence. The key is the same as before
+but with the addition of ‘LS’ and ‘LD’ for line-shift and
+line-dump. In this case ‘DRIFT NWINS’ is taken to be 3 in
+which case the first real data frame, F1, gets TS4 attached
+to it.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>In drift mode the windows are partially shifted into the masked area so that
+there are one or more of them in the masked area as windows are being read
+out. The smaller shifts allow the deadtime between exposures to be reduced but
+create an offset between the timestamps and data.  Ignoring the drift window
+offset initially, the start and end times are given by</p>
+<div class="math">
+<p><span class="math">t_1 &amp;= t_S + \text{E} + \text{LS},\\
+t_2 &amp;= t_S + 2\text{E} + \text{LS} + \text{LD} + \text{R},</span></p>
+</div><p>where R is given by the header parameter ‘ESO DET READ’, LD by ‘ESO DRIFT
+TLINEDUMP’ and E by ‘ESO DET TDELAY’ (see <a class="reference internal" href="#summary"><span class="std std-ref">Summary of symbols and corresponding header parameters</span></a> for a complete
+listing). Accounting for the drift window offser, the times of interest
+work out to be</p>
+<div class="math">
+<p><span class="math">t_{\text{mid}} &amp;= t_S + \text{E} + \text{LS} + \frac{1}{2} (\text{LD} +
+\text{R} + \text{E}) - (\text{LD} + \text{R} + \text{LS} + \text{E}) *
+\text{NDRIFT},\\
+t_\text{exp} &amp;= \text{E} + \text{LD} + \text{R},\\
+t_\text{dead} &amp;= \text{LS},</span></p>
+</div><p>where NDRIFT is the number of drift windows, ‘DET DRIFT NWINS’ in the headers.
+All the relations above are implemented within <code class="xref py py-mod docutils literal notranslate"><span class="pre">hipercam.hcam</span></code>. Results
+from tests with a precisely synchronised LED can be found in
+<a class="reference internal" href="timing_tests.html"><span class="doc">Timing tests</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There is no NSUB option in drift mode, therefore <cite>tdelta</cite> in
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">hipercam.hcam</span></code> is set = 0.</p>
+</div>
+</section>
+<section id="summary-of-symbols-and-corresponding-header-parameters">
+<span id="summary"></span><h2>Summary of symbols and corresponding header parameters<a class="headerlink" href="#summary-of-symbols-and-corresponding-header-parameters" title="Link to this heading">¶</a></h2>
+<p>Here is a summary table of all the symbols used above with the corresponding
+mode and equivalent FITS header parameter:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Symbol</p></th>
+<th class="head"><p>Mode</p></th>
+<th class="head"><p>FITS header parameter</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>E</p></td>
+<td><p>ALL</p></td>
+<td><p>ESO DET TDELAY</p></td>
+</tr>
+<tr class="row-odd"><td><p>R+F</p></td>
+<td><p>CLEAR</p></td>
+<td><p>ESO DET READ</p></td>
+</tr>
+<tr class="row-even"><td><p>R+F</p></td>
+<td><p>NO CLEAR</p></td>
+<td><p>ESO DET READ</p></td>
+</tr>
+<tr class="row-odd"><td><p>R</p></td>
+<td><p>DRIFT</p></td>
+<td><p>ESO DET READ</p></td>
+</tr>
+<tr class="row-even"><td><p>W</p></td>
+<td><p>CLEAR</p></td>
+<td><p>ESO DET TCLEAR</p></td>
+</tr>
+<tr class="row-odd"><td><p>F</p></td>
+<td><p>NO CLEAR</p></td>
+<td><p>ESO DET TFT</p></td>
+</tr>
+<tr class="row-even"><td><p>LD</p></td>
+<td><p>DRIFT</p></td>
+<td><p>ESO DRIFT TLINEDUMP</p></td>
+</tr>
+<tr class="row-odd"><td><p>LS</p></td>
+<td><p>DRIFT</p></td>
+<td><p>ESO DRIFT TLINESHIFT</p></td>
+</tr>
+<tr class="row-even"><td><p>NDRIFT</p></td>
+<td><p>DRIFT</p></td>
+<td><p>DET DRIFT NWINS</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The header parameter ‘ESO DET READ’ corresponds to the sum of the
+readout R and frame transfer F that occur in the clear and no-clear
+modes (there is no frame transfer in drift mode).</p>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api/api.html">The API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/quickapi.html">API quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/hcmformat.html">HiPERCAM’s hcm file format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/windows.html">HiPERCAM’s windows format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/details.html">Modules</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timing_tests.html">Timing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/logging.html">Data logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../api/hipercam-window.html"
+                          title="previous chapter">hipercam.window</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="timing_tests.html"
+                          title="next chapter">Timing tests</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/timing/timing.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/timing/timing.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

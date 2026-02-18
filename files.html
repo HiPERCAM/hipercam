@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Useful files &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Making HiPERCAM movies" href="makingmovies.html" />
+    <link rel="prev" title="Getting the software" href="installation.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="makingmovies.html" title="Making HiPERCAM movies">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="installation.html" title="Getting the software">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      
+      <li>Useful files</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="useful-files">
+<h1>Useful files<a class="headerlink" href="#useful-files" title="Link to this heading">¶</a></h1>
+<p>This page documents some files that may come in useful while observing or
+during reduction.</p>
+<section id="ccd-defects">
+<span id="defect-files"></span><h2>CCD defects<a class="headerlink" href="#ccd-defects" title="Link to this heading">¶</a></h2>
+<p>The HiPERCAM CCDs have a number of defects, dust and the like, and, as
+of 13 May 2021, a hair in the upper-right quadrant of CCD 2 along with
+a long-standing similar feature in the lower-left quadrant of
+CCD 4. When acquiring targets these may not be visible so you are
+<strong>VERY STRONGLY ADVISED TO OVER-PLOT DEFECTS</strong>. You can also create
+your own using the pipeline command <a class="reference internal" href="commands.html#hipercam.scripts.setdefect" title="hipercam.scripts.setdefect"><code class="xref py py-func docutils literal notranslate"><span class="pre">setdefect</span></code></a> and you are encouraged
+to do so if you see a defect not already marked in whatever file you
+use.</p>
+<p>Defects are classified as “moderate” (plotted in yellow) or “severe”
+(red). What one counts as one or the other is a matter of taste. If you are
+too picky, you could end up with so many defects that you are afraid to
+observe.</p>
+<p>I have decided to define defects according to the following
+prescription: <code class="docutils literal notranslate"><span class="pre">moderate</span></code>: 10 to 25% deviation from the norm;
+<code class="docutils literal notranslate"><span class="pre">severe</span></code>: greater than 25% from the norm. I mark each pixel in these
+categories, so a really bad feature might appear in multiple pixels
+(there is a very nasty feature in the lower-left quadrant of HiPERCAM’s
+CCD 4 for example). I plan to update the files with time, and retain
+old ones for monitoring purposes.  I identified the bad pixels using a
+flat field divided by a smoothed version of itself (smoothed with a 40
+pixel FWHM 2D gaussian filter). I have also marked some lines caused I suspect
+by charge traps. These are visible in biases at least; I am unsure
+what effect they have when enough light is coming in.</p>
+<p>For ULTRACAM I have also added hot pixels. Although these should at
+least partially be removed if you apply a dark fram during reduction,
+they can potentially add noise, e.g. if your target has 500 counts but
+sits on top of a hot pixel contributing 10000, you get noise of
+sqrt(10500), but still just a signal of 500 (and that’s assuming
+perfect dark frame correction). Clearly then the impact depends upon
+the target so it’s more difficult to assign severity levels. In the
+file for ULTRACAM below I decided somewhat arbitrarily to define a
+count rate of 40/sec and above as “severe”, and 15 to 40 as
+“moderate”.  However, to help judge, hot pixels appear in the form of
+integers representing the count rate.</p>
+<p>When observing, you should move the target and essential comparison
+stars away from any such defects, particularly those that appear in
+red. The zoom/pan feature of <a class="reference internal" href="commands.html#hipercam.scripts.nrtplot" title="hipercam.scripts.nrtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">nrtplot</span></code></a> is useful for this.</p>
+<p>Current files:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>2021-08-02 (<a class="reference download internal" download="" href="_downloads/a955ece14955e5cc792928cae78c02a8/hipercam_defects_2021_08_02.dft"><code class="xref download docutils literal notranslate"><span class="pre">HiPERCAM</span> <span class="pre">defect</span> <span class="pre">file</span></code></a>) Hair on CCD 2 gone
+after cleaning by Vik following removal of the CCD window
+to fix a leak.</p></li>
+<li><p>2021-06-09 (<a class="reference download internal" download="" href="_downloads/06630a40ba52bdce6fe95eb861085644/ultracam_defects_2021_06_09.dft"><code class="xref download docutils literal notranslate"><span class="pre">ULTRACAM</span> <span class="pre">defect</span> <span class="pre">file</span></code></a>) Hot pixels marked.</p></li>
+<li><p>2019-12-08 (<a class="reference download internal" download="" href="_downloads/396f3d67df83d9b6e104195d20d20bb7/ultraspec_defects_2019_12_08.dft"><code class="xref download docutils literal notranslate"><span class="pre">ULTRASPEC</span> <span class="pre">defect</span> <span class="pre">file</span></code></a>)</p></li>
+</ol>
+</div></blockquote>
+<p>Old files:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>2021-06-09 (<a class="reference download internal" download="" href="_downloads/20394344fd3bf7e5d5f2fa701b984889/hipercam_defects_2021_06_09.dft"><code class="xref download docutils literal notranslate"><span class="pre">HiPERCAM</span> <span class="pre">defect</span> <span class="pre">file</span></code></a>) Some linear
+charge trap (?) features marked.</p></li>
+<li><p>2021-05-13 (<a class="reference download internal" download="" href="_downloads/4dc53cb450310784742961f76c9c8bd8/hipercam_defects_2021_05_13.dft"><code class="xref download docutils literal notranslate"><span class="pre">HiPERCAM</span> <span class="pre">defect</span> <span class="pre">file</span></code></a>) New hair in
+upper-right of CCD 2.</p></li>
+<li><p>2018-06-21 (<a class="reference download internal" download="" href="_downloads/d4c84610aa265101d5bf306a07e38804/ultracam_defects_2018_06_21.dft"><code class="xref download docutils literal notranslate"><span class="pre">ULTRACAM</span> <span class="pre">defect</span> <span class="pre">file</span></code></a>) Added another bad column in CCD 2</p></li>
+<li><p>2018-06-02 (<a class="reference download internal" download="" href="_downloads/2505cf43ff55a7f2c43898768c88d5b7/ultracam_defects_2018_06_02.dft"><code class="xref download docutils literal notranslate"><span class="pre">ULTRACAM</span> <span class="pre">defect</span> <span class="pre">file</span></code></a>)</p></li>
+<li><p>2018-05-21 (<a class="reference download internal" download="" href="_downloads/6f7cb7dafb39aeaed80998781ea645c5/hipercam_defects_2018_05_21.dft"><code class="xref download docutils literal notranslate"><span class="pre">HiPERCAM</span> <span class="pre">defect</span> <span class="pre">file</span></code></a>)</p></li>
+</ol>
+</div></blockquote>
+</section>
+<section id="darks">
+<h2>Darks<a class="headerlink" href="#darks" title="Link to this heading">¶</a></h2>
+<p>Dark frames made from <a class="reference internal" href="commands.html#hipercam.scripts.makedark" title="hipercam.scripts.makedark"><code class="xref py py-func docutils literal notranslate"><span class="pre">makedark</span></code></a>.</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>2021-05-27. Made from 26x60 sec dark frames.
+(<code class="xref download docutils literal notranslate"><span class="pre">ULTRACAM</span> <span class="pre">dark</span> <span class="pre">frame</span></code>)</p></li>
+</ol>
+</div></blockquote>
+</section>
+<section id="fringe-maps-and-peak-trough-pairs">
+<span id="fringing-files"></span><h2>Fringe maps and peak/trough pairs<a class="headerlink" href="#fringe-maps-and-peak-trough-pairs" title="Link to this heading">¶</a></h2>
+<p>Two types of files are needed to implement defringing.  Fringe maps as
+generated by <a class="reference internal" href="commands.html#hipercam.scripts.makefringe" title="hipercam.scripts.makefringe"><code class="xref py py-func docutils literal notranslate"><span class="pre">makefringe</span></code></a> (these are standard hcm files in format),
+and sets of peak/trough pairs as generated by <a class="reference internal" href="commands.html#hipercam.scripts.setfringe" title="hipercam.scripts.setfringe"><code class="xref py py-func docutils literal notranslate"><span class="pre">setfringe</span></code></a> with
+extension “.frng” (JSON text files). Here are some pre-prepared
+examples to get you going, but if the z-band is important fo you, you
+may want to get your own calibrations:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>2018-05-19, HiPERCAM fringe map. Created from runs 0018 to 0025
+from the night of 2018-05-19 on the GTC, with one frame of 0019
+removed because of a satellite trail. 71x120 sec dithered images
+in all. Smoothed with FWHM=4. (<code class="xref download docutils literal notranslate"><span class="pre">hipercam</span> <span class="pre">z-band</span> <span class="pre">fringe</span>
+<span class="pre">map</span></code>)</p></li>
+<li><p>2018-04-15, HiPERCAM fringe map. Created from runs 0035 to 0043
+from the night of 2018-04-15 on the GTC, with one frame of 0038
+removed because of a satellite trail. 71x120 sec dithered images
+in all. Smoothed with FWHM=4. (<code class="xref download docutils literal notranslate"><span class="pre">hipercam</span> <span class="pre">z-band</span> <span class="pre">fringe</span>
+<span class="pre">map</span></code>)</p></li>
+<li><p>2018-04-15, associated peak/troughs. Not necessarily definitive but
+a start. (<a class="reference download internal" download="" href="_downloads/a56df6017dbd243470f2e1c44e7b34bc/hipercam_fpair_2018_04_15.frng"><code class="xref download docutils literal notranslate"><span class="pre">hipercam</span> <span class="pre">z-band</span> <span class="pre">peak/trough</span> <span class="pre">pairs</span></code></a>)</p></li>
+</ol>
+</div></blockquote>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="installation.html"
+                          title="previous chapter">Getting the software</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="makingmovies.html"
+                          title="next chapter">Making HiPERCAM movies</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/files.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/files.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

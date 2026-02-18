@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HiPERCAM pipeline changes from v1.2.0 to v1.3.1 &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="hiper-pipeline-changes-from-v1-2-0-to-v1-3-1">
+<h1>HiPERCAM pipeline changes from v1.2.0 to v1.3.1<a class="headerlink" href="#hiper-pipeline-changes-from-v1-2-0-to-v1-3-1" title="Link to this heading">¶</a></h1>
+<p>List of changes from git, newest first, with the commit keys linked to github:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/166af89f8371878a9013e2d4ca42d3a7ef5b85f8">166af89f8371878a9013e2d4ca42d3a7ef5b85f8</a> make lacosmic an optional install, black formatting</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/af3156eac2b5d003844e16e7a313d2c695a47497">af3156eac2b5d003844e16e7a313d2c695a47497</a> Merge pull request #104 from HiPERCAM/trm-dev</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/0b635252cbd027e747bde7c942a347cbee727de7">0b635252cbd027e747bde7c942a347cbee727de7</a> Merge pull request #102 from HiPERCAM/rebin_tseries</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/06f02ef644a0c4ae42e84d252a44264f5a3b623b">06f02ef644a0c4ae42e84d252a44264f5a3b623b</a> Merge branch ‘trm-dev’ into rebin_tseries</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/41bba9409aaf2ddffba6927fb4a25e080dc55131">41bba9409aaf2ddffba6927fb4a25e080dc55131</a> setup.py, trm.utils added as a requirement</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/96a0c23cbb4474a06a48490ad10a3b57dc8f0ea4">96a0c23cbb4474a06a48490ad10a3b57dc8f0ea4</a> special case when only one point in bin</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/916266d584de999421097e7ed81b13b2d9607a9d">916266d584de999421097e7ed81b13b2d9607a9d</a> RMS of wrong quantity!</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/45adf3c5ab96b62e58dffaec3eddfac941baad32">45adf3c5ab96b62e58dffaec3eddfac941baad32</a> same</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/b301b5beb8f65ae9e09b88ffbd3e9d388fbebcde">b301b5beb8f65ae9e09b88ffbd3e9d388fbebcde</a> bug in std err calc</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/de455cc88c7d6e833fc3601de8dba40d6af94b25">de455cc88c7d6e833fc3601de8dba40d6af94b25</a> resample</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/ed0130ff8c481f588b3b4529639534504841c5df">ed0130ff8c481f588b3b4529639534504841c5df</a> READE, setup – updates for trm.cline and trm.utils</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/07ca1bddd4959937f0fe9dcbd8b7c07334dcbd12">07ca1bddd4959937f0fe9dcbd8b7c07334dcbd12</a> pbands, got axes right and fixed plot scale problem</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/c25fd7d46a0cfef880ede493ceaaa6981359fe14">c25fd7d46a0cfef880ede493ceaaa6981359fe14</a> pbands, error option, other tweaks.</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/2fcdded18963f6a9f35fa7c2b445cdc2b1bc91d6">2fcdded18963f6a9f35fa7c2b445cdc2b1bc91d6</a> pbands, added control of lines and markersize</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/91007ba65a0c568c47754bebb22f9bd9ca33113e">91007ba65a0c568c47754bebb22f9bd9ca33113e</a> hpackage.py, problem raising errors (again)</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/342dcd7c2be2b32b451c1218b8593892993c0921">342dcd7c2be2b32b451c1218b8593892993c0921</a> hlog.py, changed to generic time correction routine</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/8dbc622b7a198879ce313eeed908b782e6fd9233">8dbc622b7a198879ce313eeed908b782e6fd9233</a> hpackage, HipercamError not refernced properly</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/e792a7f16c4e8456c65bd0e0a5dd5f4a711df204">e792a7f16c4e8456c65bd0e0a5dd5f4a711df204</a> hpackage, a bit more info added</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/491133b87bc0275c0880c1e1788bce1400e9b9e0">491133b87bc0275c0880c1e1788bce1400e9b9e0</a> hpackage, fixed bugs associated with raising errors</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/06a2c9828369e5dfea4c1fa2b9c3334c6b845f8b">06a2c9828369e5dfea4c1fa2b9c3334c6b845f8b</a> joinup, small bug fixed</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/b866a3c710f0c783df5248a7b27ff9ab239efefa">b866a3c710f0c783df5248a7b27ff9ab239efefa</a> joinup, fixed issue with region files</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/e08db7f12c4cdb6f21273dab3cf0fe01fa7bda8e">e08db7f12c4cdb6f21273dab3cf0fe01fa7bda8e</a> redanal, fixed bug spotted by Tariq</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/66430691d06cd06268f7b82930de74d9d45c3bb1">66430691d06cd06268f7b82930de74d9d45c3bb1</a> hlog.py, micro re-format</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/e07d5ae1a98b4bf5d3a3270348d81075054ff798">e07d5ae1a98b4bf5d3a3270348d81075054ff798</a> flagcloud, fixed error in logic testing CCD names</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/3c9c4087b453272ddfcceeda1abead1e72ab8a04">3c9c4087b453272ddfcceeda1abead1e72ab8a04</a> nrtplot, removed extra request for the gain</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/392d7729e3486da63f0c1c493ce749343c548dbd">392d7729e3486da63f0c1c493ce749343c548dbd</a> setup.py, added trm.cline to the install requires list</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/bc16c54898d752f6461a040de286b24c2783b4be">bc16c54898d752f6461a040de286b24c2783b4be</a> remaining to remove cline from hipercam</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f300936bef25afa86ea636e0a5d670cee2dce495">f300936bef25afa86ea636e0a5d670cee2dce495</a> first tranche of changes following extraction of cline</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/53145bf8213c071606b20be0859fd7fdee208fdc">53145bf8213c071606b20be0859fd7fdee208fdc</a> pbands, added dpi option for png</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/3732390bdaa672caaea1d8bf298cfc1306882c13">3732390bdaa672caaea1d8bf298cfc1306882c13</a> logsearch, nrtplot bug fixes</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/71922bea2bd00f380f442587496881050803fe72">71922bea2bd00f380f442587496881050803fe72</a> nrtplot.py, experimental cosmic ray flagging detection</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f85f85568fcc027dfbfce0f90935b5c950496423">f85f85568fcc027dfbfce0f90935b5c950496423</a> news.rst, small fix</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/b7986895a28735c7ec91edb76733f86d1d4ee929">b7986895a28735c7ec91edb76733f86d1d4ee929</a> usual set of minor fixes following a version release</p></li>
+</ul>
+</div></blockquote>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/change_log_1.2.0_1.3.1.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/change_log_1.2.0_1.3.1.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

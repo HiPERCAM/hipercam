@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>The API &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API quick start" href="quickapi.html" />
+    <link rel="prev" title="HiPERCAM commands" href="../commands.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="quickapi.html" title="API quick start">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../commands.html" title="HiPERCAM commands">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      
+      <li>The API</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="the-api">
+<h1>The API<a class="headerlink" href="#the-api" title="Link to this heading">¶</a></h1>
+<p>A large part of the motivation behind the choice of Python for the HiPERCAM
+pipeline was to make it straightforward for observers to write their own
+add-ons and scripts. Real data invariably throws up exceptions to the rule
+which might require a hand-crafted approach. The pipeline API (Application
+Programmers Interface) is designed to allow you to do so.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickapi.html">API quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickapi.html#hiper-hcm-files-and-mccd-objects">HiPERCAM hcm files and <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickapi.html#dealing-with-raw-data-files">Dealing with raw data files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickapi.html#command-line-inputs">Command line inputs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hcmformat.html">HiPERCAM’s hcm file format</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hcmformat.html#hdu-structure-and-keywords">HDU structure and keywords</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hcmformat.html#foreign-data">Foreign data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hcmformat.html#example-headers">Example headers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="windows.html">HiPERCAM’s windows format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="details.html">Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hipercam-ccd.html">hipercam.ccd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hipercam-hlog.html">hipercam.hlog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hipercam-window.html">hipercam.window</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../timing/timing.html">Timing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html#no-clear-mode">No clear mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html#clear-mode">Clear mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html#drift-mode">Drift mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html#summary-of-symbols-and-corresponding-header-parameters">Summary of symbols and corresponding header parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../timing/timing_tests.html">Timing tests</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing_tests.html#wht-commissioning-run-october-2017">WHT commissioning run, October 2017</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Data logging</a></li>
+</ul>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickapi.html">API quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hcmformat.html">HiPERCAM’s hcm file format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows.html">HiPERCAM’s windows format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="details.html">Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html">Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing_tests.html">Timing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging.html">Data logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../commands.html"
+                          title="previous chapter">HiPERCAM commands</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="quickapi.html"
+                          title="next chapter">API quick start</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/api.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/api.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

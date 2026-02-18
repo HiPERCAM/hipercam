@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HiPERCAM pipeline changes from v1.3.2 to v1.5.0 &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="hiper-pipeline-changes-from-v1-3-2-to-v1-5-0">
+<h1>HiPERCAM pipeline changes from v1.3.2 to v1.5.0<a class="headerlink" href="#hiper-pipeline-changes-from-v1-3-2-to-v1-5-0" title="Link to this heading">¶</a></h1>
+<p>List of changes from git, newest first, with the commit keys linked to github:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/a0920f338cf7f3da0a8bbbd7e7ec759ca4e4d0f0">a0920f338cf7f3da0a8bbbd7e7ec759ca4e4d0f0</a> Merge pull request #119 from HiPERCAM/flat_medians</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/ec924ef84eb53a97330c4b89c60a4b3d46f7b060">ec924ef84eb53a97330c4b89c60a4b3d46f7b060</a> Remove print lines</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/bdb4d1e91608676bc913710e9df698d6d64596c5">bdb4d1e91608676bc913710e9df698d6d64596c5</a> Select flats on median values as well as mean</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/8a569208778f0f18d69a5744bae5a9122172ece0">8a569208778f0f18d69a5744bae5a9122172ece0</a> Merge pull request #118 from HiPERCAM/first_fix</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/1bac556bb537df0650de8c307689211d3de38cea">1bac556bb537df0650de8c307689211d3de38cea</a> allow first=-100 in reduce</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f9afb84016d517a44f878bfebe7b6c2761ec1b6d">f9afb84016d517a44f878bfebe7b6c2761ec1b6d</a> Merge pull request #117 from HiPERCAM/hplot_fit</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/55b60a6e2476d734ab40d7696ecc12cfbc7f8e14">55b60a6e2476d734ab40d7696ecc12cfbc7f8e14</a> hplot improvements</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/81f363d79ba5df2ee1eb6af426f8edf8d883f9de">81f363d79ba5df2ee1eb6af426f8edf8d883f9de</a> Merge pull request #114 from HiPERCAM/hplot_fit</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/1246a5225ef8302cd5431f6067b5af392d73bd6e">1246a5225ef8302cd5431f6067b5af392d73bd6e</a> added profile fitting to hplot</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/9c81a0b95c0e97fa8d4c466405c768063c18a844">9c81a0b95c0e97fa8d4c466405c768063c18a844</a> Merge pull request #112 from Alex-J-Brown/master</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/ac19726cf0aae83a9c980d1fbb72ba6c8c90d326">ac19726cf0aae83a9c980d1fbb72ba6c8c90d326</a> Requested changes adding OSIRIS+ to fits2hcm</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/2a4952ec3801cf2962b92cd4cf5300393644c860">2a4952ec3801cf2962b92cd4cf5300393644c860</a> Added GTC-OSIRIS+ to fits2hcm</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/75fa2298b0a7553868749b053db6a62890bac278">75fa2298b0a7553868749b053db6a62890bac278</a> makebias can use hf datasource</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/5f668d6e471c862162422c12acd7c2df4e6e0dba">5f668d6e471c862162422c12acd7c2df4e6e0dba</a> fix pbands to work with more than 3 CCDs</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/7521a22f91351d0e721d373443cbfdc237e980db">7521a22f91351d0e721d373443cbfdc237e980db</a> typo in string formatting for rupdate msg</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/5bfb022c786ec25dd0d3dd1687229580a6306d5d">5bfb022c786ec25dd0d3dd1687229580a6306d5d</a> changelog</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/46ff411bbd4d4a6847060e024491fa9afb766a3e">46ff411bbd4d4a6847060e024491fa9afb766a3e</a> bugfix to use supplied kernel FWHM</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/6d496c702540e3ce04fc53a98101d5243ebca8bf">6d496c702540e3ce04fc53a98101d5243ebca8bf</a> bugfix in resampling tseries when no data points</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/da0d43728b7ada695021ce7174466c34614da730">da0d43728b7ada695021ce7174466c34614da730</a> Merge pull request #110 from HiPERCAM/compo</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/177cc5ca147d098f60e7eb81d0e943f0d6548e91">177cc5ca147d098f60e7eb81d0e943f0d6548e91</a> aperture moves are COMPO aware</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/bdf1892f8ea45e400112bbb1e9ae1ec212afe118">bdf1892f8ea45e400112bbb1e9ae1ec212afe118</a> setaper is COMPO-aware</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f4c919435bd8cd7cf7d16564c7000997632dc455">f4c919435bd8cd7cf7d16564c7000997632dc455</a> compat with old ape files</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/ac5126585cf17bf4a79509c6adca4397e219c9c6">ac5126585cf17bf4a79509c6adca4397e219c9c6</a> apertures now have compo boolean flag</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/dda2ad5f43ea24e168595dfe1716d42fa4bc1b57">dda2ad5f43ea24e168595dfe1716d42fa4bc1b57</a> fixed odd duplication in setup.py</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/8c4c827608e931442d9286b50c11890da03333f9">8c4c827608e931442d9286b50c11890da03333f9</a> Merge pull request #105 from HiPERCAM/new_psf_reduce</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/2421f5db643edb3973b78330610de7423e796d14">2421f5db643edb3973b78330610de7423e796d14</a> tseries bitmask should be integer</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/9d49830c9896e1b2a7a3960353783290b26e02e5">9d49830c9896e1b2a7a3960353783290b26e02e5</a> Merge pull request #108 from HiPERCAM/nrtplot_angles</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/002b4d3b3041814a1c9e89a1ecd361d5664d44c9">002b4d3b3041814a1c9e89a1ecd361d5664d44c9</a> add reporting of angles to nrtplot for 2 stars</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/5067e5874729ba598f80a9ebbd6f4b8f7d4e1fb2">5067e5874729ba598f80a9ebbd6f4b8f7d4e1fb2</a> add changelog</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/04751797673a11ffe50678dfc502a95aca0d789d">04751797673a11ffe50678dfc502a95aca0d789d</a> removed extra quotation mark</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/6f5ef4240fa1f5ce5d8e3132fbbd586c7bb818d2">6f5ef4240fa1f5ce5d8e3132fbbd586c7bb818d2</a> removed extra quotation mark</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f6163e3b76a7f2494477eb67229b9f0ddc4c8759">f6163e3b76a7f2494477eb67229b9f0ddc4c8759</a> bug in applying scale option</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/22ba9ededbff9ac806ef8f9d80484a9df354ed4f">22ba9ededbff9ac806ef8f9d80484a9df354ed4f</a> bug in applying scale option</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/bec4cf7a4aef0e39cd89ad8c6999cb94ae1c18d3">bec4cf7a4aef0e39cd89ad8c6999cb94ae1c18d3</a> new reduce file for psf option &amp; black formatting</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/ffd475feedb7ae3657183837d27455fe79f99756">ffd475feedb7ae3657183837d27455fe79f99756</a> fix correct params and use reduce file settings</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/20c9539c08ed59e7473e46bf062ba86df22438ad">20c9539c08ed59e7473e46bf062ba86df22438ad</a> refactor to avoid duplicated code</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/ef45e2fb668ba73b3b8a66d4ed6a38582fa94c55">ef45e2fb668ba73b3b8a66d4ed6a38582fa94c55</a> get old style PSF photometry working</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/aeefaa02d347217cc40ad5dd21b82ec56eeec988">aeefaa02d347217cc40ad5dd21b82ec56eeec988</a> hlog.py, changed to generic time correction routine</p></li>
+</ul>
+</div></blockquote>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/change_log_1.3.2_1.5.0.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/change_log_1.3.2_1.5.0.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>API quick start &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="HiPERCAM’s hcm file format" href="hcmformat.html" />
+    <link rel="prev" title="The API" href="api.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="hcmformat.html" title="HiPERCAM’s hcm file format">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="api.html" title="The API">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="api.html" accesskey="U">The API</a> &#187;</li>
+      
+      <li>API quick start</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="api-quick-start">
+<h1>API quick start<a class="headerlink" href="#api-quick-start" title="Link to this heading">¶</a></h1>
+<p>Your best start for developing scripts which use the HiPERCAM API is probably
+to look at whichever one of the existing scripts seems closest to your
+task. Hunt out the location of <code class="xref py py-mod docutils literal notranslate"><span class="pre">hipercam.scripts</span></code>.  But to give a bit
+more background, here are some basic concepts to get you going.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#hiper-hcm-files-and-mccd-objects" id="id1">HiPERCAM hcm files and <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> objects</a></p></li>
+<li><p><a class="reference internal" href="#dealing-with-raw-data-files" id="id2">Dealing with raw data files</a></p></li>
+<li><p><a class="reference internal" href="#command-line-inputs" id="id3">Command line inputs</a></p></li>
+</ul>
+</nav>
+<section id="hiper-hcm-files-and-mccd-objects">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">HiPERCAM hcm files and <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> objects</a><a class="headerlink" href="#hiper-hcm-files-and-mccd-objects" title="Link to this heading">¶</a></h2>
+<p>The pipeline stores individual multi-CCD exposures as <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> objects in
+memory.  These contain all the windows of all the CCDs, along with header
+information. e.g. for HiPERCAM itself, there will be 5 CCDs, each with 4 or
+more windows of data. They quickly allow access to the data. Thus given an
+<code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> object called ‘mccd’, the following lines return first a single <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.CCD</span></code>
+labelled ‘2’, then a <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.Window</span></code> of that CCD labelled ‘E1’, then a 2D numpy array
+containing the data of that <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.Window</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ccd</span>  <span class="o">=</span> <span class="n">mccd</span><span class="p">[</span><span class="s1">&#39;2&#39;</span><span class="p">]</span>
+<span class="n">wind</span> <span class="o">=</span> <span class="n">ccd</span><span class="p">[</span><span class="s1">&#39;E1&#39;</span><span class="p">]</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">wind</span><span class="o">.</span><span class="n">data</span>
+</pre></div>
+</div>
+<p>At this point you have direct access to the data. e.g. The value of the pixel
+at (x,y) = (10,20) from the lower-left corner of the pixel can be printed and
+set equal to 150 with:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">])</span>
+<span class="n">data</span><span class="p">[</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="mf">150.</span>
+</pre></div>
+</div>
+<p>Note the C-style ordering, with Y coming first, and that the pixel indices are
+C-style 0-offset, i.e. (0,0) is the lower-left pixel itself; apologies to
+FORTRAN devotees. <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> objects are derived from
+<code class="xref py py-class docutils literal notranslate"><span class="pre">collections.OrderedDict</span></code> objects, and are keyed by string labels
+assigned to the CCDs they contain. In HiPERCAM data the CCDs are labelled ‘1’,
+‘2’, ‘3’, ‘4’ and ‘5’ for the ugriz arms. A statement such as <code class="docutils literal notranslate"><span class="pre">ccd</span> <span class="pre">=</span>
+<span class="pre">mccd['2']</span></code> returns CCD ‘2’ as a <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.CCD</span></code> object which is also dictionary-like so
+that <code class="docutils literal notranslate"><span class="pre">ccd['E1']</span></code> returns window ‘E1’ as a <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.Window</span></code> object. It is worth
+perusing the methods of all of these classes.</p>
+<p>How does one get an <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> in the first place? One way, probably the usual
+way, is to read it in from a file using the class method
+<code class="xref py py-func docutils literal notranslate"><span class="pre">hipercam.MCCD.read()</span></code> as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hcam</span>
+<span class="n">mccd</span> <span class="o">=</span> <span class="n">hcam</span><span class="o">.</span><span class="n">MCCD</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;myfile.hcm&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>assuming that there is some pre-written file <code class="file docutils literal notranslate"><span class="pre">myfile.hcm</span></code>, as generated by
+e.g. <a class="reference internal" href="../commands.html#hipercam.scripts.grab" title="hipercam.scripts.grab"><code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code></a>. If we do something to ‘mccd’ and want to save it then:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mccd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;mynewfile.hcm&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mccd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;mynewfile.hcm&#39;</span><span class="p">,</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>if we don’t mind over-writing pre-existing files in the latter case, will do
+the job. “hcm” is the standard extension the pipeline uses when saving
+<code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> objects to disk, but these files are in fact FITS files and can
+be looked at with standard tools such as “fv”. The extension highlights that
+they are a particular style of FITS files and keeps them separate from the raw
+data that comes with the extension ‘.fits’ (see below). Here is a script to
+subtract two files and save the result:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hcam</span>
+
+<span class="c1"># input the two frames</span>
+<span class="n">mccd1</span> <span class="o">=</span> <span class="n">hcam</span><span class="o">.</span><span class="n">MCCD</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;input1.hcm&#39;</span><span class="p">)</span>
+<span class="n">mccd2</span> <span class="o">=</span> <span class="n">hcam</span><span class="o">.</span><span class="n">MCCD</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;input2.hcm&#39;</span><span class="p">)</span>
+
+<span class="c1"># subtract in place</span>
+<span class="n">mccd1</span> <span class="o">-=</span> <span class="n">mccd2</span>
+
+<span class="c1"># output the result</span>
+<span class="n">mccd1</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;output.hcm&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the two <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> objects are compatible, this will subtract them
+CCD by CCD, and window by window.</p>
+</section>
+<section id="dealing-with-raw-data-files">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Dealing with raw data files</a><a class="headerlink" href="#dealing-with-raw-data-files" title="Link to this heading">¶</a></h2>
+<p>Sometimes you may prefer to deal directly with the raw data files. These have
+names like <code class="file docutils literal notranslate"><span class="pre">run0034.fits</span></code>. They are FITS files, but are not directly
+usable as the data is scrambled within a 3D FITS “cube” owing to the
+constraints of continually adding to FITS during data acquisition. To minimize
+risk to the data, the pipeline has no mechanism to write raw files, and does
+not use the extension ‘.fits’ for any of the various files it produces. If you
+want to modify data, you need to write out lists of hcm files.</p>
+<p>Here is an example of subtracting the median values from all the windows of
+all CCDs of a run, writing out the results in a series of hcm files:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.hcam</span><span class="w"> </span><span class="kn">import</span> <span class="n">Rdata</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="n">input_name</span> <span class="o">=</span> <span class="s1">&#39;run0034&#39;</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Rdata</span><span class="p">(</span><span class="n">input_name</span><span class="p">)):</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span>    <span class="c1"># subtract median from each window of each CCD</span>
+<span class="linenos"> 8</span>    <span class="k">for</span> <span class="n">ccd</span> <span class="ow">in</span> <span class="n">mccd</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+<span class="linenos"> 9</span>        <span class="k">for</span> <span class="n">wind</span> <span class="ow">in</span> <span class="n">ccd</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+<span class="linenos">10</span>            <span class="n">wind</span> <span class="o">-=</span> <span class="n">wind</span><span class="o">.</span><span class="n">median</span><span class="p">()</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span>    <span class="n">output_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:s}</span><span class="s1">_</span><span class="si">{:03d}</span><span class="s1">.hcm&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_name</span><span class="p">,</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="linenos">13</span>    <span class="n">mccd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">output_name</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Line 1 imports the pipeline software. Line 5 creates a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.hcam.Rdata</span></code> object which can deliver each frame one-by-one
+in the form of what is known as “iterator” in Python-speak. Any iterator
+can be called in a for-loop as in line 5. The successive frames are returned
+as <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code> objects labelled <cite>mccd</cite> in line 5. After the median is subtracted
+from each :They are written to files which
+will have names like <code class="file docutils literal notranslate"><span class="pre">run0034_001.hcm</span></code>, <code class="file docutils literal notranslate"><span class="pre">run0034_002.hcm</span></code>, etc.
+The code above loads frames from a raw data file assumed to be in the
+directory the script is run in. If instead you want to load from the server,
+then line 5 would be replaced by</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Rdata</span><span class="p">(</span><span class="n">input_name</span><span class="p">,</span><span class="kc">True</span><span class="p">)):</span>
+</pre></div>
+</div>
+<p>A similar construction serves for ULTRACAM files, with the difference that
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Rdata</span></code> is loaded from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">hipercam.ucam</span></code> sub-module:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.ucam</span><span class="w"> </span><span class="kn">import</span> <span class="n">Rdata</span>
+<span class="n">input_name</span> <span class="o">=</span> <span class="s1">&#39;run0034&#39;</span>
+<span class="k">for</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="n">Rdata</span><span class="p">(</span><span class="n">input_name</span><span class="p">):</span>
+   <span class="o">.</span>
+   <span class="o">.</span>
+   <span class="o">.</span>
+</pre></div>
+</div>
+<p>The resource that produces the file can also be called as a “context manager”
+with the <cite>with</cite> statement</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hcam</span>
+
+<span class="k">with</span> <span class="n">hcam</span><span class="o">.</span><span class="n">HcamDiskSpool</span><span class="p">(</span><span class="n">input_name</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+
+    <span class="k">for</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="n">spool</span><span class="p">:</span>
+        <span class="c1"># do something</span>
+        <span class="o">.</span>
+        <span class="o">.</span>
+</pre></div>
+</div>
+<p>The advantage of this is that the input file will be closed as soon at the
+<cite>with</cite> is exited. <code class="xref py py-class docutils literal notranslate"><span class="pre">HcamDiskSpool</span></code> is one of 5 similar iterable context
+managers to return data. Another useful one is <code class="xref py py-class docutils literal notranslate"><span class="pre">HcamListSpool</span></code> which
+can be attached to a file list to return each file as an <code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code>. Others
+source data from servers for both HiPERCAM and ULTRA(CAM|SPEC). Several of the
+standard HiPERCAM scripts (rtplot, reduce, grab for example) use a special
+method <code class="xref py py-func docutils literal notranslate"><span class="pre">data_source()</span></code> to return any one of these 5 types. For instance
+these lines are extracted from ‘rtplot’:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hcam</span>
+
+<span class="o">.</span>
+<span class="o">.</span>
+<span class="o">.</span>
+
+<span class="k">with</span> <span class="n">hcam</span><span class="o">.</span><span class="n">data_source</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">first</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+
+    <span class="k">for</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="n">spool</span><span class="p">:</span>
+</pre></div>
+</div>
+<p>‘source’ here takes values one of 5 values: ‘hl’ for a local HiPERCAM file,
+‘hs’ for the HiPERCAM server, ‘hf’ for an hcm file list, ‘ul’ for a local
+ULTRA[CAM|SPEC] file, or ‘us’ for the ULTRA[CAM|SPEC] server.  ‘resource’ is
+the run or in the case of a file list, the file name, while ‘first’ is the
+number of the first frame to return. This provides uniform access code to the
+different types of data.</p>
+</section>
+<section id="command-line-inputs">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Command line inputs</a><a class="headerlink" href="#command-line-inputs" title="Link to this heading">¶</a></h2>
+<p>The pipeline uses a style of command-line inputs derived from STARLINK
+routines that is distinct from the usual UNIX-style command-line options.  See
+the <a class="reference internal" href="../commands.html#command-calling"><span class="std std-ref">Parameter specification</span></a> section for details of this. This has great
+benefits in reducing the amount of typing. If you want to write scripts that
+follow the same convention then you should look at
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">hipercam.cline.Cline</span></code>. Here is an example taken from a stripped-down
+version of the <a class="reference internal" href="../commands.html#hipercam.scripts.stats" title="hipercam.scripts.stats"><code class="xref py py-func docutils literal notranslate"><span class="pre">stats</span></code></a> script:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span> <span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span>     <span class="n">command</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">hcam</span><span class="o">.</span><span class="n">script_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span>     <span class="c1"># get input section</span>
+<span class="linenos"> 6</span>     <span class="k">with</span> <span class="n">Cline</span><span class="p">(</span><span class="s1">&#39;HIPERCAM_ENV&#39;</span><span class="p">,</span> <span class="s1">&#39;.hipercam&#39;</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="k">as</span> <span class="n">cl</span><span class="p">:</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span>         <span class="c1"># register parameters</span>
+<span class="linenos"> 9</span>         <span class="n">cl</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="n">Cline</span><span class="o">.</span><span class="n">LOCAL</span><span class="p">,</span> <span class="n">Cline</span><span class="o">.</span><span class="n">PROMPT</span><span class="p">)</span>
+<span class="linenos">10</span>         <span class="n">cl</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="n">Cline</span><span class="o">.</span><span class="n">LOCAL</span><span class="p">,</span> <span class="n">Cline</span><span class="o">.</span><span class="n">HIDE</span><span class="p">)</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span>         <span class="c1"># get inputs</span>
+<span class="linenos">13</span>         <span class="n">frame</span> <span class="o">=</span> <span class="n">cl</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;frame to lists stats of&#39;</span><span class="p">,</span>
+<span class="linenos">14</span>                              <span class="n">cline</span><span class="o">.</span><span class="n">Fname</span><span class="p">(</span><span class="s1">&#39;hcam&#39;</span><span class="p">,</span> <span class="n">hcam</span><span class="o">.</span><span class="n">HCAM</span><span class="p">))</span>
+<span class="linenos">15</span>         <span class="n">mccd</span> <span class="o">=</span> <span class="n">hcam</span><span class="o">.</span><span class="n">MCCD</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+<span class="linenos">16</span>
+<span class="linenos">17</span>         <span class="n">cl</span><span class="o">.</span><span class="n">set_default</span><span class="p">(</span><span class="s1">&#39;format&#39;</span><span class="p">,</span><span class="s1">&#39;9.3f&#39;</span><span class="p">)</span>
+<span class="linenos">18</span>         <span class="n">form</span> <span class="o">=</span> <span class="n">cl</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="s1">&#39;output format for numbers&#39;</span><span class="p">,</span> <span class="s1">&#39;9.3f&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">Cline</span></code> object ‘cl’ is called as a context manager (<cite>with</cite> statement
+again, line 6). The command name and any arguments are passed to it along with
+parameters to determine the location of any default file. Two parameter names
+are registered, namely ‘input’ and ‘format’ (lines 9 and 10). The second of
+these is not prompted for by default (‘Cline.HIDE’). Following the ‘register’
+lines, the inputs themselves are obtained (lines 13-14 and 18). Once the
+‘with’ statement is exited, any values entered will be saved to disk in a
+directory whose location is specified by the first two arguments to ‘Cline’
+and whose name is determined by the command name, e.g. ‘stats.def’. In this
+way, previously entered values can be retrieved. In a script like <a class="reference internal" href="../commands.html#hipercam.scripts.rtplot" title="hipercam.scripts.rtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code></a>
+these input sections rival the “doing stuff” part of the script for
+length. Your best place to start is very probably one of the existing scripts
+where you can see how to deal with input of existing files, versus output of
+new one, getting floating point, integer or string input and other details.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The API</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">API quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hcmformat.html">HiPERCAM’s hcm file format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows.html">HiPERCAM’s windows format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="details.html">Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html">Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing_tests.html">Timing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging.html">Data logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="api.html"
+                          title="previous chapter">The API</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="hcmformat.html"
+                          title="next chapter">HiPERCAM’s hcm file format</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/quickapi.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/quickapi.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

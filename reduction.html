@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Reduction &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Principles" href="photometry.html" />
+    <link rel="prev" title="At the telescope" href="telescope.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="photometry.html" title="Principles">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="telescope.html" title="At the telescope">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="observers.html" accesskey="U">Observer’s guide</a> &#187;</li>
+      
+      <li>Reduction</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="reduction">
+<h1>Reduction<a class="headerlink" href="#reduction" title="Link to this heading">¶</a></h1>
+<p>This guide assumes that you have got started with the HiPERCAM pipeline (see
+<a class="reference internal" href="telescope.html"><span class="doc">At the telescope</span></a> for a quick start to observing), but now would like a more
+detailed guide to reducing your data.  It covers the following steps:</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#bias-correction" id="id5">Bias correction</a></p></li>
+<li><p><a class="reference internal" href="#dark-correction-thermal-noise" id="id6">Dark correction (thermal noise)</a></p></li>
+<li><p><a class="reference internal" href="#flat-field-correction" id="id7">Flat field correction</a></p></li>
+<li><p><a class="reference internal" href="#defringing" id="id8">Defringing</a></p></li>
+<li><p><a class="reference internal" href="#bad-pixels-and-defect-files" id="id9">Bad pixels and defect files</a></p></li>
+<li><p><a class="reference internal" href="#aperture-files" id="id10">Aperture files</a></p></li>
+<li><p><a class="reference internal" href="#reduction-files" id="id11">Reduction files</a></p></li>
+<li><p><a class="reference internal" href="#plotting-results" id="id12">Plotting results</a></p></li>
+<li><p><a class="reference internal" href="#customisation" id="id13">Customisation</a></p></li>
+<li><p><a class="reference internal" href="#the-reduce-log-files" id="id14">The reduce log files</a></p></li>
+<li><p><a class="reference internal" href="#ultra-vs-hiper" id="id15">ULTRA(CAM|SPEC) vs HiPERCAM</a></p></li>
+<li><p><a class="reference internal" href="#trouble-shooting-reduction" id="id16">Trouble shooting reduction</a></p>
+<ul>
+<li><p><a class="reference internal" href="#aperture-positioning" id="id17">Aperture positioning</a></p></li>
+<li><p><a class="reference internal" href="#defocussed-images" id="id18">Defocussed images</a></p></li>
+<li><p><a class="reference internal" href="#linked-apertures" id="id19">Linked apertures</a></p></li>
+<li><p><a class="reference internal" href="#problems-with-pgplot-windows" id="id20">Problems with PGPLOT windows</a></p></li>
+<li><p><a class="reference internal" href="#experiment" id="id21">Experiment</a></p></li>
+<li><p><a class="reference internal" href="#specific-errors" id="id22">Specific errors</a></p>
+<ul>
+<li><p><a class="reference internal" href="#mis-matching-calibration-files" id="id23">Mis-matching calibration files</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+<section id="bias-correction">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Bias correction</a><a class="headerlink" href="#bias-correction" title="Link to this heading">¶</a></h2>
+<p>CCD images come with a near-constant electronic offset called the
+“bias” which ensures that the counts are always positive and helps
+ensure optimum readout properties. This offset does not represent
+genuine detected light and must be subtracted off any image. The
+standard approach is to take a set of zero illumination frames quickly
+to avoid the build-up of counts either from light leakage or thermal
+noise.</p>
+<p>Bias frames can be quickly taken with HiPERCAM, ULTRACAM and
+ULTRASPEC. All dome lights should be off, the focal plane slide should
+be in to block light, and ideally the telescope mirrors closed (in the
+case of ULTRASPEC point the M4 mirror towards the 4k camera). You may
+also want to put a low transmission filter in. Bias frames should be
+taken with clears enabled if possible and with the shortest possible
+exposure delay (hit “page down” in the camera driver gui) to minimise
+the time spent accumulating photons.</p>
+<p>We standardly take 51 or 101 bias exposures, more for small
+formats. These can be combined by averaging pixel-by-pixel with
+rejection of outliers to remove cosmic rays, or by taking the
+pixel-by-pixel median. These operations can be carried out with
+<a class="reference internal" href="commands.html#hipercam.scripts.combine" title="hipercam.scripts.combine"><code class="xref py py-func docutils literal notranslate"><span class="pre">combine</span></code></a> once individual exposures have been extracted with
+<a class="reference internal" href="commands.html#hipercam.scripts.grab" title="hipercam.scripts.grab"><code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code></a>. It is always advisable to inspect the frames visually with
+<a class="reference internal" href="commands.html#hipercam.scripts.rtplot" title="hipercam.scripts.rtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code></a> to check for problems, e.g. with the readout, or light
+getting onto the images. So long as several tens of bias exposures are
+available, then clipped mean combination of frames is preferable to
+median combination because it leads to a lower level statistical
+noise. Median combination works better for small number of frames
+where the clipped mean can be less effective at removing
+outliers. Usually one should combine bias frames with offsets to
+correct for any drift in the mean level which could otherwise affect
+the action of <a class="reference internal" href="commands.html#hipercam.scripts.combine" title="hipercam.scripts.combine"><code class="xref py py-func docutils literal notranslate"><span class="pre">combine</span></code></a>.</p>
+<p>The two operations of <a class="reference internal" href="commands.html#hipercam.scripts.grab" title="hipercam.scripts.grab"><code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code></a> followed by <a class="reference internal" href="commands.html#hipercam.scripts.combine" title="hipercam.scripts.combine"><code class="xref py py-func docutils literal notranslate"><span class="pre">combine</span></code></a>, along with
+clean-up of the temporary files can be carried out with the single
+command <a class="reference internal" href="commands.html#hipercam.scripts.makebias" title="hipercam.scripts.makebias"><code class="xref py py-func docutils literal notranslate"><span class="pre">makebias</span></code></a>. This also saves the frames to a temporary location
+to avoid polluting the working directory with lots of files. Thus
+assuming all frames in bias run <code class="file docutils literal notranslate"><span class="pre">run0002</span></code> are OK, the following
+command will make the combined bias frame:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">makebias</span> <span class="n">run0002</span> <span class="mi">1</span> <span class="mi">0</span> <span class="mf">3.0</span> <span class="n">yes</span> <span class="n">run0002</span>
+</pre></div>
+</div>
+<p>rejecting pixels deviating by more that 3.0 sigma from the mean.  You
+might also want to create a more memorable name as a soft link to the
+output hcm file, depending upon the particular type of bias:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ln</span> <span class="o">-</span><span class="n">s</span> <span class="n">run0002</span><span class="o">.</span><span class="n">hcm</span> <span class="n">bias1x1_ff_slow</span><span class="o">.</span><span class="n">hcm</span>
+</pre></div>
+</div>
+<p>for example, for a 1x1 binned, full-frame bias in slow readout mode. I
+like this approach because one can quickly see (e.g. ‘ls -l’) which
+run a given calibration frame came from.</p>
+<p>Once you have a bias frame, then it can be used by editing in its name
+in the calibration section of the reduce file.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>One should take bias calibration images in all the output formats used
+to guard against small changes that can occur as one changes output
+window formats. We have not yet established the significance of this
+for HiPERCAM.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>For HiPERCAM, do not take bias frames too soon after (within less
+than 20 minutes) powering on the CCDs to avoid higher than normal
+dark current. <a class="reference internal" href="commands.html#hipercam.scripts.makebias" title="hipercam.scripts.makebias"><code class="xref py py-func docutils literal notranslate"><span class="pre">makebias</span></code></a> include a plot option to check this. Make
+sure to look at this if the bias is taken not long after a power
+on. ULTRA(CAM|SPEC) are better behaved in this respect, but it is
+always worth plotting the mean levels which ideally should drift by
+at most a few counts.</p>
+</div>
+</section>
+<section id="dark-correction-thermal-noise">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Dark correction (thermal noise)</a><a class="headerlink" href="#dark-correction-thermal-noise" title="Link to this heading">¶</a></h2>
+<p>If a CCD is left exposing in complete darkness, counts accumulate
+through thermal excitation known as “dark current”. Correction
+for this is particularly important for long exposure images. Both
+HiPERCAM and ULTRASPEC are kept quite cold and have relatively little
+dark current, so it is often safe to ignore it. It is also very often
+not at all easy to take dark calibration frames because of light
+leakage. At minimum they typically need to be taken at night with the
+dome closed, so they are a good bad weather calibration. One should
+normally take a set of biases before and after as well to allow for
+bias level drift. Dark current is however important for ULTRACAM
+where the CCDs run relatively warm. In particular there are multiple
+“hot pixels” with dark currents significantly above the background.
+Figure <a class="reference internal" href="#fig-dhist"><span class="std std-numref">Fig. 1</span></a> shows histograms of the combination of a series of
+60-second darks. 600 on the X-axis corresponds to 10 counts/second,
+and there are some pixels over 10x higher than this.</p>
+<figure class="align-center" id="id2">
+<span id="fig-dhist"></span><a class="reference internal image-reference" href="_images/dark-hist.png"><img alt="Click on image to enlarge" src="_images/dark-hist.png" style="width: 1039.0px; height: 405.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Histogram of an ULTRACAM dark frame showing that there are a few pixels
+that rack up thermal counts at over 100 per second.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The program <a class="reference internal" href="commands.html#hipercam.scripts.makedark" title="hipercam.scripts.makedark"><code class="xref py py-func docutils literal notranslate"><span class="pre">makedark</span></code></a> handles making dark calibration frames
+including correction for whatever exposure is included in the bias. If
+dark current is significant, then the flat fields should also be
+corrected. Note that correcting for dark current does not mean that
+you should not try to avoid hot pixels; the worst of these could add
+significant noise and the very worst are poorly behaved and do not
+correct well, but certainly dark correction should offset the worst
+effects of thermal noise. The effect of hot pixels is particularly
+important in the u-band of ULTRACAM where count rates from targets are
+generally lower. If you plot a defect file which include hot pixels
+with <a class="reference internal" href="commands.html#hipercam.scripts.rtplot" title="hipercam.scripts.rtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code></a> or <a class="reference internal" href="commands.html#hipercam.scripts.nrtplot" title="hipercam.scripts.nrtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">nrtplot</span></code></a>, any marked hot pixels will appear as
+integers with their count rate in counts per second. If you zoom in
+close around targets of interest, it will be obvious whether you need
+to move the position.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><a class="reference internal" href="commands.html#hipercam.scripts.makedark" title="hipercam.scripts.makedark"><code class="xref py py-func docutils literal notranslate"><span class="pre">makedark</span></code></a> uses clipped mean combination, which is rather insensitive
+for small numbers of points, so ideally you need at least
+20+ frames, or to take some care with the value of sigma that you set.
+This is a crucial step to avoid propagating cosmic rays into the
+final output.</p>
+</div>
+</section>
+<section id="flat-field-correction">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Flat field correction</a><a class="headerlink" href="#flat-field-correction" title="Link to this heading">¶</a></h2>
+<p>CCDs are not of uniform sensitivity. There are pixel-to-pixel
+variations, there may be dust on the optics, and there may be overall
+vigetting which typically causes a fall in sensitivity at the edge of
+the field. These are all reasons while observing to keep your targets
+as fixed in position as possible. However, in addition, it helps to
+try to correct for such variations. To account for this the standard
+approach is to take images of the twilight sky just after sunset or
+before sunrise. Best of all if the sky is free of many stars, but in
+any case one should always offset the (multiple) sky field frames
+taken so that stars can be medianed out of the flat
+field. Normally we move in a spiral pattern to accomplish this, so
+you will usually see a comment about “telescope spiralling” and should
+look for moving objects in flat fields. If things move, that is good.</p>
+<p>At the GTC, HiPERCAM’s driving routine, <code class="docutils literal notranslate"><span class="pre">hdriver</span></code> can drive the
+telescope as well as the instrument, making spiralling during sky
+flats straightforward. One can normally acquire more than 100 frames
+in a single run, but the different CCDs will have different count
+levels on any one frame, and will come out of saturation at different
+times. The count levels will also be falling or rising according to
+whether the flats were taken at evening or morning twilight. At the
+NTT and TNT, we ask the TO to spiral the telescope.</p>
+<p>The task of making the flat fields is to combine a series of frames
+with differing count levels, while removing features that vary between
+images (cosmic rays). In order to do this, one must normalise the
+images by their mean levels, but weight them appropriately in the
+final combination to avoid giving too much weight to under-exposed
+images. This is tedious by hand, and therefore the command <a class="reference internal" href="commands.html#hipercam.scripts.makeflat" title="hipercam.scripts.makeflat"><code class="xref py py-func docutils literal notranslate"><span class="pre">makeflat</span></code></a>
+was written to carry out all the necessary tasks.</p>
+<p>As with the biases, it is strongly recommended that you inspect the
+frames to be combined using <a class="reference internal" href="commands.html#hipercam.scripts.rtplot" title="hipercam.scripts.rtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code></a> to avoid including any disastrous
+ones. Saturated frames can be spotted using user-defined mean levels
+at which to reject frames. The documentation of <a class="reference internal" href="commands.html#hipercam.scripts.makeflat" title="hipercam.scripts.makeflat"><code class="xref py py-func docutils literal notranslate"><span class="pre">makeflat</span></code></a> has details
+of how it works, and you are referred to this for more
+information. Recommended mean level limits are ~4000 for each CCD for
+the lower limits, and (55000, 58000, 58000, 50000 and 42000) for CCDs
+1 to 5 (HiPERCAM), (50000, 28000 and 28000) for
+ULTRACAM and 50000 for ULTRASPEC. The low upper level for CCD 5 of
+HiPERCAM is to avoid a nasty feature that develops in the lower-right
+readout channel at high count levels. The limits for ULTRACAM are to
+stop “peppering” whereby charge transfers between neighbouring pixels
+in the green and blue CCDs especially.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is highly advisable to compute multiple versions of the flat field
+using different values of the parameter <code class="docutils literal notranslate"><span class="pre">ngroup</span></code> which can have a
+significant effect on the removal of stars from the final frame and
+then to compare the results against each other. See <a class="reference internal" href="commands.html#hipercam.scripts.makeflat" title="hipercam.scripts.makeflat"><code class="xref py py-func docutils literal notranslate"><span class="pre">makeflat</span></code></a>.</p>
+</div>
+</section>
+<section id="defringing">
+<span id="fringing"></span><h2><a class="toc-backref" href="#id8" role="doc-backlink">Defringing</a><a class="headerlink" href="#defringing" title="Link to this heading">¶</a></h2>
+<p>With HiPERCAM there is significant fringing in the z-band. ULTRACAM
+shows it is the z-band and to a much lesser extent in the
+i-band. Fringing does not flat-field away because it is the result of
+illumination by the emission-line dominated night sky whereas twilight
+flats come from broad-band illumination.</p>
+<p>De-fringing in the pipeline works by comparing differences across many
+pairs of points in the data versus a reference “fringe map”. The pairs
+of points should lie on peaks and troughs of the fringes. Figure <a class="reference internal" href="#fig-fmap"><span class="std std-numref">Fig. 2</span></a>
+shows fringes from HiPERCAM’s z-band arm.</p>
+<figure class="align-center" id="id3">
+<span id="fig-fmap"></span><a class="reference internal image-reference" href="_images/fmap.png"><img alt="Click on image to enlarge" src="_images/fmap.png" style="width: 777.0px; height: 443.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 2 </span><span class="caption-text">Fringe map of HiPERCAM z-band CCD with peak/trough pairs, created from
+dithered data taken on 2018-04-15 on the GTC.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The idea is to estimate the ratio of fringing amplitude in the data
+versus the reference image. The effect of defringing can be seen by
+applying it in <a class="reference internal" href="commands.html#hipercam.scripts.nrtplot" title="hipercam.scripts.nrtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">nrtplot</span></code></a>, and <a class="reference internal" href="commands.html#hipercam.scripts.grab" title="hipercam.scripts.grab"><code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code></a>. The latter has a “verbose”
+option which prints out data that might help when setting up for
+reduction where there are two editing parameters <cite>rmin</cite> and <cite>rmax</cite> that
+are tricky to get a feel for.</p>
+<p>There are two scripts specific to fringing in the pipeline called
+<a class="reference internal" href="commands.html#hipercam.scripts.makefringe" title="hipercam.scripts.makefringe"><code class="xref py py-func docutils literal notranslate"><span class="pre">makefringe</span></code></a> and <a class="reference internal" href="commands.html#hipercam.scripts.setfringe" title="hipercam.scripts.setfringe"><code class="xref py py-func docutils literal notranslate"><span class="pre">setfringe</span></code></a>. <a class="reference internal" href="commands.html#hipercam.scripts.makefringe" title="hipercam.scripts.makefringe"><code class="xref py py-func docutils literal notranslate"><span class="pre">makefringe</span></code></a> builds a fringe map from
+dithered data; you may be best off just using a pre-prepared frame
+unless you have specifically acquired such data. <a class="reference internal" href="commands.html#hipercam.scripts.setfringe" title="hipercam.scripts.setfringe"><code class="xref py py-func docutils literal notranslate"><span class="pre">setfringe</span></code></a> defines
+peak/trough pairs, and again you may be able to use a pre-prepared
+file, although for specially window formats it may make sense to adapt
+the standard set of pairs. See <a class="reference internal" href="files.html"><span class="doc">Useful files</span></a> for pre-prepared files.</p>
+</section>
+<section id="bad-pixels-and-defect-files">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Bad pixels and defect files</a><a class="headerlink" href="#bad-pixels-and-defect-files" title="Link to this heading">¶</a></h2>
+<p>There is no explicit accounting for bad pixels in the pipeline (yet).
+The approach has always been to try to avoid them in the first place.
+We do so through plotting of files of defects during acqusition.
+See <a class="reference internal" href="files.html"><span class="doc">Useful files</span></a> for pre-prepared files.</p>
+</section>
+<section id="aperture-files">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Aperture files</a><a class="headerlink" href="#aperture-files" title="Link to this heading">¶</a></h2>
+<p>The pipeline photometry provides straightforward aperture
+photometry. Many of the details can be defined when setting the
+apertures using <a class="reference internal" href="commands.html#hipercam.scripts.setaper" title="hipercam.scripts.setaper"><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></a>. Not only can you choose your targets, but
+you can mask nearby stars from the sky aperture, and you can to a
+certain extent sculpt your target apertures which can help with
+blended interlopers by including them in an over-sized aperture.</p>
+<p>A key decision to be made at this stage is whether you think your
+target will remain detectable on each frame throughout the
+run. Detectable means that it’s position can be measured and thus the
+relevant aperture re-positioned.  If not, then <a class="reference internal" href="commands.html#hipercam.scripts.setaper" title="hipercam.scripts.setaper"><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></a> gives you the
+option of <code class="docutils literal notranslate"><span class="pre">linking</span></code> any target to another, with the idea that a
+brighter target can define the position shifts which are applied to
+the fainter target. Linking is best reserved for the most difficult
+cases because it does bring its own issues: see the sections on
+<a class="reference internal" href="#linked-apertures"><span class="std std-ref">linked apertures</span></a> and <a class="reference internal" href="photometry.html#aperture-positioning"><span class="std std-ref">aperture
+positioning</span></a> for more details.</p>
+<p>An example of a set of apertures showing all these features is shown in
+<a class="reference internal" href="#fig-setaper"><span class="std std-numref">Fig. 3</span></a>.</p>
+<figure class="align-center" id="id4">
+<span id="fig-setaper"></span><a class="reference internal image-reference" href="_images/complex_mask.png"><img alt="Click on image to enlarge" src="_images/complex_mask.png" style="width: 529.0px; height: 300.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 3 </span><span class="caption-text">Example of a complex set of apertures. The target is at the centre of the
+circles in the lower-right. The comparison star is in the upper-left.
+[click on the image to enlarge it].</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>In this case the target star has two nearby companions which causes
+three problems: (1) the sky annulus may include flux from the
+companions, (2) the target aperture can include a variable
+contribution from the companions, depending upon the seeing, and (3)
+it is hard to locate the object because the position location can jump
+to the nearby objects. The set of apertures shown in <a class="reference internal" href="#fig-setaper"><span class="std std-numref">Fig. 3</span></a>
+combats these problems as follows. First, there are pink/purplish
+dashed circles connected to the centre of the apertures. These are
+<em>mask</em> regions which exclude the circled regions from any
+consideration in sky estimation. NB they <em>do not</em> exclude the pixels
+from inclusion in target apertures; this is not possible without
+systematic bias without full-blown profile fits. Second, are somewhat
+similar brown/green dashed circles. These are <em>extra</em> apertures which
+indicate that the flux in the regions enclosed is to be added to the
+flux in the target aperture. This offsets the problem of variable
+amounts of nearby stars’ flux being included in the aperture. Finally,
+the thick pink arrow pointing from the lower-right (target) aperture
+to the upper-left reference aperture (green circle) <em>links</em> the target
+aperture. This means its position is calculated using a fixed offset
+from the reference aperture. This is often useful for very faint
+targets, or those, which like the one shown here, have close-by
+objects that can confuse the re-positioning code.  See the sections on
+<a class="reference internal" href="#linked-apertures"><span class="std std-ref">linked apertures</span></a> and <a class="reference internal" href="photometry.html#aperture-positioning"><span class="std std-ref">aperture
+positioning</span></a> for more details.</p>
+</section>
+<section id="reduction-files">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Reduction files</a><a class="headerlink" href="#reduction-files" title="Link to this heading">¶</a></h2>
+<p>Once you have defined the apertures for all CCDs that you can, you can create
+a reduction file using <a class="reference internal" href="commands.html#hipercam.scripts.genred" title="hipercam.scripts.genred"><code class="xref py py-func docutils literal notranslate"><span class="pre">genred</span></code></a>. This reads which CCDs and apertures have been
+set and tries to create a file that at will work with <a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a>, even if it may
+well not be ideal. Once you have this file, then you should expect to go
+through a sequence of running <a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a>, adjusting the reduce file, re-running
+<a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a> until you have a useful plot going. As mentioned above, it is inside
+the reduce file that you can set the name of your bias, and also the flat
+field file. You should experiment with changing settings such as the
+extraction lines and aperture re-position section to get a feel for the
+different parameters.</p>
+<p>The two keys elements to get right in the reduction files are the sections
+concerning how the apertures are re-located and the extraction. The former is
+the trickier one. The apertures are re-located in a two-step process. First a
+search is made in a square box centred on the last position measured for a set
+of “reference” targets (if they have been defined). The size of this box
+(<cite>search_half_width</cite>) is important. If it is too small, your targets may
+jump beyond it and the reduction is likely to fail as that will set an error
+condition from which it may never recover. On the other hand, too large, and
+you could jump to a nearby object, and you also increase the chance of cosmic
+rays causing problems even though the search uses gaussian smoothing to reduce
+their influence. The main way to combat this is to choose bright,
+well-isolated stars as reference target. The shifts from the reference targets
+are used to place the profile fit boxes and avoid the need to searches over
+non-reference targets. This can be a great help on faint targets. The main
+decision on extraction is whether to use <cite>variable</cite> or <cite>fixed</cite> apertures
+(I usually recommend <cite>variable</cite>), <cite>optimal</cite> or <cite>normal</cite> extraction (I
+usually recommend <cite>normal</cite>), and the various aperture radii. It is
+recommended to plot the images in reduce at least once, zoomed in on your
+target to get a feel for this. Depending on circumstances, significant
+improvements to the photometry can be made with careful choices on these
+parameters; do not assume that the file produced by <a class="reference internal" href="commands.html#hipercam.scripts.genred" title="hipercam.scripts.genred"><code class="xref py py-func docutils literal notranslate"><span class="pre">genred</span></code></a> is in any way the
+last word; there is no automatic way to come up with the ideal choices which
+depend upon the nature of the field and conditions.</p>
+</section>
+<section id="plotting-results">
+<h2><a class="toc-backref" href="#id12" role="doc-backlink">Plotting results</a><a class="headerlink" href="#plotting-results" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a> delivers a basic view of your data as it comes in, which is
+usually enough at the telescope. If you want to look at particular
+features, then you should investigate the command <a class="reference internal" href="commands.html#hipercam.scripts.plog" title="hipercam.scripts.plog"><code class="xref py py-func docutils literal notranslate"><span class="pre">plog</span></code></a>. This allows
+you to plot one parameter versus another, including division by
+comparison stars. If you use Python, the <a class="reference internal" href="commands.html#hipercam.scripts.plog" title="hipercam.scripts.plog"><code class="xref py py-func docutils literal notranslate"><span class="pre">plog</span></code></a> code is a good place
+to start from when analysing your data in more detail. In particular
+it shows you how to load in the rather human-unreadable HiPERCAM log
+files (huge numbers of columns and rows). While observing <a class="reference internal" href="commands.html#hipercam.scripts.plog" title="hipercam.scripts.plog"><code class="xref py py-func docutils literal notranslate"><span class="pre">plog</span></code></a> is
+helpful for plotting the sky level as twilight approaches.</p>
+</section>
+<section id="customisation">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">Customisation</a><a class="headerlink" href="#customisation" title="Link to this heading">¶</a></h2>
+<p>You may well find that your data has particular features that the
+current pipeline does not allow for. An obvious one is with crowded
+fields, which can only roughly be accommodated with judicious
+application of the options within <a class="reference internal" href="commands.html#hipercam.scripts.setaper" title="hipercam.scripts.setaper"><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></a>. The pipeline does not aim
+to replicate packages designed to handle crowded fields, and you are
+best advised to port the data over into single frames using <a class="reference internal" href="commands.html#hipercam.scripts.grab" title="hipercam.scripts.grab"><code class="xref py py-func docutils literal notranslate"><span class="pre">grab</span></code></a>,
+remembering that the ‘hcm’ files are nothing more than a particular
+form of FITS. If your data requires only a small level of tweaking
+then there are a few simple aritematical commands such as <a class="reference internal" href="commands.html#hipercam.scripts.add" title="hipercam.scripts.add"><code class="xref py py-func docutils literal notranslate"><span class="pre">add</span></code></a> and
+<a class="reference internal" href="commands.html#hipercam.scripts.cmul" title="hipercam.scripts.cmul"><code class="xref py py-func docutils literal notranslate"><span class="pre">cmul</span></code></a> that might help, but it is not the intention to provide a full
+suite of tools that can deal with all cases. Instead, the recommended
+route is to code Python scripts to manipulate your data, and the
+<a class="reference internal" href="api/api.html"><span class="doc">The API</span></a> is designed to make it relatively easy to access
+HiPERCAM data. If you devise routines of generic interest, you are
+encouraged to submit them for possible inclusion within the main
+pipeline commands. The existing pipeline commands are a good place to
+start when looking for examples.</p>
+</section>
+<section id="the-reduce-log-files">
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">The reduce log files</a><a class="headerlink" href="#the-reduce-log-files" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a> writes all results to an ASCII log file. This can be pretty
+enormous with many entries per line. The log file is self-documenting with an
+extensive header section which is worth a look through. In particular
+the columns are named and given data types to aid ingestion into numpy
+recarrays. The pipeline command <a class="reference internal" href="commands.html#hipercam.scripts.plog" title="hipercam.scripts.plog"><code class="xref py py-func docutils literal notranslate"><span class="pre">plog</span></code></a> provides a crude interface to
+plotting these files, and module <a class="reference internal" href="api/hipercam-hlog.html#module-hipercam.hlog" title="hipercam.hlog"><code class="xref py py-mod docutils literal notranslate"><span class="pre">hipercam.hlog</span></code></a> should allow you
+to develop scripts to access the data and to make your own
+plots. <a class="reference internal" href="commands.html#hipercam.scripts.hlog2fits" title="hipercam.scripts.hlog2fits"><code class="xref py py-func docutils literal notranslate"><span class="pre">hlog2fits</span></code></a> can convert the ASCII logs into a more
+comprehensible FITS versions, with one HDU per CCD. These can be
+easily explored with standard FITS utilities like <code class="docutils literal notranslate"><span class="pre">fv</span></code>. Note however
+that the ASCII logs comes with a lot of header lines that FITS is
+singularly bad for, so the ASCII logs are to be preferred in the
+main. They are also the ones expected for the <a class="reference internal" href="commands.html#hipercam.scripts.flagcloud" title="hipercam.scripts.flagcloud"><code class="xref py py-func docutils literal notranslate"><span class="pre">flagcloud</span></code></a> script which
+allows you to interactively define cloudy and junk data. Here is a
+short bit of code to show you how you might plot your data, assuming
+you had the pipeline available:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># import matplotlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="c1"># import the pipeline</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hcam</span>
+
+<span class="c1"># load the reduction log. Creates</span>
+<span class="c1"># a hipercam.hlog.Hlog object</span>
+<span class="n">hlg</span> <span class="o">=</span> <span class="n">hcam</span><span class="o">.</span><span class="n">hlog</span><span class="o">.</span><span class="n">Hlog</span><span class="o">.</span><span class="n">rascii</span><span class="p">(</span><span class="s1">&#39;run0012.log&#39;</span><span class="p">)</span>
+
+<span class="c1"># Extract a hipercam.hlog.Tseries from</span>
+<span class="c1"># aperture &#39;1&#39; from CCD &#39;2&#39;</span>
+<span class="n">targ</span> <span class="o">=</span> <span class="n">hlg</span><span class="o">.</span><span class="n">tseries</span><span class="p">(</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+
+<span class="c1"># now the comparison (aperture &#39;2&#39;)</span>
+<span class="n">comp</span> <span class="o">=</span> <span class="n">hlg</span><span class="o">.</span><span class="n">tseries</span><span class="p">(</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">)</span>
+
+<span class="c1"># take their ratio (propagates uncertainties correctly)</span>
+<span class="n">lc</span> <span class="o">=</span> <span class="n">targ</span> <span class="o">/</span> <span class="n">comp</span>
+
+<span class="c1"># Make an interactive plot</span>
+<span class="n">lc</span><span class="o">.</span><span class="n">mplot</span><span class="p">(</span><span class="n">plt</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The methods of <a class="reference internal" href="api/hipercam-hlog.html#hipercam.hlog.Tseries" title="hipercam.hlog.Tseries"><code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.hlog.Tseries</span></code></a> are worth
+looking through. e.g. you can convert to magnitudes, change
+the time axis, dump to an ASCII file, etc.</p>
+</section>
+<section id="ultra-vs-hiper">
+<h2><a class="toc-backref" href="#id15" role="doc-backlink">ULTRA(CAM|SPEC) vs HiPERCAM</a><a class="headerlink" href="#ultra-vs-hiper" title="Link to this heading">¶</a></h2>
+<p>The HiPERCAM pipeline is designed to be usable with ULTRA(CAM|SPEC) data as
+well as data from HiPERCAM itself. You will need a different set of CCD
+defects, otherwise the two are very similar. One extra ULTRACAM needs
+is proper dark subtraction (see above), while the z-band (CCD 5)
+images from HiPERCAM need fringe correction (as do z-band from ULTRA(CAM|SPEC)
+but it is much rarer). Finally, at the telescope you can access the
+ULTRA(CAM|SPEC) file server using <a class="reference internal" href="commands.html#hipercam.scripts.uls" title="hipercam.scripts.uls"><code class="xref py py-func docutils literal notranslate"><span class="pre">uls</span></code></a> versus <a class="reference internal" href="commands.html#hipercam.scripts.hls" title="hipercam.scripts.hls"><code class="xref py py-func docutils literal notranslate"><span class="pre">hls</span></code></a> for HiPERCAM, and you will
+need the environment variable <code class="docutils literal notranslate"><span class="pre">ULTRACAM_DEFAULT_URL</span></code> to have been
+set (standard on the “observer” accounts at the TNT and NTT).</p>
+</section>
+<section id="trouble-shooting-reduction">
+<h2><a class="toc-backref" href="#id16" role="doc-backlink">Trouble shooting reduction</a><a class="headerlink" href="#trouble-shooting-reduction" title="Link to this heading">¶</a></h2>
+<p>There are several things you can do to avoid problems during reduction. The
+main thing to avoid is that <a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a> loses your target or the
+comparison stars.</p>
+<section id="aperture-positioning">
+<h3><a class="toc-backref" href="#id17" role="doc-backlink">Aperture positioning</a><a class="headerlink" href="#aperture-positioning" title="Link to this heading">¶</a></h3>
+<p>Tracking multiple targets in multiple CCDs over potentially tens of
+thousands of frames can be a considerable challenge. A single meteor
+or cosmic ray can throw the position of a target off and you may never
+recover. This could happen after many minutes of reduction have gone
+by, which can be annoying. It is by far the most likely problem that
+you will encounter, because once the aperture positions are
+determined, extraction is trivial.  The ‘apertures’ section of reduce
+files has multiple parameters designed to help avoid such problems.</p>
+<p>As emphasised above, if you identify a star (or stars) as (a)
+reference aperture(s), their position(s) are the first to be
+determined and then used to offset the location before carrying out
+profile fits for other stars. If you choose well-isolated reference
+stars, this can allow you to cope with large changes in position from
+frame-to-frame, whilst maintaining a tight search on non-reference
+stars which may be close to other objects and be difficult to locate
+using a more wide-ranging search. Sensible use of this can avoid the
+need to link apertures in some cases. Reference targets don’t have to
+be ones that you will use for photometry, although they usually are of
+course. As you get a feel for your data, be alert to reducing the size
+of the search box as the smaller the region you search over, the less
+likely are you to be affected by cosmic rays and similar
+problems. However, it is not unusual to make position shifts during
+observation and if these are large, you could lose your targets. Key
+parameters are <code class="docutils literal notranslate"><span class="pre">search_half_width</span></code>, <code class="docutils literal notranslate"><span class="pre">search_smooth_fwhm</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fit_height_min_ref</span></code> and <code class="docutils literal notranslate"><span class="pre">fit_diff</span></code> (the latter for multiple
+reference stars).  <code class="docutils literal notranslate"><span class="pre">search_half_width</span></code> sets the size of the search
+region around the last measured position of a reference star. It has
+to be large enough to cope with any jumps between frames. For large
+values, there could be multiple targets in the search region, so the
+valid target closest to the start position is chosen. Valid here means
+higher than <code class="docutils literal notranslate"><span class="pre">fit_height_min_ref</span></code> in the image after smoothing by
+<code class="docutils literal notranslate"><span class="pre">search_smooth_fwhm</span></code>. The latter makes the process more robust to
+variable seeing and cosmic rays.</p>
+<p>There is a slight difference in how the first reference star of a
+frame is treated compared with any others. The first one is simply
+searched for starting from its position on the previous frame. Any
+shift is then used to refine the start position for the remaining
+reference stars.  Therefore you should try to choose the most robust
+star (bright, well isolated) as your first reference star.</p>
+<p>Cloudy conditions can be hard to cope with: clouds may completely
+wipe out your targets, only for them to re-appear after a few seconds
+or perhaps a few minutes. In this case, careful use of the
+<code class="docutils literal notranslate"><span class="pre">fit_height_min_ref</span></code> and <code class="docutils literal notranslate"><span class="pre">fit_height_min_nrf</span></code> parameters in the reduce
+file might see you through.  The idea is that if the target gets too
+faint, you don’t want to trust any position from it, so that no
+attempt is made to update the position (relative to the reference star
+if appropriate). Provided the telescope is not moving too much, you
+should have a chance of re-locating apertures successfully when the
+target re-appears. If conditions are good, the aperture location can
+work without problem for many thousands of images in a row.</p>
+<p>I have had a case where a particularly bright and badly-placed cosmic
+ray caused the reference aperture positioning to fail after a
+reduction had run successfully for more than 10,000 frames. Very
+annoying. It was easily fixed by shifting the reference to another
+aperture, but it does highlight the importance of choosing a good
+reference star if at all possible. Choosing multiple reference stars
+can help. In this case, a new parameter, <code class="docutils literal notranslate"><span class="pre">fit_diff</span></code>, comes into
+play. In this case, if the positions of the reference targets from one
+frame to the next shift differentially by more than this number, all
+apertures are flagged as unreliable and no shift or extraction is
+attempted. This is effective as a back-stop for a cosmic ray affecting
+the position of one of the reference apertures. However, it has the
+downside of requiring all reference stars to be successfully
+re-located, which could introduce a higher drop-out rate from double
+jeapardy. Careful selection of reference stars is important! Note that
+this means you need to take some care during <a class="reference internal" href="commands.html#hipercam.scripts.setaper" title="hipercam.scripts.setaper"><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></a>.</p>
+<p>In bad cases, nothing you try will work. Then the final fallback is to
+reduce the run in chunks using the <code class="docutils literal notranslate"><span class="pre">first</span></code> parameter (prompted in
+<a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a>) to skip past the part causing problems. This is a little
+annoying for later analysis, but there will always be some cases which
+cannot be easily traversed in any other way.</p>
+</section>
+<section id="defocussed-images">
+<h3><a class="toc-backref" href="#id18" role="doc-backlink">Defocussed images</a><a class="headerlink" href="#defocussed-images" title="Link to this heading">¶</a></h3>
+<p>Defocussing is often used in exoplanet work. Defocussed images are not
+well fit by either gaussian or moffat profiles. In this case, when
+measuring the object position, you should hold the FWHM fixed and use
+a large FWHM, comparable to the width of the image. Experiment for
+best results. You should also raise the threshold for bad data
+rejection, <cite>fit_thresh</cite>, to a large value like 20 as well. The idea is
+simply to get a sort of weighted centroid, and you will not get a good
+profile fit (if someone is interested in implementing a better model
+profile for such cases, we would welcome the input). For very
+defocussed images, it is important to avoid too narrow a FWHM
+otherwise you could end up zeroing in on random peaks in the
+doughnut-like profile. If you are contemplating defocussing, then
+just a small amount, say FWHM shifts from 0.9 to 1.5”, can still be
+reasonably fit with a gaussian or moffat and the standard reducyion can
+be applied. This can be useful to avoid saturation.</p>
+</section>
+<section id="linked-apertures">
+<span id="id1"></span><h3><a class="toc-backref" href="#id19" role="doc-backlink">Linked apertures</a><a class="headerlink" href="#linked-apertures" title="Link to this heading">¶</a></h3>
+<p>Linked apertures can be very useful if your target is simply too faint
+or too near to other objects to track well. However, they should only
+be used as a last resort, especially for long runs, because of
+differential image motion due to atmospheric refraction which can lead
+to loss of flux. This is particularly the case in the u-band. If you
+have to link an aperture, try to do so with a nearby object to
+minimise such drift. It does not need to be super-bright (although
+preferably it should be brighter than your target), or your main
+comparison; the key point should be that its position can be securely
+tracked.  If your target is trackable at all, but drops out sometimes,
+then the <code class="docutils literal notranslate"><span class="pre">fit_alpha</span></code> parameter may be a better alternative. It
+allows for variable offsets from the reference targets by averaging
+over the previous 1/<cite>fit_alpha</cite> frames (approx; exponential weighting
+is used). This allows you to ride over frames that are too faint. This
+can be an effective way to cope with deep eclipses or clouds whilst
+allowing for differential image motion in a way that linked apertures
+cannot manage.</p>
+<p>If you do have to use linked apertures, then set them from an average image
+extracted from the middle of the run. This will reduce the problems caused by
+refraction. However, if positions change a lot, it can make the start of
+reduction tricky. If so, then having set the apertures from an image taken
+near the middle of a run, tweak it using one taken from the start of the run
+(re-centre each aperture, but leave the linked apertures to follow
+whatever target they are linked to).</p>
+</section>
+<section id="problems-with-pgplot-windows">
+<h3><a class="toc-backref" href="#id20" role="doc-backlink">Problems with PGPLOT windows</a><a class="headerlink" href="#problems-with-pgplot-windows" title="Link to this heading">¶</a></h3>
+<p><a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a> opens two PGPLOT windows to display images and the light curve. You
+can sometimes encounter problems with this. I use explicit numbers in the
+reduce file “1/xs” and “2/xs” to avoid their clashing, but if you are already
+running a process (e.g. <a class="reference internal" href="commands.html#hipercam.scripts.rtplot" title="hipercam.scripts.rtplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">rtplot</span></code></a>) plotting to either of these you might
+encounter problems. Usually shutting down the other process and/or killing
+PGPLOT windows will fix things.  You can also use “/xs” to automate the
+numbering, but you will then lose control of which plot window is used for
+what. I have once had a problem where it kept saying:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">PGPLOT</span><span class="p">,</span> <span class="n">PGSCH</span><span class="p">:</span> <span class="n">no</span> <span class="n">graphics</span> <span class="n">device</span> <span class="n">has</span> <span class="n">been</span> <span class="n">selected</span>
+</pre></div>
+</div>
+<p>and I could not close the PGPLOT windows. In the end the only way I
+could cure this was to kill the PGPLOT X-windows server
+explicitly. (Search for ‘pgxwin’ with ‘ps’.)</p>
+</section>
+<section id="experiment">
+<h3><a class="toc-backref" href="#id21" role="doc-backlink">Experiment</a><a class="headerlink" href="#experiment" title="Link to this heading">¶</a></h3>
+<p>Try different settings. The extraction settings in particular can make a
+significant difference to the results. Compare the results visually. There is
+no one prescription that works for all cases. Faint targets normally require
+different settings from bright ones for the best results (e.g. smaller target
+aperture radii). Very faint target may benefit from optimal extraction, while
+brighter ones can look worse.</p>
+</section>
+<section id="specific-errors">
+<h3><a class="toc-backref" href="#id22" role="doc-backlink">Specific errors</a><a class="headerlink" href="#specific-errors" title="Link to this heading">¶</a></h3>
+<p>I hope to list commonly encountered error traces here. Send any that confused
+you to me to add here.</p>
+<section id="mis-matching-calibration-files">
+<h4><a class="toc-backref" href="#id23" role="doc-backlink">Mis-matching calibration files</a><a class="headerlink" href="#mis-matching-calibration-files" title="Link to this heading">¶</a></h4>
+<p>An error message such as this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nrtplot</span> <span class="o">../</span><span class="n">run0012</span>
+<span class="n">first</span> <span class="o">-</span> <span class="n">first</span> <span class="n">frame</span> <span class="n">to</span> <span class="n">plot</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> \
+<span class="mi">1</span><span class="p">,</span> <span class="n">utc</span><span class="o">=</span> <span class="mi">2021</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">10</span> <span class="mi">03</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mf">12.777</span> <span class="p">(</span><span class="n">ok</span><span class="p">),</span> <span class="n">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
+  <span class="n">File</span> <span class="s2">&quot;/home/phsaap/.local/bin/nrtplot&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">8</span><span class="p">,</span> <span class="ow">in</span> <span class="o">&lt;</span><span class="n">module</span><span class="o">&gt;</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">nrtplot</span><span class="p">())</span>
+  <span class="n">File</span> <span class="s2">&quot;/home/phsaap/.local/lib/python3.9/site-packages/hipercam/scripts/nrtplot.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">836</span><span class="p">,</span> <span class="ow">in</span> <span class="n">nrtplot</span>
+    <span class="n">bias</span> <span class="o">=</span> <span class="n">bias</span><span class="o">.</span><span class="n">crop</span><span class="p">(</span><span class="n">mccd</span><span class="p">)</span>
+  <span class="n">File</span> <span class="s2">&quot;/home/phsaap/.local/lib/python3.9/site-packages/hipercam/ccd.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">795</span><span class="p">,</span> <span class="ow">in</span> <span class="n">crop</span>
+    <span class="n">tmccd</span><span class="p">[</span><span class="n">cnam</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">cnam</span><span class="p">]</span><span class="o">.</span><span class="n">crop</span><span class="p">(</span><span class="n">ccd</span><span class="p">)</span>
+  <span class="n">File</span> <span class="s2">&quot;/home/phsaap/.local/lib/python3.9/site-packages/hipercam/ccd.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">552</span><span class="p">,</span> <span class="ow">in</span> <span class="n">crop</span>
+    <span class="k">raise</span> <span class="n">HipercamError</span><span class="p">(</span>
+<span class="n">hipercam</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">HipercamError</span><span class="p">:</span> <span class="n">failed</span> <span class="n">to</span> <span class="n">find</span> <span class="nb">any</span> <span class="n">enclosing</span> <span class="n">window</span> <span class="k">for</span> <span class="n">window</span> <span class="n">label</span> <span class="o">=</span> <span class="n">E1</span>
+</pre></div>
+</div>
+<p>is a good sign that you have a problem with a format mis-match between a
+calibration file and the data. In this case the bias frame selected
+was taken with 2x2 binning while the data were unbinned, and so it was
+impossible for it to recover. NB The code does attempt to go the other
+way, i.e.  to bin up 1x1 into 2x2 if need be, although this can only
+ever be approximate.  The other way for this message to occur is you
+try to use windowed calibration data which does not span the windows
+of the data.</p>
+</section>
+</section>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="observers.html">Observer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="telescope.html">At the telescope</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Reduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html">Principles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="organisation.html">File organisation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="checklists.html">Observing checklists</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="telescope.html"
+                          title="previous chapter">At the telescope</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="photometry.html"
+                          title="next chapter">Principles</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/reduction.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/reduction.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

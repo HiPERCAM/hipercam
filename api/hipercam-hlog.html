@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.hlog &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="hipercam.window" href="hipercam-window.html" />
+    <link rel="prev" title="hipercam.ccd" href="hipercam-ccd.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="hipercam-window.html" title="hipercam.window">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="hipercam-ccd.html" title="hipercam.ccd">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="api.html" >The API</a> &#187;</li>
+      <li><a href="details.html" accesskey="U">Modules</a> &#187;</li>
+      
+      <li>hipercam.hlog</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.hlog">
+<span id="hipercam-hlog"></span><h1>hipercam.hlog<a class="headerlink" href="#module-hipercam.hlog" title="Link to this heading">¶</a></h1>
+<p>hlog is a sub-module for reading in the log files written by
+reduce. It defines one class <a class="reference internal" href="#hipercam.hlog.Hlog" title="hipercam.hlog.Hlog"><code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.hlog.Hlog</span></code></a> to hold log
+files and another <a class="reference internal" href="#hipercam.hlog.Tseries" title="hipercam.hlog.Tseries"><code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.hlog.Tseries</span></code></a> to represent time
+series to allow quick development of scripts to plot results.</p>
+<p>For example, suppose a log file ‘eg.log’ has been written with 2 CCDs,
+‘1’ and ‘2’, and that CCD ‘2’ has apertures labelled ‘1’ and ‘2’ for
+target and comparison. Then the following commands would load it,
+divide target by comparison and plot the result with matplotlib:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hcam</span>
+
+<span class="n">hlog</span> <span class="o">=</span> <span class="n">hcam</span><span class="o">.</span><span class="n">hlog</span><span class="o">.</span><span class="n">Hlog</span><span class="o">.</span><span class="n">rascii</span><span class="p">(</span><span class="s1">&#39;ts.log&#39;</span><span class="p">)</span>
+<span class="n">targ</span> <span class="o">=</span> <span class="n">hlog</span><span class="o">.</span><span class="n">tseries</span><span class="p">(</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+<span class="n">comp</span> <span class="o">=</span> <span class="n">hlog</span><span class="o">.</span><span class="n">tseries</span><span class="p">(</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">)</span>
+
+<span class="n">ratio</span> <span class="o">=</span> <span class="n">targ</span> <span class="o">/</span> <span class="n">comp</span>
+<span class="n">ratio</span><span class="o">.</span><span class="n">mplot</span><span class="p">(</span><span class="n">plt</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="#hipercam.hlog.Tseries" title="hipercam.hlog.Tseries"><code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.hlog.Tseries</span></code></a> objects know about bad data and carry
+a bitmask array reflecting problems flagged during reduction, so for
+example the bitmask array of the <cite>ratio</cite> object above combined the
+bitmask array of the objects <cite>targ</cite> and <cite>comp</cite> used to create it.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.hlog.Hlog" title="hipercam.hlog.Hlog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Hlog</span></code></a></p></td>
+<td><p>Class to represent HiPERCAM logs as produced by <a class="reference internal" href="../commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a>.  Based on</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.hlog.Tseries" title="hipercam.hlog.Tseries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tseries</span></code></a></p></td>
+<td><p>Class to represent time series with times, y values, y</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.hlog.Hlog">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.hlog.</span></span><span class="sig-name descname"><span class="pre">Hlog</span></span><a class="headerlink" href="#hipercam.hlog.Hlog" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
+<p>Class to represent HiPERCAM logs as produced by <a class="reference internal" href="../commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a>.  Based on
+dictionaries, Hlog files contain numpy structured arrays for each CCD
+which can be accessed by the CCD label name. Each array contains data that
+can be accessed by the label of the column. e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hcam</span>
+<span class="o">&gt;&gt;</span> <span class="n">hlog</span> <span class="o">=</span> <span class="n">hcam</span><span class="o">.</span><span class="n">hlog</span><span class="o">.</span><span class="n">Hlog</span><span class="o">.</span><span class="n">rascii</span><span class="p">(</span><span class="s1">&#39;run011.log&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;</span> <span class="nb">print</span><span class="p">(</span><span class="n">hlog</span><span class="p">[</span><span class="s1">&#39;2&#39;</span><span class="p">][</span><span class="s1">&#39;x_1&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>would print the X-values of aperture ‘1’ from CCD ‘2’.</p>
+<p>Hlog objects have in addition four attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">apnames</span> <span class="p">:</span> <span class="nb">dict</span>
+  <span class="n">Keyed</span> <span class="n">by</span> <span class="n">CCD</span> <span class="n">label</span><span class="p">,</span> <span class="n">gives</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">the</span>
+  <span class="n">aperture</span> <span class="n">labels</span> <span class="n">used</span> <span class="k">for</span> <span class="n">each</span> <span class="n">CCD</span><span class="o">.</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span>
+
+  <span class="o">..</span> <span class="n">code</span><span class="o">-</span><span class="n">block</span><span class="p">::</span> <span class="n">python</span>
+
+     <span class="o">&gt;&gt;</span> <span class="nb">print</span><span class="p">(</span><span class="n">hlog</span><span class="o">.</span><span class="n">apnames</span><span class="p">[</span><span class="s1">&#39;2&#39;</span><span class="p">])</span>
+
+  <span class="n">might</span> <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;3&#39;</span><span class="p">]</span> <span class="n">meaning</span> <span class="n">the</span> <span class="n">apertures</span> <span class="n">used</span> <span class="k">for</span> <span class="n">CCD</span> <span class="mf">2.</span>
+
+<span class="n">cnames</span> <span class="p">:</span> <span class="nb">dict</span>
+  <span class="n">Keyed</span> <span class="n">by</span> <span class="n">CCD</span> <span class="n">label</span> <span class="n">giving</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">the</span> <span class="n">column</span>
+  <span class="n">names</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">order</span> <span class="n">they</span> <span class="n">appeared</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">original</span> <span class="n">file</span><span class="o">.</span> <span class="n">This</span> <span class="ow">is</span> <span class="n">to</span>
+  <span class="n">help</span> <span class="n">write</span> <span class="n">out</span> <span class="n">the</span> <span class="n">data</span>
+
+<span class="n">comments</span> <span class="p">:</span> <span class="nb">list</span>
+  <span class="n">List</span> <span class="n">of</span> <span class="n">strings</span> <span class="n">storing</span> <span class="n">the</span> <span class="n">header</span> <span class="n">comments</span> <span class="n">to</span>
+  <span class="n">allow</span> <span class="n">the</span> <span class="n">Hlog</span> <span class="n">to</span> <span class="n">be</span> <span class="n">written</span> <span class="n">out</span> <span class="k">with</span> <span class="n">full</span> <span class="n">information</span> <span class="k">if</span> <span class="n">read</span>
+  <span class="kn">from</span><span class="w"> </span><span class="nn">an</span> <span class="n">ASCII</span> <span class="n">log</span><span class="o">.</span>
+
+<span class="n">writable</span> <span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">Flag</span> <span class="n">to</span> <span class="n">say</span> <span class="n">whether</span> <span class="n">the</span> <span class="n">Hlog</span> <span class="n">can</span> <span class="n">be</span> <span class="n">written</span> <span class="n">which</span>
+  <span class="n">at</span> <span class="n">the</span> <span class="n">moment</span> <span class="ow">is</span> <span class="n">only</span> <span class="n">true</span> <span class="k">if</span> <span class="n">it</span> <span class="n">has</span> <span class="n">been</span> <span class="n">read</span> <span class="kn">from</span><span class="w"> </span><span class="nn">an</span> <span class="n">ASCII</span>
+  <span class="o">|</span><span class="n">hiper</span><span class="o">|</span> <span class="n">log</span> <span class="n">file</span><span class="o">.</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Hlog.rascii">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rascii</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Hlog.rascii" title="Link to this definition">¶</a></dt>
+<dd><p>Loads a HiPERCAM ASCII log file written by reduce. Each CCD is loaded
+into a separate structured array, returned in a dictionary keyed by
+the CCD label.</p>
+<p>Argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fname</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span>
+   <span class="n">Can</span> <span class="n">be</span> <span class="n">a</span> <span class="n">single</span> <span class="n">log</span> <span class="n">file</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">log</span> <span class="n">file</span>
+   <span class="n">names</span><span class="o">.</span> <span class="n">If</span> <span class="n">a</span> <span class="nb">list</span><span class="p">,</span> <span class="n">just</span> <span class="n">the</span> <span class="n">first</span> <span class="n">file</span><span class="s1">&#39;s comments will be</span>
+   <span class="n">read</span><span class="p">,</span> <span class="n">the</span> <span class="n">others</span> <span class="n">ignored</span><span class="p">,</span> <span class="ow">and</span> <span class="n">it</span> <span class="n">will</span> <span class="n">be</span> <span class="n">assumed</span><span class="p">,</span> <span class="n">but</span>
+   <span class="ow">not</span> <span class="n">checked</span><span class="p">,</span> <span class="n">that</span> <span class="n">the</span> <span class="n">later</span> <span class="n">files</span> <span class="n">have</span> <span class="n">the</span> <span class="n">same</span> <span class="n">number</span>
+   <span class="ow">and</span> <span class="n">order</span> <span class="n">of</span> <span class="n">columns</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Hlog.rfits">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rfits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Hlog.rfits" title="Link to this definition">¶</a></dt>
+<dd><p>Loads a HiPERCAM FITS log file written by <a class="reference internal" href="../commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a> and subsequently
+converted by <a class="reference internal" href="../commands.html#hipercam.scripts.hlog2fits" title="hipercam.scripts.hlog2fits"><code class="xref py py-func docutils literal notranslate"><span class="pre">hlog2fits</span></code></a>. Each CCD is loaded into a separate
+structured array, returned in a dictionary labelled by the CCD key.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Hlog.rulog">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rulog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Hlog.rulog" title="Link to this definition">¶</a></dt>
+<dd><p>Creates an Hlog from an ASCII file produced by the C++ ULTRACAM
+pipeline.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Hlog.tseries">
+<span class="sig-name descname"><span class="pre">tseries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cnam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apnam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'counts'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ecol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Hlog.tseries" title="Link to this definition">¶</a></dt>
+<dd><p>Returns with a Tseries corresponding to CCD cnam and
+aperture apnam. By default it accesses the ‘counts’,
+but ‘x’, ‘y’, ‘fwhm’, ‘beta’, ‘sky’ and ‘cmax’ are alternative
+choices. Looks at the column names in a HiPERCAM log.
+Can also access items not specific to apertures.</p>
+<p>Arguments:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>cnam<span class="classifier">str</span></dt><dd><p>CCD label. ‘str’ will be used to make a string of non-string
+entries.</p>
+</dd>
+<dt>apnam<span class="classifier">str</span></dt><dd><p>Aperture label. Set = ‘None’ if the item of interest is not
+specific to apertures, e.g. ‘mfwhm’.</p>
+</dd>
+<dt>name<span class="classifier">str</span></dt><dd><p>Item to return. e.g. ‘counts’, ‘x’, ‘fwhm’, ‘mfwhm’. If apnam is
+not None, then f”{name}_{apnam}” will be used as the column name,
+else f”{name}”</p>
+</dd>
+<dt>ecol<span class="classifier">bool</span></dt><dd><p>If True, an attempt will be made to read errors from a
+column called f”{name}e_{apnam}” or f”{name}e” will be
+made. If ecol is False or the error columns don’t exist,
+the errors are set = 0.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Hlog.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Hlog.write" title="Link to this definition">¶</a></dt>
+<dd><p>Writes out the Hlog to an ASCII file. This is to allow one to read
+in a log file, modify it and then write it out, useful for
+example to flag cloudy data. At the moment, it will only work
+for an Hlog read from a HiPERCAM ASCII log file. NB It won’t
+exactly replicate the log file input since it writes out in
+CCD order.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.hlog.</span></span><span class="sig-name descname"><span class="pre">Tseries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ye</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">te</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries" title="Link to this definition">¶</a></dt>
+<dd><p>Class to represent time series with times, y values, y
+errors and flags, and allowing bad data. Tseries objects know how
+to plot themselves with matplotlib.</p>
+<p>Attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">t</span> <span class="p">:</span> <span class="n">ndarray</span>
+  <span class="n">mid</span><span class="o">-</span><span class="n">times</span>
+
+<span class="n">y</span> <span class="p">:</span> <span class="n">ndarray</span>
+  <span class="n">y</span> <span class="n">values</span>
+
+<span class="n">ye</span> <span class="p">:</span> <span class="n">ndarray</span>
+  <span class="n">y</span> <span class="n">errors</span>
+
+<span class="n">bmask</span> <span class="p">:</span> <span class="n">ndarray</span>
+  <span class="n">bitmask</span> <span class="n">propagated</span> <span class="n">through</span> <span class="kn">from</span><span class="w"> </span><span class="nn">reduce</span> <span class="n">log</span><span class="p">,</span> <span class="n">that</span> <span class="n">indicates</span> <span class="n">possible</span>
+  <span class="n">problems</span> <span class="n">affecting</span> <span class="n">each</span> <span class="n">data</span> <span class="n">point</span><span class="o">.</span> <span class="n">See</span> <span class="n">core</span><span class="o">.</span><span class="n">py</span> <span class="k">for</span> <span class="n">the</span> <span class="n">defined</span> <span class="n">flags</span><span class="o">.</span>
+
+<span class="n">te</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">ndarray</span>
+  <span class="n">Exposure</span> <span class="n">times</span> <span class="p">(</span><span class="ow">not</span> <span class="n">much</span> <span class="ow">is</span> <span class="n">done</span> <span class="k">with</span> <span class="n">these</span><span class="p">,</span> <span class="n">but</span> <span class="n">sometimes</span> <span class="n">it</span><span class="s1">&#39;s good</span>
+  <span class="n">to</span> <span class="n">have</span> <span class="n">them</span> <span class="n">on</span> <span class="n">output</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">cpy</span> <span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">If</span> <span class="kc">True</span><span class="p">,</span> <span class="n">copy</span> <span class="n">the</span> <span class="n">arrays</span> <span class="n">by</span> <span class="n">value</span><span class="p">,</span> <span class="ow">not</span> <span class="n">reference</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Data can be bad, or it can be flagged, or it can be both. Some
+flags imply that the associated data will be bad, but there are
+some you may be able to live with. Bad data are indicated by
+any/all of t,y,ye being set = NaN. The bitmask values correspond
+to flags defined in hipercam.core. The bitmask values are OR-ed
+when an operation on two Tseries is performed. Thus the child of
+two Tseries inherits all the problems of each of its parents.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.append">
+<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">others</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.append" title="Link to this definition">¶</a></dt>
+<dd><p>Append Tseries objects</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>others</strong><span class="classifier">Tseries object or list of Tseries objects</span></dt><dd><p>Time series to be appended to the current one</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>new_ts</strong><span class="classifier">Tseries object</span></dt><dd><p>Concatenated time series</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To end with any exposure times, all contributing series
+will need to have exposure times defined.</p>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.bin">
+<span class="sig-name descname"><span class="pre">bin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.bin" title="Link to this definition">¶</a></dt>
+<dd><p>Bins the Timeseries into blocks of binsize; bitmask mvalue
+can be used to skip points.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>binsize</strong><span class="classifier">int</span></dt><dd><p>Number of observations to incude in every bin</p>
+</dd>
+<dt><strong>bitmask</strong><span class="classifier">int | None</span></dt><dd><p>Bitmask that selects elements to ignore before binning, in addition to
+bad points. e.g. bitmask=hcam.TARGET_SATURATED will skip points
+flagged as saturated.</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier">bool</span></dt><dd><p>If True, self is modified, else a new Tseries is created
+and self is untouched. A reference to a Tseries is always returned</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>TSeries</strong><span class="classifier">Tseries object</span></dt><dd><p>Binned Timeseries. If any output bin has no allowed input points (all
+bad or flagged by bitmask)</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ol class="arabic simple">
+<li><p>If the ratio between the Tseries length and the binsize is not
+a whole number, then the remainder of the data points will be
+ignored.</p></li>
+<li><p>The binned TSeries will report the root-mean-square error.</p></li>
+<li><p>The bitwise OR of the quality flags will be returned per bin.</p></li>
+<li><p>Any bins with no points will have their data set bad to mask them</p></li>
+<li><p>The exposure time will be set to span the first to last time
+contributing to the bin.</p></li>
+</ol>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.clear_bitmask">
+<span class="sig-name descname"><span class="pre">clear_bitmask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bitmask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.clear_bitmask" title="Link to this definition">¶</a></dt>
+<dd><p>This clears any of the internal bitmask elements of the
+input bitmask value ‘bitmask’ for all values for which ‘mask’
+is true. ‘mask’ should match the Tseries length.  It does
+this by bitwise_and-ing with ~bitmask. It reverses the effect
+of set_bitmask. Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bitmask</span> <span class="p">:</span> <span class="nb">int</span>
+  <span class="n">a</span> <span class="n">bitmask</span> <span class="n">value</span> <span class="n">which</span> <span class="n">will</span> <span class="n">be</span> <span class="n">cleaned</span> <span class="kn">from</span><span class="w"> </span><span class="nn">the</span> <span class="n">current</span> <span class="n">bitmask</span> <span class="n">array</span>
+
+<span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+  <span class="n">the</span> <span class="n">bitmask</span> <span class="n">will</span> <span class="n">be</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">every</span> <span class="n">element</span> <span class="k">for</span> <span class="n">which</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">True</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.clip_ends">
+<span class="sig-name descname"><span class="pre">clip_ends</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nstart</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nend</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.clip_ends" title="Link to this definition">¶</a></dt>
+<dd><p>Clips points off either end of Tseries, returns a new Tseries,
+leaves old one unchanged.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nstart</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">number</span> <span class="n">to</span> <span class="n">remove</span> <span class="kn">from</span><span class="w"> </span><span class="nn">start</span>
+
+<span class="n">nstart</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">number</span> <span class="n">to</span> <span class="n">remove</span> <span class="kn">from</span><span class="w"> </span><span class="nn">end</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.downsize">
+<span class="sig-name descname"><span class="pre">downsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.downsize" title="Link to this definition">¶</a></dt>
+<dd><p>Bins the Tseries down to match the times from ‘other’.
+Useful for dealing with data taken with nskips</p>
+<p>Parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">other</span> <span class="p">:</span> <span class="n">Tseries</span>
+  <span class="n">A</span> <span class="n">coarser</span> <span class="n">Tseries</span> <span class="n">you</span> <span class="n">wish</span> <span class="n">to</span> <span class="n">match</span><span class="o">.</span> <span class="n">Must</span> <span class="n">have</span>
+  <span class="n">an</span> <span class="n">integer</span> <span class="n">ratio</span> <span class="n">fewer</span> <span class="n">points</span><span class="o">.</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="k">for</span> <span class="n">HiPERCAM</span> <span class="n">this</span>
+  <span class="n">might</span> <span class="n">be</span> <span class="n">the</span> <span class="n">u</span><span class="o">-</span><span class="n">band</span> <span class="k">while</span> <span class="s1">&#39;self&#39;</span> <span class="ow">is</span> <span class="s1">&#39;g&#39;</span><span class="o">-</span><span class="n">band</span> <span class="n">data</span><span class="p">,</span> <span class="n">assuming</span>
+  <span class="n">they</span> <span class="n">are</span> <span class="n">commensurate</span><span class="o">.</span>
+
+<span class="n">bitmask</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span>
+  <span class="n">Bitmask</span> <span class="n">to</span> <span class="n">feed</span> <span class="n">through</span> <span class="n">to</span> <span class="n">the</span> <span class="n">binning</span> <span class="n">routine</span> <span class="n">used</span><span class="p">;</span> <span class="n">see</span> <span class="s1">&#39;bin&#39;</span><span class="o">.</span>
+  <span class="n">Use</span> <span class="n">to</span> <span class="k">try</span> <span class="n">to</span> <span class="n">exclude</span> <span class="n">bad</span> <span class="n">data</span> <span class="n">where</span> <span class="n">possible</span><span class="o">.</span>
+
+<span class="n">inplace</span> <span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">If</span> <span class="kc">True</span><span class="p">,</span> <span class="n">overwrite</span> <span class="n">the</span> <span class="n">Tseries</span><span class="p">,</span> <span class="k">else</span> <span class="n">just</span> <span class="k">return</span> <span class="n">a</span> <span class="n">new</span> <span class="n">one</span><span class="o">.</span>
+  <span class="n">A</span> <span class="n">reference</span> <span class="n">to</span> <span class="n">a</span> <span class="n">Tseries</span> <span class="ow">is</span> <span class="n">always</span> <span class="n">returned</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>TSeries</strong><span class="classifier">Tseries</span></dt><dd><p>Binned version of the Tseries. Every output bin will be present
+but some could be flagged as bad if there was no valid input. This
+allows the binned and coarse Tseries to stay ‘in step’.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.flag_outliers">
+<span class="sig-name descname"><span class="pre">flag_outliers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.flag_outliers" title="Link to this definition">¶</a></dt>
+<dd><p>Flags outlier flux values using sigma-clipping according to
+<cite>astropy.stats.sigma_clip</cite> [see docs on that for details].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>sigma</strong><span class="classifier">float</span></dt><dd><p>The number of standard deviations to use for clipping outliers.
+Defaults to 5.</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier">bool</span></dt><dd><p>Default action is to apply the mask in place. Otherwise returns
+a new Tseries, leaving the current one untouched.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of arguments to be passed to <cite>astropy.stats.sigma_clip</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>clean_tseries</strong><span class="classifier">Tseries object [if not inplace]</span></dt><dd><p>Modified Tseries</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.from_mag">
+<span class="sig-name descname"><span class="pre">from_mag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.from_mag" title="Link to this definition">¶</a></dt>
+<dd><p>Convert from magnitudes to a linear scale (inverse of to_mag)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.get_bad">
+<span class="sig-name descname"><span class="pre">get_bad</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.get_bad" title="Link to this definition">¶</a></dt>
+<dd><p>Returns with a numpy boolean array of bad data defined as data
+where any one of t, y, ye has been set to NaN or Inf</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.get_data">
+<span class="sig-name descname"><span class="pre">get_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flagged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.get_data" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the data as (times, exposures, values, errors). ‘bitmask’ is a bitmask
+to define which the data to exclude in addition to any NaN values.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bitmask</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+  <span class="n">bitmask</span> <span class="n">to</span> <span class="n">identify</span> <span class="n">points</span> <span class="n">flagged</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">internal</span> <span class="n">bmask</span> <span class="n">array</span><span class="o">.</span> <span class="n">Use</span> <span class="n">to</span>
+  <span class="n">exclude</span> <span class="n">bad</span> <span class="n">data</span> <span class="p">(</span><span class="ow">in</span> <span class="n">addition</span> <span class="n">to</span> <span class="n">data</span> <span class="k">with</span> <span class="n">NaN</span><span class="p">)</span><span class="o">.</span> <span class="n">See</span> <span class="n">get_mask</span> <span class="k">for</span> <span class="n">usage</span><span class="o">.</span>
+
+<span class="n">flagged</span> <span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">If</span> <span class="nb">set</span> <span class="kc">True</span><span class="p">,</span> <span class="n">rather</span> <span class="n">than</span> <span class="n">using</span> <span class="s1">&#39;bitmask&#39;</span> <span class="n">to</span> <span class="n">exclude</span> <span class="n">data</span><span class="p">,</span> <span class="n">this</span> <span class="n">uses</span> <span class="n">it</span>
+  <span class="n">to</span> <span class="n">include</span> <span class="n">data</span> <span class="p">(</span><span class="n">but</span> <span class="n">still</span> <span class="n">avoids</span> <span class="n">bad</span> <span class="n">NaN</span> <span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>Returns::</dt><dd><dl class="simple">
+<dt>data<span class="classifier">tuple</span></dt><dd><p>times, exposures times [or None if they are not defined], y values and their
+uncertainties</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.get_mask">
+<span class="sig-name descname"><span class="pre">get_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flag_bad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.get_mask" title="Link to this definition">¶</a></dt>
+<dd><p>Returns logical array of all points which contain NaN values or
+which match the bitmask ‘bitmask’ (i.e. bitwise_and &gt; 0) The
+intention is to return a boolean mask suitable for creating
+numpy.ma.masked_array objects. i.e. bitmask=(hcam.NOSKY |
+hcam.TARGET_SATURATED) would pick up all points said to have
+no sky or saturated target pixels. Thus the array returned
+flags bad data.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bitmask</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">uint32</span>
+   <span class="mi">32</span><span class="o">-</span><span class="n">bit</span> <span class="n">bitmask</span> <span class="n">to</span> <span class="n">select</span> <span class="n">points</span> <span class="n">according</span> <span class="n">to</span> <span class="n">the</span> <span class="n">internal</span> <span class="n">bmask</span>
+   <span class="n">array</span><span class="o">.</span>  <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">mvalue</span><span class="o">=</span><span class="p">(</span><span class="n">NO_FWHM</span> <span class="o">|</span> <span class="n">NO_SKY</span><span class="p">)</span> <span class="n">would</span> <span class="n">select</span>
+   <span class="nb">all</span> <span class="n">points</span> <span class="n">without</span> <span class="n">a</span> <span class="n">FWHM</span> <span class="ow">or</span> <span class="n">sky</span> <span class="n">aperture</span><span class="o">.</span>
+   <span class="n">See</span> <span class="n">Tseries</span><span class="o">.</span><span class="n">report</span> <span class="k">for</span> <span class="n">how</span> <span class="n">to</span> <span class="n">get</span> <span class="n">a</span> <span class="n">full</span> <span class="nb">list</span> <span class="n">of</span>
+   <span class="n">possible</span> <span class="n">flags</span><span class="o">.</span> <span class="n">A</span> <span class="n">value</span> <span class="n">of</span> <span class="kc">None</span> <span class="n">makes</span> <span class="n">no</span> <span class="n">selection</span> <span class="ow">and</span> <span class="n">only</span>
+   <span class="n">NaN</span> <span class="n">data</span> <span class="n">will</span> <span class="n">be</span> <span class="n">flagged</span><span class="o">.</span>
+
+<span class="n">flag_bad</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="n">The</span> <span class="n">usual</span> <span class="n">operating</span> <span class="n">mode</span> <span class="p">(</span><span class="n">flag_bad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="ow">is</span> <span class="n">to</span> <span class="n">flag</span> <span class="n">up</span> <span class="nb">any</span> <span class="n">bad</span>
+   <span class="n">data</span> <span class="p">(</span><span class="n">affected</span> <span class="n">by</span> <span class="n">NaNs</span><span class="p">)</span> <span class="k">as</span> <span class="n">well</span> <span class="k">as</span> <span class="n">data</span> <span class="n">matching</span> <span class="s1">&#39;bitmask&#39;</span><span class="o">.</span> <span class="n">If</span>
+   <span class="nb">set</span> <span class="kc">False</span><span class="p">,</span> <span class="n">only</span> <span class="n">data</span> <span class="n">matching</span> <span class="s1">&#39;bitmask&#39;</span> <span class="ow">is</span> <span class="n">flagged</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">numpy</span> <span class="n">logical</span> <span class="n">array</span> <span class="n">of</span> <span class="n">same</span> <span class="n">length</span> <span class="k">as</span> <span class="n">the</span> <span class="n">Tseries</span><span class="o">.</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The logical array returned is not the same as the internal
+attribute ‘bmask’ which contains the bitmask array itself.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Because of the way the mask is applied using
+‘numpy.bitwise_and’, it makes no sense to set
+bitmask=ALL_OK (it would actually be equivalent to setting
+bitmask=None in terms of operation) and so to do so raises
+a ValueErrror. In this instance you may want to set it to
+ANY_FLAG instead to flag up points flagged for any reason.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.mjd2tdb">
+<span class="sig-name descname"><span class="pre">mjd2tdb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">telescope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.mjd2tdb" title="Link to this definition">¶</a></dt>
+<dd><p>Convert times in MJD to BMJD(TDB), i.e. barycentrically corrected
+the time into phase.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">position</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">SkyCoord</span>
+
+  <span class="n">RA</span><span class="o">/</span><span class="n">Dec</span> <span class="n">string</span> <span class="p">(</span><span class="n">sexagesimal</span> <span class="n">form</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="mi">20</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">04</span><span class="p">,</span><span class="mi">5</span>
+  <span class="o">-</span><span class="mi">00</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mf">56.3</span><span class="s2">&quot;) suitable for creating an</span>
+  <span class="n">astropy</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">SkyCoord</span> <span class="nb">object</span><span class="p">,</span> <span class="ow">or</span> <span class="n">a</span> <span class="n">pre</span><span class="o">-</span><span class="n">built</span>
+  <span class="n">SkyCoord</span>
+
+<span class="n">telescope</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">EarthLocation</span>
+  <span class="n">string</span> <span class="n">recognised</span> <span class="k">for</span> <span class="n">creating</span> <span class="n">an</span>
+  <span class="n">astropy</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">EarthLocation</span> <span class="nb">object</span><span class="p">,</span> <span class="ow">or</span> <span class="n">a</span> <span class="n">pre</span><span class="o">-</span><span class="n">built</span>
+  <span class="n">EarthLocation</span><span class="o">.</span> <span class="n">Examples</span><span class="p">:</span> <span class="s1">&#39;lapalma&#39;</span><span class="p">,</span> <span class="s1">&#39;paranal&#39;</span><span class="o">.</span>
+
+<span class="n">inplace</span> <span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">whether</span> <span class="n">to</span> <span class="n">transform</span> <span class="n">the</span> <span class="n">times</span> <span class="ow">in</span> <span class="n">the</span> <span class="nb">object</span> <span class="ow">or</span> <span class="n">create</span> <span class="n">a</span>
+  <span class="n">new</span> <span class="nb">object</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.mplot">
+<span class="sig-name descname"><span class="pre">mplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'b'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flagged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">erry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.mplot" title="Link to this definition">¶</a></dt>
+<dd><p>Plots a Tseries to a matplotlib Axes instance, only plotting points
+that match the bitmask <cite>mask</cite> and have positive errors.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">axes</span> <span class="p">:</span> <span class="n">Axes</span>
+   <span class="n">the</span> <span class="n">axis</span> <span class="n">instance</span> <span class="n">to</span> <span class="n">plot</span> <span class="n">to</span><span class="o">.</span> <span class="n">Can</span> <span class="n">just</span> <span class="n">be</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">pyplot</span>
+
+<span class="n">color</span> <span class="p">:</span> <span class="n">matplotlib</span> <span class="n">colour</span>
+   <span class="n">the</span> <span class="n">colour</span> <span class="n">to</span> <span class="n">use</span> <span class="p">(</span><span class="n">fed</span> <span class="n">into</span> <span class="n">kwargs</span> <span class="n">to</span> <span class="n">establish</span> <span class="n">a</span> <span class="n">fixed</span> <span class="n">default</span><span class="p">)</span>
+
+<span class="n">fmt</span> <span class="p">:</span> <span class="nb">str</span>
+   <span class="n">marker</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">points</span> <span class="ow">or</span> <span class="n">style</span> <span class="k">for</span> <span class="n">line</span> <span class="n">plots</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span> <span class="n">give</span> <span class="n">different</span> <span class="n">points</span> <span class="k">while</span> <span class="s1">&#39;-&#39;</span> <span class="ow">and</span> <span class="s1">&#39;--&#39;</span> <span class="n">give</span>
+   <span class="n">different</span> <span class="n">lines</span><span class="o">.</span> <span class="p">(</span><span class="n">fed</span> <span class="n">into</span> <span class="n">kwargs</span><span class="p">)</span>
+
+<span class="n">bitmask</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span>
+   <span class="n">bitmask</span> <span class="n">to</span> <span class="n">remove</span> <span class="n">bad</span> <span class="n">points</span><span class="o">.</span> <span class="n">See</span> <span class="s1">&#39;get_mask&#39;</span> <span class="k">for</span> <span class="n">usage</span><span class="o">.</span>
+
+<span class="n">flagged</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="nb">set</span> <span class="kc">True</span> <span class="n">to</span> <span class="n">plot</span> <span class="n">points</span> <span class="n">that</span> <span class="n">match</span> <span class="n">the</span> <span class="n">bitmask</span> <span class="n">rather</span> <span class="n">than</span>
+   <span class="n">ones</span> <span class="n">that</span> <span class="n">don</span><span class="s1">&#39;t.</span>
+
+<span class="n">capsize</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="k">if</span> <span class="n">error</span> <span class="n">bars</span> <span class="n">are</span> <span class="n">plotted</span> <span class="k">with</span> <span class="n">points</span><span class="p">,</span> <span class="n">this</span> <span class="n">sets</span>
+   <span class="n">the</span> <span class="n">length</span> <span class="n">of</span> <span class="n">terminals</span> <span class="p">(</span><span class="n">fed</span> <span class="n">into</span> <span class="n">kwargs</span><span class="p">)</span>
+
+<span class="n">errx</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="kc">True</span> <span class="o">/</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">bars</span> <span class="n">indicating</span> <span class="n">exposure</span> <span class="n">length</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">e</span><span class="o">.</span> <span class="o">+/-</span> <span class="mi">1</span><span class="o">/</span><span class="mi">2</span>
+   <span class="n">whatever</span> <span class="ow">is</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">te</span> <span class="n">array</span><span class="p">)</span>
+
+<span class="n">erry</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="kc">True</span> <span class="o">/</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">vertical</span> <span class="n">error</span> <span class="n">bars</span> <span class="ow">or</span> <span class="ow">not</span>
+
+<span class="n">trange</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="p">(</span><span class="n">t1</span><span class="p">,</span><span class="n">t2</span><span class="p">)</span>
+   <span class="n">Two</span> <span class="n">element</span> <span class="nb">tuple</span> <span class="n">to</span> <span class="n">limit</span> <span class="n">the</span> <span class="n">time</span> <span class="nb">range</span>
+
+<span class="n">mask</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">logical</span> <span class="n">array</span>
+   <span class="kc">True</span> <span class="k">for</span> <span class="n">point</span> <span class="n">to</span> <span class="n">be</span> <span class="n">plotted</span>
+
+<span class="n">kwargs</span> <span class="p">:</span> <span class="n">keyword</span> <span class="n">arguments</span>
+   <span class="n">These</span> <span class="n">will</span> <span class="n">be</span> <span class="n">fed</span> <span class="n">to</span> <span class="n">the</span> <span class="n">plot</span> <span class="n">routine</span> <span class="n">which</span> <span class="ow">is</span> <span class="n">either</span>
+   <span class="n">matplotlib</span><span class="o">.</span><span class="n">pyplot</span><span class="o">.</span><span class="n">errorbar</span> <span class="ow">or</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">pyplot</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span>
+   <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="s1">&#39;ms=2&#39;</span> <span class="n">will</span> <span class="nb">set</span> <span class="n">the</span> <span class="n">markersize</span> <span class="n">to</span> <span class="mf">2.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.normalise">
+<span class="sig-name descname"><span class="pre">normalise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'median'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weighted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.normalise" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a normalized version of the time series.</p>
+<p>The normalized timeseries is obtained by dividing <cite>y</cite> and <cite>ye</cite>
+by the median (or mean) y value. Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bitmask</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span>
+   <span class="n">see</span> <span class="n">get_mask</span> <span class="k">for</span> <span class="n">meaning</span><span class="o">.</span> <span class="n">Bad</span> <span class="n">data</span> <span class="n">are</span> <span class="n">always</span> <span class="n">ignored</span><span class="o">.</span>
+
+<span class="n">method</span> <span class="p">:</span> <span class="nb">str</span>
+   <span class="n">method</span> <span class="n">to</span> <span class="n">apply</span><span class="p">,</span> <span class="n">either</span> <span class="s1">&#39;median&#39;</span> <span class="ow">or</span> <span class="s1">&#39;mean&#39;</span>
+
+<span class="n">weighted</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">compute</span> <span class="n">an</span> <span class="n">inverse</span><span class="o">-</span><span class="n">variance</span> <span class="n">weighted</span> <span class="n">mean</span>
+
+<span class="n">inplace</span><span class="p">:</span> <span class="nb">bool</span>
+   <span class="k">if</span> <span class="kc">True</span><span class="p">,</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">modfied</span><span class="p">,</span> <span class="k">else</span> <span class="n">a</span> <span class="n">new</span> <span class="n">Tseries</span> <span class="ow">is</span> <span class="n">created</span><span class="o">.</span> <span class="n">A</span>
+   <span class="n">reference</span> <span class="n">to</span> <span class="n">a</span> <span class="n">Tseries</span> <span class="ow">is</span> <span class="n">always</span> <span class="n">returned</span><span class="o">.</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>normalized_tseries</strong><span class="classifier">Tseries object</span></dt><dd><p>A new <code class="docutils literal notranslate"><span class="pre">Tseries</span></code> in which <cite>y</cite> and <cite>ye</cite> are divided
+by the median / mean y value.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.percentile">
+<span class="sig-name descname"><span class="pre">percentile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.percentile" title="Link to this definition">¶</a></dt>
+<dd><p>Returns percentiles of the y-array and their -/+ 1 sigma to allow
+for error bars.  q = a percentile or array of percentiles
+(values from 0 to 100) The return value is a tuple of three
+lists containing the percentiles for y, y-ye, y+ye.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">q</span> <span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">array</span>
+  <span class="n">Percentile</span> <span class="ow">or</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">percentiles</span> <span class="n">to</span> <span class="n">calculate</span><span class="p">,</span> <span class="ow">in</span> <span class="nb">range</span> <span class="mi">0</span><span class="o">-</span><span class="mf">100.</span>
+
+<span class="n">bitmask</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span>
+  <span class="n">see</span> <span class="n">get_mask</span> <span class="k">for</span> <span class="n">meaning</span><span class="o">.</span> <span class="n">Bad</span> <span class="n">data</span> <span class="n">are</span> <span class="n">always</span> <span class="n">ignored</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Three</span> <span class="n">lists</span> <span class="n">containing</span> <span class="n">percentiles</span> <span class="k">for</span> <span class="n">y</span><span class="p">,</span> <span class="n">y</span><span class="o">-</span><span class="n">ye</span> <span class="ow">and</span> <span class="n">y</span><span class="o">+</span><span class="n">ye</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.phase">
+<span class="sig-name descname"><span class="pre">phase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.phase" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the time into phase.</p>
+<p>This method returns a new <code class="docutils literal notranslate"><span class="pre">Tseries</span></code> object in which the time
+values range between -0.5 to +0.5.  Data points which occur exactly
+at <code class="docutils literal notranslate"><span class="pre">t0</span></code> or an integer multiple of <cite>t0 + n*period</cite> have time
+value 0.0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>t0</strong><span class="classifier">float</span></dt><dd><p>Time reference point.</p>
+</dd>
+<dt><strong>period</strong><span class="classifier">float</span></dt><dd><p>The period</p>
+</dd>
+<dt><strong>fold</strong><span class="classifier">bool</span></dt><dd><p>If True, map the phases to -0.5 to 0.5.</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier">bool</span></dt><dd><p>Operation in place, else return a new Tseries</p>
+</dd>
+<dt><strong>sort</strong><span class="classifier">bool</span></dt><dd><p>Sort into ascending phase order</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>folded_tseries: Tseries object</dt><dd><p>A new <code class="docutils literal notranslate"><span class="pre">Tseries</span></code> with the time converted to phase
+(if inplace=False)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.read">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_exposures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.read" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a Tseries from an ASCII column data file. This
+should either contain times, y-values, y-errors, bitmask
+or times, exposures, y-values, y-errors, bitmask</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.report">
+<span class="sig-name descname"><span class="pre">report</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.report" title="Link to this definition">¶</a></dt>
+<dd><p>Reports numbers and types of bad points and details which are problematical.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.resample">
+<span class="sig-name descname"><span class="pre">resample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bin_edges</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weighted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors_from_rms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.resample" title="Link to this definition">¶</a></dt>
+<dd><p>Resamples the Timeseries onto a uniform grid.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>bin_edges</strong><span class="classifier"><cite>~np.ndarray</cite></span></dt><dd><p>The left-hand edges of the grid.</p>
+</dd>
+<dt><strong>weighted</strong><span class="classifier">bool | True</span></dt><dd><p>If true, points will be combined using a weighted mean.</p>
+</dd>
+<dt><strong>errors_from_rms</strong><span class="classifier">bool | True</span></dt><dd><p>If True, the errors in each bin will be calculated from the RMS of the
+points contributing to the bin. Otherwise, the measured errors on each
+point will be used.</p>
+</dd>
+<dt><strong>bitmask</strong><span class="classifier">int | None</span></dt><dd><p>Bitmask that selects elements to ignore before binning, in addition to
+bad points. e.g. bitmask=hcam.TARGET_SATURATED will skip points
+flagged as saturated.</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier">bool</span></dt><dd><p>If True, self is modified, else a new Tseries is created
+and self is untouched. A reference to a Tseries is always returned</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>TSeries</strong><span class="classifier">Tseries object</span></dt><dd><p>Binned Timeseries. If any output bin has no allowed input points (all
+bad or flagged by bitmask) it will be flagged as bad.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ol class="arabic simple">
+<li><p>The binned TSeries will report the root-mean-square error.</p></li>
+<li><p>The bitwise OR of the quality flags will be returned per bin.</p></li>
+<li><p>Any bins with no points will have their data set bad to mask them</p></li>
+<li><p>The exposure time will be set to span the first to last time
+contributing to the bin.</p></li>
+</ol>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.set_bitmask">
+<span class="sig-name descname"><span class="pre">set_bitmask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bitmask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.set_bitmask" title="Link to this definition">¶</a></dt>
+<dd><p>This updates the internal bitmask by ‘bitwise_or’-ing it with the
+input bitmask value ‘bitmask’ for all values for which ‘mask’
+is true. ‘mask’ should match the Tseries length.  Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bitmask</span> <span class="p">:</span> <span class="nb">int</span>
+  <span class="n">a</span> <span class="n">bitmask</span> <span class="n">value</span> <span class="n">which</span> <span class="n">will</span> <span class="n">be</span> <span class="n">OR</span><span class="o">-</span><span class="n">ed</span> <span class="k">with</span> <span class="n">elements</span> <span class="n">of</span> <span class="n">the</span> <span class="n">current</span>
+  <span class="n">bitmask</span> <span class="n">array</span>
+
+<span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+  <span class="n">the</span> <span class="n">bitmask</span> <span class="n">will</span> <span class="n">be</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">every</span> <span class="n">element</span> <span class="k">for</span> <span class="n">which</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">True</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.tadd">
+<span class="sig-name descname"><span class="pre">tadd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.tadd" title="Link to this definition">¶</a></dt>
+<dd><p>Adds ‘other’ to the times, in place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.tdiv">
+<span class="sig-name descname"><span class="pre">tdiv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.tdiv" title="Link to this definition">¶</a></dt>
+<dd><p>Divides the times by ‘other’, in place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.tmul">
+<span class="sig-name descname"><span class="pre">tmul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.tmul" title="Link to this definition">¶</a></dt>
+<dd><p>Multiplies the times by ‘other’, in place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.to_airmass">
+<span class="sig-name descname"><span class="pre">to_airmass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">telescope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.to_airmass" title="Link to this definition">¶</a></dt>
+<dd><p>Converts times in MJD to airmass. This is a first step when
+measuring extinction. The airmass computation uses Eq (1) from
+Young &amp; Irvine (1967) which is OK up to 4 and better than plain
+secz. Any error array on the times is set to None.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">position</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">SkyCoord</span>
+
+  <span class="n">RA</span><span class="o">/</span><span class="n">Dec</span> <span class="n">string</span> <span class="p">(</span><span class="n">sexagesimal</span> <span class="n">form</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="mi">20</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">04</span><span class="p">,</span><span class="mi">5</span>
+  <span class="o">-</span><span class="mi">00</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mf">56.3</span><span class="s2">&quot;) suitable for creating an</span>
+  <span class="n">astropy</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">SkyCoord</span> <span class="nb">object</span><span class="p">,</span> <span class="ow">or</span> <span class="n">a</span> <span class="n">pre</span><span class="o">-</span><span class="n">built</span>
+  <span class="n">SkyCoord</span>
+
+<span class="n">telescope</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">EarthLocation</span>
+  <span class="n">string</span> <span class="n">recognised</span> <span class="k">for</span> <span class="n">creating</span> <span class="n">an</span>
+  <span class="n">astropy</span><span class="o">.</span><span class="n">coordinates</span><span class="o">.</span><span class="n">EarthLocation</span> <span class="nb">object</span><span class="p">,</span> <span class="ow">or</span> <span class="n">a</span> <span class="n">pre</span><span class="o">-</span><span class="n">built</span>
+  <span class="n">EarthLocation</span><span class="o">.</span> <span class="n">Examples</span><span class="p">:</span> <span class="s1">&#39;lapalma&#39;</span><span class="p">,</span> <span class="s1">&#39;paranal&#39;</span><span class="o">.</span>
+
+<span class="n">pressure</span><span class="p">:</span> <span class="nb">float</span>
+  <span class="n">Atmospheric</span> <span class="n">pressure</span> <span class="ow">in</span> <span class="n">terms</span> <span class="n">of</span> <span class="n">standard</span> <span class="n">atmospheres</span><span class="o">.</span> <span class="n">Used</span>
+  <span class="n">to</span> <span class="n">compute</span> <span class="n">refraction</span><span class="o">.</span> <span class="n">Set</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">you</span> <span class="n">get</span> <span class="n">problems</span> <span class="k">as</span> <span class="n">it</span> <span class="n">becomes</span>
+  <span class="n">inaccurate</span> <span class="n">near</span> <span class="n">the</span> <span class="n">horizon</span><span class="o">.</span>
+
+<span class="n">inplace</span> <span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">whether</span> <span class="n">to</span> <span class="n">transform</span> <span class="n">the</span> <span class="n">times</span> <span class="ow">in</span> <span class="n">the</span> <span class="nb">object</span> <span class="ow">or</span> <span class="n">create</span> <span class="n">a</span>
+  <span class="n">new</span> <span class="nb">object</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.to_mag">
+<span class="sig-name descname"><span class="pre">to_mag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.to_mag" title="Link to this definition">¶</a></dt>
+<dd><p>Convert to magnitudes, i.e. take -2.5*log10(y) (inverse of from_mag)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.tsub">
+<span class="sig-name descname"><span class="pre">tsub</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.tsub" title="Link to this definition">¶</a></dt>
+<dd><p>Subtracts ‘other’ to the times, in place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.ttrans">
+<span class="sig-name descname"><span class="pre">ttrans</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">efunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.ttrans" title="Link to this definition">¶</a></dt>
+<dd><p>Applies “func” to transform a time scale. “func” should return
+an array of transformed times given an array of raw times. “efunc”
+if defined will transform the exposure times (if they exist).</p>
+<p>For instance:</p>
+<blockquote>
+<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ts</span><span class="o">.</span><span class="n">ttrans</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span> <span class="p">:</span> <span class="mi">1440</span><span class="o">*</span><span class="p">(</span><span class="n">t</span><span class="o">-</span><span class="n">T0</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">te</span> <span class="p">:</span> <span class="mi">1440</span><span class="o">*</span><span class="n">te</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>would convert times in days to minutes offset from T0.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lcurve</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.write" title="Link to this definition">¶</a></dt>
+<dd><p>Writes out the Tseries to an ASCII file using numpy.savetxt. Other
+arguments to savetxt can be passed via kwargs. The data are
+written with a default choice of “fmt” sent to savetxt unless
+overridden using kwargs.  The default “fmt” uses a high
+precision on the times based upon typical usage for ULTRACAM
+derived (MJD) data.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fname</span> <span class="p">:</span> <span class="nb">str</span>
+  <span class="n">output</span> <span class="n">file</span> <span class="n">name</span>
+
+<span class="n">lcurve</span> <span class="p">:</span> <span class="nb">bool</span>
+  <span class="k">if</span> <span class="kc">True</span><span class="p">,</span> <span class="n">tack</span> <span class="n">on</span> <span class="n">two</span> <span class="n">extra</span> <span class="n">columns</span> <span class="n">to</span> <span class="n">make</span> <span class="n">it</span> <span class="n">easy</span> <span class="n">to</span> <span class="n">read</span> <span class="n">the</span> <span class="n">data</span>
+  <span class="n">into</span> <span class="n">the</span> <span class="n">program</span> <span class="n">lcurve</span><span class="o">.</span> <span class="n">This</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">write</span> <span class="n">bad</span> <span class="n">data</span> <span class="ow">or</span> <span class="n">the</span> <span class="n">bitmask</span>
+  <span class="n">but</span> <span class="n">uses</span> <span class="n">the</span> <span class="n">supplied</span> <span class="n">bitmask</span> <span class="n">to</span> <span class="nb">set</span> <span class="n">weights</span> <span class="n">on</span> <span class="n">bad</span> <span class="n">points</span> <span class="n">to</span> <span class="n">zero</span><span class="o">.</span>
+  <span class="n">If</span> <span class="kc">False</span> <span class="nb">all</span> <span class="n">data</span> <span class="n">including</span> <span class="n">bad</span> <span class="n">data</span> <span class="n">are</span> <span class="n">written</span> <span class="ow">and</span> <span class="n">the</span> <span class="n">fill</span> <span class="n">bitmask</span>
+  <span class="n">value</span> <span class="ow">is</span> <span class="n">given</span><span class="o">.</span> <span class="n">Explanotory</span> <span class="n">header</span> <span class="n">info</span> <span class="ow">is</span> <span class="n">tacked</span> <span class="n">onto</span> <span class="n">to</span> <span class="n">whatever</span> <span class="n">header</span>
+  <span class="ow">is</span> <span class="n">passed</span> <span class="n">via</span> <span class="n">kwargs</span> <span class="n">to</span> <span class="n">savetxt</span><span class="o">.</span>
+
+<span class="n">bitmask</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="p">[</span><span class="k">if</span> <span class="n">lcurve</span><span class="p">]</span>
+  <span class="k">if</span> <span class="n">lcurve</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">this</span> <span class="ow">is</span> <span class="n">used</span> <span class="n">to</span> <span class="nb">set</span> <span class="n">the</span> <span class="n">weight</span> <span class="n">on</span> <span class="n">matching</span> <span class="n">points</span> <span class="n">to</span> <span class="mf">0.</span>
+  <span class="n">This</span> <span class="n">allows</span> <span class="n">bad</span> <span class="n">data</span> <span class="n">to</span> <span class="n">be</span> <span class="n">plotted</span> <span class="n">but</span> <span class="ow">not</span> <span class="n">fitted</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">by</span> <span class="s2">&quot;lroche&quot;</span>
+
+<span class="n">skip</span> <span class="p">:</span> <span class="nb">bool</span> <span class="p">[</span><span class="k">if</span> <span class="n">lcurve</span><span class="p">]</span>
+  <span class="k">if</span> <span class="kc">True</span><span class="p">,</span> <span class="nb">any</span> <span class="n">data</span> <span class="n">matched</span> <span class="n">by</span> <span class="n">bitmask</span> <span class="n">are</span> <span class="n">simply</span> <span class="n">skipped</span> <span class="n">on</span> <span class="n">output</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.hlog.Tseries.ymean">
+<span class="sig-name descname"><span class="pre">ymean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bitmask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weighted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.hlog.Tseries.ymean" title="Link to this definition">¶</a></dt>
+<dd><p>Computes the mean of the y-values. “weighted=True”
+means the mean is calculated with inverse variance
+weighting.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickapi.html">API quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hcmformat.html">HiPERCAM’s hcm file format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows.html">HiPERCAM’s windows format</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="details.html">Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="hipercam-ccd.html">hipercam.ccd</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hipercam-window.html">hipercam.window</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html">Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing_tests.html">Timing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging.html">Data logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="hipercam-ccd.html"
+                          title="previous chapter">hipercam.ccd</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="hipercam-window.html"
+                          title="next chapter">hipercam.window</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/hipercam-hlog.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/hipercam-hlog.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HiPERCAM’s windows format &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Modules" href="details.html" />
+    <link rel="prev" title="HiPERCAM’s hcm file format" href="hcmformat.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="details.html" title="Modules">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="hcmformat.html" title="HiPERCAM’s hcm file format">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="api.html" accesskey="U">The API</a> &#187;</li>
+      
+      <li>HiPERCAM’s windows format</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="hiper-s-windows-format">
+<h1>HiPERCAM’s windows format<a class="headerlink" href="#hiper-s-windows-format" title="Link to this heading">¶</a></h1>
+<figure class="align-center" id="id1">
+<span id="fig-windows"></span><a class="reference internal image-reference" href="../_images/windows.png"><img alt="|hiper| windows" src="../_images/windows.png" style="width: 884.0px; height: 452.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 5 </span><span class="caption-text">Figure showing how the HiPERCAM windows are defined. The thin rectangles at
+the left and right of the imaging area represent the “pre-scan” (zero light)
+regions.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Although it is not usually necessary to know the details of HiPERCAM’s window
+structure, it may help in somce cases. <a class="reference internal" href="#fig-windows"><span class="std std-numref">Fig. 5</span></a> illustrates the main
+points, which are:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Each CCD is split into 4 quadrants labelled E, F, G, H. These have
+dimensions 1024 in X by 512 in Y, making the whole imaging area of each
+CCD 2048 by 1024 pixels.</p></li>
+<li><p>The outputs are located at the corners of the CCD (somewhat more in fact
+if one allows for an equivalent masked area). Parallel transfers are
+in the Y direction towards the respective output, while the serial
+register moves charges in the X direction towards the respective output.</p></li>
+<li><p>In windowed mode there can be either one or two windows per quadrant. The
+sizes of these windows are the same in all quadrants in sets of
+four. i.e. If you have one window per quadrant of dimension <cite>WIN1 NX</cite> by
+<cite>WIN1 NY</cite> in quadrant E, it will have the same dimensions in quadrants
+F, G and H, but you can have another window, dimensions <cite>WIN2 NX</cite> by
+<cite>WIN2 NY</cite>, that can be different from the first, but again will be
+repreated in all quadrants. The two windows must not overlap in the
+Y direction.</p></li>
+<li><p>The location of a given set of windows is defined by parameter <cite>YS</cite> as in
+<cite>WIN1 YS</cite> indicating the Y-position of the first row to be read out
+relative to the quadrant’s output. If it was actually the very first row
+of the quadrant that could be read, the <cite>YS</cite> would be set = 1. The value
+of <cite>YS</cite> is the same for all four windows of a given set. The X-locations
+of the windows are independently set by four parameters, one per
+quadrant, giving the position of the first column to be read out relative
+to the quadrant’s output. These are called <cite>XSE</cite>, <cite>XSF</cite>, <cite>XSG</cite> and <cite>XSH</cite>
+with a <cite>WIN1</cite> or <cite>WIN2</cite> qualifier. e.g. <cite>WIN1 XSE</cite> says where the
+left-most pixels of the first window in quadrant E fall in terms of
+columns. This would = 1 if it lined up with the extreme left of the CCD.</p></li>
+<li><p>The windows can be be binned in both X and Y.</p></li>
+<li><p>There can be pre-scan pixels (see <a class="reference internal" href="#fig-windows"><span class="std std-numref">Fig. 5</span></a>) in the data. The
+pre-scans are 50 pixels (unbinned). If used, then the X-binning must
+divide into 50.</p></li>
+</ol>
+</div></blockquote>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickapi.html">API quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hcmformat.html">HiPERCAM’s hcm file format</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">HiPERCAM’s windows format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="details.html">Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html">Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing_tests.html">Timing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging.html">Data logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="hcmformat.html"
+                          title="previous chapter">HiPERCAM’s hcm file format</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="details.html"
+                          title="next chapter">Modules</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/windows.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/windows.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

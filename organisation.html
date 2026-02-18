@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>File organisation &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Observing checklists" href="checklists.html" />
+    <link rel="prev" title="Principles" href="photometry.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="checklists.html" title="Observing checklists">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="photometry.html" title="Principles">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="observers.html" accesskey="U">Observer’s guide</a> &#187;</li>
+      
+      <li>File organisation</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="file-organisation">
+<h1>File organisation<a class="headerlink" href="#file-organisation" title="Link to this heading">¶</a></h1>
+<p>This page contains advice on how to organise HiPERCAM reduction in terms of
+directory structure and file names.</p>
+<section id="night-by-night-directories">
+<h2>Night-by-night directories<a class="headerlink" href="#night-by-night-directories" title="Link to this heading">¶</a></h2>
+<p>Since HiPERCAM file names repeat from night-to-night (i.e. you can get
+‘run0023.fits’ on multiple nights), reduction should always be organised
+into directories with one per night. e.g. somewhere there should be a
+top-level directory with a series of directories like so:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">2018-01-02/</span>
+<span class="go">2018-01-03/</span>
+<span class="go">2018-01-04/</span>
+<span class="go">2018-02-11/</span>
+<span class="go">2018-02-12/</span>
+<span class="go">2018-02-13/</span>
+</pre></div>
+</div>
+<p>(or if you prefer, you could have underscores ‘_’ rather than hyphens
+‘-‘). This is how I organise the raw data in Warwick, and I recommend
+the same layout for reduction. Thus when starting on a new night’s-worth of
+data, the first steps are typically as follows:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">mkdir 2018-01-03</span>
+<span class="go">cd 2018-01-03</span>
+<span class="go">ln -s &lt;path_to_raw_data&gt;/2018-01-03 data</span>
+</pre></div>
+</div>
+<p>then within the sub-directory 2018-01-03, all the raw data will be found
+inside ‘data’, a soft-link to the raw data directory.</p>
+</section>
+<section id="file-naming-within-a-night-directory">
+<h2>File naming within a night directory<a class="headerlink" href="#file-naming-within-a-night-directory" title="Link to this heading">¶</a></h2>
+<p>Typically a given night has several biases, a flat field and possibly some dark
+runs. I always stick to the run name when making single calibration frames out
+of such runs. Thus the raw HiPERCAM run ‘run0003.fits’ (or equivalently
+run003.xml, run003.dat for ULTRACAM) will be combined in some way to make a
+single HiPERCAM frame called ‘run0003.hcm’ (or ‘run003.hcm’). However, then I make a
+soft link which defines its fundamental purpose. e.g.:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">ln -s run003.hcm bias_1x1_cdd.hcm</span>
+</pre></div>
+</div>
+<p>which says this is a bias frame taken with 1x1 binning with cdd readout speed
+(ULTRACAM). If you set up ‘ls’ right, soft links appear distinct from ordinary
+files and ‘ls -l’ should tell you where it points. Soft links always carry the
+danger of being broken of course, so one must take care not to move or delete
+the target file. It helps also always to use relative path names (as long as
+one does not change the directory structure), so I commonly make links to bias
+frames taken on later nights e.g. within 2018-01-03 I might write:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">ln -s ../2018-01-04/bias_arsco.hcm</span>
+</pre></div>
+</div>
+<p>where in 2018-01-04, bias_arsco.hcm is itself a link to perhaps ‘run011.hcm’,
+a bias run taken specifically to match the format of a run on ‘AR Sco’ the
+previous night. (NB without a link name specified in the previous line, the
+link is simply created with the target name, i.e. ‘bias_arsco.hcm’ in this case.)</p>
+<p>Always start bias frames with ‘bias_’ then add enough information to make it
+obvious what it can be used for. The binning is important, hence the ‘1x1’
+above, but readout speeds must match as well, hence the ‘cdd’. I adopt the
+convention that I don’t say when biases are full frame (no ‘ff’) because
+that’s the default bias, so the bias above is full frame.</p>
+<p>For flat fields, the main issue is what filters were used, so I call them
+names like ‘flat_ugr.hcm’ or ‘flat_ugi.hcm’. Sometimes calibration frames are
+affected by issues, but maybe you have no choice bu to use what is
+available. Then a name like ‘flat_ugr_caution.hcm’ might be warranted.</p>
+</section>
+<section id="reduction-file-names">
+<h2>Reduction file names<a class="headerlink" href="#reduction-file-names" title="Link to this heading">¶</a></h2>
+<p>Once all set with calibrations, then for a given run, I use the root
+name (‘run023’ or ‘run0034’ or whatever) for all files associated with
+that run. The pipeline defines a set of standard extensions that will
+be added to any given file to allow this. Thus you will end up with
+multiple files of the form ‘run023.XXX’, with ‘XXX’ being the file
+extension. This makes it much easier to keep track of what a given
+file is associated with. Many of the pipeline scripts are designed
+with this in mind, e.g. <a class="reference internal" href="commands.html#hipercam.scripts.averun" title="hipercam.scripts.averun"><code class="xref py py-func docutils literal notranslate"><span class="pre">averun</span></code></a> will set the default output name
+according to the run name. A full set of such files and their likely
+meanings (including a few ancilliary files not associated with
+specific runs) are:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>run023.hcm</p></td>
+<td><p>Binary FITS</p></td>
+<td><p>Representative image of the run, probably from its start using <a class="reference internal" href="commands.html#hipercam.scripts.averun" title="hipercam.scripts.averun"><code class="xref py py-func docutils literal notranslate"><span class="pre">averun</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>run023.ape</p></td>
+<td><p>JSON text</p></td>
+<td><p>File of photometric apertures</p></td>
+</tr>
+<tr class="row-even"><td><p>run023.red</p></td>
+<td><p>ASCII text</p></td>
+<td><p>Reduction driver file for <a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>run023.log</p></td>
+<td><p>ASCII text</p></td>
+<td><p>Output log file from a run of <a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a></p></td>
+</tr>
+<tr class="row-even"><td><p>run023.fits</p></td>
+<td><p>Binary FITS</p></td>
+<td><p>FITS version of a <a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a> log file made with <a class="reference internal" href="commands.html#hipercam.scripts.hlog2fits" title="hipercam.scripts.hlog2fits"><code class="xref py py-func docutils literal notranslate"><span class="pre">hlog2fits</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>defect.dft</p></td>
+<td><p>JSON text</p></td>
+<td><p>File of CCD defects</p></td>
+</tr>
+<tr class="row-even"><td><p>fringe.frng</p></td>
+<td><p>JSON text</p></td>
+<td><p>File of peak/trough pairs for fringe measurement</p></td>
+</tr>
+<tr class="row-odd"><td><p>files.lis</p></td>
+<td><p>ASCII text</p></td>
+<td><p>Column of file names (source=’hf’ option in some commands)</p></td>
+</tr>
+</tbody>
+</table>
+<p>If you find such a set, within a directory, then assuming the pipeline version
+used to make the log file still applies, you should be able to re-reduce using
+the aperture (‘.ape’) and reduction (‘.red’) files. A run of <a class="reference internal" href="commands.html#hipercam.scripts.setaper" title="hipercam.scripts.setaper"><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></a> with
+the hcm (‘.hcm’) and (‘.ape’) files will show the apertures selected. If the
+reduction fails, then you may want to re-generate the reduction driver file
+using <a class="reference internal" href="commands.html#hipercam.scripts.genred" title="hipercam.scripts.genred"><code class="xref py py-func docutils literal notranslate"><span class="pre">genred</span></code></a>; see also <a class="reference internal" href="commands.html#hipercam.scripts.rupdate" title="hipercam.scripts.rupdate"><code class="xref py py-func docutils literal notranslate"><span class="pre">rupdate</span></code></a> which attempts to bring old reduction files
+up to date.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="observers.html">Observer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="telescope.html">At the telescope</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html">Reduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html">Principles</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">File organisation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="checklists.html">Observing checklists</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="photometry.html"
+                          title="previous chapter">Principles</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="checklists.html"
+                          title="next chapter">Observing checklists</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/organisation.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/organisation.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

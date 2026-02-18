@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HiPERCAM pipeline changes from v1.1.0 to v1.2.0 &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="hiper-pipeline-changes-from-v1-1-0-to-v1-2-0">
+<h1>HiPERCAM pipeline changes from v1.1.0 to v1.2.0<a class="headerlink" href="#hiper-pipeline-changes-from-v1-1-0-to-v1-2-0" title="Link to this heading">¶</a></h1>
+<p>List of changes from git, newest first, with the commit keys linked to github:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/edb84f5dacdc14fb553c8ec184097d930b49a72e">edb84f5dacdc14fb553c8ec184097d930b49a72e</a> problem_runs.py, to find problematic runs</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/126041afd410e6037d51e946ee90cacc39968b41">126041afd410e6037d51e946ee90cacc39968b41</a> avalanche.py, finds avalanche mode runs for ultraspec</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/2f547e3b41a54f1faeda61b68150a4380b74264c">2f547e3b41a54f1faeda61b68150a4380b74264c</a> documented new commands</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/d0d824e66c99b11766fe1a63d3c206f4e3704ab9">d0d824e66c99b11766fe1a63d3c206f4e3704ab9</a> Added in pbands to standard setup files</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/42393419dc42c44cff526421a613082cbd1c1d10">42393419dc42c44cff526421a613082cbd1c1d10</a> exploss, improved documentation</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/051dc23ad7078515580cd52095f1707d9e21fd16">051dc23ad7078515580cd52095f1707d9e21fd16</a> pbands, new quick-look plot routine</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/4ac93bb1daf0ca6d9367f1c37296e3f00866b326">4ac93bb1daf0ca6d9367f1c37296e3f00866b326</a> exploss, added some numerical info.</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/1fba90acd8176bb782f495ecffb80bfa7f957baf">1fba90acd8176bb782f495ecffb80bfa7f957baf</a> fringe-runs fix</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/da8b1eb524bb6c448e1afc618d725a6304870b55">da8b1eb524bb6c448e1afc618d725a6304870b55</a> logsearch, bug fix, ignore others option</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/5e2eafbfd8cdc60a2da88159dfce51298472ee84">5e2eafbfd8cdc60a2da88159dfce51298472ee84</a> caksearch.py, several upgrades</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/00bec41db64beb12c382867a6e96e194f3873492">00bec41db64beb12c382867a6e96e194f3873492</a> exploss – to help judge if readout noise is significant</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/b1a7052bfff335c580ae9b461b95518eead36db5">b1a7052bfff335c580ae9b461b95518eead36db5</a> changes instrument column hlogger and logsearch</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/b5c84998eb8830561b42d186c84875378743b6cb">b5c84998eb8830561b42d186c84875378743b6cb</a> hlogger, added instrument name column</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/fb2c616ac31d1799b8c617a70e2e61e18c19b0bb">fb2c616ac31d1799b8c617a70e2e61e18c19b0bb</a> calsearch, new routine to find matching calibration runs</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/befc6ccab161ad98a1734ddf8978fd6408584956">befc6ccab161ad98a1734ddf8978fd6408584956</a> logsearch, added option to skip “Others”</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/9840e2e56b669db86287f3e0352d7d1323e39a3c">9840e2e56b669db86287f3e0352d7d1323e39a3c</a> hlogger, updated to so with ultracam phase II names</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/d3458c4f98cb1e0ff76585e29ced262dc534919f">d3458c4f98cb1e0ff76585e29ced262dc534919f</a> calsearch, new routine to find calibration files</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/07680306ea5a8e012fc584330431c8364ebfa307">07680306ea5a8e012fc584330431c8364ebfa307</a> logsearch, fixed bug in sql query</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/ccb47e37823de53c335b08abef64d981e63ad2c1">ccb47e37823de53c335b08abef64d981e63ad2c1</a> hlogger, bug fixes for airmass and retry option above all</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/1c52b6c73022a315ace77947d92e1d449f50c6f3">1c52b6c73022a315ace77947d92e1d449f50c6f3</a> utils.target_lookup, j or J now</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/b8ab0685591811552e85def408e9dc3312715d8a">b8ab0685591811552e85def408e9dc3312715d8a</a> hlog.Tseries.phase, sort now an option</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/ccbb18f726053aea93b36863e6cf6359dd707d05">ccbb18f726053aea93b36863e6cf6359dd707d05</a> fixed problem with logsearch not recognising new downloads</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/fac17c4a0a2242d449c5fae96343e356dc59067a">fac17c4a0a2242d449c5fae96343e356dc59067a</a> hlogger, fixed check for number of entries in posdata</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/981462dbdfc8afd3fe91c4301f21198f851fcfd1">981462dbdfc8afd3fe91c4301f21198f851fcfd1</a> logsearch, print statement added</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/7bb17b9715c0bfedcd729e9cd90b6fd0ab92e2e9">7bb17b9715c0bfedcd729e9cd90b6fd0ab92e2e9</a> extinction.py, fixed problem with negative deviants</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/46ce40f34ef61cf9eeaf55f7c53dbaa1f32c8fb9">46ce40f34ef61cf9eeaf55f7c53dbaa1f32c8fb9</a> logsearch, strange bug with password prompt</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/3864112de52ea2c86ebe3b8055d0fb1355f9ca3b">3864112de52ea2c86ebe3b8055d0fb1355f9ca3b</a> Reworked the useful/README a bit.</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/6fc33f2f1c4020e8fbc0080a324f4c0e150e426d">6fc33f2f1c4020e8fbc0080a324f4c0e150e426d</a> reorganised useful scripts directoy</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/2d81bf8f70b28e8e0364fc56972c61ee24c11fe5">2d81bf8f70b28e8e0364fc56972c61ee24c11fe5</a> extinction.py, script for measuring extinction</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/20d7466ddf03ab7e8480e47c1b6799d5b1c1ceeb">20d7466ddf03ab7e8480e47c1b6799d5b1c1ceeb</a> hlog.py, removed irritating units from airmasses</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/24026129e9c9b6412898d5637a7e85d2a15f7bde">24026129e9c9b6412898d5637a7e85d2a15f7bde</a> hlog.py, secz to seczs bug fix</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/baaa0e21db8cb7c0f31d33dae795d59c740fb992">baaa0e21db8cb7c0f31d33dae795d59c740fb992</a> hlog.py, added airmass computation</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f6b29811f5c3064c7107b9f744e1d9596cfac205">f6b29811f5c3064c7107b9f744e1d9596cfac205</a> hlogger, changed column name of Delta secz</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/dee963dec8018902dc4ba24da89ded3edcc48f9a">dee963dec8018902dc4ba24da89ded3edcc48f9a</a> hlogger.py, bugs fixed</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/2ebc585b88ddbe990a91d870b4e6d7b5244c92a5">2ebc585b88ddbe990a91d870b4e6d7b5244c92a5</a> hlogger, added airmass info</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/0e8e568103dd8c43a4e35c4709fa51dff8de4043">0e8e568103dd8c43a4e35c4709fa51dff8de4043</a> Added keyring to list of prerequisites.</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/6beafa0d75f652fc0136d15e8fc6bbd5e214b331">6beafa0d75f652fc0136d15e8fc6bbd5e214b331</a> logsearch, automated the database download</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/72c55e2d602cf73928e8cccd56247ea90a14fd21">72c55e2d602cf73928e8cccd56247ea90a14fd21</a> hpackage, generalised behaviour</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f8237920a0392728c4de40fb26c9c4cd2ff577ab">f8237920a0392728c4de40fb26c9c4cd2ff577ab</a> hpackage, added option to pick up alternative reductions</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/e6d3fa8fe552bb20dd1531579a7f5b1e1b8028b6">e6d3fa8fe552bb20dd1531579a7f5b1e1b8028b6</a> Tseries, add clear_bitmask</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/e52af38020aa281d0fb3d983554c7030fbb4d169">e52af38020aa281d0fb3d983554c7030fbb4d169</a> Tseries.write, added option to skip masked data</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/7876a627f87a23d8231dc45bb769133b831198cb">7876a627f87a23d8231dc45bb769133b831198cb</a> Merge branch ‘master’ into trm-dev</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/5bf9bee400e188d84ef9d7c5ec8bfdd8d4dc0acc">5bf9bee400e188d84ef9d7c5ec8bfdd8d4dc0acc</a> hlogger, change to html column format</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/a240e7536887fe671151ce14d350f7279c2ab8b0">a240e7536887fe671151ce14d350f7279c2ab8b0</a> logging doc change</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/0912e281cc0c46fe0da885306f1ab32f1278e535">0912e281cc0c46fe0da885306f1ab32f1278e535</a> Merge pull request #92 from HiPERCAM/tseries_read_fix</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/ee33c77d6dab7caa3626eff37399b941a2ba417a">ee33c77d6dab7caa3626eff37399b941a2ba417a</a> fix typo in Tseries.read</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/34f6d3519da2b42fd81aecf5a47362888c8d199a">34f6d3519da2b42fd81aecf5a47362888c8d199a</a> joinup now joins up regardless of out of sync windows</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/dab5608e407afb62fe0631a5dfece897d64b0447">dab5608e407afb62fe0631a5dfece897d64b0447</a> modified joinup to deal with asynchronous windows</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/93f5bd57cf3c338aee988d9f1e9864f7c475f1a0">93f5bd57cf3c338aee988d9f1e9864f7c475f1a0</a> changed digest to harchive</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/8d66fbf5ba18329ce23e44731d3baede52373bae">8d66fbf5ba18329ce23e44731d3baede52373bae</a> put a try/except into hpackage to avoid joinup error</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/2028dfa3e9a59fd787f8c2953a7a8ec8aef81357">2028dfa3e9a59fd787f8c2953a7a8ec8aef81357</a> generalised the logsearch a bit</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/39a0deb6ae967e3afb4d03cb78179a680928fda3">39a0deb6ae967e3afb4d03cb78179a680928fda3</a> fixed problem with latest upgrade to logsearch</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/991f3628cea8fbc5226dd8b80c3c0dd5fabbee03">991f3628cea8fbc5226dd8b80c3c0dd5fabbee03</a> added -m option to simply report failed names.</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/a5a88de7515a891d8f0c3aa57a696e1701bd5362">a5a88de7515a891d8f0c3aa57a696e1701bd5362</a> added mjd to tdb correction to Tseries</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/c078b3335e8437fe761d1f2332809e0804ed652b">c078b3335e8437fe761d1f2332809e0804ed652b</a> added options to save results to a csv file to logsearch</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/b1924bc0ac50a44fbb99d3f7b49bf5a0cea723e3">b1924bc0ac50a44fbb99d3f7b49bf5a0cea723e3</a> reduced minimum fwhm in genred</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/e881e9bd98f65f9c1dcfacb3ae7fed85a104179b">e881e9bd98f65f9c1dcfacb3ae7fed85a104179b</a> added plotting of the max counts in plog</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/db1706632c88449e541a8f077f3454149d68802c">db1706632c88449e541a8f077f3454149d68802c</a> cline now sets the default for the ignore value</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/781022e2430bd0cda4a286b134b340afe8b04030">781022e2430bd0cda4a286b134b340afe8b04030</a> further adjustment to docs</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/bc713d7b9f6d1e8ca3ee10e5a9a49e504a02c032">bc713d7b9f6d1e8ca3ee10e5a9a49e504a02c032</a> utils.py strips <cite>STD_</cite> from start of target names</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f6f2d350386d489cbd8c88d6cd04c589cd9bd97a">f6f2d350386d489cbd8c88d6cd04c589cd9bd97a</a> doc updates to describe phase II process in the main</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/bb76ebc1d62cdc41b28d0dcb168acec252e95255">bb76ebc1d62cdc41b28d0dcb168acec252e95255</a> further tweak following change to defect file</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/721e56070fb4a03bf5dfb511a349828c5f6f4806">721e56070fb4a03bf5dfb511a349828c5f6f4806</a> new hipercam defects file following Vik’s cleaning of CCD 2</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/0c0c89d67383ee5a7d88bcf7bcd5328f1b03bf33">0c0c89d67383ee5a7d88bcf7bcd5328f1b03bf33</a> changelog for a single tag was not reporting its name</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/5e6ab55b1121d449d7acbc0aed3b6cff9506d341">5e6ab55b1121d449d7acbc0aed3b6cff9506d341</a> many fixes for genred’s template file option</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/bab87543e02c3997e2dafb9cd7139ac1a4435c8d">bab87543e02c3997e2dafb9cd7139ac1a4435c8d</a> expanded range of boolean inputs for reduce files</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/a083e5f6da7a99e63615cf1a96f0a2d56b59ed89">a083e5f6da7a99e63615cf1a96f0a2d56b59ed89</a> fixed invalid keyword in template part of genred</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/c8fc24b243ff9540f99d12bcddbb943143d3380b">c8fc24b243ff9540f99d12bcddbb943143d3380b</a> got working version of logsearch</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/80c9bfe8b4a0109aeee454f3e83de9fc0750349d">80c9bfe8b4a0109aeee454f3e83de9fc0750349d</a> generalised the ignore option in cline</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/437bbce5f6bd1ca901a075a6cf8058b679ba858e">437bbce5f6bd1ca901a075a6cf8058b679ba858e</a> array index fix, redplt</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/98e379ee0a3683b36756415c5d6bf6828556bd14">98e379ee0a3683b36756415c5d6bf6828556bd14</a> adjusted recent changes to redplt</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/7b6b62da593acb9649baf25339603dd305df456f">7b6b62da593acb9649baf25339603dd305df456f</a> fixed bugs to do with a single CCD</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/eac66b1903acdb2a29d913ae8190a6e06f64f3d9">eac66b1903acdb2a29d913ae8190a6e06f64f3d9</a> horrible numpy/python issue in hlog.py</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/f720d87afb5268bb91318065772151e80b2cb09a">f720d87afb5268bb91318065772151e80b2cb09a</a> typo fixes to genred from James Wild</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/1ffe1c1ee9528a9193cd6422b090fbe4a28c48de">1ffe1c1ee9528a9193cd6422b090fbe4a28c48de</a> fixed some backwards compatibility issues</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/8178c05c5752848e5ff9157cfcf03b82349a7bd9">8178c05c5752848e5ff9157cfcf03b82349a7bd9</a> placed limit on urllib3 version for security</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/629764b779f1981b0857a8ff9f31b27f5f15db24">629764b779f1981b0857a8ff9f31b27f5f15db24</a> updated logsearch to work with database files</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/eb703a1d056a3eec2a2a2a584b8f3d3d5b796300">eb703a1d056a3eec2a2a2a584b8f3d3d5b796300</a> changed how redplt makes figures</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/6644a33292b9e02d29c6594894b10e070a5abf7a">6644a33292b9e02d29c6594894b10e070a5abf7a</a> added “import warnings” to genred</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/469888447d1d069a2ba67e7d506b7b9fe1e788d6">469888447d1d069a2ba67e7d506b7b9fe1e788d6</a> revised the way in which redplt makes plots</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/5c00ae56b84a214f635cb9a111cd3de97c2e1f7f">5c00ae56b84a214f635cb9a111cd3de97c2e1f7f</a> attempt to fix genred problem using template file</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/4a7433a5abcdd4a878bf1bdd6fa0bf0b077466e1">4a7433a5abcdd4a878bf1bdd6fa0bf0b077466e1</a> fixed hlogger bug in accessing phase II data.</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/d66e07d7ab00636815002b7f767f8999999c68c2">d66e07d7ab00636815002b7f767f8999999c68c2</a> added some info about plog in docs</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/53a8ae0ec07199ff776ac71cdcf4c752c28f2f84">53a8ae0ec07199ff776ac71cdcf4c752c28f2f84</a> series of stupid bugs following withdrawal of Hlog.read</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/51965e36cc507f860645027ee4b4608d5b5764d1">51965e36cc507f860645027ee4b4608d5b5764d1</a> docs update for ncal and setdefect</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/b16a14257b2c33b0cc6ed3f7e92458abb0a83e9f">b16a14257b2c33b0cc6ed3f7e92458abb0a83e9f</a> updated the way changelog works</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/a9fe69118923283d63e5c216061ef4b2d4b9f795">a9fe69118923283d63e5c216061ef4b2d4b9f795</a> doc changes, now track api!</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/fa4c9c34c24cf8e3c8521e927f3b11fb96139a33">fa4c9c34c24cf8e3c8521e927f3b11fb96139a33</a> documentation of ncal</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/324a5737fc9b7771266d3d78af1dccf08d03b6a6">324a5737fc9b7771266d3d78af1dccf08d03b6a6</a> new routine ncal for noise calibration</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/1ec0c2d1438bda92638746d5e8f68c3851e3cdc9">1ec0c2d1438bda92638746d5e8f68c3851e3cdc9</a> and more doc updates</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/1ddd80fb4c91a932ac9e3e94525b40bc41549760">1ddd80fb4c91a932ac9e3e94525b40bc41549760</a> doc updates to reduction.rst</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/67454220cf15f77190012960707b06f5c3bb9562">67454220cf15f77190012960707b06f5c3bb9562</a> doc updates</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/a3cc8d4bd9d0c5cf53ae8d822171c203d00251f8">a3cc8d4bd9d0c5cf53ae8d822171c203d00251f8</a> a bit more documentation in setdefect</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/699fe717ac727331d8606160528a578d44402168">699fe717ac727331d8606160528a578d44402168</a> hot pixels defects implemented properly</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/237718b21e451014349ea452d4c9914528b6dcfc">237718b21e451014349ea452d4c9914528b6dcfc</a> tweaked hist a bit</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/470875a226a72877171a9394d5b44eaafd9b61f1">470875a226a72877171a9394d5b44eaafd9b61f1</a> fixed two bugs in genred for inst=other</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/b9c50394cab8f865c6931fe92285c539158439d1">b9c50394cab8f865c6931fe92285c539158439d1</a> the new defect file</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/359d6687f0a06837b3cf2e5da6a74ec8f22e0104">359d6687f0a06837b3cf2e5da6a74ec8f22e0104</a> updated hipercam defect file</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/48be2fcd6b0f6c3ae12dae20ec5a93614f0b9b28">48be2fcd6b0f6c3ae12dae20ec5a93614f0b9b28</a> removed enforcement of plot limits from multiple routines</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/4ddc1ab85e1a591a5322d1d143063bdd2f556298">4ddc1ab85e1a591a5322d1d143063bdd2f556298</a> micro re-format, jtrawl</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/7be56e25dea4e561099a27dd0ed7800d3034b598">7be56e25dea4e561099a27dd0ed7800d3034b598</a> now looks for phase II position  data as a last resort</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/79eaac7b639d67bfa932483cce3cede9b7ba7ab2">79eaac7b639d67bfa932483cce3cede9b7ba7ab2</a> removed full recompute option from hmeta</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/bd93b605c348c33424a1d3f736ec6bf51f1be4c5">bd93b605c348c33424a1d3f736ec6bf51f1be4c5</a> fixed bugs in hmeta for hipercam</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/cb7660e7b6799cde0b5896f71372243de563557c">cb7660e7b6799cde0b5896f71372243de563557c</a> usual time stamp update</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/2822c977bc20d8c492902c2e017c6692e87a0f86">2822c977bc20d8c492902c2e017c6692e87a0f86</a> Merge branch ‘trm-dev’</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/aec3ec2df7e5033c76ba91822bee17db6206333d">aec3ec2df7e5033c76ba91822bee17db6206333d</a> another micro-tweak on genred</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/4a9767db2eee9c9970fea689eb7f245cd4330bde">4a9767db2eee9c9970fea689eb7f245cd4330bde</a> finer-grained control in genred</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/8982ffb76fbea506132e0d4ec5b595a5f88c79c3">8982ffb76fbea506132e0d4ec5b595a5f88c79c3</a> small tweaks to default fit params in genred</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/dae90f1971044da5eef3ef479d4b9d9e01c74688">dae90f1971044da5eef3ef479d4b9d9e01c74688</a> latest change log</p></li>
+<li><p><a class="reference external" href="https://github.com/HiPERCAM/hipercam/commit/18657e2899421bbc1d3c79788409f7b183cc2cf2">18657e2899421bbc1d3c79788409f7b183cc2cf2</a> doc updates following latest release</p></li>
+</ul>
+</div></blockquote>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/change_log_1.1.0_1.2.0.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/change_log_1.1.0_1.2.0.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

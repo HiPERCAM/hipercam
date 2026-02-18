@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.ccd &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="hipercam.hlog" href="hipercam-hlog.html" />
+    <link rel="prev" title="Modules" href="details.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="hipercam-hlog.html" title="hipercam.hlog">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="details.html" title="Modules">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="api.html" >The API</a> &#187;</li>
+      <li><a href="details.html" accesskey="U">Modules</a> &#187;</li>
+      
+      <li>hipercam.ccd</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.ccd">
+<span id="hipercam-ccd"></span><h1>hipercam.ccd<a class="headerlink" href="#module-hipercam.ccd" title="Link to this heading">¶</a></h1>
+<p>Classes &amp; methods to represent CCDs and multi-CCDs</p>
+<p>A <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> is built as a <code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code>
+objects, while a multi-CCD of <a class="reference internal" href="#hipercam.ccd.MCCD" title="hipercam.ccd.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> is built as a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code> of <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> objects. These classes allow
+handling of CCD data.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CCD</span></code></a></p></td>
+<td><p>Represents a single CCD as a <code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.ccd.MCCD" title="hipercam.ccd.MCCD"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MCCD</span></code></a></p></td>
+<td><p>Class representing a multi-CCD as a Group of CCD objects plus a FITS</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.ccd.</span></span><span class="sig-name descname"><span class="pre">CCD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">winds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nxtot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nytot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nxpad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nypad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></p>
+<p>Represents a single CCD as a <code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code>.</p>
+<p><a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> objects support a few operations such as returning
+the mean value, arithematic operations, and file I/O to/from FITS
+files. Header information is passed via the Windows. The first of
+these is assumed to be the location for any data pertaining to the
+CCD as a whole.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Make a copy of the <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a></p>
+<p>copy.copy and copy.deepcopy of a <cite>CCD</cite> use this method</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.crop">
+<span class="sig-name descname"><span class="pre">crop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.crop" title="Link to this definition">¶</a></dt>
+<dd><p>Given a template <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> called <cite>ccd</cite>, this tries to modify
+the format of the <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a>, returning a new
+<a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a>. This is often needed e.g. prior to applying a
+full frame flat field. In general this operation requires
+re-labelling of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code> composing the CCD. It
+raises a <code class="xref py py-class docutils literal notranslate"><span class="pre">HipercamError</span></code> if it fails.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.flatten">
+<span class="sig-name descname"><span class="pre">flatten</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.flatten" title="Link to this definition">¶</a></dt>
+<dd><p>Returns all data of a CCD as a single 1D array, analogous to
+numpy.flatten</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.float32">
+<span class="sig-name descname"><span class="pre">float32</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.float32" title="Link to this definition">¶</a></dt>
+<dd><p>Applies :class:Window.float32 to all Windows of a CCD</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.float64">
+<span class="sig-name descname"><span class="pre">float64</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.float64" title="Link to this definition">¶</a></dt>
+<dd><p>Applies :class:Window.float64 to all Windows of a CCD</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.head">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">head</span></span><a class="headerlink" href="#hipercam.ccd.CCD.head" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the first Window or an empty fits.Header if there is
+no first Window. The header of the first Window is where general
+header items of the CCD are stored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.inside">
+<span class="sig-name descname"><span class="pre">inside</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmin</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.inside" title="Link to this definition">¶</a></dt>
+<dd><p>Tests whether a point x,y lies within any Window of a CCD, at
+least dmin from its outer edge. It returns with the Window label
+or None if the point is not inside any Window</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.is_data">
+<span class="sig-name descname"><span class="pre">is_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.is_data" title="Link to this definition">¶</a></dt>
+<dd><p>Returns True / False according to whether the frame is thought
+to contain data. Uses DSTATUS keyword if present, else returns True</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.matches">
+<span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.matches" title="Link to this definition">¶</a></dt>
+<dd><p>Check that the <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> matches another, which in this case means
+checking that each window of the same label matches the equivalent in
+the other <cite>CCD</cite>.</p>
+<p>There will be no match if there any windows present in one <cite>CCD</cite> but
+not the other and the windows must have identical location, size and
+binning.</p>
+<p>Raises KeyError or ValueError exception depending on the problem.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.max">
+<span class="sig-name descname"><span class="pre">max</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.max" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the maximum value of the <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.mean">
+<span class="sig-name descname"><span class="pre">mean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.mean" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the mean value of the <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.median">
+<span class="sig-name descname"><span class="pre">median</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.median" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the median value of the <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.min">
+<span class="sig-name descname"><span class="pre">min</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.min" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the minimum value of the <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a>, i.e. the minimum of
+all the minimum values of all the <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.nxpad">
+<span class="sig-name descname"><span class="pre">nxpad</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#hipercam.ccd.CCD.nxpad" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.nxtot">
+<span class="sig-name descname"><span class="pre">nxtot</span></span><a class="headerlink" href="#hipercam.ccd.CCD.nxtot" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.nypad">
+<span class="sig-name descname"><span class="pre">nypad</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#hipercam.ccd.CCD.nypad" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.nytot">
+<span class="sig-name descname"><span class="pre">nytot</span></span><a class="headerlink" href="#hipercam.ccd.CCD.nytot" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.percentile">
+<span class="sig-name descname"><span class="pre">percentile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xhi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yhi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.percentile" title="Link to this definition">¶</a></dt>
+<dd><p>Computes percentile(s) of the <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a>.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">q</span> <span class="p">:</span> <span class="nb">float</span> <span class="ow">or</span> <span class="n">sequence</span> <span class="n">of</span> <span class="n">floats</span>
+  <span class="n">Percentile</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="n">to</span> <span class="n">use</span><span class="p">,</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">100</span><span class="p">]</span>
+
+<span class="n">xlo</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+  <span class="n">To</span> <span class="n">restrict</span> <span class="nb">range</span> <span class="n">of</span> <span class="n">pixels</span>
+
+<span class="n">xhi</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+  <span class="n">To</span> <span class="n">restrict</span> <span class="nb">range</span> <span class="n">of</span> <span class="n">pixels</span>
+
+<span class="n">ylo</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+  <span class="n">To</span> <span class="n">restrict</span> <span class="nb">range</span> <span class="n">of</span> <span class="n">pixels</span>
+
+<span class="n">yhi</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+  <span class="n">To</span> <span class="n">restrict</span> <span class="nb">range</span> <span class="n">of</span> <span class="n">pixels</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.read">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cnam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.read" title="Link to this definition">¶</a></dt>
+<dd><p>Builds a <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> from a FITS file. Expects a primary HDU,
+containing no data, followed by a series of HDUs each containing data
+for a series of non-overlapping windows.</p>
+<p>This can also be applied to extract a particular CCD, labelled ‘cnam’
+from an MCCD hcm file, on the assumption that all HDUs for a given CCD
+come in a contiguous block with each one labelled with the keyword
+‘CCD’.</p>
+<p>Data are converted to float32 unless they are read in as float64.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.rhdul">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rhdul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hdul</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cnam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.rhdul" title="Link to this definition">¶</a></dt>
+<dd><p>Builds a single <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> from an <code class="xref py py-class docutils literal notranslate"><span class="pre">HDUList</span></code>.</p>
+<p>If cnam is None, it is assumed that each HDU represents a Window.
+Each data HDU will be searched for a header parameter ‘WINDOW’ to label
+the <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code>, but the routine will attempt to generate a
+sequential label if WINDOW is not found. If the auto-generated label
+conflicts with one already found, then a KeyError will be raised.</p>
+<p>If cnam is not None, cnam is taken to be the label of a CCD to be
+extracted from the <code class="xref py py-class docutils literal notranslate"><span class="pre">HDUList</span></code> which may contain multiple
+CCDs. It is assumed in this case that the CCD of interest has a
+continguous set of HDUs all containing the keyword CCD set equal to
+cnam. This allows individual CCDs to be read from hcm MCCD files.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>hdul  : :class:`HDUList`
+     each HDU will be read as sub-window of the :class:`CCD`
+
+cnam  : (None | string)
+     if cnam is not None, the routine will try to find and return a
+     :class:CCD built from a contiguous subset of HDUs that matches
+     cnam (the keyword CCD is used)
+</pre></div>
+</div>
+<p>Returns a <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a>. Data are converted to float32 unless they are
+read in as float64.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.rmhdul">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rmhdul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hdul</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.rmhdul" title="Link to this definition">¶</a></dt>
+<dd><p>Builds a <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> from an <code class="xref py py-class docutils literal notranslate"><span class="pre">HDUList</span></code> potentially containing
+multiple CCDs, i.e. an MCCD object. This function acts as a generator
+to allow the CCDs to be returned in successive calls. It is assumed
+that hdul is positioned at the start of the CCDs (i.e. with the
+initial data-less primary HDU removed).</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>hdul  : :class:`HDUList`
+     each ImageHDU will be read as a sub-window of the :class:`CCD`
+</pre></div>
+</div>
+<p>Returns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>A series of (label, :class:`CCD`) 2-element tuples to be used as
+as follows::
+
+  &gt;&gt; for label, ccd in CCD.rmhdul(hdul, True):
+  &gt;&gt;    ... do something
+</pre></div>
+</div>
+<p>Data are converted to float32 unless they are read in as float64.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.set_const">
+<span class="sig-name descname"><span class="pre">set_const</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.set_const" title="Link to this definition">¶</a></dt>
+<dd><p>Sets all Windows to a constant value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.uint16">
+<span class="sig-name descname"><span class="pre">uint16</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.uint16" title="Link to this definition">¶</a></dt>
+<dd><p>Applies :class:Window.uint16 to all Windows of a CCD</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.whdul">
+<span class="sig-name descname"><span class="pre">whdul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hdul</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cnam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.whdul" title="Link to this definition">¶</a></dt>
+<dd><p>Write the <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> as a series of HDUs, one per
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code>, adding to and returning an <code class="xref py py-class docutils literal notranslate"><span class="pre">HDUList</span></code>.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">hdul</span> <span class="p">:</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">fits</span><span class="o">.</span><span class="n">HDUList</span>
+   <span class="n">The</span> <span class="n">HDUList</span> <span class="n">to</span> <span class="n">add</span> <span class="n">to</span><span class="o">.</span>
+
+<span class="n">cnam</span> <span class="p">:</span> <span class="n">string</span> <span class="o">|</span> <span class="kc">None</span>
+   <span class="n">CCD</span> <span class="n">name</span><span class="o">.</span>
+
+<span class="n">xoff</span> <span class="p">:</span> <span class="nb">int</span> <span class="p">[</span><span class="k">if</span> <span class="n">cname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+   <span class="n">X</span><span class="o">-</span><span class="n">offset</span> <span class="k">for</span> <span class="n">mosaicing</span> <span class="ow">in</span> <span class="n">ds9</span><span class="o">.</span> <span class="n">Ignored</span> <span class="k">if</span> <span class="n">cnam</span> <span class="ow">is</span> <span class="kc">None</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns:: an <code class="xref py py-class docutils literal notranslate"><span class="pre">HDUList</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.CCD.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.CCD.write" title="Link to this definition">¶</a></dt>
+<dd><p>Writes out the CCD to a FITS file.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fname</span> <span class="p">:</span> <span class="p">(</span><span class="n">string</span><span class="p">)</span>
+     <span class="n">Name</span> <span class="n">of</span> <span class="n">file</span> <span class="n">to</span> <span class="n">write</span> <span class="n">to</span><span class="o">.</span>
+
+<span class="n">overwrite</span> <span class="p">:</span> <span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+     <span class="kc">True</span> <span class="n">to</span> <span class="n">overwrite</span> <span class="n">pre</span><span class="o">-</span><span class="n">existing</span> <span class="n">files</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.ccd.</span></span><span class="sig-name descname"><span class="pre">MCCD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ccds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">head</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></p>
+<p>Class representing a multi-CCD as a Group of CCD objects plus a FITS
+header. It supports arithematic operations and file I/O to/from FITS
+files.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Make a copy of the <a class="reference internal" href="#hipercam.ccd.MCCD" title="hipercam.ccd.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a></p>
+<p>copy.copy and copy.deepcopy of an <cite>MCCD</cite> use this method</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.crop">
+<span class="sig-name descname"><span class="pre">crop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mccd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.crop" title="Link to this definition">¶</a></dt>
+<dd><p>Crops the :class:MCCD to the same format as a template,
+<cite>mccd</cite>. Returns the new version. Will raise a HipercamError if
+it fails.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.float32">
+<span class="sig-name descname"><span class="pre">float32</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.float32" title="Link to this definition">¶</a></dt>
+<dd><p>Applies :class:Window.float32 to all Windows of an MCCD</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.float64">
+<span class="sig-name descname"><span class="pre">float64</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.float64" title="Link to this definition">¶</a></dt>
+<dd><p>Applies :class:Window.float64 to all Windows of an MCCD</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.head">
+<span class="sig-name descname"><span class="pre">head</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hipercam.ccd.MCCD.head" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.matches">
+<span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mccd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.matches" title="Link to this definition">¶</a></dt>
+<dd><p>Check that the <a class="reference internal" href="#hipercam.ccd.MCCD" title="hipercam.ccd.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> matches another, which in this means checking
+that each CCD of the same label matches the equivalent in the other
+<cite>MCCD</cite>.</p>
+<p>There will be no match if there any CCDs present in one <cite>MCCD</cite> which are
+not in the other.</p>
+<p>Raises KeyError or ValueError exception depending on the problem.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.read">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.read" title="Link to this definition">¶</a></dt>
+<dd><p>Builds an <a class="reference internal" href="#hipercam.ccd.MCCD" title="hipercam.ccd.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> from a FITS file. Expects a primary HDU, containing
+general headers and the first HDU, followed by a series of HDU blocks
+for each CCD with the first one of each containing some general
+per-CCD header items.</p>
+<p>Data are converted to float32 unless they are read in as float64.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.rhdul">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rhdul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hdul</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.rhdul" title="Link to this definition">¶</a></dt>
+<dd><p>Builds an <a class="reference internal" href="#hipercam.ccd.MCCD" title="hipercam.ccd.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> from an <code class="xref py py-class docutils literal notranslate"><span class="pre">HDUList</span></code>.</p>
+<p>This will usually be passed the <code class="xref py py-class docutils literal notranslate"><span class="pre">HDUList</span></code> from a
+file. The header from the first (primary) HDU will be used to
+create the header for the <a class="reference internal" href="#hipercam.ccd.MCCD" title="hipercam.ccd.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a>. It is then assumed
+that the data for each <a class="reference internal" href="#hipercam.ccd.CCD" title="hipercam.ccd.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> is contained in blocks of
+HDUs after the first. The data from all HDUs will be read into
+the <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code> objects that make up the CCD. Each HDU
+will be searched for a header parameter WINDOW to label the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code>, but the code will attempt to generate a
+sequential label if WINDOW is not found.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>hdul : :class:`HDUList`
+     each ImageHDU will be read as sub-window of the :class:`CCD`
+</pre></div>
+</div>
+<p>Data are converted to float32 unless they are read in as float64.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.set_const">
+<span class="sig-name descname"><span class="pre">set_const</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.set_const" title="Link to this definition">¶</a></dt>
+<dd><p>Sets all CCDs to a constant value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.uint16">
+<span class="sig-name descname"><span class="pre">uint16</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.uint16" title="Link to this definition">¶</a></dt>
+<dd><p>Applies :class:Window.uint16 to all Windows of an MCCD</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ccd.MCCD.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xgap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ygap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ccd.MCCD.write" title="Link to this definition">¶</a></dt>
+<dd><p>Writes out the MCCD to a FITS file.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fname</span> <span class="p">:</span> <span class="n">string</span> <span class="ow">or</span> <span class="n">file</span><span class="o">-</span><span class="n">like</span> <span class="nb">object</span>
+    <span class="n">Name</span> <span class="n">of</span> <span class="n">file</span> <span class="n">to</span> <span class="n">write</span> <span class="n">to</span><span class="o">.</span> <span class="n">Can</span> <span class="n">also</span> <span class="n">be</span> <span class="n">a</span> <span class="n">file</span><span class="p">,</span> <span class="n">opened</span> <span class="ow">in</span>
+    <span class="n">writeable</span> <span class="n">binary</span> <span class="n">mode</span><span class="o">.</span>
+
+<span class="n">overwrite</span> <span class="p">:</span> <span class="nb">bool</span>
+    <span class="kc">True</span> <span class="n">to</span> <span class="n">overwrite</span> <span class="n">pre</span><span class="o">-</span><span class="n">existing</span> <span class="n">files</span>
+
+<span class="n">xgap</span>  <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">X</span><span class="o">-</span><span class="n">gap</span> <span class="n">used</span> <span class="n">to</span> <span class="n">space</span> <span class="n">CCDs</span> <span class="k">for</span> <span class="n">ds9</span> <span class="n">mosaicing</span> <span class="p">(</span><span class="n">unbinned</span> <span class="n">pixels</span><span class="p">)</span>
+
+<span class="n">ygap</span>  <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">Y</span><span class="o">-</span><span class="n">gap</span> <span class="n">used</span> <span class="n">to</span> <span class="n">space</span> <span class="n">CCDs</span> <span class="k">for</span> <span class="n">ds9</span> <span class="n">mosaicing</span> <span class="p">(</span><span class="n">unbinned</span> <span class="n">pixels</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickapi.html">API quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hcmformat.html">HiPERCAM’s hcm file format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows.html">HiPERCAM’s windows format</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="details.html">Modules</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hipercam-hlog.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hipercam-window.html">hipercam.window</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html">Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing_tests.html">Timing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging.html">Data logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="details.html"
+                          title="previous chapter">Modules</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="hipercam-hlog.html"
+                          title="next chapter">hipercam.hlog</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/hipercam-ccd.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/hipercam-ccd.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

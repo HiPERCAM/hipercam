@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Observer’s guide &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="At the telescope" href="telescope.html" />
+    <link rel="prev" title="HiPERCAM pipeline news" href="news.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="telescope.html" title="At the telescope">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="news.html" title="HiPERCAM pipeline news">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      
+      <li>Observer’s guide</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="observer-s-guide">
+<h1>Observer’s guide<a class="headerlink" href="#observer-s-guide" title="Link to this heading">¶</a></h1>
+<p>The HiPERCAM pipeline allows observers to look at their data as it comes in
+and to reduce it in near “real time”. It is downstream of the data acquisition
+system and has no direct effect upon it. At the telescope its most important
+role is to allow you to assess the data as it comes in.</p>
+<p>The first two sections of the guide are aimed first at getting
+observers started quickly while at the telescope, and second giving a
+more in depth description for a later careful
+reduction. Implementation details are described in the section on the
+underlying principles, which contains further tips on good practice.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="telescope.html">At the telescope</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="telescope.html#plotting-the-data-coming-in">Plotting the data coming in</a></li>
+<li class="toctree-l2"><a class="reference internal" href="telescope.html#looking-in-more-detail">Looking in more detail</a></li>
+<li class="toctree-l2"><a class="reference internal" href="telescope.html#plotting-defects-during-target-acquisition">Plotting defects during target acquisition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="telescope.html#getting-reduction-going">Getting reduction going</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reduction.html">Reduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#bias-correction">Bias correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#dark-correction-thermal-noise">Dark correction (thermal noise)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#flat-field-correction">Flat field correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#defringing">Defringing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#bad-pixels-and-defect-files">Bad pixels and defect files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#aperture-files">Aperture files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#reduction-files">Reduction files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#plotting-results">Plotting results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#customisation">Customisation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#the-reduce-log-files">The reduce log files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#ultra-vs-hiper">ULTRA(CAM|SPEC) vs HiPERCAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html#trouble-shooting-reduction">Trouble shooting reduction</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="photometry.html">Principles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html#aperture-positioning">Aperture positioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html#target-detection">Target detection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html#sky-background-estimation">Sky background estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html#normal-extraction">Normal extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html#profile-fitting">Profile fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html#optimal-photometry">Optimal photometry</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="organisation.html">File organisation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="organisation.html#night-by-night-directories">Night-by-night directories</a></li>
+<li class="toctree-l2"><a class="reference internal" href="organisation.html#file-naming-within-a-night-directory">File naming within a night directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="organisation.html#reduction-file-names">Reduction file names</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="checklists.html">Observing checklists</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ultracam_checklist.html">ULTRACAM observing checklist</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Observer’s guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="telescope.html">At the telescope</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html">Reduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html">Principles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="organisation.html">File organisation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="checklists.html">Observing checklists</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="news.html"
+                          title="previous chapter">HiPERCAM pipeline news</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="telescope.html"
+                          title="next chapter">At the telescope</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/observers.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/observers.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

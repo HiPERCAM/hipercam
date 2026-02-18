@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.window &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Timing" href="../timing/timing.html" />
+    <link rel="prev" title="hipercam.hlog" href="hipercam-hlog.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../timing/timing.html" title="Timing">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="hipercam-hlog.html" title="hipercam.hlog">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="api.html" >The API</a> &#187;</li>
+      <li><a href="details.html" accesskey="U">Modules</a> &#187;</li>
+      
+      <li>hipercam.window</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.window">
+<span id="hipercam-window"></span><h1>hipercam.window<a class="headerlink" href="#module-hipercam.window" title="Link to this heading">¶</a></h1>
+<p>CCD windows module</p>
+<p>Defines classes to represent sub-windows of a CCD and associated
+functions. Starts from a class representing just the header and format
+of a window, adds data to that, and also adds classes that bundle up a
+CCD’s-worth and multiple-CCD’s-wprth of such headers into single
+objects.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Winhead</span></code></a></p></td>
+<td><p>The header parts of a CCD window</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Window</span></code></a></p></td>
+<td><p>A CCD window, headers, position and data</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.window.CcdWin" title="hipercam.window.CcdWin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CcdWin</span></code></a></p></td>
+<td><p>All the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> objects of a single CCD.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.window.MccdWin" title="hipercam.window.MccdWin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MccdWin</span></code></a></p></td>
+<td><p>All the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> objects for multiple CCDs.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.window.Winhead">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.window.</span></span><span class="sig-name descname"><span class="pre">Winhead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">llx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xbin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ybin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">head</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.header.Header</span></code></p>
+<p>The header parts of a CCD window</p>
+<p><cite>Winhead</cite> objects contain everything needed to represent a
+CCD window other than its data. This represents an arbitrary
+rectangular region of binned pixels. The lower-left pixel of the
+CCD is assumed to have coordinates (x,y) = (1,1). <cite>Winhead</cite>
+dimensions are in binned pixels.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="kn">import</span> <span class="n">Winhead</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">win</span> <span class="o">=</span> <span class="n">Winhead</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>llx</strong><span class="classifier">int</span></dt><dd><blockquote>
+<div><p>X position of lower-left pixel of window (unbinned pixels)</p>
+</div></blockquote>
+<dl>
+<dt>lly<span class="classifier">int</span></dt><dd><p>Y position of lower-left pixel of window (unbinned pixels)</p>
+</dd>
+<dt>nx<span class="classifier">int</span></dt><dd><p>X dimension of window, binned pixels</p>
+</dd>
+<dt>ny<span class="classifier">int</span></dt><dd><p>Y dimension of window, binned pixels</p>
+</dd>
+<dt>xbin<span class="classifier">int</span></dt><dd><p>Binning factor in X</p>
+</dd>
+<dt>ybin<span class="classifier">int</span></dt><dd><p>Binning factor in Y</p>
+</dd>
+<dt>outamp<span class="classifier">str, {‘’,’LL’,’LR’,’UL’,’UR’}</span></dt><dd><p>Location of output amplifier. Options: ‘’ == unknown; ‘LL’ ==
+lower-left; ‘LR’ == lower-right; ‘UL’ == upper-left; ‘UR’ ==
+upper-right. Used when trimming to remove the correct part of
+the window.</p>
+</dd>
+<dt>head<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Header</span></code>, optional</span></dt><dd><p>Arbitrary header items (excluding ones such as LLX reserved
+for containing the above parameters when reading and writing
+Winhead objects). This will be deep copied to avoid different
+Winheads sharing the same header. See ‘copy’ for how the
+header is tranferred into the Winhead</p>
+</dd>
+</dl>
+</dd>
+<dt><strong>copy</strong><span class="classifier">bool, optional</span></dt><dd><p>Controls whether the header is copied by value (True) or
+simply by reference (False). The latter is lightweight and
+faster but can cause unexpected behaviour especially when
+constructing multiple Winhead (or Window) objects if one
+repeatedly sends the same Header to each of them.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>llx</strong><span class="classifier">int</span></dt><dd><p>X ordinate lower-left pixel, unbinned pixels</p>
+</dd>
+<dt><strong>lly</strong><span class="classifier">int</span></dt><dd><p>Y ordinate lower-left pixel, unbinned pixels</p>
+</dd>
+<dt><strong>xbin</strong><span class="classifier">int</span></dt><dd><p>X-binning factor</p>
+</dd>
+<dt><strong>ybin</strong><span class="classifier">int</span></dt><dd><p>Y-binning factor</p>
+</dd>
+<dt><strong>nx</strong><span class="classifier">int</span></dt><dd><p>X-dimension, binned pixels</p>
+</dd>
+<dt><strong>ny</strong><span class="classifier">int</span></dt><dd><p>Y-dimension, binned pixels</p>
+</dd>
+<dt><strong>outamp</strong><span class="classifier">str, {‘’,’LL’,’LR’,’UL’,’UR’}</span></dt><dd><p>output amplifier location</p>
+</dd>
+<dt><strong>urx</strong><span class="classifier">int</span></dt><dd><p>X-ordinate of unbinned pixed at upper right
+of Winhead (starts from 1 on the left)</p>
+</dd>
+<dt><strong>ury</strong><span class="classifier">int</span></dt><dd><p>Y-ordinate of unbinned pixed at upper right
+of Winhead (starts from 1 on the left)</p>
+</dd>
+<dt><strong>xlo</strong><span class="classifier">float</span></dt><dd><p>Left-most edge of window. Will be something-point-five
+as the centre of pixels are integers.</p>
+</dd>
+<dt><strong>xhi</strong><span class="classifier">float</span></dt><dd><p>Right-most edge of window.</p>
+</dd>
+<dt><strong>ylo</strong><span class="classifier">float</span></dt><dd><p>Lower edge of window</p>
+</dd>
+<dt><strong>yhi</strong><span class="classifier">float</span></dt><dd><p>Upper edge of window</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.clash">
+<span class="sig-name descname"><span class="pre">clash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.clash" title="Link to this definition">¶</a></dt>
+<dd><p>Raises a ValueError if two :class: <cite>Winhead`s are considered to
+‘clash’.  In this case this means if they have any pixels in
+common.  This method is used in the ‘check’ method of the
+:class:`Group</cite> class to check the mutual validity of a set of
+<a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a>.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>win : :class:`Winhead`
+   the :class:`Winhead` that we are testing self against.
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a copy (deepcopy) of the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a></p>
+<p>copy.copy and copy.deepcopy of a <cite>Winhead</cite> use this method</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.distance">
+<span class="sig-name descname"><span class="pre">distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.distance" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates the minimum distance of a point from the edge of the
+Winhead. If the point is outside the Winhead the distance will
+be negative; if inside it will be positive. The edge is
+defined as the line running around the outside of the outer
+set of pixels. For a point outside the box in both x and y,
+the value returned is a lower limit to the distance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.extent">
+<span class="sig-name descname"><span class="pre">extent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.extent" title="Link to this definition">¶</a></dt>
+<dd><p>Returns (left,right,bottom,top) boundaries of <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a>
+i.e. (xlo,xhi,ylo,yhi)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.format">
+<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nohead</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.format" title="Link to this definition">¶</a></dt>
+<dd><p>Used to ensure that only the Winhead format gets printed which is
+useful in some instances. Relying on __repr__ carries the risk of
+being overloaded. Set ‘nohead’ True to suppress the header in addition</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.inside">
+<span class="sig-name descname"><span class="pre">inside</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.inside" title="Link to this definition">¶</a></dt>
+<dd><p>Returns True if <cite>win</cite> contains <cite>self</cite> in such a way that it could
+be cut down to it. This implies that even if binned, its
+pixels are “in step”, aka “synchronised”, and that its bin
+factors are integer divisors of those of <cite>self</cite>.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>win  : :class:Winhead
+   the :class:Winhead that we are testing against to see if `self` in
+   inside it.
+</pre></div>
+</div>
+<p>See also <a class="reference internal" href="#hipercam.window.Winhead.outside" title="hipercam.window.Winhead.outside"><code class="xref py py-func docutils literal notranslate"><span class="pre">outside()</span></code></a>, <a class="reference internal" href="#hipercam.window.Winhead.window" title="hipercam.window.Winhead.window"><code class="xref py py-func docutils literal notranslate"><span class="pre">window()</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.llx">
+<span class="sig-name descname"><span class="pre">llx</span></span><a class="headerlink" href="#hipercam.window.Winhead.llx" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.lly">
+<span class="sig-name descname"><span class="pre">lly</span></span><a class="headerlink" href="#hipercam.window.Winhead.lly" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.matches">
+<span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.matches" title="Link to this definition">¶</a></dt>
+<dd><p>Tests that the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> matches another. If all OK, returns
+None, otherwise raises a ValueError reporting the two
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead`s.</span> <span class="pre">See</span> <span class="pre">also</span> <span class="pre">`__eq__</span></code></p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>win : :class:`Winhead`
+   the :class:`Winhead` that we are testing self against.
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.nx">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nx</span></span><a class="headerlink" href="#hipercam.window.Winhead.nx" title="Link to this definition">¶</a></dt>
+<dd><p>Binned X-dimension of the <cite>Winhead</cite>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.ny">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ny</span></span><a class="headerlink" href="#hipercam.window.Winhead.ny" title="Link to this definition">¶</a></dt>
+<dd><p>Binned Y-dimension of the <cite>Winhead</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.outamp">
+<span class="sig-name descname"><span class="pre">outamp</span></span><a class="headerlink" href="#hipercam.window.Winhead.outamp" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.outside">
+<span class="sig-name descname"><span class="pre">outside</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.outside" title="Link to this definition">¶</a></dt>
+<dd><p>Returns True if <cite>self</cite> contains the :class:Winhead <cite>win</cite> in such a
+way that it could be cut down to it. This implies that even if
+binned, its pixels are “in step”, aka “synchronised”, and that
+its binning factors are integer divisors of those of <cite>win</cite>.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>win  : :class:Winhead
+   the :class:Winhead that we are testing against to see if `self`
+   surrounds it.
+</pre></div>
+</div>
+<p>See also <a class="reference internal" href="#hipercam.window.Winhead.inside" title="hipercam.window.Winhead.inside"><code class="xref py py-func docutils literal notranslate"><span class="pre">inside()</span></code></a>, <a class="reference internal" href="#hipercam.window.Winhead.window" title="hipercam.window.Winhead.window"><code class="xref py py-func docutils literal notranslate"><span class="pre">window()</span></code></a></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.urx">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">urx</span></span><a class="headerlink" href="#hipercam.window.Winhead.urx" title="Link to this definition">¶</a></dt>
+<dd><p>Unbinned X pixel at upper-right of <cite>Winhead</cite></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.ury">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ury</span></span><a class="headerlink" href="#hipercam.window.Winhead.ury" title="Link to this definition">¶</a></dt>
+<dd><p>Unbinned Y pixel at upper-right of <cite>Winhead</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.window">
+<span class="sig-name descname"><span class="pre">window</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xlo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xhi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yhi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.window" title="Link to this definition">¶</a></dt>
+<dd><p>Generates a new Winhead by windowing it to match the complete
+pixels visible within the range xlo to xhi, ylo to yhi.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xlo</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">minimum</span> <span class="n">X</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span> <span class="p">(</span><span class="n">extreme</span> <span class="n">left</span> <span class="n">pixels</span> <span class="n">of</span> <span class="n">CCD</span> <span class="n">centred</span>
+   <span class="n">on</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span> <span class="kc">None</span> <span class="n">to</span> <span class="n">ignore</span><span class="o">.</span>
+
+<span class="n">xhi</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">maximum</span> <span class="n">X</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="o">.</span> <span class="kc">None</span> <span class="n">to</span> <span class="n">ignore</span><span class="o">.</span>
+
+<span class="n">ylo</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">minimum</span> <span class="n">Y</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span> <span class="p">(</span><span class="n">bottom</span> <span class="n">pixels</span> <span class="n">of</span> <span class="n">CCD</span> <span class="n">centred</span> <span class="n">on</span> <span class="mi">1</span><span class="p">)</span>
+   <span class="kc">None</span> <span class="n">to</span> <span class="n">ignore</span><span class="o">.</span>
+
+<span class="n">yhi</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">maximum</span> <span class="n">Y</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="o">.</span> <span class="kc">None</span> <span class="n">to</span> <span class="n">ignore</span>
+
+<span class="n">copy</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="n">controls</span> <span class="n">whether</span> <span class="n">the</span> <span class="n">header</span> <span class="ow">is</span> <span class="n">copied</span> <span class="n">over</span><span class="p">,</span> <span class="ow">or</span> <span class="n">just</span>
+   <span class="n">referenced</span><span class="o">.</span>  <span class="n">The</span> <span class="n">latter</span> <span class="ow">is</span> <span class="n">more</span> <span class="n">efficient</span><span class="p">,</span> <span class="n">but</span> <span class="k">if</span> <span class="n">you</span> <span class="n">later</span> <span class="n">want</span>
+   <span class="n">to</span> <span class="n">change</span> <span class="n">the</span> <span class="n">header</span> <span class="n">could</span> <span class="n">propogate</span> <span class="n">those</span> <span class="n">changes</span> <span class="n">to</span> <span class="n">whatever</span>
+   <span class="n">you</span> <span class="n">copied</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns the windowed Winhead. Raises a ValueError if there are no
+visible pixels.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.x">
+<span class="sig-name descname"><span class="pre">x</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xpix</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.x" title="Link to this definition">¶</a></dt>
+<dd><p>Given an X-pixel position, returns the physical X in the CCD.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xpix</span> <span class="p">:</span> <span class="p">(</span><span class="nb">float</span> <span class="o">/</span> <span class="n">ndarray</span><span class="p">)</span>
+  <span class="n">X</span><span class="o">-</span><span class="n">pixel</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">terms</span> <span class="n">of</span> <span class="n">binned</span> <span class="n">pixels</span><span class="o">.</span> <span class="n">Centre</span> <span class="n">of</span> <span class="n">left</span><span class="o">-</span><span class="n">most</span>
+  <span class="n">pixel</span> <span class="ow">is</span> <span class="mf">0.</span>
+</pre></div>
+</div>
+<p>Returns the physical location measured in unbinned pixels, with the
+centre of left-most pixels of the CCD = 1.0</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.x_pixel">
+<span class="sig-name descname"><span class="pre">x_pixel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.x_pixel" title="Link to this definition">¶</a></dt>
+<dd><p>The inverse of <cite>x</cite>: returns the X-pixel position given a physical
+X location.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span> <span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+  <span class="n">the</span> <span class="n">physical</span> <span class="n">location</span> <span class="n">measured</span> <span class="ow">in</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="p">,</span> <span class="k">with</span> <span class="n">the</span> <span class="n">centre</span>
+  <span class="n">of</span> <span class="n">left</span><span class="o">-</span><span class="n">most</span> <span class="n">pixels</span> <span class="n">of</span> <span class="n">the</span> <span class="n">CCD</span> <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>Returns the X-pixel position in terms of binned pixels. Centre of the
+left-most pixel is 0.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.xbin">
+<span class="sig-name descname"><span class="pre">xbin</span></span><a class="headerlink" href="#hipercam.window.Winhead.xbin" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.xhi">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">xhi</span></span><a class="headerlink" href="#hipercam.window.Winhead.xhi" title="Link to this definition">¶</a></dt>
+<dd><p>Right-hand edge of window (urx+0.5)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.xlo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">xlo</span></span><a class="headerlink" href="#hipercam.window.Winhead.xlo" title="Link to this definition">¶</a></dt>
+<dd><p>Left-hand edge of window (llx-0.5)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.xy">
+<span class="sig-name descname"><span class="pre">xy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.xy" title="Link to this definition">¶</a></dt>
+<dd><p>Returns two 2D arrays containing the x and y values at the centre
+of each pixel defined by the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a>. See
+numpy.meshgrid to see what this means.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.y">
+<span class="sig-name descname"><span class="pre">y</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ypix</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.y" title="Link to this definition">¶</a></dt>
+<dd><p>Given a Y-pixel position, returns the physical Y in the CCD.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ypix</span> <span class="p">:</span> <span class="p">(</span><span class="nb">float</span> <span class="o">/</span> <span class="n">ndarray</span><span class="p">)</span>
+  <span class="n">Y</span><span class="o">-</span><span class="n">pixel</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">terms</span> <span class="n">of</span> <span class="n">binned</span> <span class="n">pixels</span><span class="o">.</span> <span class="n">Centre</span> <span class="n">of</span> <span class="n">lowest</span>
+  <span class="n">pixel</span> <span class="ow">is</span> <span class="mf">0.</span>
+</pre></div>
+</div>
+<p>Returns the physical location measured in unbinned pixels, with the
+centre of lowest pixels of the CCD = 1.0</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.y_pixel">
+<span class="sig-name descname"><span class="pre">y_pixel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Winhead.y_pixel" title="Link to this definition">¶</a></dt>
+<dd><p>The inverse of <cite>y</cite>: returns the Y-pixel position given a physical
+Y location.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Y</span> <span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+  <span class="n">the</span> <span class="n">physical</span> <span class="n">location</span> <span class="n">measured</span> <span class="ow">in</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="p">,</span> <span class="k">with</span> <span class="n">the</span> <span class="n">centre</span>
+  <span class="n">of</span> <span class="n">lowest</span> <span class="n">pixels</span> <span class="n">of</span> <span class="n">the</span> <span class="n">CCD</span> <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>Returns the Y-pixel position in terms of binned pixels. Centre of the
+lowest pixel is 0.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.ybin">
+<span class="sig-name descname"><span class="pre">ybin</span></span><a class="headerlink" href="#hipercam.window.Winhead.ybin" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.yhi">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">yhi</span></span><a class="headerlink" href="#hipercam.window.Winhead.yhi" title="Link to this definition">¶</a></dt>
+<dd><p>Top edge of window (ury+0.5)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Winhead.ylo">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ylo</span></span><a class="headerlink" href="#hipercam.window.Winhead.ylo" title="Link to this definition">¶</a></dt>
+<dd><p>Bottom edge of window (lly-0.5)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.window.Window">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.window.</span></span><span class="sig-name descname"><span class="pre">Window</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a></p>
+<p>A CCD window, headers, position and data</p>
+<p>Constructed from a <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> and a <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>
+which is stored in an attribute called <cite>data</cite>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="kn">import</span> <span class="n">Winhead</span><span class="p">,</span> <span class="n">Window</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">win</span> <span class="o">=</span> <span class="n">Winhead</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;LL&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">150</span><span class="p">,</span><span class="mi">100</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wind</span> <span class="o">=</span> <span class="n">Window</span><span class="p">(</span><span class="n">win</span><span class="p">,</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wind</span> <span class="o">+=</span> <span class="mf">0.5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wind</span> <span class="o">*=</span> <span class="mi">2</span>
+</pre></div>
+</div>
+<p>You cannot directly change the nx, ny values of a Window; you have
+to change its data array attribute and nx and ny will be taken
+from it.</p>
+<p><a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> objects support various arithematical operations
+such as subtraction or addition of constants. The end result of
+these always has a float type for safety to avoid problems with
+e.g. trying to make the result of adding a float to an integer an
+integer or with the range of integers.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>win</strong><span class="classifier"><a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a></span></dt><dd><p>the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> defining the position and, optionally, headers</p>
+</dd>
+<dt><strong>data</strong><span class="classifier">2D numpy.ndarray</span></dt><dd><p>the data (2D). The dimensions must match those in win unless
+data is None in which case a zero array of the correct size will
+be created. A ValueError will be raised if not. Standard C-type
+ordering, y-then-x assumed.</p>
+</dd>
+<dt><strong>copy</strong><span class="classifier">bool</span></dt><dd><p>flag sent to <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> controlling whether the header is
+copied by value or reference. ‘False’ is lightweight and faster
+but when building up CCDs from multiple Windows, you should
+probably use ‘True’ unless you are careful to make ‘win’ a
+different object every time.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.add_fxy">
+<span class="sig-name descname"><span class="pre">add_fxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">funcs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndiv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.add_fxy" title="Link to this definition">¶</a></dt>
+<dd><p>Routine to add in the results of evaluating a function or a list of
+functions of x &amp; y to the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.  Each function must take 2D
+arrays of x and y values for each pixel of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> and
+return an array of values for each point. If you have lots of things
+to add, this routine saves some overhead by only generating the x,y
+pixel arrays once at the start. Pixels can be subdivided ndiv per
+unbinned pixel (ndiv == 0 simply computes the result at pixel centre)</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>funcs : (a callable or a list of callables)
+    the callable(s) must have signature::
+
+       arr = func(x,y)
+
+    where x and y are 2D arrays containing the x and y values at the
+    centre of each pixel in the :class:`Window`. Each func must have
+    a method &#39;offset(self, dx, dy)&#39; which returns a copy of the
+    function displaced in centre by dx, dy unbinned pixels.
+
+ndiv : (int)
+
+    a sub-division factor used to improve the photometric accuracy
+    when pixellation matters. The funcs are computed over a grid of
+    ndiv*ndiv points per unbinned pixel.
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.add_noise">
+<span class="sig-name descname"><span class="pre">add_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">readout</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.add_noise" title="Link to this definition">¶</a></dt>
+<dd><p>Adds noise to a <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> according to a variance
+calculated from V = readout**2 + counts/gain.
+Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">readout</span> <span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">RMS</span> <span class="n">readout</span> <span class="n">noise</span> <span class="ow">in</span> <span class="n">counts</span>
+
+<span class="n">gain</span> <span class="p">:</span> <span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">Gain</span> <span class="ow">in</span> <span class="n">electrons</span> <span class="n">per</span> <span class="n">count</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a copy (deepcopy) of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a></p>
+<p>copy.copy and copy.deepcopy of a <cite>Window</cite> use this method</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.crop">
+<span class="sig-name descname"><span class="pre">crop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.crop" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a new :class:Window by cropping the current :class:Window to the
+format defined by :class:Winhead <cite>win</cite>. Will throw a ValueError if the
+operation is impossible or results in no overlap. The current
+:class:Window must lie outside <cite>win</cite> and must be synchronised (in
+step) if any binning is used. If binning is used then the binning
+factors of the :class:Window must be divisors of the binning factors
+of those of <cite>win</cite>. If binning takes place it will be carried out by
+averaging, as appropriate for cropping flat-field frames (but not star
+fields).</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">win</span> <span class="p">:</span> <span class="p">(:</span><span class="n">class</span><span class="p">:</span><span class="n">Winhead</span><span class="p">)</span>
+   <span class="n">the</span> <span class="n">new</span> <span class="nb">format</span> <span class="n">to</span> <span class="n">apply</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.flatten">
+<span class="sig-name descname"><span class="pre">flatten</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.flatten" title="Link to this definition">¶</a></dt>
+<dd><p>Return data of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> as a 1D array</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.float32">
+<span class="sig-name descname"><span class="pre">float32</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.float32" title="Link to this definition">¶</a></dt>
+<dd><p>Converts the data type of the array to float32.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.float64">
+<span class="sig-name descname"><span class="pre">float64</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.float64" title="Link to this definition">¶</a></dt>
+<dd><p>Converts the data type of the array to float64.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.max">
+<span class="sig-name descname"><span class="pre">max</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.max" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the maximum value of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.mean">
+<span class="sig-name descname"><span class="pre">mean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.mean" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the mean value of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.median">
+<span class="sig-name descname"><span class="pre">median</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.median" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the median value of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.min">
+<span class="sig-name descname"><span class="pre">min</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.min" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the minimum value of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Window.nx">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nx</span></span><a class="headerlink" href="#hipercam.window.Window.nx" title="Link to this definition">¶</a></dt>
+<dd><p>Returns binned X-dimension of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Window.ny">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ny</span></span><a class="headerlink" href="#hipercam.window.Window.ny" title="Link to this definition">¶</a></dt>
+<dd><p>Returns binned Y-dimension of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.percentile">
+<span class="sig-name descname"><span class="pre">percentile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.percentile" title="Link to this definition">¶</a></dt>
+<dd><p>Computes percentile(s) of a <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">q</span> <span class="p">:</span> <span class="nb">float</span> <span class="ow">or</span> <span class="n">sequence</span> <span class="n">of</span> <span class="n">floats</span>
+  <span class="n">Percentile</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="n">to</span> <span class="n">use</span><span class="p">,</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">100</span><span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.rhdu">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rhdu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hdu</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.rhdu" title="Link to this definition">¶</a></dt>
+<dd><p>Constructs a <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> from an ImageHdu. Requires header
+parameters ‘LLX’, ‘LLY’, ‘XBIN’ and ‘YBIN’ to be defined.
+This converts the data to float32 internally, unless it is
+read in as float64 in the first place conversion which would
+lose precision.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.search">
+<span class="sig-name descname"><span class="pre">search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fft</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.search" title="Link to this definition">¶</a></dt>
+<dd><p>Search for a target in a :class:Window. Works by convolving the image
+with a gaussian of FWHM = fwhm, and returns the location of the
+maximum in the smoothed image which exceeds a level <cite>thresh</cite> and lies
+closest to the expected position. The convolution improves the
+reliability of the identification of the object position and reduces
+the chance of problems being caused by cosmic rays, although if there
+is more overall flux in a cosmic ray than the star, it could go wrong.</p>
+<p>This routine is intended to provide a first cut in position for more
+precise methods to polish.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> fwhm : float
+   Gaussian FWHM in pixels. If &lt;= 0, there will be no convolution,
+   although this is not advisable as a useful strategy.
+
+ x0 : float
+   x-position to judge position from (CCD-coordinates). The closest
+   sufficiently high maximum will be taken.
+
+ y0 : float
+   y-position to judge position from (CCD-coordinates). The closest
+   sufficiently high maximum will be taken.
+
+ thresh : float
+   The peak counts above background in the maximum of the *smoothed*
+   image must exceed this value for a maximum to count. Use this to
+   filter out noise.
+
+ fft : bool
+   The astropy.convolution routines are used. By default FFT-based
+   convolution is applied as it scales better with fwhm, especially
+   for fwhm &gt;&gt; 1, however the direct method (fft=False) may be faster
+   for small fwhm values and images and has a better behaviour at the
+   edges where it extends value with the nearest pixel while the FFT
+   wraps values.
+
+max : bool
+   If True, just go for the highest peak, i.e. ignore x0, y0. The peak
+   should still exceed the background by `thresh`
+
+percent : float
+   percentile to use to compute the background value. &lt; 0 and it will
+   be set to the minimum. 50% = median by default.
+</pre></div>
+</div>
+<p>Returns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>a tuple of (x,y,peak): x,y is the location of the
+brightest pixel measured in terms of CCD coordinates
+(i.e. lower-left pixel is at (1,1)) and `peak` is the image value
+at the peak pixel, in the *unconvolved* image. It might be useful
+for initial estimates of peak height. If no peak is found, a
+HipercamError will be raised.
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.set_const">
+<span class="sig-name descname"><span class="pre">set_const</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.set_const" title="Link to this definition">¶</a></dt>
+<dd><p>Sets the data array to a constant</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Window.size">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#hipercam.window.Window.size" title="Link to this definition">¶</a></dt>
+<dd><p>Number of pixels</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.std">
+<span class="sig-name descname"><span class="pre">std</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.std" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the standard deviation of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.sum">
+<span class="sig-name descname"><span class="pre">sum</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.sum" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the sum of the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.uint16">
+<span class="sig-name descname"><span class="pre">uint16</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.uint16" title="Link to this definition">¶</a></dt>
+<dd><p>Converts the data type of the array to uint16. A warning will be issued
+if there will be loss of precision. A ValueError is thrown if any data
+are outside the range 0 to 65535 This is to save space on output.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.whdu">
+<span class="sig-name descname"><span class="pre">whdu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">head</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extnam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.whdu" title="Link to this definition">¶</a></dt>
+<dd><p>Writes the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> to an <code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.io.fits.ImageHDU</span></code></p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>head : astropy.io.fits.Header
+    Extra header items to add at the start of header in addition to
+    those already contained in the :class:`Window`.
+
+xoff : int
+    Offset in X-direction to use for mosaicing.
+
+yoff : int
+    Offset in Y-direction to use for mosaicing.
+
+extnam : None | string
+    Extension name, useful in &#39;fv&#39;
+</pre></div>
+</div>
+<p>Returns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">hdu</span>    <span class="p">:</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">fits</span><span class="o">.</span><span class="n">ImageHDU</span>
+   <span class="n">The</span> <span class="n">HDU</span> <span class="n">containing</span> <span class="n">the</span> <span class="n">data</span> <span class="ow">and</span> <span class="n">the</span> <span class="n">header</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.Window.window">
+<span class="sig-name descname"><span class="pre">window</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xlo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xhi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yhi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.Window.window" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a new Window by windowing it down to whatever complete
+pixels are visible in the region xlo to xhi, ylo to yhi. ValueError
+raised if no Window left.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xlo</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">minimum</span> <span class="n">X</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span> <span class="p">(</span><span class="n">extreme</span> <span class="n">left</span> <span class="n">pixels</span> <span class="n">of</span> <span class="n">CCD</span>
+   <span class="n">centred</span> <span class="n">on</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="n">xhi</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">maximum</span> <span class="n">X</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span>
+
+<span class="n">ylo</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">minimum</span> <span class="n">Y</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span> <span class="p">(</span><span class="n">bottom</span> <span class="n">pixels</span> <span class="n">of</span> <span class="n">CCD</span> <span class="n">centred</span> <span class="n">on</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="n">yhi</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">maximum</span> <span class="n">Y</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span>
+
+<span class="n">copy</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="n">controls</span> <span class="n">whether</span> <span class="n">the</span> <span class="n">headers</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">Winhead</span> <span class="n">associated</span>
+   <span class="k">with</span> <span class="n">this</span> <span class="n">are</span> <span class="n">copied</span> <span class="n">by</span> <span class="n">value</span> <span class="ow">or</span> <span class="n">reference</span><span class="o">.</span> <span class="kc">True</span><span class="o">=</span><span class="n">copy</span> <span class="n">by</span>
+   <span class="n">value</span> <span class="n">which</span> <span class="n">can</span> <span class="n">carry</span> <span class="n">significant</span> <span class="n">overheads</span><span class="p">,</span> <span class="n">but</span> <span class="n">has</span> <span class="n">the</span>
+   <span class="n">virtue</span> <span class="n">of</span> <span class="n">creating</span> <span class="n">an</span> <span class="n">independent</span> <span class="nb">object</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns the windowed Window.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.window.Window.winhead">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">winhead</span></span><a class="headerlink" href="#hipercam.window.Window.winhead" title="Link to this definition">¶</a></dt>
+<dd><p>A copy of the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> underlying the <a class="reference internal" href="#hipercam.window.Window" title="hipercam.window.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> This is to
+allow simpler reporting of problems with the format without the data
+as well</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.window.CcdWin">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.window.</span></span><span class="sig-name descname"><span class="pre">CcdWin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Group(Winhead)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.CcdWin" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></p>
+<p>All the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> objects of a single CCD.</p>
+<p>Acts as a container for all of the window formats of a CCD.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>wins</strong><span class="classifier">Group(Winhead)</span></dt><dd><p>All of the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> objects</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.CcdWin.fromJson">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fromJson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.CcdWin.fromJson" title="Link to this definition">¶</a></dt>
+<dd><p>Read from JSON-format file fname</p>
+<p>Returns a CcdWin object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.CcdWin.toJson">
+<span class="sig-name descname"><span class="pre">toJson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.CcdWin.toJson" title="Link to this definition">¶</a></dt>
+<dd><p>Dumps ccdWin in JSON format to a file</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fname</span> <span class="p">:</span> <span class="p">(</span><span class="n">string</span><span class="p">)</span>
+   <span class="n">name</span> <span class="n">of</span> <span class="n">file</span> <span class="n">to</span> <span class="n">dump</span> <span class="n">to</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.window.MccdWin">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.window.</span></span><span class="sig-name descname"><span class="pre">MccdWin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Group(CcdWin)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.MccdWin" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></p>
+<p>All the <a class="reference internal" href="#hipercam.window.Winhead" title="hipercam.window.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> objects for multiple CCDs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>wins</strong><span class="classifier">Group(CcdWin)</span></dt><dd><p>All of the <a class="reference internal" href="#hipercam.window.CcdWin" title="hipercam.window.CcdWin"><code class="xref py py-class docutils literal notranslate"><span class="pre">CcdWin</span></code></a> objects</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.MccdWin.fromJson">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fromJson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.MccdWin.fromJson" title="Link to this definition">¶</a></dt>
+<dd><p>Read from JSON-format file fname</p>
+<p>Returns an MccdWin object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.MccdWin.fromMccd">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fromMccd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mccd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.MccdWin.fromMccd" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.window.MccdWin.toJson">
+<span class="sig-name descname"><span class="pre">toJson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.window.MccdWin.toJson" title="Link to this definition">¶</a></dt>
+<dd><p>Dumps MccdWin in JSON format to a file</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fname</span> <span class="p">:</span> <span class="p">(</span><span class="n">string</span><span class="p">)</span>
+   <span class="n">file</span> <span class="n">to</span> <span class="n">dump</span> <span class="n">to</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickapi.html">API quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hcmformat.html">HiPERCAM’s hcm file format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows.html">HiPERCAM’s windows format</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="details.html">Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="hipercam-ccd.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hipercam-hlog.html">hipercam.hlog</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.window</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing.html">Timing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timing/timing_tests.html">Timing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging.html">Data logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="hipercam-hlog.html"
+                          title="previous chapter">hipercam.hlog</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../timing/timing.html"
+                          title="next chapter">Timing</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/hipercam-window.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/hipercam-window.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

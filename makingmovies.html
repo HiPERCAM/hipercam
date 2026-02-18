@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Making HiPERCAM movies &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="HiPERCAM Phase II" href="phaseII.html" />
+    <link rel="prev" title="Useful files" href="files.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="phaseII.html" title="HiPERCAM Phase II">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="files.html" title="Useful files">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      
+      <li>Making HiPERCAM movies</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="making-hiper-movies">
+<h1>Making HiPERCAM movies<a class="headerlink" href="#making-hiper-movies" title="Link to this heading">¶</a></h1>
+<p>The <a class="reference internal" href="commands.html#hipercam.scripts.makemovie" title="hipercam.scripts.makemovie"><code class="xref py py-func docutils literal notranslate"><span class="pre">makemovie</span></code></a> command allows you to generate stills from a movie. It
+is a little painful to run and even more so to actually compile the
+stills into a movie, so this is just to provide an easy reminder.</p>
+<section id="making-the-stills">
+<h2>Making the stills<a class="headerlink" href="#making-the-stills" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="commands.html#hipercam.scripts.makemovie" title="hipercam.scripts.makemovie"><code class="xref py py-func docutils literal notranslate"><span class="pre">makemovie</span></code></a> can plot CCD images only or images plus a light curve if
+you have a <a class="reference internal" href="commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a> log file available. I would suggest that you
+either run it within an empty directory or create such a directory for
+directing the output since it will create one image per
+exposure. Start by creating just a few images and look at them with
+your favourite PNG viewer. You will need to spend a while tweaking
+things. The one thing that will change when you switch to a full run
+is the X-scale on the light curve plot since that is adjusted to fit
+the times of the images shown. You can adjust the apparent font size
+by altering the plot width and height, at the same time as the dpi to
+control the resolution. Crude, but it works. I haven’t got it working
+without rather a stack of “whitespace”; something for the future.</p>
+<p>Here is a full listing of parameters I used to make a movie of the
+eclipsing double white dwarf ZTF J1539+5027. In this case I was in the
+directory containing the reduce log within which I had created an
+empty directory “tmp”. One up from the working directory was where the
+raw data, run0005.fits sat.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">makemovie</span>
+<span class="go">source = hl</span>
+<span class="go">run = ../run0005</span>
+<span class="go">first = 2</span>
+<span class="go">last = 1000</span>
+<span class="go">trim = False</span>
+<span class="go">ccd = 2</span>
+<span class="go">bias = bias3x3_slow.hcm</span>
+<span class="go">dark = none</span>
+<span class="go">flat = none</span>
+<span class="go">fmap = none</span>
+<span class="go">defect = none</span>
+<span class="go">log = run0005.log</span>
+<span class="go">targ = 1</span>
+<span class="go">comp = 2</span>
+<span class="go">ymin = 0.0</span>
+<span class="go">ymax = 0.05</span>
+<span class="go">ynorm = [1.0]</span>
+<span class="go">yoffset = [0.0]</span>
+<span class="go">location = e</span>
+<span class="go">fraction = 0.55</span>
+<span class="go">lpad = (0.15, 0.2, 0.1, 0.15)</span>
+<span class="go">cmap = viridis</span>
+<span class="go">width = 12.0</span>
+<span class="go">height = 3.0</span>
+<span class="go">dstore = tmp</span>
+<span class="go">ndigit = 4</span>
+<span class="go">fext = png</span>
+<span class="go">msub = False</span>
+<span class="go">iset = d</span>
+<span class="go">ilo = [0.0]</span>
+<span class="go">ihi = [100.0]</span>
+<span class="go">xlo = 0.0</span>
+<span class="go">xhi = 2048.0</span>
+<span class="go">ylo = 0.0</span>
+<span class="go">yhi = 1024.0</span>
+<span class="go">dpi = 200</span>
+<span class="go">style = dots</span>
+<span class="go">ms = 2.0</span>
+</pre></div>
+</div>
+</section>
+<section id="making-the-movie-from-the-stills">
+<h2>Making the movie from the stills<a class="headerlink" href="#making-the-movie-from-the-stills" title="Link to this heading">¶</a></h2>
+<p>Once you have the stills, you still need to actually make the movie. I use the command ‘ffmpeg’ to do so like this:</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">ffmpeg</span> <span class="pre">-start_number</span> <span class="pre">123</span> <span class="pre">-i</span> <span class="pre">run0005_%04d.png</span> <span class="pre">-c:v</span> <span class="pre">libx264</span> <span class="pre">-pix_fmt</span> <span class="pre">yuv420p</span> <span class="pre">movie.mp4</span> <span class="pre">-y</span></code></p>
+</div></blockquote>
+<p>which would find any files of the form ‘run0005_0340.png’ starting
+from ‘run0005_0123.png’. ‘ffmpeg’ has a million-and-one options and
+there be ways to tweak it, but this does a reasonable job I find.
+You can loop the movie with something like:</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">ffmpeg</span> <span class="pre">-start_number</span> <span class="pre">3</span> <span class="pre">-i</span> <span class="pre">run0011_%04d.png</span> <span class="pre">-filter_complex</span> <span class="pre">loop=5:362</span> <span class="pre">-c:v</span> <span class="pre">libx264</span> <span class="pre">-pix_fmt</span> <span class="pre">yuv420p</span> <span class="pre">movie.mp4</span> <span class="pre">-y</span></code></p>
+</div></blockquote>
+<p>which would add 6 loops.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="files.html"
+                          title="previous chapter">Useful files</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="phaseII.html"
+                          title="next chapter">HiPERCAM Phase II</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/makingmovies.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/makingmovies.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

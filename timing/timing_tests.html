@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Timing tests &#8212; HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../_static/documentation_options.js?v=c92ee6e6"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Reporting problems" href="../api/bugs.html" />
+    <link rel="prev" title="Timing" href="timing.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../api/bugs.html" title="Reporting problems">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="timing.html" title="Timing">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">HiPERCAM pipeline 1.6.7.dev17+gf476407b5 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../api/api.html" accesskey="U">The API</a> &#187;</li>
+      
+      <li>Timing tests</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="timing-tests">
+<h1>Timing tests<a class="headerlink" href="#timing-tests" title="Link to this heading">¶</a></h1>
+<p>To test the relations derived in the <a class="reference internal" href="timing.html"><span class="doc">Timing</span></a> section, we rigged up an
+LED pseudo-star on the focal plane mask. The LED turns on precisely and
+near-instantaneously at the start of each UTC second (and off again about half
+a second later). If one takes a series of short exposures (&lt; 0.5 seconds),
+then depending upon how they align with the square wave from the LED, one gets
+either no counts, a steady maximum number of counts or something in between,
+depending upon the degree of overlap between the exposure and the LED square
+wave The data were extracted using <a class="reference internal" href="../commands.html#hipercam.scripts.reduce" title="hipercam.scripts.reduce"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce</span></code></a>, and then plotted after folding on
+the period of 1 second with an exact integer zero point. The data fold to give
+either no counts, the full number of counts, and a linear ramp in between of
+duration equal to the time spent accumulating photons. If the timing code is
+correct, the mid-point of the ramp should coincide with zero, and any offset
+gives an estimate of the precision to which times from HiPERCAM can be trusted.</p>
+<section id="wht-commissioning-run-october-2017">
+<h2>WHT commissioning run, October 2017<a class="headerlink" href="#wht-commissioning-run-october-2017" title="Link to this heading">¶</a></h2>
+<p>This section groups a series of tests taken on 22 October 2017 during the
+WHT commissioning run. The main issue as far as these timing tests was that
+the voltage swings on the chips were a little too low leading to non-linear
+behaviour. Some of the results need to be viewed as uncertain because of this.</p>
+<section id="run0022">
+<h3>run0022<a class="headerlink" href="#run0022" title="Link to this heading">¶</a></h3>
+<p>This was a no-clear windowed mode run from the first commissioning run on the
+WHT in October 2017. <a class="reference internal" href="#fig-0022-4"><span class="std std-numref">Fig. 9</span></a> and <a class="reference internal" href="#fig-0022-5"><span class="std std-numref">Fig. 10</span></a> show the test data for
+CCDs 4 and 5 (the others were either not operative or saturated).</p>
+<figure class="align-default" id="id1">
+<span id="fig-0022-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0022-4.png"><img alt="timing test data for CCD 4, run0022 of 2017-10-22" src="../_images/2017-10-22-0022-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 9 </span><span class="caption-text">Timing test data for CCD 4, run0022 of 2017-10-22 shows a
+<span class="math">+165\,\mu\text{s}</span> offset. There are clear signs of non-linearity in
+the ‘ramp’ and the readout was known to exhibit significant non-linearity
+in this run that was subsequently fixed.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id2">
+<span id="fig-0022-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0022-5.png"><img alt="timing test data for CCD5, run0022 of 2017-10-22" src="../_images/2017-10-22-0022-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Timing test data for CCD 5, run0022 of 2017-10-22 shows a
+<span class="math">-1\,\mu\text{s}</span> offset. There are clear signs of non-linearity in
+offset. The count levels are much lower in this arm, and non-linearity
+appears less than in CCD 4.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>For this mode and run at least, the timing looks pretty good, albeit limited
+by the unknown effects of non-linearity. The exposure time calculated for this
+standard exposures in this mode (R + E, see <a class="reference internal" href="timing.html"><span class="doc">Timing</span></a>) is 0.1614 secs,
+compared to the measured values of 0.1659 and 0.1696 secs. This may again be
+affected by non-linearity and needs checking.</p>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>+165</p></td>
+<td><p>0.1659</p></td>
+<td><p>0.1614</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>-1</p></td>
+<td><p>0.1696</p></td>
+<td><p>0.1614</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="run0024">
+<h3>run0024<a class="headerlink" href="#run0024" title="Link to this heading">¶</a></h3>
+<p>This was a no-clear windowed mode run run with shorter exposures than run0022.
+<a class="reference internal" href="#fig-0024-4"><span class="std std-numref">Fig. 11</span></a> and <a class="reference internal" href="#fig-0024-5"><span class="std std-numref">Fig. 12</span></a> show the data for
+CCDs 4 and 5 (the others were either not operative or saturated).</p>
+<figure class="align-default" id="id3">
+<span id="fig-0024-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0024-4.png"><img alt="timing test data for CCD 4, run0024 of 2017-10-22" src="../_images/2017-10-22-0024-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">Timing test data for CCD 4, run0024 of 2017-10-22 shows a +8 microsecond
+offset. Counts and non-linearity appear lower than in <a class="reference internal" href="#fig-0022-4"><span class="std std-numref">Fig. 9</span></a>.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id4">
+<span id="fig-0024-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0024-5.png"><img alt="timing test data for CCD5, run0024 of 2017-10-22" src="../_images/2017-10-22-0024-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Timing test data for CCD 5, run0024 of 2017-10-22 shows a -19 microsecond
+offset.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The measured exposure times of 0.00993 and 0.00980 secs compare with
+a calculated value of 0.00945 secs.</p>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>+8</p></td>
+<td><p>0.00993</p></td>
+<td><p>0.00945</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>-19</p></td>
+<td><p>0.00980</p></td>
+<td><p>0.00945</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="run0026">
+<h3>run0026<a class="headerlink" href="#run0026" title="Link to this heading">¶</a></h3>
+<p>This was a no-clear windowed mode run run with shorter exposures than run0022.
+<a class="reference internal" href="#fig-0026-4"><span class="std std-numref">Fig. 13</span></a> and <a class="reference internal" href="#fig-0026-5"><span class="std std-numref">Fig. 14</span></a> show the data for
+CCDs 4 and 5 (the others were either not operative or saturated).</p>
+<figure class="align-default" id="id5">
+<span id="fig-0026-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0026-4.png"><img alt="timing test data for CCD 4, run0026 of 2017-10-22" src="../_images/2017-10-22-0026-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Timing test data for CCD 4, run0026 of 2017-10-22.</span><a class="headerlink" href="#id5" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id6">
+<span id="fig-0026-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0026-5.png"><img alt="timing test data for CCD5, run0026 of 2017-10-22" src="../_images/2017-10-22-0026-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Timing test data for CCD 5, run0026 of 2017-10-22.</span><a class="headerlink" href="#id6" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>These show offset of -9 and -70 microsecs, and exposure lengths of
+0.00500 and 0.00490 compared to a calculated 0.00458 seconds.</p>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>+9</p></td>
+<td><p>0.00500</p></td>
+<td><p>0.00458</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>+80</p></td>
+<td><p>0.00490</p></td>
+<td><p>0.00458</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="run0027">
+<h3>run0027<a class="headerlink" href="#run0027" title="Link to this heading">¶</a></h3>
+<p>The key feature of this run is the use of the ‘NSKIP’ option. This makes the
+exposures longer, and possibly induces more non-linear behaviour in the case
+of CCD 4. The resulting offsets are quite large, but note that the exposure
+are concomittantly long.</p>
+<figure class="align-default" id="id7">
+<span id="fig-0027-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0027-4.png"><img alt="timing test data for CCD 4, run0027 of 2017-10-22" src="../_images/2017-10-22-0027-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 15 </span><span class="caption-text">Timing test data for CCD 4, run0027 of 2017-10-22.</span><a class="headerlink" href="#id7" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id8">
+<span id="fig-0027-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0027-5.png"><img alt="timing test data for CCD5, run0027 of 2017-10-22" src="../_images/2017-10-22-0027-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Timing test data for CCD 5, run0027 of 2017-10-22.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>With NSKIP in operation, one can see a clear difference in the slopes
+of the transitions in <a class="reference internal" href="#fig-0027-4"><span class="std std-numref">Fig. 15</span></a> versus <a class="reference internal" href="#fig-0027-5"><span class="std std-numref">Fig. 16</span></a>. The NSKIP for
+CCD 5 in this case was 4 versus 3 for CCD 4.</p>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">NSKIP</div>
+<div class="line"><br /></div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>-1736</p></td>
+<td><p>0.06075</p></td>
+<td><p>0.06406</p></td>
+<td><p>3</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>+226</p></td>
+<td><p>0.08871</p></td>
+<td><p>0.08801</p></td>
+<td><p>4</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="run0028">
+<h3>run0028<a class="headerlink" href="#run0028" title="Link to this heading">¶</a></h3>
+<p>Another examples woith NSKIP in use.</p>
+<figure class="align-default" id="id9">
+<span id="fig-0028-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0028-4.png"><img alt="timing test data for CCD 4, run0028 of 2017-10-22" src="../_images/2017-10-22-0028-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 17 </span><span class="caption-text">Timing test data for CCD 4, run0028 of 2017-10-22.</span><a class="headerlink" href="#id9" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id10">
+<span id="fig-0028-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0028-5.png"><img alt="timing test data for CCD5, run0028 of 2017-10-22" src="../_images/2017-10-22-0028-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 18 </span><span class="caption-text">Timing test data for CCD 5, run0028 of 2017-10-22.</span><a class="headerlink" href="#id10" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">NSKIP</div>
+<div class="line"><br /></div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>+742</p></td>
+<td><p>0.04167</p></td>
+<td><p>0.04010</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>+57</p></td>
+<td><p>0.04054</p></td>
+<td><p>0.04010</p></td>
+<td><p>2</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="run0029">
+<h3>run0029<a class="headerlink" href="#run0029" title="Link to this heading">¶</a></h3>
+<p>Another examples with NSKIP in use. [Looks similar to run0027 as far
+as I can tell.]</p>
+<figure class="align-default" id="id11">
+<span id="fig-0029-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0029-4.png"><img alt="timing test data for CCD 4, run0029 of 2017-10-22" src="../_images/2017-10-22-0029-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 19 </span><span class="caption-text">Timing test data for CCD 4, run0029 of 2017-10-22.</span><a class="headerlink" href="#id11" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id12">
+<span id="fig-0029-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0029-5.png"><img alt="timing test data for CCD5, run0029 of 2017-10-22" src="../_images/2017-10-22-0029-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 20 </span><span class="caption-text">Timing test data for CCD 5, run0029 of 2017-10-22.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>This is quite different from run0027, but rather few points have been
+caught in transition, and one of them is quite discrepant. Definitely require
+longer runs for these tests.</p>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">NSKIP</div>
+<div class="line"><br /></div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>-429</p></td>
+<td><p>0.06347</p></td>
+<td><p>0.06406</p></td>
+<td><p>3</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>+1452</p></td>
+<td><p>0.09158</p></td>
+<td><p>0.08801</p></td>
+<td><p>4</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="run0032">
+<h3>run0032<a class="headerlink" href="#run0032" title="Link to this heading">¶</a></h3>
+<p>This is the first drift mode run. There were 3 junk windows in the masked area
+at the start before real data emerged. There are 3 CCDs with valid data:</p>
+<figure class="align-default" id="id13">
+<span id="fig-0032-3"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0032-3.png"><img alt="timing test data for CCD 3, run0032 of 2017-10-22" src="../_images/2017-10-22-0032-3.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 21 </span><span class="caption-text">Timing test data for CCD 3, run0032 of 2017-10-22.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id14">
+<span id="fig-0032-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0032-4.png"><img alt="timing test data for CCD 4, run0032 of 2017-10-22" src="../_images/2017-10-22-0032-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 22 </span><span class="caption-text">Timing test data for CCD 4, run0032 of 2017-10-22.</span><a class="headerlink" href="#id14" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id15">
+<span id="fig-0032-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0032-5.png"><img alt="timing test data for CCD5, run0032 of 2017-10-22" src="../_images/2017-10-22-0032-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 23 </span><span class="caption-text">Timing test data for CCD 5, run0032 of 2017-10-22.</span><a class="headerlink" href="#id15" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>This is quite different from run0027, but rather few points have been
+caught in transition, and one of them is quite discrepant. Definitely require
+longer runs for these tests.</p>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>-733</p></td>
+<td><p>0.08123</p></td>
+<td><p>0.08306</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>+293</p></td>
+<td><p>0.08385</p></td>
+<td><p>0.08306</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>-39</p></td>
+<td><p>0.08359</p></td>
+<td><p>0.08306</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="run0033">
+<h3>run0033<a class="headerlink" href="#run0033" title="Link to this heading">¶</a></h3>
+<p>This is the next and faster drift mode run. I have reduced all 4 available
+CCDs which I think show again the effect of non-linearity (and possibly some
+saturation in CCD 3).</p>
+<figure class="align-default" id="id16">
+<span id="fig-0033-2"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0033-2.png"><img alt="timing test data for CCD 2, run0033 of 2017-10-22" src="../_images/2017-10-22-0033-2.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 24 </span><span class="caption-text">Timing test data for CCD 2, run0033 of 2017-10-22.</span><a class="headerlink" href="#id16" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id17">
+<span id="fig-0033-3"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0033-3.png"><img alt="timing test data for CCD 3, run0033 of 2017-10-22" src="../_images/2017-10-22-0033-3.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 25 </span><span class="caption-text">Timing test data for CCD 3, run0033 of 2017-10-22.</span><a class="headerlink" href="#id17" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id18">
+<span id="fig-0033-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0033-4.png"><img alt="timing test data for CCD 4, run0033 of 2017-10-22" src="../_images/2017-10-22-0033-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 26 </span><span class="caption-text">Timing test data for CCD 4, run0033 of 2017-10-22.</span><a class="headerlink" href="#id18" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id19">
+<span id="fig-0033-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0033-5.png"><img alt="timing test data for CCD 5, run0033 of 2017-10-22" src="../_images/2017-10-22-0033-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 27 </span><span class="caption-text">Timing test data for CCD 5, run0033 of 2017-10-22.</span><a class="headerlink" href="#id19" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>+314</p></td>
+<td><p>0.03405</p></td>
+<td><p>0.03322</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>-2047</p></td>
+<td><p>0.02979</p></td>
+<td><p>0.03322</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>+171</p></td>
+<td><p>0.03395</p></td>
+<td><p>0.03322</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>+35</p></td>
+<td><p>0.03362</p></td>
+<td><p>0.03322</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="run0034">
+<h3>run0034<a class="headerlink" href="#run0034" title="Link to this heading">¶</a></h3>
+<p>Another still faster drift mode run (CCD 3 was badly saturated).</p>
+<figure class="align-default" id="id20">
+<span id="fig-0034-2"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0034-2.png"><img alt="timing test data for CCD 2, run0034 of 2017-10-22" src="../_images/2017-10-22-0034-2.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 28 </span><span class="caption-text">Timing test data for CCD 2, run0034 of 2017-10-22.</span><a class="headerlink" href="#id20" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id21">
+<span id="fig-0034-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0034-4.png"><img alt="timing test data for CCD 4, run0034 of 2017-10-22" src="../_images/2017-10-22-0034-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 29 </span><span class="caption-text">Timing test data for CCD 4, run0034 of 2017-10-22.</span><a class="headerlink" href="#id21" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id22">
+<span id="fig-0034-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0034-5.png"><img alt="timing test data for CCD 5, run0034 of 2017-10-22" src="../_images/2017-10-22-0034-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 30 </span><span class="caption-text">Timing test data for CCD 5, run0034 of 2017-10-22.</span><a class="headerlink" href="#id22" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>+721</p></td>
+<td><p>0.01713</p></td>
+<td><p>0.01723</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>+225</p></td>
+<td><p>0.01788</p></td>
+<td><p>0.01723</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>+31</p></td>
+<td><p>0.01773</p></td>
+<td><p>0.01723</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="run0060">
+<h3>run0060<a class="headerlink" href="#run0060" title="Link to this heading">¶</a></h3>
+<p>This fast drift run appears to reveal an issue with the LED brightness
+which does not seem to reach its maximum until around 3 msec after switch
+on. This must have an effect upon the accuracy of these tests. I think
+it particularly shows in the over-estimated exposure time since that is
+calculated using the time to go from low to high, but the high value is
+effectively too large. This could also add a few tenths of a millisec to the
+offset.</p>
+<figure class="align-default" id="id23">
+<span id="fig-0060-2"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0060-2.png"><img alt="timing test data for CCD 2, run0060 of 2017-10-22" src="../_images/2017-10-22-0060-2.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 31 </span><span class="caption-text">Timing test data for CCD 2, run0060 of 2017-10-22.</span><a class="headerlink" href="#id23" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id24">
+<span id="fig-0060-4"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0060-4.png"><img alt="timing test data for CCD 4, run0060 of 2017-10-22" src="../_images/2017-10-22-0060-4.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 32 </span><span class="caption-text">Timing test data for CCD 4, run0060 of 2017-10-22.</span><a class="headerlink" href="#id24" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id25">
+<span id="fig-0060-5"></span><a class="reference internal image-reference" href="../_images/2017-10-22-0060-5.png"><img alt="timing test data for CCD 5, run0060 of 2017-10-22" src="../_images/2017-10-22-0060-5.png" style="width: 800.0px; height: 500.0px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 33 </span><span class="caption-text">Timing test data for CCD 5, run0060 of 2017-10-22.</span><a class="headerlink" href="#id25" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Summary results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">CCD</div>
+<div class="line">#</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Offset</div>
+<div class="line">[<span class="math">\mu\text{s}</span>]</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line-block">
+<div class="line">[sec]</div>
+</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Exposure</div>
+<div class="line">calc. [sec]</div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>-35</p></td>
+<td><p>0.00311</p></td>
+<td><p>0.00263</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>+177</p></td>
+<td><p>0.00334</p></td>
+<td><p>0.00263</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>+328</p></td>
+<td><p>0.00363</p></td>
+<td><p>0.00263</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api/api.html">The API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/quickapi.html">API quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/hcmformat.html">HiPERCAM’s hcm file format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/windows.html">HiPERCAM’s windows format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/details.html">Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timing.html">Timing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Timing tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/logging.html">Data logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../phaseII.html">HiPERCAM Phase II</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="timing.html"
+                          title="previous chapter">Timing</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../api/bugs.html"
+                          title="next chapter">Reporting problems</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/timing/timing_tests.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/timing/timing_tests.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>
