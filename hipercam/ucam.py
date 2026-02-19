@@ -611,8 +611,8 @@ class Rhead:
                 xsl = wl.llx
                 xsr = wr.llx
                 ys = wl.lly
-                nx = wl.nx
-                ny = wl.ny
+                nx = wl.nx * wl.xbin
+                ny = wl.ny * wl.ybin
                 self.wforms.append(f"{xsl},{xsr},{ys},{nx},{ny}")
 
         elif instrument == "ULTRASPEC":
@@ -620,8 +620,8 @@ class Rhead:
             for w in self.win:
                 xs = w.llx
                 ys = w.lly
-                nx = w.nx
-                ny = w.ny
+                nx = w.nx * w.xbin
+                ny = w.ny * w.ybin
                 self.wforms.append(f"{xs},{ys},{nx},{ny}")
 
         # Finally have reached end of constructor / initialiser
