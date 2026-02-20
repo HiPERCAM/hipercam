@@ -326,6 +326,8 @@ def reduce(args=None):
             psfplot = cl.get_value(
                 "psfplot", "do you want to plot residual of PSF model?", True
             )
+        else:
+            psfplot = False
 
         if implot or psfplot:
             # define the panel grid. first get the labels and maximum
