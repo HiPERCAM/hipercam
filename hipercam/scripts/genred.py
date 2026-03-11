@@ -424,6 +424,7 @@ warn = 1 60000 64000
         gsec["iwidth"] = 0.0
         gsec["iheight"] = 0.0
         gsec["toffset"] = 0
+        gsec["psfdevice"] = "3/xs"
         gsec["skipbadt"] = "yes"
         gsec["ncpu"] = 1
         gsec["ngroup"] = 1
@@ -461,7 +462,6 @@ warn = 1 60000 64000
         psfsec = tvals["psf_photom"] = {}
         psfsec["use_psf"] = "no"
         psfsec["psf_model"] = "moffat"
-        psfsec["gfac"] = 3.0
         psfsec["fit_half_width"] = 15.0
         psfsec["positions"] = "fixed"
 
@@ -867,6 +867,7 @@ idevice = {gsec["idevice"]} # PGPLOT plot device for image plots [if implot True
 iwidth = {gsec["iwidth"]} # image curve plot width, inches, 0 to let program choose
 iheight = {gsec["iheight"]} # image curve plot height, inches
 
+psfdevice = {gsec["psfdevice"]} # PGPLOT plot device for PSF residual plots [if psfplot True]
 toffset = {gsec["toffset"]} # integer offset to subtract from the MJD
 
 # skip points with bad times in plots. HiPERCAM has a problem in not
@@ -1045,26 +1046,21 @@ fit_diff = {asec["fit_diff"]:.2f} # Maximum differential shift of multiple refer
 [extraction]
 {extraction}
 
-# The next lines are specific to the PSF photometry option. 'gfac' is
-# used to label the sources according to groups, such that stars
-# closer than 'gfac' times the FWHM are labelled in the same
-# group. Each group has a PSF model fit independently. The reason
-# behind the construction of groups is to reduce the dimensionality of
-# the fitting procedure. Usually you want closely seperated stars to
-# be fit simultaneously, but too large a value will mean fitting a
-# model with many free parameters, which can fail to converge. The
-# size of the box over which data is collected for fitting is set by
+# The next lines are specific to the PSF photometry option. 
+# In PSF photometry, the PSF model is fit to the reference stars and
+# then the shape of the PSF is held fixed and only the scaling of the PSF
+# [and optionally the position] is fit for other sources.
+# The size of the box over which data is collected for fitting is set by
 # 'fit_half_width'. Finally, 'positions' determines whether the star's
 # positions should be considered variable in the PSF fitting. If this
 # is set to fixed, the positions are held at the locations found in
 # the aperture repositioning step, otherwise the positions are refined
 # during PSF fitting. This step can fail for PSF photometry of faint
-# sources.
+# sources, generally fixed positions yields better results.
 
 [psf_photom]
 use_psf = {psfsec["use_psf"]} # 'yes' or 'no'
 psf_model = {psfsec["psf_model"]} # 'gaussian' or 'moffat'
-gfac = {psfsec["gfac"]}  # multiple of the FWHM to use in grouping objects
 fit_half_width = {psfsec["fit_half_width"]}  # size of window used to collect the data to do the fitting
 positions = {psfsec["positions"]}   # 'fixed' or 'variable'
 

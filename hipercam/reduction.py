@@ -4,34 +4,34 @@ This contains code used in common by the script reduce.py
 from collections import OrderedDict
 import sys
 import warnings
-import numpy as np
-import hipercam as hcam
-from hipercam import utils, fitting
-from hipercam.ccd import crop_calib_frame_to
 
+import numpy as np
 from trm.pgplot import (
-    pgpap,
-    pgsubp,
-    pgsci,
-    pgsch,
+    pgbbuf,
+    pgbox,
+    pgdraw,
+    pgebuf,
     pgenv,
-    pglab,
-    pgqvp,
-    pgvstd,
     pgeras,
     pgerry,
-    pgpt,
+    pglab,
+    pgmove,
     pgpanl,
-    pgbbuf,
-    pgebuf,
+    pgpap,
+    pgpt,
+    pgpt1,
+    pgqvp,
+    pgsch,
+    pgsci,
+    pgsubp,
     pgsvp,
     pgswin,
-    pgbox,
-    pgmove,
-    pgdraw,
-    pgpt1,
+    pgvstd,
 )
 
+import hipercam as hcam
+from hipercam import fitting, utils
+from hipercam.ccd import crop_calib_frame_to
 
 NaN = float("NaN")
 
@@ -86,8 +86,7 @@ class Rfile(OrderedDict):
 
                     else:
                         raise hcam.HipercamError(
-                            "found entry line before"
-                            " any section = \n{:s}".format(line)
+                            "found entry line before any section = \n{:s}".format(line)
                         )
 
         # process it. this is a matter of checking entries and
@@ -624,11 +623,11 @@ class Rfile(OrderedDict):
             self.gain = crop_calib_frame_to(mccd, self.gain, "gain")
 
 
-def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
+def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True, psfplot=True):
     """
     Perform initial setup of image and lightcurve plots for reduction outputs
     """
-    imdev = lcdev = spanel = tpanel = xpanel = ypanel = lpanel = None
+    imdev = lcdev = psfdev = spanel = tpanel = xpanel = ypanel = lpanel = None
     if implot:
         xlo, xhi, ylo, yhi = plot_lims
         # image plot
@@ -639,6 +638,31 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
         if iwidth > 0 and iheight > 0:
             pgpap(iwidth, iheight / iwidth)
 
+        # set up panels and axes
+        nccd = len(ccds)
+        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+
+        # slice up viewport
+        pgsubp(nx, ny)
+
+        # plot axes, labels, titles. Happens once only
+        for cnam in ccds:
+            pgsci(hcam.pgp.Params["axis.ci"])
+            pgsch(hcam.pgp.Params["axis.number.ch"])
+            pgenv(xlo, xhi, ylo, yhi, 1, 0)
+            pgsci(hcam.pgp.Params["axis.label.ci"])
+            pgsch(hcam.pgp.Params["axis.label.ch"])
+            pglab("X", "Y", "CCD {:s}".format(cnam))
+
+    if psfplot:
+        xlo, xhi, ylo, yhi = plot_lims
+        # plot of image minus PSF model
+        psfdev = hcam.pgp.Device(rfile["general"]["psfdevice"])
+        iwidth = rfile["general"]["iwidth"]
+        iheight = rfile["general"]["iheight"]
+
+        if iwidth > 0 and iheight > 0:
+            pgpap(iwidth, iheight / iwidth)
         # set up panels and axes
         nccd = len(ccds)
         ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
@@ -813,7 +837,7 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True):
             rfile["light"]["y2"],
         )
 
-    return imdev, lcdev, spanel, tpanel, xpanel, ypanel, lpanel
+    return imdev, lcdev, psfdev, spanel, tpanel, xpanel, ypanel, lpanel
 
 
 def setup_plot_buffers(rfile):
@@ -855,10 +879,13 @@ def static_vars(**kwargs):
 def update_plots(
     results,
     rfile,
+    store,
     implot,
     lplot,
+    psfplot,
     imdev,
     lcdev,
+    psfdev,
     pccd,
     ccds,
     msub,
@@ -902,11 +929,17 @@ def update_plots(
        lplot : bool
           whether to plot light curves
 
+       psfplot : bool
+          whether to plot PSF residuals
+
        imdev : hipercam.pgp.Device
           represents the image plot device (if any)
 
        lcdev : hipercam.pgp.Device
           represents the light curve plot device (if any)
+
+       psfdev : hipercam.pgp.Device
+          represents the psf residuals plot device (if any)
 
        pccd : MCCD [only matters if imdev]
           current debiassed, flat-fielded frame. In the case of frame
@@ -1000,6 +1033,67 @@ def update_plots(
 
         # end of CCD display loop
         print(message)
+
+    if psfplot:
+        # plot the PSF residuals
+        psfdev.select()
+
+        # display the CCDs chosen
+        message = "; "
+        for nc, cnam in enumerate(ccds):
+            ccd = pccd[cnam]
+
+            if ccd.is_data():
+                # this should be data as opposed to a blank frame
+                # between data frames that occur with nskip > 0
+
+                # set to the correct panel and then plot CCD
+                ix = (nc % nx) + 1
+                iy = nc // nx + 1
+                pgpanl(ix, iy)
+                psf_model, box_wnam, box_limits = store[cnam].get(
+                    f"psf_model_{cnam}", None
+                )
+
+                if psf_model is not None:
+                    data_minus_model = ccd.copy()
+
+                    # find the indices of the stamp used for PSF photometry
+                    window = data_minus_model[box_wnam]
+                    x1, x2, y1, y2 = box_limits
+                    # code copied from window class
+                    winh = super(hcam.Window, window).window(x1, x2, y1, y2)
+                    ix1 = (winh.llx - window.llx) // window.xbin
+                    iy1 = (winh.lly - window.lly) // window.ybin
+                    iy2 = iy1 + winh.ny
+                    ix2 = ix1 + winh.nx
+
+                    # extract a view of the data array
+                    data = window.data[iy1:iy2, ix1:ix2]
+                    resid = psf_model.make_residual_image(data)
+                    data_minus_model[box_wnam].data[iy1:iy2, ix1:ix2] = resid
+                    vmin, vmax = ccd.percentile((plo, phi), xlo, xhi, ylo, yhi)
+                    hcam.pgp.pCcd(
+                        data_minus_model,
+                        iset="d",
+                        dlo=vmin,
+                        dhi=vmax,
+                        xlo=xlo,
+                        xhi=xhi,
+                        ylo=ylo,
+                        yhi=yhi,
+                    )
+
+                # plot apertures
+                if cnam in rfile.aper and len(rfile.aper[cnam]) > 0:
+                    # find the result for this ccd name
+                    res = next(res for (this_cnam, res) in results if this_cnam == cnam)
+                    # we always use the last result in the parallel group
+                    last_res = res[-1]
+                    ccd_aper = last_res[2]
+                    hcam.pgp.pCcdAper(ccd_aper)
+
+        # end of PSF display loop
 
     if lplot:
         # plot the light curve
@@ -2535,7 +2629,7 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                 if extype == "optimal":
                     # optimal extraction. Need the profile
                     warnings.warn(
-                        "Transmission plot is not reliable" " with optimal extraction"
+                        "Transmission plot is not reliable with optimal extraction"
                     )
 
                     mbeta = store["mbeta"]
@@ -3662,9 +3756,7 @@ class LogWriter:
 # of the HiPERCAM reduction software, and was generated using the following
 # command-line inputs to 'reduce':
 #
-""".format(
-                hipercam_version=self.hipercam_version
-            )
+""".format(hipercam_version=self.hipercam_version)
         )
 
         # second, list the command-line inputs to the logfile
