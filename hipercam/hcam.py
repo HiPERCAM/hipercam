@@ -47,6 +47,8 @@ __all__ = [
     "HCM_NYTOT",
     "HCM_NPSCAN",
     "HCM_NOSCAN",
+    "IendError",
+    "get_ccd_pars",
 ]
 
 # Set the URL of the FileServer from the environment or default to localhost.
@@ -1641,3 +1643,42 @@ class HendError(HipercamError):
     """
 
     pass
+
+
+# Alias satisfying InstrumentModuleProtocol; keeps the module self-describing
+# without breaking any code that already catches HendError directly.
+IendError = HendError
+
+
+def get_ccd_pars(resource, server=False):
+    """Return CCD geometry parameters for HiPERCAM.
+
+    The CCD dimensions are fixed for all HiPERCAM runs; neither *resource*
+    nor *server* is used. Both parameters are present so that this function
+    satisfies the uniform ``InstrumentModuleProtocol`` interface expected of
+    all instrument modules registered under the ``hipercam.instruments``
+    entry-point group.
+
+    Parameters
+    ----------
+    resource : str
+        Run name (unused for HiPERCAM).
+    server : bool
+        Server flag (unused for HiPERCAM).
+
+    Returns
+    -------
+    collections.OrderedDict
+        Mapping CCD label (``'1'``–``'5'``) to
+        ``(nxmax, nymax, nxpad, nypad)``.
+    """
+    from collections import OrderedDict
+
+    dims = (HCM_NXTOT, HCM_NYTOT, HCM_NPSCAN, HCM_NOSCAN)
+    return OrderedDict((
+        ("1", dims),
+        ("2", dims),
+        ("3", dims),
+        ("4", dims),
+        ("5", dims),
+    ))

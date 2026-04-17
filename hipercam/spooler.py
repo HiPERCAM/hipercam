@@ -27,6 +27,7 @@ from . import ucam
 from . import hcam
 from . import core
 from . import utils
+from .instruments import load_instrument
 
 __all__ = (
     "SpoolerBase",
@@ -41,6 +42,8 @@ __all__ = (
     "HcamDiskSpool",
     "UcamTbytesSpool",
     "HcamTbytesSpool",
+    "PluginDiskSpool",
+    "PluginServSpool",
 )
 
 
@@ -359,6 +362,97 @@ class HcamTbytesSpool(SpoolerBase):
         return self._iter.__next__()
 
 
+class PluginDiskSpool(SpoolerBase):
+
+    """Provides an iterable context manager to loop through frames within
+    a raw data file from a third-party instrument plugin, reading from
+    a local disk file.
+
+    The instrument is identified by name and must be registered under the
+    ``hipercam.instruments`` entry-point group.  Built-in names are
+    ``'hipercam'``, ``'ultracam'``, and ``'ultraspec'``.
+
+    Example::
+
+        with spooler.PluginDiskSpool('myinstrument', 'run003', first=1) as spool:
+            for mccd in spool:
+                ...
+    """
+
+    def __init__(self, instrument, run, first=1, **kwargs):
+        """Attaches the PluginDiskSpool to a run.
+
+        Arguments::
+
+           instrument : str
+              Registered instrument name, e.g. 'hipercam'.
+
+           run : str
+              The run number, e.g. 'run003' or 'data/run004'.
+
+           first : int
+              The first frame to access.
+
+           kwargs :
+              Additional keyword arguments forwarded to the instrument's
+              ``Rdata`` constructor (e.g. ``full=False`` for hipercam).
+        """
+        mod = load_instrument(instrument)
+        self._iter = mod.Rdata(run, first, False, **kwargs)
+
+    def __exit__(self, *args):
+        self._iter.__exit__(args)
+
+    def __next__(self):
+        return self._iter.__next__()
+
+
+class PluginServSpool(SpoolerBase):
+
+    """Provides an iterable context manager to loop through frames within
+    a raw data file from a third-party instrument plugin, reading from
+    a server.
+
+    The instrument is identified by name and must be registered under the
+    ``hipercam.instruments`` entry-point group.  Built-in names are
+    ``'hipercam'``, ``'ultracam'``, and ``'ultraspec'``.
+
+    Example::
+
+        with spooler.PluginServSpool('myinstrument', 'run003', first=0) as spool:
+            for mccd in spool:
+                ...
+    """
+
+    def __init__(self, instrument, run, first=1, **kwargs):
+        """Attaches the PluginServSpool to a run.
+
+        Arguments::
+
+           instrument : str
+              Registered instrument name, e.g. 'hipercam'.
+
+           run : str
+              The run number, e.g. 'run003' or 'data/run004'.
+
+           first : int
+              The first frame to access.  0 to always try to return the
+              last complete frame.
+
+           kwargs :
+              Additional keyword arguments forwarded to the instrument's
+              ``Rdata`` constructor.
+        """
+        mod = load_instrument(instrument)
+        self._iter = mod.Rdata(run, first, True, **kwargs)
+
+    def __exit__(self, *args):
+        self._iter.__exit__(args)
+
+    def __next__(self):
+        return self._iter.__next__()
+
+
 def data_source(source, resource, first=1, **kwargs):
     """Returns a context manager needed to run through a set of exposures.
     This is basically a wrapper around the various context managers that
@@ -374,6 +468,13 @@ def data_source(source, resource, first=1, **kwargs):
           's' (either the ATC fileserver for ULTRA(CAM|SPEC) or Stu
           Littlefair's HiPERCAM server), or from a list of fils in HiPERCAM's
           FITS-based hcm format.
+
+          Third-party instrument plugins may be accessed using the format
+          ``'<instrument>:local'`` or ``'<instrument>:server'``, where
+          ``<instrument>`` is the name registered in the
+          ``hipercam.instruments`` entry-point group.
+          Examples: ``'hipercam:local'``, ``'ultracam:server'``,
+          ``'myinstrument:local'``.
 
        resource : string
           File name. A run number if source=('?l'|'?s') or a file list
@@ -412,6 +513,16 @@ def data_source(source, resource, first=1, **kwargs):
         return HcamDiskSpool(resource, first, **kwargs)
     elif source == "hf":
         return HcamListSpool(resource)
+    elif ":" in source:
+        instrument, access = source.split(":", 1)
+        if access == "local":
+            return PluginDiskSpool(instrument, resource, first, **kwargs)
+        elif access == "server":
+            return PluginServSpool(instrument, resource, first, **kwargs)
+        else:
+            raise ValueError(
+                f"{source!r}: plugin source must end with ':local' or ':server'"
+            )
     else:
         raise ValueError("{!s} is not a recognised data source".format(source))
 
@@ -424,7 +535,8 @@ def get_ccd_pars(source, resource):
     Parameters:
 
         source  : str
-           Data source. See 'data_source' for details.
+           Data source. See 'data_source' for details. Plugin sources use the
+           ``'<instrument>:local'`` or ``'<instrument>:server'`` format.
 
         resource : str
           Either a run number, a file list or a list of names. Again, see
@@ -435,28 +547,17 @@ def get_ccd_pars(source, resource):
 
     """
 
-    if source.startswith("u"):
+    if ":" in source:
+        # Plugin instrument: delegate entirely to the module's get_ccd_pars.
+        instrument, access = source.split(":", 1)
+        server = access == "server"
+        mod = load_instrument(instrument)
+        return mod.get_ccd_pars(resource, server=server)
+
+    elif source.startswith("u"):
         server = source.endswith("s")
         # ULTRA(CAM|SPEC)
-        rhead = ucam.Rhead(resource, server=server)
-        if rhead.instrument == "ULTRACAM":
-            # ULTRACAM raw data file: fixed data
-            return OrderedDict(
-                (
-                    ("1", (1080, 1032, 56, 8)),
-                    ("2", (1080, 1032, 56, 8)),
-                    ("3", (1080, 1032, 56, 8)),
-                )
-            )
-
-        elif rhead.instrument == "ULTRASPEC":
-            # ULTRASPEC raw data file: fixed data
-            return OrderedDict((("1", (1056, 1072, 0, 0)),))
-
-        else:
-            raise ValueError(
-                "instrument = {:s} not supported".format(rhead.instrument)
-            )
+        return ucam.get_ccd_pars(resource, server=server)
 
     elif source.startswith("h"):
         if source.endswith("f"):
@@ -482,55 +583,8 @@ def get_ccd_pars(source, resource):
 
         else:
             # HiPERCAM raw data file: fixed data
-            return OrderedDict(
-                (
-                    (
-                        "1",
-                        (
-                            hcam.HCM_NXTOT,
-                            hcam.HCM_NYTOT,
-                            hcam.HCM_NPSCAN,
-                            hcam.HCM_NOSCAN,
-                        ),
-                    ),
-                    (
-                        "2",
-                        (
-                            hcam.HCM_NXTOT,
-                            hcam.HCM_NYTOT,
-                            hcam.HCM_NPSCAN,
-                            hcam.HCM_NOSCAN,
-                        ),
-                    ),
-                    (
-                        "3",
-                        (
-                            hcam.HCM_NXTOT,
-                            hcam.HCM_NYTOT,
-                            hcam.HCM_NPSCAN,
-                            hcam.HCM_NOSCAN,
-                        ),
-                    ),
-                    (
-                        "4",
-                        (
-                            hcam.HCM_NXTOT,
-                            hcam.HCM_NYTOT,
-                            hcam.HCM_NPSCAN,
-                            hcam.HCM_NOSCAN,
-                        ),
-                    ),
-                    (
-                        "5",
-                        (
-                            hcam.HCM_NXTOT,
-                            hcam.HCM_NYTOT,
-                            hcam.HCM_NPSCAN,
-                            hcam.HCM_NOSCAN,
-                        ),
-                    ),
-                )
-            )
+            server = source.endswith("s")
+            return hcam.get_ccd_pars(resource, server=server)
 
 
 def hang_about(obj, twait, tmax, total_time, updaters=None, tupdate=None):
