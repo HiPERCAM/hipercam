@@ -18,6 +18,7 @@ import hipercam as hcam
 from hipercam import core, spooler, defect
 from hipercam.ccd import crop_calib_frame_to
 from hipercam.extraction import findStars
+from hipercam.instruments import available_instruments
 
 __all__ = [
     "ftargets",
@@ -60,7 +61,7 @@ def ftargets(args=None):
     Parameters:
 
         source : string [hidden]
-           Data source, five options:
+           Data source, five options for built-in sources:
 
              |  'hs' : HiPERCAM server
              |  'hl' : local HiPERCAM FITS file
@@ -75,6 +76,9 @@ def ftargets(args=None):
            :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
            always started with the ULTRACAM server by default. If
            unspecified, it defaults to 'hl'.
+
+           Any instruments installed via plugins can be used as a source by
+           specifying either ``<instrument>:local`` or ``<instrument>:server``.
 
         device : string [hidden]
           Plot device. PGPLOT is used so this should be a PGPLOT-style name,
@@ -259,9 +263,9 @@ def ftargets(args=None):
         default_source = os.environ.get('HIPERCAM_DEFAULT_SOURCE','hl')
         source = cl.get_value(
             "source",
-            "data source [hs, hl, us, ul, hf]",
+            "data source [hs, hl, us, ul, hf, or <instrument>:local/<instrument>:server]",
             default_source,
-            lvals=("hs", "hl", "us", "ul", "hf"),
+            lvals=available_instruments(),
         )
 
         # set some flags
