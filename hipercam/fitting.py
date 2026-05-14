@@ -858,6 +858,8 @@ class Mfit:
         self.sigma = sigma
         self.mask = _mask(wind, self.x, self.y)
         self.ok = self.mask & (self.sigma > 0)
+        self.ok_indices = np.flatnonzero(self.ok.ravel()).astype(np.int64)
+
         self.set_mode(mode, fwhm, beta)
 
     def set_mode(self, mode, fwhm, beta):
@@ -1063,6 +1065,25 @@ class Mfit:
 
         Used by scipy.optimize.least_squares.
         """
+        if fitting_cpp is not None and hasattr(fitting_cpp, "moffat_resid"):
+            sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
+            return fitting_cpp.moffat_resid(
+                self.x,
+                self.y,
+                self.data,
+                self.sigma,
+                self.ok_indices,
+                sky,
+                height,
+                xcen,
+                ycen,
+                fwhm,
+                beta,
+                self.xbin,
+                self.ybin,
+                self.ndiv,
+            )
+
         mod = self.model(param)
         diff = (self.data - mod) / self.sigma
         return diff[self.ok].ravel()
@@ -1075,6 +1096,27 @@ class Mfit:
 
         Used by scipy.optimize.least_squares.
         """
+        if fitting_cpp is not None and hasattr(fitting_cpp, "dmoffat_jac"):
+            sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
+            return fitting_cpp.dmoffat_jac(
+                self.x,
+                self.y,
+                self.sigma,
+                self.ok_indices,
+                sky,
+                height,
+                xcen,
+                ycen,
+                fwhm,
+                beta,
+                self.xbin,
+                self.ybin,
+                self.ndiv,
+                self.comp_fwhm,
+                self.comp_beta,
+                self.inds,
+            )
+
         derivs = self.dmodel(param)
         arr = np.stack([derivs[ind][self.ok] for ind in self.inds], axis=-1)
         return -arr / self.sigma[self.ok, None]
@@ -1610,6 +1652,7 @@ class Gfit:
         self.sigma = sigma
         self.mask = _mask(wind, self.x, self.y)
         self.ok = self.mask & (self.sigma > 0)
+        self.ok_indices = np.flatnonzero(self.ok.ravel()).astype(np.int64)
         self.set_mode(mode, fwhm)
 
     def set_mode(self, mode, fwhm):
@@ -1756,6 +1799,24 @@ class Gfit:
 
         Used by scipy.optimize.least_squares.
         """
+        if fitting_cpp is not None and hasattr(fitting_cpp, "gaussian_resid"):
+            sky, height, xcen, ycen, fwhm = self.get_par(param)
+            return fitting_cpp.gaussian_resid(
+                self.x,
+                self.y,
+                self.data,
+                self.sigma,
+                self.ok_indices,
+                sky,
+                height,
+                xcen,
+                ycen,
+                fwhm,
+                self.xbin,
+                self.ybin,
+                self.ndiv,
+            )
+
         mod = self.model(param)
         diff = (self.data - mod) / self.sigma
         return diff[self.ok].ravel()
@@ -1768,6 +1829,25 @@ class Gfit:
 
         Used by scipy.optimize.least_squares.
         """
+        if fitting_cpp is not None and hasattr(fitting_cpp, "dgaussian_jac"):
+            sky, height, xcen, ycen, fwhm = self.get_par(param)
+            return fitting_cpp.dgaussian_jac(
+                self.x,
+                self.y,
+                self.sigma,
+                self.ok_indices,
+                sky,
+                height,
+                xcen,
+                ycen,
+                fwhm,
+                self.xbin,
+                self.ybin,
+                self.ndiv,
+                self.comp_fwhm,
+                self.inds,
+            )
+
         derivs = self.dmodel(param)
         arr = np.stack([derivs[ind][self.ok] for ind in self.inds], axis=-1)
         return -arr / self.sigma[self.ok, None]
