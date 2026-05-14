@@ -45,11 +45,11 @@ py::array_t<double> moffat_cpp(py::array_t<double> x, py::array_t<double> y,
 
   size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
-  double norm = height / xbin / ybin / (ndiv * ndiv);
-
   if (ndiv > 0) {
     // With sub-pixellation
     std::fill_n(result_ptr, n_pixels, 0.0);
+    double norm = height / xbin / ybin / (ndiv * ndiv);
+    double inv_ndiv = 1.0 / static_cast<double>(ndiv);
 
     // Mean offset within sub-pixels
     double soff = (ndiv - 1.0) / (2.0 * ndiv);
@@ -66,14 +66,13 @@ py::array_t<double> moffat_cpp(py::array_t<double> x, py::array_t<double> y,
         for (int ix = 0; ix < xbin; ++ix) {
           double xoff = ix - (xbin - 1) / 2.0 - soff;
           for (int isy = 0; isy < ndiv; ++isy) {
-            double ysoff = yoff + isy / static_cast<double>(ndiv);
+            double ysoff = yoff + isy * inv_ndiv;
             for (int isx = 0; isx < ndiv; ++isx) {
-              double xsoff = xoff + isx / static_cast<double>(ndiv);
+              double xsoff = xoff + isx * inv_ndiv;
               double dx = x_val + xsoff - xcen;
               double dy = y_val + ysoff - ycen;
               double rsq = dx * dx + dy * dy;
-              prof += (height / xbin / ybin / (ndiv * ndiv)) *
-                      std::pow(1.0 + alpha * rsq, -tbeta);
+              prof += norm * std::pow(1.0 + alpha * rsq, -tbeta);
             }
           }
         }
@@ -117,6 +116,7 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
   // Create output arrays with same shape as input
   std::vector<py::array_t<double>> result;
+  result.reserve(6);
 
   // Always need dsky, dheight, dxcen, dycen
   py::array_t<double> dsky = py::array_t<double>(x_info.shape);
@@ -165,6 +165,10 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
   // Calculate Moffat profile parameters
   double tbeta = std::max(0.01, beta);
   double alpha = calc_moffat_alpha(fwhm, beta);
+  double two_alpha_tbeta = 2.0 * alpha * tbeta;
+  double dfwhm_coeff = two_alpha_tbeta / fwhm;
+  double dbeta_coeff =
+      4.0 * std::log(2.0) * std::pow(2.0, 1.0 / tbeta) / tbeta / (fwhm * fwhm);
 
   size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
@@ -173,17 +177,8 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
   if (ndiv > 0) {
     // With sub-pixellation
-    std::fill_n(dheight_ptr, n_pixels, 0.0);
-    std::fill_n(dxcen_ptr, n_pixels, 0.0);
-    std::fill_n(dycen_ptr, n_pixels, 0.0);
-
-    if (comp_dfwhm) {
-      std::fill_n(dfwhm_ptr, n_pixels, 0.0);
-    }
-
-    if (comp_dbeta) {
-      std::fill_n(dbeta_ptr, n_pixels, 0.0);
-    }
+    double inv_nadd = 1.0 / static_cast<double>(xbin * ybin * ndiv * ndiv);
+    double inv_ndiv = 1.0 / static_cast<double>(ndiv);
 
     // Mean offset within sub-pixels
     double soff = (ndiv - 1.0) / (2.0 * ndiv);
@@ -192,6 +187,11 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
     for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
       double x_val = x_ptr[pixel_idx];
       double y_val = y_ptr[pixel_idx];
+      double dheight = 0.0;
+      double dxcen = 0.0;
+      double dycen = 0.0;
+      double dfwhm = 0.0;
+      double dbeta = 0.0;
 
       // Loop over sub-pixels
       for (int iy = 0; iy < ybin; ++iy) {
@@ -199,9 +199,9 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
         for (int ix = 0; ix < xbin; ++ix) {
           double xoff = ix - (xbin - 1) / 2.0 - soff;
           for (int isy = 0; isy < ndiv; ++isy) {
-            double ysoff = yoff + isy / static_cast<double>(ndiv);
+            double ysoff = yoff + isy * inv_ndiv;
             for (int isx = 0; isx < ndiv; ++isx) {
-              double xsoff = xoff + isx / static_cast<double>(ndiv);
+              double xsoff = xoff + isx * inv_ndiv;
               double dx = x_val + xsoff - xcen;
               double dy = y_val + ysoff - ycen;
               double rsq = dx * dx + dy * dy;
@@ -212,41 +212,33 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
               // Derivatives
               double dh = std::pow(denom, -tbeta);
-              dheight_ptr[pixel_idx] += dh;
-              dxcen_ptr[pixel_idx] += (2.0 * alpha * tbeta) * dx * save1;
-              dycen_ptr[pixel_idx] += (2.0 * alpha * tbeta) * dy * save1;
+              dheight += dh;
+              dxcen += two_alpha_tbeta * dx * save1;
+              dycen += two_alpha_tbeta * dy * save1;
 
               if (comp_dfwhm) {
-                dfwhm_ptr[pixel_idx] += (2.0 * alpha * tbeta / fwhm) * save2;
+                dfwhm += dfwhm_coeff * save2;
               }
 
               if (comp_dbeta) {
                 double log_denom = std::log(denom);
-                dbeta_ptr[pixel_idx] +=
-                    (-log_denom * height * dh +
-                     (4.0 * std::log(2.0) * std::pow(2.0, 1.0 / tbeta) / tbeta /
-                      (fwhm * fwhm)) *
-                         save2);
+                dbeta += (-log_denom * height * dh + dbeta_coeff * save2);
               }
             }
           }
         }
       }
-    }
 
-    // Normalize by number of evaluations
-    double nadd = xbin * ybin * ndiv * ndiv;
-    for (size_t i = 0; i < n_pixels; ++i) {
-      dheight_ptr[i] /= nadd;
-      dxcen_ptr[i] /= nadd;
-      dycen_ptr[i] /= nadd;
+      dheight_ptr[pixel_idx] = dheight * inv_nadd;
+      dxcen_ptr[pixel_idx] = dxcen * inv_nadd;
+      dycen_ptr[pixel_idx] = dycen * inv_nadd;
 
       if (comp_dfwhm) {
-        dfwhm_ptr[i] /= nadd;
+        dfwhm_ptr[pixel_idx] = dfwhm * inv_nadd;
       }
 
       if (comp_dbeta) {
-        dbeta_ptr[i] /= nadd;
+        dbeta_ptr[pixel_idx] = dbeta * inv_nadd;
       }
     }
   } else {
@@ -262,19 +254,17 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
       // Derivatives
       dheight_ptr[i] = std::pow(denom, -tbeta);
-      dxcen_ptr[i] = (2.0 * alpha * tbeta) * dx * save1;
-      dycen_ptr[i] = (2.0 * alpha * tbeta) * dy * save1;
+      dxcen_ptr[i] = two_alpha_tbeta * dx * save1;
+      dycen_ptr[i] = two_alpha_tbeta * dy * save1;
 
       if (comp_dfwhm) {
-        dfwhm_ptr[i] = (2.0 * alpha * tbeta / fwhm) * save2;
+        dfwhm_ptr[i] = dfwhm_coeff * save2;
       }
 
       if (comp_dbeta) {
         double log_denom = std::log(denom);
-        dbeta_ptr[i] = (-log_denom * height * dheight_ptr[i] +
-                        (4.0 * std::log(2.0) * std::pow(2.0, 1.0 / tbeta) /
-                         tbeta / (fwhm * fwhm)) *
-                            save2);
+        dbeta_ptr[i] =
+            (-log_denom * height * dheight_ptr[i] + dbeta_coeff * save2);
       }
     }
   }
@@ -336,6 +326,8 @@ py::array_t<double> gaussian_cpp(py::array_t<double> x, py::array_t<double> y,
   if (ndiv > 0) {
     // With sub-pixellation
     std::fill_n(result_ptr, n_pixels, 0.0);
+    double norm = height / xbin / ybin / (ndiv * ndiv);
+    double inv_ndiv = 1.0 / static_cast<double>(ndiv);
 
     // Mean offset within sub-pixels
     double soff = (ndiv - 1.0) / (2.0 * ndiv);
@@ -352,9 +344,9 @@ py::array_t<double> gaussian_cpp(py::array_t<double> x, py::array_t<double> y,
         for (int ix = 0; ix < xbin; ++ix) {
           double xoff = ix - (xbin - 1) / 2.0 - soff;
           for (int isy = 0; isy < ndiv; ++isy) {
-            double ysoff = yoff + isy / static_cast<double>(ndiv);
+            double ysoff = yoff + isy * inv_ndiv;
             for (int isx = 0; isx < ndiv; ++isx) {
-              double xsoff = xoff + isx / static_cast<double>(ndiv);
+              double xsoff = xoff + isx * inv_ndiv;
               double dx = x_val + xsoff - xcen;
               double dy = y_val + ysoff - ycen;
               double rsq = dx * dx + dy * dy;
@@ -364,8 +356,7 @@ py::array_t<double> gaussian_cpp(py::array_t<double> x, py::array_t<double> y,
         }
       }
 
-      result_ptr[pixel_idx] =
-          sky + (height / xbin / ybin / (ndiv * ndiv)) * prof;
+      result_ptr[pixel_idx] = sky + norm * prof;
     }
   } else {
     // Fast calculation at pixel centers
@@ -403,6 +394,7 @@ dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
   // Create output arrays with same shape as input
   std::vector<py::array_t<double>> result;
+  result.reserve(5);
 
   // Always need dsky, dheight, dxcen, dycen
   py::array_t<double> dsky = py::array_t<double>(x_info.shape);
@@ -438,6 +430,8 @@ dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
   // Calculate Gaussian profile parameter
   double alpha = 4.0 * std::log(2.0) / (fwhm * fwhm);
+  double two_alpha_height = 2.0 * alpha * height;
+  double dfwhm_coeff = two_alpha_height / fwhm;
 
   size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
@@ -446,13 +440,8 @@ dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
   if (ndiv > 0) {
     // With sub-pixellation
-    std::fill_n(dheight_ptr, n_pixels, 0.0);
-    std::fill_n(dxcen_ptr, n_pixels, 0.0);
-    std::fill_n(dycen_ptr, n_pixels, 0.0);
-
-    if (comp_dfwhm) {
-      std::fill_n(dfwhm_ptr, n_pixels, 0.0);
-    }
+    double inv_nadd = 1.0 / static_cast<double>(xbin * ybin * ndiv * ndiv);
+    double inv_ndiv = 1.0 / static_cast<double>(ndiv);
 
     // Mean offset within sub-pixels
     double soff = (ndiv - 1.0) / (2.0 * ndiv);
@@ -461,6 +450,10 @@ dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
     for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
       double x_val = x_ptr[pixel_idx];
       double y_val = y_ptr[pixel_idx];
+      double dheight = 0.0;
+      double dxcen = 0.0;
+      double dycen = 0.0;
+      double dfwhm = 0.0;
 
       // Loop over sub-pixels
       for (int iy = 0; iy < ybin; ++iy) {
@@ -468,38 +461,33 @@ dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
         for (int ix = 0; ix < xbin; ++ix) {
           double xoff = ix - (xbin - 1) / 2.0 - soff;
           for (int isy = 0; isy < ndiv; ++isy) {
-            double ysoff = yoff + isy / static_cast<double>(ndiv);
+            double ysoff = yoff + isy * inv_ndiv;
             for (int isx = 0; isx < ndiv; ++isx) {
-              double xsoff = xoff + isx / static_cast<double>(ndiv);
+              double xsoff = xoff + isx * inv_ndiv;
               double dx = x_val + xsoff - xcen;
               double dy = y_val + ysoff - ycen;
               double rsq = dx * dx + dy * dy;
 
               // Gaussian value
               double dh = std::exp(-alpha * rsq);
-              dheight_ptr[pixel_idx] += dh;
-              dxcen_ptr[pixel_idx] += (2.0 * alpha * height) * dh * dx;
-              dycen_ptr[pixel_idx] += (2.0 * alpha * height) * dh * dy;
+              dheight += dh;
+              dxcen += two_alpha_height * dh * dx;
+              dycen += two_alpha_height * dh * dy;
 
               if (comp_dfwhm) {
-                dfwhm_ptr[pixel_idx] +=
-                    (2.0 * alpha * height / fwhm) * dh * rsq;
+                dfwhm += dfwhm_coeff * dh * rsq;
               }
             }
           }
         }
       }
-    }
 
-    // Normalize by number of evaluations
-    double nadd = xbin * ybin * ndiv * ndiv;
-    for (size_t i = 0; i < n_pixels; ++i) {
-      dheight_ptr[i] /= nadd;
-      dxcen_ptr[i] /= nadd;
-      dycen_ptr[i] /= nadd;
+      dheight_ptr[pixel_idx] = dheight * inv_nadd;
+      dxcen_ptr[pixel_idx] = dxcen * inv_nadd;
+      dycen_ptr[pixel_idx] = dycen * inv_nadd;
 
       if (comp_dfwhm) {
-        dfwhm_ptr[i] /= nadd;
+        dfwhm_ptr[pixel_idx] = dfwhm * inv_nadd;
       }
     }
   } else {
@@ -512,11 +500,11 @@ dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
       // Gaussian value
       double dh = std::exp(-alpha * rsq);
       dheight_ptr[i] = dh;
-      dxcen_ptr[i] = (2.0 * alpha * height) * dh * dx;
-      dycen_ptr[i] = (2.0 * alpha * height) * dh * dy;
+      dxcen_ptr[i] = two_alpha_height * dh * dx;
+      dycen_ptr[i] = two_alpha_height * dh * dy;
 
       if (comp_dfwhm) {
-        dfwhm_ptr[i] = (2.0 * alpha * height / fwhm) * dh * rsq;
+        dfwhm_ptr[i] = dfwhm_coeff * dh * rsq;
       }
     }
   }
