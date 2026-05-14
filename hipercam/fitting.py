@@ -9,7 +9,11 @@ import numpy as np
 from scipy.optimize import least_squares
 from .core import *
 from .window import *
-from . import support
+
+try:
+    from . import fitting_cpp
+except ImportError:
+    fitting_cpp = None
 
 __all__ = ("combFit", "fitMoffat", "fitGaussian", "moffat", "gaussian")
 
@@ -451,7 +455,6 @@ def fitMoffat(
         )
 
 
-@jit(nopython=True, cache=True)
 def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     """
     Returns a numpy array corresponding to the ordinate grids in xy
@@ -460,6 +463,10 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     centre and alpha is set to give the desired FWHM given the exponent
     beta. As beta becomes large, this tends to a Gaussian shape but has
     more extended wings at low beta.
+
+    This function will use the fastest available implementation:
+    1. C++ implementation (if available)
+    2. Numba-accelerated Python implementation (fallback)
 
     Parameters:
 
@@ -506,10 +513,22 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
          obviously will slow things. To simply evaluate the profile once at
          the centre of each pixel, set ndiv = 0.
 
-    Returns:: 2D numpy array containg the Moffat profile plus constant evaluated
+    Returns:: 2D numpy array containing the Moffat profile plus constant evaluated
     on the ordinate grids in xy.
 
     """
+    if fitting_cpp is not None:
+        return fitting_cpp.moffat(
+            x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv
+        )
+    else:
+        return _moffat_numba(
+            x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv
+        )
+
+
+@jit(nopython=True, cache=True)
+def _moffat_numba(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     tbeta = max(0.01, beta)
     alpha = 4 * (2 ** (1.0 / tbeta) - 1) / fwhm ** 2
 
@@ -545,7 +564,6 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
         return height * (1 + alpha * rsq) ** (-tbeta) + sky
 
 
-@jit(nopython=True, cache=True)
 def dmoffat(
     x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta
 ):
@@ -556,6 +574,10 @@ def dmoffat(
     FWHM given the exponent beta. As beta becomes large, this tends to
     a Gaussian shape but has more extended wings at low beta. The
     partial derivatives are in the order of the parameters.
+
+    This function will use the fastest available implementation:
+    1. C++ implementation (if available)
+    2. Numba-accelerated Python implementation (fallback)
 
     Parameters:
 
@@ -618,6 +640,44 @@ def dmoffat(
     numba just-in-time compiler function better.
 
     """
+    if fitting_cpp is not None:
+        return fitting_cpp.dmoffat(
+            x,
+            y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            beta,
+            xbin,
+            ybin,
+            ndiv,
+            comp_dfwhm,
+            comp_dbeta,
+        )
+    else:
+        return _dmoffat_numba(
+            x,
+            y,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            beta,
+            xbin,
+            ybin,
+            ndiv,
+            comp_dfwhm,
+            comp_dbeta,
+        )
+
+
+@jit(nopython=True, cache=True)
+def _dmoffat_numba(
+    x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta
+):
     tbeta = max(0.01, beta)
     alpha = 4 * (2 ** (1 / tbeta) - 1) / fwhm ** 2
 
@@ -1262,13 +1322,16 @@ def fitGaussian(
             extras
         )
 
-@jit(nopython=True, cache=True)
+
 def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     """Returns a numpy array corresponding to the ordinate grids in xy set to a
     symmetric 2D Gaussian plus a constant. The profile is essentially defined
     by sky + height*exp(-alpha*r**2) where r is the distance from the centre
     and alpha is set to give the desired FWHM, but account is taken of the
     finite size of the pixels by summing over multiple points in each one.
+
+    This function will use the optimized C++ implementation if available,
+    falling back to a Numba-accelerated Python implementation if not.
 
     Arguments::
 
@@ -1316,6 +1379,16 @@ def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     on the ordinate grids in xy.
 
     """
+    if fitting_cpp is not None:
+        return fitting_cpp.gaussian(
+            x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv
+        )
+    else:
+        return _gaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv)
+
+
+@jit(nopython=True, cache=True)
+def _gaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
 
     alpha = 4.0 * np.log(2.0) / fwhm ** 2
 
@@ -1349,13 +1422,15 @@ def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
         return sky + height * np.exp(-alpha * rsq)
 
 
-@jit(nopython=True, cache=True)
 def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
     """Returns a list of four or five numpy arrays corresponding to the ordinate
     grids in xy set to the partial derivatives of a symmetric 2D Gaussian plus
     a constant. Defined by sky + height*exp(-alpha*r**2) where r is the
     distance from the centre and alpha is set to give the desired FWHM.  The
     partial derivatives are in the order of the parameters.
+
+    This function will use the optimized C++ implementation if available,
+    falling back to a Numba-accelerated Python implementation if not.
 
     Arguments::
 
@@ -1409,6 +1484,18 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
     appear in the function call.
 
     """
+    if fitting_cpp is not None:
+        return fitting_cpp.dgaussian(
+            x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm
+        )
+    else:
+        return _dgaussian_numba(
+            x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm
+        )
+
+
+@jit(nopython=True, cache=True)
+def _dgaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
     alpha = 4.0 * np.log(2.0) / fwhm ** 2
 
     dsky = np.ones_like(x)
