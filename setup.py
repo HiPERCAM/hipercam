@@ -4,6 +4,7 @@ All other metadata is in pyproject.toml.
 """
 
 import os
+import sys
 
 # need for Cython and pybind11
 import numpy as np
@@ -26,6 +27,13 @@ cython_extensions = [
 ]
 
 # pybind11 extension for profile fitting
+use_openmp = os.environ.get("HIPERCAM_USE_OPENMP", "1") != "0"
+openmp_args = []
+openmp_link_args = []
+if use_openmp and sys.platform.startswith("linux"):
+    openmp_args = ["-fopenmp"]
+    openmp_link_args = ["-fopenmp"]
+
 pybind11_extensions = [
     Pybind11Extension(
         "hipercam.fitting_cpp",
@@ -36,7 +44,9 @@ pybind11_extensions = [
             pybind11.get_include(user=True),
         ],
         language="c++",
-        extra_compile_args=["-std=c++11", "-O3", "-ffast-math"],
+        extra_compile_args=["-std=c++11", "-O3", "-ffast-math", "-march=native"]
+        + openmp_args,
+        extra_link_args=openmp_link_args,
     ),
 ]
 

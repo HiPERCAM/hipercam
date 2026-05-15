@@ -5,6 +5,9 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <vector>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace py = pybind11;
 
@@ -548,6 +551,15 @@ py::array_t<double> moffat_cpp(py::array_t<double> x, py::array_t<double> y,
 
   size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
+  // Now the Python operations are complete, release GIL for parallel
+  // computation from here on.
+  // pybind11 buffer operations (request, array creation) require the GIL,
+  // so we can only release it after extracting all pointers and dimensions.
+  // This allows the OpenMP parallelization in the loops below to run
+  // without Python thread contention, while still allowing Python to run
+  // other tasks in parallel if needed.
+  py::gil_scoped_release release;
+
   if (ndiv > 0) {
     // With sub-pixellation
     std::fill_n(result_ptr, n_pixels, 0.0);
@@ -556,6 +568,11 @@ py::array_t<double> moffat_cpp(py::array_t<double> x, py::array_t<double> y,
 
     // Mean offset within sub-pixels
     double soff = (ndiv - 1.0) / (2.0 * ndiv);
+
+// OpenMP parallelization of the outer loop over pixels with SIMD vectorization.
+#ifdef _OPENMP
+#pragma omp parallel for simd
+#endif
 
     // Loop over all pixels
     for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
@@ -675,6 +692,15 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
   size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
+  // Now the Python operations are complete, release GIL for parallel
+  // computation from here on.
+  // pybind11 buffer operations (request, array creation) require the GIL,
+  // so we can only release it after extracting all pointers and dimensions.
+  // This allows the OpenMP parallelization in the loops below to run
+  // without Python thread contention, while still allowing Python to run
+  // other tasks in parallel if needed.
+  py::gil_scoped_release release;
+
   // Initialize dsky to ones (derivative of sky is always 1)
   std::fill_n(dsky_ptr, n_pixels, 1.0);
 
@@ -685,6 +711,11 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
     // Mean offset within sub-pixels
     double soff = (ndiv - 1.0) / (2.0 * ndiv);
+
+// OpenMP parallelization of the outer loop over pixels with SIMD vectorization.
+#ifdef _OPENMP
+#pragma omp parallel for simd
+#endif
 
     // Loop over all pixels
     for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
@@ -826,6 +857,15 @@ py::array_t<double> gaussian_cpp(py::array_t<double> x, py::array_t<double> y,
 
   size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
+  // Now the Python operations are complete, release GIL for parallel
+  // computation from here on.
+  // pybind11 buffer operations (request, array creation) require the GIL,
+  // so we can only release it after extracting all pointers and dimensions.
+  // This allows the OpenMP parallelization in the loops below to run
+  // without Python thread contention, while still allowing Python to run
+  // other tasks in parallel if needed.
+  py::gil_scoped_release release;
+
   if (ndiv > 0) {
     // With sub-pixellation
     std::fill_n(result_ptr, n_pixels, 0.0);
@@ -834,6 +874,11 @@ py::array_t<double> gaussian_cpp(py::array_t<double> x, py::array_t<double> y,
 
     // Mean offset within sub-pixels
     double soff = (ndiv - 1.0) / (2.0 * ndiv);
+
+// OpenMP parallelization of the outer loop over pixels with SIMD vectorization.
+#ifdef _OPENMP
+#pragma omp parallel for simd
+#endif
 
     // Loop over all pixels
     for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
@@ -938,6 +983,15 @@ dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
   size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
+  // Now the Python operations are complete, release GIL for parallel
+  // computation from here on.
+  // pybind11 buffer operations (request, array creation) require the GIL,
+  // so we can only release it after extracting all pointers and dimensions.
+  // This allows the OpenMP parallelization in the loops below to run
+  // without Python thread contention, while still allowing Python to run
+  // other tasks in parallel if needed.
+  py::gil_scoped_release release;
+
   // Initialize dsky to ones (derivative of sky is always 1)
   std::fill_n(dsky_ptr, n_pixels, 1.0);
 
@@ -948,6 +1002,11 @@ dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 
     // Mean offset within sub-pixels
     double soff = (ndiv - 1.0) / (2.0 * ndiv);
+
+// OpenMP parallelization of the outer loop over pixels with SIMD vectorization.
+#ifdef _OPENMP
+#pragma omp parallel for simd
+#endif
 
     // Loop over all pixels
     for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
