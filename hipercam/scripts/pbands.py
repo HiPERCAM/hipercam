@@ -97,6 +97,9 @@ def pbands(args=None):
          colours for each CCD, space or comma-separated.
          e.g. "r,g,b" or "r g b" (without quotes).
 
+      badtime: bool [hidden]
+         plot points marked as bad time in the log file. Default False.
+
     """
 
     command, args = cline.script_args(args)
@@ -127,6 +130,7 @@ def pbands(args=None):
         cl.register("over", Cline.LOCAL, Cline.PROMPT)
         cl.register("title", Cline.LOCAL, Cline.PROMPT)
         cl.register("colours", Cline.LOCAL, Cline.PROMPT)
+        cl.register("", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         log = cl.get_value(
@@ -192,6 +196,9 @@ def pbands(args=None):
             cl.set_default("colours", colours)
         colours = cl.get_value("colours", "colours [strings, one per CCD]", colours)
 
+        # plot points marked as bad time in the log file. Default False.
+        badtime = cl.get_value("badtime", "plot points marked as bad time in the log file?", False)
+
     if width > 0 and height > 0:
         fig, axs = plt.subplots(
             len(ccds),
@@ -206,6 +213,10 @@ def pbands(args=None):
         )
 
     # light curves
+    bitmask = hcam.JUNK
+    if not badtime:
+        bitmask |= hcam.BAD_TIME
+
     for ccd, ax, col in zip(ccds, axs[:, 0], colours):
         utils.style_mpl_axes(ax)
         targ = hlog.tseries(ccd, aper1, "counts")
@@ -215,12 +226,12 @@ def pbands(args=None):
         if norm:
             targ.normalise()
         if line:
-            targ.mplot(ax, col, "-", bitmask=hcam.BAD_TIME | hcam.JUNK, erry=error)
-        targ.mplot(ax, col, bitmask=hcam.BAD_TIME | hcam.JUNK, ms=ms, erry=error)
+            targ.mplot(ax, col, "-", bitmask=bitmask, erry=error)
+        targ.mplot(ax, col, bitmask=bitmask, ms=ms, erry=error)
 
         # plot limits
-        _d, y1, _d = targ.percentile(plo, hcam.BAD_TIME | hcam.JUNK)
-        _d, _d, y2 = targ.percentile(phi, hcam.BAD_TIME | hcam.JUNK)
+        _d, y1, _d = targ.percentile(plo, bitmask)
+        _d, _d, y2 = targ.percentile(phi, bitmask)
         if zero:
             y1 = 0.0
             y2 *= 1 + increment
@@ -246,7 +257,7 @@ def pbands(args=None):
                 targ /= comp
 
             # extract data
-            ts, _d, ys, yes = targ.get_data(hcam.BAD_TIME | hcam.JUNK)
+            ts, _d, ys, yes = targ.get_data(bitmask)
             ls = LombScargle(ts, ys, yes)
             f, p = ls.autopower(
                 minimum_frequency=flo, maximum_frequency=fhi, samples_per_peak=over
