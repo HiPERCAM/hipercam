@@ -1,10 +1,9 @@
-import sys
 import os
+import sys
 
-import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
+import numpy as np
 from trm import cline
 from trm.cline import Cline
 
@@ -71,6 +70,9 @@ def plog(args=None):
       title : str [hidden]
          plot title. Defaults to the run number if not specified
 
+      badtime : bool [hidden]
+         plot points marked as bad time in the log file. Default False.
+
     .. Note::
 
        Points marked bad, or flagged as having bad times or junk are
@@ -100,6 +102,7 @@ def plog(args=None):
         cl.register("param2", Cline.LOCAL, Cline.PROMPT)
         cl.register("scheme", Cline.LOCAL, Cline.PROMPT)
         cl.register("title", Cline.LOCAL, Cline.HIDE)
+        cl.register("badtime", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         log = cl.get_value(
@@ -148,6 +151,7 @@ def plog(args=None):
 
         cl.set_default("title", log)
         title = cl.get_value("title", "plot title", "Plot Title")
+        badtime = cl.get_value("badtime", "plot points marked as bad time?", False)
 
     # load the reduce log
     hlog = hcam.hlog.Hlog.rascii(log)
@@ -159,32 +163,37 @@ def plog(args=None):
 
     dat1 = hlog.tseries(ccd1, aper1, pname1)
 
+    # bitmask for points to ignore
+    bitmask = hcam.JUNK
+    if not badtime:
+        bitmask |= hcam.BAD_TIME
+
     if ccd2 != "!":
         dat2 = hlog.tseries(ccd2, aper2, pname2)
         if scheme == "b":
             # plots both together
-            dat1.mplot(plt, "b", bitmask=hcam.BAD_TIME|hcam.JUNK)
-            dat2.mplot(plt, "r", bitmask=hcam.BAD_TIME|hcam.JUNK)
+            dat1.mplot(plt, "b", bitmask=bitmask)
+            dat2.mplot(plt, "r", bitmask=bitmask)
             xlabel = "Time [MJD]"
             ylabel = "{:s} & {:s}".format(lab1, lab2)
 
         elif scheme == "r":
             # ratio
             ratio = dat1 / dat2
-            ratio.mplot(plt, "b", bitmask=hcam.BAD_TIME|hcam.JUNK)
+            ratio.mplot(plt, "b", bitmask=bitmask)
             xlabel = "Time [MJD]"
             ylabel = "{:s} / {:s}".format(lab1, lab2)
 
         elif scheme == "d":
             # difference
             diff = dat1 - dat2
-            diff.mplot(plt, "b", bitmask=hcam.BAD_TIME|hcam.JUNK)
+            diff.mplot(plt, "b", bitmask=bitmask)
             xlabel = "Time [MJD]"
             ylabel = "{:s} - {:s}".format(lab1, lab2)
 
         elif scheme == "s":
-            mask1 = dat1.get_mask(bitmask=hcam.BAD_TIME|hcam.JUNK, invert=True)
-            mask2 = dat1.get_mask(bitmask=hcam.BAD_TIME|hcam.JUNK, invert=True)
+            mask1 = dat1.get_mask(bitmask=bitmask, invert=True)
+            mask2 = dat1.get_mask(bitmask=bitmask, invert=True)
             ok = ~mask1 & ~mask2
             plt.errorbar(
                 dat1.y[ok], dat2.y[ok], dat2.ye[ok], dat1.ye[ok], ".", capsize=0
@@ -194,7 +203,7 @@ def plog(args=None):
 
     else:
         # just one
-        dat1.mplot(plt, bitmask=hcam.BAD_TIME|hcam.JUNK)
+        dat1.mplot(plt, bitmask=bitmask)
         xlabel = "Time [MJD]"
         ylabel = lab1
 
