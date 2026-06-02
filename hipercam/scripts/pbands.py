@@ -97,7 +97,7 @@ def pbands(args=None):
          colours for each CCD, space or comma-separated.
          e.g. "r,g,b" or "r g b" (without quotes).
 
-      badtimes: bool [hidden]
+      badtime: bool [hidden]
          plot points marked as bad time in the log file. Default False.
 
     """
@@ -130,7 +130,7 @@ def pbands(args=None):
         cl.register("over", Cline.LOCAL, Cline.PROMPT)
         cl.register("title", Cline.LOCAL, Cline.PROMPT)
         cl.register("colours", Cline.LOCAL, Cline.PROMPT)
-        cl.register("badtimes", Cline.LOCAL, Cline.HIDE)
+        cl.register("", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         log = cl.get_value(
@@ -197,7 +197,7 @@ def pbands(args=None):
         colours = cl.get_value("colours", "colours [strings, one per CCD]", colours)
 
         # plot points marked as bad time in the log file. Default False.
-        badtimes = cl.get_value("badtimes", "plot points marked as bad time in the log file?", False)
+        badtime = cl.get_value("badtime", "plot points marked as bad time in the log file?", False)
 
     if width > 0 and height > 0:
         fig, axs = plt.subplots(
@@ -214,7 +214,7 @@ def pbands(args=None):
 
     # light curves
     bitmask = hcam.JUNK
-    if not badtimes:
+    if not badtime:
         bitmask |= hcam.BAD_TIME
 
     for ccd, ax, col in zip(ccds, axs[:, 0], colours):
