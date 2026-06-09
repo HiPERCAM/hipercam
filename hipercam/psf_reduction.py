@@ -4,115 +4,20 @@ import warnings
 import numpy as np
 from astropy import units as u
 from astropy.modeling import Fittable2DModel, Parameter
-from astropy.modeling.fitting import LevMarLSQFitter
-from astropy.stats import SigmaClip, gaussian_fwhm_to_sigma, gaussian_sigma_to_fwhm
+from astropy.modeling.utils import ellipse_extent
+from astropy.stats import SigmaClip
 from astropy.table import Table
-from photutils.background import MMMBackground
-from photutils.psf import DAOGroup, BasicPSFPhotometry
-from scipy.special import erf
+from photutils.background import LocalBackground, MedianBackground
+from photutils.psf import GaussianPRF, PSFPhotometry
+from photutils.psf.functional_models import FLOAT_EPSILON, GAUSSIAN_FWHM_TO_SIGMA
 
 import hipercam as hcam
-from hipercam.reduction import moveApers
-
 
 # Stuff below here are helper routines that are not exported
-class IntegratedGaussianPRF2(Fittable2DModel):
-    r"""
-    Circular Gaussian model integrated over pixels.
-
-    Because it is integrated, this model is considered a PRF, *not* a
-    PSF (see :ref:`psf-terminology` for more about the terminology used
-    here.)
-
-    This model is a Gaussian *integrated* over an area of
-    ``1`` (in units of the model input coordinates, e.g., 1
-    pixel). This is in contrast to the apparently similar
-    `astropy.modeling.functional_models.Gaussian2D`, which is the value
-    of a 2D Gaussian *at* the input coordinates, with no integration.
-    So this model is equivalent to assuming the PSF is Gaussian at a
-    *sub-pixel* level.
-
-    Based on the same named model in photutils, but with different
-    std deviations in x and y.
-
-    Parameters
-    ----------
-    sigma_x : float
-        Width of the Gaussian PSF in x.
-    sigma_y : float
-        Width of the Gaussian PSF in y.
-    flux : float, optional
-        Total integrated flux over the entire PSF
-    x_0 : float, optional
-        Position of the peak in x direction.
-    y_0 : float, optional
-        Position of the peak in y direction.
-
-    Notes
-    -----
-    This model is evaluated according to the following formula:
-
-        .. math::
-
-            f(x, y) =
-                \frac{F}{4}
-                \left[
-                {\rm erf} \left(\frac{x - x_0 + 0.5}
-                {\sqrt{2} \sigma_x} \right) -
-                {\rm erf} \left(\frac{x - x_0 - 0.5}
-                {\sqrt{2} \sigma_x} \right)
-                \right]
-                \left[
-                {\rm erf} \left(\frac{y - y_0 + 0.5}
-                {\sqrt{2} \sigma_y} \right) -
-                {\rm erf} \left(\frac{y - y_0 - 0.5}
-                {\sqrt{2} \sigma_y} \right)
-                \right]
-
-    where ``erf`` denotes the error function and ``F`` the total
-    integrated flux.
-    """
-
-    flux = Parameter(default=1)
-    x_0 = Parameter(default=0)
-    y_0 = Parameter(default=0)
-    sigma_x = Parameter(default=1, fixed=False)
-    sigma_y = Parameter(default=1, fixed=False)
-
-    _erf = None
-
-    @property
-    def bounding_box(self):
-        halfwidth = 2 * (self.sigma_x + self.sigma_y)
-        return (
-            (int(self.y_0 - halfwidth), int(self.y_0 + halfwidth)),
-            (int(self.x_0 - halfwidth), int(self.x_0 + halfwidth)),
-        )
-
-    @property
-    def fwhm(self):
-        return u.Quantity(0.5 * (self.sigma_x + self.sigma_y)) * gaussian_sigma_to_fwhm
-
-    def evaluate(self, x, y, flux, x_0, y_0, sigma_x, sigma_y):
-        """Model function Gaussian PSF model."""
-        return (
-            flux
-            / 4
-            * (
-                (
-                    erf((x - x_0 + 0.5) / (np.sqrt(2) * sigma_x))
-                    - erf((x - x_0 - 0.5) / (np.sqrt(2) * sigma_x))
-                )
-                * (
-                    erf((y - y_0 + 0.5) / (np.sqrt(2) * sigma_y))
-                    - erf((y - y_0 - 0.5) / (np.sqrt(2) * sigma_y))
-                )
-            )
-        )
 
 
 class MoffatPSF(Fittable2DModel):
-    """
+    r"""
     Standard Moffat model, but with parameter names that work with photutils
 
     Different FWHM parameters apply in x and y, the fwhm property gives
@@ -120,58 +25,365 @@ class MoffatPSF(Fittable2DModel):
 
     Parameters
     ----------
-    fwhm_x : float
+    flux : float, optional
+        Total integrated flux over the entire PSF.
+
+    x_0 : float, optional
+        Position of the peak along the x axis.
+
+    y_0 : float, optional
+        Position of the peak along the y axis.
+
+    x_fwhm : float, optional
         Full-Width at Half-Maximum of profile in x
-    fwhm_y : float
+
+    y_fwhm : float, optional
         Full-Width at Half-Maximum of profile in y
-    beta : float
+
+    beta : float, optional
         Beta parameter of Moffat profile
-    flux : float (default 1)
-        Total integrated flux over the entire PSF
-    x_0 : float (default 0)
-        Position of peak in x direction
-    y_0 : float (default 0)
-        Position of peak in y direction
+
+    theta : float, optional
+        The counterclockwise rotation angle either as a float (in
+        degrees) or a `~astropy.units.Quantity` angle (optional).
+
+    bbox_factor : float, optional
+        The multiple of the FWHM used to define the bounding box limits.
 
     Notes
     -----
     This model is evaluated according to the following formula:
 
         .. math::
-            f(x, y) = F [1 + ((x-x_o)/\alpha_x)**2 + ((y-y_o)/\alpha_y)**2]**(-beta)
+            f(x, y) =  F \frac{beta - 1}{\pi \alpha^2}
+                \left[1 + a(x-x_0)**2 + +b(x-x_0)(y-y_0) + c(y-y_0)**2 \right]**(-beta)
 
-    where ``F`` is the total integrated flux, and ``alpha_i`` is chosen
-    so the profile has the appropriate FWHM.
+    where :math:`F` is the total integrated flux, :math:`(x_{0},
+    y_{0})` is the position of the peak. Note that :math:`beta` must be
+    greater than 1.
+
+    The parameters :math:`a`, :math:`b` and :math:`c` are given by:
+
+        .. math::
+            a = \cos(\theta)^2 / \alpha_x^2 + \sin(\theta)^2 / \alpha_y^2
+            b = \sin(2\theta) / \alpha_x^2 - \sin(2\theta) / \alpha_y^2
+            c = \sin(\theta)^2 / \alpha_x^2 + \cos(\theta)^2 / \alpha_y^2
+
+    where :math:`\alpha_x` and :math:`\alpha_y` are chosen to given the correct
+    FWHM in the x and y directions respectively. :math:`\theta` is the anti-clockwise
+    rotation of the PSF. :math:`alpha` is the geometric mean of :math:`\alpha_x` and
+    :math:`\alpha_y`. The FWHM of the Moffat profile is given by:
+
+    .. math::
+
+        \rm{FWHM} = 2 \alpha \sqrt{2^{1 / beta} - 1}
+
+    The model is normalized such that, for :math:`beta > 1`:
+
+    .. math::
+
+        \int_{-\infty}^{\infty} \int_{-\infty}^{\infty} f(x, y)
+            \,dx \,dy = F
     """
 
     flux = Parameter(default=1)
     x_0 = Parameter(default=0)
     y_0 = Parameter(default=0)
-    beta = Parameter(default=2.5, fixed=False)
-    fwhm_x = Parameter(default=12, fixed=False)
-    fwhm_y = Parameter(default=12, fixed=False)
+    x_fwhm = Parameter(default=12, bounds=(FLOAT_EPSILON, None), fixed=False)
+    y_fwhm = Parameter(default=12, bounds=(FLOAT_EPSILON, None), fixed=False)
+    beta = Parameter(default=2.5, bounds=(1.0, None), fixed=False)
+    theta = Parameter(default=0, bounds=(-90, 90), fixed=False)
 
-    fit_deriv = None
+    def __init__(
+        self,
+        *,
+        flux=flux.default,
+        x_0=x_0.default,
+        y_0=y_0.default,
+        x_fwhm=x_fwhm.default,
+        y_fwhm=y_fwhm.default,
+        beta=beta.default,
+        theta=theta.default,
+        bbox_factor=15.5,
+        **kwargs,
+    ):
+        super().__init__(
+            flux=flux,
+            x_0=x_0,
+            y_0=y_0,
+            x_fwhm=x_fwhm,
+            y_fwhm=y_fwhm,
+            beta=beta,
+            theta=theta,
+            **kwargs,
+        )
+        self.bbox_factor = bbox_factor
 
     @property
     def fwhm(self):
-        return u.Quantity(0.5 * (self.fwhm_x + self.fwhm_y))
+        return u.Quantity(0.5 * (self.x_fwhm + self.y_fwhm))
+
+    def _calc_bounding_box(self, factor=5.5):
+        """
+        Calculate a bounding box defining the limits of the model.
+
+        The limits are adjusted for rotation.
+
+        Parameters
+        ----------
+        factor : float, optional
+            The multiple of the x and y standard deviations (sigma) used
+            to define the limits.
+
+        Returns
+        -------
+        bbox : tuple
+            A bounding box defining the ((y_min, y_max), (x_min, x_max))
+            limits of the model.
+        """
+        a = factor * self.x_fwhm * GAUSSIAN_FWHM_TO_SIGMA
+        b = factor * self.y_fwhm * GAUSSIAN_FWHM_TO_SIGMA
+        theta = self.theta
+        if not isinstance(theta, u.Quantity):
+            theta = np.deg2rad(theta)
+
+        dx, dy = ellipse_extent(a, b, theta)
+        return ((self.y_0 - dy, self.y_0 + dy), (self.x_0 - dx, self.x_0 + dx))
 
     @property
     def bounding_box(self):
-        halfwidth = 3 * self.fwhm
-        return (
-            (int(self.y_0 - halfwidth), int(self.y_0 + halfwidth)),
-            (int(self.x_0 - halfwidth), int(self.x_0 + halfwidth)),
+        """
+        The bounding box of the model.
+
+        Examples
+        --------
+        >>> from hipercam.psf_reduction import MoffatPSF
+        >>> model = MoffatPSF(x_0=0, y_0=0, x_fwhm=5, y_fwhm=3, theta=20)
+        >>> model.bounding_box  # doctest: +FLOAT_CMP
+        ModelBoundingBox(
+            intervals={
+                x: Interval(lower=-11.232523683597986, upper=11.232523683597986)
+                y: Interval(lower=-7.701096862895421, upper=7.701096862895421)
+            }
+            model=MoffatPSF(inputs=('x', 'y'))
+            order='C'
+        )
+        >>> model.bbox_factor = 7
+        >>> model.bounding_box  # doctest: +FLOAT_CMP
+        ModelBoundingBox(
+            intervals={
+                x: Interval(lower=-14.295939233670163, upper=14.295939233670163)
+                y: Interval(lower=-9.801396007321445, upper=9.801396007321445)
+            }
+            model=MoffatPSF(inputs=('x', 'y'))
+            order='C'
+        )
+        """
+        return self._calc_bounding_box(factor=self.bbox_factor)
+
+    def evaluate(self, x, y, flux, x_0, y_0, x_fwhm, y_fwhm, beta, theta):
+        """
+        Calculate the value of the 2D Moffat model at the input
+        coordinates for the given model parameters.
+
+        Parameters
+        ----------
+        x, y : float or array_like
+            The x and y coordinates at which to evaluate the model.
+
+        flux : float
+            Total integrated flux over the entire PSF.
+
+        x_0, y_0 : float
+            Position of the peak along the x and y axes.
+
+        x_fwhm, y_fwhm : float
+            FWHM of the Gaussian along the x and y axes.
+
+        beta : float, optional
+            Beta parameter of Moffat profile
+
+        theta : float
+            The counterclockwise rotation angle either as a float (in
+            degrees) or a `~astropy.units.Quantity` angle (optional).
+
+        Returns
+        -------
+        result : `~numpy.ndarray`
+            The value of the model evaluated at the input coordinates.
+        """
+        # find useful derived properties of theta
+        if not isinstance(theta, u.Quantity):
+            theta = np.deg2rad(theta)
+        cost2 = np.cos(theta) ** 2
+        sint2 = np.sin(theta) ** 2
+        sin2t = np.sin(2.0 * theta)
+
+        # alpha_sq terms for x and y
+        alpha_sq_x = x_fwhm**2 / 4 / (2 ** (1 / beta) - 1)
+        alpha_sq_y = y_fwhm**2 / 4 / (2 ** (1 / beta) - 1)
+
+        # terms a, b, c
+        a = cost2 / alpha_sq_x + sint2 / alpha_sq_y
+        b = sin2t / alpha_sq_x - sin2t / alpha_sq_y
+        c = sint2 / alpha_sq_x + cost2 / alpha_sq_y
+        x_term = a * (x - x_0) ** 2
+        xy_term = b * (x - x_0) * (y - y_0)
+        y_term = c * (y - y_0) ** 2
+        profile = (1 + x_term + y_term + xy_term) ** (-beta)
+        normalisation = (beta - 1) / np.pi / np.sqrt(alpha_sq_x * alpha_sq_y)
+        return normalisation * flux * profile
+
+    @staticmethod
+    def fit_deriv(x, y, flux, x_0, y_0, x_fwhm, y_fwhm, beta, theta):
+        """
+        Calculate the partial derivatives of the 2D Moffat function
+        with respect to the parameters.
+
+        Parameters
+        ----------
+        x, y : float or array_like
+            The x and y coordinates at which to evaluate the model.
+
+        flux : float
+            Total integrated flux over the entire PSF.
+
+        x_0, y_0 : float
+            Position of the peak along the x and y axes.
+
+        x_fwhm, y_fwhm : float
+            FWHM of the Gaussian along the x and y axes.
+
+        beta : float, optional
+            Beta parameter of Moffat profile
+
+        theta : float
+            The counterclockwise rotation angle either as a float (in
+            degrees) or a `~astropy.units.Quantity` angle (optional).
+
+        Returns
+        -------
+        result : list of `~numpy.ndarray`
+            The list of partial derivatives with respect to each
+            parameter.
+        """
+        if not isinstance(theta, u.Quantity):
+            theta = np.deg2rad(theta)
+        else:
+            theta = theta.to_value(u.rad)
+
+        alpha_sq_x = x_fwhm**2 / 4 / (2 ** (1 / beta) - 1)
+        alpha_sq_y = y_fwhm**2 / 4 / (2 ** (1 / beta) - 1)
+        alpha_x = np.sqrt(alpha_sq_x)
+        alpha_y = np.sqrt(alpha_sq_y)
+
+        x1 = beta - 1
+        x2 = 1 / np.pi
+        x3 = 1 / alpha_x
+        x4 = 1 / alpha_y
+        x5 = x - x_0
+        x6 = x5**2
+        x7 = alpha_x ** (-2)
+        x8 = np.cos(theta)
+        x9 = x8**2
+        x10 = alpha_y ** (-2)
+        x11 = np.sin(theta)
+        x12 = x11**2
+        x13 = x10 * x12 + x7 * x9
+        x14 = y - y_0
+        x15 = x14**2
+        x16 = x10 * x9 + x12 * x7
+        x17 = 2 * theta
+        x18 = np.sin(x17)
+        x19 = -x10 * x18 + x18 * x7
+        x20 = x14 * x19
+        x21 = x13 * x6 + x15 * x16 + x20 * x5 + 1
+        x22 = x21 ** (-beta)
+        x23 = x1 * x2 * x22 * x3 * x4
+        x24 = 1 / x21
+        x25 = 2 / alpha_x**3
+        x26 = x14 * x5
+        x27 = alpha_y ** (-3)
+        x28 = 2 * x27
+        x29 = 2 * x11 * x8
+        x30 = x10 * x29 - x29 * x7
+        x31 = np.cos(x17)
+
+        dg_dflux = x23
+        dg_dx_0 = -flux * beta * x23 * x24 * (x13 * (-2 * x + 2 * x_0) - x20)
+        dg_dy_0 = -flux * beta * x23 * x24 * (x16 * (-2 * y + 2 * y_0) - x19 * x5)
+        dg_dalpha_x = (
+            -flux
+            * beta
+            * x23
+            * x24
+            * (-x12 * x15 * x25 - x18 * x25 * x26 - x25 * x6 * x9)
+            - flux * x1 * x2 * x22 * x4 * x7
+        )
+        dg_dalpha_y = (
+            -flux
+            * beta
+            * x23
+            * x24
+            * (-x12 * x28 * x6 + 2 * x14 * x18 * x27 * x5 - x15 * x28 * x9)
+            - flux * x1 * x10 * x2 * x22 * x3
+        )
+        partial_dg_dbeta = flux * x2 * x22 * x3 * x4 - flux * x23 * np.log(x21)
+        dg_dtheta = (
+            (
+                -flux
+                * beta
+                * x23
+                * x24
+                * (-x15 * x30 + x26 * (-2 * x10 * x31 + 2 * x31 * x7) + x30 * x6)
+            )
+            * np.pi
+            / 180
         )
 
-    def evaluate(self, x, y, flux, x_0, y_0, beta, fwhm_x, fwhm_y):
-        alpha_sq_x = fwhm_x**2 / 4 / (2 ** (1 / beta) - 1)
-        alpha_sq_y = fwhm_y**2 / 4 / (2 ** (1 / beta) - 1)
-        x_term = (x - x_0) ** 2 / alpha_sq_x
-        y_term = (y - y_0) ** 2 / alpha_sq_y
-        prof = flux / (1 + x_term + y_term) ** beta
-        return (beta - 1) * prof / np.pi / np.sqrt(alpha_sq_x * alpha_sq_y)
+        # jacobians
+        dg_dx_fwhm = alpha_x * dg_dalpha_x / x_fwhm
+        dg_dy_fwhm = alpha_y * dg_dalpha_y / y_fwhm
+        dalpha_x_dbeta = (
+            2 ** (1 / beta) * np.sqrt(x_fwhm**2 / (2 ** (1 / beta) - 1)) * np.log(2)
+        )
+        dalpha_x_dbeta /= 4 * beta**2 * (2 ** (1 / beta) - 1)
+        dalpha_y_dbeta = (
+            2 ** (1 / beta) * np.sqrt(y_fwhm**2 / (2 ** (1 / beta) - 1)) * np.log(2)
+        )
+        dalpha_y_dbeta /= 4 * beta**2 * (2 ** (1 / beta) - 1)
+        dg_dbeta = (
+            partial_dg_dbeta
+            + dg_dalpha_x * dalpha_x_dbeta
+            + dg_dalpha_y * dalpha_y_dbeta
+        )
+
+        return dg_dflux, dg_dx_0, dg_dy_0, dg_dx_fwhm, dg_dy_fwhm, dg_dbeta, dg_dtheta
+
+
+def create_psf_model(photom_results, method, fixed_positions=False):
+    if method == "moffat":
+        psf_model = MoffatPSF(flux=1)
+        for param in ["x_fwhm", "y_fwhm", "theta", "beta"]:
+            colname = param + "_fit"
+            if colname in photom_results.colnames:
+                setattr(psf_model, param, np.median(photom_results[colname]))
+        psf_model.beta.fixed = True
+    else:
+        psf_model = GaussianPRF(flux=1)
+        for param in ["x_fwhm", "y_fwhm", "theta"]:
+            colname = param + "_fit"
+            if colname in photom_results.colnames:
+                setattr(psf_model, param, np.median(photom_results[colname]))
+
+    if fixed_positions:
+        psf_model.x_0.fixed = True
+        psf_model.y_0.fixed = True
+
+    psf_model.x_fwhm.fixed = True
+    psf_model.y_fwhm.fixed = True
+    psf_model.theta.fixed = True
+    return psf_model
 
 
 def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
@@ -313,6 +525,43 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                 "cmax": 0,
             }
             return results
+
+    # we need at least one reference aperture to proceed
+    nref = sum(1 for ap in ccdaper.values() if ap.ref)
+    if nref == 0:
+        print(
+            (
+                " *** WARNING: CCD {:s}: no reference apertures"
+                " defined within window; no extraction possible"
+            ).format(cnam)
+        )
+
+        # set flag to indicate no extraction
+        flag = hcam.NO_EXTRACTION
+
+        # return empty results
+        for apnam, aper in ccdaper.items():
+            info = store[apnam]
+            results[apnam] = {
+                "x": aper.x,
+                "xe": info["xe"],
+                "y": aper.y,
+                "ye": info["ye"],
+                "fwhm": info["fwhm"],
+                "fwhme": info["fwhme"],
+                "beta": info["beta"],
+                "betae": info["betae"],
+                "counts": 0.0,
+                "countse": -1,
+                "sky": 0.0,
+                "skye": 0.0,
+                "nsky": 0,
+                "nrej": 0,
+                "flag": flag,
+                "cmax": 0,
+            }
+            return results
+
     wnam = wnames.pop()
 
     # PSF params are in binned pixels, so find binning
@@ -323,21 +572,24 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     if method == "moffat":
         # fix beta if initial aperture tweak used Gaussian profiles
         beta = mbeta if mbeta > 0.0 else 2.5
-        psf_model = MoffatPSF(beta=beta, fwhm_x=mfwhm / bin_fac, fwhm_y=mfwhm / bin_fac)
-        # TODO: adjust psf_model based on reference stars
-        psf_model.fwhm_x.fixed = True
-        psf_model.fwhm_y.fixed = True
-        psf_model.beta.fixed = True
-        extra_output_cols = ["fwhm_x", "fwhm_y"]
+        psf_model = MoffatPSF(beta=beta, x_fwhm=mfwhm / bin_fac, y_fwhm=mfwhm / bin_fac)
+        # let the shape vary when we constrain psf_model based on reference stars
+        psf_model.x_fwhm.fixed = False
+        psf_model.y_fwhm.fixed = False
+        psf_model.beta.fixed = False
+        psf_model.theta.fixed = False
+        psf_model.theta.bounds = (-90, 90)
     else:
-        psf_model = IntegratedGaussianPRF2(
-            sigma_x=mfwhm * gaussian_fwhm_to_sigma / bin_fac,
-            sigma_y=mfwhm * gaussian_fwhm_to_sigma / bin_fac,
+        psf_model = GaussianPRF(
+            x_fwhm=mfwhm / bin_fac,
+            y_fwhm=mfwhm / bin_fac,
+            theta=0.0,
         )
-        # TODO: adjust psf model based on reference stars
-        psf_model.sigma_x.fixed = True
-        psf_model.sigma_y.fixed = True
-        extra_output_cols = ["sigma_x", "sigma_y"]
+        # let the shape vary when we constrain psf_model based on reference stars
+        psf_model.x_fwhm.fixed = False
+        psf_model.y_fwhm.fixed = False
+        psf_model.theta.fixed = False
+        psf_model.theta.bounds = (-90, 90)
 
     # force photometry only at aperture positions
     # this means PSF shape and positions are fixed, we are only fitting flux
@@ -345,30 +597,15 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
         psf_model.x_0.fixed = True
         psf_model.y_0.fixed = True
 
-    # create instances for PSF photometry
-    gfac = float(rfile["psf_photom"]["gfac"])
-    sclip = float(rfile["sky"]["thresh"])
-    daogroup = DAOGroup(gfac * mfwhm / bin_fac)
-    mmm_bkg = MMMBackground(sigma_clip=SigmaClip(sclip))
-    fitter = LevMarLSQFitter()
-    fitshape_box_size = int(2 * int(float(rfile["psf_photom"]["fit_half_width"])) + 1)
-    fitshape = (fitshape_box_size, fitshape_box_size)
-
-    photometry_task = BasicPSFPhotometry(
-        group_maker=daogroup,
-        bkg_estimator=mmm_bkg,
-        psf_model=psf_model,
-        fitter=fitter,
-        fitshape=fitshape,
-        extra_output_cols=extra_output_cols,
-    )
-
     # initialise flag
     flag = hcam.ALL_OK
 
     # extract Windows relevant for these apertures
     wdata = ccd[wnam]
     wraw = rccd[wnam]
+    wbias = bccd[wnam]
+    wread = read[wnam]
+    wgain = gain[wnam]
 
     # extract sub-windows that include all of the apertures, plus a little
     # extra around the edges.
@@ -378,18 +615,74 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
     y2 = max([ap.y + ap.rsky2 + wdata.ybin for ap in ccdaper.values()])
 
     # extract sub-Windows
-    swdata = wdata.window(x1, x2, y1, y2)
-    swraw = wraw.window(x1, x2, y1, y2)
+    box_limits = (x1, x2, y1, y2)
+    swdata = wdata.window(*box_limits)
+    swraw = wraw.window(*box_limits)
+    swbias = wbias.window(*box_limits)
+    swread = wread.window(*box_limits)
+    swgain = wgain.window(*box_limits)
 
-    # compute pixel positions of apertures in windows
+    # This is where the pure-debiassed data are used
+    sigma = np.sqrt(swread.data**2 + np.maximum(0, swbias.data) / swgain.data)
+
+    # compute pixel positions of apertures in windows (twice, once for reference aps only)
     xpos, ypos = zip(
         *((swdata.x_pixel(ap.x), swdata.y_pixel(ap.y)) for ap in ccdaper.values())
     )
-    positions = Table(names=["x_0", "y_0"], data=(xpos, ypos))
+    xpos = np.array(xpos)
+    ypos = np.array(ypos)
 
+    positions = Table(names=["x_0", "y_0"], data=(xpos, ypos))
+    # and positions of PSF stars in the sub-window
+    ref_idx = [i for i, ap in enumerate(ccdaper.values()) if ap.ref]
+    psf_positions = Table(names=["x_0", "y_0"], data=(xpos[ref_idx], ypos[ref_idx]))
+    # assign all PSF stars to the same group, so the same PSF params are used for all
+    psf_positions["id"] = 1
+
+    # create instances for PSF photometry
+    sclip = float(rfile["sky"]["thresh"])
+    bkg = LocalBackground(
+        rfile["extraction"][cnam][7],  # inner sky
+        rfile["extraction"][cnam][10],  # outer sky
+        bkg_estimator=MedianBackground(sigma_clip=SigmaClip(sclip)),
+    )
+    fitshape_box_size = int(2 * int(float(rfile["psf_photom"]["fit_half_width"])) + 1)
+    fit_shape = (fitshape_box_size, fitshape_box_size)
+
+    # aperture radius is only used to guess initial flux
+    aperture_radius = 0.5 * (
+        rfile["extraction"][cnam][3] + rfile["extraction"][cnam][4]
+    )
+
+    photometry_task = PSFPhotometry(
+        psf_model=psf_model,
+        aperture_radius=aperture_radius,
+        fit_shape=fit_shape,
+        localbkg_estimator=bkg,
+        xy_bounds=rfile["apertures"]["fit_max_shift"],
+    )
     # do the PSF photometry
-    photom_results = photometry_task(swdata.data, init_guesses=positions)
-    slevel = mmm_bkg(swdata.data)
+    photom_results = photometry_task(
+        swdata.data, error=sigma, init_params=psf_positions
+    )
+
+    # now create the PSF model from fitting the reference stars
+    psf_model = create_psf_model(
+        photom_results, method, rfile["psf_photom"]["positions"] == "fixed"
+    )
+
+    # re-do the PSF photometry with the fixed PSF shape and all stars
+    photometry_task = PSFPhotometry(
+        psf_model=psf_model,
+        aperture_radius=aperture_radius,
+        fit_shape=fit_shape,
+        localbkg_estimator=bkg,
+        xy_bounds=rfile["apertures"]["fit_max_shift"],
+    )
+    photom_results = photometry_task(swdata.data, error=sigma, init_params=positions)
+
+    # store PSF task and settings for display by external routines
+    store[f"psf_model_{cnam}"] = (photometry_task, wnam, box_limits)
 
     # unpack the results and check apertures
     for apnam, aper in ccdaper.items():
@@ -409,7 +702,10 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                     "ambiguous lookup for this aperture in PSF photometry"
                 )
             else:
+                # USE PSF PHOTOMETRY FLAGS TO SET EXTRACTION FLAG
                 result_row = result_row[0]
+                if result_row['flags'] > 0:
+                    flag |= hcam.NO_EXTRACTION
 
             # compute X, Y arrays over the sub-window relative to the centre
             # of the aperture and the distance squared from the centre (Rsq)
@@ -445,11 +741,20 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
 
             counts = result_row["flux_fit"]
             try:
-                countse = result_row["flux_unc"]
+                countse = result_row["flux_err"]
             except KeyError:
                 raise hcam.HipercamError(
                     "unable to find errors on solution, model does not depend on params"
                 )
+            slevel = result_row["local_bkg"]
+
+            # check flags from PSF photom
+            if result_row["flags"] == 2:
+                flag = hcam.TARGET_AT_EDGE
+            elif result_row["flags"] > 8:
+                # fit failed
+                flag = hcam.NO_EXTRACTION
+
             info = store[apnam]
 
             results[apnam] = {
