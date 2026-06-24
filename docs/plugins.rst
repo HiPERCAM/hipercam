@@ -241,6 +241,7 @@ In addition to this, any other FITS keywords may be included as desired.
 
 Example::
 
+    from astropy.io import fits
     thead = fits.Header()
     thead['INSTRUME'] = ('myinstrument', 'Instrument name')
     thead['TIMSTAMP'] = (fhead['DATE-OBS'], 'UTC timestamp')
