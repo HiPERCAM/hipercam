@@ -32,7 +32,7 @@ Name                        Purpose
 ==========================  ===========================================================
 ``Rdata``                   Data-reading class (iterable context manager)
 ``supports_server_access``  Boolean indicating if server access is supported
-``get_ccd_pars``            Function returning CCD geometry as an ``OrderedDict``
+``get_ccd_pars``            Function returning CCD geometry as an ``dict``
 ==========================  ===========================================================
 
 For a local-only plugin (i.e. one that does not support reading from a
@@ -214,13 +214,14 @@ of the CCD.
 
 It is assembled from the inside out::
 
-    `~hipercam.header.Header`  →  Winhead  →  Window  →  CCD  →  MCCD
+    Header  →  Winhead  →  Window  →  CCD  →  MCCD
 
 Top-level header
 ----------------
 
-The top-level header of the :class:`~hipercam.MCCD` is an
-``hipercam.header.Header`` or ``~astropy.io.fits.Header`` object.  
+The top-level header of the :class:`~hipercam.MCCD` is a
+:class:`hipercam.Header` object, which itself is a lightweight version of an
+`Astropy FITS Header <https://docs.astropy.org/en/stable/io/fits/usage/headers.html>`. 
 The pipeline requires the following keywords to be present:
 
 =============  ======  =======================================================
@@ -261,8 +262,10 @@ Per-CCD header
 There is no separate header object for a :class:`~hipercam.CCD`.  Instead,
 CCD-level information — in particular per-CCD timing data — is stored in the
 header of the **first** :class:`~hipercam.Window` in that CCD.  This header is
-a :class:`hipercam.Header` object (a lightweight FITS-compatible header class)
-and must carry the same timing keywords as the top-level header:
+a :class:`hipercam.Header` object (a lightweight FITS-compatible header class).
+Whilst the api of :class:`hipercam.Header` is similar to that of an Astropy FITS Header, 
+it is much more efficient and so we use it at the CCD/Window level for speed.
+The CCD/Window level header must carry the same timing keywords as the top-level header:
 
 =============  ===============================================================
 Keyword        Description
@@ -326,12 +329,14 @@ Building CCD and MCCD
 
 A :class:`~hipercam.CCD` is assembled from one or more :class:`~hipercam.Window` 
 objects. The :class:`~hipercam.Group` object is a simple wrapper around
-an ``OrderedDict`` that we can use to create a group of windows::
+an ``dict`` that we can use to create a group of windows::
 
     from hipercam import Group, CCD
 
+    # create an empty Window Group
+    winds = Group(Window)
     # CCD with total size 1024x1024, no pre/over-scan
-    ccd_obj = CCD(Group(Window), nxtot=1024, nytot=1024, nxpad=0, nypad=0)
+    ccd = CCD(winds, nxtot=1024, nytot=1024, nxpad=0, nypad=0)
     # add the single window to the CCD with label '1'
     ccd['1'] = win
 
@@ -340,7 +345,7 @@ Finally we can create a group of one or more CCDs and use it to construct the
 
     ccds = Group(CCD)
     # add the single CCD to the group with label '1'
-    ccds['1'] = ccd_obj
+    ccds['1'] = ccd
     mccd = MCCD(ccds, head=thead)
     return mccd
 
@@ -404,8 +409,7 @@ Implementing get_ccd_pars
 
 :func:`get_ccd_pars` is called by the pipeline to determine CCD geometry
 before any frames are read (for example, to set up display windows).  It must
-return an :class:`~collections.OrderedDict` mapping each CCD label to a
-4-tuple ``(nxmax, nymax, nxpad, nypad)``:
+return a dictionary mapping each CCD label to a 4-tuple ``(nxmax, nymax, nxpad, nypad)``:
 
 ==========  =====================================================================
 Value       Meaning
@@ -417,8 +421,6 @@ Value       Meaning
 ==========  =====================================================================
 
 For ``myinstrument`` with its single 1024x1024 CCD and no scan regions::
-
-    from collections import OrderedDict
 
     def get_ccd_pars(resource, server=False):
         """Return CCD geometry for myinstrument.
@@ -432,7 +434,7 @@ For ``myinstrument`` with its single 1024x1024 CCD and no scan regions::
               Unused; present for API compatibility.
 
         """
-        return OrderedDict([('1', (1024, 1024, 0, 0))])
+        return {'1': (1024, 1024, 0, 0)}
 
 Using the plugin
 ================
@@ -452,7 +454,7 @@ scripts. For API use, the plugin is accessed with the
 
     # Query CCD geometry
     pars = get_ccd_pars('myinstrument:local', 'run001')
-    # returns OrderedDict([('1', (1024, 1024, 0, 0))])
+    # returns {'1': (1024, 1024, 0, 0)}
 
 Complete example
 ================
@@ -483,8 +485,6 @@ full-frame 1024×1024 data in multi-extension FITS format.
                 ...
 
     """
-
-    from collections import OrderedDict
 
     import numpy as np
     from astropy.io import fits as fits
@@ -627,7 +627,7 @@ full-frame 1024×1024 data in multi-extension FITS format.
            server : bool
               Unused; present for API compatibility.
 
-        Returns an :class:`~collections.OrderedDict` mapping CCD label
+        Returns a dictionary mapping CCD label
         ``'1'`` to ``(nxmax, nymax, nxpad, nypad)`` = ``(1024, 1024, 0, 0)``.
         """
-        return OrderedDict([('1', (1024, 1024, 0, 0))])
+        return {'1': (1024, 1024, 0, 0)}
