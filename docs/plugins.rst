@@ -111,7 +111,7 @@ Implementing Rdata
 ``Rdata`` is the central class.  The pipeline expect an initialiser with 
 the signature below::
 
-    Rdata(run, nframe, server, **kwargs)
+    Rdata(fname, nframe, server, **kwargs)
 
 where ``nframe`` (1-based) is the first frame to read and ``server`` indicates
 if the data should be read from a remote server or a local file.  The ``server``
@@ -137,14 +137,14 @@ stores the file handle and total number of frames as instance attributes.  The
     class Rdata(RdataBase):
         """Reads frames from a myinstrument raw data file."""
 
-        def __init__(self, run, nframe=1, server=False, **kwargs):
+        def __init__(self, fname, nframe=1, server=False, **kwargs):
             if server:
                 raise NotImplementedError(
                     "myinstrument plugin does not support server access"
                 )
-            if not run.endswith(".fits"):
-                run += ".fits"
-            self._fname = run
+            if not fname.endswith(".fits"):
+                fname += ".fits"
+            self._fname = fname
             self._hdul  = fits.open(self._fname, memmap=True)
             # HDU 0 is header-only; frames start at HDU index 1
             self._ntotal = len(self._hdul) - 1
@@ -442,7 +442,7 @@ scripts. For API use, the plugin is accessed with the
 
     from hipercam.spooler import data_source, get_ccd_pars
 
-    # Iterate through all frames in a run file
+    # Iterate through all frames in a file
     with data_source('myinstrument:local', 'run001', first=1) as spool:
         for mccd in spool:
             # mccd is a hipercam.MCCD object
@@ -498,7 +498,7 @@ full-frame 1024×1024 data in multi-extension FITS format.
     supports_server_access = False
 
     class Rdata(RdataBase):
-        """Reads frames from a myinstrument run file.
+        """Reads frames from a myinstrument data file.
 
         Usage::
 
@@ -508,12 +508,12 @@ full-frame 1024×1024 data in multi-extension FITS format.
 
         """
 
-        def __init__(self, run, nframe=1, server=False, **kwargs):
+        def __init__(self, fname, nframe=1, server=False, **kwargs):
             if server:
                 raise NotImplementedError(
                     "myinstrument plugin does not support server access"
                 )
-            self._fname  = run + ".fits"
+            self._fname  = fname + ".fits"
             self._hdul   = fits.open(self._fname, memmap=True)
             self._ntotal = len(self._hdul) - 1
             self.nframe  = nframe
@@ -621,7 +621,7 @@ full-frame 1024×1024 data in multi-extension FITS format.
         Arguments::
 
            resource : str
-              Run name.  Not used; myinstrument has fixed geometry.
+              File name.  Not used; myinstrument has fixed geometry.
 
            server : bool
               Unused; present for API compatibility.
