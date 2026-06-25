@@ -420,6 +420,16 @@ Value       Meaning
 ``nypad``   Extra Y pixels to allow for pre/over-scan regions (0 if none)
 ==========  =====================================================================
 
+`get_ccd_pars` is called with ``resource`` and ``server`` arguments, referring to
+the data resource (e.g. filename) and whether it is accessed via a server. This
+allows one, in principle, to read the underlying data to determine the CCD geometry.
+For many instruments this won't be necessary, as the CCD geometry is fixed and can be
+hard-coded. 
+
+The ``resource`` and ``server`` arguments are present for flexibility. For example, if
+at some point you upgrade the detectors on your instrument you can use these arguments to
+read in the header of the first frame and determine which CCD geometry to return.
+
 For ``myinstrument`` with its single 1024x1024 CCD and no scan regions::
 
     def get_ccd_pars(resource, server=False):
