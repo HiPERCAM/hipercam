@@ -11,6 +11,7 @@ from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.instruments import available_instruments
 
 HAS_REPROJECT = True
 try:
@@ -128,7 +129,7 @@ def shiftadd(args=None):
     Parameters:
 
         source : str [hidden]
-           Data source, five options:
+           Data source, five options for built-in sources:
 
               | 'hs' : HiPERCAM server
               | 'hl' : local HiPERCAM FITS file
@@ -143,6 +144,9 @@ def shiftadd(args=None):
            :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
            always started with the ULTRACAM server by default. If
            unspecified, it defaults to 'hl'.
+
+           Any instruments installed via plugins can be used as a source by
+           specifying either ``<instrument>:local`` or ``<instrument>:server``.
 
         run : str [if source ends 's' or 'l']
            run number to access, e.g. 'run034'
@@ -288,9 +292,9 @@ def shiftadd(args=None):
         default_source = os.environ.get("HIPERCAM_DEFAULT_SOURCE", "hl")
         source = cl.get_value(
             "source",
-            "data source [hs, hl, us, ul, hf]",
+            "data source [hs, hl, us, ul, hf, or <instrument>:local/<instrument>:server]",
             default_source,
-            lvals=("hs", "hl", "us", "ul", "hf"),
+            lvals=available_instruments(),
         )
         # set a flag
         server_or_local = source.endswith("s") or source.endswith("l")

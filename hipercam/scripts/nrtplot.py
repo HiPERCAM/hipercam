@@ -22,6 +22,7 @@ import hipercam as hcam
 from hipercam.ccd import crop_calib_frame_to
 from hipercam import defect, fringe, mpl, spooler
 from hipercam.mpl import Params
+from hipercam.instruments import available_instruments
 
 try:
     import lacosmic
@@ -92,7 +93,7 @@ def nrtplot(args=None):
     Parameters:
 
         source : str [hidden]
-           Data source, five options:
+           Data source, five options for built-in sources:
 
              |  'hs' : HiPERCAM server
              |  'hl' : local HiPERCAM FITS file
@@ -108,13 +109,16 @@ def nrtplot(args=None):
            always started with the ULTRACAM server by default. If
            unspecified, it defaults to 'hl'.
 
-        run : str [if source ends 's' or 'l']
+           Any instruments installed via plugins can be used as a source by
+           specifying either ``<instrument>:local`` or ``<instrument>:server``. 
+
+        run : str [if source is not 'hf']
            run number to access, e.g. 'run034'
 
-        flist : str [if source ends 'f']
+        flist : str [if source is 'hf']
            name of file list
 
-        first : int [if source ends 's' or 'l']
+        first : int [if source is not 'hf']
            exposure number to start from. 1 = first frame; set = 0 to always
            try to get the most recent frame (if it has changed).  For data
            from the |hiper| server, a negative number tries to get a frame not
@@ -122,10 +126,10 @@ def nrtplot(args=None):
            frame. This is mainly to sidestep a difficult bug with the
            acquisition system.
 
-        twait : float [if source ends 's' or 'l'; hidden]
+        twait : float [if source is not 'hf'; hidden]
            time to wait between attempts to find a new exposure, seconds.
 
-        tmax : float [if source ends 's' or 'l'; hidden]
+        tmax : float [if source is not 'hf'; hidden]
            maximum time to wait between attempts to find a new exposure,
            seconds.
 
@@ -494,9 +498,9 @@ def nrtplot(args=None):
         default_source = os.environ.get("HIPERCAM_DEFAULT_SOURCE", "hl")
         source = cl.get_value(
             "source",
-            "data source [hs, hl, us, ul, hf]",
+            "data source [hs, hl, us, ul, hf, or <instrument>:local/<instrument>:server]",
             default_source,
-            lvals=("hs", "hl", "us", "ul", "hf"),
+            lvals=available_instruments()
         )
 
         # set some flags
